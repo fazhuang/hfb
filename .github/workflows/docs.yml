@@ -1,0 +1,71 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - '*.md'
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Markdown files
+        uses: docker://ghcr.io/igorshubovych/markdownlint-cli:v0.44.0
+        with:
+          args: >
+            'docs/**/*.md'
+            '*.md'
+            'templates/**/*.md'
+            --disable=MD013
+            --disable=MD033
+            --disable=MD024
+
+  link-check:
+    name: Check Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'yes'
+          config-file: '.github/mlc_config.json'
+          check-modified-files-only: 'yes'
+          base-branch: main
+
+  doc-build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify documentation index
+        run: |
+          if [ -f docs/documentation-index.md ]; then
+            echo "✅ documentation-index.md exists"
+          else
+            echo "⚠️  documentation-index.md not found"
+          fi
+
+      - name: Count documentation files
+        run: |
+          echo "Total doc files:"
+          find docs -name "*.md" | wc -l
+          echo "Total ADR files:"
+          find docs/11-adr -name "*.md" 2>/dev/null | wc -l

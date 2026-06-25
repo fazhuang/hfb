@@ -1,0 +1,64 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        args: ['--unsafe']
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.0
+    hooks:
+      - id: ruff
+        args: ['check', '--fix']
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - pydantic>=2.0
+          - types-requests
+          - types-pyyaml
+        args: ['--config-file=pyproject.toml']
+        pass_filenames: true
+
+  - repo: https://github.com/python-poetry/poetry
+    rev: 2.1.0
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+        args: ['--no-update']
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.44.0
+    hooks:
+      - id: markdownlint
+        args:
+          - '--fix'
+          - '--disable=MD013'
+          - '--disable=MD033'
+          - '--disable=MD024'
+
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1-beta
+    hooks:
+      - id: hadolint
+        args: ['--failure-threshold=warning']
+
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks

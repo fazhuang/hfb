@@ -1,0 +1,16 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^http://localhost"
+    },
+    {
+      "pattern": "^https://github.com/huangfumi"
+    },
+    {
+      "pattern": "^#"
+    }
+  ],
+  "replacementPatterns": [],
+  "aliveStatusCodes": [200, 201, 204, 206, 301, 302, 303, 304],
+  "timeout": "20s"
+}

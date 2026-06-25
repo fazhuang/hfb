@@ -1,0 +1,68 @@
+# Auto detect text files and perform LF normalization
+* text=auto eol=lf
+
+# Python
+*.py text eol=lf
+*.py diff=python
+
+# JavaScript / TypeScript
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.vue text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+
+# Config files
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+# Markdown
+*.md text eol=lf
+*.mdx text eol=lf
+
+# Web
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# Shell
+*.sh text eol=lf
+*.bash text eol=lf
+Makefile text eol=lf
+
+# Docker
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+.env text eol=lf
+.env.* text eol=lf
+
+# CI
+.github/workflows/*.yml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar.gz binary
+*.ttf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Lock files — generated, treat as binary
+pnpm-lock.yaml binary
+poetry.lock binary
+uv.lock binary

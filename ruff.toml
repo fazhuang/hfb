@@ -1,0 +1,13 @@
+# ruff.toml — Ruff linter/formatter configuration
+# Extends [tool.ruff] from pyproject.toml
+
+[lint]
+# Per-file rule overrides
+[lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S301", "N802", "F811"]          # allow assert/fixture-naming/fixture-redef in tests
+"apps/backend/migrations/**/*.py" = ["F401", "F811"] # migrations have their own rules
+"scripts/**/*.py" = ["T201"]                          # allow print in scripts
+
+[format]
+# Additional format settings beyond pyproject.toml
+line-ending = "lf"

@@ -1,0 +1,194 @@
+import { defineStore } from 'pinia';
+import { ref, computed } from 'vue';
+import api from '@/api/client';
+import router from '@/router';
+
+// ------------------------------------------------------------------
+// Types
+// ------------------------------------------------------------------
+
+export interface UserBrief {
+  id: string;
+  username: string;
+  display_name: string | null;
+  affiliation: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface RoleBrief {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface CurrentUser {
+  id: string;
+  username: string;
+  email: string;
+  display_name: string | null;
+  affiliation: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+  roles: Array<RoleBrief>;
+  created_at: string | null;
+}
+
+export interface TokenPair {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+// ------------------------------------------------------------------
+// Store
+// ------------------------------------------------------------------
+
+export const useAuthStore = defineStore('auth', () => {
+  // State
+  const user = ref<CurrentUser | null>(null);
+  const accessToken = ref<string | null>(null);
+  const refreshToken = ref<string | null>(null);
+  const loading = ref(false);
+  const error = ref<string | null>(null);
+
+  // Getters
+  const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
+  const isAdmin = computed(() => user.value?.is_superuser ?? false);
+  const userName = computed(() => user.value?.display_name ?? user.value?.username ?? '');
+
+  // Helpers
+  function setTokens(access: string, refresh: string): void {
+    accessToken.value = access;
+    refreshToken.value = refresh;
+    localStorage.setItem('hfb-access-token', access);
+    localStorage.setItem('hfb-refresh-token', refresh);
+  }
+
+  function clearTokens(): void {
+    accessToken.value = null;
+    refreshToken.value = null;
+    localStorage.removeItem('hfb-access-token');
+    localStorage.removeItem('hfb-refresh-token');
+  }
+
+  function loadTokens(): void {
+    accessToken.value = localStorage.getItem('hfb-access-token');
+    refreshToken.value = localStorage.getItem('hfb-refresh-token');
+  }
+
+  function setAuthHeader(token: string | null): void {
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+  }
+
+  // Actions
+  async function login(username: string, password: string): Promise<boolean> {
+    loading.value = true;
+    error.value = null;
+    try {
+      const { data } = await api.post('/api/v1/auth/login', { username, password });
+      const body = data.data ?? data;
+      user.value = body.user;
+      setTokens(body.access_token, body.refresh_token);
+      setAuthHeader(body.access_token);
+      return true;
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      error.value = msg ?? (e as Error).message ?? 'Login failed';
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function register(
+    username: string,
+    email: string,
+    password: string,
+    displayName?: string,
+  ): Promise<boolean> {
+    loading.value = true;
+    error.value = null;
+    try {
+      await api.post('/api/v1/auth/register', {
+        username,
+        email,
+        password,
+        display_name: displayName,
+      });
+      return true;
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      error.value = msg ?? (e as Error).message ?? 'Registration failed';
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchMe(): Promise<boolean> {
+    if (!accessToken.value) return false;
+    loading.value = true;
+    try {
+      setAuthHeader(accessToken.value);
+      const { data } = await api.get('/api/v1/auth/me');
+      user.value = data.data as CurrentUser;
+      return true;
+    } catch {
+      // Token invalid or expired — try refresh
+      if (refreshToken.value) {
+        try {
+          const { data: r } = await api.post('/api/v1/auth/refresh', {
+            refresh_token: refreshToken.value,
+          });
+          const body = r.data ?? r;
+          setTokens(body.access_token, body.refresh_token);
+          setAuthHeader(body.access_token);
+          const { data: me } = await api.get('/api/v1/auth/me');
+          user.value = me.data as CurrentUser;
+          return true;
+        } catch {
+          logout();
+          return false;
+        }
+      }
+      logout();
+      return false;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  function logout(): void {
+    user.value = null;
+    clearTokens();
+    setAuthHeader(null);
+    router.push({ name: 'home' });
+  }
+
+  // Initialize from localStorage
+  loadTokens();
+  if (accessToken.value) {
+    setAuthHeader(accessToken.value);
+  }
+
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    loading,
+    error,
+    isAuthenticated,
+    isAdmin,
+    userName,
+    login,
+    register,
+    fetchMe,
+    logout,
+  };
+});

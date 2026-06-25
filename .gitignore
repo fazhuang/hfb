@@ -1,0 +1,118 @@
+# ============================================================
+# 皇甫谧数字人文平台 — .gitignore
+# ============================================================
+
+# --- OS Generated ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- IDE ---
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.vscode/settings.local.json
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+sdist/
+*.egg
+*.whl
+instance/
+.venv/
+venv/
+.uv/
+*.sage.py
+
+# --- Python test ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# --- Python type checking ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# --- Ruff ---
+.ruff_cache/
+
+# --- Node ---
+node_modules/
+.npm/
+.yarn/
+.pnpm-store/
+*.tsbuildinfo
+.next/
+.nuxt/
+.output/
+.docusaurus/
+
+# --- Backups ---
+backups/
+
+# --- Env files ---
+.env
+.env.local
+.env.*.local
+*.env.local
+
+# --- Docker ---
+.docker/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Temp ---
+tmp/
+temp/
+.tmp/
+*.tmp
+
+# --- Sensitive ---
+*.pem
+*.key
+*.crt
+credentials.json
+service-account.json
+
+# --- AI ---
+.claude/memory/
+.claude/plans/
+.claude/agent-*.jsonl
+.claude/worktrees/
+
+# --- Terraform ---
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+
+# --- Misc ---
+*.bak
+*.orig
+.cache/
+backups/
+.eslintcache

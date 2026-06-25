@@ -1,0 +1,135 @@
+{
+  "total_documents": {
+    "markdown": 52,
+    "json": 10,
+    "mermaid_diagrams": 6
+  },
+  "domains": {
+    "00-governance": {
+      "path": "docs/00-governance/",
+      "description": "项目章程与宪法",
+      "files": [
+        {"name": "00_Project_Charter.md", "status": "Draft", "version": "V0.1"},
+        {"name": "01_Project_Constitution.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "01-product": {
+      "path": "docs/01-product/",
+      "description": "产品路线图",
+      "files": [
+        {"name": "00_Product_Roadmap.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "02-architecture": {
+      "path": "docs/02-architecture/",
+      "description": "技术蓝图",
+      "files": [
+        {"name": "00_Technical_Blueprint.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "03-data": {
+      "path": "docs/03-data/",
+      "description": "数据标准与本体",
+      "files": [
+        {"name": "00_Data_Standard.md", "status": "Draft", "version": "V0.1"},
+        {"name": "01_Ontology_Specification.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "04-ai": {
+      "path": "docs/04-ai/",
+      "description": "AI 工程标准",
+      "files": [
+        {"name": "00_AI_Engineering_Standard.md", "status": "Draft", "version": "V0.1"},
+        {"name": "01_RAG_GraphRAG_Architecture.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "05-development": {
+      "path": "docs/05-development/",
+      "description": "开发规范",
+      "files": [
+        {"name": "00_Development_Specification.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "06-ui": {
+      "path": "docs/06-ui/",
+      "description": "设计系统",
+      "files": [
+        {"name": "00_Design_System.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "07-security": {
+      "path": "docs/07-security/",
+      "description": "验收规范",
+      "files": [
+        {"name": "00_Acceptance_Specification.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "08-sprints": {
+      "path": "docs/08-sprints/",
+      "description": "Sprint 管理",
+      "files": [
+        {"name": "README.md", "status": "Active", "version": "V0.1"}
+      ]
+    },
+    "09-prompts": {
+      "path": "docs/09-prompts/",
+      "description": "Prompt 工程",
+      "files": [
+        {"name": "README.md", "status": "Active", "version": "V0.1"},
+        {"name": "Claude_Sprint00_Docs_Foundation.md", "status": "Draft", "version": "V0.1"},
+        {"name": "Codex_Docs_Audit.md", "status": "Draft", "version": "V0.1"},
+        {"name": "Gemini_UI_Academic_Review.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "10-diagrams": {
+      "path": "docs/10-diagrams/",
+      "description": "Mermaid 图表",
+      "files": [
+        {"name": "00_System_Architecture.md", "status": "Draft", "version": "V0.1"},
+        {"name": "01_Database_ER.md", "status": "Draft", "version": "V0.1"}
+      ]
+    },
+    "11-adr": {
+      "path": "docs/11-adr/",
+      "description": "架构决策记录",
+      "files": [
+        {"name": "README.md", "status": "Active", "version": "1.0"},
+        {"name": "ADR-0001-FastAPI.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0002-Vue3.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0003-PostgreSQL.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0004-Neo4j.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0005-Elasticsearch.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0006-GraphRAG.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0007-Milvus.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0008-Docker.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0009-Monorepo.md", "status": "Accepted", "version": "1.0"},
+        {"name": "ADR-0010-AI-Native.md", "status": "Accepted", "version": "1.0"}
+      ]
+    },
+    "12-context": {
+      "path": "docs/12-context/",
+      "description": "AI 上下文包",
+      "sprints": 17
+    },
+    "13-machine": {
+      "path": "docs/13-machine/",
+      "description": "AI Machine Layer (JSON)",
+      "files": 10
+    },
+    "14-knowledge": {
+      "path": "docs/14-knowledge/",
+      "description": "领域知识包",
+      "domains": 8
+    },
+    "15-decision-tree": {
+      "path": "docs/15-decision-tree/",
+      "description": "决策树",
+      "files": 6
+    },
+    "templates": {
+      "path": "docs/templates/",
+      "description": "文档模板",
+      "files": 12
+    }
+  }
+}

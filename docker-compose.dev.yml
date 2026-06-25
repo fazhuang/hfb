@@ -1,0 +1,142 @@
+# ============================================================
+# Docker Compose — Development Environment (Sprint 1)
+# ============================================================
+
+services:
+  # --- Backend ---
+  backend:
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile.backend
+    container_name: hfb-backend-dev
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - .:/app
+      - /app/.venv
+    environment:
+      - ENVIRONMENT=development
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn apps.backend.main:app --host ${BACKEND_HOST:-0.0.0.0} --port ${BACKEND_PORT:-8000} --reload
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Frontend ---
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/dev/Dockerfile.frontend
+    container_name: hfb-frontend-dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000
+    depends_on:
+      - backend
+    command: pnpm --filter @hfb/frontend dev
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- PostgreSQL ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hfb-postgres-dev
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hfb}
+      POSTGRES_USER: ${POSTGRES_USER:-hfb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hfb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hfb} -d ${POSTGRES_DB:-hfb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Redis ---
+  redis:
+    image: redis:7-alpine
+    container_name: hfb-redis-dev
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Elasticsearch ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: hfb-elasticsearch-dev
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms512m -Xmx1g
+      xpack.security.enabled: false
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- MinIO ---
+  minio:
+    image: minio/minio:latest
+    container_name: hfb-minio-dev
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: minio server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  es_data:
+
+networks:
+  hfb-network:
+    driver: bridge
+    name: hfb-network

@@ -1,0 +1,130 @@
+# ============================================================
+# Docker Compose — Production Environment
+# ============================================================
+
+services:
+  # --- Backend ---
+  backend:
+    build:
+      context: .
+      dockerfile: docker/prod/Dockerfile.backend
+    container_name: hfb-backend
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 512M
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Frontend ---
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/prod/Dockerfile.frontend
+    container_name: hfb-frontend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- PostgreSQL ---
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: hfb-postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hfb}
+      POSTGRES_USER: ${POSTGRES_USER:-hfb}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hfb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Neo4j ---
+  neo4j:
+    image: neo4j:5
+    container_name: hfb-neo4j
+    ports:
+      - "${NEO4J_BOLT_PORT:-7687}:7687"
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD}
+      NEO4J_server_memory_heap_initial__size: 1g
+      NEO4J_server_memory_heap_max__size: 2g
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "${NEO4J_USER:-neo4j}", "-p", "${NEO4J_PASSWORD}", "RETURN 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Elasticsearch ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: hfb-elasticsearch
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+      xpack.security.enabled: true
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD}
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "elastic:${ELASTICSEARCH_PASSWORD}", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  neo4j_data:
+  es_data:
+
+networks:
+  hfb-network:
+    driver: bridge
+    name: hfb-network

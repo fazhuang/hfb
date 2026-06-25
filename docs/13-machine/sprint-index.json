@@ -1,0 +1,21 @@
+{
+  "sprints": [
+    {"id": "Sprint00", "theme": "文档奠基", "status": "Active", "dates": "2026-06-24 → 2026-06-28", "stories": 10, "completed": 0},
+    {"id": "Sprint01", "theme": "基础骨架", "status": "Pending", "dates": "2026-06-29 → 2026-07-12", "stories": 0, "completed": 0},
+    {"id": "Sprint02", "theme": "核心领域", "status": "Pending", "dates": "2026-07-13 → 2026-08-02", "stories": 0, "completed": 0},
+    {"id": "Sprint03", "theme": "AI 集成", "status": "Pending", "dates": "2026-08-03 → 2026-08-30", "stories": 0, "completed": 0},
+    {"id": "Sprint04", "theme": "UI 完善", "status": "Pending", "dates": "2026-08-31 → 2026-09-13", "stories": 0, "completed": 0},
+    {"id": "Sprint05", "theme": "验收上线", "status": "Pending", "dates": "2026-09-14 → 2026-09-27", "stories": 0, "completed": 0},
+    {"id": "Sprint06", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint07", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint08", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint09", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint10", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint11", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint12", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint13", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint14", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint15", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0},
+    {"id": "Sprint16", "theme": "待定", "status": "Pending", "dates": "待定", "stories": 0, "completed": 0}
+  ]
+}

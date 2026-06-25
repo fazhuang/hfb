@@ -1,0 +1,8 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontFamily': 'system-ui' }}}%%
+graph LR
+  Start["开始"] --> Decision{"条件判断"}
+  Decision -->|"是"| ActionA["执行 A"]
+  Decision -->|"否"| ActionB["执行 B"]
+  ActionA --> Join["汇聚"]
+  ActionB --> Join
+  Join --> End["结束"]

@@ -1,0 +1,40 @@
+"""
+HFB Domain Models — SQLAlchemy 2.0 async ORM models.
+
+Core entities:
+  - Document (文献), Person (人物)           [Phase 1]
+  - User, Role, Permission                     [Phase 2]
+  - Book, Version, Chapter, Passage, Paper, Image  [Phase 3]
+  - EntityRelation                             [Phase 6] Knowledge Graph
+  - ResearchSession, ResearchNote              [Phase 8] AI Workspace
+"""
+from __future__ import annotations
+
+from app.models.book import Book
+from app.models.chapter import Chapter
+from app.models.document import Document
+from app.models.graph import EntityRelation
+from app.models.image import Image
+from app.models.paper import Paper
+from app.models.passage import Passage
+from app.models.person import Person
+from app.models.user import User, Role, Permission
+from app.models.version import Version
+from app.models.workspace import ResearchSession, ResearchNote
+
+__all__ = [
+    "Book",
+    "Chapter",
+    "Document",
+    "EntityRelation",
+    "Image",
+    "Paper",
+    "Passage",
+    "Person",
+    "ResearchNote",
+    "ResearchSession",
+    "Role",
+    "User",
+    "Version",
+    "Permission",
+]

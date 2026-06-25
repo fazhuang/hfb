@@ -1,0 +1,30 @@
+# CODEOWNERS
+
+# Global owners — these individuals review all PRs
+* @huangfumi/architects
+
+# Documentation
+/docs/ @huangfumi/architects @huangfumi/documentation
+
+# Backend (Python / FastAPI)
+/apps/backend/ @huangfumi/backend
+/packages/config/ @huangfumi/backend
+
+# Frontend (Vue 3 / TypeScript)
+/apps/frontend/ @huangfumi/frontend
+/packages/ui/ @huangfumi/frontend
+/packages/types/ @huangfumi/frontend @huangfumi/backend
+
+# Infrastructure & DevOps
+/docker/ @huangfumi/devops
+/deploy/ @huangfumi/devops
+/infra/ @huangfumi/devops
+/.github/workflows/ @huangfumi/devops
+/scripts/ @huangfumi/devops
+
+# Shared packages
+/packages/utils/ @huangfumi/backend @huangfumi/frontend
+
+# Security
+/.github/ISSUE_TEMPLATE/security.md @huangfumi/security
+/docs/07-security/ @huangfumi/security

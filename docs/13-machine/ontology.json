@@ -1,0 +1,26 @@
+{
+  "ontology": {
+    "version": "1.0",
+    "description": "皇甫谧数字人文平台知识本体 —— 定义所有实体类型、关系类型和 NER 标签",
+    "domain": "Chinese Classical Texts & Traditional Medicine"
+  },
+  "entity_hierarchy": {
+    "root": "Entity",
+    "types": {
+      "Person": {"parent": "Entity", "description": "历史/现代人物", "examples": ["皇甫谧", "张仲景"]},
+      "Place": {"parent": "Entity", "description": "地理实体", "examples": ["洛阳", "南阳"]},
+      "Event": {"parent": "Entity", "description": "历史事件"},
+      "Concept": {"parent": "Entity", "description": "抽象概念/术语", "examples": ["经络", "腧穴", "五运六气"]},
+      "Book": {"parent": "Entity", "description": "古籍/文献", "examples": ["《针灸甲乙经》", "《黄帝内经》"]},
+      "Organization": {"parent": "Entity", "description": "学派/机构", "examples": ["太医院"]},
+      "Artifact": {"parent": "Entity", "description": "器物/文物"}
+    }
+  },
+  "confidence_thresholds": {
+    "ai_extraction": 0.7,
+    "auto_link": 0.85,
+    "publish": 0.95
+  },
+  "verification_required": true,
+  "source": "docs/03-data/01_Ontology_Specification.md"
+}

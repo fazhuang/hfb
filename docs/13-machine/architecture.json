@@ -1,0 +1,36 @@
+{
+  "architecture": {
+    "layers": [
+      {"id": "L1", "name": "接入层", "component": "Nginx", "responsibility": "HTTPS 终止、路由、限流"},
+      {"id": "L2", "name": "应用层", "component": "FastAPI", "responsibility": "REST API、请求验证、认证"},
+      {"id": "L3", "name": "领域层", "component": "Domain Services", "responsibility": "业务逻辑、领域规则"},
+      {"id": "L4", "name": "AI 层", "component": "RAG/GraphRAG/NER", "responsibility": "AI 推理、实体识别"},
+      {"id": "L5", "name": "数据层", "component": "PostgreSQL/Neo4j/ES", "responsibility": "持久化、查询、缓存"},
+      {"id": "L6", "name": "基础设施层", "component": "Docker", "responsibility": "部署、CI/CD、监控"}
+    ],
+    "api_modules": [
+      {"prefix": "/api/v1/auth", "module": "认证"},
+      {"prefix": "/api/v1/literature", "module": "文献管理"},
+      {"prefix": "/api/v1/entities", "module": "实体管理"},
+      {"prefix": "/api/v1/ai", "module": "AI 问答"},
+      {"prefix": "/api/v1/admin", "module": "系统管理"}
+    ],
+    "data_flow": {
+      "rag": "用户 → L2(API) → L4(RAG) → L5(pgvector) → L4(LLM) → L2 → 用户",
+      "graphrag": "用户 → L2(API) → L4(GraphRAG) → L5(Neo4j) → L4(LLM) → L2 → 用户",
+      "import": "管理员 → L2(API) → L3(文献) → L5(PG) → L4(Embedding) → L5(pgvector)"
+    }
+  },
+  "adrs": [
+    {"id": "ADR-0001", "decision": "FastAPI", "status": "Accepted"},
+    {"id": "ADR-0002", "decision": "Vue 3", "status": "Accepted"},
+    {"id": "ADR-0003", "decision": "PostgreSQL", "status": "Accepted"},
+    {"id": "ADR-0004", "decision": "Neo4j", "status": "Accepted"},
+    {"id": "ADR-0005", "decision": "Elasticsearch", "status": "Accepted"},
+    {"id": "ADR-0006", "decision": "GraphRAG", "status": "Accepted"},
+    {"id": "ADR-0007", "decision": "Milvus", "status": "Accepted"},
+    {"id": "ADR-0008", "decision": "Docker", "status": "Accepted"},
+    {"id": "ADR-0009", "decision": "Monorepo", "status": "Accepted"},
+    {"id": "ADR-0010", "decision": "AI Native", "status": "Accepted"}
+  ]
+}

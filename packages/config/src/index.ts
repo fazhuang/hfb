@@ -1,0 +1,2 @@
+// Placeholder — TypeScript config
+export {};

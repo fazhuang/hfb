@@ -1,0 +1,23 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontFamily': 'system-ui' }}}%%
+graph LR
+  subgraph External["外部"]
+    U["用户"]
+  end
+  subgraph Gateway["接入层"]
+    GW["API Gateway"]
+  end
+  subgraph Services["服务层"]
+    A["服务 A"]
+    B["服务 B"]
+  end
+  subgraph Data["数据层"]
+    DB[("Database")]
+    Cache[("Cache")]
+  end
+  U --> GW
+  GW --> A
+  GW --> B
+  A --> DB
+  B --> DB
+  A --> Cache
+  B --> Cache

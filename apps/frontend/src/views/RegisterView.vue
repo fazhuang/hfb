@@ -1,0 +1,233 @@
+<template>
+  <div class="register-page">
+    <div class="register-card">
+      <h1>{{ t('auth.registerTitle') }}</h1>
+      <p class="register-subtitle">{{ t('auth.registerSubtitle') }}</p>
+
+      <form @submit.prevent="handleRegister" class="register-form">
+        <div class="form-group">
+          <label for="username">{{ t('auth.username') }}</label>
+          <input
+            id="username"
+            v-model="username"
+            type="text"
+            autocomplete="username"
+            :disabled="auth.loading"
+            :placeholder="t('auth.usernamePlaceholder')"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="email">{{ t('auth.email') }}</label>
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            autocomplete="email"
+            :disabled="auth.loading"
+            placeholder="email@example.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="displayName">{{ t('auth.displayName') }}</label>
+          <input
+            id="displayName"
+            v-model="displayName"
+            type="text"
+            :disabled="auth.loading"
+            :placeholder="t('auth.displayNamePlaceholder')"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">{{ t('auth.password') }}</label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            autocomplete="new-password"
+            :disabled="auth.loading"
+            :placeholder="t('auth.passwordPlaceholder')"
+          />
+        </div>
+
+        <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
+
+        <button type="submit" class="register-btn" :disabled="auth.loading || !username || !email || !password">
+          <span v-if="auth.loading" class="spinner"></span>
+          {{ auth.loading ? t('auth.registering') : t('auth.register') }}
+        </button>
+      </form>
+
+      <p class="login-link">
+        {{ t('auth.hasAccount') }}
+        <router-link :to="{ name: 'login' }">{{ t('auth.login') }}</router-link>
+      </p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '@/stores/auth';
+
+const { t } = useI18n();
+const router = useRouter();
+const auth = useAuthStore();
+
+const username = ref('');
+const email = ref('');
+const displayName = ref('');
+const password = ref('');
+
+async function handleRegister(): Promise<void> {
+  const ok = await auth.register(username.value.trim(), email.value.trim(), password.value, displayName.value.trim() || undefined);
+  if (ok) {
+    // After registration, log the user in
+    const loginOk = await auth.login(username.value.trim(), password.value);
+    if (loginOk) {
+      router.push({ name: 'home' });
+    } else {
+      router.push({ name: 'login' });
+    }
+  }
+}
+</script>
+
+<style scoped>
+.register-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 120px);
+  padding: 24px;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 40px 32px;
+  background: var(--color-navbar-bg, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.register-card h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 4px;
+}
+
+.register-subtitle {
+  color: var(--color-text-muted, #718096);
+  font-size: 14px;
+  margin: 0 0 32px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #4a5568);
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text-primary, #1a365d);
+  background: var(--color-page-bg, #f7fafc);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus {
+  border-color: var(--color-accent, #2b6cb0);
+}
+
+.form-group input:disabled {
+  opacity: 0.6;
+}
+
+.error-message {
+  padding: 10px 14px;
+  background: var(--color-error-bg, #fff5f5);
+  color: var(--color-error-text, #c53030);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.register-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 8px;
+}
+
+.register-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover, #1a4f8a);
+}
+
+.register-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-link {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--color-text-muted, #a0aec0);
+}
+
+.login-link a {
+  color: var(--color-accent, #2b6cb0);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+</style>

@@ -1,0 +1,49 @@
+{
+  "project": {
+    "name": "皇甫谧数字人文与中医经典智能研究平台",
+    "name_en": "Huangfu Mi Digital Humanities Platform",
+    "version": "1.0",
+    "repository": "monorepo",
+    "primary_language": "zh",
+    "created": "2026-06-24",
+    "owner": "Chief Documentation Architect"
+  },
+  "tech_stack": {
+    "backend": {
+      "language": "Python 3.12",
+      "framework": "FastAPI",
+      "orm": "SQLAlchemy 2.0",
+      "migration": "Alembic"
+    },
+    "frontend": {
+      "framework": "Vue 3",
+      "language": "TypeScript",
+      "bundler": "Vite"
+    },
+    "databases": {
+      "primary": "PostgreSQL 16",
+      "vector_v1": "pgvector",
+      "vector_v2": "Milvus",
+      "graph": "Neo4j 5 Community",
+      "search": "Elasticsearch 8"
+    },
+    "ai": {
+      "models": ["Claude", "GPT", "Gemini", "Codex", "DeepResearch"],
+      "ner": "fine-tuned BERT/Qwen",
+      "embedding": "BGE-M3",
+      "reranker": "BGE-Reranker-v2"
+    },
+    "deployment": {
+      "dev": "Docker Compose",
+      "prod": "Docker",
+      "ci_cd": "GitHub Actions"
+    }
+  },
+  "documentation": {
+    "format": "Markdown + JSON dual-track",
+    "front_matter": "YAML-style in Markdown headers",
+    "machine_layer": "docs/13-machine/",
+    "context_packages": "docs/12-context/",
+    "adr": "docs/11-adr/"
+  }
+}

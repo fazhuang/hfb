@@ -1,0 +1,239 @@
+{
+  "name": "皇甫谧数字人文与中医经典智能研究平台",
+  "name_en": "Huangfu Mi Digital Humanities & TCM Classics Intelligent Research Platform",
+  "short_name": "HFB",
+  "version": "0.2.0",
+  "sprint": "Sprint 0.2 — Repository Foundation",
+  "created": "2025-06-22",
+  "updated": "2025-06-24",
+  "license": {
+    "docs": "CC BY-NC-SA 4.0",
+    "code": "MIT"
+  },
+
+  "architecture": {
+    "type": "monorepo",
+    "backend": {
+      "language": "Python 3.12",
+      "framework": "FastAPI",
+      "orm": "SQLAlchemy 2.0 (async)",
+      "validation": "Pydantic v2",
+      "api_spec": "OpenAPI 3.1",
+      "location": "apps/backend/"
+    },
+    "frontend": {
+      "language": "TypeScript 5.7",
+      "framework": "Vue 3",
+      "build_tool": "Vite",
+      "state_mgmt": "Pinia",
+      "location": "apps/frontend/"
+    },
+    "databases": {
+      "primary": {
+        "engine": "PostgreSQL 16",
+        "extension": "pgvector",
+        "role": "主存储 / 向量存储"
+      },
+      "graph": {
+        "engine": "Neo4j 5",
+        "role": "知识图谱存储与推理"
+      },
+      "vector": {
+        "engine": "Milvus 2.4",
+        "role": "语义检索 / RAG 向量库"
+      },
+      "search": {
+        "engine": "Elasticsearch 8",
+        "role": "全文检索"
+      }
+    },
+    "ai": {
+      "llm_framework": "LangChain / LlamaIndex",
+      "patterns": ["RAG", "GraphRAG"],
+      "embedding": "text-embedding-3-small (default)"
+    },
+    "infrastructure": {
+      "container": "Docker + Docker Compose",
+      "orchestration": "Kubernetes (planned)",
+      "ci_cd": "GitHub Actions",
+      "package_manager": {
+        "python": "uv / pip",
+        "node": "pnpm 10"
+      }
+    }
+  },
+
+  "docs": {
+    "root": "docs/",
+    "index": "docs/documentation-index.md",
+    "sections": {
+      "00-governance": "项目治理、Constitution、文档规则 — 最高约束力",
+      "01-product": "Product Charter — 愿景、路线图、用户画像",
+      "02-architecture": "Blueprint — 系统架构蓝图、技术选型",
+      "03-data": "Data Standard — 数据标准、本体规范",
+      "04-ai": "AI Engineering Standard — RAG/GraphRAG 架构、模型标准",
+      "05-development": "Development Specification — 开发规范、工具链",
+      "06-ui": "Design System — UI 设计系统、组件规范",
+      "07-security": "Security Specification — 安全规范、验收标准",
+      "08-sprints": "Sprint Management — 迭代规划与执行记录",
+      "09-prompts": "Prompt Engineering — AI 提示词模板库",
+      "10-diagrams": "Architecture Diagrams — 系统架构图、ER 图",
+      "11-adr": "Architecture Decision Records (ADR-0001 ~ ADR-0010)",
+      "12-context": "Context Data — 各 Sprint 上下文快照 (Sprint00 ~ Sprint16)",
+      "13-machine": "Machine-Readable Metadata — 本体、实体、关系、API 索引 JSON",
+      "14-knowledge": "Knowledge Base — 书籍、人物、论文等知识资产",
+      "15-decision-tree": "Decision Trees — 架构、前端、数据库、AI、部署决策树"
+    },
+    "adr_count": 10,
+    "adr_latest": "ADR-0010 (AI-Native Development)"
+  },
+
+  "backend": {
+    "entry": "apps/backend/",
+    "status": "scaffolded",
+    "next_sprint": "Sprint 1 — FastAPI project skeleton, DB connections, health endpoints",
+    "key_files": []
+  },
+
+  "frontend": {
+    "entry": "apps/frontend/",
+    "status": "scaffolded",
+    "next_sprint": "Sprint 2 — Vite + Vue 3 + TypeScript setup",
+    "key_files": []
+  },
+
+  "packages": {
+    "types": {
+      "path": "packages/types/",
+      "status": "placeholder — base types defined (Document, Person, Herb, ApiResponse)",
+      "sprint": "Sprint 3+"
+    },
+    "config": {
+      "path": "packages/config/",
+      "status": "placeholder",
+      "sprint": "Sprint 2+"
+    },
+    "ui": {
+      "path": "packages/ui/",
+      "status": "placeholder",
+      "sprint": "Sprint 7+"
+    },
+    "utils": {
+      "path": "packages/utils/",
+      "status": "placeholder — sleep, generateId utilities",
+      "sprint": "Sprint 1+"
+    }
+  },
+
+  "currentSprint": {
+    "id": "Sprint 0.2",
+    "theme": "Repository Foundation",
+    "status": "complete",
+    "completed": [
+      "Monorepo directory structure",
+      ".github/ community files (7 files)",
+      "Root documentation (README, LICENSE, CHANGELOG, CONTRIBUTING, ROADMAP, PROJECT_STATUS)",
+      "Git standards (.editorconfig, .gitattributes, .gitignore, .pre-commit-config.yaml)",
+      "Python standards (pyproject.toml, ruff.toml, mypy.ini, pytest.ini)",
+      "Node standards (package.json, pnpm-workspace.yaml, eslint, prettier, tsconfig)",
+      "Docker configurations (2 compose files, 4 Dockerfiles, nginx.conf)",
+      "CI/CD workflows (5: docs, lint, test, build, security)",
+      "Scripts (6: setup, dev, lint, test, format, release)",
+      "Templates (6: ADR, API, Sprint, Review, Issue, Meeting)",
+      "Monorepo packages scaffolding (4 packages)",
+      "Test directory structure (unit, integration, e2e, fixtures)",
+      "VS Code workspace (settings, extensions, launch, tasks)",
+      "Makefile (14 targets)",
+      "ROADMAP.md (Sprint 0–16)",
+      "PROJECT_STATUS.md",
+      "repo.manifest.json (this file)",
+      "AI_BOOTSTRAP.md"
+    ],
+    "next": "Sprint 1 — Backend Core Infrastructure"
+  },
+
+  "constitution": {
+    "path": "docs/00-governance/",
+    "governing_documents": [
+      "01_Project_Constitution.md",
+      "0001-project-charter.md",
+      "0002-constitution.md",
+      "0003-governance.md",
+      "0004-documentation-rules.md"
+    ],
+    "core_principles": [
+      "文档驱动 — 先写文档，再写代码",
+      "渐进细化 — 从一句话开始，按需展开",
+      "路径即结构 — 目录名看领域，文件名看内容",
+      "不可变历史 — 已合并的文档不被覆盖",
+      "一个人负责 — 每份文档有且仅有一个负责人"
+    ]
+  },
+
+  "blueprint": {
+    "path": "docs/02-architecture/00_Technical_Blueprint.md",
+    "key_decisions": [
+      "Monorepo 架构 (ADR-0009)",
+      "FastAPI 后端 (ADR-0001)",
+      "Vue 3 前端 (ADR-0002)",
+      "PostgreSQL + pgvector 主存储 (ADR-0003)",
+      "Neo4j 知识图谱 (ADR-0004)",
+      "Elasticsearch 全文检索 (ADR-0005)",
+      "Milvus 向量检索 (ADR-0007)",
+      "GraphRAG 知识增强 (ADR-0006)",
+      "Docker 容器化 (ADR-0008)",
+      "AI-Native 开发模式 (ADR-0010)"
+    ]
+  },
+
+  "dataStandard": {
+    "path": "docs/03-data/",
+    "key_documents": [
+      "00_Data_Standard.md",
+      "01_Ontology_Specification.md"
+    ]
+  },
+
+  "aiStandard": {
+    "path": "docs/04-ai/",
+    "key_documents": [
+      "00_AI_Engineering_Standard.md",
+      "01_RAG_GraphRAG_Architecture.md"
+    ]
+  },
+
+  "currentContext": {
+    "path": "docs/12-context/Sprint00/",
+    "available_sprints": [
+      "Sprint00", "Sprint01", "Sprint02", "Sprint03",
+      "Sprint04", "Sprint05", "Sprint06", "Sprint07",
+      "Sprint08", "Sprint09", "Sprint10", "Sprint11",
+      "Sprint12", "Sprint13", "Sprint14", "Sprint15", "Sprint16"
+    ],
+    "machine_readable": "docs/13-machine/"
+  },
+
+  "ci_cd": {
+    "provider": "GitHub Actions",
+    "workflows": {
+      "docs": ".github/workflows/docs.yml",
+      "lint": ".github/workflows/lint.yml",
+      "test": ".github/workflows/test.yml",
+      "build": ".github/workflows/build.yml",
+      "security": ".github/workflows/security.yml"
+    }
+  },
+
+  "scripts": {
+    "setup": "scripts/setup.sh",
+    "dev": "scripts/dev.sh",
+    "lint": "scripts/lint.sh",
+    "test": "scripts/test.sh",
+    "format": "scripts/format.sh",
+    "release": "scripts/release.sh",
+    "make": "Makefile (14 targets)"
+  },
+
+  _schema: "repo.manifest.json — Machine-readable repository manifest. Updated at the end of each Sprint.",
+  _ai_hint: "For bootstrapping, read AI_BOOTSTRAP.md first."
+}

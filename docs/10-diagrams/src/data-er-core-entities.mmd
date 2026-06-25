@@ -1,0 +1,31 @@
+%%{init: {'theme': 'neutral', 'themeVariables': { 'fontFamily': 'system-ui' }}}%%
+erDiagram
+  User ||--o{ Order : places
+  Order ||--|{ OrderItem : contains
+  OrderItem }|--|| Product : references
+  User {
+    string id PK
+    string name
+    string email
+    datetime createdAt
+  }
+  Order {
+    string id PK
+    string userId FK
+    string status
+    decimal total
+    datetime createdAt
+  }
+  OrderItem {
+    string id PK
+    string orderId FK
+    string productId FK
+    int quantity
+    decimal price
+  }
+  Product {
+    string id PK
+    string name
+    decimal price
+    int stock
+  }

@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup",
+      "type": "shell",
+      "command": "./scripts/setup.sh",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Lint: All",
+      "type": "shell",
+      "command": "./scripts/lint.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": ["$python", "$eslint-stylish"]
+    },
+    {
+      "label": "Test: All",
+      "type": "shell",
+      "command": "./scripts/test.sh",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": ["$python"]
+    },
+    {
+      "label": "Format: All",
+      "type": "shell",
+      "command": "./scripts/format.sh",
+      "group": "none",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Dev: Start",
+      "type": "shell",
+      "command": "./scripts/dev.sh",
+      "isBackground": true,
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Docker: Dev Up",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml up -d",
+      "group": "none",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    },
+    {
+      "label": "Docker: Dev Down",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.dev.yml down",
+      "group": "none",
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "Clean",
+      "type": "shell",
+      "command": "make clean",
+      "group": "none",
+      "presentation": {
+        "reveal": "silent"
+      }
+    }
+  ]
+}

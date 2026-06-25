@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "jsx": "preserve",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@hfb/types": ["./packages/types/src"],
+      "@hfb/types/*": ["./packages/types/src/*"],
+      "@hfb/utils": ["./packages/utils/src"],
+      "@hfb/utils/*": ["./packages/utils/src/*"],
+      "@hfb/ui": ["./packages/ui/src"],
+      "@hfb/ui/*": ["./packages/ui/src/*"],
+      "@hfb/config": ["./packages/config/src"],
+      "@hfb/config/*": ["./packages/config/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".output", "coverage"]
+}

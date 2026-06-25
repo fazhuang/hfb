@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 皇甫谧数字人文平台 Discussion
+    url: https://github.com/huangfumi/discussions
+    about: Please ask and answer questions here.
+  - name: Documentation
+    url: https://github.com/huangfumi/docs
+    about: Check the documentation before filing an issue.

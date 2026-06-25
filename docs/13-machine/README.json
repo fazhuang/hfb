@@ -1,0 +1,28 @@
+{
+  "machine_layer": {
+    "version": "1.0",
+    "description": "皇甫谧数字人文平台 Machine Layer — AI 可直接解析的 JSON 索引",
+    "created": "2026-06-24",
+    "owner": "Chief Documentation Architect",
+    "purpose": "供 AI Agent 自动导航文档体系，无需人工描述"
+  },
+  "files": {
+    "project.json": "项目元数据与技术栈",
+    "document-index.json": "全部文档的路径和状态索引",
+    "prompt-index.json": "全部 Prompt 的版本和状态",
+    "sprint-index.json": "全部 Sprint 的状态",
+    "architecture.json": "六层架构、API 模块、数据流",
+    "ontology.json": "知识本体定义",
+    "entity-types.json": "实体类型清单",
+    "relation-types.json": "关系类型与 NER 标签",
+    "api-index.json": "API 端点清单",
+    "machine-index.json": "本文件 — Machine Layer 索引"
+  },
+  "ai_usage": {
+    "claude": "读取 project.json + architecture.json + api-index.json → 理解项目全貌",
+    "codex": "读取 document-index.json → 审计文档完整性",
+    "gemini": "读取 ontology.json + relation-types.json → 理解领域术语",
+    "gpt": "读取 prompt-index.json → 加载可用 Prompt",
+    "deepresearch": "读取 document-index.json → 定位文献调研范围"
+  }
+}

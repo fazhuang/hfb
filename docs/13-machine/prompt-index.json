@@ -1,0 +1,46 @@
+{
+  "prompts": [
+    {
+      "id": "P001",
+      "name": "Claude Sprint 00 Docs Foundation",
+      "model": "Claude",
+      "version": "V0.1",
+      "status": "Active",
+      "owner": "Chief Documentation Architect",
+      "last_updated": "2026-06-24",
+      "compatible_models": ["Claude", "GPT"],
+      "file": "docs/09-prompts/Claude_Sprint00_Docs_Foundation.md",
+      "purpose": "驱动 Claude 创建完整的文档体系",
+      "input_format": "System Prompt + User Prompt",
+      "output_format": "Markdown 文档"
+    },
+    {
+      "id": "P002",
+      "name": "Codex Docs Audit",
+      "model": "Codex",
+      "version": "V0.1",
+      "status": "Active",
+      "owner": "Chief Documentation Architect",
+      "last_updated": "2026-06-24",
+      "compatible_models": ["Codex", "Claude"],
+      "file": "docs/09-prompts/Codex_Docs_Audit.md",
+      "purpose": "四维度文档审计（结构/格式/引用/内容）",
+      "input_format": "System Prompt + User Prompt + 审计路径",
+      "output_format": "结构化审计报告"
+    },
+    {
+      "id": "P003",
+      "name": "Gemini UI Academic Review",
+      "model": "Gemini",
+      "version": "V0.1",
+      "status": "Active",
+      "owner": "Chief Documentation Architect",
+      "last_updated": "2026-06-24",
+      "compatible_models": ["Gemini", "Claude"],
+      "file": "docs/09-prompts/Gemini_UI_Academic_Review.md",
+      "purpose": "七维度 UI 学术评审（信息密度/古籍呈现/色彩/字体…）",
+      "input_format": "System Prompt + User Prompt + 界面截图",
+      "output_format": "结构化学术评审报告"
+    }
+  ]
+}
