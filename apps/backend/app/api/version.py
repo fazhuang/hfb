@@ -36,19 +36,5 @@ async def public_config() -> dict:
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
             "api_prefix": settings.API_V1_PREFIX,
-            "services": {
-                "postgres": {
-                    "host": settings.POSTGRES_HOST,
-                    "port": settings.POSTGRES_PORT,
-                },
-                "redis": {
-                    "host": settings.REDIS_HOST,
-                    "port": settings.REDIS_PORT,
-                },
-                "minio": {
-                    "host": settings.MINIO_HOST,
-                    "port": settings.MINIO_PORT,
-                },
-            },
         }
     )

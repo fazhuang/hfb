@@ -70,7 +70,7 @@ check_tcp() {
     local host="$1"
     local port="$2"
     local timeout="${3:-3}"
-    if timeout "$timeout" bash -c "echo >/dev/tcp/${host}/${port}" 2>/dev/null; then
+    if nc -z -w "$timeout" "$host" "$port" 2>/dev/null; then
         echo "ok"
     else
         echo "down"

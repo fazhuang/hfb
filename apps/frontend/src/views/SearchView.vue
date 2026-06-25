@@ -236,10 +236,17 @@ function visibleMeta(meta: Record<string, unknown>): Record<string, string> {
   return visible;
 }
 
+function htmlEscape(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function highlightSnippet(text: string): string {
-  if (!lastQuery.value) return text;
-  const escaped = lastQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
+  const escaped = htmlEscape(text);
+  if (!lastQuery.value) return escaped;
+  const escapedQuery = lastQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(`(${escapedQuery})`, 'gi'), '<mark>$1</mark>');
 }
 
 async function search() {

@@ -62,7 +62,9 @@ const password = ref('');
 async function handleLogin(): Promise<void> {
   const ok = await auth.login(username.value.trim(), password.value);
   if (ok) {
-    const redirect = (route.query.redirect as string) ?? '/';
+    const raw = (route.query.redirect as string) ?? '/';
+    // Prevent open redirect: only allow relative paths starting with /
+    const redirect = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/';
     router.push(redirect);
   }
 }
