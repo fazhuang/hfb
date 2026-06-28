@@ -10,6 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.person import Person
 from app.models.book import Book
+from app.models.chapter import Chapter
+from app.models.passage import Passage
+from app.models.version import Version
 from app.schemas.search import (
     SearchParams,
     SearchResultItem,
@@ -168,6 +171,41 @@ class TestSearchService:
         # Searching only "book" type — person shouldn't appear
         book_results = [r for r in result.items if r.entity_type == "person"]
         assert len(book_results) == 0
+
+    async def test_passage_result_includes_version_provenance(
+        self,
+        db_session: AsyncSession,
+    ) -> None:
+        book = Book(title="针灸甲乙经（验证）")
+        db_session.add(book)
+        await db_session.flush()
+        chapter = Chapter(book_id=book.id, title="卷一", order=1)
+        version = Version(
+            book_id=book.id,
+            version_name="验证本 A",
+            repository="流程验证资料库",
+            shelf_mark="VALIDATION-A",
+        )
+        db_session.add_all([chapter, version])
+        await db_session.flush()
+        passage = Passage(
+            chapter_id=chapter.id,
+            version_id=version.id,
+            content_text="凡刺之法，必候日月星辰。",
+            order=1,
+        )
+        db_session.add(passage)
+        await db_session.flush()
+
+        result = await SearchService(db_session).search(
+            SearchParams(q="日月星辰", entity_types=["passage"])
+        )
+
+        item = result.items[0]
+        assert item.metadata["version_name"] == "验证本 A"
+        assert item.metadata["repository"] == "流程验证资料库"
+        assert item.metadata["shelf_mark"] == "VALIDATION-A"
+        assert item.metadata["chapter_title"] == "卷一"
 
     async def test_search_by_dynasty_filter(self, db_session: AsyncSession) -> None:
         p1 = Person(name="唐医", dynasty="唐")

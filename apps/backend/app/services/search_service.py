@@ -296,6 +296,20 @@ class SearchService:
                 val = getattr(obj, mf, None)
                 if val is not None and val != "":
                     metadata[mf] = str(val) if not isinstance(val, (int, float)) else val
+            if entity_type == "passage":
+                version = getattr(obj, "version", None)
+                chapter = getattr(obj, "chapter", None)
+                if version is not None:
+                    metadata.update(
+                        {
+                            "version_name": version.version_name,
+                            "repository": version.repository,
+                            "shelf_mark": version.shelf_mark,
+                            "source_url": version.source_url,
+                        }
+                    )
+                if chapter is not None:
+                    metadata["chapter_title"] = chapter.title
 
             # Build URL
             url = None

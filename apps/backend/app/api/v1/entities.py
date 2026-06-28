@@ -9,7 +9,10 @@ GET    /api/v1/{resource}/{id}
 PATCH  /api/v1/{resource}/{id}
 DELETE /api/v1/{resource}/{id}
 """
-from __future__ import annotations
+# Do not enable deferred annotations in this module. The dynamic CRUD factory
+# binds concrete Pydantic classes through closure annotations; deferring them
+# turns ``body`` into an unresolved string and FastAPI treats it as a query
+# parameter instead of a JSON request body.
 
 from typing import Annotated
 from uuid import UUID

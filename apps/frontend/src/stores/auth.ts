@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import api from '@/api/client';
-import router from '@/router';
 
 // ------------------------------------------------------------------
 // Types
@@ -168,7 +167,6 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     clearTokens();
     setAuthHeader(null);
-    router.push({ name: 'home' });
   }
 
   // Initialize from localStorage

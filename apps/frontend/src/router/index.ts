@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import type { RouteLocationNormalized } from 'vue-router';
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -73,6 +74,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'research',
+          name: 'research-workflow',
+          component: () => import('@/views/ResearchWorkflowView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/DashboardView.vue'),
@@ -84,8 +91,6 @@ const router = createRouter({
 
 // Auth navigation guard
 router.beforeEach(async (to: RouteLocationNormalized, _from, next) => {
-  // Lazily import to avoid circular dependency
-  const { useAuthStore } = await import('@/stores/auth');
   const auth = useAuthStore();
 
   // Fetch user on first navigation if we have a token but no user

@@ -9,7 +9,13 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User, Role, Permission
+from app.models.user import (
+    User,
+    Role,
+    Permission,
+    role_permission,
+    user_role,
+)
 from app.services.auth_service import hash_password
 
 # ============================================================
@@ -20,6 +26,7 @@ _RESOURCES = [
     "person",
     "book",
     "version",
+    "chapter",
     "passage",
     "paper",
     "evidence",
@@ -119,28 +126,29 @@ _RESEARCHER_PERMS = _STUDENT_PERMS + [
     "person.create", "person.update",
     "book.create", "book.update",
     "version.create", "version.update",
+    "chapter.create", "chapter.update",
     "passage.create", "passage.update",
     "paper.create", "paper.update",
     "evidence.create", "evidence.read", "evidence.update",
     "citation.create", "citation.read", "citation.update",
-    "research.create", "research.read", "research.update", "research.delete",
+    "research.create", "research.read", "research.update", "research.delete", "research.export",
     "workspace.create", "workspace.update",
     "project.create", "project.read", "project.update",
-    "person.export", "book.export", "passage.export",
+    "person.export", "book.export", "chapter.export", "passage.export",
 ]
 
 _REVIEWER_PERMS = _RESEARCHER_PERMS + [
-    "person.review", "book.review", "version.review", "passage.review",
+    "person.review", "book.review", "version.review", "chapter.review", "passage.review",
     "evidence.review", "citation.review", "research.review",
     "person.approve", "book.approve", "version.approve",
     "research.approve",
 ]
 
 _LEADER_PERMS = _REVIEWER_PERMS + [
-    "person.publish", "book.publish", "version.publish", "passage.publish",
+    "person.publish", "book.publish", "version.publish", "chapter.publish", "passage.publish",
     "evidence.publish", "citation.publish",
     "research.publish",
-    "person.delete", "book.delete", "version.delete", "passage.delete", "paper.delete",
+    "person.delete", "book.delete", "version.delete", "chapter.delete", "passage.delete", "paper.delete",
     "evidence.delete", "citation.delete",
     "workspace.delete",
     "project.delete",
@@ -203,13 +211,14 @@ async def seed_rbac(session: AsyncSession) -> dict[str, int]:
                 Permission.action == data["action"],
             )
         )
-        if existing.scalar_one_or_none() is None:
+        perm = existing.scalar_one_or_none()
+        if perm is None:
             perm = Permission(**data)
             session.add(perm)
             perm_objects[code] = perm
             perm_count += 1
         else:
-            perm_objects[code] = existing.scalar_one()
+            perm_objects[code] = perm
     counts["permissions"] = perm_count
 
     # ---- Roles ----
@@ -221,28 +230,43 @@ async def seed_rbac(session: AsyncSession) -> dict[str, int]:
         existing = await session.execute(
             select(Role).where(Role.name == data["name"])
         )
-        if existing.scalar_one_or_none() is None:
+        role = existing.scalar_one_or_none()
+        if role is None:
             role = Role(**data)
             session.add(role)
             role_count += 1
-        else:
-            role = existing.scalar_one()
         role_objects[data["name"]] = role
 
     await session.flush()
 
     # Assign permissions to roles
     for role_name, role in role_objects.items():
+        existing_links = await session.execute(
+            select(role_permission.c.permission_id).where(
+                role_permission.c.role_id == role.id
+            )
+        )
+        existing_permission_ids = set(existing_links.scalars().all())
         if role_name == "Platform Administrator":
-            # All permissions
-            for code, perm in perm_objects.items():
-                if perm not in role.permissions:
-                    role.permissions.append(perm)
+            permissions = perm_objects.values()
         else:
-            for code in role_perm_map.get(role_name, []):
-                perm = perm_objects.get(code)
-                if perm and perm not in role.permissions:
-                    role.permissions.append(perm)
+            permissions = (
+                perm_objects[code]
+                for code in role_perm_map.get(role_name, [])
+                if code in perm_objects
+            )
+
+        new_links: list[dict[str, str]] = []
+        planned_permission_ids = set(existing_permission_ids)
+        for perm in permissions:
+            if perm.id in planned_permission_ids:
+                continue
+            new_links.append(
+                {"role_id": role.id, "permission_id": perm.id}
+            )
+            planned_permission_ids.add(perm.id)
+        if new_links:
+            await session.execute(role_permission.insert(), new_links)
 
     await session.flush()
     counts["roles"] = role_count
@@ -267,7 +291,12 @@ async def seed_rbac(session: AsyncSession) -> dict[str, int]:
         # Attach Platform Administrator role
         admin_role = role_objects.get("Platform Administrator")
         if admin_role:
-            admin.roles.append(admin_role)
+            await session.execute(
+                user_role.insert().values(
+                    user_id=admin.id,
+                    role_id=admin_role.id,
+                )
+            )
 
         user_count += 1
     counts["users"] = user_count

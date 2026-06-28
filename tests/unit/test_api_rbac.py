@@ -41,7 +41,7 @@ async def four_users(db_session: AsyncSession):
 
     # --- Permissions ---
     perms: dict[str, Permission] = {}
-    resources = ["person", "book", "version", "passage", "paper", "image", "document",
+    resources = ["person", "book", "version", "chapter", "passage", "paper", "image", "document",
                  "graph", "search", "ai", "workspace", "dashboard"]
     for resource in resources:
         for action in ["create", "read", "update", "delete"]:

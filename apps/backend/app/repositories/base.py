@@ -40,8 +40,9 @@ class BaseRepository(Generic[ModelT]):
 
     async def get_by_id(self, id: UUID | str) -> ModelT | None:
         """Get by UUID primary key (excludes soft-deleted)."""
+        normalized_id = str(id)
         stmt = select(self.model).where(
-            self.model.id == id,
+            self.model.id == normalized_id,
             self.model.is_deleted.is_(False),
         )
         result = await self.session.execute(stmt)
@@ -75,8 +76,9 @@ class BaseRepository(Generic[ModelT]):
 
     async def exists(self, id: UUID | str) -> bool:
         """Check if entity exists (non-deleted)."""
+        normalized_id = str(id)
         stmt = select(self.model.id).where(
-            self.model.id == id,
+            self.model.id == normalized_id,
             self.model.is_deleted.is_(False),
         )
         result = await self.session.execute(stmt)
@@ -158,7 +160,7 @@ class BaseRepository(Generic[ModelT]):
 
     async def hard_delete(self, id: UUID | str) -> bool:
         """Permanently delete an entity."""
-        stmt = sa_delete(self.model).where(self.model.id == id)
+        stmt = sa_delete(self.model).where(self.model.id == str(id))
         result = await self.session.execute(stmt)
         await self.session.flush()
         return result.rowcount > 0

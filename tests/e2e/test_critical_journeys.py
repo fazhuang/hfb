@@ -69,7 +69,7 @@ def _run_frontend(port: int, backend_port: int) -> subprocess.Popen:
     """Start the Vite dev server on the given port, proxying to backend."""
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "frontend"
     env = os.environ.copy()
-    env["VITE_API_BASE_URL"] = f"http://127.0.0.1:{backend_port}"
+    env["VITE_PROXY_TARGET"] = f"http://127.0.0.1:{backend_port}"
     proc = subprocess.Popen(
         ["npx", "vite", "--host", "127.0.0.1", "--port", str(port), "--strictPort"],
         cwd=str(frontend_dir),
@@ -85,17 +85,20 @@ def _seed_user(backend_port: int, username: str, password: str) -> dict | None:
     base = f"http://127.0.0.1:{backend_port}"
     try:
         r = httpx.post(f"{base}/api/v1/auth/register", json={
-            "username": username, "email": f"{username}@e2e.test", "password": password,
+            "username": username, "email": f"{username}@example.com", "password": password,
         }, timeout=5)
         if r.status_code not in (201, 200):
-            return None
+            raise RuntimeError(
+                f"Registration failed: {r.status_code} {r.text}"
+            )
         r2 = httpx.post(f"{base}/api/v1/auth/login", json={
             "username": username, "password": password,
         }, timeout=5)
         if r2.status_code == 200:
             return r2.json()["data"]
-    except Exception:
-        pass
+        raise RuntimeError(f"Login failed: {r2.status_code} {r2.text}")
+    except httpx.HTTPError as exc:
+        raise RuntimeError(f"Auth request failed: {exc}") from exc
     return None
 
 
@@ -147,6 +150,88 @@ def test_user(live_servers):
     return tokens
 
 
+@pytest.fixture(scope="module")
+def research_data(live_servers, test_user):
+    """Create an isolated validation corpus through the public API."""
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {test_user['access_token']}"}
+    me_response = httpx.get(
+        f"{base}/api/v1/auth/me",
+        headers=headers,
+        timeout=10,
+    )
+    if me_response.status_code != 200:
+        raise RuntimeError(
+            f"Authenticated /auth/me failed: "
+            f"{me_response.status_code} {me_response.text}"
+        )
+
+    def create(resource: str, payload: dict) -> dict:
+        response = httpx.post(
+            f"{base}/api/v1/{resource}",
+            json=payload,
+            headers=headers,
+            timeout=10,
+        )
+        if response.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Failed to create {resource}: "
+                f"{response.status_code} {response.text}"
+            )
+        return response.json()["data"]
+
+    person = create("persons", {
+        "name": "皇甫谧",
+        "dynasty": "西晋",
+        "biography": "流程验证人物资料。",
+    })
+    book = create("books", {
+        "title": "针灸甲乙经（流程验证）",
+        "dynasty": "西晋",
+        "author_id": person["id"],
+    })
+    source_version = create("versions", {
+        "book_id": book["id"],
+        "version_name": "流程验证本 A",
+        "era": "验证数据",
+        "repository": "流程验证资料库",
+        "shelf_mark": "VALIDATION-A",
+        "source_url": "https://example.invalid/validation-a",
+    })
+    target_version = create("versions", {
+        "book_id": book["id"],
+        "version_name": "流程验证本 B",
+        "era": "验证数据",
+        "repository": "流程验证资料库",
+        "shelf_mark": "VALIDATION-B",
+        "source_url": "https://example.invalid/validation-b",
+    })
+    chapter = create("chapters", {
+        "book_id": book["id"],
+        "title": "流程验证章节",
+        "order": 1,
+    })
+    source_passage = create("passages", {
+        "chapter_id": chapter["id"],
+        "version_id": source_version["id"],
+        "content_text": "凡刺之法，必候日月星辰，四时八正之气。",
+        "order": 1,
+        "tags": "流程验证",
+    })
+    target_passage = create("passages", {
+        "chapter_id": chapter["id"],
+        "version_id": target_version["id"],
+        "content_text": "凡刺之法，必候日月星辰，四时八节之气。",
+        "order": 1,
+        "tags": "流程验证",
+    })
+    return {
+        "source_passage": source_passage,
+        "target_passage": target_passage,
+    }
+
+
 # ============================================================
 # Tests
 # ============================================================
@@ -167,7 +252,7 @@ class TestLogin:
         page.wait_for_selector('input[placeholder*="用户名"]', timeout=5000)
         assert page.locator('input[placeholder*="密码"]').is_visible()
 
-    def test_login_succeeds(self, live_servers, page):
+    def test_login_succeeds(self, live_servers, test_user, page):
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/login")
         page.fill('input[placeholder*="用户名"]', "e2euser")
@@ -234,3 +319,60 @@ class TestWorkspace:
         page.goto(f"{frontend_url}/workspace")
         page.wait_for_selector('text=AI 助手', timeout=10000)
         assert page.locator("text=研究画布").is_visible()
+
+
+class TestResearchWorkflow:
+    """The first product workflow works through the browser."""
+
+    def test_version_comparison_note_and_export(
+        self,
+        live_servers,
+        test_user,
+        research_data,
+        page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+
+        page.goto(f"{frontend_url}/research")
+        page.wait_for_selector("text=证据驱动的版本比较", timeout=10000)
+        page.fill("#research-query", "凡刺之法")
+        page.click(".search-form button")
+        page.wait_for_selector(".result-item", timeout=10000)
+
+        source = page.locator(".result-item").filter(has_text="流程验证本 A")
+        target = page.locator(".result-item").filter(has_text="流程验证本 B")
+        source.get_by_role("button", name="设为底本").click()
+        target.get_by_role("button", name="设为对校本").click()
+        page.get_by_test_id("compare-passages").click()
+
+        try:
+            page.wait_for_selector(".comparison-panel", timeout=10000)
+        except Exception as exc:
+            error_text = (
+                page.locator(".message--error").text_content()
+                if page.locator(".message--error").count()
+                else "No visible error message"
+            )
+            raise AssertionError(
+                f"Comparison did not render: {error_text}"
+            ) from exc
+        assert page.locator(".comparison-panel").get_by_text("1 处差异").is_visible()
+        assert page.get_by_text("来源完整").count() == 2
+
+        page.fill("#research-note", "验证八正与八节的版本差异。")
+        page.get_by_role("button", name="保存研究笔记").click()
+        page.get_by_text("研究笔记已保存。").wait_for()
+
+        with page.expect_download() as download_info:
+            page.get_by_role("button", name="导出研究记录").click()
+        filename = download_info.value.suggested_filename
+        assert filename.startswith("hfb-research-record-")
+        assert filename.endswith(".md")

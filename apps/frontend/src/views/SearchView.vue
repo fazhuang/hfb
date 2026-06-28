@@ -98,7 +98,12 @@
 
           <p v-if="item.subtitle" class="result-subtitle">{{ item.subtitle }}</p>
 
-          <p v-if="item.snippet" class="result-snippet" v-html="highlightSnippet(item.snippet)"></p>
+          <p v-if="item.snippet" class="result-snippet">
+            <template v-for="(segment, index) in highlightSnippet(item.snippet)" :key="index">
+              <mark v-if="segment.highlighted">{{ segment.text }}</mark>
+              <template v-else>{{ segment.text }}</template>
+            </template>
+          </p>
 
           <div v-if="item.metadata" class="result-meta">
             <span v-for="(val, key) in visibleMeta(item.metadata)" :key="key" class="meta-tag">
@@ -236,17 +241,17 @@ function visibleMeta(meta: Record<string, unknown>): Record<string, string> {
   return visible;
 }
 
-function htmlEscape(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function highlightSnippet(text: string): string {
-  const escaped = htmlEscape(text);
-  if (!lastQuery.value) return escaped;
+function highlightSnippet(text: string): Array<{ text: string; highlighted: boolean }> {
+  if (!lastQuery.value) return [{ text, highlighted: false }];
   const escapedQuery = lastQuery.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escaped.replace(new RegExp(`(${escapedQuery})`, 'gi'), '<mark>$1</mark>');
+  const matcher = new RegExp(`(${escapedQuery})`, 'gi');
+  return text
+    .split(matcher)
+    .filter(Boolean)
+    .map((segment) => ({
+      text: segment,
+      highlighted: segment.toLocaleLowerCase() === lastQuery.value.toLocaleLowerCase(),
+    }));
 }
 
 async function search() {

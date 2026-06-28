@@ -17,6 +17,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.graph import router as graph_router
+from app.api.v1.research import router as research_router
 from app.api.v1.search import router as search_router
 from app.api.v1.users import router as users_router
 from app.api.v1.version_center import router as version_center_router
@@ -28,6 +29,7 @@ router.include_router(entities_router)
 router.include_router(users_router)
 router.include_router(version_center_router)
 router.include_router(graph_router)
+router.include_router(research_router)
 router.include_router(search_router)
 router.include_router(ai_router)
 router.include_router(workspace_router)

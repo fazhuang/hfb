@@ -3,6 +3,8 @@ const eslintConfig = [
   {
     ignores: [
       '**/node_modules/**',
+      '**/.venv/**',
+      '**/.pytest_cache/**',
       '**/dist/**',
       '**/.output/**',
       '**/coverage/**',

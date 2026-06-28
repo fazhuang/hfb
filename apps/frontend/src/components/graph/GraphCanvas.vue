@@ -18,8 +18,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { Network } from 'vis-network/standalone';
-import { DataSet } from 'vis-data/standalone';
+import { Network } from 'vis-network';
+import { DataSet } from 'vis-data';
 import 'vis-network/styles/vis-network.min.css';
 
 const { t } = useI18n();

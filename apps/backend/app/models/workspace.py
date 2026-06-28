@@ -42,6 +42,9 @@ class ResearchSession(BaseModel):
     context_notes: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="研究笔记 (Markdown)"
     )
+    workflow_state: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="当前研究流程快照 (JSON)"
+    )
 
     # Relationships
     user: Mapped["User"] = relationship("User", lazy="selectin")

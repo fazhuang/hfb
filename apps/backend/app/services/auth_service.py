@@ -141,31 +141,13 @@ class AuthService:
         # Assign default Researcher role if it exists
         default_role = await self.role_repo.get_by_name("Researcher")
 
-        # If no roles exist at all, seed minimal default roles + permissions
+        # A fresh database must use the canonical RBAC definition. A second
+        # reduced matrix here caused first-run users to miss valid resources.
         if default_role is None:
-            from app.models.user import Permission, Role, role_permission as rp
-            # Create minimal permissions
-            perms: dict[str, Permission] = {}
-            for resource in ["person", "book", "version", "passage", "paper", "image", "document",
-                             "graph", "search", "ai", "workspace", "dashboard"]:
-                for action in ["create", "read", "update", "delete"]:
-                    p = Permission(resource=resource, action=action)
-                    self.session.add(p)
-                    perms[f"{resource}.{action}"] = p
-            p = Permission(resource="search", action="reindex")
-            self.session.add(p)
-            perms["search.reindex"] = p
-            await self.session.flush()
+            from app.db.seed_rbac import seed_rbac
 
-            # Create Researcher role with full permissions
-            default_role = Role(name="Researcher", description="Auto-created default role")
-            self.session.add(default_role)
-            await self.session.flush()
-            for code, perm in perms.items():
-                await self.session.execute(
-                    rp.insert().values(role_id=default_role.id, permission_id=perm.id)
-                )
-            await self.session.flush()
+            await seed_rbac(self.session)
+            default_role = await self.role_repo.get_by_name("Researcher")
         if default_role:
             from app.models.user import user_role
             from sqlalchemy import select as sa_select, and_

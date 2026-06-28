@@ -34,7 +34,7 @@
       <!-- Auth -->
       <template v-if="auth.isAuthenticated">
         <span class="user-greeting">{{ auth.userName }}</span>
-        <button class="auth-btn" @click="auth.logout()">{{ t('auth.logout') }}</button>
+        <button class="auth-btn" @click="logout">{{ t('auth.logout') }}</button>
       </template>
       <template v-else>
         <router-link :to="{ name: 'login' }" class="auth-link">{{ t('auth.login') }}</router-link>
@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
 import type { Theme } from '@/composables/useTheme';
@@ -73,6 +74,7 @@ import { useAuthStore } from '@/stores/auth';
 const { t, locale } = useI18n();
 const { theme, setTheme } = useTheme();
 const auth = useAuthStore();
+const router = useRouter();
 
 const menuOpen = ref(false);
 
@@ -80,6 +82,7 @@ const navItems = [
   { path: '/', icon: '🏠', labelKey: 'nav.home' },
   { path: '/books', icon: '📚', labelKey: 'nav.books' },
   { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
+  { path: '/research', icon: '校', labelKey: 'nav.research' },
   { path: '/graph', icon: '🔗', labelKey: 'nav.graph' },
   { path: '/workspace', icon: '🧪', labelKey: 'nav.workspace' },
   { path: '/search', icon: '🔍', labelKey: 'nav.search' },
@@ -100,6 +103,11 @@ const resolvedTheme = computed(() => {
 
 function switchLocale(loc: SupportedLocale) {
   setLocale(loc);
+}
+
+function logout() {
+  auth.logout();
+  router.push({ name: 'home' });
 }
 
 const themeCycle: Array<Theme> = ['light', 'dark', 'auto'];
