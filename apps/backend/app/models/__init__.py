@@ -7,6 +7,7 @@ Core entities:
   - Book, Version, Chapter, Passage, Paper, Image  [Phase 3]
   - EntityRelation                             [Phase 6] Knowledge Graph
   - ResearchSession, ResearchNote              [Phase 8] AI Workspace
+  - Institution                                [Sprint 1 Day 1]
 """
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from app.models.chapter import Chapter
 from app.models.document import Document
 from app.models.graph import EntityRelation
 from app.models.image import Image
+from app.models.institution import Institution
 from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
@@ -28,6 +30,7 @@ __all__ = [
     "Document",
     "EntityRelation",
     "Image",
+    "Institution",
     "Paper",
     "Passage",
     "Person",

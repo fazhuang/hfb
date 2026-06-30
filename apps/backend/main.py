@@ -3,20 +3,20 @@ HFB Backend Application — FastAPI entry point.
 
 皇甫谧数字人文平台
 """
-import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
 
 from app.api import health, ready, version
 from app.api.v1 import router as v1_router
 from app.core.config import settings
+from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.db.database import close_database, init_database
+from app.middleware.request_id import RequestIDMiddleware
 
 logger = get_logger(__name__)
 
@@ -49,7 +49,10 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Middleware
+    # Middleware — order matters: RequestIDMiddleware must be outermost
+    # so that every error handler and downstream middleware has request_id.
+    app.add_middleware(RequestIDMiddleware)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
@@ -63,6 +66,9 @@ def create_app() -> FastAPI:
             allowed_hosts=settings.ALLOWED_HOSTS,
         )
 
+    # Error handlers — must be registered before routes
+    register_error_handlers(app)
+
     # API routes
     app.include_router(health.router, tags=["Health"])
     app.include_router(ready.router, tags=["Readiness"])
@@ -73,18 +79,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc: Exception) -> JSONResponse:
-    """Global exception handler for unhandled errors."""
-    logger.error("unhandled_error error=%s path=%s", str(exc), str(request.url))
-    return JSONResponse(
-        status_code=500,
-        content={
-            "success": False,
-            "timestamp": asyncio.get_event_loop().time(),
-            "error": "Internal server error",
-            "detail": str(exc) if settings.DEBUG else None,
-        },
-    )
