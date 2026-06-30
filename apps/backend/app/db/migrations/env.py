@@ -32,13 +32,19 @@ from app.core.config import settings  # noqa: E402
 
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url from application settings
+# Override sqlalchemy.url from application settings or env
 database_url = os.environ.get("DATABASE_URL", settings.database_url)
-sync_database_url = (
-    database_url
-    .replace("+asyncpg", "+psycopg2")
-    .replace("+aiosqlite", "")
-)
+
+# Offline/sync URL — strip async drivers for DDL generation
+if database_url.startswith("postgresql+asyncpg://"):
+    sync_database_url = database_url.replace("+asyncpg", "+psycopg2")
+elif database_url.startswith("sqlite+aiosqlite:///"):
+    sync_database_url = database_url.replace("+aiosqlite", "")
+elif database_url.startswith("sqlite:///"):
+    sync_database_url = database_url
+else:
+    sync_database_url = database_url
+
 config.set_main_option("sqlalchemy.url", sync_database_url)
 
 
@@ -66,7 +72,14 @@ def do_run_migrations(connection: Connection) -> None:
 async def run_async_migrations() -> None:
     """Run migrations in 'online' mode (async engine)."""
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = database_url
+    # Online mode needs async drivers. SQLite URLs from DATABASE_URL may use
+    # the sync form (sqlite:///...); convert to aiosqlite for async engine.
+    async_url = database_url
+    if async_url.startswith("sqlite:///"):
+        async_url = async_url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
+    elif async_url.startswith("sqlite+aiosqlite:///"):
+        pass  # already correct
+    configuration["sqlalchemy.url"] = async_url
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",

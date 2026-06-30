@@ -14,6 +14,7 @@ from __future__ import annotations
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from app.models.graph import EntityRelation
 from app.models.image import Image
 from app.models.institution import Institution
@@ -28,6 +29,7 @@ __all__ = [
     "Book",
     "Chapter",
     "Document",
+    "DocumentChunk",
     "EntityRelation",
     "Image",
     "Institution",

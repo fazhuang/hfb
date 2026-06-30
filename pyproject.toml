@@ -43,6 +43,7 @@ dependencies = [
     "elasticsearch[async]>=8.17.0",
     "minio>=7.2.0",
     "psycopg2-binary>=2.9.0",
+    "pypdf>=5.0.0",
     "pyjwt>=2.8.0",
 ]
 

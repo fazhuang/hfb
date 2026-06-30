@@ -15,6 +15,7 @@ from fastapi import APIRouter
 from app.api.v1.ai import ai_router, workspace_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.dashboard import router as dashboard_router
+from app.api.v1.day2_search import router as day2_search_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.graph import router as graph_router
 from app.api.v1.research import router as research_router
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/api/v1")
 
 router.include_router(auth_router)
 router.include_router(entities_router)
+router.include_router(day2_search_router)
 router.include_router(users_router)
 router.include_router(version_center_router)
 router.include_router(graph_router)
