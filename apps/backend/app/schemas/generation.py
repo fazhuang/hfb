@@ -1,15 +1,13 @@
-"""Grounded generation response schemas — Day 4.
+"""Grounded generation response schemas — Day 4 P0.
 
-Extends the existing AI response envelope with a dedicated generation
-response that includes citation validation metadata.
+Response envelope: { query, answer, results[], citations[], metadata }
+All citations use [document_id:chunk_id] format, traceable to DocumentChunk records.
 """
 from __future__ import annotations
 
 from typing import Any
 
 from pydantic import BaseModel, Field
-
-from app.schemas.ai_response import Citation
 
 
 class GenerationMetadata(BaseModel):
@@ -24,11 +22,13 @@ class GroundedGenerationResponse(BaseModel):
     """Response envelope for the citation-grounded generation endpoint.
 
     Schema per Day 4 spec:
-    { query, answer, results[], citations[], metadata }
+    { query, answer, results[], citations[], metadata {
+        top_k, model, citation_validation
+    }}
     """
 
     query: str
     answer: str
     results: list[dict[str, Any]] = Field(default_factory=list)
-    citations: list[Citation] = Field(default_factory=list)
+    citations: list[dict[str, Any]] = Field(default_factory=list)
     metadata: GenerationMetadata = Field(default_factory=GenerationMetadata)

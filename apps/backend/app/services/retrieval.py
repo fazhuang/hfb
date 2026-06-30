@@ -140,8 +140,8 @@ class RetrievalService:
                 )
             )
 
-        # Stable sort: score desc, then document_id, then chunk_index
-        items.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index))
+        # Stable sort: score desc, document_id asc, chunk_index asc, chunk_id asc
+        items.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index, r.chunk_id))
         items = items[:top_k]
 
         max_score = max((r.score for r in items), default=0.0)

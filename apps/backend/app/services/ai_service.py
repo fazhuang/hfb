@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import time
 from collections import deque
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import httpx
 
@@ -260,21 +260,28 @@ class AIService:
         self,
         messages: list[dict[str, str]],
         system_prompt: str | None = None,
+        temperature: float | None = None,
+        seed: int | None = None,
     ) -> str:
         """Non-streaming completion with optional custom system prompt.
 
-        Public entry point.  When system_prompt is None, uses the default
-        evidence-gated prompt.
+        temperature=0 for deterministic generation (citation-grounded pipeline).
+        seed sets OpenAI-compatible seed for reproducible outputs.
         """
         prompt = system_prompt or EVIDENCE_GATED_SYSTEM_PROMPT
         full_messages = [{"role": "system", "content": prompt}, *messages]
-        return await self._call_api(full_messages)
+        return await self._call_api(full_messages, temperature=temperature, seed=seed)
 
     async def _complete(self, messages: list[dict[str, str]]) -> str:
         """Legacy wrapper — uses the hardcoded evidence-gated prompt."""
         return await self.complete(messages)
 
-    async def _call_api(self, messages: list[dict[str, str]]) -> str:
+    async def _call_api(
+        self,
+        messages: list[dict[str, str]],
+        temperature: float | None = None,
+        seed: int | None = None,
+    ) -> str:
         """Raw API call — no prompt injection."""
 
         url = f"{self._base_url}/chat/completions"
@@ -282,13 +289,15 @@ class AIService:
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",
         }
-        payload = {
+        payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
             "max_tokens": self._max_tokens,
-            "temperature": self._temperature,
+            "temperature": temperature if temperature is not None else self._temperature,
             "stream": False,
         }
+        if seed is not None:
+            payload["seed"] = seed
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(url, json=payload, headers=headers)

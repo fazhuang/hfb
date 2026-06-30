@@ -58,7 +58,6 @@ class ChatRequest(BaseModel):
 class GenerateRequest(BaseModel):
     query: str = Field(..., min_length=1)
     top_k: int = Field(default=5, ge=1, le=20)
-    entity_types: list[str] | None = None
 
 
 class SummarizeRequest(BaseModel):
@@ -204,7 +203,6 @@ async def grounded_generate(
     result = await pipeline.generate(
         query=body.query,
         top_k=body.top_k,
-        entity_types=body.entity_types,
     )
     return api_response(data=result.model_dump(mode="json"))
 
