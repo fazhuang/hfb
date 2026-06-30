@@ -83,10 +83,10 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"forget\s+(all\s+)?(previous\s+)?(rules|instructions|prompts)", re.IGNORECASE),
     re.compile(r"disregard\s+(all\s+)?(previous\s+)?(instructions|rules)", re.IGNORECASE),
     re.compile(r"do\s+not\s+(cite|reference|quote)", re.IGNORECASE),
-    re.compile(r"output\s+(only\s+)?the\s+following", re.IGNORECASE),
+    re.compile(r"output\s+(only\s+)?the\s+following\b", re.IGNORECASE),
     re.compile(r"you\s+are\s+(now\s+)?(the\s+)?(assistant|system|developer)", re.IGNORECASE),
     re.compile(r"act\s+as\s+(a\s+|an\s+)?(system|developer|attacker)", re.IGNORECASE),
-    re.compile(r"return\s+(only\s+)?(the\s+)?(following|this)", re.IGNORECASE),
+    re.compile(r"as\s+an?\s+AI\s+(language\s+)?model", re.IGNORECASE),
     # Role/token boundaries
     re.compile(r"system\s*[:：]", re.IGNORECASE),
     re.compile(r"assistant\s*[:：]", re.IGNORECASE),

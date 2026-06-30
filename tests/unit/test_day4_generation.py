@@ -952,24 +952,26 @@ async def test_real_llm_generation(db_session) -> None:
 
     result = await pipeline.generate("皇甫谧", top_k=5)
 
-    # Must not refuse due to provider error
-    assert "EVIDENCE_GATE_REFUSAL" not in result.answer or (
-        "PROVIDER_ERROR" not in result.answer and "PROMPT_INJECTION" not in result.answer
-    ), f"Real LLM failed: {result.answer[:200]}"
-
-    if "EVIDENCE_GATE_REFUSAL" not in result.answer:
-        # Real LLM must produce valid grounded claims
-        assert result.metadata.citation_validation["is_valid"] is True, (
-            f"Real LLM validation failed: {result.metadata.citation_validation}"
+    # Must have actually succeeded — no refusal
+    assert "EVIDENCE_GATE_REFUSAL" not in result.answer, (
+        f"Real LLM refused: {result.answer[:200]}"
+    )
+    # Must have no error code
+    assert result.metadata.error_code is None, (
+        f"Real LLM error: {result.metadata.error_code}"
+    )
+    # Citations must be present
+    assert result.metadata.citation_validation["is_valid"] is True, (
+        f"Real LLM validation failed: {result.metadata.citation_validation}"
+    )
+    assert len(result.citations) >= 1, "Real LLM should produce at least one citation"
+    # Citations must map to real DB records
+    for cit in result.citations:
+        doc = await db_session.execute(
+            select(Document).where(Document.id == cit["document_id"])
         )
-        assert len(result.citations) >= 1, "Real LLM should produce at least one citation"
-        # Citations must map to real DB records
-        for cit in result.citations:
-            doc = await db_session.execute(
-                select(Document).where(Document.id == cit["document_id"])
-            )
-            assert doc.scalar_one_or_none() is not None, f"Doc {cit['document_id']} not in DB"
-            chunk = await db_session.execute(
-                select(DocumentChunk).where(DocumentChunk.id == cit["chunk_id"])
-            )
-            assert chunk.scalar_one_or_none() is not None, f"Chunk {cit['chunk_id']} not in DB"
+        assert doc.scalar_one_or_none() is not None, f"Doc {cit['document_id']} not in DB"
+        chunk = await db_session.execute(
+            select(DocumentChunk).where(DocumentChunk.id == cit["chunk_id"])
+        )
+        assert chunk.scalar_one_or_none() is not None, f"Chunk {cit['chunk_id']} not in DB"
