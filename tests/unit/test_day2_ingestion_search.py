@@ -533,7 +533,7 @@ class TestSearchAPI:
     """Integration tests hitting POST /api/v1/search via real HTTP."""
 
     async def test_search_endpoint_exists_and_returns_contract(self, app_db_session):
-        """POST /api/v1/search returns chunks, citations, metadata. No LLM fields."""
+        """POST /api/v1/search returns query, results, metadata. No LLM fields."""
         from app.db.database import get_session
 
         # Ingest data directly
@@ -562,34 +562,45 @@ class TestSearchAPI:
             assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
             body = r.json()
 
-            # Contract fields
-            assert "chunks" in body, f"Missing 'chunks' in {body}"
-            assert "citations" in body, f"Missing 'citations' in {body}"
+            # Day 3 contract fields: query, results, metadata
+            assert "query" in body, f"Missing 'query' in {body}"
+            assert "results" in body, f"Missing 'results' in {body}"
             assert "metadata" in body, f"Missing 'metadata' in {body}"
 
             # No LLM fields
             assert "answer" not in body
             assert "generated_answer" not in body
-            assert "response" not in body
+            assert "chunks" not in body  # Day 3 format uses "results"
 
-            # citations match chunks 1:1
-            assert len(body["chunks"]) == len(body["citations"])
-            for i, chunk in enumerate(body["chunks"]):
-                assert chunk["citation"] == body["citations"][i]
+            # metadata has required fields
+            assert "top_k" in body["metadata"]
+            assert body["metadata"]["top_k"] == 5
+            assert "execution_time" in body["metadata"]
+            assert body["metadata"]["model"] == "retrieval-only"
+
+            # Each result has required Day 3 fields
+            for result in body["results"]:
+                assert "chunk_id" in result
+                assert "document_id" in result
+                assert "content" in result
+                assert "score" in result
+                assert "citation" in result
 
             # At least one result
-            assert body["metadata"]["total"] >= 1
+            assert body["metadata"]["top_k"] == 5
 
-            # Each chunk has required fields
-            for chunk in body["chunks"]:
-                assert "document_id" in chunk
-                assert "chunk_id" in chunk
-                assert "content" in chunk
-                assert "score" in chunk
-                assert "citation" in chunk
+            # Every citation maps to a real chunk_id
+            for result in body["results"]:
+                # citation format: [doc_id:chunk_id] — parse and verify
+                citation = result["citation"]
+                assert citation.startswith("[") and citation.endswith("]")
+                inner = citation[1:-1]
+                doc_id, chunk_id = inner.split(":", 1)
+                assert doc_id == result["document_id"]
+                assert chunk_id == result["chunk_id"]
 
     async def test_search_no_match_returns_empty_valid(self, app_db_session):
-        """Empty results still return valid contract structure."""
+        """Empty results still return valid Day 3 contract structure."""
         from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
@@ -609,13 +620,14 @@ class TestSearchAPI:
             )
             assert r.status_code == 200
             body = r.json()
-            assert body["chunks"] == []
-            assert body["citations"] == []
-            assert body["metadata"]["total"] == 0
+            assert body["results"] == []
+            assert body["query"] == "nonexistent_keyword_xyz"
+            assert body["metadata"]["model"] == "retrieval-only"
+            assert "execution_time" in body["metadata"]
 
     async def test_search_huanfumi_e2e(self, app_db_session):
         """Full end-to-end: ingest text with 皇甫谧/针灸/经络,
-        search, verify all citations traceable."""
+        search, verify all citations traceable. Day 3 contract."""
         from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
@@ -642,23 +654,29 @@ class TestSearchAPI:
             )
             assert r.status_code == 200
             body = r.json()
-            assert len(body["chunks"]) >= 1
+            assert len(body["results"]) >= 1
+            assert body["metadata"]["model"] == "retrieval-only"
 
             # Verify each citation traceable to DB
-            for chunk in body["chunks"]:
+            for result in body["results"]:
                 doc = (await app_db_session.execute(
-                    select(Document).where(Document.id == chunk["document_id"])
+                    select(Document).where(Document.id == result["document_id"])
                 )).scalar_one_or_none()
-                assert doc is not None, f"Document {chunk['document_id']} not found"
+                assert doc is not None, f"Document {result['document_id']} not found"
 
                 ch = (await app_db_session.execute(
                     select(DocumentChunk).where(
-                        DocumentChunk.id == chunk["chunk_id"],
-                        DocumentChunk.document_id == chunk["document_id"],
+                        DocumentChunk.id == result["chunk_id"],
+                        DocumentChunk.document_id == result["document_id"],
                     )
                 )).scalar_one_or_none()
-                assert ch is not None, f"Chunk {chunk['chunk_id']} not found"
+                assert ch is not None, f"Chunk {result['chunk_id']} not found"
 
                 # Citation format matches
-                expected_citation = f"[{chunk['document_id']}:{chunk['chunk_id']}]"
-                assert chunk["citation"] == expected_citation
+                expected_citation = f"[{result['document_id']}:{result['chunk_id']}]"
+                assert result["citation"] == expected_citation
+
+                # Citation is parseable: [doc_id:chunk_id]
+                assert result["citation"].count("[") == 1
+                assert result["citation"].count("]") == 1
+                assert ":" in result["citation"]

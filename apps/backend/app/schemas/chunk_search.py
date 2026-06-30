@@ -14,8 +14,10 @@ from pydantic import BaseModel, Field
 class SearchRequest(BaseModel):
     """Search request for document chunk retrieval."""
     query: str = Field(..., min_length=1, description="Search query text, whitespace-separated keywords")
-    top_k: int = Field(default=10, ge=1, le=50, description="Number of results to return")
+    top_k: int = Field(default=5, ge=1, le=50, description="Number of results to return")
     document_id: str | None = Field(default=None, description="Optional filter to a specific document")
+    year: int | None = Field(default=None, description="Optional filter: document year")
+    author_id: str | None = Field(default=None, description="Optional filter: document author (entity)")
 
 
 class ChunkResult(BaseModel):

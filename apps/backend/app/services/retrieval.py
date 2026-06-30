@@ -60,12 +60,19 @@ class RetrievalService:
         query: str,
         top_k: int = 10,
         document_id: str | None = None,
+        year: int | None = None,
+        author_id: str | None = None,
     ) -> SearchResponse:
         """Search document chunks by keywords (ILIKE per tokenized keyword).
 
         Tokenizes the query on whitespace to get individual keywords,
         matches chunks containing any keyword, then scores by hit count,
         coverage ratio, and keyword frequency.
+
+        Filters:
+          - document_id: restrict to a single document
+          - year: restrict to documents from a specific year
+          - author_id: restrict to documents authored by a specific person
 
         Stable sort: score descending, then document_id, then chunk_index.
         """
@@ -74,11 +81,17 @@ class RetrievalService:
             return SearchResponse(query=query, results=[], total=0, max_score=0.0)
 
         # Fetch candidate chunks: ILIKE any keyword
-        stmt = select(DocumentChunk).where(
+        stmt = select(DocumentChunk).join(
+            Document, DocumentChunk.document_id == Document.id
+        ).where(
             DocumentChunk.is_deleted.is_(False),
         )
         if document_id:
             stmt = stmt.where(DocumentChunk.document_id == document_id)
+        if year is not None:
+            stmt = stmt.where(Document.year == year)
+        if author_id is not None:
+            stmt = stmt.where(Document.author_id == author_id)
 
         # Build OR of keyword ILIKE conditions
         from sqlalchemy import or_
