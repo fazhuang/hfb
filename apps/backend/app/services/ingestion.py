@@ -18,6 +18,11 @@ from app.models.document_chunk import DocumentChunk
 from app.repositories.document import DocumentRepository
 from app.services.chunking import chunk_text
 
+# Whitelist: allowed metadata keys that can be stored on the Document model.
+# Prevents mass-assignment of internal fields (is_deleted, deleted_at, etc.)
+# through the ingest metadata parameter.
+_ALLOWED_METADATA_KEYS = frozenset({"dynasty", "category", "source_url", "raw_pdf_blob"})
+
 
 class IngestionError(Exception):
     """Raised when ingestion fails for any reason."""
@@ -87,7 +92,10 @@ class IngestionService:
             "content_text": stripped,
         }
         if metadata:
-            doc_data.update(metadata)
+            # ponytail: whitelist to prevent mass assignment of internal fields
+            for k, v in metadata.items():
+                if k in _ALLOWED_METADATA_KEYS:
+                    doc_data.setdefault(k, v)
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
