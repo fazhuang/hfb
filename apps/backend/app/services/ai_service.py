@@ -157,9 +157,6 @@ class AIService:
         async for chunk in self._stream_openai(full_messages, model or self._model):
             yield chunk
 
-        # Append AI marker for academic integrity
-        yield "\n\n---\n*🤖 AI 生成内容，请以学术标准核实*"
-
     async def _stream_openai(
         self, messages: list[dict[str, str]], model: str
     ) -> AsyncGenerator[str, None]:
@@ -253,7 +250,7 @@ class AIService:
         return await self._complete(messages)
 
     # ------------------------------------------------------------------
-    # Non-streaming completion
+    # Non-streaming completion (legacy)
     # ------------------------------------------------------------------
 
     async def complete(
@@ -265,12 +262,55 @@ class AIService:
     ) -> str:
         """Non-streaming completion with optional custom system prompt.
 
-        temperature=0 for deterministic generation (citation-grounded pipeline).
+        temperature=0 for deterministic generation.
         seed sets OpenAI-compatible seed for reproducible outputs.
         """
         prompt = system_prompt or EVIDENCE_GATED_SYSTEM_PROMPT
         full_messages = [{"role": "system", "content": prompt}, *messages]
         return await self._call_api(full_messages, temperature=temperature, seed=seed)
+
+    async def complete_structured(
+        self,
+        messages: list[dict[str, str]],
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        seed: int | None = None,
+    ) -> str | None:
+        """Non-streaming completion for structured LLM output (claims JSON).
+
+        Does NOT append AI marker text. Returns None on provider error.
+        Used by GenerationPipeline for strict grounded generation.
+        """
+        prompt = system_prompt or EVIDENCE_GATED_SYSTEM_PROMPT
+        full_messages = [{"role": "system", "content": prompt}, *messages]
+
+        url = f"{self._base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": full_messages,
+            "max_tokens": self._max_tokens,
+            "temperature": temperature if temperature is not None else self._temperature,
+            "stream": False,
+        }
+        if seed is not None:
+            payload["seed"] = seed
+
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(url, json=payload, headers=headers)
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                if not content or not content.strip():
+                    return None
+                return content.strip()
+        except Exception:
+            return None
 
     async def _complete(self, messages: list[dict[str, str]]) -> str:
         """Legacy wrapper — uses the hardcoded evidence-gated prompt."""
@@ -305,7 +345,8 @@ class AIService:
                 return f"⚠️ AI 服务错误 (HTTP {resp.status_code})"
             data = resp.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
-            return content + "\n\n---\n*🤖 AI 生成内容*"
+            # ponytail: AI marker is metadata on the response envelope, not in the text
+            return content
 
 
 # ---------------------------------------------------------------------------
@@ -315,11 +356,11 @@ class AIService:
 
 def _mock_summarize(text: str, max_words: int) -> str:
     preview = text[:max_words // 2] + ("…" if len(text) > max_words // 2 else "")
-    return f"[摘要] {preview}\n\n---\n*🤖 AI 服务未配置，以上为文本截取*"
+    return f"[摘要] {preview}"
 
 
 def _mock_translate(text: str, target_lang: str) -> str:
-    return f"[翻译至{target_lang}] {text[:200]}{'…' if len(text) > 200 else ''}\n\n---\n*🤖 AI 服务未配置，以上为原文截取*"
+    return f"[翻译至{target_lang}] {text[:200]}{'…' if len(text) > 200 else ''}"
 
 
 def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label: str) -> str:
@@ -345,5 +386,4 @@ def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label:
             changes += 1
 
     report.append(f"共发现 {changes} 处差异")
-    report.append("\n---\n*🤖 AI 服务未配置，以上为自动文字比对*")
     return "\n".join(report)

@@ -192,12 +192,13 @@ async def grounded_generate(
     body: GenerateRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    """Citation-grounded generation endpoint.
+    """Strict grounded generation endpoint — Day 4.
 
-    Retrieves chunks, builds a strict citation-grounded prompt, generates
-    the LLM answer, and validates that every fact is cited.
+    LLM outputs structured claims JSON only. Server validates every quote
+    is an exact contiguous substring of the corresponding chunk's content,
+    then deterministically renders the final answer from verified quotes.
 
-    Returns a GroundedGenerationResponse: { query, answer, results[], citations[], metadata }
+    Returns: { query, answer, results[], citations[], metadata { error_code } }
     """
     pipeline = GenerationPipeline(session)
     result = await pipeline.generate(

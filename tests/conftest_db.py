@@ -12,6 +12,8 @@ from app.db.base import Base
 
 # Import all models to ensure they are registered on Base.metadata
 from app.models import (
+    Document,     # noqa: F401
+    DocumentChunk,  # noqa: F401
     Person,   # noqa: F401
     Book,     # noqa: F401
     Chapter,  # noqa: F401
