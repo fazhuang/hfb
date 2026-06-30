@@ -1,0 +1,192 @@
+"""
+Chunk-level retrieval with citation binding.
+
+Uses SQL ILIKE for text matching with multi-keyword tokenization.
+Every result carries a citation in the format [document_id:chunk_id],
+traceable back to the source document and individual chunk.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+
+
+@dataclass
+class RetrievalResult:
+    """A single retrieval result with citation metadata."""
+
+    chunk_id: str
+    document_id: str
+    document_title: str
+    chunk_index: int
+    content: str
+    citation: str  # format: [document_id:chunk_id]
+    score: float
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class SearchResponse:
+    """Response from the chunk search endpoint."""
+
+    query: str
+    results: list[RetrievalResult]
+    total: int
+    max_score: float
+
+
+class RetrievalService:
+    """Retrieve document chunks by keyword search with citation binding.
+
+    Every result carries a citation string that links back to the
+    source document and chunk — traceable and verifiable.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    # ------------------------------------------------------------------
+    # Search
+    # ------------------------------------------------------------------
+
+    async def search(
+        self,
+        query: str,
+        top_k: int = 10,
+        document_id: str | None = None,
+    ) -> SearchResponse:
+        """Search document chunks by keywords (ILIKE per tokenized keyword).
+
+        Tokenizes the query on whitespace to get individual keywords,
+        matches chunks containing any keyword, then scores by hit count,
+        coverage ratio, and keyword frequency.
+
+        Stable sort: score descending, then document_id, then chunk_index.
+        """
+        keywords = self._tokenize(query)
+        if not keywords:
+            return SearchResponse(query=query, results=[], total=0, max_score=0.0)
+
+        # Fetch candidate chunks: ILIKE any keyword
+        stmt = select(DocumentChunk).where(
+            DocumentChunk.is_deleted.is_(False),
+        )
+        if document_id:
+            stmt = stmt.where(DocumentChunk.document_id == document_id)
+
+        # Build OR of keyword ILIKE conditions
+        from sqlalchemy import or_
+        keyword_filters = [
+            DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
+        ]
+        stmt = stmt.where(or_(*keyword_filters))
+
+        # Fetch ALL candidate chunks matching any keyword
+        result = await self.session.execute(stmt)
+        all_chunks = result.scalars().all()
+
+        # Collect document titles in one query to avoid N+1
+        doc_ids = list({c.document_id for c in all_chunks})
+        doc_titles: dict[str, str] = {}
+        if doc_ids:
+            doc_result = await self.session.execute(
+                select(Document.id, Document.title)
+                .where(Document.id.in_(doc_ids))
+            )
+            for row in doc_result:
+                doc_titles[row[0]] = row[1]
+
+        # Build results with citation
+        items: list[RetrievalResult] = []
+        for chunk in all_chunks:
+            title = doc_titles.get(chunk.document_id, "Unknown")
+            score = self._score_chunk(keywords, chunk.content)
+            # Citation format: [document_id:chunk_id]
+            citation = f"[{chunk.document_id}:{chunk.id}]"
+
+            items.append(
+                RetrievalResult(
+                    chunk_id=chunk.id,
+                    document_id=chunk.document_id,
+                    document_title=title,
+                    chunk_index=chunk.chunk_index,
+                    content=chunk.content,
+                    citation=citation,
+                    score=score,
+                    metadata={
+                        "token_count": chunk.token_count or 0,
+                        "document_id": chunk.document_id,
+                        "chunk_index": chunk.chunk_index,
+                    },
+                )
+            )
+
+        # Stable sort: score desc, then document_id, then chunk_index
+        items.sort(key=lambda r: (-r.score, r.document_id, r.chunk_index))
+        items = items[:top_k]
+
+        max_score = max((r.score for r in items), default=0.0)
+
+        return SearchResponse(
+            query=query,
+            results=items,
+            total=len(items),
+            max_score=max_score,
+        )
+
+    # ------------------------------------------------------------------
+    # Tokenization
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _tokenize(query: str) -> list[str]:
+        """Split query on whitespace into non-empty, deduplicated keywords."""
+        return list(dict.fromkeys(
+            kw for kw in query.strip().split() if kw
+        ))
+
+    # ------------------------------------------------------------------
+    # Scoring — multi-keyword, deterministic, stable
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _score_chunk(keywords: list[str], content: str) -> float:
+        """Score a chunk by keyword hit count + coverage + frequency.
+
+        Deterministic formula:
+          - hit_ratio: fraction of keywords that appear in content (0-1, weight 0.5)
+          - coverage: total keyword occurrences / content length (weight 0.3)
+          - frequency: total keyword occurrences normalized (weight 0.2)
+
+        Returns a float 0.0–1.0, rounded to 3 decimal places.
+        """
+        if not content:
+            return 0.0
+
+        c_lower = content.lower()
+        content_len = len(c_lower)
+        hits = 0
+        total_occurrences = 0
+
+        for kw in keywords:
+            kw_lower = kw.lower()
+            count = c_lower.count(kw_lower)
+            if count > 0:
+                hits += 1
+                total_occurrences += count
+
+        if hits == 0:
+            return 0.0
+
+        hit_ratio = hits / len(keywords)
+        coverage = min(total_occurrences / max(content_len, 1), 1.0)
+        frequency = min(total_occurrences / max(content_len / 100, 1), 1.0)
+
+        score = 0.5 * hit_ratio + 0.3 * coverage + 0.2 * frequency
+        return round(min(score, 1.0), 3)

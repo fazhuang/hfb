@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, String, Text, ForeignKey
+from sqlalchemy import Integer, LargeBinary, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -34,6 +34,7 @@ class Document(BaseModel):
     abstract: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="摘要")
     content_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="全文文本")
     source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True, comment="来源链接")
+    raw_pdf_blob: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True, comment="原始 PDF 文件的二进制内容")
     page_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="页数")
     language: Mapped[str] = mapped_column(
         String(20), default="zh", server_default="zh", nullable=False, comment="语言"
