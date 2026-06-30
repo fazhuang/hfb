@@ -256,8 +256,26 @@ class AIService:
     # Non-streaming completion
     # ------------------------------------------------------------------
 
+    async def complete(
+        self,
+        messages: list[dict[str, str]],
+        system_prompt: str | None = None,
+    ) -> str:
+        """Non-streaming completion with optional custom system prompt.
+
+        Public entry point.  When system_prompt is None, uses the default
+        evidence-gated prompt.
+        """
+        prompt = system_prompt or EVIDENCE_GATED_SYSTEM_PROMPT
+        full_messages = [{"role": "system", "content": prompt}, *messages]
+        return await self._call_api(full_messages)
+
     async def _complete(self, messages: list[dict[str, str]]) -> str:
-        full_messages = [{"role": "system", "content": EVIDENCE_GATED_SYSTEM_PROMPT}, *messages]
+        """Legacy wrapper — uses the hardcoded evidence-gated prompt."""
+        return await self.complete(messages)
+
+    async def _call_api(self, messages: list[dict[str, str]]) -> str:
+        """Raw API call — no prompt injection."""
 
         url = f"{self._base_url}/chat/completions"
         headers = {
@@ -266,7 +284,7 @@ class AIService:
         }
         payload = {
             "model": self._model,
-            "messages": full_messages,
+            "messages": messages,
             "max_tokens": self._max_tokens,
             "temperature": self._temperature,
             "stream": False,

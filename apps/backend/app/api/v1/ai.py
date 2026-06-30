@@ -28,6 +28,7 @@ from app.schemas.ai_response import (
     StructuredResponseBuilder,
 )
 from app.services.ai_service import AIService
+from app.services.generation_service import GenerationPipeline
 from app.services.rag_service import RAGService
 from app.services.workspace_service import WorkspaceService
 from app.utils.response import api_response
@@ -51,6 +52,12 @@ class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
     session_id: str | None = None
     use_rag: bool = True
+    entity_types: list[str] | None = None
+
+
+class GenerateRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
     entity_types: list[str] | None = None
 
 
@@ -174,6 +181,32 @@ async def ai_chat(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ============================================================
+# Grounded Generation (Day 4)
+# ============================================================
+
+
+@ai_router.post("/generate", response_model=dict, dependencies=[Depends(guard_ai_read)])
+async def grounded_generate(
+    body: GenerateRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Citation-grounded generation endpoint.
+
+    Retrieves chunks, builds a strict citation-grounded prompt, generates
+    the LLM answer, and validates that every fact is cited.
+
+    Returns a GroundedGenerationResponse: { query, answer, results[], citations[], metadata }
+    """
+    pipeline = GenerationPipeline(session)
+    result = await pipeline.generate(
+        query=body.query,
+        top_k=body.top_k,
+        entity_types=body.entity_types,
+    )
+    return api_response(data=result.model_dump(mode="json"))
 
 
 # ============================================================
