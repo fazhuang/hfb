@@ -928,14 +928,48 @@ def test_system_prompt_requires_structured_json() -> None:
 
 
 @pytest.mark.asyncio
-async def test_real_llm_generation() -> None:
-    """Real LLM grounded generation — xfail if no API key.
+async def test_real_llm_generation(db_session) -> None:
+    """Real LLM grounded generation test.
 
-    When AI_API_KEY is set, this test runs a real LLM call and verifies
-    grounded claims pass all validation layers.
+    When AI_API_KEY is configured, calls the real LLM through the pipeline
+    and verifies the grounded claims pass all validation layers.
+    When API key is absent, xfails with REAL_LLM_BLOCKED.
     """
     from app.services.ai_service import AIService
     ai = AIService()
     if not ai.available:
         pytest.xfail("REAL_LLM_BLOCKED: No AI_API_KEY configured")
-    pytest.skip("REAL_LLM_BLOCKED: API key present but test harness needs real DB")
+
+    # Real LLM is available — run a real query through the pipeline
+    await _seed_chunks(db_session, [
+        ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
+    ])
+
+    # Use real AIService, not mock
+    pipeline = GenerationPipeline(db_session)
+    # Force real AI service
+    pipeline._ai = AIService()
+
+    result = await pipeline.generate("皇甫谧", top_k=5)
+
+    # Must not refuse due to provider error
+    assert "EVIDENCE_GATE_REFUSAL" not in result.answer or (
+        "PROVIDER_ERROR" not in result.answer and "PROMPT_INJECTION" not in result.answer
+    ), f"Real LLM failed: {result.answer[:200]}"
+
+    if "EVIDENCE_GATE_REFUSAL" not in result.answer:
+        # Real LLM must produce valid grounded claims
+        assert result.metadata.citation_validation["is_valid"] is True, (
+            f"Real LLM validation failed: {result.metadata.citation_validation}"
+        )
+        assert len(result.citations) >= 1, "Real LLM should produce at least one citation"
+        # Citations must map to real DB records
+        for cit in result.citations:
+            doc = await db_session.execute(
+                select(Document).where(Document.id == cit["document_id"])
+            )
+            assert doc.scalar_one_or_none() is not None, f"Doc {cit['document_id']} not in DB"
+            chunk = await db_session.execute(
+                select(DocumentChunk).where(DocumentChunk.id == cit["chunk_id"])
+            )
+            assert chunk.scalar_one_or_none() is not None, f"Chunk {cit['chunk_id']} not in DB"

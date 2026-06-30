@@ -68,6 +68,7 @@ _CITATION_RE = re.compile(r"^\[([^\]]+):([^\]]+)\]$")
 # ---------------------------------------------------------------------------
 
 PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
+    # Chinese payloads
     re.compile(r"忽略\s*系统\s*指令", re.IGNORECASE),
     re.compile(r"忽略\s*所有\s*(系统\s*)?指令", re.IGNORECASE),
     re.compile(r"忘[记掉]\s*(之前|所有|一切)?\s*(的?\s*)?(规则|指令|系统|system)", re.IGNORECASE),
@@ -76,6 +77,17 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"不\s*[要需必]\s*使用.*citation", re.IGNORECASE),
     re.compile(r"输[出]+\s*皇甫谧是唐代", re.IGNORECASE),
     re.compile(r"输[出]+\s*.*不要引用", re.IGNORECASE),
+    re.compile(r"自[由随]模[式态]", re.IGNORECASE),
+    # English payloads
+    re.compile(r"ignore\s+(all\s+)?(previous\s+)?instructions", re.IGNORECASE),
+    re.compile(r"forget\s+(all\s+)?(previous\s+)?(rules|instructions|prompts)", re.IGNORECASE),
+    re.compile(r"disregard\s+(all\s+)?(previous\s+)?(instructions|rules)", re.IGNORECASE),
+    re.compile(r"do\s+not\s+(cite|reference|quote)", re.IGNORECASE),
+    re.compile(r"output\s+(only\s+)?the\s+following", re.IGNORECASE),
+    re.compile(r"you\s+are\s+(now\s+)?(the\s+)?(assistant|system|developer)", re.IGNORECASE),
+    re.compile(r"act\s+as\s+(a\s+|an\s+)?(system|developer|attacker)", re.IGNORECASE),
+    re.compile(r"return\s+(only\s+)?(the\s+)?(following|this)", re.IGNORECASE),
+    # Role/token boundaries
     re.compile(r"system\s*[:：]", re.IGNORECASE),
     re.compile(r"assistant\s*[:：]", re.IGNORECASE),
     re.compile(r"developer\s*[:：]", re.IGNORECASE),
@@ -84,11 +96,13 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"<\|.*\|>", re.IGNORECASE),
     re.compile(r"BEGIN\s+SYSTEM", re.IGNORECASE),
     re.compile(r"END\s+SYSTEM", re.IGNORECASE),
+    # Known attack names
     re.compile(r"jailbreak", re.IGNORECASE),
     re.compile(r"prompt\s+injection", re.IGNORECASE),
-    re.compile(r"自[由随]模[式态]", re.IGNORECASE),
     re.compile(r"override\s+system", re.IGNORECASE),
-    re.compile(r"bypass\s+system", re.IGNORECASE),
+    re.compile(r"bypass\s+(system|filter|guard)", re.IGNORECASE),
+    # UNTRUSTED marker escape
+    re.compile(r"<<<END_UNTRUSTED_DATA>>>", re.IGNORECASE),
 ]
 
 
@@ -106,6 +120,20 @@ def _detect_prompt_injection_text(text: str) -> bool:
         if pat.search(text):
             return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Duplicate JSON key detection
+# ---------------------------------------------------------------------------
+
+def _detect_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """object_pairs_hook that raises ValueError on duplicate keys."""
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate key: {key!r}")
+        result[key] = value
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -203,9 +231,16 @@ class GenerationPipeline:
         assert raw_output is not None
         json_str = raw_output.strip()
 
+        # Reject duplicate top-level keys
         try:
             data = json.loads(json_str)
         except (json.JSONDecodeError, ValueError):
+            return self._refuse(query, "INVALID_JSON", snapshot, chunk_rank)
+
+        # Detect duplicate keys (json.loads silently keeps the last one)
+        try:
+            _ = json.loads(json_str, object_pairs_hook=_detect_duplicate_keys)
+        except ValueError:
             return self._refuse(query, "INVALID_JSON", snapshot, chunk_rank)
 
         # Step 5 — Pydantic strict validation (extra="forbid", strict=True)
@@ -561,27 +596,17 @@ class GenerationPipeline:
         snapshot: dict[str, RetrievalResult] | None = None,
         chunk_rank: dict[str, int] | None = None,
     ) -> GroundedGenerationResponse:
-        """Build a fail-closed refusal. Never exposes raw LLM output."""
-        reason = VALIDATION_ERROR_CODES.get(error_code, f"验证失败: {error_code}")
+        """Build a fail-closed refusal. Never exposes raw LLM output.
 
-        results_list = []
-        if snapshot:
-            results_list = [
-                {
-                    "document_id": r.document_id,
-                    "chunk_id": r.chunk_id,
-                    "chunk_index": r.chunk_index,
-                    "content": r.content,
-                    "citation": r.citation,
-                    "score": r.score,
-                }
-                for r in snapshot.values()
-            ]
+        results are always empty on refusal — retrieval output is never
+        returned when generation fails, preventing information disclosure.
+        """
+        reason = VALIDATION_ERROR_CODES.get(error_code, f"验证失败: {error_code}")
 
         return GroundedGenerationResponse(
             query=query,
             answer=f"EVIDENCE_GATE_REFUSAL: {reason}",
-            results=results_list,
+            results=[],
             citations=[],
             metadata=GenerationMetadata(
                 top_k=0,
