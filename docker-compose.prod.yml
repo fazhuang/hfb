@@ -1,6 +1,16 @@
 # ============================================================
 # Docker Compose — Production Environment
 # ============================================================
+#
+# Profiles:
+#   default (MVP)  — backend, frontend, postgres, redis, minio, elasticsearch
+#   post-mvp       — adds neo4j
+#
+# Start MVP:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Start with post-mvp services:
+#   docker compose -f docker-compose.prod.yml --profile post-mvp up -d
 
 services:
   # --- Backend ---
@@ -14,10 +24,32 @@ services:
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-hfb}
+      - POSTGRES_USER=${POSTGRES_USER:-hfb}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+      - MINIO_HOST=minio
+      - MINIO_PORT=9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - ELASTICSEARCH_USER=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required}
     env_file:
       - .env
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -50,7 +82,7 @@ services:
       - hfb-network
     restart: unless-stopped
 
-  # --- PostgreSQL ---
+  # --- PostgreSQL (pgvector) ---
   postgres:
     image: pgvector/pgvector:pg16
     container_name: hfb-postgres
@@ -59,7 +91,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-hfb}
       POSTGRES_USER: ${POSTGRES_USER:-hfb}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -76,10 +108,82 @@ services:
       - hfb-network
     restart: unless-stopped
 
-  # --- Neo4j ---
+  # --- Redis (MVP) ---
+  redis:
+    image: redis:7-alpine
+    container_name: hfb-redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    command:
+      - sh
+      - -c
+      - exec redis-server --requirepass "$$REDIS_PASSWORD" --save 60 1 --loglevel warning
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli ping | grep -q PONG
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- MinIO (MVP) ---
+  minio:
+    image: minio/minio:latest
+    container_name: hfb-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Elasticsearch (MVP) ---
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: hfb-elasticsearch
+    ports:
+      - "${ELASTICSEARCH_PORT:-9200}:9200"
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms2g -Xmx2g
+      xpack.security.enabled: true
+      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD:?ELASTICSEARCH_PASSWORD is required}
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-u", "elastic:${ELASTICSEARCH_PASSWORD}", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - hfb-network
+    restart: unless-stopped
+
+  # --- Neo4j (Post-MVP) ---
   neo4j:
     image: neo4j:5
     container_name: hfb-neo4j
+    profiles:
+      - post-mvp
     ports:
       - "${NEO4J_BOLT_PORT:-7687}:7687"
     environment:
@@ -97,32 +201,12 @@ services:
       - hfb-network
     restart: unless-stopped
 
-  # --- Elasticsearch ---
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
-    container_name: hfb-elasticsearch
-    ports:
-      - "${ELASTICSEARCH_PORT:-9200}:9200"
-    environment:
-      discovery.type: single-node
-      ES_JAVA_OPTS: -Xms2g -Xmx2g
-      xpack.security.enabled: true
-      ELASTIC_PASSWORD: ${ELASTICSEARCH_PASSWORD}
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "-u", "elastic:${ELASTICSEARCH_PASSWORD}", "http://localhost:9200/_cluster/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      - hfb-network
-    restart: unless-stopped
-
 volumes:
   postgres_data:
-  neo4j_data:
+  redis_data:
+  minio_data:
   es_data:
+  neo4j_data:
 
 networks:
   hfb-network:
