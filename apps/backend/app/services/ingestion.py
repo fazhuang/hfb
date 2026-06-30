@@ -154,12 +154,11 @@ class IngestionService:
             )
 
         extra: dict = {}
+        if metadata:
+            extra.update(metadata)
         if store_raw_pdf:
             extra["raw_pdf_blob"] = raw_bytes
             extra["source_url"] = f"pdf:{len(raw_bytes)}bytes"
-
-        if metadata:
-            extra.update(metadata)
 
         return await self.ingest_text(title=title, text=text.strip(), metadata=extra)
 
