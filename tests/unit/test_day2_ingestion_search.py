@@ -562,7 +562,7 @@ class TestSearchAPI:
             assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
             body = r.json()
 
-            # Day 3 contract fields: query, results, metadata
+            # Frozen contract fields: query, results, metadata
             assert "query" in body, f"Missing 'query' in {body}"
             assert "results" in body, f"Missing 'results' in {body}"
             assert "metadata" in body, f"Missing 'metadata' in {body}"
@@ -570,21 +570,23 @@ class TestSearchAPI:
             # No LLM fields
             assert "answer" not in body
             assert "generated_answer" not in body
-            assert "chunks" not in body  # Day 3 format uses "results"
+            assert "chunks" not in body  # Frozen format uses "results"
 
-            # metadata has required fields
+            # metadata has exactly two fields: top_k, model
             assert "top_k" in body["metadata"]
             assert body["metadata"]["top_k"] == 5
-            assert "execution_time" in body["metadata"]
             assert body["metadata"]["model"] == "retrieval-only"
+            # execution_time MUST be absent (breaks determinism)
+            assert "execution_time" not in body["metadata"], (
+                "execution_time breaks determinism — must be absent"
+            )
+            # No extra fields in metadata
+            assert set(body["metadata"].keys()) == {"top_k", "model"}
 
-            # Each result has required Day 3 fields
+            # Each result has exactly 5 fields
             for result in body["results"]:
-                assert "chunk_id" in result
-                assert "document_id" in result
-                assert "content" in result
-                assert "score" in result
-                assert "citation" in result
+                assert set(result.keys()) == {"chunk_id", "document_id", "content", "score", "citation"}
+                assert "metadata" not in result  # no per-result metadata in frozen contract
 
             # At least one result
             assert body["metadata"]["top_k"] == 5
@@ -599,8 +601,17 @@ class TestSearchAPI:
                 assert doc_id == result["document_id"]
                 assert chunk_id == result["chunk_id"]
 
+            # Determinism: same input → byte-identical JSON
+            import json
+            r2 = await c.post(
+                "/api/v1/search",
+                json={"query": "皇甫谧 针灸 经络", "top_k": 5},
+            )
+            assert r2.status_code == 200
+            assert json.dumps(body, sort_keys=True) == json.dumps(r2.json(), sort_keys=True)
+
     async def test_search_no_match_returns_empty_valid(self, app_db_session):
-        """Empty results still return valid Day 3 contract structure."""
+        """Empty results still return valid frozen contract structure."""
         from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
@@ -623,7 +634,8 @@ class TestSearchAPI:
             assert body["results"] == []
             assert body["query"] == "nonexistent_keyword_xyz"
             assert body["metadata"]["model"] == "retrieval-only"
-            assert "execution_time" in body["metadata"]
+            assert body["metadata"]["top_k"] == 5
+            assert "execution_time" not in body["metadata"]
 
     async def test_search_huanfumi_e2e(self, app_db_session):
         """Full end-to-end: ingest text with 皇甫谧/针灸/经络,

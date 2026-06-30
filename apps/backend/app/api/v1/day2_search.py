@@ -8,7 +8,6 @@ Endpoints:
 """
 from __future__ import annotations
 
-import time
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -17,6 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_session
 from app.schemas.chunk_search import (
     SearchRequest,
+    SearchResponse,
+    SearchResult,
+    Metadata,
     IngestTextRequest,
 )
 from app.services.ingestion import IngestionService, IngestionError
@@ -31,24 +33,23 @@ router = APIRouter(prefix="/search", tags=["Search"])
 # and will be wired via require_permission("search", "read") later.
 
 
-@router.post("")
+@router.post("", response_model=SearchResponse)
 async def search(
     body: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> SearchResponse:
     """Search document chunks by keyword.
 
     Each result includes a citation in the format [doc_id:chunk_id]
     that can be traced back to the source document and chunk.
 
-    Response contract (Day 3 standard):
+    Response contract (frozen):
       query:    echo of the search query
       results:  [{chunk_id, document_id, content, score, citation}]
-      metadata: {top_k, execution_time, model: "retrieval-only"}
+      metadata: {top_k, model: "retrieval-only"}
 
-    No LLM-generated answers. No AI service calls.
+    No LLM-generated answers. No AI service calls. Fully deterministic.
     """
-    t0 = time.time()
     svc = RetrievalService(session)
     result = await svc.search(
         query=body.query,
@@ -57,28 +58,24 @@ async def search(
         year=body.year,
         author_id=body.author_id,
     )
-    execution_time = round(time.time() - t0, 3)
 
-    results = [
-        {
-            "chunk_id": r.chunk_id,
-            "document_id": r.document_id,
-            "content": r.content,
-            "score": r.score,
-            "citation": r.citation,
-        }
-        for r in result.results
-    ]
-
-    return {
-        "query": body.query,
-        "results": results,
-        "metadata": {
-            "top_k": body.top_k,
-            "execution_time": execution_time,
-            "model": "retrieval-only",
-        },
-    }
+    return SearchResponse(
+        query=body.query,
+        results=[
+            SearchResult(
+                chunk_id=r.chunk_id,
+                document_id=r.document_id,
+                content=r.content,
+                score=r.score,
+                citation=r.citation,
+            )
+            for r in result.results
+        ],
+        metadata=Metadata(
+            top_k=body.top_k,
+            model="retrieval-only",
+        ),
+    )
 
 
 @router.post("/chunks", response_model=dict)

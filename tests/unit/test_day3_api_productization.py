@@ -89,6 +89,37 @@ async def _seed_data(session):
 class TestAPIContract:
     """Day 3 standardized response contract."""
 
+    async def test_openapi_response_schema_is_fully_strict(self):
+        """OpenAPI defines the frozen response and forbids extra object fields."""
+        from fastapi import FastAPI
+        from app.api.v1.day2_search import router as search_router
+
+        app = FastAPI()
+        app.include_router(search_router, prefix="/api/v1")
+        openapi = app.openapi()
+        response_schema = openapi["paths"]["/api/v1/search"]["post"]["responses"]["200"][
+            "content"
+        ]["application/json"]["schema"]
+        assert response_schema == {"$ref": "#/components/schemas/SearchResponse"}
+
+        schemas = openapi["components"]["schemas"]
+        expected_properties = {
+            "SearchResponse": {"query", "results", "metadata"},
+            "SearchResult": {
+                "chunk_id",
+                "document_id",
+                "content",
+                "score",
+                "citation",
+            },
+            "Metadata": {"top_k", "model"},
+        }
+        for schema_name, properties in expected_properties.items():
+            schema = schemas[schema_name]
+            assert schema["additionalProperties"] is False
+            assert set(schema["properties"]) == properties
+            assert set(schema["required"]) == properties
+
     async def test_response_has_query_results_metadata(self, app_db_session):
         """POST /api/v1/search returns top-level {query, results, metadata}."""
         from app.db.database import get_session
@@ -115,8 +146,8 @@ class TestAPIContract:
             assert isinstance(body["results"], list)
             assert "metadata" in body
 
-    async def test_metadata_fields_top_k_execution_time_model(self, app_db_session):
-        """Metadata must include top_k, execution_time, and model: retrieval-only."""
+    async def test_metadata_fields_top_k_and_model(self, app_db_session):
+        """Metadata must include top_k and model: retrieval-only. NO execution_time."""
         from app.db.database import get_session
 
         await _seed_data(app_db_session)
@@ -136,13 +167,18 @@ class TestAPIContract:
             meta = r.json()["metadata"]
 
             assert meta["top_k"] == 10
-            assert "execution_time" in meta
-            assert isinstance(meta["execution_time"], (int, float))
-            assert meta["execution_time"] >= 0
             assert meta["model"] == "retrieval-only"
+            # execution_time MUST be absent — breaks determinism
+            assert "execution_time" not in meta, (
+                "execution_time forbidden: breaks determinism"
+            )
+            # Metadata has exactly 2 known fields
+            assert set(meta.keys()) == {"top_k", "model"}, (
+                f"metadata has extra keys: {set(meta.keys()) - {'top_k', 'model'}}"
+            )
 
     async def test_each_result_has_required_fields(self, app_db_session):
-        """Each result has chunk_id, document_id, content, score, citation."""
+        """Each result has chunk_id, document_id, content, score, citation. NO extra fields."""
         from app.db.database import get_session
 
         await _seed_data(app_db_session)
@@ -162,22 +198,22 @@ class TestAPIContract:
             body = r.json()
 
             assert len(body["results"]) >= 1
+            frozen_fields = {"chunk_id", "document_id", "content", "score", "citation"}
             for result in body["results"]:
-                assert "chunk_id" in result
                 assert result["chunk_id"] is not None
-                assert "document_id" in result
                 assert result["document_id"] is not None
-                assert "content" in result
                 assert len(result["content"]) > 0
-                assert "score" in result
                 assert isinstance(result["score"], (int, float))
                 assert 0.0 <= result["score"] <= 1.0
-                assert "citation" in result
                 assert result["citation"].startswith("[")
                 assert ":" in result["citation"]
+                # No extra fields
+                assert set(result.keys()) == frozen_fields, (
+                    f"Result has extra keys: {set(result.keys()) - frozen_fields}"
+                )
 
     async def test_no_llm_or_extraneous_fields(self, app_db_session):
-        """Response must NOT contain answer, generated_answer, chunks, or LLM keys."""
+        """Response must NOT contain answer, generated_answer, chunks, or execution_time."""
         from app.db.database import get_session
 
         await _seed_data(app_db_session)
@@ -196,9 +232,9 @@ class TestAPIContract:
             assert r.status_code == 200
             body = r.json()
 
-            forbidden = {"answer", "generated_answer", "response", "chunks", "citations"}
+            forbidden = {"answer", "generated_answer", "response", "chunks", "citations", "execution_time"}
             for key in forbidden:
-                assert key not in body, f"Day 3 response must not contain '{key}'"
+                assert key not in body, f"Frozen contract must not contain '{key}'"
 
     async def test_empty_query_results_in_validation_error(self, app_db_session):
         """Empty or missing query should return 422 (Pydantic validation)."""
@@ -558,7 +594,7 @@ class TestConcurrency:
                 assert "citation" in result
 
     async def test_stable_under_repeated_calls(self, app_db_session):
-        """Repeated identical calls produce stable, consistent responses."""
+        """Repeated identical calls produce byte-identical full responses."""
         from app.db.database import get_session
 
         await _seed_data(app_db_session)
@@ -572,17 +608,24 @@ class TestConcurrency:
         payload = {"query": "针灸 医学", "top_k": 5}
 
         responses = []
+        response_bytes = []
         async with AsyncClient(transport=transport, base_url="http://test") as c:
             for _ in range(5):
                 r = await c.post("/api/v1/search", json=payload)
                 assert r.status_code == 200
                 responses.append(r.json())
+                response_bytes.append(r.content)
 
-        # All responses must have the same contract shape
+        # All responses must have the same frozen contract shape
         for body in responses:
             assert body["query"] == "针灸 医学"
             assert body["metadata"]["model"] == "retrieval-only"
-            assert "execution_time" in body["metadata"]
+            assert "execution_time" not in body["metadata"], (
+                "execution_time forbidden: identical input → non-identical output"
+            )
+            assert set(body["metadata"].keys()) == {"top_k", "model"}
+
+        assert all(body == response_bytes[0] for body in response_bytes[1:])
 
         # Result ordering must be stable (same doc_id + chunk_id list each call)
         first_ids = [(r["document_id"], r["chunk_id"]) for r in responses[0]["results"]]
