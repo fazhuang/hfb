@@ -1,29 +1,33 @@
-"""Grounded generation response schemas — Day 4 P0 strict.
+"""Grounded generation response schemas — Day 4 strict mode.
 
-LLM MUST return structured claims JSON. Server validates each quote is an
-exact substring of the corresponding chunk, then renders the final answer
-deterministically. No free-form LLM text ever reaches the user.
+LLM MUST return a single JSON object with exactly {"claims": [...]}.
+Server validates every quote, then renders the answer deterministically.
+Pydantic strict schemas with extra="forbid" enforce no field injection.
 """
 from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
-# LLM output contract — the ONLY format the LLM may return
+# LLM output contract — strict Pydantic with extra="forbid"
 # ---------------------------------------------------------------------------
 
 class LLMClaim(BaseModel):
-    """A single claim the LLM asserts, bound to one chunk."""
-    citation: str = Field(..., description="[document_id:chunk_id] format")
-    quote: str = Field(..., description="Exact contiguous substring from chunk.content")
+    """A single claim the LLM asserts, bound to exactly one chunk."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    citation: str = Field(..., min_length=1, description="[document_id:chunk_id] format")
+    quote: str = Field(..., min_length=1, description="Exact contiguous substring from chunk.content")
 
 
 class LLMClaimsResponse(BaseModel):
-    """Strict JSON the LLM MUST return. No other fields, no free text."""
-    claims: list[LLMClaim] = Field(default_factory=list, max_length=20)
+    """Strict JSON the LLM MUST return. No other fields. No free text."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    claims: list[LLMClaim] = Field(..., min_length=1, max_length=20)
 
 
 # ---------------------------------------------------------------------------
@@ -36,10 +40,9 @@ VALIDATION_ERROR_CODES: dict[str, str] = {
     "EXTRA_FIELDS": "JSON 包含未定义的额外字段",
     "CITATION_OUTSIDE_SNAPSHOT": "citation 引用了本次检索快照之外的 chunk",
     "DOCUMENT_CHUNK_MISMATCH": "document_id 与 chunk_id 的数据库关系不正确",
-    "CHUNK_DELETED": "引用的 chunk 已被删除",
+    "CHUNK_DELETED": "引用的 chunk 或 Document 已被删除",
     "QUOTE_EMPTY": "quote 为空",
     "QUOTE_NOT_IN_CHUNK": "quote 不是对应 chunk.content 的连续原文子串",
-    "CROSS_BINDING": "同一 quote 绑定到错误的 chunk",
     "EMPTY_CLAIMS": "claims 列表为空",
     "TOO_MANY_CLAIMS": "claims 数量超过 top_k",
     "PROMPT_INJECTION_OUTPUT": "LLM 输出包含注入文本",

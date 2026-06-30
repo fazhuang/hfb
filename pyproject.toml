@@ -157,6 +157,7 @@ markers = [
     "integration: integration tests (require services)",
     "e2e: end-to-end tests",
     "slow: tests that take >1s",
+    "real_llm: tests that require a real LLM API key",
 ]
 
 [tool.coverage.run]
