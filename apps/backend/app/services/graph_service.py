@@ -5,9 +5,11 @@ P0-1: create_relation validates entity existence, rejects self-loops, requires e
       verifies chunk/document match, verifies quote is in chunk.
 P0-2: build_concept_graph — corpus-endogenous concept extraction.
 P0-3: concept_similarity — deterministic Jaccard co-occurrence.
-P0-4: cross_document_analysis — evidence-bound claims, conservative contradiction.
+P0-4: cross_document_analysis — evidence-bound claims, template-based contradiction.
 P0-5: All outputs sorted deterministically, no timestamps in payload.
 P0-6: intelligence() — unified API with corpus/output hash determinism.
+P0-7: FK/VersionRelation edges excluded unless corpus evidence exists.
+P0-8: get_relations_for_entity with full validation.
 """
 
 from __future__ import annotations
@@ -20,6 +22,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select, or_, and_
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
@@ -34,7 +37,6 @@ from app.models.graph import (
 from app.models.passage import Passage  # noqa: F401
 from app.models.person import Person
 from app.models.version import Version
-from app.models.version_relation import VersionRelation
 from app.schemas.graph import (
     RELATION_LABELS,
     ConceptEdge,
@@ -173,8 +175,6 @@ async def _validate_graph_evidence(
       3. Document exists and is not deleted
       4. exact_quote is a normalized contiguous substring of chunk.content
       5. citation strictly equals [document_id:chunk_id]
-
-    Returns None on success, or an error message string.
     """
     # 1. Chunk exists and not deleted
     chunk_stmt = select(DocumentChunk).where(
@@ -249,18 +249,7 @@ class GraphService:
         description: str | None = None,
         evidence: GraphEvidence | None = None,
     ) -> EntityRelation:
-        """P0-1: Create an explicit entity relation with full validation.
-
-        Validates:
-          1. Entity types are valid
-          2. Relation type is valid
-          3. Source and target entities exist and are not deleted
-          4. No self-loop (unless allowed)
-          5. Evidence is present for non-FK relations
-          6. Evidence chunk exists, belongs to claimed document, quote is in chunk,
-             citation matches [doc_id:chunk_id], document exists
-          7. Duplicate detection → ValueError
-        """
+        """P0-1: Create an explicit entity relation with full validation."""
         sid = str(source_entity_id)
         tid = str(target_entity_id)
 
@@ -292,7 +281,21 @@ class GraphService:
                 f"Self-loop not allowed for relation type '{relation_type}'"
             )
 
-        # 5. Duplicate check
+        # 6. Evidence validation
+        if evidence is None:
+            raise ValueError("Evidence is required to create an explicit relation")
+
+        err = await _validate_graph_evidence(
+            self.session,
+            evidence.document_id,
+            evidence.chunk_id,
+            evidence.exact_quote,
+            evidence.citation,
+        )
+        if err is not None:
+            raise ValueError(f"Evidence validation failed: {err}")
+
+        # 5. Duplicate check — now handled by DB unique constraint too
         existing = await self.session.execute(
             select(EntityRelation).where(
                 EntityRelation.source_entity_type == source_entity_type,
@@ -310,20 +313,6 @@ class GraphService:
                 f"--[{relation_type}]--> {target_entity_type}:{tid[:8]} already exists"
             )
 
-        # 6. Evidence validation
-        if evidence is None:
-            raise ValueError("Evidence is required to create an explicit relation")
-
-        err = await _validate_graph_evidence(
-            self.session,
-            evidence.document_id,
-            evidence.chunk_id,
-            evidence.exact_quote,
-            evidence.citation,
-        )
-        if err is not None:
-            raise ValueError(f"Evidence validation failed: {err}")
-
         relation = EntityRelation(
             source_entity_type=source_entity_type,
             source_entity_id=sid,
@@ -336,13 +325,29 @@ class GraphService:
             evidence_quote=evidence.exact_quote,
             evidence_citation=evidence.citation,
         )
-        self.session.add(relation)
-        await self.session.flush()
+        try:
+            self.session.add(relation)
+            await self.session.flush()
+        except IntegrityError:
+            await self.session.rollback()
+            raise ValueError(
+                f"Duplicate relation: {source_entity_type}:{sid[:8]} "
+                f"--[{relation_type}]--> {target_entity_type}:{tid[:8]} already exists"
+            )
         return relation
 
-    async def get_relations_for_entity(
+    # ------------------------------------------------------------------
+    # P0-8: Validated relation retrieval for API
+    # ------------------------------------------------------------------
+
+    async def get_validated_relations_for_entity(
         self, entity_type: str, entity_id: str
-    ) -> list[EntityRelation]:
+    ) -> list[tuple[EntityRelation, GraphEvidence]]:
+        """Return only relations that pass full evidence + entity validation.
+
+        Each result is (EntityRelation, GraphEvidence) — the evidence is
+        guaranteed non-None because invalid relations are filtered out.
+        """
         eid = str(entity_id)
         stmt = (
             select(EntityRelation)
@@ -362,7 +367,14 @@ class GraphService:
             .order_by(EntityRelation.created_at)
         )
         result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+        relations = result.scalars().all()
+
+        validated: list[tuple[EntityRelation, GraphEvidence]] = []
+        for er in relations:
+            ev = await self._validate_explicit_relation(er)
+            if ev is not None:
+                validated.append((er, ev))
+        return validated
 
     # ------------------------------------------------------------------
     # EntityRelation → GraphEvidence conversion
@@ -430,12 +442,20 @@ class GraphService:
         )
 
     # ------------------------------------------------------------------
-    # Edge collection — all sources (EntityRelation + VersionRelation + FK)
+    # Edge collection — Evidence-required: only explicit EntityRelation with valid evidence
     # ------------------------------------------------------------------
 
     async def _collect_all_edges(
         self, entity_ids: set[tuple[str, str]] | None = None
     ) -> tuple[list[GraphEdge], dict[str, GraphNode]]:
+        """Collect all knowledge graph edges.
+
+        Only explicit EntityRelation edges with validated corpus evidence
+        enter the graph. FK-derived and VersionRelation edges are EXCLUDED
+        unless they have corpus-level sentence evidence.
+
+        Every returned GraphEdge has non-null evidence.
+        """
         edges: list[GraphEdge] = []
         node_ids: set[str] = set()
 
@@ -449,7 +469,6 @@ class GraphService:
         er_rows = er_result.scalars().all()
 
         for er in er_rows:
-            # P0: query-time re-validation
             ev = await self._validate_explicit_relation(er)
             if ev is None:
                 continue
@@ -475,46 +494,10 @@ class GraphService:
                 )
             )
 
-        # --- 2. VersionRelation edges ---
-        vr_stmt = (
-            select(VersionRelation)
-            .where(VersionRelation.is_deleted.is_(False))
-            .order_by(VersionRelation.created_at)
-        )
-        vr_result = await self.session.execute(vr_stmt)
-        vr_rows = vr_result.scalars().all()
-
-        for vr in vr_rows:
-            src_key = ("version", vr.source_version_id)
-            tgt_key = ("version", vr.target_version_id)
-            if entity_ids and (src_key not in entity_ids and tgt_key not in entity_ids):
-                continue
-
-            src_node_id = f"version:{vr.source_version_id}"
-            tgt_node_id = f"version:{vr.target_version_id}"
-            node_ids.add(src_node_id)
-            node_ids.add(tgt_node_id)
-            edges.append(
-                GraphEdge(
-                    id=f"vr:{vr.id}",
-                    source_id=src_node_id,
-                    target_id=tgt_node_id,
-                    relation_type=vr.relation_type,
-                    label=RELATION_LABELS.get(vr.relation_type, vr.relation_type),
-                    source="version",
-                )
-            )
-
-        # --- 3. FK-derived edges ---
-        entity_by_type: dict[str, set[str]] = {}
-        if entity_ids:
-            for et, eid in entity_ids:
-                entity_by_type.setdefault(et, set()).add(eid)
-        fk_edges = await self._build_fk_edges(entity_by_type, entity_ids)
-        for fe in fk_edges:
-            node_ids.add(fe.source_id)
-            node_ids.add(fe.target_id)
-            edges.append(fe)
+        # ponytail: FK and VersionRelation edges excluded — they are database
+        # schema metadata, not corpus-evidenced knowledge. If a FK-derived edge
+        # like "author" needs to appear in the graph, create an explicit
+        # EntityRelation with a real corpus sentence as evidence.
 
         # --- Fetch all referenced nodes ---
         node_lookup: dict[str, GraphNode] = {}
@@ -538,89 +521,6 @@ class GraphService:
                 node_lookup[node.id] = node
 
         return edges, node_lookup
-
-    async def _build_fk_edges(
-        self,
-        entity_by_type: dict[str, set[str]],
-        entity_filter: set[tuple[str, str]] | None = None,
-    ) -> list[GraphEdge]:
-        edges: list[GraphEdge] = []
-
-        def _should_include(et: str, eid: str) -> bool:
-            if entity_filter is None:
-                return True
-            return (et, eid) in entity_filter
-
-        # Book.author_id → Person
-        book_stmt = (
-            select(Book.id, Book.author_id, Book.title)
-            .where(Book.is_deleted.is_(False))
-            .order_by(Book.id)
-        )
-        books_to_check = entity_by_type.get("book", set())
-        if books_to_check:
-            book_stmt = book_stmt.where(Book.id.in_(sorted(books_to_check)))
-        book_result = await self.session.execute(book_stmt)
-        for row in book_result:
-            if row.author_id and _should_include("person", row.author_id):
-                edges.append(
-                    GraphEdge(
-                        id=f"fk_author:{row.id}",
-                        source_id=f"book:{row.id}",
-                        target_id=f"person:{row.author_id}",
-                        relation_type="fk_author",
-                        label=RELATION_LABELS["fk_author"],
-                        source="fk",
-                    )
-                )
-
-        # Version.book_id → Book
-        ver_stmt = (
-            select(Version.id, Version.book_id, Version.version_name)
-            .where(Version.is_deleted.is_(False))
-            .order_by(Version.id)
-        )
-        vers_to_check = entity_by_type.get("version", set())
-        if vers_to_check:
-            ver_stmt = ver_stmt.where(Version.id.in_(sorted(vers_to_check)))
-        ver_result = await self.session.execute(ver_stmt)
-        for row in ver_result:  # type: ignore[assignment]
-            if row.book_id and _should_include("book", str(row.book_id)):
-                edges.append(
-                    GraphEdge(
-                        id=f"fk_book:{row.id}",
-                        source_id=f"version:{row.id}",
-                        target_id=f"book:{row.book_id}",
-                        relation_type="fk_book",
-                        label=RELATION_LABELS["fk_book"],
-                        source="fk",
-                    )
-                )
-
-        # Passage.version_id → Version
-        pass_stmt = (
-            select(Passage.id, Passage.version_id, Passage.content_text)
-            .where(Passage.is_deleted.is_(False))
-            .order_by(Passage.id)
-        )
-        passages_to_check = entity_by_type.get("passage", set())
-        if passages_to_check:
-            pass_stmt = pass_stmt.where(Passage.id.in_(sorted(passages_to_check)))
-        pass_result = await self.session.execute(pass_stmt)
-        for row in pass_result:
-            if row.version_id and _should_include("version", row.version_id):
-                edges.append(
-                    GraphEdge(
-                        id=f"fk_passage_ver:{row.id}",
-                        source_id=f"passage:{row.id}",
-                        target_id=f"version:{row.version_id}",
-                        relation_type="fk_passage_to_version",
-                        label=RELATION_LABELS["fk_passage_to_version"],
-                        source="fk",
-                    )
-                )
-
-        return edges
 
     # ------------------------------------------------------------------
     # Neighborhood
@@ -656,7 +556,7 @@ class GraphService:
         )
 
     # ------------------------------------------------------------------
-    # Path Finding (BFS) — deterministic tie-break
+    # Path Finding (BFS)
     # ------------------------------------------------------------------
 
     async def find_path(
@@ -678,16 +578,13 @@ class GraphService:
 
         all_edges, node_lookup = await self._collect_all_edges()
 
-        # Build sorted adjacency for deterministic BFS
         adjacency: dict[str, list[tuple[str, GraphEdge]]] = {}
         for edge in all_edges:
             adjacency.setdefault(edge.source_id, []).append((edge.target_id, edge))
             adjacency.setdefault(edge.target_id, []).append((edge.source_id, edge))
-        # Sort neighbors by ID for determinism
         for nid in adjacency:
             adjacency[nid].sort(key=lambda x: x[0])
 
-        # BFS with deterministic tie-break
         queue: deque[tuple[str, list[str], list[str]]] = deque()
         queue.append((source_node_id, [source_node_id], []))
         visited: set[str] = {source_node_id}
@@ -826,21 +723,17 @@ class GraphService:
     async def build_concept_graph(self, concept_labels: list[str]) -> ConceptGraph:
         """Build a concept graph for the given normalized concept labels.
 
-        Concepts are discovered from chunk co-occurrence in the corpus.
         co_occurs_with only created when both concepts appear in the SAME sentence.
-        Hierarchy edges only created from explicit directional markers
-        (belongs-to, is-a-type-of, includes, contains, divided-into).
+        Hierarchy edges only from explicit directional markers.
         No position-based guessing.
         """
         if not concept_labels:
             return ConceptGraph(nodes=[], edges=[])
 
-        # Deduplicate and normalize labels
         labels = sorted(set(label.strip() for label in concept_labels if label.strip()))
         if not labels:
             return ConceptGraph(nodes=[], edges=[])
 
-        # Fetch all chunks
         chunk_stmt = (
             select(DocumentChunk)
             .where(DocumentChunk.is_deleted.is_(False))
@@ -849,7 +742,6 @@ class GraphService:
         chunk_result = await self.session.execute(chunk_stmt)
         all_chunks = chunk_result.scalars().all()
 
-        # Build concept → chunk mapping
         concept_chunks: dict[str, list[DocumentChunk]] = {}
         for lbl in labels:
             concept_chunks[lbl] = []
@@ -857,19 +749,17 @@ class GraphService:
                 if lbl in c.content:
                     concept_chunks[lbl].append(c)
 
-        # Only create nodes for concepts actually found in corpus
         active_labels = [label for label in labels if concept_chunks[label]]
         if not active_labels:
             return ConceptGraph(nodes=[], edges=[])
 
-        # Build nodes — evidence from ALL chunks (de-duplicated, stable sorted)
+        # Build nodes
         nodes: list[ConceptNode] = []
         for lbl in active_labels:
             chunks = concept_chunks[lbl]
             concept_id = _stable_hash(lbl)
             doc_ids = sorted(set(c.document_id for c in chunks))
             chunk_ids = sorted(c.id for c in chunks)
-            # Evidence from ALL chunks, one sentence per chunk
             evidence: list[GraphEvidence] = []
             for c in chunks:
                 sentences = re.split(r"(?<=[。！？.!?])", c.content)
@@ -892,17 +782,14 @@ class GraphService:
 
         # Build edges from same-sentence co-occurrence
         edges: list[ConceptEdge] = []
-        # Hierarchy markers with EXACT directional semantics
-        # Pattern: A belongs to B => A narrower_than B, B broader_than A
         narrower_markers = [
-            re.compile(r"属于"),        # A属于B => A narrower_than B
-            re.compile(r"是.*的一种"),    # A是B的一种 => A narrower_than B
+            re.compile(r"属于"),
+            re.compile(r"是.*的一种"),
         ]
-        # Pattern: B includes A => B broader_than A, A narrower_than B
         broader_markers = [
-            re.compile(r"包括"),        # B包括A => B broader_than A
-            re.compile(r"包含"),        # B包含A => B broader_than A
-            re.compile(r"分为"),        # B分为A => B broader_than A
+            re.compile(r"包括"),
+            re.compile(r"包含"),
+            re.compile(r"分为"),
         ]
 
         for i in range(len(active_labels)):
@@ -914,14 +801,12 @@ class GraphService:
                 if not shared_chunk_ids:
                     continue
 
-                # Process ALL shared chunks for evidence — not just the first one
                 co_occurrence_evidence: list[GraphEvidence] = []
-                hierarchy_direction: str | None = None  # None | "a_narrower" | "b_narrower"
+                hierarchy_direction: str | None = None
                 hierarchy_evidence: GraphEvidence | None = None
 
                 for cid in shared_chunk_ids:
                     chunk = next(c for c in all_chunks if c.id == cid)
-                    # Split into sentences
                     sentences = re.split(r"(?<=[。！？.!?])", chunk.content)
                     for sent in sentences:
                         sent_s = sent.strip()
@@ -930,28 +815,24 @@ class GraphService:
                         if a not in sent_s or b not in sent_s:
                             continue
 
-                        # Both concepts in same sentence → co-occurrence evidence
                         ev = _make_evidence(chunk.document_id, chunk.id, sent_s)
                         co_occurrence_evidence.append(ev)
 
-                        # Check for hierarchy markers in this sentence
-                        hi = GraphService._detect_hierarchy(sent_s, a, b, narrower_markers, broader_markers)
+                        hi = GraphService._detect_hierarchy(
+                            sent_s, a, b, narrower_markers, broader_markers
+                        )
                         if hi is not None and hierarchy_direction is None:
                             hierarchy_direction = hi
                             hierarchy_evidence = ev
 
                 if not co_occurrence_evidence:
-                    continue  # no same-sentence co-occurrence → no edge
+                    continue
 
-                # Deduplicate evidence by citation + exact_quote
                 co_occurrence_evidence = GraphService._dedup_evidence(co_occurrence_evidence)
 
-                # Always add co_occurs_with edge (with evidence from all shared sentences)
                 edges.append(
                     ConceptEdge(
-                        edge_id=_stable_hash(
-                            ConceptNode.__name__, a, b, "co_occurs_with"
-                        ),
+                        edge_id=_stable_hash(ConceptNode.__name__, a, b, "co_occurs_with"),
                         source_concept_id=_stable_hash(a),
                         target_concept_id=_stable_hash(b),
                         relation_type="co_occurs_with",
@@ -960,15 +841,11 @@ class GraphService:
                     )
                 )
 
-                # Add hierarchy edges if detected
                 if hierarchy_direction and hierarchy_evidence:
                     if hierarchy_direction == "a_narrower":
-                        # A narrower_than B
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(
-                                    ConceptNode.__name__, a, b, "narrower_than"
-                                ),
+                                edge_id=_stable_hash(ConceptNode.__name__, a, b, "narrower_than"),
                                 source_concept_id=_stable_hash(a),
                                 target_concept_id=_stable_hash(b),
                                 relation_type="narrower_than",
@@ -976,12 +853,9 @@ class GraphService:
                                 evidence=[hierarchy_evidence],
                             )
                         )
-                        # B broader_than A
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(
-                                    ConceptNode.__name__, b, a, "broader_than"
-                                ),
+                                edge_id=_stable_hash(ConceptNode.__name__, b, a, "broader_than"),
                                 source_concept_id=_stable_hash(b),
                                 target_concept_id=_stable_hash(a),
                                 relation_type="broader_than",
@@ -990,12 +864,9 @@ class GraphService:
                             )
                         )
                     elif hierarchy_direction == "b_narrower":
-                        # B narrower_than A
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(
-                                    ConceptNode.__name__, b, a, "narrower_than"
-                                ),
+                                edge_id=_stable_hash(ConceptNode.__name__, b, a, "narrower_than"),
                                 source_concept_id=_stable_hash(b),
                                 target_concept_id=_stable_hash(a),
                                 relation_type="narrower_than",
@@ -1003,12 +874,9 @@ class GraphService:
                                 evidence=[hierarchy_evidence],
                             )
                         )
-                        # A broader_than B
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(
-                                    ConceptNode.__name__, a, b, "broader_than"
-                                ),
+                                edge_id=_stable_hash(ConceptNode.__name__, a, b, "broader_than"),
                                 source_concept_id=_stable_hash(a),
                                 target_concept_id=_stable_hash(b),
                                 relation_type="broader_than",
@@ -1017,11 +885,9 @@ class GraphService:
                             )
                         )
 
-        # Sort edges deterministically
         edges.sort(
             key=lambda e: (e.source_concept_id, e.target_concept_id, e.relation_type)
         )
-
         return ConceptGraph(nodes=nodes, edges=edges)
 
     @staticmethod
@@ -1032,22 +898,7 @@ class GraphService:
         narrower_markers: list[re.Pattern],
         broader_markers: list[re.Pattern],
     ) -> str | None:
-        """Detect hierarchy direction from explicit markers in a sentence.
-
-        Returns:
-          "a_narrower" if a is narrower than b (a属于b, a是b的一种)
-          "b_narrower" if b is narrower than a (b属于a, b是a的一种)
-                           or equivalently b包括a, b包含a, b分为a
-          None if no explicit directional marker found
-
-        Only return a result when the marker's syntactic direction is unambiguous:
-        - 属于: subject (before 属于) is narrower, object (after 属于) is broader
-        - 是...的一种: subject is narrower
-        - 包括: subject is broader
-        - 包含: subject is broader
-        - 分为: subject is broader
-        """
-        # Check narrower markers: A属于B, A是B的一种
+        """Detect hierarchy direction from explicit markers in a sentence."""
         for pat in narrower_markers:
             match = pat.search(sentence)
             if not match:
@@ -1055,24 +906,18 @@ class GraphService:
             marker_start = match.start()
             marker_end = match.end()
 
-            # Determine which concept appears where relative to marker
             a_before = sentence.find(a)
             b_before = sentence.find(b)
             a_after = sentence.rfind(a)
             b_after = sentence.rfind(b)
 
-            # A属于B: A appears before marker, B appears after → A narrower_than B
             if a_before < marker_start and b_after >= marker_end:
-                # Verify: A between start and marker, B after marker
                 if a_before >= 0 and b_after >= marker_end:
                     return "a_narrower"
-
-            # B属于A: B appears before marker, A appears after → B narrower_than A
             if b_before < marker_start and a_after >= marker_end:
                 if b_before >= 0 and a_after >= marker_end:
                     return "b_narrower"
 
-        # Check broader markers: B包括A, B包含A, B分为A
         for pat in broader_markers:
             match = pat.search(sentence)
             if not match:
@@ -1085,12 +930,9 @@ class GraphService:
             a_after = sentence.rfind(a)
             b_after = sentence.rfind(b)
 
-            # B包括A: B appears before marker, A appears after → B broader_than A, A narrower_than B
             if b_before < marker_start and a_after >= marker_end:
                 if b_before >= 0 and a_after >= marker_end:
                     return "a_narrower"
-
-            # A包括B: A appears before marker, B appears after → A broader_than B, B narrower_than A
             if a_before < marker_start and b_after >= marker_end:
                 if a_before >= 0 and b_after >= marker_end:
                     return "b_narrower"
@@ -1099,7 +941,6 @@ class GraphService:
 
     @staticmethod
     def _dedup_evidence(evidence: list[GraphEvidence]) -> list[GraphEvidence]:
-        """Deduplicate evidence by citation + exact_quote, preserving stable order."""
         seen: set[tuple[str, str]] = set()
         result: list[GraphEvidence] = []
         for ev in evidence:
@@ -1116,12 +957,6 @@ class GraphService:
     async def compute_concept_similarity(
         self, concept_a: str, concept_b: str
     ) -> ConceptSimilarity:
-        """Compute deterministic Jaccard similarity using actual corpus chunks.
-
-        Formula: J(A, B) = |chunks(A) ∩ chunks(B)| / |chunks(A) ∪ chunks(B)|
-        Score fixed to 4 decimal places. Ties broken by stable concept_id order.
-        """
-        # Fetch all chunks
         chunk_stmt = (
             select(DocumentChunk)
             .where(DocumentChunk.is_deleted.is_(False))
@@ -1148,18 +983,13 @@ class GraphService:
         shared_docs = sorted(a_docs & b_docs)
         union_size = len(a_chunks | b_chunks)
 
-        if union_size == 0:
-            score = 0.0
-        else:
-            score = round(len(shared_chunks) / union_size, 4)
+        score = round(len(shared_chunks) / union_size, 4) if union_size else 0.0
 
-        # Evidence from first shared chunk
         if shared_chunks:
             cid = shared_chunks[0]
             chunk = next(c for c in all_chunks if c.id == cid)
             evidence.append(_make_evidence(chunk.document_id, chunk.id, chunk.content))
 
-        # Corpus hash from all chunk content
         corpus_parts = sorted(f"{c.document_id}:{c.id}:{c.content}" for c in all_chunks)
         corpus_sha = hashlib.sha256("\n".join(corpus_parts).encode()).hexdigest()
 
@@ -1176,26 +1006,29 @@ class GraphService:
         )
 
     # ==================================================================
-    # Sprint 3 P0-4: Cross-Document Analysis — conservative contradiction
+    # Sprint 3 P0-4: Cross-Document Analysis — template-based contradiction
     # ==================================================================
 
-    # Characters that look like negation but are part of compound words,
-    # NOT independent negation markers. Example: 未病 (pre-disease), 无极 (ultimate).
     _COMPOUND_PREFIXES: set[str] = {"未病", "无极", "无病", "无疾", "非常", "非典", "无法"}
+
+    # Only these exact negation templates are recognized for contradiction.
+    # Subject and predicate must be identical after stripping negation + punctuation.
+    _CONTRADICTION_TEMPLATES = [
+        # (affirmative_pattern, negative_pattern) — both side must match
+        (re.compile(r"^(.+)是(.+)$"), re.compile(r"^(.+)不是(.+)$")),
+        (re.compile(r"^(.+)属于(.+)$"), re.compile(r"^(.+)不属于(.+)$")),
+        (re.compile(r"^(.+)能(.+)$"), re.compile(r"^(.+)不能(.+)$")),
+        (re.compile(r"^(.+)可(.+)$"), re.compile(r"^(.+)不可(.+)$")),
+    ]
 
     @staticmethod
     def _has_negation(text: str) -> bool:
-        """Check if text contains an explicit negation marker.
-
-        Only counts independent negation markers, not characters inside
-        compound words like 未病, 无极, etc.
-        """
+        """Check if text contains an explicit negation marker."""
         markers = ["并非", "不是", "不", "非", "未", "否", "无"]
         for m in markers:
             idx = text.find(m)
             if idx < 0:
                 continue
-            # Check if this occurrence is part of a compound word
             is_compound = False
             for cp in GraphService._COMPOUND_PREFIXES:
                 if text.startswith(cp, idx):
@@ -1206,34 +1039,46 @@ class GraphService:
         return False
 
     @staticmethod
-    def _normalize_claim(text: str) -> str:
-        """Remove negation markers and whitespace to get normalized proposition.
+    def _strip_trailing_punctuation(text: str) -> str:
+        """Remove trailing punctuation and whitespace for comparison."""
+        return re.sub(r"[\s。！？.!?，,；;：:、]+$", "", text.strip())
 
-        Used to compare whether two claims are about the same proposition.
-        Only removes negation characters, NOT the words they modify.
+    @staticmethod
+    def _match_contradiction_template(
+        text_a: str, text_b: str
+    ) -> bool:
+        """Check if two texts match a known contradiction template.
+
+        Only matches when one is the exact affirmative and the other
+        the exact negative form of the same subject+predicate.
+        Substring matching is NEVER used.
         """
-        negation_chars = ["不", "非", "未", "否", "无", "并"]
-        result = text
-        for nc in negation_chars:
-            result = result.replace(nc, "")
-        # Collapse whitespace
-        result = re.sub(r"\s+", "", result)
-        return result
+        a_clean = GraphService._strip_trailing_punctuation(text_a)
+        b_clean = GraphService._strip_trailing_punctuation(text_b)
+
+        for aff_pat, neg_pat in GraphService._CONTRADICTION_TEMPLATES:
+            a_aff = aff_pat.match(a_clean)
+            b_neg = neg_pat.match(b_clean)
+            if a_aff and b_neg:
+                if a_aff.group(1) == b_neg.group(1) and a_aff.group(2) == b_neg.group(2):
+                    return True
+
+            a_neg = neg_pat.match(a_clean)
+            b_aff = aff_pat.match(b_clean)
+            if a_neg and b_aff:
+                if a_neg.group(1) == b_aff.group(1) and a_neg.group(2) == b_aff.group(2):
+                    return True
+
+        return False
 
     async def cross_document_analysis(self, topic: str) -> CrossDocumentAnalysis:
-        """Analyze a topic across documents using only corpus evidence.
+        """Analyze a topic across documents using template-based contradiction.
 
-        Conservative contradiction detection (fail-closed):
-          1. Claims must be from different documents
-          2. Claims must share the same topic
-          3. Normalized proposition (negation removed) must match
-          4. Only one claim has explicit negation, the other doesn't
-          5. Claims must be comparable (same normalized proposition body)
-
-        Returns status:
-          - "confirmed_contradiction": at least one pair meets all criteria
-          - "supported_comparison": claims found, no contradiction criteria met
-          - "insufficient_evidence": not enough comparable claims
+        Status rules:
+          - <2 documents → insufficient_evidence
+          - ≥2 documents, no comparable same-proposition → insufficient_evidence
+          - ≥2 documents, comparable claims but no template match → supported_comparison
+          - ≥2 documents, template-matched contradictory pair → confirmed_contradiction
         """
         chunk_stmt = (
             select(DocumentChunk)
@@ -1271,47 +1116,46 @@ class GraphService:
                         )
                     )
 
-        # Conservative contradiction detection
+        # Status: need at least 2 documents
+        if len(doc_ids) < 2:
+            return CrossDocumentAnalysis(
+                topic=topic,
+                status="insufficient_evidence",
+                supporting_claims=supporting,
+                source_document_ids=doc_ids,
+                evidence_trace=evidence_traces,
+            )
+
+        # Try to find template-matched contradictions
         contradictions: list[dict[str, CrossDocumentClaim]] = []
-        status = "supported_comparison"
+        has_comparable = False
 
         for i in range(len(supporting)):
             for j in range(i + 1, len(supporting)):
                 a, b = supporting[i], supporting[j]
 
-                # Must be from different documents
                 if a.document_id == b.document_id:
                     continue
-
-                # Both must contain the topic
                 if topic not in a.claim_text or topic not in b.claim_text:
                     continue
 
-                # Must have opposite polarity
                 a_neg = self._has_negation(a.claim_text)
                 b_neg = self._has_negation(b.claim_text)
-                if a_neg == b_neg:
-                    continue  # both affirmative or both negative — not contradictory
 
-                # Must have the same normalized proposition
-                norm_a = self._normalize_claim(a.claim_text)
-                norm_b = self._normalize_claim(b.claim_text)
-                if norm_a != norm_b:
-                    # ponytail: rough substring check — if normalized versions overlap
-                    # significantly but aren't identical, they're probably not the same proposition
-                    # Short claims: require exact match
-                    # Longer claims: require substantial overlap
-                    shorter = norm_a if len(norm_a) < len(norm_b) else norm_b
-                    longer = norm_b if len(norm_a) < len(norm_b) else norm_a
-                    if len(shorter) < 4 or shorter not in longer:
-                        continue
-
-                contradictions.append({"claim_a": a, "claim_b": b})
+                # Both claims must be about the same topic AND one must be
+                # affirmative vs negative (opposite polarity)
+                if a_neg != b_neg:
+                    has_comparable = True
+                    if self._match_contradiction_template(a.claim_text, b.claim_text):
+                        contradictions.append({"claim_a": a, "claim_b": b})
 
         if contradictions:
             status = "confirmed_contradiction"
+        elif has_comparable:
+            status = "supported_comparison"
+        else:
+            status = "insufficient_evidence"
 
-        # Corpus hash from all chunks used
         corpus_parts = sorted(f"{c.document_id}:{c.id}:{c.content}" for c in chunks)
         corpus_sha = hashlib.sha256("\n".join(corpus_parts).encode()).hexdigest()
 
@@ -1326,7 +1170,6 @@ class GraphService:
             corpus_sha256=corpus_sha,
         )
 
-        # Compute output hash
         payload = analysis.model_dump(mode="json")
         payload["output_sha256"] = ""
         output_str = json.dumps(
@@ -1341,35 +1184,26 @@ class GraphService:
     # ==================================================================
 
     async def intelligence(self, query: str) -> dict[str, Any]:
-        """Unified knowledge intelligence — deterministic, evidence-bound.
-
-        Parses query into concepts, builds concept graph, computes pairwise
-        similarities, runs cross-document analysis per concept, and returns
-        a complete, hash-verifiable response.
-        """
-        # Parse query into concept labels (whitespace-delimited)
+        """Unified knowledge intelligence — deterministic, evidence-bound."""
         raw_concepts = query.split()
         concepts = sorted(set(c.strip() for c in raw_concepts if c.strip()))
         if not concepts:
             concepts = [query.strip()]
 
-        # Build concept graph
         concept_graph = await self.build_concept_graph(concepts)
 
-        # Compute pairwise similarities (stable sorted pairs)
         similarities: list[ConceptSimilarity] = []
         for i in range(len(concepts)):
             for j in range(i + 1, len(concepts)):
                 sim = await self.compute_concept_similarity(concepts[i], concepts[j])
                 similarities.append(sim)
 
-        # Cross-document analysis per concept
         cross_doc_analyses: list[CrossDocumentAnalysis] = []
         for concept in concepts:
             analysis = await self.cross_document_analysis(concept)
             cross_doc_analyses.append(analysis)
 
-        # Collect all citations (deduplicated, stable sorted)
+        # Collect citations (deduplicated, stable sorted)
         all_evidence: list[GraphEvidence] = []
         seen_ev: set[tuple[str, str]] = set()
         for node in concept_graph.nodes:
@@ -1386,7 +1220,6 @@ class GraphService:
                     all_evidence.append(ev)
         all_evidence.sort(key=lambda e: (e.citation, e.exact_quote))
 
-        # Collect evidence traces
         evidence_trace: list[GraphEvidence] = []
         seen_tr: set[tuple[str, str]] = set()
         for analysis in cross_doc_analyses:
@@ -1397,7 +1230,7 @@ class GraphService:
                     evidence_trace.append(ev)
         evidence_trace.sort(key=lambda e: (e.citation, e.exact_quote))
 
-        # Corpus hash: based on all chunks used
+        # Corpus hash: based on all chunks
         chunk_stmt = (
             select(DocumentChunk)
             .where(DocumentChunk.is_deleted.is_(False))
@@ -1408,7 +1241,6 @@ class GraphService:
         corpus_parts = sorted(f"{c.document_id}:{c.id}:{c.content}" for c in all_chunks)
         corpus_sha256 = hashlib.sha256("\n".join(corpus_parts).encode()).hexdigest()
 
-        # Build response
         response = {
             "query": query,
             "concept_graph": concept_graph.model_dump(mode="json"),
@@ -1416,12 +1248,12 @@ class GraphService:
             "cross_document_analyses": [a.model_dump(mode="json") for a in cross_doc_analyses],
             "citations": [ev.model_dump(mode="json") for ev in all_evidence],
             "evidence_trace": [ev.model_dump(mode="json") for ev in evidence_trace],
+            "research_hypotheses": [],
             "corpus_sha256": corpus_sha256,
             "output_sha256": "",
             "pipeline_version": "1.0.0",
         }
 
-        # Compute output hash: canonical JSON with output_sha256 cleared
         payload_for_hash = dict(response)
         payload_for_hash["output_sha256"] = ""
         output_str = json.dumps(

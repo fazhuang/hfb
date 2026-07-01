@@ -71,6 +71,8 @@ class EntityRelationResponse(EntityRelationBase):
 class GraphNode(BaseModel):
     """A node in the graph visualization."""
 
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     id: str  # composite key: "{entity_type}:{entity_id}"
     entity_type: str
     entity_id: str
@@ -79,7 +81,7 @@ class GraphNode(BaseModel):
 
 
 class GraphEdge(BaseModel):
-    """An edge in the graph visualization — Sprint 3 P0: evidence-bound."""
+    """An edge in the graph visualization — Sprint 3 P0: evidence REQUIRED."""
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -89,11 +91,13 @@ class GraphEdge(BaseModel):
     relation_type: str
     label: str
     source: str = "explicit"  # "explicit" | "fk" | "version" | "concept"
-    evidence: GraphEvidence | None = None
+    evidence: GraphEvidence  # required — no null evidence edges allowed in knowledge graph
 
 
 class Subgraph(BaseModel):
     """A subgraph containing nodes and edges."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     nodes: list[GraphNode]
     edges: list[GraphEdge]
@@ -102,6 +106,8 @@ class Subgraph(BaseModel):
 class PathResult(BaseModel):
     """A path between two entities."""
 
+    model_config = ConfigDict(extra="forbid", strict=True)
+
     nodes: list[GraphNode]
     edges: list[GraphEdge]
     length: int
@@ -109,6 +115,8 @@ class PathResult(BaseModel):
 
 class NeighborResult(BaseModel):
     """Neighborhood of an entity — 1-hop subgraph."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     center: GraphNode
     neighbors: list[GraphNode]
@@ -183,7 +191,7 @@ class ConceptEdge(BaseModel):
     target_concept_id: str
     relation_type: str  # co_occurs_with, broader_than, narrower_than, related_to
     label: str
-    evidence: list[GraphEvidence] = Field(default_factory=list)
+    evidence: list[GraphEvidence] = Field(default_factory=list, min_length=1)
 
 
 class ConceptGraph(BaseModel):
@@ -280,6 +288,7 @@ class IntelligenceResponse(BaseModel):
     cross_document_analyses: list[CrossDocumentAnalysis] = Field(default_factory=list)
     citations: list[GraphEvidence] = Field(default_factory=list)
     evidence_trace: list[GraphEvidence] = Field(default_factory=list)
+    research_hypotheses: list[GraphEvidence] = Field(default_factory=list)
     corpus_sha256: str = Field(default="")
     output_sha256: str = Field(default="")
     pipeline_version: str = Field(default="1.0.0")

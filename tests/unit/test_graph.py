@@ -157,9 +157,9 @@ class TestGraphServiceAsync:
         assert relation.target_entity_type == "book"
 
         # Retrieve relations for this person
-        relations = await svc.get_relations_for_entity("person", p.id)
+        relations = await svc.get_validated_relations_for_entity("person", p.id)
         assert len(relations) >= 1
-        assert any(r.id == relation.id for r in relations)
+        assert any(r.id == relation.id for r, ev in relations)
 
     async def test_delete_relation(self, db_session: AsyncSession) -> None:
         """Soft-delete an EntityRelation."""
@@ -211,8 +211,8 @@ class TestGraphServiceAsync:
         assert ok is True
 
         # Should not find it again
-        relations = await svc.get_relations_for_entity("person", p.id)
-        assert not any(r.id == rel.id for r in relations)
+        relations = await svc.get_validated_relations_for_entity("person", p.id)
+        assert not any(r.id == rel.id for r, ev in relations)
 
     async def test_delete_nonexistent_relation(self, db_session: AsyncSession) -> None:
         svc = GraphService(db_session)
@@ -259,22 +259,49 @@ class TestGraphServiceAsync:
         assert path is None
 
     async def test_find_path_with_edges(self, db_session: AsyncSession) -> None:
-        """Find a path through an FK-derived edge (person ← book)."""
+        """Find a path through an explicit EntityRelation with evidence."""
         p = Person(name="作者测试", dynasty="唐")
         db_session.add(p)
         await db_session.flush()
 
         from app.models.book import Book
 
-        b = Book(title="关联古籍", dynasty="唐", category="医经", author_id=p.id)
+        b = Book(title="关联古籍", dynasty="唐", category="医经")
         db_session.add(b)
         await db_session.flush()
 
+        # Create explicit EntityRelation with evidence
+        from app.models.document import Document
+        from app.models.document_chunk import DocumentChunk
+
+        d = Document(title="测试文献", dynasty="唐")
+        db_session.add(d)
+        await db_session.flush()
+        c = DocumentChunk(
+            document_id=d.id, chunk_index=0,
+            content="作者测试编撰关联古籍。", token_count=20,
+        )
+        db_session.add(c)
+        await db_session.flush()
+
+        from app.schemas.graph import GraphEvidence
+
+        ev = GraphEvidence(
+            document_id=d.id, chunk_id=c.id,
+            exact_quote="作者测试编撰关联古籍。",
+            citation=f"[{d.id}:{c.id}]",
+        )
+
         svc = GraphService(db_session)
+        await svc.create_relation(
+            "person", p.id, "book", b.id, "authored", evidence=ev,
+        )
+
         path = await svc.find_path("person", p.id, "book", b.id)
-        # Should find a path since book.author_id → person
+        # Should find a path since explicit EntityRelation was created
         assert path is not None
         assert path.length >= 1  # at least one edge
+        assert path.edges[0].evidence is not None
 
 
 # ============================================================

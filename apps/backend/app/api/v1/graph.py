@@ -218,9 +218,9 @@ async def list_entity_relations(
     entity_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> GraphRelationsEnvelope:
-    """List all explicit relations involving an entity."""
+    """List all explicit relations involving an entity (validated only)."""
     svc = GraphService(session)
-    relations = await svc.get_relations_for_entity(entity_type, entity_id)
+    validated = await svc.get_validated_relations_for_entity(entity_type, entity_id)
     resp = [
         EntityRelationResponse(
             id=UUID(r.id),
@@ -230,11 +230,11 @@ async def list_entity_relations(
             target_entity_id=r.target_entity_id,
             relation_type=r.relation_type,
             description=r.description,
-            evidence=GraphService._relation_evidence(r),
+            evidence=ev,
             created_at=r.created_at,
             updated_at=r.updated_at,
         )
-        for r in relations
+        for r, ev in validated
     ]
     return GraphRelationsEnvelope(success=True, data=resp, message="ok")
 
@@ -302,6 +302,7 @@ async def graph_intelligence(
         cross_document_analyses=analyses,
         citations=citations,
         evidence_trace=traces,
+        research_hypotheses=[],
         corpus_sha256=result["corpus_sha256"],
         output_sha256=result["output_sha256"],
         pipeline_version=result["pipeline_version"],

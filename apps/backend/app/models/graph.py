@@ -49,15 +49,17 @@ class EntityRelation(BaseModel):
     """
 
     __tablename__ = "entity_relations"
+    # ponytail: the active-only unique constraint is managed entirely by
+    # alembic migration 9c710fa2d3f0 (partial index WHERE is_deleted=0).
+    # We keep a non-unique ORM index for query performance only.
     __table_args__ = (
         Index(
-            "ix_entity_relations_dedup",
+            "ix_entity_relations_lookup",
             "source_entity_type",
             "source_entity_id",
             "target_entity_type",
             "target_entity_id",
             "relation_type",
-            unique=True,
         ),
     )
 
