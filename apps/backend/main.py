@@ -12,6 +12,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import health, ready, version
 from app.api.v1 import router as v1_router
+from app.api.v2 import router as v2_router
 from app.core.config import settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging, get_logger
@@ -49,10 +50,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Middleware — order matters: RequestIDMiddleware must be outermost
-    # so that every error handler and downstream middleware has request_id.
-    app.add_middleware(RequestIDMiddleware)
-
+    # Middleware — Starlette's add_middleware wraps: last-registered is outermost.
+    # RequestIDMiddleware MUST be outermost so CORS preflight and error handlers
+    # always have access to request.state.request_id.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
@@ -65,6 +65,7 @@ def create_app() -> FastAPI:
             TrustedHostMiddleware,
             allowed_hosts=settings.ALLOWED_HOSTS,
         )
+    app.add_middleware(RequestIDMiddleware)
 
     # Error handlers — must be registered before routes
     register_error_handlers(app)
@@ -74,6 +75,7 @@ def create_app() -> FastAPI:
     app.include_router(ready.router, tags=["Readiness"])
     app.include_router(version.router, tags=["Version"])
     app.include_router(v1_router)
+    app.include_router(v2_router, prefix="/api/v2")
 
     return app
 
