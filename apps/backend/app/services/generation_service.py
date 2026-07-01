@@ -8,11 +8,13 @@ injection detection + DB verification, then deterministically renders the answer
 No free-form LLM text reaches the user. Fail closed on any violation.
 No Markdown fence extraction. No prefix/suffix tolerance. No multi-JSON handling.
 """
+
 from __future__ import annotations
 
 import hashlib
 import json
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy import select
@@ -71,7 +73,10 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     # Chinese payloads
     re.compile(r"忽略\s*系统\s*指令", re.IGNORECASE),
     re.compile(r"忽略\s*所有\s*(系统\s*)?指令", re.IGNORECASE),
-    re.compile(r"忘[记掉]\s*(之前|所有|一切)?\s*(的?\s*)?(规则|指令|系统|system)", re.IGNORECASE),
+    re.compile(
+        r"忘[记掉]\s*(之前|所有|一切)?\s*(的?\s*)?(规则|指令|系统|system)",
+        re.IGNORECASE,
+    ),
     re.compile(r"不\s*[要需必]\s*引用", re.IGNORECASE),
     re.compile(r"不\s*[要需必]\s*标注.*引用", re.IGNORECASE),
     re.compile(r"不\s*[要需必]\s*使用.*citation", re.IGNORECASE),
@@ -80,14 +85,23 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"自[由随]模[式态]", re.IGNORECASE),
     # English payloads
     re.compile(r"ignore\s+(all\s+)?(previous\s+)?instructions", re.IGNORECASE),
-    re.compile(r"forget\s+(all\s+)?(previous\s+)?(rules|instructions|prompts)", re.IGNORECASE),
-    re.compile(r"disregard\s+(all\s+)?(previous\s+)?(instructions|rules)", re.IGNORECASE),
+    re.compile(
+        r"forget\s+(all\s+)?(previous\s+)?(rules|instructions|prompts)", re.IGNORECASE
+    ),
+    re.compile(
+        r"disregard\s+(all\s+)?(previous\s+)?(instructions|rules)", re.IGNORECASE
+    ),
     re.compile(r"do\s+not\s+(cite|reference|quote)", re.IGNORECASE),
     re.compile(r"output\s+(only\s+)?the\s+following\b", re.IGNORECASE),
-    re.compile(r"you\s+are\s+(now\s+)?(the\s+)?(assistant|system|developer)", re.IGNORECASE),
+    re.compile(
+        r"you\s+are\s+(now\s+)?(the\s+)?(assistant|system|developer)", re.IGNORECASE
+    ),
     re.compile(r"act\s+as\s+(a\s+|an\s+)?(system|developer|attacker)", re.IGNORECASE),
     re.compile(r"as\s+an?\s+AI\s+(language\s+)?model", re.IGNORECASE),
-    re.compile(r"(return|output)\s+(only\s+)?the\s+following\s+(JSON|text|payload|output|response|content|exactly|as\s+shown)", re.IGNORECASE),
+    re.compile(
+        r"(return|output)\s+(only\s+)?the\s+following\s+(JSON|text|payload|output|response|content|exactly|as\s+shown)",
+        re.IGNORECASE,
+    ),
     # Role/token boundaries
     re.compile(r"system\s*[:：]", re.IGNORECASE),
     re.compile(r"assistant\s*[:：]", re.IGNORECASE),
@@ -127,6 +141,7 @@ def _detect_prompt_injection_text(text: str) -> bool:
 # Duplicate JSON key detection
 # ---------------------------------------------------------------------------
 
+
 def _detect_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     """object_pairs_hook that raises ValueError on duplicate keys."""
     result: dict[str, Any] = {}
@@ -140,6 +155,7 @@ def _detect_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # String normalization for substring matching
 # ---------------------------------------------------------------------------
+
 
 def _normalize_whitespace(s: str) -> str:
     """Collapse all whitespace sequences into single spaces. Trim."""
@@ -182,13 +198,68 @@ def _canonicalize_claims(verified_claims: list[dict]) -> list[dict]:
             deduped.append(c)
 
     # Sort deterministically
-    deduped.sort(key=lambda c: (
-        c.get("chunk_rank", 9999),
-        c.get("start_pos", 9999),
-        c.get("quote_norm", ""),
-        c.get("citation_str", ""),
-    ))
+    deduped.sort(
+        key=lambda c: (
+            c.get("chunk_rank", 9999),
+            c.get("start_pos", 9999),
+            c.get("quote_norm", ""),
+            c.get("citation_str", ""),
+        )
+    )
     return deduped
+
+
+# ---------------------------------------------------------------------------
+# Canonical claims — exported directly from GenerationPipeline
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CanonicalClaim:
+    """Immutable canonical claim generated from retrieval snapshot.
+
+    This is the single source of truth. quote is the exact contiguous
+    normalized substring from chunk.content, verified server-side.
+    """
+
+    quote: str
+    document_id: str
+    chunk_id: str
+    citation: str  # [document_id:chunk_id]
+    chunk_rank: int
+    start_pos: int
+    quote_norm: str
+
+
+@dataclass
+class GenerationOutcome:
+    """Complete outcome of one generate() call.
+
+    response: the standard V1 GroundedGenerationResponse (unchanged contract).
+    canonical_claims: immutable canonical claims, exported directly.
+    snapshot: retrieval snapshot keyed by chunk_id (for downstream verification).
+    """
+
+    response: GroundedGenerationResponse
+    canonical_claims: tuple[CanonicalClaim, ...]
+    snapshot: dict[str, RetrievalResult]
+    chunk_rank: dict[str, int]
+
+
+def _expected_claims_to_canonical(expected: list[dict]) -> list[CanonicalClaim]:
+    """Convert canonicalized expected_claims dicts to frozen CanonicalClaim."""
+    return [
+        CanonicalClaim(
+            quote=c["quote"],
+            document_id=c["document_id"],
+            chunk_id=c["chunk_id"],
+            citation=c.get("citation_str", c["citation"]),
+            chunk_rank=c.get("chunk_rank", 9999),
+            start_pos=c.get("start_pos", 9999),
+            quote_norm=c["quote_norm"],
+        )
+        for c in expected
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -225,17 +296,15 @@ class GenerationPipeline:
     # Public API
     # ------------------------------------------------------------------
 
-    async def generate(
+    async def _generate_outcome(
         self,
         query: str,
         top_k: int = 5,
-    ) -> GroundedGenerationResponse:
-        """Run the retrieval-deterministic grounded generation pipeline.
+    ) -> GenerationOutcome:
+        """Run retrieval → build canonical claims → render answer.
 
-        Architecture (Round 4):
-        Retrieval snapshot → server deterministic expected claims → canonical
-        → render answer. LLM is advisory-only — it can audit but never changes
-        the final factual output. This guarantees response SHA-256 stability.
+        This is the SINGLE SOURCE OF TRUTH for claim generation.
+        Both generate() and generate_with_proof() call this.
         """
         # Step 1 — Single retrieval snapshot
         self.retrieval_count += 1
@@ -250,45 +319,60 @@ class GenerationPipeline:
             chunk_rank[r.chunk_id] = rank
 
         if not results:
-            return self._refuse(query, "EMPTY_RETRIEVAL", snapshot, {})
+            response = self._refuse(query, "EMPTY_RETRIEVAL", snapshot, {})
+            return GenerationOutcome(
+                response=response,
+                canonical_claims=(),
+                snapshot=snapshot,
+                chunk_rank=chunk_rank,
+            )
 
         # Step 2 — Check chunks for prompt injection content
         for r in results:
             if _detect_prompt_injection_chunk(r.content):
-                return self._refuse(query, "PROMPT_INJECTION_OUTPUT", snapshot, chunk_rank)
+                response = self._refuse(
+                    query, "PROMPT_INJECTION_OUTPUT", snapshot, chunk_rank
+                )
+                return GenerationOutcome(
+                    response=response,
+                    canonical_claims=(),
+                    snapshot=snapshot,
+                    chunk_rank=chunk_rank,
+                )
 
-        # Step 3 — Server-side deterministic expected claims from retrieval snapshot.
-        # These are the single source of truth. LLM output is advisory only.
+        # Step 3 — Server-side deterministic expected claims from retrieval snapshot
         expected_claims = self._build_expected_claims(query, results, chunk_rank)
 
-        # Step 4 — Advisory LLM call (non-blocking for factual output).
-        # LLM JSON validity is checked via internal telemetry only.
-        # Provider state NEVER enters the deterministic HTTP response.
+        # Step 4 — Advisory LLM call (non-blocking for factual output)
         if self.ai.available:
             if self.ai.check_rate_limit():
                 system_prompt, user_messages = self._build_prompt(query, results)
                 await self._generate_structured(system_prompt, user_messages)
-            # else: rate-limited — recorded only in structured logs, not response
 
-        # Step 5 — Canonicalize expected claims (the server's truth)
-        canonical = _canonicalize_claims(expected_claims)
-        used_chunk_ids = list(dict.fromkeys(c["chunk_id"] for c in canonical))
-        answer = self._render_answer(canonical)
+        # Step 5 — Convert to immutable CanonicalClaim
+        canonical_claims_list = _expected_claims_to_canonical(
+            _canonicalize_claims(expected_claims)
+        )
+        canonical_claims = tuple(canonical_claims_list)
+
+        used_chunk_ids = list(dict.fromkeys(c.chunk_id for c in canonical_claims_list))
+        answer = self._render_answer_from_canonical(canonical_claims_list)
         answer_sha256 = hashlib.sha256(answer.encode()).hexdigest()
 
         # Build citations from canonical claims
         used_citations = []
-        for c in canonical:
-            cid = c["chunk_id"]
-            if cid in snapshot:
-                r = snapshot[cid]
-                used_citations.append({
-                    "document_id": r.document_id,
-                    "chunk_id": r.chunk_id,
-                    "text": r.citation,
-                })
+        for c in canonical_claims_list:
+            if c.chunk_id in snapshot:
+                r = snapshot[c.chunk_id]
+                used_citations.append(
+                    {
+                        "document_id": r.document_id,
+                        "chunk_id": r.chunk_id,
+                        "text": r.citation,
+                    }
+                )
 
-        return GroundedGenerationResponse(
+        response = GroundedGenerationResponse(
             query=query,
             answer=answer,
             results=[
@@ -310,13 +394,46 @@ class GenerationPipeline:
                 citation_validation={
                     "is_valid": True,
                     "cited_chunk_ids": used_chunk_ids,
-                    "verified_claims_count": len(canonical),
+                    "verified_claims_count": len(canonical_claims_list),
                     "expected_claims_count": len(expected_claims),
                     "snapshot_size": len(snapshot),
                     "answer_sha256": answer_sha256,
                 },
             ),
         )
+
+        return GenerationOutcome(
+            response=response,
+            canonical_claims=canonical_claims,
+            snapshot=snapshot,
+            chunk_rank=chunk_rank,
+        )
+
+    async def generate(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> GroundedGenerationResponse:
+        """Run the retrieval-deterministic grounded generation pipeline.
+
+        V1 CONTRACT: Returns GroundedGenerationResponse only.
+        Field set, answer content, citations, metadata are all unchanged.
+        """
+        outcome = await self._generate_outcome(query, top_k)
+        return outcome.response
+
+    async def generate_with_proof(
+        self,
+        query: str,
+        top_k: int = 5,
+    ) -> GenerationOutcome:
+        """Run pipeline and return complete GenerationOutcome.
+
+        Uses _generate_outcome() directly — no answer parsing, no duplicate
+        claim construction. Canonical claims are exported from the pipeline
+        internals at their point of origin.
+        """
+        return await self._generate_outcome(query, top_k)
 
     # ------------------------------------------------------------------
     # Prompt building
@@ -357,9 +474,7 @@ class GenerationPipeline:
         query-relevant sentence. Order is pure retrieval rank.
         """
         query_tokens = [
-            token
-            for token in re.split(r"\s+", _normalize_whitespace(query))
-            if token
+            token for token in re.split(r"\s+", _normalize_whitespace(query)) if token
         ]
         claims: list[dict] = []
 
@@ -390,16 +505,18 @@ class GenerationPipeline:
             quote_norm = _normalize_whitespace(chosen)
             start_pos = content_norm.find(quote_norm)
 
-            claims.append({
-                "citation": f"[{r.document_id}:{r.chunk_id}]",
-                "quote": chosen,
-                "chunk_id": r.chunk_id,
-                "document_id": r.document_id,
-                "chunk_rank": chunk_rank.get(r.chunk_id, 9999),
-                "start_pos": start_pos if start_pos >= 0 else 9999,
-                "quote_norm": quote_norm,
-                "citation_str": f"[{r.document_id}:{r.chunk_id}]",
-            })
+            claims.append(
+                {
+                    "citation": f"[{r.document_id}:{r.chunk_id}]",
+                    "quote": chosen,
+                    "chunk_id": r.chunk_id,
+                    "document_id": r.document_id,
+                    "chunk_rank": chunk_rank.get(r.chunk_id, 9999),
+                    "start_pos": start_pos if start_pos >= 0 else 9999,
+                    "quote_norm": quote_norm,
+                    "citation_str": f"[{r.document_id}:{r.chunk_id}]",
+                }
+            )
 
         return claims
 
@@ -458,19 +575,21 @@ class GenerationPipeline:
                 return None, False
 
         # Canonicalize both LLM claims and expected claims, then compare
-        llm_canonical = _canonicalize_claims([
-            {
-                "citation": c.citation,
-                "quote": c.quote.strip(),
-                "chunk_id": _CITATION_RE.match(c.citation).group(2),
-                "document_id": _CITATION_RE.match(c.citation).group(1),
-                "chunk_rank": 0,
-                "start_pos": 0,
-                "quote_norm": _normalize_whitespace(c.quote.strip()),
-                "citation_str": c.citation,
-            }
-            for c in claims_obj.claims
-        ])
+        llm_canonical = _canonicalize_claims(
+            [
+                {
+                    "citation": c.citation,
+                    "quote": c.quote.strip(),
+                    "chunk_id": _CITATION_RE.match(c.citation).group(2),
+                    "document_id": _CITATION_RE.match(c.citation).group(1),
+                    "chunk_rank": 0,
+                    "start_pos": 0,
+                    "quote_norm": _normalize_whitespace(c.quote.strip()),
+                    "citation_str": c.citation,
+                }
+                for c in claims_obj.claims
+            ]
+        )
 
         exp_canonical = _canonicalize_claims(expected_claims)
 
@@ -508,9 +627,7 @@ class GenerationPipeline:
         except Exception:
             return None, "PROVIDER_ERROR"
 
-    def _mock_claims(
-        self, system_prompt: str, messages: list[dict[str, str]]
-    ) -> str:
+    def _mock_claims(self, system_prompt: str, messages: list[dict[str, str]]) -> str:
         """Deterministic mock — one exact-quote claim per retrieved chunk."""
         # Extract citation markers in order: 资料标识: [doc_id:chunk_id]
         citation_order = []
@@ -541,10 +658,12 @@ class GenerationPipeline:
             if content:
                 first_sentence = content.split("。[")[0].split("。")[0].strip()
                 if first_sentence and not _detect_prompt_injection_text(first_sentence):
-                    claims.append({
-                        "citation": f"[{doc_id}:{chunk_id}]",
-                        "quote": first_sentence + "。",
-                    })
+                    claims.append(
+                        {
+                            "citation": f"[{doc_id}:{chunk_id}]",
+                            "quote": first_sentence + "。",
+                        }
+                    )
 
         if not claims:
             return '{"claims": [{"citation": "[00000000-0000-0000-0000-000000000000:00000000-0000-0000-0000-000000000000]", "quote": "无资料"}]}'
@@ -600,16 +719,18 @@ class GenerationPipeline:
             content_norm = _normalize_whitespace(chunk_result.content)
             start_pos = content_norm.find(quote_norm)
 
-            verified.append({
-                "citation": citation,
-                "quote": quote.strip(),
-                "chunk_id": chunk_id,
-                "document_id": doc_id,
-                "chunk_rank": chunk_rank.get(chunk_id, 9999),
-                "start_pos": start_pos if start_pos >= 0 else 9999,
-                "quote_norm": quote_norm,
-                "citation_str": citation,
-            })
+            verified.append(
+                {
+                    "citation": citation,
+                    "quote": quote.strip(),
+                    "chunk_id": chunk_id,
+                    "document_id": doc_id,
+                    "chunk_rank": chunk_rank.get(chunk_id, 9999),
+                    "start_pos": start_pos if start_pos >= 0 else 9999,
+                    "quote_norm": quote_norm,
+                    "citation_str": citation,
+                }
+            )
 
         return verified, None
 
@@ -667,12 +788,30 @@ class GenerationPipeline:
     # Deterministic answer rendering — server-side canonical ordering
     # ------------------------------------------------------------------
 
-    def _render_answer(self, canonical_claims: list[dict]) -> str:
-        """Render final answer from already-canonicalized claims.
+    def _render_answer_from_canonical(
+        self, canonical_claims: list[CanonicalClaim]
+    ) -> str:
+        """Render final answer from frozen canonical claims.
 
         Claims are already deduped and sorted by _canonicalize_claims().
         No re-sorting here — that would break determinism.
         """
+        if not canonical_claims:
+            return "EVIDENCE_GATE_REFUSAL: 没有通过验证的证据。"
+
+        lines = []
+        for c in canonical_claims:
+            quote = c.quote
+            citation = c.citation
+            # Ensure quote ends with sentence punctuation
+            if quote and quote[-1] not in "。！？.!?）\"'":
+                quote = quote + "。"
+            lines.append(f"{quote}{citation}")
+
+        return "\n\n".join(lines)
+
+    def _render_answer(self, canonical_claims: list[dict]) -> str:
+        """Render answer from canonical dicts (legacy internal path)."""
         if not canonical_claims:
             return "EVIDENCE_GATE_REFUSAL: 没有通过验证的证据。"
 
