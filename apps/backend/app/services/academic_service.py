@@ -4,10 +4,8 @@ Academic Service — Sprint 2 academic product layer.
 Composes GenerationPipeline for each module. Does NOT modify Sprint 1 systems.
 All facts come from GenerationPipeline; this service only orchestrates and structures.
 """
-from __future__ import annotations
 
-import re
-from typing import Any
+from __future__ import annotations
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,7 +40,9 @@ class AcademicService:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_evidence_traces(result: GroundedGenerationResponse) -> list[EvidenceTrace]:
+    def _extract_evidence_traces(
+        result: GroundedGenerationResponse,
+    ) -> list[EvidenceTrace]:
         """Extract evidence traces from a generation result's results+citations."""
         traces: list[EvidenceTrace] = []
         citation_map: dict[str, str] = {}
@@ -53,13 +53,17 @@ class AcademicService:
             chunk_id = r["chunk_id"]
             # Extract claim text from answer — each line is "quote[citation]"
             # We use the content as claim_text since it's the original source
-            traces.append(EvidenceTrace(
-                claim_text=r["content"][:300],  # excerpt for traceability
-                document_id=r["document_id"],
-                chunk_id=chunk_id,
-                quote=r["content"][:300],
-                citation_text=citation_map.get(chunk_id, f"[{r['document_id']}:{chunk_id}]"),
-            ))
+            traces.append(
+                EvidenceTrace(
+                    claim_text=r["content"][:300],  # excerpt for traceability
+                    document_id=r["document_id"],
+                    chunk_id=chunk_id,
+                    quote=r["content"][:300],
+                    citation_text=citation_map.get(
+                        chunk_id, f"[{r['document_id']}:{chunk_id}]"
+                    ),
+                )
+            )
         return traces
 
     @staticmethod
@@ -130,12 +134,14 @@ class AcademicService:
             all_traces.extend(traces)
             all_citations.extend(citations)
 
-            report_sections.append(ReportSection(
-                heading=section_heading,
-                body=result.answer,
-                citations=citations,
-                evidence=traces,
-            ))
+            report_sections.append(
+                ReportSection(
+                    heading=section_heading,
+                    body=result.answer,
+                    citations=citations,
+                    evidence=traces,
+                )
+            )
 
         return AcademicResponse(
             query=query,
@@ -192,12 +198,27 @@ class AcademicService:
 
     # TCM concept keywords for clustering
     _CONCEPT_KEYWORDS: list[str] = [
-        "经络", "针灸", "穴位", "经脉", "络脉",
-        "脏腑", "气血", "阴阳", "五行",
-        "本草", "方剂", "药性",
-        "诊法", "脉诊", "望诊",
-        "伤寒", "温病", "杂病",
-        "甲乙经", "皇甫谧", "明堂",
+        "经络",
+        "针灸",
+        "穴位",
+        "经脉",
+        "络脉",
+        "脏腑",
+        "气血",
+        "阴阳",
+        "五行",
+        "本草",
+        "方剂",
+        "药性",
+        "诊法",
+        "脉诊",
+        "望诊",
+        "伤寒",
+        "温病",
+        "杂病",
+        "甲乙经",
+        "皇甫谧",
+        "明堂",
     ]
 
     @classmethod
@@ -219,7 +240,8 @@ class AcademicService:
             if kw not in query and not any(c in query_chars for c in kw):
                 continue
             matching = [
-                t for i, t in enumerate(traces)
+                t
+                for i, t in enumerate(traces)
                 if i not in assigned and kw in t.claim_text
             ]
             if matching:
@@ -246,11 +268,13 @@ class AcademicService:
                     seen_claims.add(key)
                     deduped.append(t)
 
-            results.append(SynthesisTheme(
-                title=theme_name,
-                description=f"与「{theme_name}」相关的文献证据",
-                claims=deduped,
-            ))
+            results.append(
+                SynthesisTheme(
+                    title=theme_name,
+                    description=f"与「{theme_name}」相关的文献证据",
+                    claims=deduped,
+                )
+            )
 
         return results
 
@@ -295,12 +319,14 @@ class AcademicService:
             if has_gap:
                 hypothesis = f"「{aspect}」暂无文献证据支持，可进一步探索。"
 
-            sub_questions.append(ResearchSubQuestion(
-                sub_question=sub_q,
-                evidence=traces,
-                has_gap=has_gap,
-                hypothesis=hypothesis,
-            ))
+            sub_questions.append(
+                ResearchSubQuestion(
+                    sub_question=sub_q,
+                    evidence=traces,
+                    has_gap=has_gap,
+                    hypothesis=hypothesis,
+                )
+            )
 
         return AcademicResponse(
             query=query,
@@ -350,32 +376,44 @@ class AcademicService:
 
         if beginner_traces:
             beginner_citations = [
-                CitationRef(document_id=t.document_id, chunk_id=t.chunk_id, text=t.citation_text)
+                CitationRef(
+                    document_id=t.document_id, chunk_id=t.chunk_id, text=t.citation_text
+                )
                 for t in beginner_traces
             ]
             # Build simplified paragraphs from beginner traces
-            paragraphs = self._render_education_paragraphs(query, beginner_traces, simplified=True)
-            explanation.append(EducationConcept(
-                concept=query,
-                level="beginner",
-                paragraphs=paragraphs,
-                citations=beginner_citations,
-                evidence=beginner_traces,
-            ))
+            paragraphs = self._render_education_paragraphs(
+                query, beginner_traces, simplified=True
+            )
+            explanation.append(
+                EducationConcept(
+                    concept=query,
+                    level="beginner",
+                    paragraphs=paragraphs,
+                    citations=beginner_citations,
+                    evidence=beginner_traces,
+                )
+            )
 
         if intermediate_traces:
             intermediate_citations = [
-                CitationRef(document_id=t.document_id, chunk_id=t.chunk_id, text=t.citation_text)
+                CitationRef(
+                    document_id=t.document_id, chunk_id=t.chunk_id, text=t.citation_text
+                )
                 for t in intermediate_traces
             ]
-            paragraphs = self._render_education_paragraphs(query, intermediate_traces, simplified=False)
-            explanation.append(EducationConcept(
-                concept=query,
-                level="intermediate",
-                paragraphs=paragraphs,
-                citations=intermediate_citations,
-                evidence=intermediate_traces,
-            ))
+            paragraphs = self._render_education_paragraphs(
+                query, intermediate_traces, simplified=False
+            )
+            explanation.append(
+                EducationConcept(
+                    concept=query,
+                    level="intermediate",
+                    paragraphs=paragraphs,
+                    citations=intermediate_citations,
+                    evidence=intermediate_traces,
+                )
+            )
 
         return AcademicResponse(
             query=query,

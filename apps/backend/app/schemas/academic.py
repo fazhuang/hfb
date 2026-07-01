@@ -3,9 +3,10 @@
 Four modules: report, synthesis, research, education.
 All share citation grounding from Sprint 1 GenerationPipeline.
 """
+
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -17,6 +18,7 @@ from pydantic import BaseModel, Field
 
 class EvidenceTrace(BaseModel):
     """One claim traced back to its source chunk."""
+
     claim_text: str = Field(..., description="The claim/quote text")
     document_id: str
     chunk_id: str
@@ -26,6 +28,7 @@ class EvidenceTrace(BaseModel):
 
 class CitationRef(BaseModel):
     """A citation reference."""
+
     document_id: str
     chunk_id: str
     text: str
@@ -38,6 +41,7 @@ class CitationRef(BaseModel):
 
 class ReportSection(BaseModel):
     """One section of an academic report."""
+
     heading: str
     body: str  # rendered claims text
     citations: list[CitationRef] = Field(default_factory=list)
@@ -46,6 +50,7 @@ class ReportSection(BaseModel):
 
 class SynthesisTheme(BaseModel):
     """One thematic cluster of claims."""
+
     title: str
     description: str = ""
     claims: list[EvidenceTrace] = Field(default_factory=list)
@@ -57,6 +62,7 @@ class SynthesisTheme(BaseModel):
 
 class ResearchSubQuestion(BaseModel):
     """One decomposed research sub-question with its evidence."""
+
     sub_question: str
     evidence: list[EvidenceTrace] = Field(default_factory=list)
     has_gap: bool = False
@@ -65,6 +71,7 @@ class ResearchSubQuestion(BaseModel):
 
 class EducationConcept(BaseModel):
     """One concept explanation at a difficulty level."""
+
     concept: str
     level: Literal["beginner", "intermediate"]
     paragraphs: list[str] = Field(default_factory=list)
@@ -80,7 +87,10 @@ class EducationConcept(BaseModel):
 class AcademicReportRequest(BaseModel):
     query: str = Field(..., min_length=1)
     report_type: Literal[
-        "literature_review", "research_summary", "thematic_analysis", "historical_interpretation"
+        "literature_review",
+        "research_summary",
+        "thematic_analysis",
+        "historical_interpretation",
     ] = "research_summary"
     top_k: int = Field(default=5, ge=1, le=20)
 
@@ -107,6 +117,7 @@ class AcademicEducationRequest(BaseModel):
 
 class AcademicMetadata(BaseModel):
     """Metadata for academic generation."""
+
     top_k: int = 5
     total_claims: int = 0
     total_retrievals: int = 0
@@ -116,6 +127,7 @@ class AcademicMetadata(BaseModel):
 
 class AcademicResponse(BaseModel):
     """Unified response envelope for all four academic modules."""
+
     query: str
     academic_type: Literal["report", "synthesis", "research", "education"]
 

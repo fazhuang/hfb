@@ -1,4 +1,5 @@
 """Academic V2 API routes — Sprint 2 academic product layer."""
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -8,8 +9,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import get_current_user, require_permission
-from app.schemas.academic import AcademicResponse
+from app.middleware.auth import require_permission
 from app.services.academic_service import AcademicService
 from app.utils.response import api_response
 
@@ -29,7 +29,9 @@ class ReportRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 
 
-@router.post("/report", response_model=dict, dependencies=[Depends(guard_academic_read)])
+@router.post(
+    "/report", response_model=dict, dependencies=[Depends(guard_academic_read)]
+)
 async def academic_report(
     body: ReportRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -54,7 +56,9 @@ class SynthesisRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 
 
-@router.post("/synthesis", response_model=dict, dependencies=[Depends(guard_academic_read)])
+@router.post(
+    "/synthesis", response_model=dict, dependencies=[Depends(guard_academic_read)]
+)
 async def academic_synthesis(
     body: SynthesisRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -75,7 +79,9 @@ class ResearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 
 
-@router.post("/research", response_model=dict, dependencies=[Depends(guard_academic_read)])
+@router.post(
+    "/research", response_model=dict, dependencies=[Depends(guard_academic_read)]
+)
 async def academic_research(
     body: ResearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -96,7 +102,9 @@ class EducationRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 
 
-@router.post("/education", response_model=dict, dependencies=[Depends(guard_academic_read)])
+@router.post(
+    "/education", response_model=dict, dependencies=[Depends(guard_academic_read)]
+)
 async def academic_education(
     body: EducationRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
