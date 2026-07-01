@@ -10,6 +10,7 @@ ASGI stack — to verify that:
   - Anonymous / non-existent users get no permissions
   - Workspace cross-user isolation is enforced
 """
+
 from __future__ import annotations
 
 import pytest
@@ -41,8 +42,21 @@ async def four_users(db_session: AsyncSession):
 
     # --- Permissions ---
     perms: dict[str, Permission] = {}
-    resources = ["person", "book", "version", "chapter", "passage", "paper", "image", "document",
-                 "graph", "search", "ai", "workspace", "dashboard"]
+    resources = [
+        "person",
+        "book",
+        "version",
+        "chapter",
+        "passage",
+        "paper",
+        "image",
+        "document",
+        "graph",
+        "search",
+        "ai",
+        "workspace",
+        "dashboard",
+    ]
     for resource in resources:
         for action in ["create", "read", "update", "delete"]:
             p = Permission(resource=resource, action=action)
@@ -63,29 +77,63 @@ async def four_users(db_session: AsyncSession):
 
     async def _grant(role: Role, codes: list[str]) -> None:
         from sqlalchemy import select as sa, and_
+
         for code in codes:
             p = perms.get(code)
             if p:
-                ex = await session.execute(sa(role_permission).where(
-                    and_(role_permission.c.role_id == role.id, role_permission.c.permission_id == p.id)))
+                ex = await session.execute(
+                    sa(role_permission).where(
+                        and_(
+                            role_permission.c.role_id == role.id,
+                            role_permission.c.permission_id == p.id,
+                        )
+                    )
+                )
                 if ex.first() is None:
-                    await session.execute(role_permission.insert().values(role_id=role.id, permission_id=p.id))
+                    await session.execute(
+                        role_permission.insert().values(
+                            role_id=role.id, permission_id=p.id
+                        )
+                    )
         await session.flush()
 
     async def _add_role(user: User, role: Role) -> None:
         from sqlalchemy import select as sa, and_
-        ex = await session.execute(sa(user_role).where(
-            and_(user_role.c.user_id == user.id, user_role.c.role_id == role.id)))
+
+        ex = await session.execute(
+            sa(user_role).where(
+                and_(user_role.c.user_id == user.id, user_role.c.role_id == role.id)
+            )
+        )
         if ex.first() is None:
-            await session.execute(user_role.insert().values(user_id=user.id, role_id=role.id))
+            await session.execute(
+                user_role.insert().values(user_id=user.id, role_id=role.id)
+            )
         await session.flush()
 
-    VISITOR_READS = ["person.read", "book.read", "version.read", "passage.read",
-                     "paper.read", "image.read", "document.read",
-                     "graph.read", "search.read", "dashboard.read"]
+    VISITOR_READS = [
+        "person.read",
+        "book.read",
+        "version.read",
+        "passage.read",
+        "paper.read",
+        "image.read",
+        "document.read",
+        "graph.read",
+        "search.read",
+        "dashboard.read",
+    ]
     RESEARCHER = VISITOR_READS + [
-        "person.create", "person.update", "book.create", "book.update",
-        "passage.create", "passage.update", "workspace.read", "workspace.create", "ai.read"]
+        "person.create",
+        "person.update",
+        "book.create",
+        "book.update",
+        "passage.create",
+        "passage.update",
+        "workspace.read",
+        "workspace.create",
+        "ai.read",
+    ]
 
     await _grant(roles["Visitor"], VISITOR_READS)
     await _grant(roles["Researcher"], RESEARCHER)
@@ -93,9 +141,15 @@ async def four_users(db_session: AsyncSession):
     await _grant(roles["Platform Administrator"], list(perms.keys()))
 
     # --- Users ---
-    admin = await auth_svc.register("testadmin", "admin@test.com", "admin123456", "Admin")
-    researcher = await auth_svc.register("testresearcher", "res@test.com", "res123456", "R")
-    researcher2 = await auth_svc.register("testresearcher2", "res2@test.com", "res123456", "R2")
+    admin = await auth_svc.register(
+        "testadmin", "admin@test.com", "admin123456", "Admin"
+    )
+    researcher = await auth_svc.register(
+        "testresearcher", "res@test.com", "res123456", "R"
+    )
+    researcher2 = await auth_svc.register(
+        "testresearcher2", "res2@test.com", "res123456", "R2"
+    )
     visitor = await auth_svc.register("testvisitor", "vis@test.com", "vis123456", "V")
 
     await _add_role(admin, roles["Platform Administrator"])
@@ -152,7 +206,12 @@ class TestRBACPermissions:
 
     async def test_nonexistent_user_no_perms(self, four_users):
         svc = four_users["auth_svc"]
-        assert await svc.has_permission("00000000-0000-0000-0000-000000000000", "book", "read") is False
+        assert (
+            await svc.has_permission(
+                "00000000-0000-0000-0000-000000000000", "book", "read"
+            )
+            is False
+        )
 
     async def test_researcher_cannot_delete(self, four_users):
         svc = four_users["auth_svc"]
@@ -185,20 +244,42 @@ class TestGraphServiceRBAC:
     async def test_admin_can_create_relation(self, four_users):
         from app.models.person import Person
         from app.models.book import Book
+        from app.models.document import Document
+        from app.models.document_chunk import DocumentChunk
+        from app.schemas.graph import GraphEvidence
 
         session = four_users["session"]
         p = Person(name="graph_rbac_person", dynasty="唐")
         b = Book(title="graph_rbac_book", dynasty="唐")
-        session.add_all([p, b])
+        d = Document(title="rbac_test_doc", dynasty="唐")
+        session.add_all([p, b, d])
+        await session.flush()
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="graph_rbac_person编撰graph_rbac_book。",
+            token_count=20,
+        )
+        session.add(c)
         await session.flush()
 
+        ev = GraphEvidence(
+            document_id=d.id,
+            chunk_id=c.id,
+            exact_quote="graph_rbac_person编撰graph_rbac_book。",
+            citation=f"[{d.id}:{c.id}]",
+        )
+
         svc = GraphService(session)
-        rel = await svc.create_relation("person", p.id, "book", b.id, "authored")
+        rel = await svc.create_relation(
+            "person", p.id, "book", b.id, "authored", evidence=ev
+        )
         assert rel.id is not None
 
     async def test_neighbors_nonexistent_raises(self, four_users):
         svc = GraphService(four_users["session"])
         from app.models.person import Person
+
         p = Person(name="neighbor_test")
         four_users["session"].add(p)
         await four_users["session"].flush()
@@ -218,6 +299,7 @@ class TestSearchServiceRBAC:
     async def test_admin_can_suggest(self, four_users):
         svc = SearchService(four_users["session"])
         from app.models.person import Person
+
         p = Person(name="suggest_rbac_test")
         four_users["session"].add(p)
         await four_users["session"].flush()

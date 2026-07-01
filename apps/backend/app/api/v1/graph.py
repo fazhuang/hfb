@@ -12,6 +12,7 @@ Endpoints:
   GET  /api/v1/graph/relations/{entity_type}/{id}  — List relations for entity
   DELETE /api/v1/graph/relations/{relation_id}     — Delete entity relation
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -38,15 +39,14 @@ guard_delete = require_permission("graph", "delete")
 # ============================================================
 
 
-@router.get(
-    "/entities",
-    response_model=dict,
-    dependencies=[Depends(guard_read)],
-)
+@router.get("/entities", response_model=dict, dependencies=[Depends(guard_read)])
 async def search_graph_entities(
     session: Annotated[AsyncSession, Depends(get_session)],
     q: str = Query(default="", description="Search query"),
-    types: str = Query(default="", description="Comma-separated entity types: person,book,version,passage"),
+    types: str = Query(
+        default="",
+        description="Comma-separated entity types: person,book,version,passage",
+    ),
     limit: int = Query(default=50, ge=1, le=100),
 ) -> dict:
     """Search for entities available in the knowledge graph."""
@@ -55,7 +55,9 @@ async def search_graph_entities(
         entity_types = [t.strip() for t in types.split(",") if t.strip()]
 
     svc = GraphService(session)
-    nodes = await svc.search_entities(entity_types=entity_types, query=q.strip(), limit=limit)
+    nodes = await svc.search_entities(
+        entity_types=entity_types, query=q.strip(), limit=limit
+    )
     return api_response(data=[n.model_dump(mode="json") for n in nodes])
 
 
@@ -103,7 +105,9 @@ async def find_path(
 ) -> dict:
     """Find the shortest path between two entities using BFS."""
     svc = GraphService(session)
-    result = await svc.find_path(source_type, source_id, target_type, target_id, max_depth)
+    result = await svc.find_path(
+        source_type, source_id, target_type, target_id, max_depth
+    )
     if result is None:
         return api_response(
             data=None,
@@ -164,7 +168,9 @@ async def create_relation(
             evidence=body.evidence,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
 
     resp = EntityRelationResponse.model_validate(relation)
     return api_response(data=resp.model_dump(mode="json"), message="Relation created")
@@ -183,7 +189,10 @@ async def list_entity_relations(
     """List all explicit relations involving an entity."""
     svc = GraphService(session)
     relations = await svc.get_relations_for_entity(entity_type, entity_id)
-    resp = [EntityRelationResponse.model_validate(r).model_dump(mode="json") for r in relations]
+    resp = [
+        EntityRelationResponse.model_validate(r).model_dump(mode="json")
+        for r in relations
+    ]
     return api_response(data=resp)
 
 
@@ -200,5 +209,7 @@ async def delete_relation(
     svc = GraphService(session)
     ok = await svc.delete_relation(relation_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Relation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Relation not found"
+        )
     return api_response(data=None, message="Relation deleted")

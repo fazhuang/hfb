@@ -3,6 +3,7 @@ Tests for Knowledge Graph — EntityRelation model, GraphService, API endpoints.
 
 Per HFB-PS-1707 Knowledge Graph Product Specification.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -105,15 +106,40 @@ class TestGraphServiceAsync:
 
     async def test_create_relation_and_retrieve(self, db_session: AsyncSession) -> None:
         """Create an EntityRelation and verify it can be retrieved."""
-        # First create seed persons and books
+        # First create seed persons, books, and evidence chunk
         p = Person(name="测试人物", dynasty="唐")
         db_session.add(p)
         await db_session.flush()
 
         from app.models.book import Book
+
         b = Book(title="测试古籍", dynasty="唐", category="医经")
         db_session.add(b)
         await db_session.flush()
+
+        from app.models.document import Document
+        from app.models.document_chunk import DocumentChunk
+
+        d = Document(title="测试文献", dynasty="唐")
+        db_session.add(d)
+        await db_session.flush()
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="测试人物编撰测试古籍。",
+            token_count=20,
+        )
+        db_session.add(c)
+        await db_session.flush()
+
+        from app.schemas.graph import GraphEvidence
+
+        ev = GraphEvidence(
+            document_id=d.id,
+            chunk_id=c.id,
+            exact_quote="测试人物编撰测试古籍。",
+            citation=f"[{d.id}:{c.id}]",
+        )
 
         svc = GraphService(db_session)
         relation = await svc.create_relation(
@@ -123,6 +149,7 @@ class TestGraphServiceAsync:
             target_entity_id=b.id,
             relation_type="authored",
             description="测试关系",
+            evidence=ev,
         )
         assert relation.id is not None
         assert relation.relation_type == "authored"
@@ -135,15 +162,40 @@ class TestGraphServiceAsync:
         assert any(r.id == relation.id for r in relations)
 
     async def test_delete_relation(self, db_session: AsyncSession) -> None:
-        """ Soft-delete an EntityRelation."""
+        """Soft-delete an EntityRelation."""
         p = Person(name="测试人物2", dynasty="宋")
         db_session.add(p)
         await db_session.flush()
 
         from app.models.book import Book
+
         b = Book(title="测试古籍2", dynasty="宋", category="方剂")
         db_session.add(b)
         await db_session.flush()
+
+        from app.models.document import Document
+        from app.models.document_chunk import DocumentChunk
+
+        d = Document(title="测试文献2", dynasty="宋")
+        db_session.add(d)
+        await db_session.flush()
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="测试人物2编撰测试古籍2。",
+            token_count=20,
+        )
+        db_session.add(c)
+        await db_session.flush()
+
+        from app.schemas.graph import GraphEvidence
+
+        ev = GraphEvidence(
+            document_id=d.id,
+            chunk_id=c.id,
+            exact_quote="测试人物2编撰测试古籍2。",
+            citation=f"[{d.id}:{c.id}]",
+        )
 
         svc = GraphService(db_session)
         rel = await svc.create_relation(
@@ -152,6 +204,7 @@ class TestGraphServiceAsync:
             target_entity_type="book",
             target_entity_id=b.id,
             relation_type="compiled",
+            evidence=ev,
         )
 
         ok = await svc.delete_relation(rel.id)
@@ -198,8 +251,10 @@ class TestGraphServiceAsync:
         svc = GraphService(db_session)
         # Two likely disconnected entities should return None
         path = await svc.find_path(
-            "person", "00000000-0000-0000-0000-000000000001",
-            "book", "00000000-0000-0000-0000-000000000002",
+            "person",
+            "00000000-0000-0000-0000-000000000001",
+            "book",
+            "00000000-0000-0000-0000-000000000002",
         )
         assert path is None
 
@@ -210,6 +265,7 @@ class TestGraphServiceAsync:
         await db_session.flush()
 
         from app.models.book import Book
+
         b = Book(title="关联古籍", dynasty="唐", category="医经", author_id=p.id)
         db_session.add(b)
         await db_session.flush()

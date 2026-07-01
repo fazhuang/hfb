@@ -1,15 +1,33 @@
 """
-Graph schemas — EntityRelation, GraphNode, GraphEdge, and API response models.
+Graph schemas — Sprint 3 P0: strict evidence-bound edges, concept graph, similarity.
 
-Per HFB-PS-1707 Knowledge Graph Product Specification.
+Every GraphEdge now carries structured evidence. API responses use strict schemas,
+not dict. Concept nodes/edges carry deterministic IDs and corpus evidence.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+# ============================================================
+# Sprint 3 P0: Structured corpus evidence
+# ============================================================
+
+
+class GraphEvidence(BaseModel):
+    """Structured corpus evidence bound to a chunk."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    document_id: str = Field(..., min_length=1)
+    chunk_id: str = Field(..., min_length=1)
+    exact_quote: str = Field(..., min_length=1)
+    citation: str = Field(..., min_length=1)  # [document_id:chunk_id]
 
 
 # ============================================================
@@ -24,7 +42,7 @@ class EntityRelationBase(BaseModel):
     target_entity_id: str = Field(..., min_length=1, max_length=36)
     relation_type: str = Field(..., min_length=1, max_length=50)
     description: str | None = None
-    evidence: str | None = None
+    evidence: GraphEvidence | None = None
 
 
 class EntityRelationCreate(EntityRelationBase):
@@ -34,7 +52,7 @@ class EntityRelationCreate(EntityRelationBase):
 class EntityRelationUpdate(BaseModel):
     relation_type: str | None = None
     description: str | None = None
-    evidence: str | None = None
+    evidence: GraphEvidence | None = None
 
 
 class EntityRelationResponse(EntityRelationBase):
@@ -42,7 +60,7 @@ class EntityRelationResponse(EntityRelationBase):
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ============================================================
@@ -52,31 +70,38 @@ class EntityRelationResponse(EntityRelationBase):
 
 class GraphNode(BaseModel):
     """A node in the graph visualization."""
+
     id: str  # composite key: "{entity_type}:{entity_id}"
     entity_type: str
     entity_id: str
     label: str  # display name
-    properties: dict[str, Any] = Field(default_factory=dict)  # extra metadata
+    properties: dict[str, Any] = Field(default_factory=dict)
 
 
 class GraphEdge(BaseModel):
-    """An edge in the graph visualization."""
-    id: str  # composite key
-    source_id: str  # node id of source
-    target_id: str  # node id of target
-    relation_type: str  # authored, compiled, derived_from, etc.
-    label: str  # human-readable relation label
-    source: str = "explicit"  # "explicit" | "fk" | "version" — origin of edge
+    """An edge in the graph visualization — Sprint 3 P0: evidence-bound."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: str
+    source_id: str
+    target_id: str
+    relation_type: str
+    label: str
+    source: str = "explicit"  # "explicit" | "fk" | "version" | "concept"
+    evidence: GraphEvidence | None = None
 
 
 class Subgraph(BaseModel):
     """A subgraph containing nodes and edges."""
+
     nodes: list[GraphNode]
     edges: list[GraphEdge]
 
 
 class PathResult(BaseModel):
     """A path between two entities."""
+
     nodes: list[GraphNode]
     edges: list[GraphEdge]
     length: int
@@ -84,6 +109,7 @@ class PathResult(BaseModel):
 
 class NeighborResult(BaseModel):
     """Neighborhood of an entity — 1-hop subgraph."""
+
     center: GraphNode
     neighbors: list[GraphNode]
     edges: list[GraphEdge]
@@ -117,4 +143,110 @@ RELATION_LABELS: dict[str, str] = {
     "fk_version": "所属版本",
     "fk_parent": "父章节",
     "fk_passage_to_version": "关联版本",
+    # Sprint 3 P0: Concept relation labels
+    "co_occurs_with": "共现",
+    "broader_than": "上位",
+    "narrower_than": "下位",
+    "related_to_concept": "概念关联",
 }
+
+
+# ============================================================
+# Sprint 3 P0: Concept Graph
+# ============================================================
+
+
+class ConceptNode(BaseModel):
+    """A concept node with stable ID derived from normalized label."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    concept_id: str = Field(
+        ..., description="SHA-256 of normalized_label (first 16 hex)"
+    )
+    normalized_label: str = Field(..., min_length=1)
+    display_label: str = Field(..., min_length=1)
+    evidence: list[GraphEvidence] = Field(default_factory=list)
+    source_document_ids: list[str] = Field(default_factory=list)
+    source_chunk_ids: list[str] = Field(default_factory=list)
+
+
+class ConceptEdge(BaseModel):
+    """A concept relationship with stable ID and corpus evidence."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    edge_id: str = Field(
+        ..., description="SHA-256 of source+target+relation (first 16 hex)"
+    )
+    source_concept_id: str
+    target_concept_id: str
+    relation_type: str  # co_occurs_with, broader_than, narrower_than, related_to
+    label: str
+    evidence: list[GraphEvidence] = Field(default_factory=list)
+
+
+class ConceptGraph(BaseModel):
+    """A structured concept graph — nodes + edges with evidence."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    nodes: list[ConceptNode] = Field(default_factory=list)
+    edges: list[ConceptEdge] = Field(default_factory=list)
+
+
+# ============================================================
+# Sprint 3 P0: Concept Similarity
+# ============================================================
+
+
+class ConceptSimilarity(BaseModel):
+    """Deterministic similarity between two concepts — no ML, no randomness."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    concept_a: str = Field(..., min_length=1)
+    concept_b: str = Field(..., min_length=1)
+    score: float = Field(
+        ..., description="Jaccard co-occurrence score, fixed 4 decimals"
+    )
+    formula: str = "jaccard_co_occurrence_v1"
+    formula_version: str = "1.0.0"
+    shared_document_ids: list[str] = Field(default_factory=list)
+    shared_chunk_ids: list[str] = Field(default_factory=list)
+    evidence: list[GraphEvidence] = Field(default_factory=list)
+    corpus_sha256: str = Field(default="")
+
+
+# ============================================================
+# Sprint 3 P0: Cross-Document Analysis
+# ============================================================
+
+
+class CrossDocumentClaim(BaseModel):
+    """A claim from a specific document with evidence binding."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    claim_text: str = Field(..., min_length=1)
+    document_id: str = Field(..., min_length=1)
+    chunk_id: str = Field(..., min_length=1)
+    evidence: GraphEvidence
+
+
+class CrossDocumentAnalysis(BaseModel):
+    """Cross-document comparison — only what the corpus directly supports."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    topic: str = Field(..., min_length=1)
+    supporting_claims: list[CrossDocumentClaim] = Field(default_factory=list)
+    differing_claims: list[CrossDocumentClaim] = Field(default_factory=list)
+    contradictions: list[dict[str, CrossDocumentClaim]] = Field(
+        default_factory=list,
+        description="Pairs of opposing claims with evidence. Empty if insufficient evidence.",
+    )
+    source_document_ids: list[str] = Field(default_factory=list)
+    evidence_trace: list[GraphEvidence] = Field(default_factory=list)
+    corpus_sha256: str = Field(default="")
+    output_sha256: str = Field(default="")
