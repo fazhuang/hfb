@@ -844,88 +844,99 @@ class GraphService:
                         sent = s.strip()
                         break
 
-                # Determine relation type
-                if has_hierarchy:
-                    # Use the order to determine broader/narrower
-                    # ponytail: simple heuristic — first concept in sentence is broader
-                    if sent:
-                        a_pos = sent.find(a)
-                        b_pos = sent.find(b)
-                        if a_pos < b_pos:
-                            edges.append(
-                                ConceptEdge(
-                                    edge_id=_stable_hash(
-                                        ConceptNode.__name__, a, b, "broader_than"
-                                    ),
-                                    source_concept_id=_stable_hash(a),
-                                    target_concept_id=_stable_hash(b),
-                                    relation_type="broader_than",
-                                    label="上位",
-                                    evidence=[
-                                        _make_evidence(
-                                            evidence_chunk.document_id,
-                                            evidence_chunk.id,
-                                            sent,
-                                        )
-                                    ],
-                                )
+                # Only create hierarchical edges if the sentence contains both
+                # concepts AND an explicit hierarchy marker
+                if (
+                    has_hierarchy
+                    and sent
+                    and any(re.search(m, sent) for m in hier_markers)
+                ):
+                    a_pos = sent.find(a)
+                    b_pos = sent.find(b)
+                    if a_pos < b_pos:
+                        edges.append(
+                            ConceptEdge(
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, a, b, "broader_than"
+                                ),
+                                source_concept_id=_stable_hash(a),
+                                target_concept_id=_stable_hash(b),
+                                relation_type="broader_than",
+                                label="上位",
+                                evidence=[
+                                    _make_evidence(
+                                        evidence_chunk.document_id,
+                                        evidence_chunk.id,
+                                        sent,
+                                    )
+                                ],
                             )
-                            edges.append(
-                                ConceptEdge(
-                                    edge_id=_stable_hash(
-                                        ConceptNode.__name__, b, a, "narrower_than"
-                                    ),
-                                    source_concept_id=_stable_hash(b),
-                                    target_concept_id=_stable_hash(a),
-                                    relation_type="narrower_than",
-                                    label="下位",
-                                    evidence=[
-                                        _make_evidence(
-                                            evidence_chunk.document_id,
-                                            evidence_chunk.id,
-                                            sent,
-                                        )
-                                    ],
-                                )
+                        )
+                        edges.append(
+                            ConceptEdge(
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, b, a, "narrower_than"
+                                ),
+                                source_concept_id=_stable_hash(b),
+                                target_concept_id=_stable_hash(a),
+                                relation_type="narrower_than",
+                                label="下位",
+                                evidence=[
+                                    _make_evidence(
+                                        evidence_chunk.document_id,
+                                        evidence_chunk.id,
+                                        sent,
+                                    )
+                                ],
                             )
-                        else:
-                            edges.append(
-                                ConceptEdge(
-                                    edge_id=_stable_hash(
-                                        ConceptNode.__name__, b, a, "broader_than"
-                                    ),
-                                    source_concept_id=_stable_hash(b),
-                                    target_concept_id=_stable_hash(a),
-                                    relation_type="broader_than",
-                                    label="上位",
-                                    evidence=[
-                                        _make_evidence(
-                                            evidence_chunk.document_id,
-                                            evidence_chunk.id,
-                                            sent,
-                                        )
-                                    ],
-                                )
+                        )
+                    else:
+                        edges.append(
+                            ConceptEdge(
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, b, a, "broader_than"
+                                ),
+                                source_concept_id=_stable_hash(b),
+                                target_concept_id=_stable_hash(a),
+                                relation_type="broader_than",
+                                label="上位",
+                                evidence=[
+                                    _make_evidence(
+                                        evidence_chunk.document_id,
+                                        evidence_chunk.id,
+                                        sent,
+                                    )
+                                ],
                             )
-                            edges.append(
-                                ConceptEdge(
-                                    edge_id=_stable_hash(
-                                        ConceptNode.__name__, a, b, "narrower_than"
-                                    ),
-                                    source_concept_id=_stable_hash(a),
-                                    target_concept_id=_stable_hash(b),
-                                    relation_type="narrower_than",
-                                    label="下位",
-                                    evidence=[
-                                        _make_evidence(
-                                            evidence_chunk.document_id,
-                                            evidence_chunk.id,
-                                            sent,
-                                        )
-                                    ],
-                                )
+                        )
+                        edges.append(
+                            ConceptEdge(
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, a, b, "narrower_than"
+                                ),
+                                source_concept_id=_stable_hash(a),
+                                target_concept_id=_stable_hash(b),
+                                relation_type="narrower_than",
+                                label="下位",
+                                evidence=[
+                                    _make_evidence(
+                                        evidence_chunk.document_id,
+                                        evidence_chunk.id,
+                                        sent,
+                                    )
+                                ],
                             )
+                        )
                     # Always add co_occurs_with
+                    evidence_for_co = (
+                        [
+                            _make_evidence(
+                                evidence_chunk.document_id, evidence_chunk.id, sent
+                            )
+                        ]
+                        if sent
+                        else []
+                    )
                     edges.append(
                         ConceptEdge(
                             edge_id=_stable_hash(
@@ -935,13 +946,7 @@ class GraphService:
                             target_concept_id=_stable_hash(b),
                             relation_type="co_occurs_with",
                             label="共现",
-                            evidence=[
-                                _make_evidence(
-                                    evidence_chunk.document_id, evidence_chunk.id, sent
-                                )
-                            ]
-                            if sent
-                            else [],
+                            evidence=evidence_for_co,
                         )
                     )
                 else:
@@ -982,8 +987,6 @@ class GraphService:
 
         Score is fixed to 4 decimal places.
         """
-        # This is deterministic — no async DB access needed if we accept
-        # a corpus snapshot. For now, uses the in-memory chunk sets.
         return ConceptSimilarity(
             concept_a=concept_a,
             concept_b=concept_b,
