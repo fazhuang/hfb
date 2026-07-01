@@ -87,6 +87,7 @@ PROMPT_INJECTION_PATTERNS: list[re.Pattern] = [
     re.compile(r"you\s+are\s+(now\s+)?(the\s+)?(assistant|system|developer)", re.IGNORECASE),
     re.compile(r"act\s+as\s+(a\s+|an\s+)?(system|developer|attacker)", re.IGNORECASE),
     re.compile(r"as\s+an?\s+AI\s+(language\s+)?model", re.IGNORECASE),
+    re.compile(r"(return|output)\s+(only\s+)?the\s+following\s+(JSON|text|payload|output|response|content|exactly|as\s+shown)", re.IGNORECASE),
     # Role/token boundaries
     re.compile(r"system\s*[:：]", re.IGNORECASE),
     re.compile(r"assistant\s*[:：]", re.IGNORECASE),
@@ -158,6 +159,36 @@ def _substring_start_pos(needle: str, haystack: str) -> int:
     haystack_norm = _normalize_whitespace(haystack)
     idx = haystack_norm.find(needle_norm)
     return idx
+
+
+# ---------------------------------------------------------------------------
+# Canonical claims ordering — single source of truth for determinism
+# ---------------------------------------------------------------------------
+
+
+def _canonicalize_claims(verified_claims: list[dict]) -> list[dict]:
+    """Deduplicate and sort claims deterministically.
+
+    This is the ONLY place claims are ordered/deduped. Everything downstream
+    (answer, cited_chunk_ids, citations, hashes) consumes canonical claims.
+    """
+    # Deduplicate: same chunk + same normalized quote → keep first
+    seen: set[tuple[str, str]] = set()
+    deduped: list[dict] = []
+    for c in verified_claims:
+        key = (c["chunk_id"], c.get("quote_norm", ""))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(c)
+
+    # Sort deterministically
+    deduped.sort(key=lambda c: (
+        c.get("chunk_rank", 9999),
+        c.get("start_pos", 9999),
+        c.get("quote_norm", ""),
+        c.get("citation_str", ""),
+    ))
+    return deduped
 
 
 # ---------------------------------------------------------------------------
@@ -282,19 +313,18 @@ class GenerationPipeline:
         if db_error:
             return self._refuse(query, db_error, snapshot, chunk_rank)
 
-        # Step 8 — Deterministic render from verified claims
-        used_chunk_ids = list(dict.fromkeys(c["chunk_id"] for c in verified_claims))
-        answer = self._render_answer(verified_claims, chunk_rank)
+        # Step 8 — Canonicalize claims BEFORE anything consumes them
+        canonical = _canonicalize_claims(verified_claims)
+        used_chunk_ids = list(dict.fromkeys(c["chunk_id"] for c in canonical))
+        answer = self._render_answer(canonical)
         answer_sha256 = hashlib.sha256(answer.encode()).hexdigest()
 
-        # Build used citations list
-        cited_chunks: dict[str, RetrievalResult] = {
-            cid: snapshot[cid] for cid in used_chunk_ids if cid in snapshot
-        }
+        # Build used citations list from canonical claims
         used_citations = []
-        for cid in used_chunk_ids:
-            if cid in cited_chunks:
-                r = cited_chunks[cid]
+        for c in canonical:
+            cid = c["chunk_id"]
+            if cid in snapshot:
+                r = snapshot[cid]
                 used_citations.append({
                     "document_id": r.document_id,
                     "chunk_id": r.chunk_id,
@@ -311,7 +341,7 @@ class GenerationPipeline:
                     "chunk_index": r.chunk_index,
                     "content": r.content,
                     "citation": r.citation,
-                    "score": r.score,
+                    "score": round(r.score, 2),
                 }
                 for r in results
             ],
@@ -543,39 +573,17 @@ class GenerationPipeline:
     # Deterministic answer rendering — server-side canonical ordering
     # ------------------------------------------------------------------
 
-    def _render_answer(self, verified_claims: list[dict], chunk_rank: dict[str, int]) -> str:
-        """Deterministically render final answer.
+    def _render_answer(self, canonical_claims: list[dict]) -> str:
+        """Render final answer from already-canonicalized claims.
 
-        Sort order:
-        1. chunk_rank ASC (position in retrieval snapshot)
-        2. start_pos ASC (position of quote within chunk)
-        3. quote_norm ASC (lexicographic)
-        4. citation_str ASC
-
-        Deduplicates identical citations.
+        Claims are already deduped and sorted by _canonicalize_claims().
+        No re-sorting here — that would break determinism.
         """
-        if not verified_claims:
+        if not canonical_claims:
             return "EVIDENCE_GATE_REFUSAL: 没有通过验证的证据。"
 
-        # Deduplicate: same chunk + same quote → keep first occurrence
-        seen = set()
-        deduped = []
-        for c in verified_claims:
-            key = (c["chunk_id"], c["quote_norm"])
-            if key not in seen:
-                seen.add(key)
-                deduped.append(c)
-
-        # Sort deterministically
-        deduped.sort(key=lambda c: (
-            c.get("chunk_rank", 9999),
-            c.get("start_pos", 9999),
-            c.get("quote_norm", ""),
-            c.get("citation_str", ""),
-        ))
-
         lines = []
-        for c in deduped:
+        for c in canonical_claims:
             quote = c["quote"]
             citation = c["citation_str"]
             # Ensure quote ends with sentence punctuation

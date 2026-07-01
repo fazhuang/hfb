@@ -157,6 +157,9 @@ class AIService:
         async for chunk in self._stream_openai(full_messages, model or self._model):
             yield chunk
 
+        # Append AI marker for academic integrity
+        yield "\n\n---\n*🤖 AI 生成内容，请以学术标准核实*"
+
     async def _stream_openai(
         self, messages: list[dict[str, str]], model: str
     ) -> AsyncGenerator[str, None]:
@@ -346,7 +349,7 @@ class AIService:
             data = resp.json()
             content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
             # ponytail: AI marker is metadata on the response envelope, not in the text
-            return content
+            return content + "\n\n---\n*🤖 AI 生成内容*"
 
 
 # ---------------------------------------------------------------------------
@@ -356,11 +359,11 @@ class AIService:
 
 def _mock_summarize(text: str, max_words: int) -> str:
     preview = text[:max_words // 2] + ("…" if len(text) > max_words // 2 else "")
-    return f"[摘要] {preview}"
+    return f"[摘要] {preview}\n\n---\n*🤖 AI 服务未配置，以上为文本截取*"
 
 
 def _mock_translate(text: str, target_lang: str) -> str:
-    return f"[翻译至{target_lang}] {text[:200]}{'…' if len(text) > 200 else ''}"
+    return f"[翻译至{target_lang}] {text[:200]}{'…' if len(text) > 200 else ''}\n\n---\n*🤖 AI 服务未配置，以上为原文截取*"
 
 
 def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label: str) -> str:
@@ -386,4 +389,5 @@ def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label:
             changes += 1
 
     report.append(f"共发现 {changes} 处差异")
+    report.append("\n---\n*🤖 AI 服务未配置，以上为自动文字比对*")
     return "\n".join(report)
