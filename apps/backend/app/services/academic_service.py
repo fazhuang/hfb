@@ -527,6 +527,7 @@ class AcademicService:
             academic_type,
             proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
             f"Proof integrity check failed: {proof.error_code or 'incomplete'}",
+            corpus_records=_build_corpus_records_from_proof(proof),
         )
 
     # ==================================================================
@@ -585,6 +586,7 @@ class AcademicService:
                     "report",
                     proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
                     f"Proof integrity error for section '{section_heading}': {proof.error_code}",
+                    corpus_records=all_corpus_records,
                 )
 
             # P0-1: NO_EVIDENCE → evidence gap for this section, other sections continue
@@ -618,6 +620,7 @@ class AcademicService:
                     "report",
                     AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
                     f"Claims could not be bound for section '{section_heading}'",
+                    corpus_records=all_corpus_records,
                 )
 
             all_claims.extend(section_claims)
@@ -638,6 +641,7 @@ class AcademicService:
                 "report",
                 AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
                 "No evidence found for any section",
+                corpus_records=all_corpus_records,
             )
 
         all_traces = self._claims_to_traces(all_claims)
@@ -703,6 +707,7 @@ class AcademicService:
                 code,
                 reason,
                 verdict.matched_keywords,
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         claims = proof.verified_claims
@@ -712,6 +717,7 @@ class AcademicService:
                 "synthesis",
                 AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
                 "No evidence found",
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         traces = self._claims_to_traces(claims)
@@ -863,6 +869,7 @@ class AcademicService:
                 "research",
                 proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
                 f"Proof integrity error: {proof.error_code}",
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         # P0-2: Gated proposition + no evidence → immediate refusal
@@ -883,6 +890,7 @@ class AcademicService:
                 AcademicErrorCode.UNSUPPORTED_PROPOSITION,
                 original_verdict.reason,
                 original_verdict.matched_keywords,
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         # P0-2: Not a gated proposition, or gate passed → proceed with decomposition
@@ -921,6 +929,7 @@ class AcademicService:
                     sub_proof.error_code
                     or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
                     f"Proof integrity error for sub-question '{sub_display}': {sub_proof.error_code}",
+                    corpus_records=_merge_corpus_records(*all_corpus_records),
                 )
 
             # P0-1: NO_EVIDENCE → gap
@@ -1081,6 +1090,7 @@ class AcademicService:
                 code,
                 reason,
                 verdict.matched_keywords,
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         claims = proof.verified_claims
@@ -1090,6 +1100,7 @@ class AcademicService:
                 "education",
                 AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
                 "No evidence to create educational explanation",
+                corpus_records=_build_corpus_records_from_proof(proof),
             )
 
         # P1-2: Level by retrieval rank, NOT text length

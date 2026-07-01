@@ -1450,16 +1450,13 @@ async def test_adversarial_report_direct_assert(db_session, query: str):
 async def test_supported_proposition_returns_evidence_with_citation(db_session):
     """P0-7 H: Corpus='针灸可用于治疗部分疼痛，但适应范围有限。', query='针灸是否可用于治疗部分疼痛'.
 
-    Must return original text with correct citation. Gate must pass.
+    Must return original text with correct citation. Gate must pass. Strong assertion — no fallback.
     """
+    chunk_content = "针灸可用于治疗部分疼痛，但适应范围有限。"
     await _seed_chunks(
         db_session,
         [
-            (
-                "医学文献",
-                "现代",
-                ["针灸可用于治疗部分疼痛，但适应范围有限。"],
-            )
+            ("医学文献", "现代", [chunk_content]),
         ],
     )
 
@@ -1467,30 +1464,279 @@ async def test_supported_proposition_returns_evidence_with_citation(db_session):
     result = await svc.synthesize("针灸是否可用于治疗部分疼痛", top_k=5)
 
     assert result.gate_verdict is not None
-    # Gate should pass — subject and predicate co-occur in same sentence
-    if result.gate_verdict.is_supported:
-        assert len(result.evidence_trace) > 0, (
-            "Supported proposition must have evidence"
+    assert result.gate_verdict.is_supported is True, (
+        f"Gate must pass: {result.gate_verdict.reason}"
+    )
+    assert len(result.evidence_trace) > 0, "Supported proposition must have evidence"
+    assert len(result.citations) > 0, "Supported proposition must have citations"
+    assert any("治疗部分疼痛" in t.quote for t in result.evidence_trace), (
+        f"Must find evidence about '治疗部分疼痛': {[(t.quote[:50]) for t in result.evidence_trace]}"
+    )
+    for trace in result.evidence_trace:
+        assert trace.chunk_id, "Evidence must have chunk_id"
+        assert trace.document_id, "Evidence must have document_id"
+        assert re.match(r"\[[^\]]+:[^\]]+\]", trace.citation_text), (
+            f"Citation must be [doc_id:chunk_id] format: {trace.citation_text}"
         )
-        assert len(result.citations) > 0, "Supported proposition must have citations"
-        # Evidence must contain the original text
-        found = False
+
+
+# ============================================================
+# P0-1: REFUSAL WITH NON-EMPTY CORPUS SNAPSHOT HASH
+# ============================================================
+
+
+@pytest.mark.asyncio
+async def test_refusal_with_retrieval_has_nonempty_corpus_hash(db_session):
+    """P0-1 A: Gate refuses a query that retrieved chunks → corpus_sha256 must be non-empty.
+
+    Seed chunk with 皇甫谧 content, query 皇甫谧是否提出现代医学概念.
+    The retrieval finds '皇甫谧' but the same-sentence gate rejects because
+    '现代医学概念' isn't co-located. The refusal must carry the actual corpus snapshot hash.
+    """
+    chunk_content = "皇甫谧编撰《针灸甲乙经》。针灸理论与方法见于古代文献。"
+    docs = await _seed_chunks(
+        db_session,
+        [("针灸甲乙经", "西晋", [chunk_content])],
+    )
+    doc = list(docs.values())[0]
+
+    # Get the actual chunk_id from DB
+    from app.models.document_chunk import DocumentChunk
+    from sqlalchemy import select as sa_select
+
+    chunks = (await db_session.execute(sa_select(DocumentChunk))).scalars().all()
+    assert len(chunks) == 1
+    chunk = chunks[0]
+
+    query = "皇甫谧是否提出现代医学概念"
+    empty_sha = hashlib.sha256(b"").hexdigest()
+    canonical_hash = hashlib.sha256(
+        f"{doc.id}:{chunk.id}:{chunk_content}".encode()
+    ).hexdigest()
+
+    svc = AcademicService(db_session)
+
+    for mod_name, fn in [
+        ("report", lambda: svc.generate_report(query, "research_summary", top_k=5)),
+        ("synthesis", lambda: svc.synthesize(query, top_k=5)),
+        ("research", lambda: svc.research(query, top_k=5)),
+        ("education", lambda: svc.educate(query, top_k=5)),
+    ]:
+        result = await fn()
+        repro = result.metadata.reproducibility
+
+        assert result.gate_verdict is not None, f"{mod_name}: gate_verdict missing"
+        assert result.gate_verdict.is_supported is False, (
+            f"{mod_name}: gate must reject '{query}': {result.gate_verdict.reason}"
+        )
+        assert result.evidence_trace == [], f"{mod_name}: evidence_trace must be empty"
+        assert result.citations == [], f"{mod_name}: citations must be empty"
+
+        assert repro.corpus_sha256 != empty_sha, (
+            f"{mod_name}: corpus_sha256 must NOT be empty-sha when retrieval happened. "
+            f"Got {repro.corpus_sha256}"
+        )
+        assert repro.corpus_sha256 == canonical_hash, (
+            f"{mod_name}: corpus_sha256 mismatch. Expected {canonical_hash}, "
+            f"got {repro.corpus_sha256}"
+        )
+        assert len(repro.corpus_sha256) == 64
+
+
+@pytest.mark.asyncio
+async def test_refusal_with_empty_corpus_has_empty_corpus_hash(db_session):
+    """P0-1 B: Truly empty retrieval → corpus_sha256 = sha256(b'').hexdigest().
+
+    Empty DB, query all four modules. Must contrast with Test A.
+    """
+    empty_sha = hashlib.sha256(b"").hexdigest()
+
+    svc = AcademicService(db_session)
+    for mod_name, fn in [
+        (
+            "report",
+            lambda: svc.generate_report("不存在的查询xyz", "research_summary", top_k=5),
+        ),
+        ("synthesis", lambda: svc.synthesize("不存在的查询xyz", top_k=5)),
+        ("research", lambda: svc.research("不存在的查询xyz", top_k=5)),
+        ("education", lambda: svc.educate("不存在的查询xyz", top_k=5)),
+    ]:
+        result = await fn()
+        repro = result.metadata.reproducibility
+        assert repro.corpus_sha256 == empty_sha, (
+            f"{mod_name}: empty corpus must yield empty-sha. "
+            f"Expected {empty_sha}, got {repro.corpus_sha256}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_refusal_output_artifact_hash_recomputation(db_session):
+    """P0-1 C: Recompute output_sha256 for refusal responses across four modules.
+
+    Uses the same seed + adversarial query as test_refusal_with_retrieval_has_nonempty_corpus_hash.
+    """
+    chunk_content = "皇甫谧编撰《针灸甲乙经》。针灸理论与方法见于古代文献。"
+    await _seed_chunks(
+        db_session,
+        [("针灸甲乙经", "西晋", [chunk_content])],
+    )
+
+    query = "皇甫谧是否提出现代医学概念"
+    svc = AcademicService(db_session)
+
+    for mod_name, fn in [
+        ("report", lambda: svc.generate_report(query, "research_summary", top_k=5)),
+        ("synthesis", lambda: svc.synthesize(query, top_k=5)),
+        ("research", lambda: svc.research(query, top_k=5)),
+        ("education", lambda: svc.educate(query, top_k=5)),
+    ]:
+        result = await fn()
+        repro = result.metadata.reproducibility
+        assert repro.output_sha256, f"{mod_name}: output_sha256 must not be empty"
+        assert len(repro.output_sha256) == 64
+
+        payload = result.model_dump(mode="json")
+        expected = payload["metadata"]["reproducibility"]["output_sha256"]
+        payload["metadata"]["reproducibility"]["output_sha256"] = ""
+        actual = hashlib.sha256(
+            json.dumps(
+                payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+            ).encode()
+        ).hexdigest()
+        assert actual == expected, (
+            f"{mod_name} refusal: output_sha256 mismatch. "
+            f"Computed {actual[:16]}... != expected {expected[:16]}..."
+        )
+
+
+@pytest.mark.asyncio
+async def test_supported_proposition_strong_assert(db_session):
+    """P0-2 D: Strong assertion — gate must be True, no fallback to empty.
+
+    Corpus: 针灸可用于治疗部分疼痛，但适应范围有限。
+    Query:  针灸是否可用于治疗部分疼痛
+    """
+    chunk_content = "针灸可用于治疗部分疼痛，但适应范围有限。"
+    await _seed_chunks(
+        db_session,
+        [("医学文献", "现代", [chunk_content])],
+    )
+
+    svc = AcademicService(db_session)
+    result = await svc.synthesize("针灸是否可用于治疗部分疼痛", top_k=5)
+
+    assert result.gate_verdict is not None
+    assert result.gate_verdict.is_supported is True, (
+        f"Gate must pass on co-occurring evidence: {result.gate_verdict.reason}"
+    )
+    assert result.evidence_trace, "Must have evidence traces"
+    assert result.citations, "Must have citations"
+    assert any("治疗部分疼痛" in t.quote for t in result.evidence_trace), (
+        "Evidence must contain the queried predicate '治疗部分疼痛'"
+    )
+
+
+# ============================================================
+# P0-2: RESEARCH DECOMPOSITION & HYPOTHESIS — tracked tests
+# ============================================================
+
+
+@pytest.mark.asyncio
+async def test_research_decomposition_with_corpus(db_session):
+    """P0-2 E: Research with corpus → decomposition >= 3, gate not binding failure."""
+    await _seed_chunks(
+        db_session,
+        [
+            (
+                "针灸甲乙经",
+                "西晋",
+                ["皇甫谧编撰《针灸甲乙经》。此项年代尚待考证。"],
+            )
+        ],
+    )
+
+    svc = AcademicService(db_session)
+    result = await svc.research("针灸甲乙经", top_k=5)
+
+    assert len(result.decomposition) >= 3, (
+        f"Expected >=3 sub-questions, got {len(result.decomposition)}"
+    )
+    assert result.gate_verdict.proposition_type != "ACADEMIC_CLAIM_BINDING_FAILED", (
+        "Gate must not be ACADEMIC_CLAIM_BINDING_FAILED"
+    )
+
+
+@pytest.mark.asyncio
+async def test_research_decomposition_empty_corpus_all_gaps(db_session):
+    """P0-2 E: Research with empty corpus → all sub-questions are gaps."""
+    svc = AcademicService(db_session)
+    result = await svc.research("针灸甲乙经", top_k=5)
+
+    assert len(result.decomposition) >= 3, (
+        f"Expected >=3 sub-questions in empty corpus, got {len(result.decomposition)}"
+    )
+    assert all(sq.has_gap for sq in result.decomposition), (
+        f"All sub-questions must be gaps in empty corpus. "
+        f"Non-gaps: {[(sq.sub_question[:30], sq.has_gap) for sq in result.decomposition if not sq.has_gap]}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_research_hypothesis_trace_in_sub_question_and_top_level(db_session):
+    """P0-2 E: Hypothesis must appear in sub-question evidence AND top-level evidence_trace.
+
+    Corpus with speculative marker '尚待考证' triggers hypothesis extraction.
+    The hypothesis must be traceable to the exact chunk content.
+    """
+    chunk_content = "皇甫谧编撰《针灸甲乙经》。此项年代尚待考证。"
+    await _seed_chunks(
+        db_session,
+        [("针灸甲乙经", "西晋", [chunk_content])],
+    )
+
+    svc = AcademicService(db_session)
+    result = await svc.research("针灸甲乙经", top_k=5)
+
+    # Must have at least one hypothesis
+    hypothesis_sqs = [sq for sq in result.decomposition if sq.hypothesis]
+    assert hypothesis_sqs, (
+        f"Must have at least one hypothesis. Decomposition: "
+        f"{[(sq.sub_question[:30], sq.hypothesis) for sq in result.decomposition]}"
+    )
+
+    for sq in hypothesis_sqs:
+        hypothesis_text = sq.hypothesis
+        # Strip trailing citation for matching
+        citation_re = re.compile(r"\[[^\]]+:[^\]]+\]$")
+        hypothesis_clean = citation_re.sub("", hypothesis_text).rstrip("。！？.!? \n\t")
+
+        # 1. Must be in sub-question evidence
+        found_in_sub = False
+        for trace in sq.evidence:
+            if _normalize_whitespace(hypothesis_clean) in _normalize_whitespace(
+                trace.quote
+            ):
+                found_in_sub = True
+                break
+        assert found_in_sub, (
+            f"Hypothesis '{hypothesis_clean[:60]}' not found in sub-question evidence"
+        )
+
+        # 2. Must be in top-level evidence_trace
+        found_in_top = False
         for trace in result.evidence_trace:
-            if "治疗部分疼痛" in trace.quote or "治疗部分疼痛" in trace.claim_text:
-                found = True
-                # Citation must match
-                assert trace.chunk_id, "Evidence must have chunk_id"
-                assert trace.document_id, "Evidence must have document_id"
-                assert re.match(r"\[[^\]]+:[^\]]+\]", trace.citation_text), (
-                    f"Citation must be [doc_id:chunk_id] format: {trace.citation_text}"
-                )
-        assert found, (
-            f"Must find evidence about '治疗部分疼痛': {result.evidence_trace}"
+            if _normalize_whitespace(hypothesis_clean) in _normalize_whitespace(
+                trace.quote
+            ):
+                found_in_top = True
+                break
+        assert found_in_top, (
+            f"Hypothesis '{hypothesis_clean[:60]}' not found in top-level evidence_trace"
         )
-    # Gate might be false if the query triggers proposition patterns but evidence
-    # is scattered. Either way, we've asserted the expected behavior based on gate.
-    # If gate passes, evidence must exist. If gate fails, no factual payload.
-    else:
-        assert len(result.themes) == 0
-        assert len(result.citations) == 0
-        assert len(result.evidence_trace) == 0
+
+        # 3. Must be in actual chunk content
+        assert _normalize_whitespace(hypothesis_clean) in _normalize_whitespace(
+            chunk_content
+        ), (
+            f"Hypothesis '{hypothesis_clean[:60]}' not in chunk content '{chunk_content}'"
+        )
