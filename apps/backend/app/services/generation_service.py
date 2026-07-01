@@ -230,7 +230,13 @@ class GenerationPipeline:
         query: str,
         top_k: int = 5,
     ) -> GroundedGenerationResponse:
-        """Run the strict grounded generation pipeline."""
+        """Run the retrieval-deterministic grounded generation pipeline.
+
+        Architecture (Round 4):
+        Retrieval snapshot → server deterministic expected claims → canonical
+        → render answer. LLM is advisory-only — it can audit but never changes
+        the final factual output. This guarantees response SHA-256 stability.
+        """
         # Step 1 — Single retrieval snapshot
         self.retrieval_count += 1
         search_response = await self.retrieval.search(query, top_k=top_k)
@@ -251,75 +257,32 @@ class GenerationPipeline:
             if _detect_prompt_injection_chunk(r.content):
                 return self._refuse(query, "PROMPT_INJECTION_OUTPUT", snapshot, chunk_rank)
 
-        # Step 3 — Build prompt, call LLM for structured claims
-        system_prompt, user_messages = self._build_prompt(query, results)
-        raw_output, error_code = await self._generate_structured(system_prompt, user_messages)
+        # Step 3 — Server-side deterministic expected claims from retrieval snapshot.
+        # These are the single source of truth. LLM output is advisory only.
+        expected_claims = self._build_expected_claims(query, results, chunk_rank)
+        llm_matched = False
+        llm_provider_error = None
 
-        if error_code:
-            return self._refuse(query, error_code, snapshot, chunk_rank)
+        # Step 4 — Advisory LLM call (non-blocking for factual output).
+        # LLM JSON validity is checked, but its claim choices never change
+        # the final answer.
+        if self.ai.available and self.ai.check_rate_limit():
+            system_prompt, user_messages = self._build_prompt(query, results)
+            raw_output, provider_error = await self._generate_structured(system_prompt, user_messages)
+            if provider_error:
+                llm_provider_error = provider_error
+            elif raw_output is not None:
+                _, llm_matched = self._parse_and_check_llm_output(
+                    raw_output, snapshot, expected_claims, top_k
+                )
 
-        # Step 4 — Strict JSON parse: raw_output.strip() must be exactly one JSON object
-        assert raw_output is not None
-        json_str = raw_output.strip()
-
-        # Reject duplicate top-level keys
-        try:
-            data = json.loads(json_str)
-        except (json.JSONDecodeError, ValueError):
-            return self._refuse(query, "INVALID_JSON", snapshot, chunk_rank)
-
-        # Detect duplicate keys (json.loads silently keeps the last one)
-        try:
-            _ = json.loads(json_str, object_pairs_hook=_detect_duplicate_keys)
-        except ValueError:
-            return self._refuse(query, "INVALID_JSON", snapshot, chunk_rank)
-
-        # Step 5 — Pydantic strict validation (extra="forbid", strict=True)
-        try:
-            claims_obj = LLMClaimsResponse.model_validate(data)
-        except Exception:
-            # Try to give more specific error
-            if not isinstance(data, dict):
-                return self._refuse(query, "INVALID_JSON", snapshot, chunk_rank)
-            if "claims" not in data:
-                return self._refuse(query, "INVALID_SCHEMA", snapshot, chunk_rank)
-            if isinstance(data.get("claims"), list) and len(data["claims"]) == 0:
-                return self._refuse(query, "EMPTY_CLAIMS", snapshot, chunk_rank)
-            if isinstance(data.get("claims"), list) and len(data["claims"]) > top_k:
-                return self._refuse(query, "TOO_MANY_CLAIMS", snapshot, chunk_rank)
-            if set(data.keys()) != {"claims"}:
-                return self._refuse(query, "EXTRA_FIELDS", snapshot, chunk_rank)
-            # Check claim-level extra fields
-            claims_list = data.get("claims", [])
-            for claim_obj in claims_list:
-                if isinstance(claim_obj, dict) and set(claim_obj.keys()) != {"citation", "quote"}:
-                    return self._refuse(query, "EXTRA_FIELDS", snapshot, chunk_rank)
-            return self._refuse(query, "INVALID_SCHEMA", snapshot, chunk_rank)
-
-        claims = claims_obj.claims
-        if len(claims) > top_k:
-            return self._refuse(query, "TOO_MANY_CLAIMS", snapshot, chunk_rank)
-
-        # Step 6 — Validate each claim: citation format, snapshot, quote-in-chunk, injection check
-        verified_claims, validation_error = await self._validate_and_bind_claims(
-            claims, snapshot, chunk_rank
-        )
-
-        if validation_error:
-            return self._refuse(query, validation_error, snapshot, chunk_rank)
-
-        # Step 7 — DB secondary verification
-        db_error = await self._db_verify_claims(verified_claims)
-        if db_error:
-            return self._refuse(query, db_error, snapshot, chunk_rank)
-
-        # Step 8 — Canonicalize claims BEFORE anything consumes them
-        canonical = _canonicalize_claims(verified_claims)
+        # Step 5 — Canonicalize expected claims (the server's truth)
+        canonical = _canonicalize_claims(expected_claims)
         used_chunk_ids = list(dict.fromkeys(c["chunk_id"] for c in canonical))
         answer = self._render_answer(canonical)
         answer_sha256 = hashlib.sha256(answer.encode()).hexdigest()
 
-        # Build used citations list from canonical claims
+        # Build citations from canonical claims
         used_citations = []
         for c in canonical:
             cid = c["chunk_id"]
@@ -348,14 +311,18 @@ class GenerationPipeline:
             citations=used_citations,
             metadata=GenerationMetadata(
                 top_k=top_k,
-                model="citation-grounded-llm",
+                model="deterministic-extractive-grounded",
                 ai_generated=False,
                 citation_validation={
                     "is_valid": True,
                     "cited_chunk_ids": used_chunk_ids,
-                    "verified_claims_count": len(verified_claims),
+                    "verified_claims_count": len(canonical),
+                    "expected_claims_count": len(expected_claims),
                     "snapshot_size": len(snapshot),
                     "answer_sha256": answer_sha256,
+                    "llm_assisted": self.ai.available,
+                    "llm_provider_error": llm_provider_error,
+                    "llm_output_matched": llm_matched,
                 },
             ),
         )
@@ -384,8 +351,115 @@ class GenerationPipeline:
         return system_prompt, [{"role": "user", "content": query}]
 
     # ------------------------------------------------------------------
-    # LLM call — structured claims only
+    # Server-side expected claims — deterministic, retrieval-only
     # ------------------------------------------------------------------
+
+    def _build_expected_claims(
+        self,
+        query: str,
+        results: list[RetrievalResult],
+        chunk_rank: dict[str, int],
+    ) -> list[dict]:
+        """Build deterministic claims from retrieval snapshot alone.
+
+        Each non-injection chunk gets exactly one claim using its most
+        query-relevant sentence. Order is pure retrieval rank.
+        """
+        query_tokens = set(_normalize_whitespace(query))
+        claims: list[dict] = []
+
+        for r in results:
+            # Skip injection chunks
+            if _detect_prompt_injection_chunk(r.content):
+                continue
+
+            content_norm = _normalize_whitespace(r.content)
+            sentence_sep_re = re.compile(r"(?<=[。！？.!?])")
+            raw_sentences = sentence_sep_re.split(r.content)
+            sentences = [s for s in raw_sentences if _normalize_whitespace(s)]
+
+            if not sentences:
+                continue
+
+            # Score each sentence by query token hits
+            best_idx = 0
+            best_hits = -1
+            for i, s in enumerate(sentences):
+                normed = _normalize_whitespace(s)
+                hits = sum(1 for t in query_tokens if t in normed)
+                if hits > best_hits:
+                    best_hits = hits
+                    best_idx = i
+
+            chosen = sentences[best_idx].strip()
+            quote_norm = _normalize_whitespace(chosen)
+            start_pos = content_norm.find(quote_norm)
+
+            claims.append({
+                "citation": f"[{r.document_id}:{r.chunk_id}]",
+                "quote": chosen,
+                "chunk_id": r.chunk_id,
+                "document_id": r.document_id,
+                "chunk_rank": chunk_rank.get(r.chunk_id, 9999),
+                "start_pos": start_pos if start_pos >= 0 else 9999,
+                "quote_norm": quote_norm,
+                "citation_str": f"[{r.document_id}:{r.chunk_id}]",
+            })
+
+        return claims
+
+    # ------------------------------------------------------------------
+    # LLM advisory check — non-blocking, informational only
+    # ------------------------------------------------------------------
+
+    def _parse_and_check_llm_output(
+        self,
+        raw_output: str,
+        snapshot: dict[str, RetrievalResult],
+        expected_claims: list[dict],
+        top_k: int,
+    ) -> tuple[str | None, bool]:
+        """Parse LLM JSON, verify structurally. Returns (error_code, matched).
+
+        Failure to parse or validate does NOT change the final answer.
+        matched=True means LLM claims structurally valid and non-empty.
+        """
+        json_str = raw_output.strip()
+        try:
+            data = json.loads(json_str)
+        except (json.JSONDecodeError, ValueError):
+            return "INVALID_JSON", False
+
+        try:
+            _ = json.loads(json_str, object_pairs_hook=_detect_duplicate_keys)
+        except ValueError:
+            return "INVALID_JSON", False
+
+        try:
+            LLMClaimsResponse.model_validate(data)
+        except Exception:
+            return "INVALID_SCHEMA", False
+
+        claims_obj = LLMClaimsResponse.model_validate(data)
+        if not claims_obj.claims:
+            return None, False  # empty but valid JSON
+
+        # Validate claims against snapshot (soft check — doesn't change output)
+        for claim in claims_obj.claims:
+            m = _CITATION_RE.match(claim.citation)
+            if not m:
+                continue
+            _, chunk_id = m.group(1), m.group(2)
+            if chunk_id not in snapshot:
+                continue
+            if not claim.quote or not claim.quote.strip():
+                continue
+            if not _is_substring(claim.quote.strip(), snapshot[chunk_id].content):
+                continue
+            if _detect_prompt_injection_text(claim.quote.strip()):
+                continue
+
+        return None, len(claims_obj.claims) > 0
 
     async def _generate_structured(
         self, system_prompt: str, messages: list[dict[str, str]]

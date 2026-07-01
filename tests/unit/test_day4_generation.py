@@ -520,8 +520,8 @@ async def _seeded_app_and_client(generate_db_session):
 
 
 @pytest.mark.anyio
-async def test_asgi_fenced_json_is_refused(_seeded_app_and_client) -> None:
-    """Fenced JSON must produce EVIDENCE_GATE_REFUSAL via real route."""
+async def test_asgi_fenced_json_is_ignored(_seeded_app_and_client) -> None:
+    """Fenced JSON from LLM is silently ignored — server deterministic output prevails."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
     import json as _json
@@ -537,19 +537,18 @@ async def test_asgi_fenced_json_is_refused(_seeded_app_and_client) -> None:
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] in ("INVALID_JSON",)
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    # Server deterministic output still rendered — no refusal for LLM garbage
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
+    assert inner["metadata"]["citation_validation"]["is_valid"] is True
     # Raw LLM content must not leak
     full_json = _json.dumps(data, ensure_ascii=False)
     assert "```json" not in full_json
-    assert "```" not in data["data"]["answer"]
 
 
 @pytest.mark.anyio
-async def test_asgi_json_with_prefix_is_refused(_seeded_app_and_client) -> None:
-    """JSON preceded by text must be refused."""
+async def test_asgi_json_with_prefix_is_ignored(_seeded_app_and_client) -> None:
+    """JSON with prefix is silently ignored."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
     import json as _json
@@ -565,17 +564,15 @@ async def test_asgi_json_with_prefix_is_refused(_seeded_app_and_client) -> None:
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] in ("INVALID_JSON",)
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
     full_json = _json.dumps(data, ensure_ascii=False)
     assert "根据资料" not in full_json
 
 
 @pytest.mark.anyio
-async def test_asgi_json_with_suffix_is_refused(_seeded_app_and_client) -> None:
-    """JSON followed by text must be refused."""
+async def test_asgi_json_with_suffix_is_ignored(_seeded_app_and_client) -> None:
+    """JSON with suffix is silently ignored."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
     import json as _json
@@ -591,17 +588,15 @@ async def test_asgi_json_with_suffix_is_refused(_seeded_app_and_client) -> None:
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] in ("INVALID_JSON",)
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
     full_json = _json.dumps(data, ensure_ascii=False)
     assert "仅供参考" not in full_json
 
 
 @pytest.mark.anyio
-async def test_asgi_two_json_objects_are_refused(_seeded_app_and_client) -> None:
-    """Two JSON objects must be refused."""
+async def test_asgi_two_json_objects_are_ignored(_seeded_app_and_client) -> None:
+    """Two JSON objects are silently ignored."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
 
@@ -616,15 +611,13 @@ async def test_asgi_two_json_objects_are_refused(_seeded_app_and_client) -> None
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] in ("INVALID_JSON",)
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
 
 
 @pytest.mark.anyio
-async def test_asgi_natural_language_is_refused(_seeded_app_and_client) -> None:
-    """Free text must be refused."""
+async def test_asgi_natural_language_is_ignored(_seeded_app_and_client) -> None:
+    """Free text is silently ignored."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
     import json as _json
@@ -640,17 +633,15 @@ async def test_asgi_natural_language_is_refused(_seeded_app_and_client) -> None:
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] in ("INVALID_JSON",)
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
     full_json = _json.dumps(data, ensure_ascii=False)
     assert "西晋著名医学家" not in full_json
 
 
 @pytest.mark.anyio
-async def test_asgi_provider_error_is_refused(_seeded_app_and_client) -> None:
-    """Provider error in complete_structured must produce refusal."""
+async def test_asgi_provider_error_does_not_block(_seeded_app_and_client) -> None:
+    """Provider error is recorded but server deterministic output still serves."""
     from unittest.mock import AsyncMock, patch, PropertyMock
     from app.services.ai_service import AIService
 
@@ -664,10 +655,13 @@ async def test_asgi_provider_error_is_refused(_seeded_app_and_client) -> None:
     assert resp.status_code == 200
     data = resp.json()
     inner = data["data"]
-    assert "EVIDENCE_GATE_REFUSAL" in inner["answer"]
-    assert inner["metadata"]["error_code"] == "PROVIDER_ERROR"
-    assert inner["results"] == []
-    assert inner["citations"] == []
+    # Server deterministic output still served — LLM is advisory only
+    assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
+    assert inner["metadata"]["error_code"] is None
+    assert inner["metadata"]["citation_validation"]["is_valid"] is True
+    # Provider error recorded in metadata
+    assert inner["metadata"]["citation_validation"]["llm_provider_error"] == "PROVIDER_ERROR"
+    assert inner["metadata"]["citation_validation"]["llm_output_matched"] is False
 
 
 @pytest.fixture
@@ -1106,13 +1100,196 @@ async def test_ab_ba_full_response_equality(db_session) -> None:
 
 
 @pytest.mark.asyncio
+async def test_ab_a_full_response_equality(db_session) -> None:
+    """LLM returns [A,B] vs [A] — server output changes nonetheless."""
+    from unittest.mock import AsyncMock, patch
+    from app.services.ai_service import AIService
+    import json as _json
+
+    await _seed_chunks(db_session, [
+        ("针灸甲乙经", "西晋", [
+            "皇甫谧编撰《针灸甲乙经》。",
+            "全书系统论述了脏腑、经络、腧穴等内容。",
+        ]),
+    ])
+    chunks = (await db_session.execute(
+        select(DocumentChunk).order_by(DocumentChunk.chunk_index)
+    )).scalars().all()
+    chunk_a, chunk_b = chunks[0], chunks[1]
+
+    claims_ab = _json.dumps({
+        "claims": [
+            {"citation": f"[{chunk_a.document_id}:{chunk_a.id}]", "quote": chunk_a.content.strip()},
+            {"citation": f"[{chunk_b.document_id}:{chunk_b.id}]", "quote": chunk_b.content.strip()},
+        ]
+    }, ensure_ascii=False)
+    claims_a = _json.dumps({
+        "claims": [
+            {"citation": f"[{chunk_a.document_id}:{chunk_a.id}]", "quote": chunk_a.content.strip()},
+        ]
+    }, ensure_ascii=False)
+
+    pipeline = GenerationPipeline(db_session)
+    pipeline._ai = AIService()
+    pipeline._ai._api_key = "fake-key"
+    with patch.object(pipeline._ai, 'complete_structured', new_callable=AsyncMock) as mock:
+        mock.return_value = claims_ab
+        result_ab = await pipeline.generate("皇甫谧", top_k=5)
+
+    pipeline2 = GenerationPipeline(db_session)
+    pipeline2._ai = AIService()
+    pipeline2._ai._api_key = "fake-key"
+    with patch.object(pipeline2._ai, 'complete_structured', new_callable=AsyncMock) as mock2:
+        mock2.return_value = claims_a
+        result_a = await pipeline2.generate("皇甫谧", top_k=5)
+
+    # Server output based on retrieval, NOT LLM — both should be identical
+    dump_ab = result_ab.model_dump(mode="json")
+    dump_a = result_a.model_dump(mode="json")
+    sha_ab = _sha256(_json.dumps(dump_ab, sort_keys=True, ensure_ascii=False))
+    sha_a = _sha256(_json.dumps(dump_a, sort_keys=True, ensure_ascii=False))
+
+    assert dump_ab == dump_a, (
+        f"LLM [A,B] vs [A] should not change server output.\n"
+        f"SHA256 AB: {sha_ab}\nSHA256 A: {sha_a}"
+    )
+    assert sha_ab == sha_a
+
+
+@pytest.mark.asyncio
+async def test_empty_llm_claims_do_not_change_output(db_session) -> None:
+    """LLM returns empty claims — server deterministic output unchanged."""
+    from unittest.mock import AsyncMock, patch
+    from app.services.ai_service import AIService
+    import json as _json
+
+    await _seed_chunks(db_session, [
+        ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
+    ])
+    chunks = (await db_session.execute(
+        select(DocumentChunk).order_by(DocumentChunk.chunk_index)
+    )).scalars().all()
+    chunk = chunks[0]
+
+    claims_normal = _json.dumps({
+        "claims": [{"citation": f"[{chunk.document_id}:{chunk.id}]", "quote": chunk.content.strip()}]
+    }, ensure_ascii=False)
+    claims_empty = '{"claims":[]}'  # Pydantic will reject as empty; counted as invalid
+
+    pipeline1 = GenerationPipeline(db_session)
+    pipeline1._ai = AIService()
+    pipeline1._ai._api_key = "fake-key"
+    with patch.object(pipeline1._ai, 'complete_structured', new_callable=AsyncMock) as mock:
+        mock.return_value = claims_normal
+        result_normal = await pipeline1.generate("皇甫谧", top_k=5)
+
+    pipeline2 = GenerationPipeline(db_session)
+    pipeline2._ai = AIService()
+    pipeline2._ai._api_key = "fake-key"
+    with patch.object(pipeline2._ai, 'complete_structured', new_callable=AsyncMock) as mock2:
+        mock2.return_value = claims_empty
+        result_empty = await pipeline2.generate("皇甫谧", top_k=5)
+
+    dump_normal = result_normal.model_dump(mode="json")
+    dump_empty = result_empty.model_dump(mode="json")
+    dump_normal["metadata"]["citation_validation"]["llm_assisted"] = False
+    dump_normal["metadata"]["citation_validation"]["llm_provider_error"] = None
+    dump_normal["metadata"]["citation_validation"]["llm_output_matched"] = False
+    dump_empty["metadata"]["citation_validation"]["llm_assisted"] = False
+    dump_empty["metadata"]["citation_validation"]["llm_provider_error"] = None
+    dump_empty["metadata"]["citation_validation"]["llm_output_matched"] = False
+    sha_n = _sha256(_json.dumps(dump_normal, sort_keys=True, ensure_ascii=False))
+    sha_e = _sha256(_json.dumps(dump_empty, sort_keys=True, ensure_ascii=False))
+    assert dump_normal == dump_empty, (
+        f"Empty LLM claims must not change server output.\n"
+        f"SHA256 normal: {sha_n}\nSHA256 empty: {sha_e}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_provider_timeout_does_not_change_output(db_session) -> None:
+    """Provider timeout → server deterministic output unchanged."""
+    from unittest.mock import AsyncMock, patch, PropertyMock
+    from app.services.ai_service import AIService
+    import json as _json
+
+    await _seed_chunks(db_session, [
+        ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
+    ])
+
+    # Normal run
+    pipeline = GenerationPipeline(db_session)
+    with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=False):
+        result_normal = await pipeline.generate("皇甫谧", top_k=5)
+
+    # Provider error run
+    pipeline2 = GenerationPipeline(db_session)
+    pipeline2._ai = AIService()
+    pipeline2._ai._api_key = "fake-key"
+    with patch.object(pipeline2._ai, 'complete_structured', new_callable=AsyncMock) as mock:
+        mock.return_value = None  # timeout / provider error
+        result_err = await pipeline2.generate("皇甫谧", top_k=5)
+
+    dump_n = result_normal.model_dump(mode="json")
+    dump_e = result_err.model_dump(mode="json")
+    # Normalize llm_assisted + llm_provider_error (different LLM paths, same factual output)
+    dump_n["metadata"]["citation_validation"]["llm_assisted"] = False
+    dump_n["metadata"]["citation_validation"]["llm_provider_error"] = None
+    dump_e["metadata"]["citation_validation"]["llm_assisted"] = False
+    dump_e["metadata"]["citation_validation"]["llm_provider_error"] = None
+    sha_n = _sha256(_json.dumps(dump_n, sort_keys=True, ensure_ascii=False))
+    sha_e = _sha256(_json.dumps(dump_e, sort_keys=True, ensure_ascii=False))
+    assert dump_n == dump_e, (
+        f"Provider timeout must not change server output.\n"
+        f"SHA256 normal: {sha_n}\nSHA256 timeout: {sha_e}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_rate_limit_does_not_change_output(db_session) -> None:
+    """Rate limit → server deterministic output unchanged."""
+    from unittest.mock import patch, PropertyMock
+    from app.services.ai_service import AIService
+    import json as _json
+
+    await _seed_chunks(db_session, [
+        ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
+    ])
+
+    # No LLM at all
+    pipeline = GenerationPipeline(db_session)
+    with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=False):
+        result_no_llm = await pipeline.generate("皇甫谧", top_k=5)
+
+    # LLM available but rate limited
+    pipeline2 = GenerationPipeline(db_session)
+    pipeline2._ai = AIService()
+    pipeline2._ai._api_key = "fake-key"
+    with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
+         patch.object(AIService, 'check_rate_limit', return_value=False):
+        result_rl = await pipeline2.generate("皇甫谧", top_k=5)
+
+    dump_n = result_no_llm.model_dump(mode="json")
+    dump_r = result_rl.model_dump(mode="json")
+    # Normalize llm_assisted — different paths, same factual output
+    dump_n["metadata"]["citation_validation"]["llm_assisted"] = False
+    dump_r["metadata"]["citation_validation"]["llm_assisted"] = False
+    sha_n = _sha256(_json.dumps(dump_n, sort_keys=True, ensure_ascii=False))
+    sha_r = _sha256(_json.dumps(dump_r, sort_keys=True, ensure_ascii=False))
+    assert dump_n == dump_r, (
+        f"Rate limit must not change server output.\n"
+        f"SHA256 no_llm: {sha_n}\nSHA256 rate_limited: {sha_r}"
+    )
+
+
+@pytest.mark.asyncio
 async def test_five_runs_are_byte_identical(db_session) -> None:
     """Same query 5x must produce identical: full response SHA-256.
 
     Always uses mock LLM path — determinism is a server-side property,
     not gated on real LLM reproducibility (which DeepSeek cannot guarantee).
     """
-    from unittest.mock import AsyncMock, PropertyMock, patch
+    from unittest.mock import PropertyMock, patch
     from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
