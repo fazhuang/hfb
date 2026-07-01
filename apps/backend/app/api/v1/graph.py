@@ -2,6 +2,7 @@
 Graph API — knowledge graph exploration endpoints.
 
 Per HFB-PS-1707 Knowledge Graph Product Specification.
+Sprint 3 P0: Strict response schemas replacing response_model=dict.
 
 Endpoints:
   GET  /api/v1/graph/entities       — Search graph entities
@@ -11,6 +12,7 @@ Endpoints:
   POST /api/v1/graph/relations      — Create explicit EntityRelation
   GET  /api/v1/graph/relations/{entity_type}/{id}  — List relations for entity
   DELETE /api/v1/graph/relations/{relation_id}     — Delete entity relation
+  POST /api/v1/graph/intelligence   — Unified knowledge intelligence
 """
 
 from __future__ import annotations
@@ -23,9 +25,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.middleware.auth import require_permission
-from app.schemas.graph import EntityRelationCreate, EntityRelationResponse
+from app.schemas.graph import (
+    EntityRelationCreate,
+    EntityRelationResponse,
+    GraphEntitiesEnvelope,
+    GraphNeighborsEnvelope,
+    GraphPathEnvelope,
+    GraphSubgraphEnvelope,
+    GraphCreateRelationEnvelope,
+    GraphRelationsEnvelope,
+    GraphDeleteEnvelope,
+    IntelligenceEnvelope,
+    IntelligenceRequest,
+    IntelligenceResponse,
+)
 from app.services.graph_service import GraphService
-from app.utils.response import api_response
 
 router = APIRouter(prefix="/graph", tags=["Knowledge Graph"])
 
@@ -39,7 +53,11 @@ guard_delete = require_permission("graph", "delete")
 # ============================================================
 
 
-@router.get("/entities", response_model=dict, dependencies=[Depends(guard_read)])
+@router.get(
+    "/entities",
+    response_model=GraphEntitiesEnvelope,
+    dependencies=[Depends(guard_read)],
+)
 async def search_graph_entities(
     session: Annotated[AsyncSession, Depends(get_session)],
     q: str = Query(default="", description="Search query"),
@@ -48,7 +66,7 @@ async def search_graph_entities(
         description="Comma-separated entity types: person,book,version,passage",
     ),
     limit: int = Query(default=50, ge=1, le=100),
-) -> dict:
+) -> GraphEntitiesEnvelope:
     """Search for entities available in the knowledge graph."""
     entity_types: list[str] | None = None
     if types.strip():
@@ -58,7 +76,7 @@ async def search_graph_entities(
     nodes = await svc.search_entities(
         entity_types=entity_types, query=q.strip(), limit=limit
     )
-    return api_response(data=[n.model_dump(mode="json") for n in nodes])
+    return GraphEntitiesEnvelope(success=True, data=nodes, message="ok")
 
 
 # ============================================================
@@ -68,21 +86,21 @@ async def search_graph_entities(
 
 @router.get(
     "/neighbors/{entity_type}/{entity_id}",
-    response_model=dict,
+    response_model=GraphNeighborsEnvelope,
     dependencies=[Depends(guard_read)],
 )
 async def get_neighbors(
     entity_type: str,
     entity_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> GraphNeighborsEnvelope:
     """Get the 1-hop neighborhood around an entity."""
     svc = GraphService(session)
     try:
         result = await svc.get_neighbors(entity_type, entity_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    return api_response(data=result.model_dump(mode="json"))
+    return GraphNeighborsEnvelope(success=True, data=result, message="ok")
 
 
 # ============================================================
@@ -92,7 +110,7 @@ async def get_neighbors(
 
 @router.get(
     "/path",
-    response_model=dict,
+    response_model=GraphPathEnvelope,
     dependencies=[Depends(guard_read)],
 )
 async def find_path(
@@ -102,18 +120,19 @@ async def find_path(
     target_type: str = Query(..., description="Target entity type"),
     target_id: str = Query(..., description="Target entity ID"),
     max_depth: int = Query(default=6, ge=1, le=10),
-) -> dict:
+) -> GraphPathEnvelope:
     """Find the shortest path between two entities using BFS."""
     svc = GraphService(session)
     result = await svc.find_path(
         source_type, source_id, target_type, target_id, max_depth
     )
     if result is None:
-        return api_response(
+        return GraphPathEnvelope(
+            success=True,
             data=None,
             message=f"No path found between {source_type}:{source_id} and {target_type}:{target_id}",
         )
-    return api_response(data=result.model_dump(mode="json"))
+    return GraphPathEnvelope(success=True, data=result, message="ok")
 
 
 # ============================================================
@@ -123,21 +142,21 @@ async def find_path(
 
 @router.get(
     "/entity/{entity_type}/{entity_id}",
-    response_model=dict,
+    response_model=GraphSubgraphEnvelope,
     dependencies=[Depends(guard_read)],
 )
 async def get_entity_subgraph(
     entity_type: str,
     entity_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> GraphSubgraphEnvelope:
     """Get the 2-hop subgraph centered on an entity."""
     svc = GraphService(session)
     try:
         result = await svc.get_entity_subgraph(entity_type, entity_id)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
-    return api_response(data=result.model_dump(mode="json"))
+    return GraphSubgraphEnvelope(success=True, data=result, message="ok")
 
 
 # ============================================================
@@ -147,14 +166,14 @@ async def get_entity_subgraph(
 
 @router.post(
     "/relations",
-    response_model=dict,
+    response_model=GraphCreateRelationEnvelope,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(guard_create)],
 )
 async def create_relation(
     body: EntityRelationCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> GraphCreateRelationEnvelope:
     """Create an explicit relationship between two graph entities."""
     svc = GraphService(session)
     try:
@@ -172,39 +191,63 @@ async def create_relation(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         )
 
-    resp = EntityRelationResponse.model_validate(relation)
-    return api_response(data=resp.model_dump(mode="json"), message="Relation created")
+    resp = EntityRelationResponse(
+        id=UUID(relation.id),
+        source_entity_type=relation.source_entity_type,
+        source_entity_id=relation.source_entity_id,
+        target_entity_type=relation.target_entity_type,
+        target_entity_id=relation.target_entity_id,
+        relation_type=relation.relation_type,
+        description=relation.description,
+        evidence=(
+            GraphService._relation_evidence(relation)
+        ),
+        created_at=relation.created_at,
+        updated_at=relation.updated_at,
+    )
+    return GraphCreateRelationEnvelope(success=True, data=resp, message="Relation created")
 
 
 @router.get(
     "/relations/{entity_type}/{entity_id}",
-    response_model=dict,
+    response_model=GraphRelationsEnvelope,
     dependencies=[Depends(guard_read)],
 )
 async def list_entity_relations(
     entity_type: str,
     entity_id: str,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> GraphRelationsEnvelope:
     """List all explicit relations involving an entity."""
     svc = GraphService(session)
     relations = await svc.get_relations_for_entity(entity_type, entity_id)
     resp = [
-        EntityRelationResponse.model_validate(r).model_dump(mode="json")
+        EntityRelationResponse(
+            id=UUID(r.id),
+            source_entity_type=r.source_entity_type,
+            source_entity_id=r.source_entity_id,
+            target_entity_type=r.target_entity_type,
+            target_entity_id=r.target_entity_id,
+            relation_type=r.relation_type,
+            description=r.description,
+            evidence=GraphService._relation_evidence(r),
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+        )
         for r in relations
     ]
-    return api_response(data=resp)
+    return GraphRelationsEnvelope(success=True, data=resp, message="ok")
 
 
 @router.delete(
     "/relations/{relation_id}",
-    response_model=dict,
+    response_model=GraphDeleteEnvelope,
     dependencies=[Depends(guard_delete)],
 )
 async def delete_relation(
     relation_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
-) -> dict:
+) -> GraphDeleteEnvelope:
     """Soft-delete an entity relation."""
     svc = GraphService(session)
     ok = await svc.delete_relation(relation_id)
@@ -212,4 +255,55 @@ async def delete_relation(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Relation not found"
         )
-    return api_response(data=None, message="Relation deleted")
+    return GraphDeleteEnvelope(success=True, data=None, message="Relation deleted")
+
+
+# ============================================================
+# Sprint 3 P0: Unified Knowledge Intelligence
+# ============================================================
+
+
+@router.post(
+    "/intelligence",
+    response_model=IntelligenceEnvelope,
+    dependencies=[Depends(guard_read)],
+)
+async def graph_intelligence(
+    body: IntelligenceRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> IntelligenceEnvelope:
+    """Unified knowledge intelligence — deterministic, evidence-bound.
+
+    Parses query into concepts, builds concept graph, computes pairwise
+    similarities, runs cross-document analysis, and returns a complete
+    hash-verifiable response.
+    """
+    svc = GraphService(session)
+    result = await svc.intelligence(body.query)
+
+    # Build IntelligenceResponse from the raw dict
+    from app.schemas.graph import (
+        ConceptGraph,
+        ConceptSimilarity,
+        CrossDocumentAnalysis,
+        GraphEvidence,
+    )
+
+    cg = ConceptGraph(**result["concept_graph"])
+    sims = [ConceptSimilarity(**s) for s in result["similarities"]]
+    analyses = [CrossDocumentAnalysis(**a) for a in result["cross_document_analyses"]]
+    citations = [GraphEvidence(**c) for c in result["citations"]]
+    traces = [GraphEvidence(**t) for t in result["evidence_trace"]]
+
+    resp = IntelligenceResponse(
+        query=result["query"],
+        concept_graph=cg,
+        similarities=sims,
+        cross_document_analyses=analyses,
+        citations=citations,
+        evidence_trace=traces,
+        corpus_sha256=result["corpus_sha256"],
+        output_sha256=result["output_sha256"],
+        pipeline_version=result["pipeline_version"],
+    )
+    return IntelligenceEnvelope(success=True, data=resp, message="ok")

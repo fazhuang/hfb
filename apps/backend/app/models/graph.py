@@ -57,7 +57,7 @@ class EntityRelation(BaseModel):
             "target_entity_type",
             "target_entity_id",
             "relation_type",
-            unique=False,
+            unique=True,
         ),
     )
 

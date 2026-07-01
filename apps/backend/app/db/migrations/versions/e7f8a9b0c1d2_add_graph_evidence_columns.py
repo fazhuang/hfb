@@ -73,7 +73,7 @@ def upgrade() -> None:
             "target_entity_id",
             "relation_type",
         ],
-        unique=False,
+        unique=True,
     )
 
 

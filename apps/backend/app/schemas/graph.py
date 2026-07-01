@@ -240,6 +240,10 @@ class CrossDocumentAnalysis(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     topic: str = Field(..., min_length=1)
+    status: str = Field(
+        default="insufficient_evidence",
+        description="supported_comparison | confirmed_contradiction | insufficient_evidence",
+    )
     supporting_claims: list[CrossDocumentClaim] = Field(default_factory=list)
     differing_claims: list[CrossDocumentClaim] = Field(default_factory=list)
     contradictions: list[dict[str, CrossDocumentClaim]] = Field(
@@ -250,3 +254,127 @@ class CrossDocumentAnalysis(BaseModel):
     evidence_trace: list[GraphEvidence] = Field(default_factory=list)
     corpus_sha256: str = Field(default="")
     output_sha256: str = Field(default="")
+
+
+# ============================================================
+# Sprint 3 P0: Intelligence unified API
+# ============================================================
+
+
+class IntelligenceRequest(BaseModel):
+    """Unified knowledge intelligence request."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    query: str = Field(..., min_length=1, description="Whitespace-separated concept keywords")
+
+
+class IntelligenceResponse(BaseModel):
+    """Unified knowledge intelligence response — deterministic, evidence-bound."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    query: str = Field(..., min_length=1)
+    concept_graph: ConceptGraph
+    similarities: list[ConceptSimilarity] = Field(default_factory=list)
+    cross_document_analyses: list[CrossDocumentAnalysis] = Field(default_factory=list)
+    citations: list[GraphEvidence] = Field(default_factory=list)
+    evidence_trace: list[GraphEvidence] = Field(default_factory=list)
+    corpus_sha256: str = Field(default="")
+    output_sha256: str = Field(default="")
+    pipeline_version: str = Field(default="1.0.0")
+
+
+# ============================================================
+# Sprint 3 P0: Strict API envelopes (replacing response_model=dict)
+# ============================================================
+
+
+class GraphApiEnvelope(BaseModel):
+    """Strict API envelope for Graph endpoints — no dict schema."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: object | None = None
+    message: str = Field(default="ok")
+
+
+class GraphNeighborsEnvelope(BaseModel):
+    """Envelope for neighbor response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: NeighborResult | None = None
+    message: str = Field(default="ok")
+
+
+class GraphPathEnvelope(BaseModel):
+    """Envelope for path response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: PathResult | None = None
+    message: str = Field(default="ok")
+
+
+class GraphSubgraphEnvelope(BaseModel):
+    """Envelope for subgraph response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: Subgraph | None = None
+    message: str = Field(default="ok")
+
+
+class GraphEntitiesEnvelope(BaseModel):
+    """Envelope for entity search response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: list[GraphNode] = Field(default_factory=list)
+    message: str = Field(default="ok")
+
+
+class GraphRelationsEnvelope(BaseModel):
+    """Envelope for entity relations list response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: list[EntityRelationResponse] = Field(default_factory=list)
+    message: str = Field(default="ok")
+
+
+class GraphCreateRelationEnvelope(BaseModel):
+    """Envelope for create relation response (201)."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: EntityRelationResponse | None = None
+    message: str = Field(default="ok")
+
+
+class GraphDeleteEnvelope(BaseModel):
+    """Envelope for delete response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: None = None
+    message: str = Field(default="ok")
+
+
+class IntelligenceEnvelope(BaseModel):
+    """Envelope for /intelligence response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: IntelligenceResponse | None = None
+    message: str = Field(default="ok")
