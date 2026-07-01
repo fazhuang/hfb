@@ -55,6 +55,8 @@ from app.schemas.graph import (
 )
 from app.services.graph_service import (
     GraphService,
+    _parse_proposition,
+    _propositions_comparable,
     _stable_hash,
     _validate_graph_evidence,
 )
@@ -406,45 +408,107 @@ class TestMultipleSharedChunks:
 
 
 # ===================================================================
-# 16-18: Contradiction detection — template-based
+# 16-18: Contradiction detection — ParsedProposition-based
 # ===================================================================
 
 
+class TestParsedProposition:
+    """Unit tests for _parse_proposition and _propositions_comparable."""
+
+    def test_parse_affirmative_shi(self) -> None:
+        p = _parse_proposition("针灸是有效疗法。")
+        assert p is not None
+        assert p.family == "是"
+        assert p.subject == "针灸"
+        assert p.predicate == "有效疗法"
+        assert p.polarity == "affirmative"
+
+    def test_parse_negative_shi(self) -> None:
+        p = _parse_proposition("针灸不是有效疗法。")
+        assert p is not None
+        assert p.family == "是"
+        assert p.subject == "针灸"
+        assert p.predicate == "有效疗法"
+        assert p.polarity == "negative"
+
+    def test_parse_affirmative_neng(self) -> None:
+        p = _parse_proposition("针灸能缓解疼痛。")
+        assert p is not None
+        assert p.family == "能"
+        assert p.subject == "针灸"
+        assert p.predicate == "缓解疼痛"
+        assert p.polarity == "affirmative"
+
+    def test_parse_negative_neng(self) -> None:
+        p = _parse_proposition("针灸不能缓解疼痛。")
+        assert p is not None
+        assert p.family == "能"
+        assert p.subject == "针灸"
+        assert p.predicate == "缓解疼痛"
+        assert p.polarity == "negative"
+
+    def test_parse_with_clause_returns_none(self) -> None:
+        """Extra clause → cannot cleanly parse → None."""
+        assert _parse_proposition("针灸可缓解疼痛但不是唯一疗法") is None
+        assert _parse_proposition("针灸可缓解疼痛但不是唯一疗法。") is None
+
+    def test_parse_different_propositions_not_comparable(self) -> None:
+        """Different subject/predicate → not comparable."""
+        p1 = _parse_proposition("针灸不是唯一疗法。")
+        p2 = _parse_proposition("针灸可用于部分疼痛。")
+        assert p1 is not None and p2 is not None
+        assert not _propositions_comparable(p1, p2)
+
+    def test_same_proposition_opposite_polarity_comparable(self) -> None:
+        p1 = _parse_proposition("针灸是有效疗法。")
+        p2 = _parse_proposition("针灸不是有效疗法。")
+        assert p1 is not None and p2 is not None
+        assert _propositions_comparable(p1, p2)
+        assert p1.polarity != p2.polarity
+
+    def test_same_proposition_same_polarity_comparable(self) -> None:
+        p1 = _parse_proposition("针灸能缓解疼痛。")
+        p2 = _parse_proposition("针灸能缓解疼痛。")
+        assert p1 is not None and p2 is not None
+        assert _propositions_comparable(p1, p2)
+        assert p1.polarity == p2.polarity
+
+    def test_different_subject_not_comparable(self) -> None:
+        p1 = _parse_proposition("针灸是有效疗法。")
+        p2 = _parse_proposition("按摩是有效疗法。")
+        assert p1 is not None and p2 is not None
+        assert not _propositions_comparable(p1, p2)
+
+    def test_different_predicate_not_comparable(self) -> None:
+        p1 = _parse_proposition("针灸能缓解疼痛。")
+        p2 = _parse_proposition("针灸能治疗疾病。")
+        assert p1 is not None and p2 is not None
+        assert not _propositions_comparable(p1, p2)
+
+    def test_different_family_not_comparable(self) -> None:
+        p1 = _parse_proposition("针灸是有效疗法。")
+        p2 = _parse_proposition("针灸能有效疗法。")
+        assert p1 is not None and p2 is not None
+        assert not _propositions_comparable(p1, p2)
+
+    def test_compound_words_not_negation(self) -> None:
+        """未病/无极 are not negation — they just don't match templates."""
+        assert _parse_proposition("未病先防是中医的重要原则。") is not None
+        assert _parse_proposition("无极而太极。") is None  # no template match at all
+
+    def test_empty_subject_or_predicate_returns_none(self) -> None:
+        assert _parse_proposition("是有效疗法。") is None
+        assert _parse_proposition("针灸是。") is None
+
+
+@pytest.mark.asyncio
 class TestContradictionDetection:
-    def test_has_negation_compound_words(self) -> None:
-        assert not GraphService._has_negation("未病先防是中医的重要原则。")
-        assert not GraphService._has_negation("无极而太极。")
+    """Integration tests for cross_document_analysis with parsed propositions."""
 
-    def test_has_negation_explicit(self) -> None:
-        assert GraphService._has_negation("针灸不是唯一的治疗方法。")
-
-    def test_strip_trailing_punctuation(self) -> None:
-        assert GraphService._strip_trailing_punctuation("针灸是有效疗法。") == "针灸是有效疗法"
-        assert GraphService._strip_trailing_punctuation("针灸不是有效疗法！") == "针灸不是有效疗法"
-
-    def test_template_exact_match(self) -> None:
-        """Exact template: X是Y ↔ X不是Y → contradiction."""
-        assert GraphService._match_contradiction_template("针灸是有效疗法", "针灸不是有效疗法") is True
-
-    def test_template_unrelated(self) -> None:
-        """Different subjects → no contradiction."""
-        assert GraphService._match_contradiction_template("针灸是有效疗法", "按摩是有效疗法") is False
-
-    def test_template_with_clause_rejected(self) -> None:
-        """Claims with additional clauses → no substring-match false positives."""
-        assert GraphService._match_contradiction_template(
-            "针灸可缓解疼痛但不是唯一疗法", "针灸可缓解疼痛"
-        ) is False
-
-    def test_template_different_claims_no_contradiction(self) -> None:
-        """Different claim types → no contradiction."""
-        assert GraphService._match_contradiction_template(
-            "针灸不是唯一疗法", "针灸可用于部分疼痛"
-        ) is False
-
-    @pytest.mark.asyncio
-    async def test_pseudo_contradictions_rejected(self, db_session: AsyncSession) -> None:
-        """Pseudo-contradictions: different propositions → no contradiction."""
+    async def test_pseudo_contradictions_rejected__insufficient_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Different propositions: 针灸不是唯一疗法 vs 针灸可用于部分疼痛 → insufficient_evidence."""
         d1 = Document(title="文献A", dynasty="唐")
         d2 = Document(title="文献B", dynasty="宋")
         db_session.add_all([d1, d2])
@@ -455,25 +519,79 @@ class TestContradictionDetection:
         await db_session.flush()
         svc = GraphService(db_session)
         analysis = await svc.cross_document_analysis("针灸")
+        assert analysis.status == "insufficient_evidence"
         assert len(analysis.contradictions) == 0
 
-    @pytest.mark.asyncio
-    async def test_opposite_polarity_same_proposition_contradiction(self, db_session: AsyncSession) -> None:
-        """Exact template contradiction: X是Y ↔ X不是Y."""
-        d1 = Document(title="文献C", dynasty="唐")
-        d2 = Document(title="文献D", dynasty="宋")
+    async def test_same_affirmative__supported_comparison(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Both docs: 针灸能缓解疼痛 (same proposition, both affirmative) → supported_comparison."""
+        d1 = Document(title="文献H", dynasty="唐")
+        d2 = Document(title="文献I", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸是有效疗法。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不是有效疗法。", token_count=20)
+        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
+        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
         analysis = await svc.cross_document_analysis("针灸")
-        assert len(analysis.contradictions) == 1
-        assert analysis.status == "confirmed_contradiction"
+        assert analysis.status == "supported_comparison"
+        assert len(analysis.contradictions) == 0
 
-    @pytest.mark.asyncio
+    async def test_same_negative__supported_comparison(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Both docs: 针灸不能缓解疼痛 (same proposition, both negative) → supported_comparison."""
+        d1 = Document(title="文献J", dynasty="唐")
+        d2 = Document(title="文献K", dynasty="宋")
+        db_session.add_all([d1, d2])
+        await db_session.flush()
+        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        db_session.add_all([c1, c2])
+        await db_session.flush()
+        svc = GraphService(db_session)
+        analysis = await svc.cross_document_analysis("针灸")
+        assert analysis.status == "supported_comparison"
+        assert len(analysis.contradictions) == 0
+
+    async def test_opposite_polarity__confirmed_contradiction(
+        self, db_session: AsyncSession
+    ) -> None:
+        """针灸能缓解疼痛 vs 针灸不能缓解疼痛 → confirmed_contradiction."""
+        d1 = Document(title="文献C", dynasty="唐")
+        d2 = Document(title="文献D", dynasty="宋")
+        db_session.add_all([d1, d2])
+        await db_session.flush()
+        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
+        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        db_session.add_all([c1, c2])
+        await db_session.flush()
+        svc = GraphService(db_session)
+        analysis = await svc.cross_document_analysis("针灸")
+        assert analysis.status == "confirmed_contradiction"
+        assert len(analysis.contradictions) == 1
+
+    async def test_clause_sentence__insufficient_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Clause: 针灸可缓解疼痛但不是唯一疗法 → cannot parse → insufficient_evidence."""
+        d1 = Document(title="文献L", dynasty="唐")
+        d2 = Document(title="文献M", dynasty="宋")
+        db_session.add_all([d1, d2])
+        await db_session.flush()
+        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸可缓解疼痛但不是唯一疗法。", token_count=30)
+        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸可缓解疼痛。", token_count=20)
+        db_session.add_all([c1, c2])
+        await db_session.flush()
+        svc = GraphService(db_session)
+        analysis = await svc.cross_document_analysis("针灸")
+        # c1 cannot be parsed (has clause), c2 parses as affirmative.
+        # They are not the same parsed proposition → insufficient_evidence
+        assert analysis.status == "insufficient_evidence"
+        assert len(analysis.contradictions) == 0
+
     async def test_single_document_insufficient_evidence(self, db_session: AsyncSession) -> None:
         d1 = Document(title="文献E", dynasty="唐")
         db_session.add(d1)
@@ -485,9 +603,8 @@ class TestContradictionDetection:
         analysis = await svc.cross_document_analysis("针灸")
         assert analysis.status == "insufficient_evidence"
 
-    @pytest.mark.asyncio
     async def test_two_docs_no_comparable_insufficient_evidence(self, db_session: AsyncSession) -> None:
-        """Two documents but no comparable same-proposition claims → insufficient_evidence."""
+        """Two documents but different subjects → insufficient_evidence."""
         d1 = Document(title="文献F", dynasty="唐")
         d2 = Document(title="文献G", dynasty="宋")
         db_session.add_all([d1, d2])
@@ -500,25 +617,21 @@ class TestContradictionDetection:
         analysis = await svc.cross_document_analysis("针灸")
         assert analysis.status == "insufficient_evidence"
 
-    @pytest.mark.asyncio
-    async def test_two_docs_comparable_no_conflict_supported(self, db_session: AsyncSession) -> None:
-        """Two docs with comparable (same negation-free) claims → supported_comparison."""
-        d1 = Document(title="文献H", dynasty="唐")
-        d2 = Document(title="文献I", dynasty="宋")
+    async def test_two_docs_unparseable__insufficient_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Two documents but neither parses into a template → insufficient_evidence."""
+        d1 = Document(title="文献N", dynasty="唐")
+        d2 = Document(title="文献O", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        # One with negation, one without — they're comparable (opposite polarity)
-        # but don't match a contradiction template → supported_comparison
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸是传统中医的宝贵遗产，历史悠久。", token_count=30)
+        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸广泛用于临床治疗各种疾病。", token_count=30)
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
         analysis = await svc.cross_document_analysis("针灸")
-        # Template "能" vs "不能" matches → confirmed_contradiction
-        # Let's verify that if template doesn't match, it's supported_comparison
-        assert analysis.status in ("supported_comparison", "confirmed_contradiction")
-        assert len(analysis.contradictions) >= 0
+        assert analysis.status == "insufficient_evidence"
 
 
 # ===================================================================
@@ -747,80 +860,125 @@ class TestOldSeedRelationsExcluded:
 
 
 # ===================================================================
-# 20-21: Determinism tests (real integration via subprocess)
+# 20: Real HTTP 10-repeat determinism via ASGITransport
 # ===================================================================
 
 
-class TestDeterminismHTTP:
-    """Tests 20-21: real HTTP determinism via FastAPI TestClient and subprocess.
-
-    These are real tests — not docstring placeholders.
-    Test 20 verifies 10-repeat byte-identical via FastAPI router.
-    Test 21 verifies 3 PYTHONHASHSEED subprocess outputs are identical.
+@pytest.mark.asyncio
+class TestHTTPDeterminism:
+    """Test 20: real HTTP determinism — 10 POSTs to /api/v1/graph/intelligence,
+    comparing raw response.content directly (no json.dumps, no sort_keys).
     """
 
-    @pytest.mark.asyncio
     async def test_http_10_repeat_byte_identical(self, db_session_persistent: AsyncSession):
-        """Test 20: POST /api/v1/graph/intelligence × 10 → raw bytes identical."""
+        """POST /api/v1/graph/intelligence × 10 → raw response.content identical."""
         from app.models.document import Document
         from app.models.document_chunk import DocumentChunk
-        from app.services.graph_service import GraphService
 
-        # Create corpus with fixed IDs for determinism
-        d = Document(
-            id="determinism-doc-001",
-            title="确定性测试文献", dynasty="唐",
-        )
+        # Seed fixed corpus
+        d = Document(id="http-det-doc-001", title="HTTP确定测试", dynasty="唐")
         db_session_persistent.add(d)
         await db_session_persistent.flush()
 
         c1 = DocumentChunk(
-            id="determinism-chunk-001",
-            document_id=d.id, chunk_index=0,
-            content="皇甫谧编撰的针灸甲乙经系统阐述了经络理论。",
-            token_count=50,
+            id="http-det-chunk-001", document_id=d.id, chunk_index=0,
+            content="皇甫谧编撰的针灸甲乙经系统阐述了经络理论。", token_count=50,
         )
         c2 = DocumentChunk(
-            id="determinism-chunk-002",
-            document_id=d.id, chunk_index=1,
-            content="针灸是传统中医的重要组成部分。",
-            token_count=50,
+            id="http-det-chunk-002", document_id=d.id, chunk_index=1,
+            content="针灸是传统中医的重要组成部分。", token_count=50,
         )
         db_session_persistent.add_all([c1, c2])
         await db_session_persistent.flush()
 
-        # Run intelligence 10 times via service directly
-        import json as _json
-        svc = GraphService(db_session_persistent)
-        bodies = []
-        for _ in range(10):
-            result = await svc.intelligence("皇甫谧 针灸 经络")
-            bodies.append(_json.dumps(result, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+        # Build a real FastAPI app with the graph router
+        from fastapi import FastAPI
+        from app.api.v1.graph import router as graph_router
+        from app.db.database import get_session
+        from app.middleware.auth import require_permission
 
-        unique = set(bodies)
+        app = FastAPI()
+
+        # Override get_session with our seeded session
+        async def override_get_session():
+            yield db_session_persistent
+
+        app.dependency_overrides[get_session] = override_get_session
+
+        # Override auth: patch the require_permission factory so all guards are no-ops
+        import app.middleware.auth as auth_mod
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "test-user-id"
+
+        # require_permission returns a Depends-wrapped async checker.
+        # Override it at the FastAPI level: every Depends(guard_*) calls the checker,
+        # which internally calls has_permission on AuthService. We override AuthService.
+        async def _fake_auth_service():
+            class FakeAuth:
+                async def has_permission(self, *a, **kw):
+                    return True
+                async def has_any_permission(self, *a, **kw):
+                    return True
+            return FakeAuth()
+        app.dependency_overrides[auth_mod.get_auth_service] = _fake_auth_service
+
+        app.include_router(graph_router, prefix="/api/v1")
+
+        # Use httpx.AsyncClient with ASGITransport
+        import httpx
+
+        transport = httpx.ASGITransport(app=app)  # type: ignore[arg-type]
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            responses = []
+            for _ in range(10):
+                r = await client.post(
+                    "/api/v1/graph/intelligence",
+                    json={"query": "皇甫谧 针灸 经络"},
+                )
+                responses.append(r)
+
+        assert all(r.status_code == 200 for r in responses), (
+            f"Not all 200: {[r.status_code for r in responses]}"
+        )
+        unique = {r.content for r in responses}
         assert len(unique) == 1, f"Expected 1 unique body, got {len(unique)}"
 
-    def test_cross_pythonhashseed_identical(self):
-        """Test 21: 3 subprocesses with different PYTHONHASHSEED → identical outputs.
 
-        This test runs the app with 3 different PYTHONHASHSEED values
-        and compares raw HTTP response bodies via an in-process HTTP call.
-        It verifies that no Python hash randomization leaks into the output.
-        """
-        # Write a test script that the subprocesses will run
-        test_script = os.path.join(
-            os.path.dirname(__file__), "_sprint3_hashseed_worker.py"
-        )
-        # Write the worker script
+# ===================================================================
+# 21: Cross-PYTHONHASHSEED determinism via real HTTP subprocess
+# ===================================================================
+
+
+class TestHashSeedDeterminism:
+    """Test 21: 3 subprocesses with different PYTHONHASHSEED,
+    each running a real FastAPI app and calling the HTTP endpoint.
+    Raw response.content is compared directly — no re-sorting, no hash clearing.
+    """
+
+    def test_cross_pythonhashseed_identical(self):
         worker_code = '''
-"""Worker script for cross-PYTHONHASHSEED determinism test."""
-import asyncio, hashlib, json, os, sys
-sys.path.insert(0, ".")
-from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
-from app.services.graph_service import GraphService
+import asyncio, os, sys
+os.environ["PYTHONHASHSEED"] = os.environ.get("PYTHONHASHSEED", "1")
+
+from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+import httpx
+
+# Import all models so Base.metadata is fully populated
+import app.models.book  # noqa
+import app.models.chapter  # noqa
+import app.models.document  # noqa
+import app.models.document_chunk  # noqa
+import app.models.graph  # noqa
+import app.models.person  # noqa
+import app.models.version  # noqa
+import app.models.passage  # noqa
+import app.models.version_relation  # noqa
+import app.models.user  # noqa
+import app.models.institution  # noqa
+import app.models.paper  # noqa
+import app.models.image  # noqa
+import app.models.workspace  # noqa
 
 async def main():
     engine = create_async_engine(
@@ -830,52 +988,79 @@ async def main():
     from app.db.base import Base
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
     async with async_session() as session:
-        d = Document(id="hs-doc-001", title="种子测试", dynasty="唐")
+        from app.models.document import Document
+        from app.models.document_chunk import DocumentChunk
+
+        d = Document(id="hs-http-doc-001", title="种子测试", dynasty="唐")
         session.add(d)
         await session.flush()
         c = DocumentChunk(
-            id="hs-chunk-001", document_id=d.id, chunk_index=0,
+            id="hs-http-chunk-001", document_id=d.id, chunk_index=0,
             content="皇甫谧编撰的针灸甲乙经系统阐述了经络理论。", token_count=50,
         )
         session.add(c)
         await session.flush()
-        svc = GraphService(session)
-        result = await svc.intelligence("皇甫谧 针灸 经络")
-        # Return canonical JSON with output_sha256 cleared
-        result["output_sha256"] = ""
-        print(json.dumps(result, sort_keys=True, ensure_ascii=False, separators=(",", ":")))
+
+        from app.api.v1.graph import router as graph_router
+        from app.db.database import get_session
+
+        app = FastAPI()
+
+        async def override_get_session():
+            yield session
+
+        app.dependency_overrides[get_session] = override_get_session
+
+        # Override auth
+        import app.middleware.auth as auth_mod
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "test-user-id"
+        async def _fake_auth_service():
+            class FakeAuth:
+                async def has_permission(self, *a, **kw): return True
+                async def has_any_permission(self, *a, **kw): return True
+            return FakeAuth()
+        app.dependency_overrides[auth_mod.get_auth_service] = _fake_auth_service
+
+        app.include_router(graph_router, prefix="/api/v1")
+
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            r = await client.post("/api/v1/graph/intelligence", json={"query": "皇甫谧 针灸 经络"})
+            assert r.status_code == 200, f"HTTP {r.status_code}"
+            sys.stdout.buffer.write(r.content)
+            sys.stdout.buffer.flush()
+
     await engine.dispose()
 
 asyncio.run(main())
 '''
-        with open(test_script, "w") as f:
-            f.write(worker_code)
 
-        try:
-            outputs = []
-            for seed in [1, 2, 99]:
-                env = os.environ.copy()
-                env["PYTHONHASHSEED"] = str(seed)
-                env["PYTHONPATH"] = os.path.join(os.getcwd(), "apps", "backend")
-                proc = subprocess.run(
-                    [sys.executable, test_script],
-                    capture_output=True, text=True,
-                    env=env,
-                    cwd=os.path.join(os.getcwd(), "apps", "backend"),
-                )
-                assert proc.returncode == 0, f"PYTHONHASHSEED={seed} failed: {proc.stderr[:500]}"
-                outputs.append(proc.stdout.strip())
-
-            unique = set(outputs)
-            assert len(unique) == 1, (
-                f"Cross-PYTHONHASHSEED outputs differ! "
-                f"Got {len(unique)} unique outputs for seeds [1, 2, 99]"
+        outputs = []
+        for seed in [1, 2, 99]:
+            env = os.environ.copy()
+            env["PYTHONHASHSEED"] = str(seed)
+            env["PYTHONPATH"] = os.path.join(os.getcwd(), "apps", "backend")
+            proc = subprocess.run(
+                [sys.executable, "-c", worker_code],
+                capture_output=True,
+                env=env,
+                cwd=os.path.join(os.getcwd(), "apps", "backend"),
             )
-        finally:
-            if os.path.exists(test_script):
-                os.remove(test_script)
+            assert proc.returncode == 0, (
+                f"PYTHONHASHSEED={seed} failed (rc={proc.returncode}): "
+                f"{proc.stderr.decode()[:500]}"
+            )
+            outputs.append(proc.stdout)
+
+        unique = set(outputs)
+        assert len(unique) == 1, (
+            f"Cross-PYTHONHASHSEED outputs differ! "
+            f"Got {len(unique)} unique outputs for seeds [1, 2, 99]"
+        )
 
 
 # ===================================================================

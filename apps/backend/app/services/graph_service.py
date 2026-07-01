@@ -14,11 +14,12 @@ P0-8: get_relations_for_entity with full validation.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import re
 from collections import deque
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sqlalchemy import select, or_, and_
@@ -224,9 +225,106 @@ async def _entity_exists(
     return result.scalar_one_or_none() is not None
 
 
-# ======================================================================
-# GraphService
-# ======================================================================
+# Sprint 3 P0-4: Cross-Document Analysis — parsed proposition, template-based
+# ==================================================================
+
+
+@dataclasses.dataclass(frozen=True)
+class ParsedProposition:
+    """A strictly-parsed proposition from a claim text.
+
+    Only exact template matches are accepted. No substring inference.
+    A claim that cannot be parsed into one of the 8 supported templates
+    returns None from _parse_proposition.
+    """
+
+    family: str  # "是", "属于", "能", "可"
+    subject: str
+    predicate: str
+    polarity: Literal["affirmative", "negative"]
+
+
+# Ordered: negative patterns first so 不是 is tried before 是, 不能 before 能, etc.
+_PROPOSITION_TEMPLATES: list[tuple[str, str, bool]] = [
+    # (regex_pattern, family, is_negative)
+    (r"^(.+)不是(.+)$", "是", True),
+    (r"^(.+)不属于(.+)$", "属于", True),
+    (r"^(.+)不能(.+)$", "能", True),
+    (r"^(.+)不可(.+)$", "可", True),
+    (r"^(.+)是(.+)$", "是", False),
+    (r"^(.+)属于(.+)$", "属于", False),
+    (r"^(.+)能(.+)$", "能", False),
+    (r"^(.+)可(.+)$", "可", False),
+]
+
+# Compile once
+_COMPILED_TEMPLATES: list[tuple[re.Pattern, str, bool]] = [
+    (re.compile(p), fam, neg) for p, fam, neg in _PROPOSITION_TEMPLATES
+]
+
+
+def _strip_trailing_punctuation(text: str) -> str:
+    """Remove trailing punctuation and whitespace."""
+    return re.sub(r"[\s。！？.!?，,；;：:、]+$", "", text.strip())
+
+
+def _parse_proposition(text: str) -> ParsedProposition | None:
+    """Parse text into a ParsedProposition using only exact template matching.
+
+    Rules:
+      1. Negative templates are tried first.
+      2. A negated sentence must not be captured by an affirmative template.
+      3. Leading/trailing whitespace and trailing punctuation are stripped.
+      4. Subject and predicate must both be non-empty.
+      5. No substring inference.
+      6. No synonym or fuzzy-word inference.
+      7. Extra clauses that prevent a clean parse → return None.
+
+    Returns None if the text does not match any supported template.
+    """
+    clean = _strip_trailing_punctuation(text)
+    if not clean:
+        return None
+
+    for pat, family, is_negative in _COMPILED_TEMPLATES:
+        m = pat.match(clean)
+        if not m:
+            continue
+        subject = m.group(1).strip()
+        predicate = m.group(2).strip()
+        if not subject or not predicate:
+            return None
+
+        # Reject if the matched region contains sentence boundaries or
+        # complex clause markers that suggest this is not a clean match
+        matched_text = m.group(0)
+        # Reject if the matched text contains punctuation that suggests
+        # additional clauses (commas, semicolons, mid-sentence punctuation)
+        if re.search(r"[，,；;：:]", matched_text) or re.search(r"但|而|且|却|还|也|都", matched_text):
+            return None
+        # Reject if there are sentence breaks within the match
+        if re.search(r"[。！？.!?]", matched_text):
+            return None
+
+        return ParsedProposition(
+            family=family,
+            subject=subject,
+            predicate=predicate,
+            polarity="negative" if is_negative else "affirmative",
+        )
+
+    return None
+
+
+def _propositions_comparable(
+    a: ParsedProposition, b: ParsedProposition
+) -> bool:
+    """Two propositions are comparable iff family, subject, and predicate match."""
+    return (
+        a.family == b.family
+        and a.subject == b.subject
+        and a.predicate == b.predicate
+    )
 
 
 class GraphService:
@@ -1006,79 +1104,21 @@ class GraphService:
         )
 
     # ==================================================================
-    # Sprint 3 P0-4: Cross-Document Analysis — template-based contradiction
+    # Sprint 3 P0-4: Cross-Document Analysis — parsed-proposition based
     # ==================================================================
 
-    _COMPOUND_PREFIXES: set[str] = {"未病", "无极", "无病", "无疾", "非常", "非典", "无法"}
-
-    # Only these exact negation templates are recognized for contradiction.
-    # Subject and predicate must be identical after stripping negation + punctuation.
-    _CONTRADICTION_TEMPLATES = [
-        # (affirmative_pattern, negative_pattern) — both side must match
-        (re.compile(r"^(.+)是(.+)$"), re.compile(r"^(.+)不是(.+)$")),
-        (re.compile(r"^(.+)属于(.+)$"), re.compile(r"^(.+)不属于(.+)$")),
-        (re.compile(r"^(.+)能(.+)$"), re.compile(r"^(.+)不能(.+)$")),
-        (re.compile(r"^(.+)可(.+)$"), re.compile(r"^(.+)不可(.+)$")),
-    ]
-
-    @staticmethod
-    def _has_negation(text: str) -> bool:
-        """Check if text contains an explicit negation marker."""
-        markers = ["并非", "不是", "不", "非", "未", "否", "无"]
-        for m in markers:
-            idx = text.find(m)
-            if idx < 0:
-                continue
-            is_compound = False
-            for cp in GraphService._COMPOUND_PREFIXES:
-                if text.startswith(cp, idx):
-                    is_compound = True
-                    break
-            if not is_compound:
-                return True
-        return False
-
-    @staticmethod
-    def _strip_trailing_punctuation(text: str) -> str:
-        """Remove trailing punctuation and whitespace for comparison."""
-        return re.sub(r"[\s。！？.!?，,；;：:、]+$", "", text.strip())
-
-    @staticmethod
-    def _match_contradiction_template(
-        text_a: str, text_b: str
-    ) -> bool:
-        """Check if two texts match a known contradiction template.
-
-        Only matches when one is the exact affirmative and the other
-        the exact negative form of the same subject+predicate.
-        Substring matching is NEVER used.
-        """
-        a_clean = GraphService._strip_trailing_punctuation(text_a)
-        b_clean = GraphService._strip_trailing_punctuation(text_b)
-
-        for aff_pat, neg_pat in GraphService._CONTRADICTION_TEMPLATES:
-            a_aff = aff_pat.match(a_clean)
-            b_neg = neg_pat.match(b_clean)
-            if a_aff and b_neg:
-                if a_aff.group(1) == b_neg.group(1) and a_aff.group(2) == b_neg.group(2):
-                    return True
-
-            a_neg = neg_pat.match(a_clean)
-            b_aff = aff_pat.match(b_clean)
-            if a_neg and b_aff:
-                if a_neg.group(1) == b_aff.group(1) and a_neg.group(2) == b_aff.group(2):
-                    return True
-
-        return False
-
     async def cross_document_analysis(self, topic: str) -> CrossDocumentAnalysis:
-        """Analyze a topic across documents using template-based contradiction.
+        """Analyze a topic across documents using parsed propositions.
 
         Status rules:
           - <2 documents → insufficient_evidence
-          - ≥2 documents, no comparable same-proposition → insufficient_evidence
-          - ≥2 documents, comparable claims but no template match → supported_comparison
-          - ≥2 documents, template-matched contradictory pair → confirmed_contradiction
+          - ≥2 documents, no same proposition across docs → insufficient_evidence
+          - ≥2 documents, same proposition, same polarity → supported_comparison
+          - ≥2 documents, same proposition, opposite polarity → confirmed_contradiction
+
+        Only claims that parse into one of the 8 supported templates
+        (X是/不是Y, X属于/不属于Y, X能/不能P, X可/不可P) are used
+        for comparison. Unparseable claims are silently ignored.
         """
         chunk_stmt = (
             select(DocumentChunk)
@@ -1126,32 +1166,41 @@ class GraphService:
                 evidence_trace=evidence_traces,
             )
 
-        # Try to find template-matched contradictions
+        # Parse every claim into propositions. Only parseable claims are used.
+        # Claims that cannot be parsed are silently skipped.
+        parsed_pairs: list[tuple[CrossDocumentClaim, ParsedProposition]] = []
+        for claim in supporting:
+            prop = _parse_proposition(claim.claim_text)
+            if prop is not None:
+                parsed_pairs.append((claim, prop))
+
+        # Try to find contradictions: same proposition, opposite polarity
         contradictions: list[dict[str, CrossDocumentClaim]] = []
-        has_comparable = False
+        seen_comparable_docs: set[tuple[str, str]] = set()
 
-        for i in range(len(supporting)):
-            for j in range(i + 1, len(supporting)):
-                a, b = supporting[i], supporting[j]
+        for i in range(len(parsed_pairs)):
+            for j in range(i + 1, len(parsed_pairs)):
+                a_claim, a_prop = parsed_pairs[i]
+                b_claim, b_prop = parsed_pairs[j]
 
-                if a.document_id == b.document_id:
+                if a_claim.document_id == b_claim.document_id:
                     continue
-                if topic not in a.claim_text or topic not in b.claim_text:
+
+                if not _propositions_comparable(a_prop, b_prop):
                     continue
 
-                a_neg = self._has_negation(a.claim_text)
-                b_neg = self._has_negation(b.claim_text)
+                # Same proposition, same document pair
+                doc_pair = (a_claim.document_id, b_claim.document_id)
+                seen_comparable_docs.add(doc_pair)
 
-                # Both claims must be about the same topic AND one must be
-                # affirmative vs negative (opposite polarity)
-                if a_neg != b_neg:
-                    has_comparable = True
-                    if self._match_contradiction_template(a.claim_text, b.claim_text):
-                        contradictions.append({"claim_a": a, "claim_b": b})
+                if a_prop.polarity != b_prop.polarity:
+                    # Opposite polarity → confirmed contradiction
+                    contradictions.append({"claim_a": a_claim, "claim_b": b_claim})
+                # ponytail: same-polarity comparable pairs already tracked via seen_comparable_docs
 
         if contradictions:
             status = "confirmed_contradiction"
-        elif has_comparable:
+        elif seen_comparable_docs:
             status = "supported_comparison"
         else:
             status = "insufficient_evidence"
