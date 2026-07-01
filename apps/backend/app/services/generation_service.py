@@ -260,21 +260,15 @@ class GenerationPipeline:
         # Step 3 — Server-side deterministic expected claims from retrieval snapshot.
         # These are the single source of truth. LLM output is advisory only.
         expected_claims = self._build_expected_claims(query, results, chunk_rank)
-        llm_matched = False
-        llm_provider_error = None
 
         # Step 4 — Advisory LLM call (non-blocking for factual output).
-        # LLM JSON validity is checked, but its claim choices never change
-        # the final answer.
-        if self.ai.available and self.ai.check_rate_limit():
-            system_prompt, user_messages = self._build_prompt(query, results)
-            raw_output, provider_error = await self._generate_structured(system_prompt, user_messages)
-            if provider_error:
-                llm_provider_error = provider_error
-            elif raw_output is not None:
-                _, llm_matched = self._parse_and_check_llm_output(
-                    raw_output, snapshot, expected_claims, top_k
-                )
+        # LLM JSON validity is checked via internal telemetry only.
+        # Provider state NEVER enters the deterministic HTTP response.
+        if self.ai.available:
+            if self.ai.check_rate_limit():
+                system_prompt, user_messages = self._build_prompt(query, results)
+                await self._generate_structured(system_prompt, user_messages)
+            # else: rate-limited — recorded only in structured logs, not response
 
         # Step 5 — Canonicalize expected claims (the server's truth)
         canonical = _canonicalize_claims(expected_claims)
@@ -320,9 +314,6 @@ class GenerationPipeline:
                     "expected_claims_count": len(expected_claims),
                     "snapshot_size": len(snapshot),
                     "answer_sha256": answer_sha256,
-                    "llm_assisted": self.ai.available,
-                    "llm_provider_error": llm_provider_error,
-                    "llm_output_matched": llm_matched,
                 },
             ),
         )
@@ -365,7 +356,11 @@ class GenerationPipeline:
         Each non-injection chunk gets exactly one claim using its most
         query-relevant sentence. Order is pure retrieval rank.
         """
-        query_tokens = set(_normalize_whitespace(query))
+        query_tokens = [
+            token
+            for token in re.split(r"\s+", _normalize_whitespace(query))
+            if token
+        ]
         claims: list[dict] = []
 
         for r in results:
@@ -444,33 +439,58 @@ class GenerationPipeline:
         if not claims_obj.claims:
             return None, False  # empty but valid JSON
 
-        # Validate claims against snapshot (soft check — doesn't change output)
+        # Per-claim validation — all must pass for matched=True
         for claim in claims_obj.claims:
             m = _CITATION_RE.match(claim.citation)
             if not m:
-                continue
-            _, chunk_id = m.group(1), m.group(2)
+                return None, False
+            doc_id, chunk_id = m.group(1), m.group(2)
             if chunk_id not in snapshot:
-                continue
+                return None, False
+            c_result = snapshot[chunk_id]
+            if c_result.document_id != doc_id:
+                return None, False
             if not claim.quote or not claim.quote.strip():
-                continue
-            if not _is_substring(claim.quote.strip(), snapshot[chunk_id].content):
-                continue
+                return None, False
+            if not _is_substring(claim.quote.strip(), c_result.content):
+                return None, False
             if _detect_prompt_injection_text(claim.quote.strip()):
-                continue
+                return None, False
 
-        return None, len(claims_obj.claims) > 0
+        # Canonicalize both LLM claims and expected claims, then compare
+        llm_canonical = _canonicalize_claims([
+            {
+                "citation": c.citation,
+                "quote": c.quote.strip(),
+                "chunk_id": _CITATION_RE.match(c.citation).group(2),
+                "document_id": _CITATION_RE.match(c.citation).group(1),
+                "chunk_rank": 0,
+                "start_pos": 0,
+                "quote_norm": _normalize_whitespace(c.quote.strip()),
+                "citation_str": c.citation,
+            }
+            for c in claims_obj.claims
+        ])
+
+        exp_canonical = _canonicalize_claims(expected_claims)
+
+        # Compare canonical form: same (chunk_id, quote_norm) pairs
+        llm_keys = {(c["chunk_id"], c["quote_norm"]) for c in llm_canonical}
+        exp_keys = {(c["chunk_id"], c["quote_norm"]) for c in exp_canonical}
+
+        return None, llm_keys == exp_keys
 
     async def _generate_structured(
         self, system_prompt: str, messages: list[dict[str, str]]
     ) -> tuple[str | None, str | None]:
-        """Call LLM. Returns (raw_output, error_code)."""
+        """Call LLM. Returns (raw_output, error_code).
+
+        Rate-limit check already done by caller (generate()).
+        This method does NOT check rate-limits — single authoritative check point.
+        """
         if not self.ai.available:
             mock = self._mock_claims(system_prompt, messages)
             return mock, None
-
-        if not self.ai.check_rate_limit():
-            return None, "RATE_LIMITED"
 
         try:
             raw = await self.ai.complete_structured(

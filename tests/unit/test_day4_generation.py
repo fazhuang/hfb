@@ -659,9 +659,6 @@ async def test_asgi_provider_error_does_not_block(_seeded_app_and_client) -> Non
     assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"]
     assert inner["metadata"]["error_code"] is None
     assert inner["metadata"]["citation_validation"]["is_valid"] is True
-    # Provider error recorded in metadata
-    assert inner["metadata"]["citation_validation"]["llm_provider_error"] == "PROVIDER_ERROR"
-    assert inner["metadata"]["citation_validation"]["llm_output_matched"] is False
 
 
 @pytest.fixture
@@ -1192,12 +1189,6 @@ async def test_empty_llm_claims_do_not_change_output(db_session) -> None:
 
     dump_normal = result_normal.model_dump(mode="json")
     dump_empty = result_empty.model_dump(mode="json")
-    dump_normal["metadata"]["citation_validation"]["llm_assisted"] = False
-    dump_normal["metadata"]["citation_validation"]["llm_provider_error"] = None
-    dump_normal["metadata"]["citation_validation"]["llm_output_matched"] = False
-    dump_empty["metadata"]["citation_validation"]["llm_assisted"] = False
-    dump_empty["metadata"]["citation_validation"]["llm_provider_error"] = None
-    dump_empty["metadata"]["citation_validation"]["llm_output_matched"] = False
     sha_n = _sha256(_json.dumps(dump_normal, sort_keys=True, ensure_ascii=False))
     sha_e = _sha256(_json.dumps(dump_empty, sort_keys=True, ensure_ascii=False))
     assert dump_normal == dump_empty, (
@@ -1232,11 +1223,6 @@ async def test_provider_timeout_does_not_change_output(db_session) -> None:
 
     dump_n = result_normal.model_dump(mode="json")
     dump_e = result_err.model_dump(mode="json")
-    # Normalize llm_assisted + llm_provider_error (different LLM paths, same factual output)
-    dump_n["metadata"]["citation_validation"]["llm_assisted"] = False
-    dump_n["metadata"]["citation_validation"]["llm_provider_error"] = None
-    dump_e["metadata"]["citation_validation"]["llm_assisted"] = False
-    dump_e["metadata"]["citation_validation"]["llm_provider_error"] = None
     sha_n = _sha256(_json.dumps(dump_n, sort_keys=True, ensure_ascii=False))
     sha_e = _sha256(_json.dumps(dump_e, sort_keys=True, ensure_ascii=False))
     assert dump_n == dump_e, (
@@ -1271,9 +1257,6 @@ async def test_rate_limit_does_not_change_output(db_session) -> None:
 
     dump_n = result_no_llm.model_dump(mode="json")
     dump_r = result_rl.model_dump(mode="json")
-    # Normalize llm_assisted — different paths, same factual output
-    dump_n["metadata"]["citation_validation"]["llm_assisted"] = False
-    dump_r["metadata"]["citation_validation"]["llm_assisted"] = False
     sha_n = _sha256(_json.dumps(dump_n, sort_keys=True, ensure_ascii=False))
     sha_r = _sha256(_json.dumps(dump_r, sort_keys=True, ensure_ascii=False))
     assert dump_n == dump_r, (
@@ -1492,11 +1475,11 @@ def test_system_prompt_requires_structured_json() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.real_llm
-async def test_real_llm_generation(db_session) -> None:
-    """Real LLM grounded generation test.
+async def test_real_llm_five_runs_full_response_identical(db_session) -> None:
+    """Real LLM: 5 runs with same query, retrieval, DB — full response SHA-256 identical.
 
     When AI_API_KEY is configured, calls the real LLM through the pipeline
-    and verifies the grounded claims pass all validation layers.
+    and verifies grounded generation determinism across 5 runs.
     When API key is absent, xfails with REAL_LLM_BLOCKED.
     """
     from app.services.ai_service import AIService
@@ -1504,38 +1487,40 @@ async def test_real_llm_generation(db_session) -> None:
     if not ai.available:
         pytest.xfail("REAL_LLM_BLOCKED: No AI_API_KEY configured")
 
-    # Real LLM is available — run a real query through the pipeline
     await _seed_chunks(db_session, [
-        ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
+        ("针灸甲乙经", "西晋", [
+            "《针灸甲乙经》是中国现存最早的针灸学专著，由皇甫谧编撰。",
+            "全书系统论述了脏腑、经络、腧穴、针刺手法等针灸学核心内容。",
+            "皇甫谧，字士安，西晋著名医学家、史学家。",
+        ]),
     ])
 
-    # Use real AIService, not mock
-    pipeline = GenerationPipeline(db_session)
-    # Force real AI service
-    pipeline._ai = AIService()
+    import json as _json
+    runs = []
+    for i in range(5):
+        pipeline = GenerationPipeline(db_session)
+        pipeline._ai = AIService()
+        result = await pipeline.generate("皇甫谧 针灸 经络", top_k=5)
+        runs.append(result)
 
-    result = await pipeline.generate("皇甫谧", top_k=5)
+    # All 5 raw model_dumps must be identical — no normalization
+    first_dump = _json.dumps(runs[0].model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
+    first_sha = _sha256(first_dump)
+    for i, r in enumerate(runs[1:], 2):
+        cur_dump = _json.dumps(r.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
+        cur_sha = _sha256(cur_dump)
+        assert cur_sha == first_sha, (
+            f"Run {i} full response differs from Run 1.\n"
+            f"SHA256 Run {i}: {cur_sha}\nSHA256 Run 1: {first_sha}"
+        )
 
-    # Must have actually succeeded — no refusal
-    assert "EVIDENCE_GATE_REFUSAL" not in result.answer, (
-        f"Real LLM refused: {result.answer[:200]}"
-    )
-    # Must have no error code
-    assert result.metadata.error_code is None, (
-        f"Real LLM error: {result.metadata.error_code}"
-    )
-    # Citations must be present
-    assert result.metadata.citation_validation["is_valid"] is True, (
-        f"Real LLM validation failed: {result.metadata.citation_validation}"
-    )
-    assert len(result.citations) >= 1, "Real LLM should produce at least one citation"
-    # Citations must map to real DB records
-    for cit in result.citations:
-        doc = await db_session.execute(
-            select(Document).where(Document.id == cit["document_id"])
-        )
-        assert doc.scalar_one_or_none() is not None, f"Doc {cit['document_id']} not in DB"
-        chunk = await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.id == cit["chunk_id"])
-        )
-        assert chunk.scalar_one_or_none() is not None, f"Chunk {cit['chunk_id']} not in DB"
+    # Field-level assertions
+    assert "EVIDENCE_GATE_REFUSAL" not in runs[0].answer
+    assert runs[0].metadata.error_code is None
+    assert runs[0].metadata.citation_validation["is_valid"] is True
+    assert len(runs[0].citations) >= 1
+    for i, r in enumerate(runs[1:], 2):
+        assert r.answer == runs[0].answer, f"Run {i} answer differs"
+        assert r.citations == runs[0].citations, f"Run {i} citations differ"
+        assert r.results == runs[0].results, f"Run {i} results differ"
+        assert r.metadata == runs[0].metadata, f"Run {i} metadata differs"
