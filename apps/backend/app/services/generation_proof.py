@@ -95,6 +95,21 @@ class GenerationProof:
         """True when proof integrity failed."""
         return self.error_code is not None
 
+    @property
+    def has_no_evidence(self) -> bool:
+        """P0-1: True when retrieval returned empty results — not an error, just no data."""
+        return (
+            not self.is_complete
+            and self.error_code is None
+            and self.expected_claim_count == 0
+            and len(self.response.results) == 0
+        )
+
+    @property
+    def has_integrity_error(self) -> bool:
+        """P0-1: True when proof validation failed with an explicit error code."""
+        return self.error_code is not None
+
 
 # ======================================================================
 # Proof builder — validates canonical outcome, produces GenerationProof

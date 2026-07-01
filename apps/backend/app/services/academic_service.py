@@ -15,7 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Any
+from dataclasses import dataclass
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -279,6 +279,75 @@ def _check_same_sentence_support(
 
 
 # ======================================================================
+# P0-3: ACADEMIC QUERY PLANNER — deterministic retrieval query building
+# ======================================================================
+
+# Question markers to strip for retrieval
+_QUESTION_MARKERS_RE = re.compile(r"(是否|能否|是不是|有没有|可不)")
+
+# Segmentation keywords — keep these as separate terms
+_SEGMENT_KEYWORDS: list[str] = [
+    "治疗",
+    "治愈",
+    "导致",
+    "证明",
+    "所有",
+    "全部",
+    "任何",
+    "一切",
+    "提出",
+    "编撰",
+    "记载",
+    "论述",
+    "包含",
+    "定义",
+    "概念",
+    "历史",
+    "来源",
+    "内容",
+    "结构",
+    "关联",
+    "影响",
+    "文献",
+]
+
+
+def build_academic_retrieval_query(query: str) -> str:
+    """P0-3: Build a retrieval query from an academic query.
+
+    - Strips question markers (是否, 能否, 是不是, 有没有)
+    - Segments around known keywords so each term is ≥2 chars
+    - Never degrades to single-character search
+    """
+    # Strip question markers
+    clean = _QUESTION_MARKERS_RE.sub(" ", query)
+    # Normalize whitespace
+    clean = re.sub(r"\s+", " ", clean).strip()
+
+    # Segment: insert spaces around known keywords
+    for kw in _SEGMENT_KEYWORDS:
+        clean = clean.replace(kw, f" {kw} ")
+
+    # Normalize again
+    clean = re.sub(r"\s+", " ", clean).strip()
+
+    # Filter: keep terms with ≥2 Chinese characters, or domain names
+    terms = clean.split()
+    result_terms: list[str] = []
+    for t in terms:
+        # Count Chinese chars
+        chinese_chars = len(re.findall(r"[一-鿿]", t))
+        if chinese_chars >= 2:
+            result_terms.append(t)
+
+    if not result_terms:
+        # Fallback: return original query stripped of markers
+        return clean if clean else query
+
+    return " ".join(result_terms)
+
+
+# ======================================================================
 # ACADEMIC SERVICE
 # ======================================================================
 
@@ -350,6 +419,7 @@ class AcademicService:
         error_code: str,
         reason: str,
         matched_keywords: list[str] | None = None,
+        corpus_records: list[CorpusRecord] | None = None,
     ) -> AcademicResponse:
         """P0-2: Unified fail-closed response.
 
@@ -380,38 +450,45 @@ class AcademicService:
             ),
         )
         # P0-6: All responses go through unified finalizer
-        return finalize_academic_response(response)
+        return finalize_academic_response(response, corpus_records=corpus_records)
 
     # ==================================================================
     # SHARED: Run pipeline + gate + validate proof
     # ==================================================================
 
     async def _run_gated_proof(
-        self, query: str, top_k: int
+        self,
+        gate_query: str,
+        top_k: int,
+        retrieval_query: str | None = None,
     ) -> tuple[GenerationProof, UnsupportedClaimVerdict, bool, str | None]:
         """Run pipeline, gate, and validate proof completeness.
 
         Returns (proof, verdict, gate_passed, fail_reason).
 
-        P0-3: Proof incompleteness is checked BEFORE gate/content processing.
+        P0-1: Only INTEGRITY_ERROR → binding failure. NO_EVIDENCE → let caller handle.
+        P0-3: retrieval_query is used for retrieval; gate_query for same-sentence check.
         """
+        actual_retrieval = retrieval_query if retrieval_query else gate_query
         pipeline = ProvedGenerationPipeline(self.session)
-        proof = await pipeline.generate_with_proof(query=query, top_k=top_k)
+        proof = await pipeline.generate_with_proof(query=actual_retrieval, top_k=top_k)
 
-        # P0-3: Check proof completeness first
-        if not proof.is_complete and proof.error_code is not None:
+        # P0-1: INTEGRITY_ERROR — proof validation failed with explicit error code
+        if proof.has_integrity_error:
             chunks_content = [r["content"] for r in proof.response.results]
-            verdict = _check_same_sentence_support(query, chunks_content)
-            # Proof failure overrides gate — use binding error
+            verdict = _check_same_sentence_support(gate_query, chunks_content)
             return proof, verdict, False, proof.error_code
 
-        # Gate: same-sentence evidence check
+        # P0-1: NO_EVIDENCE — empty retrieval, not an error
+        if proof.has_no_evidence:
+            verdict = _check_same_sentence_support(gate_query, [])
+            return proof, verdict, False, None
+
+        # Gate: same-sentence evidence check on gate_query (not retrieval_query)
         chunks_content = [r["content"] for r in proof.response.results]
-        verdict = _check_same_sentence_support(query, chunks_content)
+        verdict = _check_same_sentence_support(gate_query, chunks_content)
         gate_passed = verdict.is_supported
 
-        # P0-3: If refusal response but no explicit proof error code,
-        # still check: no claims means gate fails
         if not gate_passed:
             return proof, verdict, False, None
 
@@ -431,28 +508,19 @@ class AcademicService:
     # ==================================================================
 
     @classmethod
-    def _fail_on_proof_incomplete(
+    def _fail_on_proof_integrity_error(
         cls,
         query: str,
         academic_type: str,
         proof: GenerationProof,
     ) -> AcademicResponse | None:
-        """P0-3: If proof is incomplete, return fail-closed immediately.
+        """P0-1: Only fail closed on INTEGRITY_ERROR.
 
-        Returns None if proof is complete (caller should proceed).
+        Returns None if proof is ok to continue (valid or no_evidence).
+        Only returns fail-closed when proof.has_integrity_error.
         """
-        if proof.is_complete:
+        if not proof.has_integrity_error:
             return None
-
-        # Proof incomplete — fail closed, no factual payload
-        if not proof.response.results and proof.expected_claim_count == 0:
-            # Empty retrieval — use EMPTY_ACADEMIC_EVIDENCE
-            return cls._build_fail_closed(
-                query,
-                academic_type,
-                AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
-                "No evidence found",
-            )
 
         return cls._build_fail_closed(
             query,
@@ -462,71 +530,8 @@ class AcademicService:
         )
 
     # ==================================================================
-    # P1-3: REPRODUCIBILITY — hardened
+    # P1-3: REPRODUCIBILITY — now handled by unified finalize_academic_response
     # ==================================================================
-
-    @classmethod
-    def _build_reproducibility(
-        cls,
-        deterministic_payload: dict[str, Any],
-        all_results_chunks: list[dict],
-        cited_chunk_ids: list[str],
-        document_ids: list[str],
-    ) -> ReproducibilityMetadata:
-        """P1-3: Hardened reproducibility metadata.
-
-        - output_sha256: covers complete academic artifact, excludes itself
-        - corpus_sha256: deduped canonical source records
-        - ordered_cited_chunk_ids: deduped, stable order
-        - refusal responses also produce non-empty hashes
-        """
-        import json
-
-        # Output hash — deterministic payload, sorted keys
-        output_str = json.dumps(
-            deterministic_payload,
-            sort_keys=True,
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        output_sha = hashlib.sha256(output_str.encode()).hexdigest()
-
-        # Corpus hash — deduped by (document_id, chunk_id)
-        seen_corpus: set[tuple[str, str]] = set()
-        deduped_corpus: list[str] = []
-        for c in sorted(
-            all_results_chunks, key=lambda x: (x["document_id"], x["chunk_id"])
-        ):
-            key = (c["document_id"], c["chunk_id"])
-            if key not in seen_corpus:
-                seen_corpus.add(key)
-                deduped_corpus.append(
-                    f"{c['document_id']}:{c['chunk_id']}:{c.get('content', '')}"
-                )
-        corpus_str = "\n".join(deduped_corpus)
-        corpus_sha = hashlib.sha256(corpus_str.encode()).hexdigest()
-
-        return ReproducibilityMetadata(
-            output_sha256=output_sha,
-            corpus_sha256=corpus_sha,
-            ordered_cited_chunk_ids=list(dict.fromkeys(cited_chunk_ids)),
-            source_document_ids=sorted(set(document_ids)),
-        )
-
-    @staticmethod
-    def _build_results_chunks_from_proof(proof: GenerationProof) -> list[dict]:
-        """Extract result chunks from proof in deterministic order."""
-        return sorted(
-            [
-                {
-                    "document_id": r["document_id"],
-                    "chunk_id": r["chunk_id"],
-                    "content": r["content"],
-                }
-                for r in proof.response.results
-            ],
-            key=lambda x: (x["document_id"], x["chunk_id"]),
-        )
 
     # ==================================================================
     # 1. ACADEMIC REPORT GENERATOR
@@ -559,25 +564,40 @@ class AcademicService:
         report_sections: list[ReportSection] = []
         total_retrievals = 0
         final_verdict: UnsupportedClaimVerdict | None = None
-        all_results_chunks: list[dict] = []
+        all_corpus_records: list[CorpusRecord] = []
 
         for section_heading in sections:
             sub_query = f"{query} —— {section_heading}"
+            retrieval_q = build_academic_retrieval_query(sub_query)
             proof, verdict, gate_passed, fail_reason = await self._run_gated_proof(
-                sub_query, top_k
+                gate_query=sub_query,
+                top_k=top_k,
+                retrieval_query=retrieval_q,
             )
             total_retrievals += 1
             final_verdict = verdict
-            all_results_chunks.extend(self._build_results_chunks_from_proof(proof))
+            all_corpus_records.extend(_build_corpus_records_from_proof(proof))
 
-            # P0-3: Proof incompleteness → hard fail
-            if not proof.is_complete:
+            # P0-1: INTEGRITY_ERROR → hard fail
+            if proof.has_integrity_error:
                 return self._build_fail_closed(
                     query,
                     "report",
                     proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
-                    f"Proof integrity check failed for section '{section_heading}': {proof.error_code or 'incomplete'}",
+                    f"Proof integrity error for section '{section_heading}': {proof.error_code}",
                 )
+
+            # P0-1: NO_EVIDENCE → evidence gap for this section, other sections continue
+            if proof.has_no_evidence:
+                report_sections.append(
+                    ReportSection(
+                        heading=section_heading,
+                        body="EVIDENCE_GAP: 无相关资料。",
+                        citations=[],
+                        evidence=[],
+                    )
+                )
+                continue
 
             if not gate_passed:
                 report_sections.append(
@@ -639,7 +659,8 @@ class AcademicService:
                     total_documents=len(set(doc_ids)),
                 ),
                 gate_verdict=final_verdict,
-            )
+            ),
+            corpus_records=all_corpus_records,
         )
 
     # ==================================================================
@@ -648,14 +669,26 @@ class AcademicService:
 
     async def synthesize(self, query: str, top_k: int = 5) -> AcademicResponse:
         """P0-3: Synthesize knowledge with strict claim binding and proof check."""
+        retrieval_q = build_academic_retrieval_query(query)
         proof, verdict, gate_passed, fail_reason = await self._run_gated_proof(
-            query, top_k
+            gate_query=query,
+            top_k=top_k,
+            retrieval_query=retrieval_q,
         )
 
-        # P0-3: Proof incompleteness → fail closed
-        fail = self._fail_on_proof_incomplete(query, "synthesis", proof)
+        # P0-1: INTEGRITY_ERROR → fail closed
+        fail = self._fail_on_proof_integrity_error(query, "synthesis", proof)
         if fail is not None:
             return fail
+
+        # P0-1: NO_EVIDENCE → EMPTY_ACADEMIC_EVIDENCE
+        if proof.has_no_evidence:
+            return self._build_fail_closed(
+                query,
+                "synthesis",
+                AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
+                "No evidence found",
+            )
 
         if not gate_passed:
             reason = fail_reason if fail_reason else verdict.reason
@@ -708,7 +741,8 @@ class AcademicService:
                     total_documents=len(set(doc_ids)),
                 ),
                 gate_verdict=verdict,
-            )
+            ),
+            corpus_records=_build_corpus_records_from_proof(proof),
         )
 
     _CONCEPT_KEYWORDS: list[str] = [
@@ -794,26 +828,45 @@ class AcademicService:
     # 3. RESEARCH ASSISTANT MODE (P0-3: gate-first, P0-4: hypothesis from corpus)
     # ==================================================================
 
-    _RESEARCH_DECOMPOSE_PATTERNS: list[tuple[str, str]] = [
-        ("定义与概念", "什么是{query}？"),
-        ("历史与来源", "{query}的历史渊源是什么？"),
-        ("内容与结构", "{query}包含哪些内容？"),
-        ("关联与影响", "{query}与哪些概念或文献有关？"),
+    _RESEARCH_DECOMPOSE_PATTERNS: list[tuple[str, str, str]] = [
+        ("定义与概念", "什么是{query}？", "{query} 定义 概念"),
+        ("历史与来源", "{query}的历史渊源是什么？", "{query} 历史 来源"),
+        ("内容与结构", "{query}包含哪些内容？", "{query} 内容 结构"),
+        ("关联与影响", "{query}与哪些概念或文献有关？", "{query} 关联 影响 文献"),
     ]
 
     async def research(self, query: str, top_k: int = 5) -> AcademicResponse:
         """P0-3: Gate-first research. P0-4: Hypothesis from corpus only. P0-5: Hypothesis trace.
 
-        - Original query gate fails → immediate refusal, NO sub-queries.
-        - Proof incompleteness → overall fail.
-        - Hypothesis evidence trace must point to the exact hypothesis sentence.
+        Flow:
+        1. Classify original query for proposition patterns.
+        2. If original query is a gated proposition AND no supporting evidence → immediate UNSUPPORTED_PROPOSITION.
+        3. If original query is NOT a gated proposition → always proceed with decomposition even if retrieval is empty.
+        4. Each sub-question: INTEGRITY_ERROR → fail closed; NO_EVIDENCE → gap; VALID → evidence.
+        5. Hypothesis traces go into both sub.evidence and top-level evidence_trace.
         """
-        # P0-3: Run gate on original query FIRST
-        _, original_verdict, original_gate_passed, _ = await self._run_gated_proof(
-            query, top_k
+        # P0-2: Classify original query
+        classifications = _classify_query(query)
+
+        # Run retrieval for original query
+        retrieval_q = build_academic_retrieval_query(query)
+        proof, original_verdict, _, fail_reason = await self._run_gated_proof(
+            gate_query=query,
+            top_k=top_k,
+            retrieval_query=retrieval_q,
         )
 
-        if not original_gate_passed:
+        # P0-1: INTEGRITY_ERROR → fail closed
+        if proof.has_integrity_error:
+            return self._build_fail_closed(
+                query,
+                "research",
+                proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
+                f"Proof integrity error: {proof.error_code}",
+            )
+
+        # P0-2: Gated proposition + no evidence → immediate refusal
+        if classifications and proof.has_no_evidence:
             return self._build_fail_closed(
                 query,
                 "research",
@@ -822,39 +875,59 @@ class AcademicService:
                 original_verdict.matched_keywords,
             )
 
-        # Gate passed — proceed with sub-question decomposition
+        # P0-2: Gated proposition + evidence doesn't pass same-sentence gate → refusal
+        if classifications and not original_verdict.is_supported:
+            return self._build_fail_closed(
+                query,
+                "research",
+                AcademicErrorCode.UNSUPPORTED_PROPOSITION,
+                original_verdict.reason,
+                original_verdict.matched_keywords,
+            )
+
+        # P0-2: Not a gated proposition, or gate passed → proceed with decomposition
         sub_questions: list[ResearchSubQuestion] = []
         all_claims: list[VerifiedClaim] = []
         hypothesis_traces: list[EvidenceTrace] = []
-        all_results_chunks: list[dict] = []
+        all_corpus_records: list[list[CorpusRecord]] = []
         total_retrievals = 0
 
-        for aspect, template in self._RESEARCH_DECOMPOSE_PATTERNS:
-            sub_q = template.replace("{query}", query)
+        for (
+            aspect,
+            display_template,
+            retrieval_template,
+        ) in self._RESEARCH_DECOMPOSE_PATTERNS:
+            sub_display = display_template.replace("{query}", query)
+            sub_retrieval = retrieval_template.replace("{query}", query)
 
             (
-                proof,
+                sub_proof,
                 sub_verdict,
                 sub_gate_passed,
-                fail_reason,
-            ) = await self._run_gated_proof(sub_q, top_k)
+                sub_fail_reason,
+            ) = await self._run_gated_proof(
+                gate_query=sub_display,
+                top_k=top_k,
+                retrieval_query=sub_retrieval,
+            )
             total_retrievals += 1
-            all_results_chunks.extend(self._build_results_chunks_from_proof(proof))
+            all_corpus_records.append(_build_corpus_records_from_proof(sub_proof))
 
-            # P0-3: Proof incompleteness → hard fail for research module
-            if not proof.is_complete:
+            # P0-1: INTEGRITY_ERROR → hard fail
+            if sub_proof.has_integrity_error:
                 return self._build_fail_closed(
                     query,
                     "research",
-                    proof.error_code or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
-                    f"Proof integrity check failed for sub-question '{sub_q}': {proof.error_code or 'incomplete'}",
+                    sub_proof.error_code
+                    or AcademicErrorCode.ACADEMIC_CLAIM_BINDING_FAILED,
+                    f"Proof integrity error for sub-question '{sub_display}': {sub_proof.error_code}",
                 )
 
-            if not sub_gate_passed:
-                # P0-3: sub-gate failure → pure gap, no evidence, no hypothesis
+            # P0-1: NO_EVIDENCE → gap
+            if sub_proof.has_no_evidence:
                 sub_questions.append(
                     ResearchSubQuestion(
-                        sub_question=sub_q,
+                        sub_question=sub_display,
                         evidence=[],
                         has_gap=True,
                         hypothesis=None,
@@ -862,11 +935,23 @@ class AcademicService:
                 )
                 continue
 
-            sub_claims = proof.verified_claims
+            # Gate didn't pass → gap
+            if not sub_gate_passed:
+                sub_questions.append(
+                    ResearchSubQuestion(
+                        sub_question=sub_display,
+                        evidence=[],
+                        has_gap=True,
+                        hypothesis=None,
+                    )
+                )
+                continue
+
+            sub_claims = sub_proof.verified_claims
             if not sub_claims:
                 sub_questions.append(
                     ResearchSubQuestion(
-                        sub_question=sub_q,
+                        sub_question=sub_display,
                         evidence=[],
                         has_gap=True,
                         hypothesis=None,
@@ -876,29 +961,26 @@ class AcademicService:
 
             all_claims.extend(sub_claims)
 
+            # P0-5: Sub-question evidence = canonical evidence (claims_to_traces)
+            sub_evidence = self._claims_to_traces(sub_claims)
+
             # P0-4, P0-5: Hypothesis from corpus speculative expressions WITH exact trace
             hypothesis: str | None = None
             hypothesis_evidence: list[EvidenceTrace] = []
 
             for vc in sub_claims:
-                # Look up the exact chunk content
                 chunk_content = ""
-                for r in proof.response.results:
+                for r in sub_proof.response.results:
                     if r["chunk_id"] == vc.chunk_id:
                         chunk_content = r["content"]
                         break
                 if chunk_content:
                     extracted = _extract_hypothesis_from_chunk(chunk_content)
                     if extracted:
-                        # P0-5: Create a new VerifiedClaim for the hypothesis sentence itself
                         hypothesis_norm = _normalize_whitespace(extracted)
                         chunk_norm = _normalize_whitespace(chunk_content)
-
-                        # The hypothesis sentence must be in the chunk
                         if hypothesis_norm in chunk_norm:
                             hypothesis = f"{extracted}{vc.citation_str}"
-                            # P0-5: EvidenceTrace for hypothesis must point to the
-                            # EXACT hypothesis sentence, not a different sentence
                             hyp_trace = EvidenceTrace(
                                 claim_text=extracted,
                                 quote=extracted,
@@ -908,12 +990,15 @@ class AcademicService:
                             )
                             hypothesis_evidence.append(hyp_trace)
                             hypothesis_traces.append(hyp_trace)
-                            break  # First speculative sentence wins
+                            break
+
+            # P0-5: Sub-question evidence includes hypothesis traces
+            sub_evidence = _dedup_traces(sub_evidence + hypothesis_evidence)
 
             sub_questions.append(
                 ResearchSubQuestion(
-                    sub_question=sub_q,
-                    evidence=self._claims_to_traces(sub_claims),
+                    sub_question=sub_display,
+                    evidence=sub_evidence,
                     has_gap=False,
                     hypothesis=hypothesis,
                 )
@@ -923,10 +1008,14 @@ class AcademicService:
         # P0-5: Include hypothesis traces in top-level evidence_trace
         all_traces = _dedup_traces(all_traces + hypothesis_traces)
         all_citations = self._claims_to_citations(all_claims)
-        # Add hypothesis citations
         for ht in hypothesis_traces:
             all_citations = _merge_citation(all_citations, ht)
         doc_ids = list(dict.fromkeys(vc.document_id for vc in all_claims))
+
+        # Determine gate verdict for response
+        gate_verdict = (
+            original_verdict if not original_verdict.is_supported else original_verdict
+        )
 
         return finalize_academic_response(
             AcademicResponse(
@@ -941,8 +1030,9 @@ class AcademicService:
                     total_retrievals=total_retrievals,
                     total_documents=len(set(doc_ids)),
                 ),
-                gate_verdict=original_verdict,
-            )
+                gate_verdict=gate_verdict,
+            ),
+            corpus_records=_merge_corpus_records(*all_corpus_records),
         )
 
     # ==================================================================
@@ -957,14 +1047,26 @@ class AcademicService:
         - Every paragraph ends with citation marker.
         - No text-length-based level assignment.
         """
+        retrieval_q = build_academic_retrieval_query(query)
         proof, verdict, gate_passed, fail_reason = await self._run_gated_proof(
-            query, top_k
+            gate_query=query,
+            top_k=top_k,
+            retrieval_query=retrieval_q,
         )
 
-        # P0-3: Proof incompleteness → fail closed
-        fail = self._fail_on_proof_incomplete(query, "education", proof)
+        # P0-1: INTEGRITY_ERROR → fail closed
+        fail = self._fail_on_proof_integrity_error(query, "education", proof)
         if fail is not None:
             return fail
+
+        # P0-1: NO_EVIDENCE → EMPTY_ACADEMIC_EVIDENCE
+        if proof.has_no_evidence:
+            return self._build_fail_closed(
+                query,
+                "education",
+                AcademicErrorCode.EMPTY_ACADEMIC_EVIDENCE,
+                "No evidence to create educational explanation",
+            )
 
         if not gate_passed:
             reason = fail_reason if fail_reason else verdict.reason
@@ -1038,7 +1140,8 @@ class AcademicService:
                     total_documents=len(set(doc_ids)),
                 ),
                 gate_verdict=verdict,
-            )
+            ),
+            corpus_records=_build_corpus_records_from_proof(proof),
         )
 
     @staticmethod
@@ -1093,8 +1196,17 @@ def _merge_citation(
 
 
 # ======================================================================
-# P0-6: UNIFIED FINALIZER — complete artifact hash
+# P0-6: UNIFIED FINALIZER — complete artifact hash with full chunk content
 # ======================================================================
+
+
+@dataclass(frozen=True)
+class CorpusRecord:
+    """P0-6: A retrieval snapshot record with full chunk content."""
+
+    document_id: str
+    chunk_id: str
+    content: str  # full chunk content, not just the quote
 
 
 def _canonical_json(payload: dict) -> str:
@@ -1109,11 +1221,16 @@ def _canonical_json(payload: dict) -> str:
 
 def finalize_academic_response(
     response: AcademicResponse,
+    corpus_records: list[CorpusRecord] | None = None,
 ) -> AcademicResponse:
     """P0-6: Unified finalizer — computes complete artifact hashes.
 
+    corpus_records: real retrieval snapshot with full chunk content.
+    If None, builds from evidence_trace (backward compat for refusal responses).
+    If empty list, corpus_sha256 = sha256(b"").
+
     Steps:
-    1. Build deduped, sorted corpus records from evidence + citations
+    1. Build deduped, sorted corpus records from full chunk content
     2. Compute corpus_sha256 (non-empty even for empty corpus)
     3. Write pipeline_version, ordered_cited_chunk_ids, source_document_ids
     4. Set output_sha256 to "" temporarily
@@ -1132,18 +1249,33 @@ def finalize_academic_response(
     repro.source_document_ids = doc_ids
     repro.pipeline_version = "academic-grounded-v2-p0"
 
-    # Corpus hash — from evidence trace content
-    # ponytail: builds corpus records from evidence_trace since we don't
-    # have chunk content in the response schema itself. The evidence trace
-    # quotes ARE the corpus content.
-    corpus_parts: list[str] = []
-    seen_corpus: set[tuple[str, str]] = set()
-    for t in sorted(response.evidence_trace, key=lambda x: (x.document_id, x.chunk_id)):
-        key = (t.document_id, t.chunk_id)
-        if key not in seen_corpus:
-            seen_corpus.add(key)
-            corpus_parts.append(f"{t.document_id}:{t.chunk_id}:{t.quote}")
-    corpus_str = "\n".join(corpus_parts)
+    # P0-6: Corpus hash from full chunk content, NOT from quotes
+    if corpus_records is None:
+        # Backward compat: fall back to evidence trace quotes
+        corpus_parts: list[str] = []
+        seen_corpus: set[tuple[str, str]] = set()
+        for t in sorted(
+            response.evidence_trace, key=lambda x: (x.document_id, x.chunk_id)
+        ):
+            key = (t.document_id, t.chunk_id)
+            if key not in seen_corpus:
+                seen_corpus.add(key)
+                corpus_parts.append(f"{t.document_id}:{t.chunk_id}:{t.quote}")
+        corpus_str = "\n".join(corpus_parts)
+    elif not corpus_records:
+        # Empty corpus → sha256(b"")
+        corpus_str = ""
+    else:
+        # P0-6: Full chunk content, sorted, deduped
+        seen_corpus: set[tuple[str, str]] = set()
+        corpus_parts: list[str] = []
+        for cr in sorted(corpus_records, key=lambda x: (x.document_id, x.chunk_id)):
+            key = (cr.document_id, cr.chunk_id)
+            if key not in seen_corpus:
+                seen_corpus.add(key)
+                corpus_parts.append(f"{cr.document_id}:{cr.chunk_id}:{cr.content}")
+        corpus_str = "\n".join(corpus_parts)
+
     repro.corpus_sha256 = hashlib.sha256(corpus_str.encode()).hexdigest()
 
     # Set output_sha256 empty first, then compute
@@ -1158,3 +1290,34 @@ def finalize_academic_response(
     response.metadata.reproducibility = repro
 
     return response
+
+
+def _build_corpus_records_from_proof(proof: GenerationProof) -> list[CorpusRecord]:
+    """P0-6: Build CorpusRecord list from a GenerationProof's retrieval snapshot."""
+    seen: set[tuple[str, str]] = set()
+    records: list[CorpusRecord] = []
+    for r in proof.response.results:
+        key = (r["document_id"], r["chunk_id"])
+        if key not in seen:
+            seen.add(key)
+            records.append(
+                CorpusRecord(
+                    document_id=r["document_id"],
+                    chunk_id=r["chunk_id"],
+                    content=r["content"],
+                )
+            )
+    return records
+
+
+def _merge_corpus_records(*record_lists: list[CorpusRecord]) -> list[CorpusRecord]:
+    """P0-6: Merge multiple CorpusRecord lists, deduplicating by (document_id, chunk_id)."""
+    seen: set[tuple[str, str]] = set()
+    merged: list[CorpusRecord] = []
+    for records in record_lists:
+        for cr in records:
+            key = (cr.document_id, cr.chunk_id)
+            if key not in seen:
+                seen.add(key)
+                merged.append(cr)
+    return merged
