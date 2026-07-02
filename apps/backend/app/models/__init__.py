@@ -23,11 +23,12 @@ from app.models.passage import Passage
 from app.models.person import Person
 from app.models.user import User, Role, Permission
 from app.models.version import Version
-from app.models.workspace import ResearchSession, ResearchNote
+from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection
 
 __all__ = [
     "Book",
     "Chapter",
+    "CitationCollection",
     "Document",
     "DocumentChunk",
     "EntityRelation",
@@ -36,10 +37,11 @@ __all__ = [
     "Paper",
     "Passage",
     "Person",
+    "Permission",
+    "QueryHistory",
     "ResearchNote",
     "ResearchSession",
     "Role",
     "User",
     "Version",
-    "Permission",
 ]
