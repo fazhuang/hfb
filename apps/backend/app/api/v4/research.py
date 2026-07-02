@@ -287,7 +287,7 @@ async def execute_research_workflow(
                 trace_ids=step_trace,
             ))
 
-        except Exception as exc:
+        except Exception:
             logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
             steps.append(V4WorkflowStep(
                 name=step_name,

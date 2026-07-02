@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
@@ -87,14 +87,14 @@ async def generate_visualization_graph(
         cg = await gs.build_concept_graph(body.concept_labels)
         graph = _convert_concept_graph_to_viz(cg)
         source_entities = body.concept_labels
-        edge_evidence = [e.evidence_ids for e in graph.edges]
+        [e.evidence_ids for e in graph.edges]
 
     elif body.graph_type == "citation":
         cg = await gs.build_concept_graph(body.concept_labels)
         graph = _convert_concept_graph_to_viz(cg)
         graph.edges = [e for e in graph.edges if e.type == "citation"] or graph.edges
         source_entities = body.concept_labels
-        edge_evidence = [e.evidence_ids for e in graph.edges]
+        [e.evidence_ids for e in graph.edges]
 
     elif body.graph_type == "timeline":
         cda = await gs.cross_document_analysis(
@@ -104,7 +104,6 @@ async def generate_visualization_graph(
         nodes = [_claim_to_viz_node(c) for c in claims]
         graph = VisualizationGraph(nodes=nodes, edges=[])
         source_entities = [c.document_id for c in claims]
-        edge_evidence = []
 
     elif body.graph_type == "document":
         cda = await gs.cross_document_analysis(
@@ -126,7 +125,6 @@ async def generate_visualization_graph(
         ]
         graph = VisualizationGraph(nodes=nodes, edges=edges)
         source_entities = doc_ids
-        edge_evidence = []
 
     traceability = V4TraceabilityBlock(
         query_id="",
