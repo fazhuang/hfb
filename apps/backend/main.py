@@ -13,6 +13,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from app.api import health, ready, version
 from app.api.v1 import router as v1_router
 from app.api.v2 import router as v2_router
+from app.api.v4 import v4_router
 from app.core.config import settings
 from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging, get_logger
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(version.router, tags=["Version"])
     app.include_router(v1_router)
     app.include_router(v2_router, prefix="/api/v2")
+    app.include_router(v4_router)
 
     return app
 
