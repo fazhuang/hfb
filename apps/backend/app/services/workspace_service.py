@@ -12,7 +12,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.workspace import ResearchSession, ResearchNote
+from app.models.workspace import CitationCollection, QueryHistory, ResearchNote, ResearchSession
 
 
 class WorkspaceService:
@@ -202,3 +202,107 @@ class WorkspaceService:
         result = await self.session.execute(stmt)
         row = result.one_or_none()
         return row if row else None
+
+    # ------------------------------------------------------------------
+    # QueryHistory — V4 product layer
+    # ------------------------------------------------------------------
+
+    async def create_query_history(
+        self,
+        session_id: UUID | str,
+        query_text: str,
+        query_type: str,
+        result_summary: str | None = None,
+        citation_count: int = 0,
+    ) -> QueryHistory:
+        qh = QueryHistory(
+            session_id=str(session_id),
+            query_text=query_text,
+            query_type=query_type,
+            result_summary=result_summary,
+            citation_count=citation_count,
+        )
+        self.session.add(qh)
+        await self.session.flush()
+        return qh
+
+    async def get_query_history(
+        self, session_id: UUID | str, limit: int = 50
+    ) -> list[QueryHistory]:
+        stmt = (
+            select(QueryHistory)
+            .where(QueryHistory.session_id == str(session_id))
+            .order_by(QueryHistory.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    # ------------------------------------------------------------------
+    # CitationCollection — V4 product layer
+    # ------------------------------------------------------------------
+
+    async def create_citation(
+        self,
+        session_id: UUID | str,
+        trace_json: str,
+        citation_text: str,
+        source_document: str,
+        tags: str | None = None,
+        notes: str | None = None,
+    ) -> CitationCollection:
+        cc = CitationCollection(
+            session_id=str(session_id),
+            trace_json=trace_json,
+            citation_text=citation_text,
+            source_document=source_document,
+            tags=tags,
+            notes=notes,
+        )
+        self.session.add(cc)
+        await self.session.flush()
+        return cc
+
+    async def list_citations(
+        self, session_id: UUID | str, limit: int = 100
+    ) -> list[CitationCollection]:
+        stmt = (
+            select(CitationCollection)
+            .where(CitationCollection.session_id == str(session_id))
+            .order_by(CitationCollection.created_at.desc())
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def update_citation(
+        self,
+        citation_id: UUID | str,
+        tags: str | None = None,
+        notes: str | None = None,
+    ) -> CitationCollection | None:
+        stmt = select(CitationCollection).where(
+            CitationCollection.id == str(citation_id)
+        )
+        result = await self.session.execute(stmt)
+        citation = result.scalar_one_or_none()
+        if citation is None:
+            return None
+        if tags is not None:
+            citation.tags = tags
+        if notes is not None:
+            citation.notes = notes
+        await self.session.flush()
+        return citation
+
+    async def delete_citation(self, citation_id: UUID | str) -> bool:
+        stmt = select(CitationCollection).where(
+            CitationCollection.id == str(citation_id)
+        )
+        result = await self.session.execute(stmt)
+        citation = result.scalar_one_or_none()
+        if citation is None:
+            return False
+        await self.session.delete(citation)
+        await self.session.flush()
+        return True
