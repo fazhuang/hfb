@@ -201,7 +201,7 @@ async def education_learn(
     )
 
     # Build full-fidelity internal traces
-    internal_records = build_internal_traces(result.evidence_trace)
+    internal_records = await build_internal_traces(db, result.evidence_trace)
 
     # Record query history
     qh = await ws.create_query_history(
