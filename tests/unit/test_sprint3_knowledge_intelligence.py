@@ -1038,16 +1038,21 @@ async def main():
 asyncio.run(main())
 '''
 
+        import os as _os
+        _test_dir = _os.path.dirname(_os.path.abspath(__file__))
+        _repo_root = _os.path.dirname(_os.path.dirname(_test_dir))
+        _backend_dir = _os.path.join(_repo_root, "apps", "backend")
+
         outputs = []
         for seed in [1, 2, 99]:
             env = os.environ.copy()
             env["PYTHONHASHSEED"] = str(seed)
-            env["PYTHONPATH"] = os.getcwd()
+            env["PYTHONPATH"] = _backend_dir
             proc = subprocess.run(
                 [sys.executable, "-c", worker_code],
                 capture_output=True,
                 env=env,
-                cwd=os.getcwd(),
+                cwd=_backend_dir,
             )
             assert proc.returncode == 0, (
                 f"PYTHONHASHSEED={seed} failed (rc={proc.returncode}): "
