@@ -5,6 +5,7 @@ STRICT: No ORM access. All data through existing services.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
@@ -27,6 +28,8 @@ from app.services.academic_service import AcademicService
 from app.services.dashboard_service import DashboardService
 from app.services.graph_service import GraphService
 from app.services.workspace_service import WorkspaceService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/research", tags=["Research V4"])
 
@@ -112,10 +115,8 @@ async def execute_research_query(
 
     # Verify session exists and is owned
     research_session = await ws.get_session(body.session_id)
-    if research_session is None:
+    if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
-    # ponytail: session ownership check is implicit via user-scoped list; explicit
-    # check added only if multi-user session access becomes a requirement
 
     # Route to appropriate service
     if body.mode == "graph":
@@ -203,7 +204,7 @@ async def execute_research_workflow(
     """
     ws = WorkspaceService(db)
     research_session = await ws.get_session(body.session_id)
-    if research_session is None:
+    if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     run_id = str(uuid4())
@@ -287,10 +288,11 @@ async def execute_research_workflow(
             ))
 
         except Exception as exc:
+            logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
             steps.append(V4WorkflowStep(
                 name=step_name,
                 status="failed",
-                result={"error": str(exc)},
+                result={"error": "Workflow step encountered an internal error"},
                 trace_ids=[],
             ))
 
