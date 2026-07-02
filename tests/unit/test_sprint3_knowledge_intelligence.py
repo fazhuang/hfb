@@ -895,7 +895,6 @@ class TestHTTPDeterminism:
         from fastapi import FastAPI
         from app.api.v1.graph import router as graph_router
         from app.db.database import get_session
-        from app.middleware.auth import require_permission
 
         app = FastAPI()
 
