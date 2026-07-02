@@ -1042,12 +1042,12 @@ asyncio.run(main())
         for seed in [1, 2, 99]:
             env = os.environ.copy()
             env["PYTHONHASHSEED"] = str(seed)
-            env["PYTHONPATH"] = os.path.join(os.getcwd(), "apps", "backend")
+            env["PYTHONPATH"] = os.getcwd()
             proc = subprocess.run(
                 [sys.executable, "-c", worker_code],
                 capture_output=True,
                 env=env,
-                cwd=os.path.join(os.getcwd(), "apps", "backend"),
+                cwd=os.getcwd(),
             )
             assert proc.returncode == 0, (
                 f"PYTHONHASHSEED={seed} failed (rc={proc.returncode}): "
