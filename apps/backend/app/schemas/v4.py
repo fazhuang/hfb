@@ -58,28 +58,48 @@ class V4EducationLearnRequest(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# V4 internal trace record — full-fidelity lineage stored in QueryHistory
+# ---------------------------------------------------------------------------
+
+
+class InternalTraceRecord(BaseModel):
+    """Internal full-fidelity trace record stored in QueryHistory.result_summary.
+
+    NEVER exposed through API. trace_id is a stable identifier distinct from chunk_id.
+    """
+    model_config = ConfigDict(extra="forbid", strict=True)
+    trace_id: str = Field(..., min_length=1, description="Stable unique trace identifier (not chunk_id)")
+    document_id: str = Field(..., min_length=1)
+    chunk_id: str = Field(..., min_length=1)
+    passage_id: str | None = None
+    retrieval_score: float | None = None
+    retrieval_method: str | None = None
+    timestamp: str | None = None
+
+
+# ---------------------------------------------------------------------------
 # Visualization strict schemas — no free-form, every edge carries evidence
 # ---------------------------------------------------------------------------
 
 
 class VisualizationNode(BaseModel):
-    """Strict visualization node — no free-form fields."""
+    """Strict visualization node — min_length=1 on trace_ids, no free-form fields."""
     model_config = ConfigDict(extra="forbid", strict=True)
     id: str
     type: Literal["concept", "document", "entity"]
     label: str
     metadata: dict[str, str] = Field(default_factory=dict)
-    trace_ids: list[str] = Field(default_factory=list)
+    trace_ids: list[str] = Field(..., min_length=1)
 
 
 class VisualizationEdge(BaseModel):
-    """Strict visualization edge — every edge carries evidence backlinks."""
+    """Strict visualization edge — evidence_ids min_length=1, every edge carries evidence."""
     model_config = ConfigDict(extra="forbid", strict=True)
     source: str
     target: str
     type: Literal["citation", "hierarchy", "co_occurrence", "similarity", "timeline"]
-    weight: float
-    evidence_ids: list[str] = Field(default_factory=list)
+    weight: float = Field(..., ge=0.0, le=1.0)
+    evidence_ids: list[str] = Field(..., min_length=1)
 
 
 class VisualizationGraph(BaseModel):

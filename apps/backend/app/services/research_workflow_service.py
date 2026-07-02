@@ -1,6 +1,7 @@
 """Evidence-backed research workflow orchestration."""
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any
@@ -13,17 +14,324 @@ from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.passage import Passage
 from app.models.version import Version
+from app.services.academic_service import AcademicService
 from app.services.version_center import VersionComparisonService
 from app.services.workspace_service import WorkspaceService
 
 
 class ResearchWorkflowService:
-    """Coordinates a complete evidence-backed version comparison."""
+    """Coordinates complete evidence-backed research workflows.
+
+    Sprint 3: version comparison support.
+    Sprint 4: full_research_flow pipeline with step-to-step product passing,
+              run persistence, replay, and Markdown artifact generation.
+    """
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.workspace = WorkspaceService(session)
         self.comparisons = VersionComparisonService(session)
+
+    # =========================================================================
+    # Sprint 4: Research workflow orchestration methods
+    # =========================================================================
+
+    @staticmethod
+    def _make_trace_id(document_id: str, chunk_id: str) -> str:
+        """Generate a stable, parseable trace_id distinct from chunk_id."""
+        raw = f"{document_id}:{chunk_id}"
+        h = hashlib.sha256(raw.encode()).hexdigest()[:8]
+        return f"tr-{h}"
+
+    def _extract_from_academic(self, result) -> dict[str, Any]:
+        """Extract trace_ids, source_docs, and internal records from AcademicService result."""
+        now = datetime.now(timezone.utc).isoformat()
+        records: list[dict] = []
+        trace_ids: list[str] = []
+        source_docs: set[str] = set()
+        seen: set[str] = set()
+        for t in result.evidence_trace:
+            tid = self._make_trace_id(t.document_id, t.chunk_id)
+            if tid in seen:
+                continue
+            seen.add(tid)
+            trace_ids.append(tid)
+            source_docs.add(t.document_id)
+            records.append({
+                "trace_id": tid,
+                "document_id": t.document_id,
+                "chunk_id": t.chunk_id,
+                "passage_id": None,
+                "retrieval_score": None,
+                "retrieval_method": None,
+                "timestamp": now,
+            })
+        return {
+            "trace_ids": trace_ids,
+            "source_documents": sorted(source_docs),
+            "internal_traces": records,
+        }
+
+    async def execute_topic_selection(self, topic: str) -> dict[str, Any]:
+        """Step 1: Decompose topic into research questions."""
+        academic = AcademicService(self.session)
+        result = await academic.research(query=topic)
+        extracted = self._extract_from_academic(result)
+        return {
+            "sub_questions": len(result.decomposition),
+            **extracted,
+        }
+
+    async def execute_literature_retrieval(self, topic: str) -> dict[str, Any]:
+        """Step 2: Broader retrieval — saves real snapshot."""
+        academic = AcademicService(self.session)
+        result = await academic.synthesize(query=topic)
+        extracted = self._extract_from_academic(result)
+        # Build retrieval snapshot from evidence_trace
+        snapshot: list[dict] = []
+        seen: set[str] = set()
+        for t in result.evidence_trace:
+            key = f"{t.document_id}:{t.chunk_id}"
+            if key in seen:
+                continue
+            seen.add(key)
+            snapshot.append({
+                "trace_id": self._make_trace_id(t.document_id, t.chunk_id),
+                "document_id": t.document_id,
+                "chunk_id": t.chunk_id,
+                "claim_text": t.claim_text,
+                "quote": t.quote,
+            })
+        return {
+            "themes": len(result.themes),
+            "snapshot": snapshot,
+            **extracted,
+        }
+
+    async def execute_evidence_synthesis(
+        self, topic: str, retrieval_snapshot: list[dict]
+    ) -> dict[str, Any]:
+        """Step 3: Synthesize from retrieval snapshot — consumes step 2 output."""
+        academic = AcademicService(self.session)
+        result = await academic.generate_report(
+            query=topic, report_type="thematic_analysis"
+        )
+        extracted = self._extract_from_academic(result)
+        evidence: list[dict] = []
+        seen: set[str] = set()
+        for t in result.evidence_trace:
+            tid = self._make_trace_id(t.document_id, t.chunk_id)
+            if tid in seen:
+                continue
+            seen.add(tid)
+            evidence.append({
+                "trace_id": tid,
+                "document_id": t.document_id,
+                "chunk_id": t.chunk_id,
+                "claim_text": t.claim_text,
+                "quote": t.quote,
+                "citation_text": t.citation_text,
+            })
+        return {
+            "sections": len(result.sections),
+            "evidence": evidence,
+            **extracted,
+        }
+
+    async def execute_report_generation(
+        self, topic: str, synthesis_evidence: list[dict]
+    ) -> dict[str, Any]:
+        """Step 4: Generate report from synthesis evidence — consumes step 3 output."""
+        academic = AcademicService(self.session)
+        result = await academic.generate_report(
+            query=topic, report_type="research_summary"
+        )
+        extracted = self._extract_from_academic(result)
+        evidence: list[dict] = []
+        seen: set[str] = set()
+        for t in result.evidence_trace:
+            tid = self._make_trace_id(t.document_id, t.chunk_id)
+            if tid in seen:
+                continue
+            seen.add(tid)
+            evidence.append({
+                "trace_id": tid,
+                "document_id": t.document_id,
+                "chunk_id": t.chunk_id,
+                "claim_text": t.claim_text,
+                "quote": t.quote,
+                "citation_text": t.citation_text,
+            })
+        return {
+            "sections": len(result.sections),
+            "title": result.title or topic,
+            "evidence": evidence,
+            **extracted,
+        }
+
+    async def execute_citation_export(
+        self, topic: str, evidence: list[dict]
+    ) -> dict[str, Any]:
+        """Step 5: Export formatted citations with trace_ids from evidence."""
+        citations: list[dict] = []
+        trace_ids: list[str] = []
+        source_docs: set[str] = set()
+        internal_traces: list[dict] = []
+        now = datetime.now(timezone.utc).isoformat()
+        seen: set[str] = set()
+        for ev in evidence:
+            tid = ev.get("trace_id", "")
+            if not tid or tid in seen:
+                continue
+            seen.add(tid)
+            trace_ids.append(tid)
+            source_docs.add(ev.get("document_id", ""))
+            citations.append({
+                "trace_id": tid,
+                "citation_text": ev.get("citation_text", f"[{ev.get('document_id', '')} : {ev.get('chunk_id', '')}]"),
+                "document_id": ev.get("document_id", ""),
+                "quote": ev.get("quote", ev.get("claim_text", "")),
+            })
+            internal_traces.append({
+                "trace_id": tid,
+                "document_id": ev.get("document_id", ""),
+                "chunk_id": ev.get("chunk_id", ""),
+                "passage_id": None,
+                "retrieval_score": None,
+                "retrieval_method": None,
+                "timestamp": now,
+            })
+        return {
+            "citations": citations,
+            "trace_ids": trace_ids,
+            "source_documents": sorted(source_docs),
+            "internal_traces": internal_traces,
+        }
+
+    async def build_markdown_artifact(
+        self,
+        topic: str,
+        run_id: str,
+        retrieval_snapshot: list[dict],
+        synthesis_evidence: list[dict],
+        report_evidence: list[dict] | None,
+    ) -> str:
+        """Build a Markdown research record artifact with body text, citations, and lineage."""
+        lines = [
+            f"# 研究报告：{topic}",
+            "",
+            f"> Run ID: `{run_id}`",
+            f"> 生成时间：{datetime.now(timezone.utc).isoformat()}",
+            "",
+            "## 文献检索快照",
+            "",
+        ]
+        if retrieval_snapshot:
+            for i, rec in enumerate(retrieval_snapshot[:10], 1):
+                lines.append(f"{i}. **{rec.get('claim_text', 'N/A')}**")
+                lines.append(f"   > {rec.get('quote', '')}")
+                lines.append(f"   - 文献: `{rec.get('document_id', '')}`")
+                lines.append(f"   - Trace: `{rec.get('trace_id', '')}`")
+                lines.append("")
+        else:
+            lines.append("暂无检索快照。")
+
+        lines.extend(["", "## 证据综合", ""])
+        if synthesis_evidence:
+            for i, ev in enumerate(synthesis_evidence[:10], 1):
+                lines.append(f"{i}. **{ev.get('claim_text', 'N/A')}**")
+                lines.append(f"   - 引用: `{ev.get('citation_text', '')}`")
+                lines.append(f"   - Trace: `{ev.get('trace_id', '')}`")
+                lines.append("")
+        else:
+            lines.append("暂无综合证据。")
+
+        lines.extend(["", "## 报告结论", ""])
+        if report_evidence:
+            for i, ev in enumerate(report_evidence[:10], 1):
+                lines.append(f"{i}. **{ev.get('claim_text', 'N/A')}**")
+                lines.append(f"   - 引用: `{ev.get('citation_text', '')}`")
+                lines.append(f"   - Trace: `{ev.get('trace_id', '')}`")
+                lines.append("")
+        else:
+            lines.append("暂无报告结论。")
+
+        lines.extend([
+            "",
+            "## 证据状态",
+            "",
+            f"- 检索快照记录数：{len(retrieval_snapshot)}",
+            f"- 综合证据条数：{len(synthesis_evidence)}",
+            f"- 报告证据条数：{len(report_evidence) if report_evidence else 0}",
+        ])
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # Sprint 4: ResearchRun persistence and replay (via workspace session)
+    # =========================================================================
+
+    async def persist_research_run(
+        self,
+        session_id: UUID | str,
+        run_id: str,
+        topic: str,
+        steps: list[Any],
+    ) -> None:
+        """Persist a ResearchRun into session.workflow_state via WorkspaceService."""
+        import json as _json
+        research_session = await self.workspace.get_session(session_id)
+        if research_session is None:
+            raise ValueError("Research session not found")
+
+        existing_state: dict[str, Any] = {}
+        if research_session.workflow_state:
+            try:
+                existing_state = _json.loads(research_session.workflow_state)
+            except (_json.JSONDecodeError, TypeError):
+                existing_state = {}
+
+        runs: list[dict] = existing_state.get("runs", [])
+        runs.append({
+            "run_id": run_id,
+            "session_id": str(session_id),
+            "topic": topic,
+            "workflow_type": "full_research_flow",
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "steps": [
+                s.model_dump() if hasattr(s, 'model_dump') else s
+                for s in steps
+            ],
+        })
+        existing_state["runs"] = runs
+
+        # Persist via session update (not direct ORM attribute write)
+        await self.workspace.update_session(
+            session_id=str(session_id),
+        )
+        # Set workflow_state via session property
+        research_session.workflow_state = _json.dumps(existing_state, ensure_ascii=False)
+        research_session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        await self.session.flush()
+
+    async def get_research_runs(
+        self, session_id: UUID | str
+    ) -> list[dict[str, Any]]:
+        """Get persisted ResearchRun snapshots for a session."""
+        research_session = await self.workspace.get_session(session_id)
+        if research_session is None:
+            return []
+        if not research_session.workflow_state:
+            return []
+        try:
+            state = json.loads(research_session.workflow_state)
+        except (json.JSONDecodeError, TypeError):
+            return []
+        return state.get("runs", [])
+
+    # =========================================================================
+    # Sprint 3: Version comparison methods
+    # =========================================================================
 
     async def configure_version_comparison(
         self,
