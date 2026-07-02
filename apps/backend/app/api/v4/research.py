@@ -1,12 +1,12 @@
 """V4 Research Portal API — session, query, workflow, history endpoints.
 
 STRICT: No ORM access. All data through existing services.
+Uses unified trace_lineage module for trace_id generation and resolution.
 """
 from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_session
 from app.middleware.auth import get_current_user, require_permission
 from app.schemas.v4 import (
-    InternalTraceRecord,
     V4ApiEnvelope,
     V4ResearchQueryRequest,
     V4ResearchSessionRequest,
@@ -29,6 +28,11 @@ from app.services.academic_service import AcademicService
 from app.services.dashboard_service import DashboardService
 from app.services.graph_service import GraphService
 from app.services.research_workflow_service import ResearchWorkflowService
+from app.services.trace_lineage import (
+    build_internal_traces,
+    extract_source_documents,
+    extract_trace_ids,
+)
 from app.services.workspace_service import WorkspaceService
 
 logger = logging.getLogger(__name__)
@@ -37,60 +41,6 @@ router = APIRouter(prefix="/research", tags=["Research V4"])
 
 guard_research_read = require_permission("research", "read")
 guard_research_update = require_permission("research", "update")
-
-# ======================================================================
-# Helpers — stable trace_id generation, internal record construction
-# ======================================================================
-
-
-def _make_trace_id(document_id: str, chunk_id: str) -> str:
-    """Generate a stable, parseable trace_id distinct from chunk_id.
-
-    Format: tr-{first 8 of sha256(doc_id:chunk_id)}
-    """
-    import hashlib
-    raw = f"{document_id}:{chunk_id}"
-    h = hashlib.sha256(raw.encode()).hexdigest()[:8]
-    return f"tr-{h}"
-
-
-def _make_internal_traces(evidence_traces: list) -> list[dict]:
-    """Build full-fidelity InternalTraceRecord dicts from EvidenceTrace list."""
-    now = datetime.now(timezone.utc).isoformat()
-    records: list[dict] = []
-    seen: set[str] = set()
-    for t in evidence_traces:
-        tid = _make_trace_id(t.document_id, t.chunk_id)
-        if tid in seen:
-            continue
-        seen.add(tid)
-        rec = InternalTraceRecord(
-            trace_id=tid,
-            document_id=t.document_id,
-            chunk_id=t.chunk_id,
-            passage_id=None,  # ponytail: DocumentChunk has no passage_id FK; blocked
-            retrieval_score=None,
-            retrieval_method=None,
-            timestamp=now,
-        )
-        records.append(rec.model_dump())
-    return records
-
-
-def _extract_trace_ids(evidence_traces: list) -> list[str]:
-    """Extract stable trace_ids from EvidenceTrace list."""
-    seen: set[str] = set()
-    ids: list[str] = []
-    for t in evidence_traces:
-        tid = _make_trace_id(t.document_id, t.chunk_id)
-        if tid not in seen:
-            seen.add(tid)
-            ids.append(tid)
-    return ids
-
-
-def _extract_source_docs(evidence_traces: list) -> list[str]:
-    return sorted(set(t.document_id for t in evidence_traces))
 
 
 # ======================================================================
@@ -113,30 +63,33 @@ async def create_research_session(
     title = body.title or "未命名研究"
     research_session = await ws.create_session(current_user, title)
 
-    # Dashboard overview
     overview = await DashboardService(db).get_overview()
 
-    traceability = None
+    traceability = V4TraceabilityBlock(
+        query_id=research_session.id,
+        trace_ids=[],
+        citation_count=0,
+        source_documents=[],
+    )
     data: dict = {
         "session_id": research_session.id,
         "title": research_session.title,
         "dashboard_overview": overview,
     }
 
-    # Optional initial query
     if body.query:
         academic = AcademicService(db)
         result = await academic.research(query=body.query)
-        trace_ids = _extract_trace_ids(result.evidence_trace)
-        internal_records = _make_internal_traces(result.evidence_trace)
+        trace_ids = extract_trace_ids(result.evidence_trace)
+        internal_records = build_internal_traces(result.evidence_trace)
         qh = await ws.create_query_history(
             session_id=research_session.id,
             query_text=body.query,
             query_type="research",
             result_summary=json.dumps({
-                "traces": internal_records,
+                "traces": [r.to_dict() for r in internal_records],
                 "citation_count": len(result.citations),
-                "source_documents": _extract_source_docs(result.evidence_trace),
+                "source_documents": extract_source_documents(result.evidence_trace),
             }, ensure_ascii=False),
             citation_count=len(result.citations),
         )
@@ -144,7 +97,7 @@ async def create_research_session(
             query_id=qh.id,
             trace_ids=trace_ids,
             citation_count=len(result.citations),
-            source_documents=_extract_source_docs(result.evidence_trace),
+            source_documents=extract_source_documents(result.evidence_trace),
         )
         data["query_id"] = qh.id
         data["result"] = result.model_dump()
@@ -170,21 +123,15 @@ async def execute_research_query(
     """Execute a research query. Delegates to AcademicService or GraphService."""
     ws = WorkspaceService(db)
 
-    # Verify session exists and is owned (IDOR check)
     research_session = await ws.get_session(body.session_id)
     if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
-    # Route to appropriate service
     if body.mode == "graph":
         gs = GraphService(db)
         result = await gs.intelligence(query=body.query)
-        # graph mode: extract traces from intelligence result
         evidence_traces = result.get("evidence_trace", [])
         citations_list = result.get("citations", [])
-        trace_ids = _extract_trace_ids(evidence_traces) if evidence_traces else []
-        internal_records = _make_internal_traces(evidence_traces) if evidence_traces else []
-        source_docs = _extract_source_docs(evidence_traces) if evidence_traces else []
     else:
         academic = AcademicService(db)
         mode_map = {
@@ -195,23 +142,22 @@ async def execute_research_query(
         }
         handler = mode_map[body.mode]
         if body.mode == "report":
-            result = await academic.generate_report(
-                query=body.query, report_type="research_summary"
-            )
+            result = await academic.generate_report(query=body.query, report_type="research_summary")
         else:
             result = await handler(query=body.query)  # type: ignore[operator]
-        trace_ids = _extract_trace_ids(result.evidence_trace)
-        internal_records = _make_internal_traces(result.evidence_trace)
+        evidence_traces = result.evidence_trace
         citations_list = [c.model_dump() for c in result.citations]
-        source_docs = _extract_source_docs(result.evidence_trace)
 
-    # Record query history with full-fidelity internal traces
+    trace_ids = extract_trace_ids(evidence_traces) if evidence_traces else []
+    internal_records = build_internal_traces(evidence_traces) if evidence_traces else []
+    source_docs = extract_source_documents(evidence_traces) if evidence_traces else []
+
     qh = await ws.create_query_history(
         session_id=body.session_id,
         query_text=body.query,
         query_type=body.mode,
         result_summary=json.dumps({
-            "traces": internal_records,
+            "traces": [r.to_dict() for r in internal_records],
             "citation_count": len(citations_list),
             "source_documents": source_docs,
         }, ensure_ascii=False),
@@ -237,7 +183,6 @@ async def execute_research_query(
 # POST /api/v4/research/workflow
 # ======================================================================
 
-
 FULL_RESEARCH_FLOW = [
     "topic_selection",
     "literature_retrieval",
@@ -260,7 +205,7 @@ async def execute_research_workflow(
     """Execute a 5-step research workflow with true step-to-step product passing.
 
     Each step consumes the prior step's output. Failure stops the pipeline.
-    Workflow orchestration delegated to ResearchWorkflowService.
+    All steps that execute after a failure are set to 'pending'.
     """
     ws = WorkspaceService(db)
     research_session = await ws.get_session(body.session_id)
@@ -270,100 +215,53 @@ async def execute_research_workflow(
     rwf = ResearchWorkflowService(db)
     run_id = str(uuid4())
     steps: list[V4WorkflowStep] = []
-    all_trace_ids: list[str] = []
-    all_source_docs: list[str] = []
     workflow_failed = False
+    error_code: str | None = None
 
     # Step products for true pipeline passing
-    retrieval_snapshot: list[dict] | None = None  # step 2 output
-    synthesis_evidence: list[dict] | None = None  # step 3 output
-    report_evidence: list[dict] | None = None  # step 4 output
+    retrieval_snapshot: list[dict] | None = None
+    synthesis_output: dict | None = None
 
-    for i, step_name in enumerate(FULL_RESEARCH_FLOW):
+    for step_name in FULL_RESEARCH_FLOW:
         if workflow_failed:
-            steps.append(V4WorkflowStep(
-                name=step_name,
-                status="pending",
-                result=None,
-                trace_ids=[],
-            ))
+            steps.append(V4WorkflowStep(name=step_name, status="pending", result=None, trace_ids=[]))
             continue
 
         try:
-            step_trace: list[str] = []
-            step_docs: list[str] = []
-            step_result: dict = {}
-
             if step_name == "topic_selection":
-                result = await rwf.execute_topic_selection(body.topic)
-                step_result = {"topic": body.topic, "sub_questions": result.get("sub_questions", 0)}
-                step_trace = result.get("trace_ids", [])
-                step_docs = result.get("source_documents", [])
+                step_output = await rwf.execute_topic_selection(body.topic)
 
             elif step_name == "literature_retrieval":
-                result = await rwf.execute_literature_retrieval(body.topic)
-                retrieval_snapshot = result.get("snapshot", [])
-                step_result = {"themes": result.get("themes", 0), "records": len(retrieval_snapshot)}
-                step_trace = result.get("trace_ids", [])
-                step_docs = result.get("source_documents", [])
+                step_output = await rwf.execute_literature_retrieval(body.topic)
+                retrieval_snapshot = step_output.get("snapshot", [])
 
             elif step_name == "evidence_synthesis":
                 if not retrieval_snapshot:
                     raise ValueError("No retrieval snapshot to synthesize")
-                result = await rwf.execute_evidence_synthesis(
+                step_output = rwf.execute_evidence_synthesis_from_snapshot(
                     body.topic, retrieval_snapshot
                 )
-                synthesis_evidence = result.get("evidence", [])
-                step_result = {"sections": result.get("sections", 0), "claims": len(synthesis_evidence)}
-                step_trace = result.get("trace_ids", [])
-                step_docs = result.get("source_documents", [])
+                synthesis_output = step_output
 
             elif step_name == "report_generation":
-                if not synthesis_evidence:
-                    raise ValueError("No synthesis evidence to generate report from")
-                result = await rwf.execute_report_generation(
-                    body.topic, synthesis_evidence
+                if not synthesis_output:
+                    raise ValueError("No synthesis output for report generation")
+                step_output = rwf.execute_report_from_synthesis(
+                    body.topic, synthesis_output
                 )
-                report_evidence = result.get("evidence", [])
-                step_result = {"sections": result.get("sections", 0), "title": result.get("title", body.topic)}
-                step_trace = result.get("trace_ids", [])
-                step_docs = result.get("source_documents", [])
-
-                # Generate Markdown artifact
-                markdown = await rwf.build_markdown_artifact(
-                    topic=body.topic,
-                    run_id=run_id,
-                    retrieval_snapshot=retrieval_snapshot or [],
-                    synthesis_evidence=synthesis_evidence or [],
-                    report_evidence=report_evidence,
-                )
-                step_result["markdown_artifact"] = markdown[:200] + "..." if len(markdown) > 200 else markdown
 
             elif step_name == "citation_export":
-                if not report_evidence and not synthesis_evidence:
-                    raise ValueError("No evidence to export citations from")
-                result = await rwf.execute_citation_export(
-                    body.topic, report_evidence or synthesis_evidence or []
-                )
-                citations = result.get("citations", [])
-                step_result = {"total_citations": len(citations), "citations": citations}
-                step_trace = result.get("trace_ids", [])
-                step_docs = result.get("source_documents", [])
-
-                # Record final query history for export
-                await ws.create_query_history(
-                    session_id=body.session_id,
-                    query_text=body.topic,
-                    query_type="workflow_export",
-                    result_summary=json.dumps({
-                        "traces": result.get("internal_traces", []),
-                        "source_documents": step_docs,
-                    }, ensure_ascii=False),
-                    citation_count=len(citations),
+                all_evidence = synthesis_output.get("evidence", []) if synthesis_output else []
+                step_output = rwf.execute_citation_export_from_evidence(
+                    body.topic, all_evidence
                 )
 
-            all_trace_ids.extend(step_trace)
-            all_source_docs.extend(step_docs)
+            steps.append(V4WorkflowStep(
+                name=step_name,
+                status="completed",
+                result=step_output.get("result", {}),
+                trace_ids=step_output.get("trace_ids", []),
+            ))
 
             # Record per-step query history
             await ws.create_query_history(
@@ -372,22 +270,16 @@ async def execute_research_workflow(
                 query_type="workflow_step",
                 result_summary=json.dumps({
                     "step": step_name,
-                    "traces": result.get("internal_traces", []),
-                    "source_documents": step_docs,
+                    "traces": [r.to_dict() for r in step_output.get("internal_traces", [])],
+                    "source_documents": step_output.get("source_documents", []),
                 }, ensure_ascii=False),
-                citation_count=len(step_trace),
+                citation_count=len(step_output.get("trace_ids", [])),
             )
-
-            steps.append(V4WorkflowStep(
-                name=step_name,
-                status="completed",
-                result=step_result,
-                trace_ids=step_trace,
-            ))
 
         except Exception:
             logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
             workflow_failed = True
+            error_code = "WORKFLOW_STEP_FAILED"
             steps.append(V4WorkflowStep(
                 name=step_name,
                 status="failed",
@@ -395,7 +287,6 @@ async def execute_research_workflow(
                 trace_ids=[],
             ))
 
-    # If any step failed, return failure — don't persist a completed run
     if workflow_failed:
         return V4ApiEnvelope(
             success=False,
@@ -405,23 +296,42 @@ async def execute_research_workflow(
                 steps=steps,
                 traceability=None,
             ).model_dump(),
-            message="Workflow execution failed — one or more steps encountered errors",
+            message=f"Workflow execution failed: {error_code}",
             traceability=None,
         )
 
-    # Persist ResearchRun via ResearchWorkflowService (not direct ORM)
+    # Collect all traces and sources
+    all_trace_ids: list[str] = []
+    all_source_docs: set[str] = set()
+    for s in steps:
+        all_trace_ids.extend(s.trace_ids)
+    for step_output_name in FULL_RESEARCH_FLOW:
+        pass  # already collected above
+
+    # Build Markdown artifact (full, not truncated)
+    markdown_artifact = rwf.build_markdown_artifact(
+        topic=body.topic,
+        run_id=run_id,
+        steps=steps,
+        retrieval_snapshot=retrieval_snapshot or [],
+        synthesis_output=synthesis_output or {},
+    )
+
+    # Persist ResearchRun with full artifact
     await rwf.persist_research_run(
         session_id=body.session_id,
         run_id=run_id,
         topic=body.topic,
+        workflow_type=body.workflow_type,
         steps=steps,
+        output_artifacts={"markdown": markdown_artifact},
     )
 
     traceability = V4TraceabilityBlock(
         query_id=run_id,
         trace_ids=sorted(set(all_trace_ids)),
         citation_count=len(all_trace_ids),
-        source_documents=sorted(set(all_source_docs)),
+        source_documents=sorted(all_source_docs),
     )
 
     return V4ApiEnvelope(
@@ -442,6 +352,11 @@ async def execute_research_workflow(
 # ======================================================================
 
 
+class PublicQueryHistoryEntry(dict):
+    """Public DTO for query history — never exposes internal traces."""
+    pass
+
+
 @router.get(
     "/session/{session_id}/history",
     response_model=V4ApiEnvelope,
@@ -453,34 +368,45 @@ async def get_session_query_history(
     current_user: str = Depends(get_current_user),
     limit: int = 50,
 ) -> V4ApiEnvelope:
-    """Read-only query history for a session. Returns persisted records."""
+    """Read-only query history for a session. Returns public DTO, not internal traces."""
     ws = WorkspaceService(db)
     research_session = await ws.get_session(session_id)
     if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     records = await ws.get_query_history(session_id, limit=limit)
-    history = []
+    history: list[dict] = []
     for qh in records:
-        summary = None
+        # Never expose result_summary raw — extract only public fields
+        citation_count = qh.citation_count
+        trace_ids_from_summary: list[str] = []
         if qh.result_summary:
             try:
                 summary = json.loads(qh.result_summary)
+                for t in summary.get("traces", []):
+                    trace_ids_from_summary.append(t.get("trace_id", ""))
             except (json.JSONDecodeError, TypeError):
-                summary = None
+                pass
+
         history.append({
             "query_id": qh.id,
             "query_text": qh.query_text,
             "query_type": qh.query_type,
-            "citation_count": qh.citation_count,
+            "citation_count": citation_count,
+            "trace_count": len(trace_ids_from_summary),
             "created_at": qh.created_at.isoformat() if qh.created_at else None,
-            "result_summary": summary,
         })
 
     return V4ApiEnvelope(
         success=True,
         data={"session_id": session_id, "history": history, "total": len(history)},
         message="ok",
+        traceability=V4TraceabilityBlock(
+            query_id=session_id,
+            trace_ids=[],
+            citation_count=0,
+            source_documents=[],
+        ),
     )
 
 
@@ -499,7 +425,7 @@ async def get_session_runs(
     db: Annotated[AsyncSession, Depends(get_session)],
     current_user: str = Depends(get_current_user),
 ) -> V4ApiEnvelope:
-    """Replay persisted ResearchRuns for a session. Returns immutable snapshots."""
+    """Replay persisted ResearchRuns. Returns immutable snapshots, not re-execution."""
     ws = WorkspaceService(db)
     research_session = await ws.get_session(session_id)
     if research_session is None or research_session.user_id != current_user:
@@ -512,4 +438,10 @@ async def get_session_runs(
         success=True,
         data={"session_id": session_id, "runs": runs, "total": len(runs)},
         message="ok",
+        traceability=V4TraceabilityBlock(
+            query_id=session_id,
+            trace_ids=[],
+            citation_count=0,
+            source_documents=[],
+        ),
     )

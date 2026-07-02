@@ -1,4 +1,8 @@
-"""V4 product layer schemas — strict, extra="forbid"."""
+"""V4 product layer schemas — strict, extra="forbid".
+
+Sprint 4 P0: min_length constraints on trace_ids/evidence_ids.
+              V4 education strict DTO.
+"""
 from __future__ import annotations
 
 from typing import Literal, Any
@@ -12,14 +16,12 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class V4ResearchSessionRequest(BaseModel):
-    """Create/initialize a research session."""
     model_config = ConfigDict(extra="forbid", strict=True)
     title: str | None = Field(default=None)
     query: str | None = Field(default=None)
 
 
 class V4ResearchQueryRequest(BaseModel):
-    """Execute a research query within a session."""
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     query: str = Field(..., min_length=1)
@@ -29,61 +31,31 @@ class V4ResearchQueryRequest(BaseModel):
 
 
 class V4ResearchWorkflowRequest(BaseModel):
-    """Execute a structured research workflow."""
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     topic: str = Field(..., min_length=1)
-    workflow_type: Literal["full_research_flow"] = Field(
-        default="full_research_flow"
-    )
+    workflow_type: Literal["full_research_flow"] = Field(default="full_research_flow")
 
 
 class V4VisualizationGraphRequest(BaseModel):
-    """Generate visualization data."""
     model_config = ConfigDict(extra="forbid", strict=True)
     concept_labels: list[str] = Field(..., min_length=1, max_length=20)
-    graph_type: Literal["concept", "citation", "timeline", "document"] = Field(
-        default="concept"
-    )
+    graph_type: Literal["concept", "citation", "timeline", "document"] = Field(default="concept")
 
 
 class V4EducationLearnRequest(BaseModel):
-    """Education mode — grounded explanations only."""
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     topic: str = Field(..., min_length=1)
-    level: Literal["beginner", "intermediate", "advanced"] = Field(
-        default="beginner"
-    )
+    level: Literal["beginner", "intermediate", "advanced"] = Field(default="beginner")
 
 
 # ---------------------------------------------------------------------------
-# V4 internal trace record — full-fidelity lineage stored in QueryHistory
-# ---------------------------------------------------------------------------
-
-
-class InternalTraceRecord(BaseModel):
-    """Internal full-fidelity trace record stored in QueryHistory.result_summary.
-
-    NEVER exposed through API. trace_id is a stable identifier distinct from chunk_id.
-    """
-    model_config = ConfigDict(extra="forbid", strict=True)
-    trace_id: str = Field(..., min_length=1, description="Stable unique trace identifier (not chunk_id)")
-    document_id: str = Field(..., min_length=1)
-    chunk_id: str = Field(..., min_length=1)
-    passage_id: str | None = None
-    retrieval_score: float | None = None
-    retrieval_method: str | None = None
-    timestamp: str | None = None
-
-
-# ---------------------------------------------------------------------------
-# Visualization strict schemas — no free-form, every edge carries evidence
+# Visualization strict schemas
 # ---------------------------------------------------------------------------
 
 
 class VisualizationNode(BaseModel):
-    """Strict visualization node — min_length=1 on trace_ids, no free-form fields."""
     model_config = ConfigDict(extra="forbid", strict=True)
     id: str
     type: Literal["concept", "document", "entity"]
@@ -93,7 +65,6 @@ class VisualizationNode(BaseModel):
 
 
 class VisualizationEdge(BaseModel):
-    """Strict visualization edge — evidence_ids min_length=1, every edge carries evidence."""
     model_config = ConfigDict(extra="forbid", strict=True)
     source: str
     target: str
@@ -103,33 +74,30 @@ class VisualizationEdge(BaseModel):
 
 
 class VisualizationGraph(BaseModel):
-    """Full graph output — no untyped structures."""
     model_config = ConfigDict(extra="forbid", strict=True)
     nodes: list[VisualizationNode] = Field(default_factory=list)
     edges: list[VisualizationEdge] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
-# Traceability — stable IDs only, internal fields never exposed
+# Traceability
 # ---------------------------------------------------------------------------
 
 
 class V4TraceabilityBlock(BaseModel):
-    """API-visible traceability — stable IDs only."""
     model_config = ConfigDict(extra="forbid", strict=True)
-    query_id: str
+    query_id: str = Field(..., min_length=1)
     trace_ids: list[str] = Field(default_factory=list)
     citation_count: int = 0
     source_documents: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
-# Workflow step
+# Workflow
 # ---------------------------------------------------------------------------
 
 
 class V4WorkflowStep(BaseModel):
-    """One step in a ResearchRun execution trace."""
     model_config = ConfigDict(extra="forbid", strict=True)
     name: str
     status: Literal["pending", "running", "completed", "failed"]
@@ -138,7 +106,6 @@ class V4WorkflowStep(BaseModel):
 
 
 class V4WorkflowResponse(BaseModel):
-    """Full workflow response with ResearchRun data."""
     model_config = ConfigDict(extra="forbid", strict=True)
     run_id: str
     session_id: str
@@ -147,12 +114,47 @@ class V4WorkflowResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# V4 Education public DTO
+# ---------------------------------------------------------------------------
+
+
+class V4EducationConceptDTO(BaseModel):
+    """V4 education concept — public DTO, never leaks internal trace fields."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    concept: str
+    level: Literal["beginner", "intermediate"] = "beginner"
+    paragraphs: list[str] = Field(default_factory=list)
+    citation_count: int = 0
+    evidence_count: int = 0
+
+
+class V4EducationSourceComparison(BaseModel):
+    """Advanced-level source comparison — from verified evidence only."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    document_id: str
+    claim_count: int
+    claims: list[dict] = Field(default_factory=list)
+
+
+class V4EducationResponseData(BaseModel):
+    """V4 education response data — strict DTO, not `data: Any`."""
+    model_config = ConfigDict(extra="forbid", strict=True)
+    academic_type: str = "education"
+    applied_level: str
+    topic: str
+    concepts: list[V4EducationConceptDTO] = Field(default_factory=list)
+    source_comparison: list[V4EducationSourceComparison] | None = None
+    citation_count: int = 0
+    source_count: int = 0
+    level_description: str = ""
+
+
+# ---------------------------------------------------------------------------
 # API envelope
 # ---------------------------------------------------------------------------
 
 
 class V4ApiEnvelope(BaseModel):
-    """V4 API response envelope — always includes traceability."""
     model_config = ConfigDict(extra="forbid", strict=True)
     success: bool = True
     data: Any
