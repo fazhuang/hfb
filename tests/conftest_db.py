@@ -25,7 +25,7 @@ from app.models import (
     EntityRelation,  # noqa: F401
 )
 from app.models.version_relation import VersionRelation, PassageMapping, VersionDiff  # noqa: F401
-from app.models.workspace import ResearchSession, ResearchNote  # noqa: F401
+from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection  # noqa: F401
 
 
 @pytest_asyncio.fixture
