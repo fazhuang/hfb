@@ -49,12 +49,14 @@
             autocomplete="new-password"
             :disabled="auth.loading"
             :placeholder="t('auth.passwordPlaceholder')"
+            :class="{ 'input-error': passwordError }"
           />
+          <span v-if="passwordError" class="field-error">{{ passwordError }}</span>
         </div>
 
         <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
 
-        <button type="submit" class="register-btn" :disabled="auth.loading || !username || !email || !password">
+        <button type="submit" class="register-btn" :disabled="auth.loading || !username || !email || !password || !!passwordError">
           <span v-if="auth.loading" class="spinner"></span>
           {{ auth.loading ? t('auth.registering') : t('auth.register') }}
         </button>
@@ -69,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
@@ -83,7 +85,15 @@ const email = ref('');
 const displayName = ref('');
 const password = ref('');
 
+// Client-side validation — catches min-length before hitting the server
+const passwordError = computed(() => {
+  if (!password.value) return '';
+  if (password.value.length < 8) return '密码至少需要 8 个字符';
+  return '';
+});
+
 async function handleRegister(): Promise<void> {
+  if (passwordError.value) return;
   const ok = await auth.register(username.value.trim(), email.value.trim(), password.value, displayName.value.trim() || undefined);
   if (ok) {
     // After registration, log the user in
@@ -165,6 +175,16 @@ async function handleRegister(): Promise<void> {
 
 .form-group input:disabled {
   opacity: 0.6;
+}
+
+.input-error {
+  border-color: var(--color-error-text, #c53030) !important;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--color-error-text, #c53030);
+  margin-top: 2px;
 }
 
 .error-message {

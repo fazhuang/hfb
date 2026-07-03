@@ -79,7 +79,7 @@ async def check_database_health() -> dict:
         async with engine.begin() as conn:
             start = __import__("time").time()
             result = await conn.execute(text("SELECT 1"))
-            await result.fetchone()
+            result.fetchone()
             latency_ms = round((__import__("time").time() - start) * 1000, 2)
             return {
                 "status": "connected",

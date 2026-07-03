@@ -72,6 +72,29 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('hfb-refresh-token');
   }
 
+  // Extract user-readable error message from Axios error.
+  // FastAPI returns 422 with `detail` (string) OR `meta.validation_errors` (array of {loc,msg,type}).
+  // Other endpoints return `detail` (string) or `message` (string).
+  function extractErrorMessage(e: unknown, fallback: string): string {
+    const data = (e as { response?: { data?: Record<string, unknown> } })?.response?.data;
+    if (!data) return (e as Error).message ?? fallback;
+
+    // FastAPI 422: meta.validation_errors → join per-field messages
+    const meta = data.meta as Record<string, unknown> | undefined;
+    const validationErrors = meta?.validation_errors as Array<{ loc: string[]; msg: string }> | undefined;
+    if (validationErrors?.length) {
+      return validationErrors.map((ve) => `${ve.loc.filter(s => s !== 'body').join('.')}: ${ve.msg}`).join('; ');
+    }
+
+    // Standard error: detail field
+    if (data.detail) return String(data.detail);
+
+    // Fallback: message field
+    if (data.message) return String(data.message);
+
+    return (e as Error).message ?? fallback;
+  }
+
   function loadTokens(): void {
     accessToken.value = localStorage.getItem('hfb-access-token');
     refreshToken.value = localStorage.getItem('hfb-refresh-token');
@@ -97,8 +120,7 @@ export const useAuthStore = defineStore('auth', () => {
       setAuthHeader(body.access_token);
       return true;
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      error.value = msg ?? (e as Error).message ?? 'Login failed';
+      error.value = extractErrorMessage(e, 'Login failed');
       return false;
     } finally {
       loading.value = false;
@@ -122,8 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
       });
       return true;
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      error.value = msg ?? (e as Error).message ?? 'Registration failed';
+      error.value = extractErrorMessage(e, 'Registration failed');
       return false;
     } finally {
       loading.value = false;

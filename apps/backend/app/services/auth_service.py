@@ -212,7 +212,10 @@ class AuthService:
         return {f"{row[0]}.{row[1]}" for row in result.all()}
 
     async def has_permission(self, user_id: UUID | str, resource: str, action: str) -> bool:
-        """Check whether a user has a specific permission."""
+        """Check whether a user has a specific permission. Superuser bypasses RBAC."""
+        user = await self.user_repo.get_by_id(user_id)
+        if user is not None and user.is_superuser:
+            return True
         code = f"{resource}.{action}"
         codes = await self.get_user_permissions(user_id)
         return code in codes
