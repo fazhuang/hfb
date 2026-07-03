@@ -7,6 +7,7 @@ export default {
     documents: '文献库',
     graph: '知识图谱',
     research: '版本研究',
+    v4Research: 'V4 研究',
     workspace: '工作台',
     about: '关于',
     login: '登录',

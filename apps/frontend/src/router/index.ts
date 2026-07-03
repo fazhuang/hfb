@@ -80,10 +80,14 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
-          path: 'v4',
+          path: 'v4/research',
           name: 'v4-research',
           component: () => import('@/views/V4ResearchView.vue'),
           meta: { requiresAuth: true },
+        },
+        {
+          path: 'v4',
+          redirect: '/v4/research',
         },
         {
           path: 'dashboard',

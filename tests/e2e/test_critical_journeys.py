@@ -456,3 +456,39 @@ class TestV4ResearchPortal:
         page.locator('text=可视化').click()
         assert page.locator('#v4-viz-labels').is_visible()
         assert page.locator('[data-testid="v4-run-viz"]').is_visible()
+
+    def test_v4_redirects_to_v4_research(
+        self, live_servers, test_user, page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4")
+        page.wait_for_url("**/v4/research**", timeout=10000)
+        assert page.locator('#v4-topic').is_visible()
+
+    def test_navbar_navigates_to_v4_research(
+        self, live_servers, test_user, page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/")
+        page.wait_for_selector('nav', timeout=5000)
+
+        # Click the V4 Research nav link
+        page.locator('nav a[href="/v4/research"]').click()
+        page.wait_for_url("**/v4/research**", timeout=10000)
+        assert page.locator('#v4-topic').is_visible()

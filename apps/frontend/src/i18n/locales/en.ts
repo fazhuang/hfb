@@ -7,6 +7,7 @@ export default {
     documents: 'Documents',
     graph: 'Knowledge Graph',
     research: 'Version Research',
+    v4Research: 'V4 Research',
     workspace: 'Workspace',
     about: 'About',
     login: 'Login',
