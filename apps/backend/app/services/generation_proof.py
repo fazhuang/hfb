@@ -8,6 +8,7 @@ P0-4: Document/chunk provenance verified against retrieval snapshot.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -72,6 +73,7 @@ PROOF_ERROR_CODES: dict[str, str] = {
     "CITATION_MALFORMED": "CITATION_MALFORMED",
     "QUOTE_NOT_CONTIGUOUS_SUBSTRING": "QUOTE_NOT_CONTIGUOUS_SUBSTRING",
     "ANSWER_NOT_DETERMINISTIC": "ANSWER_NOT_DETERMINISTIC",
+    "RETRIEVAL_METADATA_INCOMPLETE": "RETRIEVAL_METADATA_INCOMPLETE",
 }
 
 
@@ -82,10 +84,14 @@ class GenerationProof:
     P0-2: is_complete is True ONLY when ALL integrity checks pass.
     Partial success is impossible — any failure means is_complete=False
     and verified_claims is empty.
+
+    Sprint 4 P0: retrieval_snapshot preserves real RetrievalResult score/method
+    from the GenerationPipeline snapshot. Keys are chunk_id.
     """
 
     response: GroundedGenerationResponse
     verified_claims: list[VerifiedClaim] = field(default_factory=list)
+    retrieval_snapshot: dict[str, dict] = field(default_factory=dict)
     is_complete: bool = False
     error_code: str | None = None
     expected_claim_count: int = 0
@@ -140,6 +146,7 @@ def build_and_validate_proof(outcome: GenerationOutcome) -> GenerationProof:
         return GenerationProof(
             response=response,
             verified_claims=[],
+            retrieval_snapshot={},
             is_complete=False,
             error_code=None,
             expected_claim_count=0,
@@ -236,10 +243,62 @@ def build_and_validate_proof(outcome: GenerationOutcome) -> GenerationProof:
     return GenerationProof(
         response=response,
         verified_claims=verified,
+        retrieval_snapshot=_snapshot_to_dicts(snapshot),
         is_complete=True,
         error_code=None,
         expected_claim_count=expected_count,
     )
+
+
+def _snapshot_to_dicts(snapshot: dict) -> dict[str, dict]:
+    """Convert RetrievalResult-based snapshot to plain dicts with score + method.
+
+    Sprint 4 P0: NO default score=0.0. NO default retrieval_method.
+    Any missing/invalid metadata → raise GenerationProof error.
+    Valid real score=0.0 is preserved (must come from RetrievalResult.score).
+    """
+    out: dict[str, dict] = {}
+    for chk_id, rr in snapshot.items():
+        # Score must be present and valid
+        if not hasattr(rr, "score"):
+            raise ValueError(
+                f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} missing score"
+            )
+        score = rr.score
+        if not isinstance(score, (int, float)):
+            raise ValueError(
+                f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score is "
+                f"not a number: {type(score).__name__}"
+            )
+        if math.isnan(score) or math.isinf(score):
+            raise ValueError(
+                f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score is "
+                f"{'NaN' if math.isnan(score) else 'Inf'}"
+            )
+        if score < 0.0 or score > 1.0:
+            raise ValueError(
+                f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score "
+                f"{score} out of range [0.0, 1.0]"
+            )
+
+        # retrieval_method must be present and non-empty
+        method = ""
+        if hasattr(rr, "metadata") and isinstance(rr.metadata, dict):
+            method = rr.metadata.get("retrieval_method", "")
+        if not method or not method.strip():
+            raise ValueError(
+                f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} missing "
+                f"or empty retrieval_method"
+            )
+
+        out[chk_id] = {
+            "document_id": getattr(rr, "document_id", ""),
+            "chunk_id": chk_id,
+            "score": float(score),
+            "retrieval_method": method,
+            "content": getattr(rr, "content", ""),
+        }
+    return out
 
 
 def _render_canonical_answer(canonical: tuple[CanonicalClaim, ...]) -> str:
