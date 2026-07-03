@@ -272,8 +272,20 @@ class ResearchWorkflowService:
                 r.document_id for r in immutable_traces if hasattr(r, 'document_id')
             ))
 
-            # Compute self-contained hashes for the frozen manifest
-            corpus_hash = canonical_sha256(_build_corpus_payload(retrieval_snapshot))
+            # Build canonical traces from immutable trace dicts — single source of truth
+            canonical_traces = canonicalize_traces(trace_dicts)
+            # Build snapshot with passage_id merged from traces for corpus hash
+            trace_passage_map = {ct["trace_id"]: ct["passage_id"] for ct in canonical_traces}
+            snapshot_for_corpus = []
+            for r in retrieval_snapshot:
+                entry = dict(r)
+                tid = entry.get("trace_id", "")
+                if tid in trace_passage_map:
+                    entry.setdefault("passage_id", trace_passage_map[tid])
+                snapshot_for_corpus.append(entry)
+
+            # Compute self-contained hashes for the frozen manifest — all include canonical traces
+            corpus_hash = canonical_sha256(_build_corpus_payload(snapshot_for_corpus))
             input_hash = canonical_sha256(_build_input_payload(
                 topic=topic,
                 workflow_type=workflow_type,
@@ -281,6 +293,7 @@ class ResearchWorkflowService:
                 retrieval_snapshot=retrieval_snapshot,
                 trace_ids=trace_ids,
                 source_document_ids=source_doc_ids,
+                canonical_traces=canonical_traces,
             ))
 
             # Build output payload from synthesis/report/citation
@@ -313,10 +326,12 @@ class ResearchWorkflowService:
                 citations=citation_output_for_hash.get("result", {}).get("citations", []),
                 trace_ids=trace_ids,
                 source_document_ids=source_doc_ids,
+                canonical_traces=canonical_traces,
             )
             output_hash = canonical_sha256(output_payload)
 
-            run_entry["replay_manifest"] = {
+            # Build manifest — compute self-integrity hash over all fields except manifest_sha256 itself
+            manifest = {
                 "manifest_version": CANONICAL_VERSION,
                 "run_id": run_id,
                 "session_id": str(session_id),
@@ -331,7 +346,12 @@ class ResearchWorkflowService:
                 "canonical_input_sha256": input_hash,
                 "canonical_output_sha256": output_hash,
                 "canonicalization_version": CANONICAL_VERSION,
+                "created_at": completed_at or datetime.now(timezone.utc).isoformat(),
             }
+            manifest_hash = canonical_sha256(manifest)
+            manifest["manifest_sha256"] = manifest_hash
+
+            run_entry["replay_manifest"] = manifest
 
         runs.append(run_entry)
         existing["runs"] = runs
@@ -675,6 +695,42 @@ def canonical_sha256(payload: dict) -> str:
     return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
 
 
+# =============================================================================
+# canonicalize_trace — single source of truth for provenance fields in hashes
+# =============================================================================
+
+_PROVENANCE_FIELDS = [
+    "trace_id",
+    "document_id",
+    "chunk_id",
+    "passage_id",
+    "provenance_kind",
+    "retrieval_score",
+    "retrieval_method",
+]
+
+
+def canonicalize_trace(trace: dict) -> dict:
+    """Extract canonical provenance fields from a trace dict.
+
+    Protects invariant: academic output = content + citations + source identity + retrieval method.
+    Every field here must enter all three hash domains (corpus, input, output).
+    """
+    return {k: trace[k] for k in _PROVENANCE_FIELDS}
+
+
+def canonicalize_traces(traces: list[dict]) -> list[dict]:
+    """Sort traces by trace_id, extract canonical provenance fields.
+
+    Stable across dict key ordering and input list ordering.
+    retrieval_score preserved as real float; None for graph provenance.
+    """
+    return sorted(
+        [canonicalize_trace(t) for t in traces],
+        key=lambda t: t["trace_id"],
+    )
+
+
 def _build_canonical_payload(
     topic: str,
     workflow_type: str,
@@ -686,20 +742,19 @@ def _build_canonical_payload(
     citations: list[dict],
     trace_ids: list[str],
     source_document_ids: list[str],
+    canonical_traces: list[dict] | None = None,
 ) -> dict:
     """Construct canonical payload for deterministic replay verification.
 
-    Includes FULL content — quotes, citation_text, document_id, chunk_id.
-    Excludes run_id, artifact_id, created_at, timestamps, UI state.
-    Lists sorted by semantically-deterministic keys (trace_id for
-    snapshot/evidence/citations, heading for sections/report sections).
+    Includes FULL content — quotes, citation_text, document_id, chunk_id,
+    AND full canonical traces — passage_id, provenance_kind, retrieval_score, retrieval_method.
+    Modifying any of these fields must change the output hash and fail replay.
     """
-    # Sort snapshot by trace_id for deterministic ordering
     sorted_snapshot = sorted(retrieval_snapshot, key=lambda r: r.get("trace_id", ""))
     sorted_evidence = sorted(synthesis_evidence, key=lambda e: e.get("trace_id", ""))
     sorted_citations = sorted(citations, key=lambda c: c.get("trace_id", ""))
 
-    return {
+    payload = {
         "topic": topic,
         "workflow_type": workflow_type,
         "pipeline_version": pipeline_version,
@@ -754,16 +809,24 @@ def _build_canonical_payload(
         "trace_ids": sorted(trace_ids),
         "source_document_ids": sorted(source_document_ids),
     }
+    if canonical_traces is not None:
+        payload["traces"] = canonical_traces
+    return payload
 
 
 def _build_corpus_payload(retrieval_snapshot: list[dict]) -> dict:
-    """Build corpus payload for corpus_sha256 — covers quote/content/citation_text."""
+    """Build corpus payload for corpus_sha256 — covers provenance identity + quote/content/citation_text.
+
+    Includes canonical traces with full provenance: passage_id, provenance_kind, retrieval_score, retrieval_method.
+    Modifying any of these to a fabricated value must change the hash and fail replay.
+    """
     sorted_snapshot = sorted(retrieval_snapshot, key=lambda r: r.get("trace_id", ""))
     return {
         "corpus_entries": [
             {
                 "document_id": r["document_id"],
                 "chunk_id": r["chunk_id"],
+                "passage_id": r.get("passage_id", ""),
                 "quote": r["quote"],
                 "citation_text": r["citation_text"],
             }
@@ -780,9 +843,14 @@ def _build_input_payload(
     retrieval_snapshot: list[dict],
     trace_ids: list[str],
     source_document_ids: list[str],
+    canonical_traces: list[dict] | None = None,
 ) -> dict:
-    """Build input payload for canonical_input_sha256."""
-    return {
+    """Build input payload for canonical_input_sha256.
+
+    Includes full canonical traces — passage_id, provenance_kind, retrieval_score, retrieval_method.
+    Modifying any provenance field must change this hash and fail replay.
+    """
+    payload = {
         "topic": topic,
         "workflow_type": workflow_type,
         "pipeline_version": pipeline_version,
@@ -801,3 +869,6 @@ def _build_input_payload(
         "source_document_ids": sorted(source_document_ids),
         "canonical_version": CANONICAL_VERSION,
     }
+    if canonical_traces is not None:
+        payload["traces"] = canonical_traces
+    return payload

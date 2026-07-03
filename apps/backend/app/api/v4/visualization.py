@@ -230,15 +230,18 @@ async def generate_visualization_graph(
 
     ws = WorkspaceService(db)
 
-    # Auto-create session for backward compatibility
-    if not body.session_id:
+    # Resolve session: auto-create for backward compat without mutating request DTO
+    resolved_session_id: str
+    if body.session_id:
+        resolved_session_id = body.session_id
+    else:
         research_session = await ws.create_session(
             current_user, f"可视化 - {', '.join(body.concept_labels[:3])}"
         )
-        body.session_id = research_session.id
+        resolved_session_id = str(research_session.id)
 
     # Verify session ownership
-    research_session = await ws.get_session(body.session_id)
+    research_session = await ws.get_session(resolved_session_id)
     if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
@@ -370,7 +373,7 @@ async def generate_visualization_graph(
     dedup_citation_count = len(evidence_ids)
 
     qh = await ws.create_query_history(
-        session_id=body.session_id,
+        session_id=resolved_session_id,
         query_text=f"viz-{graph_type}-{'-'.join(topic_labels)[:32]}",
         query_type="visualization",
         result_summary=json.dumps({
@@ -389,6 +392,7 @@ async def generate_visualization_graph(
         trace_ids=evidence_ids,
         citation_count=dedup_citation_count,
         source_documents=sorted(set(source_docs)),
+        session_id=resolved_session_id,
     )
 
     return V4ApiEnvelope(

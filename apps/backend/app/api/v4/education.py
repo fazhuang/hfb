@@ -225,6 +225,7 @@ async def education_learn(
         trace_ids=trace_ids,
         citation_count=edu_data.get("citation_count", len(result.citations)),
         source_documents=source_docs,
+        session_id=body.session_id,
     )
 
     return V4ApiEnvelope(

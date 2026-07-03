@@ -91,6 +91,7 @@ class V4TraceabilityBlock(BaseModel):
     trace_ids: list[str] = Field(default_factory=list)
     citation_count: int = 0
     source_documents: list[str] = Field(default_factory=list)
+    session_id: str | None = None
 
 
 # ---------------------------------------------------------------------------

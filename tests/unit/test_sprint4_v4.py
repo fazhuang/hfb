@@ -1582,3 +1582,653 @@ async def test_replay_modified_snapshot_produces_mismatch(db_session_persistent)
         f"Modified snapshot must produce different hash. "
         f"original={h1}, modified={h2}"
     )
+
+
+# ==========================================================================
+# 18. canonicalize_trace — single source of provenance truth
+# ==========================================================================
+
+
+def test_canonicalize_trace_same_content_different_key_order():
+    """Same trace fields, different dict key order → identical canonical result."""
+    from app.services.research_workflow_service import canonicalize_trace
+
+    t1 = {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+          "passage_id": "p1", "provenance_kind": "retrieval",
+          "retrieval_score": 0.5, "retrieval_method": "m"}
+    t2 = {"retrieval_method": "m", "retrieval_score": 0.5, "provenance_kind": "retrieval",
+          "passage_id": "p1", "chunk_id": "c1", "document_id": "d1", "trace_id": "a"}
+
+    assert canonicalize_trace(t1) == canonicalize_trace(t2)
+
+
+def test_canonicalize_traces_different_input_order():
+    """Traces input order different → same sorted canonical result."""
+    from app.services.research_workflow_service import canonicalize_traces
+
+    traces_a = [
+        {"trace_id": "b", "document_id": "d2", "chunk_id": "c2",
+         "passage_id": "p2", "provenance_kind": "retrieval",
+         "retrieval_score": 0.5, "retrieval_method": "m"},
+        {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+         "passage_id": "p1", "provenance_kind": "graph",
+         "retrieval_score": None, "retrieval_method": "graph_service"},
+    ]
+    traces_b = [
+        {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+         "passage_id": "p1", "provenance_kind": "graph",
+         "retrieval_score": None, "retrieval_method": "graph_service"},
+        {"trace_id": "b", "document_id": "d2", "chunk_id": "c2",
+         "passage_id": "p2", "provenance_kind": "retrieval",
+         "retrieval_score": 0.5, "retrieval_method": "m"},
+    ]
+
+    assert canonicalize_traces(traces_a) == canonicalize_traces(traces_b)
+
+
+def test_canonicalize_trace_passage_id_changes_result():
+    """Modifying passage_id changes canonical output."""
+    from app.services.research_workflow_service import canonicalize_trace
+
+    t1 = {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+          "passage_id": "real-passage", "provenance_kind": "retrieval",
+          "retrieval_score": 0.5, "retrieval_method": "m"}
+    t2 = {**t1, "passage_id": "fabricated-passage-id"}
+
+    assert canonicalize_trace(t1) != canonicalize_trace(t2)
+
+
+def test_canonicalize_trace_score_method_kind_changes_result():
+    """Modifying retrieval_score, retrieval_method, or provenance_kind changes output."""
+    from app.services.research_workflow_service import canonicalize_trace
+
+    base = {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+            "passage_id": "p1", "provenance_kind": "retrieval",
+            "retrieval_score": 0.85, "retrieval_method": "ili_keyword"}
+
+    assert canonicalize_trace(base) != canonicalize_trace({**base, "retrieval_score": 0.01})
+    assert canonicalize_trace(base) != canonicalize_trace({**base, "retrieval_method": "fabricated-method"})
+    assert canonicalize_trace(base) != canonicalize_trace({**base, "provenance_kind": "graph"})
+
+
+def test_canonicalize_trace_graph_score_null_stable():
+    """Graph provenance with score=None serializes stably."""
+    from app.services.research_workflow_service import canonicalize_trace, canonical_json_bytes
+
+    t = {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+         "passage_id": "p1", "provenance_kind": "graph",
+         "retrieval_score": None, "retrieval_method": "graph_service"}
+    result = canonicalize_trace(t)
+    assert result["retrieval_score"] is None
+
+    # Verify it serializes without error
+    b = canonical_json_bytes({"traces": [result]})
+    assert b'score' not in b or b'null' in b
+
+
+def test_canonical_traces_enter_all_hash_domains():
+    """canonicalize_traces output changes each hash domain."""
+    from app.services.research_workflow_service import (
+        canonicalize_traces, _build_input_payload,
+        _build_canonical_payload, canonical_sha256,
+    )
+
+    traces = [{"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+               "passage_id": "real", "provenance_kind": "retrieval",
+               "retrieval_score": 0.85, "retrieval_method": "ili_keyword"}]
+    canonical = canonicalize_traces(traces)
+    snapshot = [{"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+                 "claim_text": "Claim", "quote": "Q", "citation_text": "C",
+                 "passage_id": "real"}]
+    evidence = [{"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
+                 "claim_text": "Claim", "quote": "Q", "citation_text": "C"}]
+
+    h1_input = canonical_sha256(_build_input_payload(
+        "T", "full", "1.0", snapshot, ["a"], ["d1"], canonical_traces=canonical))
+    h1_output = canonical_sha256(_build_canonical_payload(
+        "T", "full", "1.0", snapshot, [], evidence, [], [],
+        ["a"], ["d1"], canonical_traces=canonical))
+
+    # Modify passage_id in traces
+    traces_fab = [{**traces[0], "passage_id": "fabricated-passage-id"}]
+    canonical_fab = canonicalize_traces(traces_fab)
+
+    h2_input = canonical_sha256(_build_input_payload(
+        "T", "full", "1.0", snapshot, ["a"], ["d1"], canonical_traces=canonical_fab))
+    h2_output = canonical_sha256(_build_canonical_payload(
+        "T", "full", "1.0", snapshot, [], evidence, [], [],
+        ["a"], ["d1"], canonical_traces=canonical_fab))
+
+    assert h1_input != h2_input, "passage_id change must change input hash"
+    assert h1_output != h2_output, "passage_id change must change output hash"
+
+    # Modify score/method
+    traces_mod = [{**traces[0], "retrieval_score": 0.01, "retrieval_method": "fabricated"}]
+    canonical_mod = canonicalize_traces(traces_mod)
+
+    h3_input = canonical_sha256(_build_input_payload(
+        "T", "full", "1.0", snapshot, ["a"], ["d1"], canonical_traces=canonical_mod))
+    h3_output = canonical_sha256(_build_canonical_payload(
+        "T", "full", "1.0", snapshot, [], evidence, [], [],
+        ["a"], ["d1"], canonical_traces=canonical_mod))
+
+    assert h1_input != h3_input, "score/method change must change input hash"
+    assert h1_output != h3_output, "score/method change must change output hash"
+
+
+# ==========================================================================
+# 19. Replay API — real ASGI tampering tests
+# ==========================================================================
+
+
+@pytest.mark.asyncio
+async def test_replay_api_normal_workflow_replay_twice(db_session_persistent):
+    """Test A: Full workflow → replay twice → success=true, matched=true, hashes match."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-replay-api", "经络内容。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-replay-api", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-replay-api")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Create session
+        r1 = await client.post("/api/v4/research/session", json={"title": "replay-api"})
+        sid = r1.json()["data"]["session_id"]
+
+        # 2. Execute workflow
+        r2 = await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        assert r2.status_code == 200
+        assert r2.json()["success"] is True
+
+        # 3. Get run_id
+        r3 = await client.get(f"/api/v4/research/session/{sid}/runs")
+        runs = r3.json()["data"]["runs"]
+        assert len(runs) == 1
+        run_id = runs[0]["run_id"]
+
+        # 4. Replay twice
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        assert r4.status_code == 200
+        replay1 = r4.json()
+        assert replay1["success"] is True
+        assert replay1["data"]["matched"] is True
+        orig_hash = replay1["data"]["original_output_sha256"]
+        replay_hash1 = replay1["data"]["replay_output_sha256"]
+        assert orig_hash == replay_hash1
+
+        r5 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        replay2 = r5.json()
+        assert replay2["data"]["original_output_sha256"] == orig_hash
+        assert replay2["data"]["replay_output_sha256"] == replay_hash1
+
+
+@pytest.mark.asyncio
+async def test_replay_api_tampered_passage_id_fails(db_session_persistent):
+    """Test B: Tampering passage_id → success=false."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-tamp-pid", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-tamp-pid", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-tamp-pid")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "tamp-pid"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        # Tamper passage_id in manifest directly via DB
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for t in run["replay_manifest"]["traces"]:
+                    t["passage_id"] = "fabricated-passage-id"
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False, f"Expected success=false, got {body}"
+        assert body.get("data", {}).get("matched") is not True
+        assert "CORRUPT_MANIFEST" in body.get("data", {}).get("error", "") or "REPRODUCIBILITY" in body.get("message", "")
+
+
+
+@pytest.mark.asyncio
+async def test_replay_api_tampered_retrieval_score_fails(db_session_persistent):
+    """Test B: Tampering retrieval_score → success=false."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-tamp-score", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-tamp-score", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-tamp-score")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "tamp-score"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for t in run["replay_manifest"]["traces"]:
+                    t["retrieval_score"] = 0.01
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False, f"Expected success=false, got {body}"
+        assert body.get("data", {}).get("matched") is not True
+
+
+@pytest.mark.asyncio
+async def test_replay_api_tampered_retrieval_method_fails(db_session_persistent):
+    """Test B: Tampering retrieval_method → success=false."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-tamp-m", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-tamp-m", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-tamp-m")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "tamp-m"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for t in run["replay_manifest"]["traces"]:
+                    t["retrieval_method"] = "fabricated-method"
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False, f"Expected success=false, got {body}"
+        assert body.get("data", {}).get("matched") is not True
+
+
+@pytest.mark.asyncio
+async def test_replay_api_delete_passage_id_fails(db_session_persistent):
+    """Test C: Deleting passage_id from trace → CORRUPT_MANIFEST."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-del", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-del", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-del")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "del"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for t in run["replay_manifest"]["traces"]:
+                    del t["passage_id"]
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False
+        assert "CORRUPT" in body["data"].get("error", "")
+
+
+@pytest.mark.asyncio
+async def test_replay_api_non_uuidv5_trace_id_fails(db_session_persistent):
+    """Test D: Non-UUIDv5 trace_id → fail closed."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-nonuuid", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-nonuuid", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-nonuuid")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "nonuuid"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for t in run["replay_manifest"]["traces"]:
+                    t["trace_id"] = "not-a-valid-uuid"
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False
+
+
+@pytest.mark.asyncio
+async def test_replay_api_other_user_returns_404(db_session_persistent):
+    """Test E: Other user replay → 404."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-iso", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-iso", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-iso")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "iso"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        # Override auth to different user
+        import app.middleware.auth as auth_mod
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "other-user-id"
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        assert r4.status_code == 404
+
+        # Restore
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "test-user-id"
+
+
+@pytest.mark.asyncio
+async def test_replay_api_manifest_sha256_tamper_fails(db_session_persistent):
+    """manifest_sha256 tampering → CORRUPT_MANIFEST."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-msha", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-msha", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-msha")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "msha"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                # Tamper a field that manifest_sha256 covers (e.g. timestamp/created_at)
+                run["replay_manifest"]["created_at"] = "1900-01-01T00:00:00Z"
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False
+        assert "manifest_sha256" in json.dumps(body["data"]).lower() or "CORRUPT" in str(body["data"])
+
+
+@pytest.mark.asyncio
+async def test_replay_api_quote_tamper_fails(db_session_persistent):
+    """Tampering quote in retrieval_snapshot → reproducibility failure."""
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-qt", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-qt", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-qt")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "qt"})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                for entry in run["replay_manifest"]["retrieval_snapshot"]:
+                    entry["quote"] = "fabricated quote text"
+        session_obj.workflow_state = json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False, f"Expected success=false, got {body}"
+        assert body.get("data", {}).get("matched") is not True
+
+
+# ==========================================================================
+# 20. Visualization session_id in traceability
+# ==========================================================================
+
+
+@pytest.mark.asyncio
+async def test_visualization_auto_session_returns_session_id(db_session_persistent):
+    """Test A: No session_id → auto-creates, returns traceability.session_id."""
+    from app.api.v4.visualization import router as viz_router
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-viz-auto", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-viz-auto", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-viz-auto")
+    await db_session_persistent.flush()
+
+    app = _build_app(viz_router, research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+    app.include_router(viz_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r = await client.post("/api/v4/visualization/graph", json={
+            "concept_labels": ["经络"], "graph_type": "concept",
+        })
+        assert r.status_code == 200
+        body = r.json()
+        assert body["success"] is True
+        tb = body["traceability"]
+        assert tb is not None
+        assert tb["session_id"] is not None
+        assert len(tb["session_id"]) > 0
+
+        # Verify session exists in DB
+        from sqlalchemy import select as sql_select
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == tb["session_id"])
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        assert session_obj is not None
+        assert session_obj.user_id == "test-user-id"
+
+        # Verify QueryHistory.session_id matches
+        from app.models.workspace import QueryHistory
+        qh_stmt = sql_select(QueryHistory).where(QueryHistory.id == tb["query_id"])
+        qh_result = await db_session_persistent.execute(qh_stmt)
+        qh = qh_result.scalar_one_or_none()
+        assert qh is not None
+        assert str(qh.session_id) == tb["session_id"]
+
+
+@pytest.mark.asyncio
+async def test_visualization_explicit_session_returns_same_id(db_session_persistent):
+    """Test B: Explicit session_id → returns same session_id, no extra session created."""
+    from app.api.v4.visualization import router as viz_router
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-viz-exp", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-viz-exp", "文献", "晋",
+                              passage_id=pid, prefix="v4-chk-viz-exp")
+    await db_session_persistent.flush()
+
+    app = _build_app(viz_router, research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+    app.include_router(viz_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create session first
+        r1 = await client.post("/api/v4/research/session", json={"title": "exp"})
+        sid = r1.json()["data"]["session_id"]
+
+        # Count sessions before viz request
+        from sqlalchemy import select as sql_select, func
+        from app.models.workspace import ResearchSession
+        stmt = sql_select(func.count()).select_from(ResearchSession).where(
+            ResearchSession.user_id == "test-user-id",
+        )
+        count_result = await db_session_persistent.execute(stmt)
+        count_before = count_result.scalar()
+
+        r = await client.post("/api/v4/visualization/graph", json={
+            "session_id": sid, "concept_labels": ["经络"], "graph_type": "concept",
+        })
+        assert r.status_code == 200
+        body = r.json()
+        tb = body["traceability"]
+        assert tb["session_id"] == sid
+
+        count_result2 = await db_session_persistent.execute(stmt)
+        count_after = count_result2.scalar()
+        assert count_after == count_before, "Should not create extra session"
+
+
+@pytest.mark.asyncio
+async def test_visualization_other_user_session_returns_404(db_session_persistent):
+    """Test C: Other user's session → 404."""
+    from app.api.v4.visualization import router as viz_router
+    from app.api.v4.research import router as research_router
+
+    app = _build_app(viz_router, research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+    app.include_router(viz_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Create session as test-user-id
+        r1 = await client.post("/api/v4/research/session", json={"title": "mine"})
+        sid = r1.json()["data"]["session_id"]
+
+        # Switch to other user
+        import app.middleware.auth as auth_mod
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "other-user-id"
+
+        r = await client.post("/api/v4/visualization/graph", json={
+            "session_id": sid, "concept_labels": ["经络"], "graph_type": "concept",
+        })
+        assert r.status_code == 404
+
+        # Restore
+        app.dependency_overrides[auth_mod.get_current_user] = lambda: "test-user-id"

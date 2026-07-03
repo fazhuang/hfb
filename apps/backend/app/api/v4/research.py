@@ -71,6 +71,7 @@ async def create_research_session(
         trace_ids=[],
         citation_count=0,
         source_documents=[],
+        session_id=str(research_session.id),
     )
     data: dict = {
         "session_id": research_session.id,
@@ -111,6 +112,7 @@ async def create_research_session(
             trace_ids=trace_ids,
             citation_count=len(result.citations),
             source_documents=extract_source_documents(result.evidence_trace),
+            session_id=str(research_session.id),
         )
         data["query_id"] = qh.id
         data["result"] = result.model_dump()
@@ -230,6 +232,7 @@ async def execute_research_query(
         trace_ids=trace_ids,
         citation_count=len(citations_list),
         source_documents=source_docs,
+        session_id=body.session_id,
     )
 
     return V4ApiEnvelope(
@@ -427,6 +430,7 @@ async def execute_research_workflow(
         trace_ids=sorted(set(all_trace_ids)),
         citation_count=len(all_trace_ids),
         source_documents=sorted(all_source_docs),
+        session_id=body.session_id,
     )
 
     return V4ApiEnvelope(
@@ -508,6 +512,7 @@ async def get_session_query_history(
             trace_ids=sorted(set(trace_ids_all)),
             citation_count=len(trace_ids_all),
             source_documents=sorted(source_docs_all),
+            session_id=session_id,
         ),
     )
 
@@ -563,6 +568,7 @@ async def get_session_runs(
             trace_ids=sorted(set(all_trace_ids)),
             citation_count=len(set(all_trace_ids)),
             source_documents=sorted(all_source_docs),
+            session_id=session_id,
         ),
     )
 
@@ -646,25 +652,124 @@ async def replay_research_run(
             traceability=None,
         )
 
+    # Step 3: Verify manifest_sha256 — manifest self-integrity
+    stored_manifest_hash = manifest.get("manifest_sha256")
+    if stored_manifest_hash:
+        from app.services.research_workflow_service import canonical_sha256
+        manifest_for_hash = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+        recomputed_manifest_hash = canonical_sha256(manifest_for_hash)
+        if recomputed_manifest_hash != stored_manifest_hash:
+            return V4ApiEnvelope(
+                success=False,
+                data={
+                    "error": "CORRUPT_MANIFEST",
+                    "detail": "manifest_sha256 mismatch — manifest has been tampered with",
+                },
+                message="Replay manifest integrity check failed",
+                traceability=None,
+            )
+
     topic = manifest["topic"]
     workflow_type = manifest["workflow_type"]
     pipeline_version = manifest.get("pipeline_version", "1.0.0")
     snapshot = manifest["retrieval_snapshot"]
     traces_data = manifest.get("traces", [])
 
-    # Self-verify: re-compute corpus and input hashes from frozen data
+    # Step 4: Parse and strictly validate all traces — no defaults, no skipping
     from app.services.research_workflow_service import (
         _build_corpus_payload, _build_input_payload, _build_canonical_payload,
-        canonical_sha256,
+        canonical_sha256, canonicalize_traces,
     )
-    trace_ids_frozen = sorted(set(
-        td.get("trace_id", "") for td in traces_data if td.get("trace_id")
-    ))
-    source_doc_ids_frozen = sorted(set(
-        td.get("document_id", "") for td in traces_data if td.get("document_id")
-    ))
+    from app.services.trace_lineage import InternalTraceRecord
 
-    recomputed_corpus = canonical_sha256(_build_corpus_payload(snapshot))
+    frozen_traces: list[InternalTraceRecord] = []
+    trace_required_fields = [
+        "trace_id", "document_id", "chunk_id", "passage_id",
+        "provenance_kind", "retrieval_method", "timestamp",
+    ]
+    for i, td in enumerate(traces_data):
+        # Require all fields — no defaults
+        missing_trace = [f for f in trace_required_fields if f not in td]
+        if missing_trace:
+            return V4ApiEnvelope(
+                success=False,
+                data={
+                    "error": "CORRUPT_MANIFEST",
+                    "detail": f"Trace[{i}] missing fields: {missing_trace}",
+                },
+                message="Replay manifest trace is incomplete or corrupt",
+                traceability=None,
+            )
+        # retrieval_score is optional only for graph provenance
+        pk = td["provenance_kind"]
+        if pk not in ("retrieval", "graph"):
+            return V4ApiEnvelope(
+                success=False,
+                data={
+                    "error": "CORRUPT_MANIFEST",
+                    "detail": f"Trace[{i}] invalid provenance_kind: {pk}",
+                },
+                message="Replay manifest trace has invalid provenance",
+                traceability=None,
+            )
+        if pk == "retrieval" and "retrieval_score" not in td:
+            return V4ApiEnvelope(
+                success=False,
+                data={
+                    "error": "CORRUPT_MANIFEST",
+                    "detail": f"Trace[{i}] retrieval provenance missing retrieval_score",
+                },
+                message="Replay manifest trace is incomplete",
+                traceability=None,
+            )
+
+        try:
+            rec = InternalTraceRecord(
+                trace_id=td["trace_id"],
+                document_id=td["document_id"],
+                chunk_id=td["chunk_id"],
+                passage_id=td["passage_id"],
+                provenance_kind=pk,
+                retrieval_score=td.get("retrieval_score"),
+                retrieval_method=td["retrieval_method"],
+                timestamp=td["timestamp"],
+            )
+            frozen_traces.append(rec)
+        except Exception as e:
+            return V4ApiEnvelope(
+                success=False,
+                data={
+                    "error": "CORRUPT_MANIFEST",
+                    "detail": f"Trace[{i}] (trace_id={td.get('trace_id','?')}) invalid: {e}",
+                },
+                message="Replay manifest trace validation failed",
+                traceability=None,
+            )
+
+    if not frozen_traces:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "EMPTY_FROZEN_TRACES"},
+            message="Replay manifest has no valid traces",
+            traceability=None,
+        )
+
+    # Step 5-7: Re-compute all hashes with canonical traces
+    trace_dicts = [r.to_dict() for r in frozen_traces]
+    canonical_traces = canonicalize_traces(trace_dicts)
+    trace_passage_map = {ct["trace_id"]: ct["passage_id"] for ct in canonical_traces}
+    snapshot_for_corpus = []
+    for r in snapshot:
+        entry = dict(r)
+        tid = entry.get("trace_id", "")
+        if tid in trace_passage_map:
+            entry.setdefault("passage_id", trace_passage_map[tid])
+        snapshot_for_corpus.append(entry)
+
+    trace_ids_frozen = sorted(set(r.trace_id for r in frozen_traces))
+    source_doc_ids_frozen = sorted(set(r.document_id for r in frozen_traces))
+
+    recomputed_corpus = canonical_sha256(_build_corpus_payload(snapshot_for_corpus))
     recomputed_input = canonical_sha256(_build_input_payload(
         topic=topic,
         workflow_type=workflow_type,
@@ -672,6 +777,7 @@ async def replay_research_run(
         retrieval_snapshot=snapshot,
         trace_ids=trace_ids_frozen,
         source_document_ids=source_doc_ids_frozen,
+        canonical_traces=canonical_traces,
     ))
 
     if recomputed_corpus != manifest["corpus_sha256"]:
@@ -696,34 +802,7 @@ async def replay_research_run(
             traceability=None,
         )
 
-    # Reconstruct frozen InternalTraceRecords
-    from app.services.trace_lineage import InternalTraceRecord
-    frozen_traces = []
-    for td in traces_data:
-        try:
-            rec = InternalTraceRecord(
-                trace_id=td["trace_id"],
-                document_id=td["document_id"],
-                chunk_id=td["chunk_id"],
-                passage_id=td["passage_id"],
-                provenance_kind=td.get("provenance_kind", "retrieval"),
-                retrieval_score=td.get("retrieval_score"),
-                retrieval_method=td.get("retrieval_method", ""),
-                timestamp=td.get("timestamp", "2026-01-01T00:00:00Z"),
-            )
-            frozen_traces.append(rec)
-        except Exception:
-            continue
-
-    if not frozen_traces:
-        return V4ApiEnvelope(
-            success=False,
-            data={"error": "EMPTY_FROZEN_TRACES"},
-            message="Replay manifest has no parsable traces",
-            traceability=None,
-        )
-
-    # Deterministic replay: re-execute steps 3-5 with frozen snapshot
+    # Step 8: Deterministic replay
     try:
         syn_out = rwf.execute_evidence_synthesis_from_snapshot(
             topic, snapshot, internal_traces=frozen_traces,
@@ -740,7 +819,7 @@ async def replay_research_run(
             traceability=None,
         )
 
-    # Build canonical output payload — same constructor as original execution
+    # Steps 9-10: Recompute canonical output hash
     from app.services.research_workflow_service import _group_snapshot_into_sections
     synthesis_sections = _group_snapshot_into_sections(snapshot)
     all_evidence = syn_out.get("evidence", [])
@@ -762,6 +841,7 @@ async def replay_research_run(
         citations=cit_out.get("result", {}).get("citations", []),
         trace_ids=sorted(set(r.trace_id for r in frozen_traces)),
         source_document_ids=sorted(set(r.document_id for r in frozen_traces)),
+        canonical_traces=canonical_traces,
     )
     replay_output_sha256 = canonical_sha256(replay_payload)
     original_output_sha256 = manifest["canonical_output_sha256"]
@@ -791,5 +871,6 @@ async def replay_research_run(
             trace_ids=replay_trace_ids,
             citation_count=len(replay_trace_ids),
             source_documents=replay_source_docs,
+            session_id=run_data.get("session_id"),
         ),
     )
