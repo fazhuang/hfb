@@ -71,7 +71,6 @@ async def _check_elasticsearch() -> ServiceStatus:
         es = AsyncElasticsearch(
             settings.elasticsearch_url,
             request_timeout=5,
-            node_class=None,
         )
         await es.cluster.health(wait_for_status="yellow")
         await es.close()
