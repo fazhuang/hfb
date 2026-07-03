@@ -639,12 +639,19 @@ async def replay_research_run(
 
     # Strict manifest validation — all required fields must be present
     required_manifest_fields = [
-        "manifest_version", "corpus_sha256", "canonical_input_sha256",
-        "canonical_output_sha256", "retrieval_snapshot", "traces",
-        "topic", "workflow_type",
+        "manifest_version", "manifest_sha256", "corpus_sha256",
+        "canonical_input_sha256", "canonical_output_sha256",
+        "retrieval_snapshot", "traces", "topic", "workflow_type",
     ]
     missing = [f for f in required_manifest_fields if f not in manifest]
     if missing:
+        if "manifest_sha256" in missing:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "UNVERIFIABLE_MANIFEST", "missing_fields": missing},
+                message="Replay manifest has no integrity proof",
+                traceability=None,
+            )
         return V4ApiEnvelope(
             success=False,
             data={"error": "CORRUPT_MANIFEST", "missing_fields": missing},
@@ -652,22 +659,33 @@ async def replay_research_run(
             traceability=None,
         )
 
-    # Step 3: Verify manifest_sha256 — manifest self-integrity
-    stored_manifest_hash = manifest.get("manifest_sha256")
-    if stored_manifest_hash:
-        from app.services.research_workflow_service import canonical_sha256
-        manifest_for_hash = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
-        recomputed_manifest_hash = canonical_sha256(manifest_for_hash)
-        if recomputed_manifest_hash != stored_manifest_hash:
-            return V4ApiEnvelope(
-                success=False,
-                data={
-                    "error": "CORRUPT_MANIFEST",
-                    "detail": "manifest_sha256 mismatch — manifest has been tampered with",
-                },
-                message="Replay manifest integrity check failed",
-                traceability=None,
-            )
+    # Step 3: Validate manifest_sha256 format — must be 64-char lowercase hex SHA-256
+    stored_manifest_hash = manifest["manifest_sha256"]
+    if (
+        not isinstance(stored_manifest_hash, str)
+        or stored_manifest_hash == ""
+        or len(stored_manifest_hash) != 64
+        or not all(c in "0123456789abcdef" for c in stored_manifest_hash)
+    ):
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "CORRUPT_MANIFEST"},
+            message="Replay manifest integrity hash is invalid",
+            traceability=None,
+        )
+
+    # Step 4: Verify manifest_sha256 — manifest self-integrity
+    from app.services.research_workflow_service import canonical_sha256
+
+    manifest_for_hash = {k: v for k, v in manifest.items() if k != "manifest_sha256"}
+    recomputed_manifest_hash = canonical_sha256(manifest_for_hash)
+    if recomputed_manifest_hash != stored_manifest_hash:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "CORRUPT_MANIFEST"},
+            message="Replay manifest integrity check failed",
+            traceability=None,
+        )
 
     topic = manifest["topic"]
     workflow_type = manifest["workflow_type"]

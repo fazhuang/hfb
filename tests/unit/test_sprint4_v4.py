@@ -2109,6 +2109,105 @@ async def test_replay_api_quote_tamper_fails(db_session_persistent):
 
 
 # ==========================================================================
+# 19b. Manifest integrity proof — parameterized manifest_sha256 tests
+# ==========================================================================
+
+_MANIFEST_TAMPER_PARAMS = [
+    pytest.param(
+        "delete", None,
+        {"error": "UNVERIFIABLE_MANIFEST", "message": "has no integrity proof"},
+        id="delete_manifest_sha256",
+    ),
+    pytest.param(
+        "empty", "",
+        {"error": "CORRUPT_MANIFEST", "message": "invalid"},
+        id="empty_manifest_sha256",
+    ),
+    pytest.param(
+        "null_json", None,
+        {"error": "CORRUPT_MANIFEST", "message": "invalid"},
+        id="null_manifest_sha256",
+    ),
+    pytest.param(
+        "short", "abc",
+        {"error": "CORRUPT_MANIFEST", "message": "invalid"},
+        id="short_manifest_sha256",
+    ),
+    pytest.param(
+        "non_hex",
+        "g" * 64,
+        {"error": "CORRUPT_MANIFEST", "message": "invalid"},
+        id="non_hex_manifest_sha256",
+    ),
+    pytest.param(
+        "wrong_sha256",
+        "a" * 64,
+        {"error": "CORRUPT_MANIFEST", "message": "check failed"},
+        id="wrong_manifest_sha256",
+    ),
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode,replacement,expected", _MANIFEST_TAMPER_PARAMS)
+async def test_replay_api_manifest_sha256_required(db_session_persistent, mode, replacement, expected):
+    """Parameterized: delete/empty/null/short/non-hex/wrong manifest_sha256 → fail."""
+    from app.api.v4.research import router as research_router
+    from sqlalchemy import select as sql_select
+    from app.models.workspace import ResearchSession
+    import json as _json
+
+    pid = _seed_passage_with_lineage(db_session_persistent, f"passage-{mode}", "经络。")
+    _seed_chunks_with_passage(db_session_persistent, f"v4-doc-{mode}", "文献", "晋",
+                              passage_id=pid, prefix=f"v4-chk-{mode}")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": mode})
+        sid = r1.json()["data"]["session_id"]
+        await client.post("/api/v4/research/workflow", json={
+            "session_id": sid, "topic": "经络", "workflow_type": "full_research_flow",
+        })
+        runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
+        run_id = runs[0]["run_id"]
+
+        stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
+        sess_result = await db_session_persistent.execute(stmt)
+        session_obj = sess_result.scalar_one_or_none()
+        state = _json.loads(session_obj.workflow_state)
+        for run in state["runs"]:
+            if run["run_id"] == run_id:
+                if mode == "delete":
+                    del run["replay_manifest"]["manifest_sha256"]
+                elif mode == "null_json":
+                    run["replay_manifest"]["manifest_sha256"] = None
+                else:
+                    run["replay_manifest"]["manifest_sha256"] = replacement
+        session_obj.workflow_state = _json.dumps(state, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        r4 = await client.post(f"/api/v4/research/runs/{run_id}/replay")
+        body = r4.json()
+        assert body["success"] is False, (
+            f"mode={mode}: expected success=false, got {body}"
+        )
+        assert body.get("data", {}).get("matched") is not True
+        err = body.get("data", {}).get("error", "")
+        msg = body.get("message", "")
+        assert expected["error"] in err, (
+            f"mode={mode}: expected error '{expected['error']}' in '{err}'"
+        )
+        assert expected["message"] in msg.lower(), (
+            f"mode={mode}: expected message '{expected['message']}' in '{msg}'"
+        )
+
+
+# ==========================================================================
 # 20. Visualization session_id in traceability
 # ==========================================================================
 

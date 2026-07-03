@@ -376,3 +376,83 @@ class TestResearchWorkflow:
         filename = download_info.value.suggested_filename
         assert filename.startswith("hfb-research-record-")
         assert filename.endswith(".md")
+
+
+class TestV4ResearchPortal:
+    """V4 Research Portal loads and tabs switch correctly."""
+
+    def test_v4_research_route_accessible(
+        self, live_servers, test_user, page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4/research")
+        page.wait_for_selector('text=皇甫谧数字人文', timeout=10000)
+
+        # Three tabs visible
+        assert page.locator('text=完整研究').is_visible()
+        assert page.locator('text=教育模式').is_visible()
+        assert page.locator('text=可视化').is_visible()
+
+    def test_v4_research_tab_switching(
+        self, live_servers, test_user, page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4/research")
+        page.wait_for_selector('text=完整研究', timeout=10000)
+
+        # Switch to education tab
+        page.locator('text=教育模式').click()
+        assert page.locator('#v4-edu-level').is_visible()
+
+        # Switch to visualization tab
+        page.locator('text=可视化').click()
+        assert page.locator('#v4-viz-type').is_visible()
+
+        # Switch back to research tab
+        page.locator('text=完整研究').click()
+        assert page.locator('#v4-topic').is_visible()
+
+    def test_v4_research_core_inputs_present(
+        self, live_servers, test_user, page,
+    ):
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4/research")
+        page.wait_for_selector('text=完整研究', timeout=10000)
+
+        # Research tab: topic input and run button
+        assert page.locator('#v4-topic').is_visible()
+        assert page.locator('[data-testid="v4-run-workflow"]').is_visible()
+
+        # Education tab: inputs
+        page.locator('text=教育模式').click()
+        assert page.locator('#v4-edu-topic').is_visible()
+        assert page.locator('[data-testid="v4-run-education"]').is_visible()
+
+        # Visualization tab: inputs
+        page.locator('text=可视化').click()
+        assert page.locator('#v4-viz-labels').is_visible()
+        assert page.locator('[data-testid="v4-run-viz"]').is_visible()
