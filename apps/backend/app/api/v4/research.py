@@ -82,7 +82,10 @@ async def create_research_session(
         academic = AcademicService(db)
         result = await academic.research(query=body.query)
         try:
-            internal_records = await build_internal_traces(db, result.evidence_trace)
+            internal_records = await build_internal_traces(
+                db, result.evidence_trace,
+                retrieval_snapshot=academic.last_snapshot,
+            )
         except TraceLineageError as e:
             return V4ApiEnvelope(
                 success=False,
@@ -136,13 +139,43 @@ async def execute_research_query(
     if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
+    academic = AcademicService(db)
     if body.mode == "graph":
         gs = GraphService(db)
         result = await gs.intelligence(query=body.query)
-        evidence_traces = result.get("evidence_trace", [])
+        raw_evidence_traces = result.get("evidence_trace", [])
         citations_list = result.get("citations", [])
+
+        if not raw_evidence_traces:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "TRACE_LINEAGE_INCOMPLETE"},
+                message="No evidence traces found for query",
+                traceability=None,
+            )
+
+        # Build graph-provenance traces (via GraphEvidence objects)
+        from app.services.trace_lineage import build_viz_traces
+        from app.schemas.graph import GraphEvidence
+        evidence_traces = [
+            GraphEvidence(document_id=e.get("document_id", ""),
+                          chunk_id=e.get("chunk_id", ""),
+                          exact_quote=e.get("exact_quote", ""),
+                          citation=e.get("citation", ""))
+            for e in raw_evidence_traces
+        ]
+        try:
+            internal_records = await build_viz_traces(db, evidence_traces)
+        except TraceLineageError as e:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "TRACE_LINEAGE_INCOMPLETE", "detail": str(e)},
+                message="Trace lineage incomplete — chunk has no passage_id mapping",
+                traceability=None,
+            )
+        trace_ids = [r.trace_id for r in internal_records]
+        source_docs = sorted(set(r.document_id for r in internal_records))
     else:
-        academic = AcademicService(db)
         mode_map = {
             "report": academic.generate_report,
             "synthesis": academic.synthesize,
@@ -157,25 +190,28 @@ async def execute_research_query(
         evidence_traces = result.evidence_trace
         citations_list = [c.model_dump() for c in result.citations]
 
-    if not evidence_traces:
-        return V4ApiEnvelope(
-            success=False,
-            data={"error": "TRACE_LINEAGE_INCOMPLETE"},
-            message="No evidence traces found for query",
-            traceability=None,
-        )
+        if not evidence_traces:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "TRACE_LINEAGE_INCOMPLETE"},
+                message="No evidence traces found for query",
+                traceability=None,
+            )
 
-    try:
-        internal_records = await build_internal_traces(db, evidence_traces)
-    except TraceLineageError as e:
-        return V4ApiEnvelope(
-            success=False,
-            data={"error": "TRACE_LINEAGE_INCOMPLETE", "detail": str(e)},
-            message="Trace lineage incomplete — chunk has no passage_id mapping",
-            traceability=None,
-        )
-    trace_ids = [r.trace_id for r in internal_records]
-    source_docs = sorted(set(r.document_id for r in internal_records))
+        try:
+            internal_records = await build_internal_traces(
+                db, evidence_traces,
+                retrieval_snapshot=academic.last_snapshot,
+            )
+        except TraceLineageError as e:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "TRACE_LINEAGE_INCOMPLETE", "detail": str(e)},
+                message="Trace lineage incomplete — chunk has no passage_id mapping",
+                traceability=None,
+            )
+        trace_ids = [r.trace_id for r in internal_records]
+        source_docs = sorted(set(r.document_id for r in internal_records))
 
     qh = await ws.create_query_history(
         session_id=body.session_id,
@@ -374,6 +410,8 @@ async def execute_research_workflow(
         query_history_ids=query_history_ids,
         started_at=run_started_at,
         completed_at=run_completed_at,
+        retrieval_snapshot=retrieval_snapshot or [],
+        immutable_traces=immutable_traces or [],
     )
 
     # Aggregate trace_ids from all steps
@@ -498,12 +536,23 @@ async def get_session_runs(
     rwf = ResearchWorkflowService(db)
     runs = await rwf.get_research_runs(session_id)
 
-    # Aggregate trace data from runs
+    # Aggregate trace data from run manifests
     all_trace_ids: list[str] = []
     all_source_docs: set[str] = set()
     for run in runs:
-        for step in run.get("step_execution_trace", []):
-            all_trace_ids.extend(step.get("trace_ids", []))
+        manifest = run.get("replay_manifest")
+        if manifest:
+            for t in manifest.get("traces", []):
+                tid = t.get("trace_id", "")
+                if tid:
+                    all_trace_ids.append(tid)
+                did = t.get("document_id", "")
+                if did:
+                    all_source_docs.add(did)
+        else:
+            # Fallback: extract from step_execution_trace
+            for step in run.get("step_execution_trace", []):
+                all_trace_ids.extend(step.get("trace_ids", []))
 
     return V4ApiEnvelope(
         success=True,
@@ -512,7 +561,235 @@ async def get_session_runs(
         traceability=V4TraceabilityBlock(
             query_id=session_id,
             trace_ids=sorted(set(all_trace_ids)),
-            citation_count=len(all_trace_ids),
+            citation_count=len(set(all_trace_ids)),
             source_documents=sorted(all_source_docs),
+        ),
+    )
+
+
+# ======================================================================
+# POST /api/v4/research/runs/{run_id}/replay
+# ======================================================================
+
+
+class ReplayRequest(BaseModel):
+    pass
+
+
+class ReplayResponseData(BaseModel):
+    run_id: str
+    original_output_sha256: str
+    replay_output_sha256: str
+    matched: bool
+    traceability: V4TraceabilityBlock | None = None
+
+
+@router.post(
+    "/runs/{run_id}/replay",
+    response_model=V4ApiEnvelope,
+    dependencies=[Depends(guard_research_read)],
+)
+async def replay_research_run(
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
+    body: ReplayRequest | None = None,
+) -> V4ApiEnvelope:
+    """Deterministically replay a persisted ResearchRun.
+
+    1. Validates current user owns the session.
+    2. Uses the frozen replay_manifest to re-execute synthesis, report, citation export.
+    3. Recomputes canonical output hash using the SAME canonical artifact constructor.
+    4. Returns matched status.
+    """
+    rwf = ResearchWorkflowService(db)
+    ws = WorkspaceService(db)
+
+    # Find the run across all user sessions — verify ownership
+    run_data: dict | None = None
+
+    # Search through user's sessions to find the run
+    user_sessions = await ws.list_sessions(current_user, limit=100)
+    for s in user_sessions:
+        runs = await rwf.get_research_runs(s.id)
+        for r in runs:
+            if r.get("run_id") == run_id:
+                run_data = r
+                break
+        if run_data:
+            break
+
+    if run_data is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+
+    manifest = run_data.get("replay_manifest")
+    if not manifest:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "NO_REPLAY_MANIFEST"},
+            message="Run has no replay manifest — cannot replay",
+            traceability=None,
+        )
+
+    # Strict manifest validation — all required fields must be present
+    required_manifest_fields = [
+        "manifest_version", "corpus_sha256", "canonical_input_sha256",
+        "canonical_output_sha256", "retrieval_snapshot", "traces",
+        "topic", "workflow_type",
+    ]
+    missing = [f for f in required_manifest_fields if f not in manifest]
+    if missing:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "CORRUPT_MANIFEST", "missing_fields": missing},
+            message="Replay manifest is incomplete or corrupt",
+            traceability=None,
+        )
+
+    topic = manifest["topic"]
+    workflow_type = manifest["workflow_type"]
+    pipeline_version = manifest.get("pipeline_version", "1.0.0")
+    snapshot = manifest["retrieval_snapshot"]
+    traces_data = manifest.get("traces", [])
+
+    # Self-verify: re-compute corpus and input hashes from frozen data
+    from app.services.research_workflow_service import (
+        _build_corpus_payload, _build_input_payload, _build_canonical_payload,
+        canonical_sha256,
+    )
+    trace_ids_frozen = sorted(set(
+        td.get("trace_id", "") for td in traces_data if td.get("trace_id")
+    ))
+    source_doc_ids_frozen = sorted(set(
+        td.get("document_id", "") for td in traces_data if td.get("document_id")
+    ))
+
+    recomputed_corpus = canonical_sha256(_build_corpus_payload(snapshot))
+    recomputed_input = canonical_sha256(_build_input_payload(
+        topic=topic,
+        workflow_type=workflow_type,
+        pipeline_version=pipeline_version,
+        retrieval_snapshot=snapshot,
+        trace_ids=trace_ids_frozen,
+        source_document_ids=source_doc_ids_frozen,
+    ))
+
+    if recomputed_corpus != manifest["corpus_sha256"]:
+        return V4ApiEnvelope(
+            success=False,
+            data={
+                "error": "CORRUPT_MANIFEST",
+                "detail": f"corpus_sha256 mismatch: expected {manifest['corpus_sha256']}, got {recomputed_corpus}",
+            },
+            message="Replay manifest corpus integrity check failed",
+            traceability=None,
+        )
+
+    if recomputed_input != manifest["canonical_input_sha256"]:
+        return V4ApiEnvelope(
+            success=False,
+            data={
+                "error": "CORRUPT_MANIFEST",
+                "detail": f"canonical_input_sha256 mismatch: expected {manifest['canonical_input_sha256']}, got {recomputed_input}",
+            },
+            message="Replay manifest input integrity check failed",
+            traceability=None,
+        )
+
+    # Reconstruct frozen InternalTraceRecords
+    from app.services.trace_lineage import InternalTraceRecord
+    frozen_traces = []
+    for td in traces_data:
+        try:
+            rec = InternalTraceRecord(
+                trace_id=td["trace_id"],
+                document_id=td["document_id"],
+                chunk_id=td["chunk_id"],
+                passage_id=td["passage_id"],
+                provenance_kind=td.get("provenance_kind", "retrieval"),
+                retrieval_score=td.get("retrieval_score"),
+                retrieval_method=td.get("retrieval_method", ""),
+                timestamp=td.get("timestamp", "2026-01-01T00:00:00Z"),
+            )
+            frozen_traces.append(rec)
+        except Exception:
+            continue
+
+    if not frozen_traces:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "EMPTY_FROZEN_TRACES"},
+            message="Replay manifest has no parsable traces",
+            traceability=None,
+        )
+
+    # Deterministic replay: re-execute steps 3-5 with frozen snapshot
+    try:
+        syn_out = rwf.execute_evidence_synthesis_from_snapshot(
+            topic, snapshot, internal_traces=frozen_traces,
+        )
+        rep_out = rwf.execute_report_from_synthesis(topic, syn_out)
+        cit_out = rwf.execute_citation_export_from_evidence(
+            topic, syn_out.get("evidence", []), internal_traces=frozen_traces,
+        )
+    except Exception as e:
+        return V4ApiEnvelope(
+            success=False,
+            data={"error": "REPLAY_EXECUTION_FAILED", "detail": str(e)},
+            message="Replay execution failed",
+            traceability=None,
+        )
+
+    # Build canonical output payload — same constructor as original execution
+    from app.services.research_workflow_service import _group_snapshot_into_sections
+    synthesis_sections = _group_snapshot_into_sections(snapshot)
+    all_evidence = syn_out.get("evidence", [])
+    report_sections_for_hash = syn_out.get("sections", [])
+    if not report_sections_for_hash:
+        from app.services.research_workflow_service import _build_report_sections
+        report_sections_for_hash = _build_report_sections(
+            topic, all_evidence, rep_out.get("sections", []),
+        )
+
+    replay_payload = _build_canonical_payload(
+        topic=topic,
+        workflow_type=workflow_type,
+        pipeline_version=pipeline_version,
+        retrieval_snapshot=snapshot,
+        synthesis_sections=synthesis_sections,
+        synthesis_evidence=all_evidence,
+        report_sections=report_sections_for_hash,
+        citations=cit_out.get("result", {}).get("citations", []),
+        trace_ids=sorted(set(r.trace_id for r in frozen_traces)),
+        source_document_ids=sorted(set(r.document_id for r in frozen_traces)),
+    )
+    replay_output_sha256 = canonical_sha256(replay_payload)
+    original_output_sha256 = manifest["canonical_output_sha256"]
+
+    matched = replay_output_sha256 == original_output_sha256
+
+    replay_trace_ids = sorted(set(r.trace_id for r in frozen_traces))
+    replay_source_docs = sorted(set(r.document_id for r in frozen_traces))
+
+    return V4ApiEnvelope(
+        success=matched,
+        data={
+            "run_id": run_id,
+            "original_output_sha256": original_output_sha256,
+            "replay_output_sha256": replay_output_sha256,
+            "matched": matched,
+            "traceability": {
+                "query_id": run_id,
+                "trace_ids": replay_trace_ids,
+                "citation_count": len(replay_trace_ids),
+                "source_documents": replay_source_docs,
+            },
+        },
+        message="ok" if matched else "Replay mismatch — reproducibility failure",
+        traceability=V4TraceabilityBlock(
+            query_id=run_id,
+            trace_ids=replay_trace_ids,
+            citation_count=len(replay_trace_ids),
+            source_documents=replay_source_docs,
         ),
     )

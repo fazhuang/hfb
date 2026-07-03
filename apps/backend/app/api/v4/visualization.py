@@ -5,16 +5,18 @@ P0: citation graph: only citation edges, no hierarchy/co_occurrence fallback.
 P0: timeline: real era/time evidence required; empty when absent.
 P0: document graph: one node per unique document, edges only with shared evidence.
 P0: evidence_ids from trace registry, not raw chunk_ids.
+P0: saves QueryHistory with full InternalTraceRecord for strict resolver.
 """
 from __future__ import annotations
 
+import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import require_permission
+from app.middleware.auth import get_current_user, require_permission
 from app.schemas.v4 import (
     V4ApiEnvelope,
     V4TraceabilityBlock,
@@ -24,7 +26,13 @@ from app.schemas.v4 import (
     VisualizationNode,
 )
 from app.services.graph_service import GraphService
-from app.services.trace_lineage import make_trace_id
+from app.services.trace_lineage import (
+    build_viz_traces,
+    extract_source_documents,
+    make_trace_id,
+    TraceLineageError,
+)
+from app.services.workspace_service import WorkspaceService
 
 router = APIRouter(prefix="/visualization", tags=["Visualization V4"])
 
@@ -88,8 +96,9 @@ def _convert_concept_to_viz(cg) -> VisualizationGraph:
             label=n.display_label,
             metadata={
                 "normalized_label": n.normalized_label,
-                "source_documents": str(len(n.source_document_ids)),
-                "source_chunks": str(len(n.source_chunk_ids)),
+                "source_documents": ", ".join(n.source_document_ids) if n.source_document_ids else "",
+                "source_document_count": str(len(n.source_document_ids)),
+                "source_chunk_count": str(len(n.source_chunk_ids)),
             },
             trace_ids=trace_ids,
         ))
@@ -109,6 +118,97 @@ def _convert_concept_to_viz(cg) -> VisualizationGraph:
     return VisualizationGraph(nodes=nodes, edges=edges)
 
 
+def _build_citation_graph(cg) -> VisualizationGraph:
+    """Build a bipartite citation graph: concept nodes + document nodes + citation edges.
+
+    Each citation edge is evidence-backed: concept -> document, with evidence_ids
+    resolvable through trace -> chunk -> document -> passage -> citation.
+    No co_occurrence or hierarchy fallback.
+    """
+    # 1. Build concept nodes (same as concept graph)
+    concept_nodes = []
+    for n in cg.nodes:
+        trace_ids = []
+        seen_tids: set[str] = set()
+        for ev in n.evidence:
+            tid = make_trace_id(ev.document_id, ev.chunk_id)
+            if tid not in seen_tids:
+                seen_tids.add(tid)
+                trace_ids.append(tid)
+        concept_nodes.append(VisualizationNode(
+            id=n.concept_id,
+            type="concept",
+            label=n.display_label,
+            metadata={
+                "normalized_label": n.normalized_label,
+                "source_documents": ", ".join(n.source_document_ids) if n.source_document_ids else "",
+                "source_document_count": str(len(n.source_document_ids)),
+            },
+            trace_ids=trace_ids,
+        ))
+
+    # 2. Build document nodes — one per unique document with evidence
+    doc_evidence: dict[str, list] = {}  # document_id -> list of (concept_id, evidence)
+    for n in cg.nodes:
+        for ev in n.evidence:
+            doc_evidence.setdefault(ev.document_id, []).append((n.concept_id, ev))
+
+    doc_nodes = {}
+    for doc_id, ev_pairs in doc_evidence.items():
+        trace_ids = []
+        seen_tids = set()
+        for _, ev in ev_pairs:
+            tid = make_trace_id(ev.document_id, ev.chunk_id)
+            if tid not in seen_tids:
+                seen_tids.add(tid)
+                trace_ids.append(tid)
+        doc_nodes[doc_id] = VisualizationNode(
+            id=doc_id,
+            type="document",
+            label=doc_id,
+            metadata={"evidence_count": str(len(ev_pairs))},
+            trace_ids=trace_ids,
+        )
+
+    # 3. Build citation edges: concept -> document, with deduped evidence_ids
+    all_nodes = concept_nodes + list(doc_nodes.values())
+    edges = []
+    seen_edge_keys: set[tuple[str, str]] = set()
+
+    for n in cg.nodes:
+        concept_id = n.concept_id
+        # Group evidence by document_id for this concept
+        concept_doc_evidence: dict[str, list] = {}
+        for ev in n.evidence:
+            concept_doc_evidence.setdefault(ev.document_id, []).append(ev)
+
+        for doc_id, ev_list in concept_doc_evidence.items():
+            edge_key = (concept_id, doc_id)
+            # Aggregate all evidence_ids for this concept-document pair
+            evidence_ids = []
+            seen_eids = set()
+            for ev in ev_list:
+                tid = make_trace_id(ev.document_id, ev.chunk_id)
+                if tid not in seen_eids:
+                    seen_eids.add(tid)
+                    evidence_ids.append(tid)
+
+            if edge_key not in seen_edge_keys:
+                seen_edge_keys.add(edge_key)
+                edges.append(VisualizationEdge(
+                    source=concept_id,
+                    target=doc_id,
+                    type="citation",
+                    weight=_compute_weight(len(ev_list)),
+                    evidence_ids=evidence_ids,
+                ))
+
+    return VisualizationGraph(nodes=all_nodes, edges=edges)
+
+
+
+
+
 @router.post(
     "/graph",
     response_model=V4ApiEnvelope,
@@ -117,42 +217,61 @@ def _convert_concept_to_viz(cg) -> VisualizationGraph:
 async def generate_visualization_graph(
     body: V4VisualizationGraphRequest,
     db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
 ) -> V4ApiEnvelope:
-    """Generate structured visualization data. Strict schema, corpus-bound."""
+    """Generate structured visualization data. Strict schema, corpus-bound.
+
+    Sprint 4 P0: Saves QueryHistory with full InternalTraceRecord so
+    strict resolver can resolve every trace_id.
+
+    Backward compat: If session_id is omitted, auto-creates a persistent
+    research session for the current user so no visualization is orphaned.
+    """
+
+    ws = WorkspaceService(db)
+
+    # Auto-create session for backward compatibility
+    if not body.session_id:
+        research_session = await ws.create_session(
+            current_user, f"可视化 - {', '.join(body.concept_labels[:3])}"
+        )
+        body.session_id = research_session.id
+
+    # Verify session ownership
+    research_session = await ws.get_session(body.session_id)
+    if research_session is None or research_session.user_id != current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
     gs = GraphService(db)
     graph: VisualizationGraph
-    all_trace_ids: list[str] = []
-    all_source_docs: list[str] = []
-    operation_id = ""
+    graph_type: str = body.graph_type
+    topic_labels = body.concept_labels
 
-    if body.graph_type == "concept":
-        cg = await gs.build_concept_graph(body.concept_labels)
+    # Collect all evidence traces from graph construction for trace building
+    all_evidence_traces: list = []
+
+    if graph_type == "concept":
+        cg = await gs.build_concept_graph(topic_labels)
         graph = _convert_concept_to_viz(cg)
-        all_trace_ids = [t for n in graph.nodes for t in n.trace_ids]
-        all_source_docs = body.concept_labels
-        operation_id = f"viz-concept-{'-'.join(body.concept_labels)[:32]}"
+        for n in cg.nodes:
+            all_evidence_traces.extend(n.evidence)
 
-    elif body.graph_type == "citation":
-        cg = await gs.build_concept_graph(body.concept_labels)
-        full_graph = _convert_concept_to_viz(cg)
-        # P0: citation graph = ONLY citation edges. No hierarchy. No co_occurrence.
-        citation_edges = [e for e in full_graph.edges if e.type == "citation"]
-        graph = VisualizationGraph(nodes=full_graph.nodes, edges=citation_edges)
-        all_trace_ids = [t for n in graph.nodes for t in n.trace_ids]
-        all_source_docs = body.concept_labels
-        operation_id = f"viz-citation-{'-'.join(body.concept_labels)[:32]}"
+    elif graph_type == "citation":
+        cg = await gs.build_concept_graph(topic_labels)
+        graph = _build_citation_graph(cg)
+        for n in cg.nodes:
+            all_evidence_traces.extend(n.evidence)
 
-    elif body.graph_type == "timeline":
-        topic = body.concept_labels[0] if body.concept_labels else "针灸"
+    elif graph_type == "timeline":
+        topic = topic_labels[0] if topic_labels else "针灸"
         cda = await gs.cross_document_analysis(topic)
         claims = cda.supporting_claims or []
+        all_evidence_traces = list(claims)
 
-        # P0: timeline nodes only with real time/era evidence
-        # Without explicit era/timestamp in claims, return empty graph
         nodes = []
+        trace_ids_seen: set[str] = set()
         for i, c in enumerate(claims):
             tid = make_trace_id(c.document_id, c.chunk_id)
-            # Check if evidence carries time metadata
             time_meta = _extract_time_evidence(c)
             if time_meta:
                 nodes.append(VisualizationNode(
@@ -167,19 +286,16 @@ async def generate_visualization_graph(
                     },
                     trace_ids=[tid],
                 ))
-                all_trace_ids.append(tid)
-                all_source_docs.append(c.document_id)
+                trace_ids_seen.add(tid)
 
-        # P0: no time evidence → empty graph
         graph = VisualizationGraph(nodes=nodes, edges=[])
-        operation_id = f"viz-timeline-{topic[:32]}"
 
-    elif body.graph_type == "document":
-        topic = body.concept_labels[0] if body.concept_labels else "针灸"
+    elif graph_type == "document":
+        topic = topic_labels[0] if topic_labels else "针灸"
         cda = await gs.cross_document_analysis(topic)
         claims = cda.supporting_claims or []
+        all_evidence_traces = list(claims)
 
-        # P0: one node per unique document
         doc_nodes: dict[str, dict] = {}
         for c in claims:
             did = c.document_id
@@ -192,8 +308,6 @@ async def generate_visualization_graph(
                 }
             doc_nodes[did]["trace_ids"].append(tid)
             doc_nodes[did]["chunk_ids"].add(c.chunk_id)
-            all_trace_ids.append(tid)
-            all_source_docs.append(did)
 
         nodes = [
             VisualizationNode(
@@ -206,7 +320,6 @@ async def generate_visualization_graph(
             for did, info in doc_nodes.items()
         ]
 
-        # P0: edges only with real shared evidence (shared chunk_ids)
         doc_list = list(doc_nodes.items())
         edges = []
         for i in range(len(doc_list)):
@@ -216,8 +329,7 @@ async def generate_visualization_graph(
                 shared = info_a["chunk_ids"] & info_b["chunk_ids"]
                 if shared:
                     evidence_ids = [
-                        make_trace_id(did_a, cid) if make_trace_id(did_a, cid) in all_trace_ids
-                        else make_trace_id(did_b, cid)
+                        make_trace_id(did_a, cid)
                         for cid in shared
                     ]
                     edges.append(VisualizationEdge(
@@ -225,17 +337,58 @@ async def generate_visualization_graph(
                         target=did_b,
                         type="similarity",
                         weight=_compute_weight(len(shared)),
-                        evidence_ids=[eid for eid in evidence_ids if eid],
+                        evidence_ids=evidence_ids,
                     ))
 
         graph = VisualizationGraph(nodes=nodes, edges=edges)
-        operation_id = f"viz-document-{topic[:32]}"
+
+    # Build InternalTraceRecords from evidence — always try, may be empty
+    internal_traces: list = []
+    if all_evidence_traces:
+        try:
+            internal_traces = await build_viz_traces(db, all_evidence_traces)
+        except TraceLineageError:
+            return V4ApiEnvelope(
+                success=False,
+                data={"error": "TRACE_LINEAGE_INCOMPLETE"},
+                message="Visualization cannot proceed: unmapped passage linkage",
+                traceability=None,
+            )
+
+    # P0: Always persist QueryHistory, including empty graphs
+    evidence_ids: list[str] = []
+    if internal_traces:
+        evidence_ids = [r.trace_id for r in internal_traces]
+    else:
+        evidence_ids = sorted(set(
+            make_trace_id(t.document_id, t.chunk_id)
+            for t in all_evidence_traces
+            if hasattr(t, 'document_id') and hasattr(t, 'chunk_id')
+        ))
+
+    source_docs = extract_source_documents(all_evidence_traces)
+    dedup_citation_count = len(evidence_ids)
+
+    qh = await ws.create_query_history(
+        session_id=body.session_id,
+        query_text=f"viz-{graph_type}-{'-'.join(topic_labels)[:32]}",
+        query_type="visualization",
+        result_summary=json.dumps({
+            "graph_type": graph_type,
+            "traces": [r.to_dict() for r in internal_traces],
+            "node_count": len(graph.nodes),
+            "edge_count": len(graph.edges),
+            "source_documents": source_docs,
+            "evidence_status": "empty" if len(graph.edges) == 0 and len(graph.nodes) == 0 else "ok",
+        }, ensure_ascii=False),
+        citation_count=dedup_citation_count,
+    )
 
     traceability = V4TraceabilityBlock(
-        query_id=operation_id,
-        trace_ids=all_trace_ids,
-        citation_count=len(graph.edges),
-        source_documents=sorted(set(all_source_docs)),
+        query_id=qh.id,
+        trace_ids=evidence_ids,
+        citation_count=dedup_citation_count,
+        source_documents=sorted(set(source_docs)),
     )
 
     return V4ApiEnvelope(

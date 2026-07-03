@@ -39,6 +39,7 @@ class V4ResearchWorkflowRequest(BaseModel):
 
 class V4VisualizationGraphRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    session_id: str | None = Field(default=None, min_length=1, description="Research session ID for traceability; auto-created if omitted")
     concept_labels: list[str] = Field(..., min_length=1, max_length=20)
     graph_type: Literal["concept", "citation", "timeline", "document"] = Field(default="concept")
 

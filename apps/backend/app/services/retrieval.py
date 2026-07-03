@@ -136,6 +136,7 @@ class RetrievalService:
                         "token_count": chunk.token_count or 0,
                         "document_id": chunk.document_id,
                         "chunk_index": chunk.chunk_index,
+                        "retrieval_method": "ili_keyword_search",
                     },
                 )
             )

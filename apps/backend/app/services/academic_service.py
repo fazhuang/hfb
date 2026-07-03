@@ -366,6 +366,11 @@ class AcademicService:
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+        # Sprint 4 P0: accumulated retrieval snapshot from the last proof run.
+        # V4 routes read this after calling academic methods to get real
+        # RetrievalResult.score and retrieval_method.
+        # dict[chunk_id, {document_id, chunk_id, score, retrieval_method, content}]
+        self.last_snapshot: dict[str, dict] = {}
 
     # ==================================================================
     # P0-1: STRICT 1:1 CLAIM → EVIDENCE BINDING
@@ -472,6 +477,10 @@ class AcademicService:
         actual_retrieval = retrieval_query if retrieval_query else gate_query
         pipeline = ProvedGenerationPipeline(self.session)
         proof = await pipeline.generate_with_proof(query=actual_retrieval, top_k=top_k)
+
+        # Sprint 4 P0: accumulate retrieval snapshot from this proof into last_snapshot
+        if proof.retrieval_snapshot:
+            self.last_snapshot.update(proof.retrieval_snapshot)
 
         # P0-1: INTEGRITY_ERROR — proof validation failed with explicit error code
         if proof.has_integrity_error:

@@ -38,7 +38,10 @@ class ResearchWorkflowService:
     async def execute_topic_selection(self, topic: str) -> dict[str, Any]:
         academic = AcademicService(self.session)
         result = await academic.research(query=topic)
-        return await _pack_academic_step(self.session, result, topic)
+        return await _pack_academic_step(
+            self.session, result, topic,
+            retrieval_snapshot=academic.last_snapshot,
+        )
 
     # =========================================================================
     # Step 2: Literature Retrieval — produces immutable snapshot + traces
@@ -48,7 +51,8 @@ class ResearchWorkflowService:
         academic = AcademicService(self.session)
         result = await academic.synthesize(query=topic)
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            self.session, result
+            self.session, result,
+            retrieval_snapshot=academic.last_snapshot,
         )
         # Immutable traces — downstream steps pass these exact records
         return {
@@ -223,6 +227,8 @@ class ResearchWorkflowService:
         query_history_ids: list[str] | None = None,
         started_at: str | None = None,
         completed_at: str | None = None,
+        retrieval_snapshot: list[dict] | None = None,
+        immutable_traces: list | None = None,
     ) -> None:
         session = await self.workspace.get_session(session_id)
         if session is None:
@@ -238,7 +244,7 @@ class ResearchWorkflowService:
         now = datetime.now(timezone.utc).isoformat()
         runs: list[dict] = existing.get("runs", [])
 
-        runs.append({
+        run_entry: dict[str, Any] = {
             "run_id": run_id,
             "session_id": str(session_id),
             "workflow_type": workflow_type,
@@ -251,7 +257,83 @@ class ResearchWorkflowService:
                 for s in (steps or [])
             ],
             "output_artifacts": output_artifacts or {},
-        })
+        }
+
+        # Build replay manifest — frozen snapshot for deterministic replay
+        if retrieval_snapshot and immutable_traces:
+            trace_dicts = []
+            for tr in immutable_traces:
+                if hasattr(tr, 'to_dict'):
+                    trace_dicts.append(tr.to_dict())
+            trace_ids = sorted(set(
+                r.trace_id for r in immutable_traces if hasattr(r, 'trace_id')
+            ))
+            source_doc_ids = sorted(set(
+                r.document_id for r in immutable_traces if hasattr(r, 'document_id')
+            ))
+
+            # Compute self-contained hashes for the frozen manifest
+            corpus_hash = canonical_sha256(_build_corpus_payload(retrieval_snapshot))
+            input_hash = canonical_sha256(_build_input_payload(
+                topic=topic,
+                workflow_type=workflow_type,
+                pipeline_version="1.0.0",
+                retrieval_snapshot=retrieval_snapshot,
+                trace_ids=trace_ids,
+                source_document_ids=source_doc_ids,
+            ))
+
+            # Build output payload from synthesis/report/citation
+            synthesis_sections = _group_snapshot_into_sections(retrieval_snapshot)
+            synthesis_evidence = _snapshot_to_evidence_list(retrieval_snapshot)
+            synthesis_output_for_hash = self.execute_evidence_synthesis_from_snapshot(
+                topic, retrieval_snapshot, internal_traces=list(immutable_traces),
+            )
+            report_output_for_hash = self.execute_report_from_synthesis(
+                topic, synthesis_output_for_hash,
+            )
+            all_evidence = synthesis_output_for_hash.get("evidence", [])
+            citation_output_for_hash = self.execute_citation_export_from_evidence(
+                topic, all_evidence, internal_traces=list(immutable_traces),
+            )
+            # Build report sections deterministically from evidence
+            report_sections_for_hash = _build_report_sections(
+                topic, all_evidence,
+                report_output_for_hash.get("sections", []),
+            )
+
+            output_payload = _build_canonical_payload(
+                topic=topic,
+                workflow_type=workflow_type,
+                pipeline_version="1.0.0",
+                retrieval_snapshot=retrieval_snapshot,
+                synthesis_sections=synthesis_sections,
+                synthesis_evidence=synthesis_evidence,
+                report_sections=report_sections_for_hash,
+                citations=citation_output_for_hash.get("result", {}).get("citations", []),
+                trace_ids=trace_ids,
+                source_document_ids=source_doc_ids,
+            )
+            output_hash = canonical_sha256(output_payload)
+
+            run_entry["replay_manifest"] = {
+                "manifest_version": CANONICAL_VERSION,
+                "run_id": run_id,
+                "session_id": str(session_id),
+                "workflow_type": workflow_type,
+                "topic": topic,
+                "pipeline_version": "1.0.0",
+                "workflow_steps": ["topic_selection", "literature_retrieval", "evidence_synthesis", "report_generation", "citation_export"],
+                "retrieval_snapshot": retrieval_snapshot,
+                "traces": trace_dicts,
+                "query_history_binding": query_history_ids or [],
+                "corpus_sha256": corpus_hash,
+                "canonical_input_sha256": input_hash,
+                "canonical_output_sha256": output_hash,
+                "canonicalization_version": CANONICAL_VERSION,
+            }
+
+        runs.append(run_entry)
         existing["runs"] = runs
         session.workflow_state = json.dumps(existing, ensure_ascii=False)
         session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
@@ -426,16 +508,21 @@ def _step_to_record(step: Any) -> dict:
 
 async def _build_retrieval_snapshot(
     db: AsyncSession, result,
+    retrieval_snapshot: dict[str, dict] | None = None,
 ) -> tuple[list[dict], list[InternalTraceRecord]]:
     """Build immutable retrieval snapshot + traces from AcademicService result.
 
-    Extracts real retrieval metadata from GenerationPipeline's snapshot
-    when available. Falls back to build_internal_traces for EvidenceTrace input.
+    Sprint 4 P0: Uses real retrieval_snapshot (score + method) from GenerationProof.
+    Falls back to TraceLineageError if no snapshot available.
     """
-    # Try to get real RetrievalResult objects from the proof pipeline
+    if retrieval_snapshot is None:
+        from app.services.trace_lineage import TraceLineageError
+        raise TraceLineageError(
+            "TRACE_LINEAGE_INCOMPLETE: retrieval_snapshot is required for workflow"
+        )
+
     snapshot: list[dict] = []
     seen: set[str] = set()
-    chunk_data: dict[str, tuple[float, str, str, str]] = {}
 
     for t in result.evidence_trace:
         tid = make_trace_id(t.document_id, t.chunk_id)
@@ -451,9 +538,9 @@ async def _build_retrieval_snapshot(
             "quote": t.quote,
             "citation_text": t.citation_text,
         })
-        chunk_data[t.chunk_id] = (0.0, "ili_keyword", t.document_id, t.claim_text)
 
-    # Build InternalTraceRecords with real score when available
+    # Build InternalTraceRecords from real snapshot
+    from app.services.trace_lineage import TraceLineageError
     now = datetime.now(timezone.utc).isoformat()
     internal_traces: list[InternalTraceRecord] = []
     seen_tids: set[str] = set()
@@ -463,23 +550,38 @@ async def _build_retrieval_snapshot(
             continue
         seen_tids.add(tid)
         chk_id = rec["chunk_id"]
-        score, method = chunk_data.get(chk_id, (0.0, "ili_keyword"))[:2]
+
+        # Require real score/method from snapshot
+        snap_entry = retrieval_snapshot.get(chk_id)
+        if snap_entry is None:
+            raise TraceLineageError(
+                f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} not in retrieval_snapshot"
+            )
+        score = snap_entry.get("score", None)
+        if not isinstance(score, (int, float)) or score != score:
+            raise TraceLineageError(
+                f"TRACE_LINEAGE_INCOMPLETE: invalid score {score} for chunk {chk_id}"
+            )
+        method = snap_entry.get("retrieval_method", "")
+        if not method or not method.strip():
+            raise TraceLineageError(
+                f"TRACE_LINEAGE_INCOMPLETE: empty retrieval_method for chunk {chk_id}"
+            )
 
         # Query DB for passage_id
         from sqlalchemy import select as sql_select
         from app.models.document_chunk import DocumentChunk as DC
-        passage_id = ""
         chk_stmt = sql_select(DC.passage_id).where(
             DC.id == chk_id,
             DC.is_deleted.is_(False),
         )
         chk_result = await db.execute(chk_stmt)
         row = chk_result.one_or_none()
+        passage_id = ""
         if row and row[0] and row[0].strip():
             passage_id = row[0]
 
         if not passage_id:
-            from app.services.trace_lineage import TraceLineageError
             raise TraceLineageError(
                 f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} has no passage_id"
             )
@@ -489,7 +591,8 @@ async def _build_retrieval_snapshot(
             document_id=rec["document_id"],
             chunk_id=chk_id,
             passage_id=passage_id,
-            retrieval_score=score,
+            provenance_kind="retrieval",
+            retrieval_score=float(score),
             retrieval_method=method,
             timestamp=now,
         ))
@@ -498,8 +601,9 @@ async def _build_retrieval_snapshot(
 
 async def _pack_academic_step(
     db: AsyncSession, result, topic: str,
+    retrieval_snapshot: dict[str, dict] | None = None,
 ) -> dict[str, Any]:
-    traces = await build_internal_traces(db, result.evidence_trace)
+    traces = await build_internal_traces(db, result.evidence_trace, retrieval_snapshot=retrieval_snapshot)
     return {
         "result": {"topic": topic, "sub_questions": len(result.decomposition)},
         "trace_ids": extract_trace_ids(result.evidence_trace),
@@ -547,3 +651,153 @@ def _build_report_sections(
         report.append({"heading": f"文献 {did}", "body": "\n".join(body),
                         "references": [r for r in refs if r]})
     return report
+
+
+# =============================================================================
+# Canonical artifact — pure functions for deterministic replay verification
+# =============================================================================
+
+CANONICAL_VERSION = "2.0.0"
+
+
+def canonical_json_bytes(payload: dict) -> bytes:
+    """Stable, sorted, deterministic JSON byte representation.
+
+    Uses sort_keys=True, ASCII-safe encoding, fixed separators.
+    """
+    return json.dumps(
+        payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def canonical_sha256(payload: dict) -> str:
+    """SHA-256 of canonical_json_bytes."""
+    return hashlib.sha256(canonical_json_bytes(payload)).hexdigest()
+
+
+def _build_canonical_payload(
+    topic: str,
+    workflow_type: str,
+    pipeline_version: str,
+    retrieval_snapshot: list[dict],
+    synthesis_sections: list[dict],
+    synthesis_evidence: list[dict],
+    report_sections: list[dict],
+    citations: list[dict],
+    trace_ids: list[str],
+    source_document_ids: list[str],
+) -> dict:
+    """Construct canonical payload for deterministic replay verification.
+
+    Includes FULL content — quotes, citation_text, document_id, chunk_id.
+    Excludes run_id, artifact_id, created_at, timestamps, UI state.
+    Lists sorted by semantically-deterministic keys (trace_id for
+    snapshot/evidence/citations, heading for sections/report sections).
+    """
+    # Sort snapshot by trace_id for deterministic ordering
+    sorted_snapshot = sorted(retrieval_snapshot, key=lambda r: r.get("trace_id", ""))
+    sorted_evidence = sorted(synthesis_evidence, key=lambda e: e.get("trace_id", ""))
+    sorted_citations = sorted(citations, key=lambda c: c.get("trace_id", ""))
+
+    return {
+        "topic": topic,
+        "workflow_type": workflow_type,
+        "pipeline_version": pipeline_version,
+        "canonical_version": CANONICAL_VERSION,
+        "retrieval_snapshot": [
+            {
+                "trace_id": r["trace_id"],
+                "document_id": r["document_id"],
+                "chunk_id": r["chunk_id"],
+                "claim_text": r["claim_text"],
+                "quote": r["quote"],
+                "citation_text": r["citation_text"],
+            }
+            for r in sorted_snapshot
+        ],
+        "synthesis_sections": [
+            {
+                "heading": s["heading"],
+                "body": s["body"],
+                "references": sorted(s.get("references", [])),
+            }
+            for s in sorted(synthesis_sections, key=lambda s: s.get("heading", ""))
+        ],
+        "synthesis_evidence": [
+            {
+                "trace_id": e["trace_id"],
+                "document_id": e["document_id"],
+                "chunk_id": e["chunk_id"],
+                "claim_text": e["claim_text"],
+                "quote": e["quote"],
+                "citation_text": e["citation_text"],
+            }
+            for e in sorted_evidence
+        ],
+        "report_sections": [
+            {
+                "heading": s["heading"],
+                "body": s["body"],
+                "references": sorted(s.get("references", [])),
+            }
+            for s in sorted(report_sections, key=lambda s: s.get("heading", ""))
+        ],
+        "citation_export": [
+            {
+                "trace_id": c["trace_id"],
+                "citation_text": c["citation_text"],
+                "document_id": c["document_id"],
+                "quote": c["quote"],
+            }
+            for c in sorted_citations
+        ],
+        "trace_ids": sorted(trace_ids),
+        "source_document_ids": sorted(source_document_ids),
+    }
+
+
+def _build_corpus_payload(retrieval_snapshot: list[dict]) -> dict:
+    """Build corpus payload for corpus_sha256 — covers quote/content/citation_text."""
+    sorted_snapshot = sorted(retrieval_snapshot, key=lambda r: r.get("trace_id", ""))
+    return {
+        "corpus_entries": [
+            {
+                "document_id": r["document_id"],
+                "chunk_id": r["chunk_id"],
+                "quote": r["quote"],
+                "citation_text": r["citation_text"],
+            }
+            for r in sorted_snapshot
+        ],
+        "canonical_version": CANONICAL_VERSION,
+    }
+
+
+def _build_input_payload(
+    topic: str,
+    workflow_type: str,
+    pipeline_version: str,
+    retrieval_snapshot: list[dict],
+    trace_ids: list[str],
+    source_document_ids: list[str],
+) -> dict:
+    """Build input payload for canonical_input_sha256."""
+    return {
+        "topic": topic,
+        "workflow_type": workflow_type,
+        "pipeline_version": pipeline_version,
+        "retrieval_snapshot": [
+            {
+                "trace_id": r["trace_id"],
+                "document_id": r["document_id"],
+                "chunk_id": r["chunk_id"],
+                "claim_text": r["claim_text"],
+                "quote": r["quote"],
+                "citation_text": r["citation_text"],
+            }
+            for r in sorted(retrieval_snapshot, key=lambda r: r.get("trace_id", ""))
+        ],
+        "trace_ids": sorted(trace_ids),
+        "source_document_ids": sorted(source_document_ids),
+        "canonical_version": CANONICAL_VERSION,
+    }

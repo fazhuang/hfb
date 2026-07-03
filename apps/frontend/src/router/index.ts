@@ -80,6 +80,12 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'v4',
+          name: 'v4-research',
+          component: () => import('@/views/V4ResearchView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/DashboardView.vue'),

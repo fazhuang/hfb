@@ -200,8 +200,11 @@ async def education_learn(
         result, body.level, result.evidence_trace
     )
 
-    # Build full-fidelity internal traces
-    internal_records = await build_internal_traces(db, result.evidence_trace)
+    # Build full-fidelity internal traces with real retrieval snapshot
+    internal_records = await build_internal_traces(
+        db, result.evidence_trace,
+        retrieval_snapshot=academic.last_snapshot,
+    )
 
     # Record query history
     qh = await ws.create_query_history(

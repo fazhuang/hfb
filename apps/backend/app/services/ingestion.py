@@ -65,26 +65,44 @@ class IngestionService:
         text: str,
         metadata: dict | None = None,
         max_chunk_chars: int = 1000,
+        passage_id: str | None = None,
     ) -> IngestionResult:
         """Ingest a plain-text document: store → chunk → index.
 
-        Transactionally: if any step fails, no partial document or chunks remain.
+        Sprint 4 P0: passage_id links chunks to Passage for V4 academic lineage.
+        When passage_id is provided, validates Passage exists before ingestion.
 
         Args:
             title: Document title.
             text: Raw text content (must be non-empty after strip).
             metadata: Optional extra fields (dynasty, category, etc.).
             max_chunk_chars: Max characters per chunk.
+            passage_id: Optional Passage ID for V4 lineage resolution.
 
         Returns:
             IngestionResult with document_id, chunk_count, total_chars.
 
         Raises:
-            ValueError: if text is empty after stripping.
+            ValueError: if text is empty after stripping, or if passage_id
+                references a non-existent Passage.
         """
         stripped = text.strip()
         if not stripped:
             raise ValueError("Cannot ingest empty text")
+
+        # Sprint 4 P0: validate passage exists when passage_id provided
+        if passage_id is not None:
+            if not passage_id.strip():
+                raise ValueError("passage_id must be non-empty when provided")
+            from app.models.passage import Passage
+            from sqlalchemy import select as sql_select
+            p_stmt = sql_select(Passage.id).where(
+                Passage.id == passage_id.strip(),
+                Passage.is_deleted.is_(False),
+            )
+            p_result = await self.session.execute(p_stmt)
+            if p_result.one_or_none() is None:
+                raise ValueError(f"Passage {passage_id} not found or deleted")
 
         # 1. Store document (flushes immediately, catches constraint violations)
         doc_data: dict = {
@@ -103,8 +121,8 @@ class IngestionService:
             # 2. Chunk
             chunks = chunk_text(stripped, max_chars=max_chunk_chars)
 
-            # 3. Store chunks
-            await self._store_chunks(doc.id, chunks)
+            # 3. Store chunks with passage_id when available
+            await self._store_chunks(doc.id, chunks, passage_id=passage_id)
 
             return IngestionResult(
                 document_id=doc.id,
@@ -128,6 +146,7 @@ class IngestionService:
         file: BinaryIO,
         metadata: dict | None = None,
         store_raw_pdf: bool = True,
+        passage_id: str | None = None,
     ) -> IngestionResult:
         """Ingest a PDF file — extract text with pypdf, store content.
 
@@ -137,6 +156,7 @@ class IngestionService:
             metadata: Optional extra fields (dynasty, category, etc.).
             store_raw_pdf: If True, store the raw PDF bytes on the Document
                 record so the original source is always traceable.
+            passage_id: Optional Passage ID for V4 lineage resolution.
 
         Returns:
             IngestionResult with document_id, chunk_count, total_chars.
@@ -160,13 +180,13 @@ class IngestionService:
             extra["raw_pdf_blob"] = raw_bytes
             extra["source_url"] = f"pdf:{len(raw_bytes)}bytes"
 
-        return await self.ingest_text(title=title, text=text.strip(), metadata=extra)
+        return await self.ingest_text(title=title, text=text.strip(), metadata=extra, passage_id=passage_id)
 
     # ------------------------------------------------------------------
     # Chunk storage
     # ------------------------------------------------------------------
 
-    async def _store_chunks(self, document_id: str, chunks: list[str]) -> None:
+    async def _store_chunks(self, document_id: str, chunks: list[str], passage_id: str | None = None) -> None:
         for idx, text in enumerate(chunks):
             chunk = DocumentChunk(
                 id=str(uuid4()),
@@ -174,6 +194,7 @@ class IngestionService:
                 chunk_index=idx,
                 content=text,
                 token_count=len(text),
+                passage_id=passage_id.strip() if passage_id and passage_id.strip() else None,
             )
             self.session.add(chunk)
         await self.session.flush()
