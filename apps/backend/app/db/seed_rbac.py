@@ -115,6 +115,8 @@ _VISITOR_READS = [
     "version.read",
     "passage.read",
     "paper.read",
+    "document.read",
+    "image.read",
     "graph.read",
     "search.read",
     "dashboard.read",
@@ -123,6 +125,7 @@ _VISITOR_READS = [
 _STUDENT_PERMS = _VISITOR_READS + [
     "workspace.read",
     "ai.read",
+    "user.read",
 ]
 
 _RESEARCHER_PERMS = _STUDENT_PERMS + [
