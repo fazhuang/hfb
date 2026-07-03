@@ -13,6 +13,11 @@ backend_path = Path(__file__).resolve().parent.parent / "apps" / "backend"
 if str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
 
+# Add packages/ to sys.path so that `from tcm_xxx import ...` works in tests
+packages_path = Path(__file__).resolve().parent.parent / "packages"
+if str(packages_path) not in sys.path:
+    sys.path.insert(0, str(packages_path))
+
 # Also add project root so that `from tests.xxx import yyy` works under uv run
 root_path = Path(__file__).resolve().parent.parent
 if str(root_path) not in sys.path:
