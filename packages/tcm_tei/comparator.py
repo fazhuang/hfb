@@ -14,6 +14,47 @@ from tcm_tei.models import (
 )
 
 
+def _lcs_align_sentences(
+    sents_a: list[Sentence],
+    sents_b: list[Sentence],
+) -> list[tuple[Sentence | None, Sentence | None]]:
+    """Align sentences using longest common subsequence on text.
+
+    Builds a DP table over sentence texts, then backtracks to produce
+    (s_a, s_b) pairs. Unmatched sentences get None on the other side.
+    This tolerates insertions, deletions, and transpositions that
+    position-based alignment would misalign.
+    """
+    m, n = len(sents_a), len(sents_b)
+    # DP table: dp[i][j] = LCS length for sents_a[:i], sents_b[:j]
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if sents_a[i - 1].text == sents_b[j - 1].text:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+
+    # Backtrack
+    aligned: list[tuple[Sentence | None, Sentence | None]] = []
+    i, j = m, n
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and sents_a[i - 1].text == sents_b[j - 1].text:
+            aligned.append((sents_a[i - 1], sents_b[j - 1]))
+            i -= 1
+            j -= 1
+        elif j > 0 and (i == 0 or dp[i][j - 1] >= dp[i - 1][j]):
+            aligned.append((None, sents_b[j - 1]))
+            j -= 1
+        else:
+            aligned.append((sents_a[i - 1], None))
+            i -= 1
+
+    aligned.reverse()
+    return aligned
+
+
 class VersionComparator:
     """Compare two text versions to identify 异文 (variants).
 
@@ -85,14 +126,15 @@ class VersionComparator:
     def align(
         version_a: TextVersion,
         version_b: TextVersion,
+        algorithm: str = "lcs",
     ) -> list[tuple[Sentence | None, Sentence | None]]:
-        """Align sentences between two versions.
+        """Align sentences between two versions using LCS sequence alignment.
 
         Returns a list of (sentence_a, sentence_b) pairs. Where a sentence
         exists in only one version, the other side is None.
 
-        ponytail: simple position-based alignment. Full sequence alignment
-        with Smith-Waterman if needed for serious scholarship.
+        The LCS algorithm tolerates insertions and deletions — a single added
+        sentence no longer misaligns every subsequent sentence pair.
         """
         aligned: list[tuple[Sentence | None, Sentence | None]] = []
         max_paras = max(version_a.paragraph_count, version_b.paragraph_count)
@@ -100,15 +142,18 @@ class VersionComparator:
         for i in range(max_paras):
             para_a = version_a.paragraphs[i] if i < version_a.paragraph_count else None
             para_b = version_b.paragraphs[i] if i < version_b.paragraph_count else None
-
             sents_a = para_a.sentences if para_a else []
             sents_b = para_b.sentences if para_b else []
-            max_sents = max(len(sents_a), len(sents_b))
 
-            for j in range(max_sents):
-                s_a = sents_a[j] if j < len(sents_a) else None
-                s_b = sents_b[j] if j < len(sents_b) else None
-                aligned.append((s_a, s_b))
+            if algorithm == "lcs":
+                aligned.extend(_lcs_align_sentences(sents_a, sents_b))
+            else:
+                # fallback: original position-based
+                max_sents = max(len(sents_a), len(sents_b))
+                for j in range(max_sents):
+                    s_a = sents_a[j] if j < len(sents_a) else None
+                    s_b = sents_b[j] if j < len(sents_b) else None
+                    aligned.append((s_a, s_b))
 
         return aligned
 

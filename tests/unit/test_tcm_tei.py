@@ -186,11 +186,20 @@ class TestVersionComparator:
     def test_align(self) -> None:
         doc = _make_document_with_two_versions()
         aligned = VersionComparator.align(doc.versions[0], doc.versions[1])
-        assert len(aligned) == 3  # 2 sentences in para_0 + 1 in para_1
-        # All pairs should have both sides (same structure)
-        for a, b in aligned:
-            assert a is not None
-            assert b is not None
+        # LCS alignment: para_0 has 2 sentences + 1 variant gap + para_1 has 1 = 4 pairs
+        assert len(aligned) == 4
+        # First pair: identical sentence
+        assert aligned[0][0] is not None and aligned[0][1] is not None
+        assert aligned[0][0].text == "黄帝问曰：针道可得闻乎？"
+        # Second pair: sentence only in version A (variant: 也)
+        assert aligned[1][0] is not None and aligned[1][1] is None
+        assert aligned[1][0].text == "岐伯对曰：可得闻也。"
+        # Third pair: sentence only in version B (variant: 耳)
+        assert aligned[2][0] is None and aligned[2][1] is not None
+        assert aligned[2][1].text == "岐伯对曰：可得闻耳。"
+        # Fourth pair: identical sentence in para_1
+        assert aligned[3][0] is not None and aligned[3][1] is not None
+        assert aligned[3][0].text == "凡刺之道，必先治神。"
 
     def test_ignore_whitespace(self) -> None:
         v1 = TextVersion(
