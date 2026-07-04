@@ -72,7 +72,7 @@ all = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["apps/backend"]
+packages = ["apps/backend", "packages/tcm_ontology", "packages/tcm_kg", "packages/tcm_tei", "packages/tcm_rag"]
 
 [tool.ruff]
 line-length = 120

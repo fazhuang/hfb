@@ -24,6 +24,8 @@ from app.models import (
     Permission,  # noqa: F401
     EntityRelation,  # noqa: F401
 )
+from app.models.institution import Institution  # noqa: F401
+from app.models.tcm_entity import TCMEntity  # noqa: F401
 from app.models.version_relation import VersionRelation, PassageMapping, VersionDiff  # noqa: F401
 from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection  # noqa: F401
 

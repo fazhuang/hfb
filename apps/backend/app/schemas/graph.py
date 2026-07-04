@@ -137,6 +137,9 @@ RELATION_LABELS: dict[str, str] = {
     "compared": "比较",
     "referenced": "参考",
     "related_to": "关联",
+    "contains": "包含",
+    "treats": "治疗",
+    "corresponds_to": "对应",
     # VersionRelation types
     "derived_from": "承袭",
     "revised_from": "修订",

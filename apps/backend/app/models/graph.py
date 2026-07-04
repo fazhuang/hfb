@@ -21,11 +21,71 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import BaseModel
 
 
-# Valid entity types for the graph
-GRAPH_ENTITY_TYPES = {"person", "book", "version", "passage"}
+# Canonical entity types for the graph (ontology-aligned)
+GRAPH_ENTITY_TYPES = {
+    "person",
+    "book",
+    "version",
+    "passage",
+    "text",  # classical text / 经典文献
+    "herb",  # herb / 草药
+    "prescription",  # prescription / 方剂
+    "meridian",  # meridian / 经络
+    "symptom",  # symptom / 症候
+}
+
+# Ontology: which entity types can appear as source for a relation
+ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
+    "authored": {"person"},
+    "compiled": {"person"},
+    "commented_on": {"person"},
+    "cited_in": {"person", "book", "version", "passage", "text"},
+    "studied": {"person"},
+    "compared": {"person", "book", "version"},
+    "referenced": {"person", "book", "version", "passage", "text"},
+    "related_to": {
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+    },
+    "contains": {"book", "text", "version", "prescription"},
+    "treats": {"prescription", "herb"},
+    "corresponds_to": {"meridian", "herb"},
+}
+
+# Ontology: which entity types can appear as target for a relation
+ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
+    "authored": {"book", "text"},
+    "compiled": {"book", "text"},
+    "commented_on": {"book", "text"},
+    "cited_in": {"person", "book", "version", "passage", "text"},
+    "studied": {"book", "text", "person", "prescription", "herb"},
+    "compared": {"book", "version", "text"},
+    "referenced": {"person", "book", "version", "passage", "text"},
+    "related_to": {
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+    },
+    "contains": {"passage", "prescription", "herb", "symptom"},
+    "treats": {"symptom"},
+    "corresponds_to": {"meridian", "herb"},
+}
 
 # Valid explicit relation types (cross-entity, user-curated)
-GRAPH_RELATION_TYPES = {
+GRAPH_RELATION_TYPES = set(ONTOLOGY_SOURCE_TYPES.keys()) | {
     "authored",
     "compiled",
     "commented_on",

@@ -3,7 +3,6 @@
 import pytest
 
 from tcm_kg.models import Node, Edge
-from tcm_kg.store import GraphStore
 from tcm_kg.builder import KGBuilder
 from tcm_tei.models import (
     Document,

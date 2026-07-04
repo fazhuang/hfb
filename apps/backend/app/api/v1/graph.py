@@ -120,11 +120,15 @@ async def find_path(
     target_type: str = Query(..., description="Target entity type"),
     target_id: str = Query(..., description="Target entity ID"),
     max_depth: int = Query(default=6, ge=1, le=10),
+    relation_filter: str | None = Query(
+        default=None, description="Filter edges by relation type"
+    ),
 ) -> GraphPathEnvelope:
     """Find the shortest path between two entities using BFS."""
     svc = GraphService(session)
     result = await svc.find_path(
-        source_type, source_id, target_type, target_id, max_depth
+        source_type, source_id, target_type, target_id, max_depth,
+        relation_filter=relation_filter,
     )
     if result is None:
         return GraphPathEnvelope(

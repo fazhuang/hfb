@@ -32,11 +32,14 @@ from app.models.document_chunk import DocumentChunk
 from app.models.graph import (
     GRAPH_ENTITY_TYPES,
     GRAPH_RELATION_TYPES,
+    ONTOLOGY_SOURCE_TYPES,
+    ONTOLOGY_TARGET_TYPES,
     SELF_LOOP_ALLOWED_TYPES,
     EntityRelation,
 )
 from app.models.passage import Passage  # noqa: F401
 from app.models.person import Person
+from app.models.tcm_entity import TCMEntity
 from app.models.version import Version
 from app.schemas.graph import (
     RELATION_LABELS,
@@ -62,6 +65,11 @@ ENTITY_MODEL_MAP: dict[str, Any] = {
     "book": Book,
     "version": Version,
     "passage": Passage,
+    "text": Document,  # "text" ontology type maps to Document model
+    "herb": TCMEntity,
+    "prescription": TCMEntity,
+    "meridian": TCMEntity,
+    "symptom": TCMEntity,
 }
 
 
@@ -108,6 +116,14 @@ def _entity_to_node(obj: Any, entity_type: str) -> GraphNode:
             content[:80] + "..." if len(content) > 80 else content
         )
         props["order"] = getattr(obj, "order", 0)
+    elif entity_type == "text":
+        props["title"] = getattr(obj, "title", "")
+        props["dynasty"] = getattr(obj, "dynasty", "")
+        props["category"] = getattr(obj, "category", "")
+    elif entity_type in ("herb", "prescription", "meridian", "symptom"):
+        props["name"] = getattr(obj, "name", "")
+        props["name_zh"] = getattr(obj, "name_zh", "")
+        props["description"] = getattr(obj, "description", "")
     return GraphNode(
         id=node_id,
         entity_type=entity_type,
@@ -135,6 +151,13 @@ def _make_label(obj: Any, entity_type: str) -> str:
         order = getattr(obj, "order", 0)
         preview = content[:40] + "..." if len(content) > 40 else content
         return f"#{order} {preview}"
+    elif entity_type == "text":
+        title = getattr(obj, "title", "")
+        dynasty = getattr(obj, "dynasty", "")
+        return f"《{title}》" + (f" ({dynasty})" if dynasty else "")
+    elif entity_type in ("herb", "prescription", "meridian", "symptom"):
+        name = getattr(obj, "name", "")
+        return name or str(obj.id)
     return str(obj.id)
 
 
@@ -358,6 +381,22 @@ class GraphService:
             raise ValueError(f"Invalid target_entity_type: {target_entity_type}")
         if relation_type not in GRAPH_RELATION_TYPES:
             raise ValueError(f"Invalid relation_type: {relation_type}")
+
+        # 2b. Ontology constraint: source type must be valid for this relation
+        allowed_sources = ONTOLOGY_SOURCE_TYPES.get(relation_type, set())
+        if allowed_sources and source_entity_type not in allowed_sources:
+            raise ValueError(
+                f"Ontology violation: relation '{relation_type}' does not allow "
+                f"source type '{source_entity_type}'. Allowed: {sorted(allowed_sources)}"
+            )
+
+        # 2c. Ontology constraint: target type must be valid for this relation
+        allowed_targets = ONTOLOGY_TARGET_TYPES.get(relation_type, set())
+        if allowed_targets and target_entity_type not in allowed_targets:
+            raise ValueError(
+                f"Ontology violation: relation '{relation_type}' does not allow "
+                f"target type '{target_entity_type}'. Allowed: {sorted(allowed_targets)}"
+            )
 
         # 3. Entity existence
         if not await _entity_exists(self.session, source_entity_type, sid):
@@ -664,6 +703,7 @@ class GraphService:
         target_type: str,
         target_id: str,
         max_depth: int = 6,
+        relation_filter: str | None = None,
     ) -> PathResult | None:
         source_node_id = f"{source_type}:{source_id}"
         target_node_id = f"{target_type}:{target_id}"
@@ -678,6 +718,8 @@ class GraphService:
 
         adjacency: dict[str, list[tuple[str, GraphEdge]]] = {}
         for edge in all_edges:
+            if relation_filter and edge.relation_type != relation_filter:
+                continue
             adjacency.setdefault(edge.source_id, []).append((edge.target_id, edge))
             adjacency.setdefault(edge.target_id, []).append((edge.source_id, edge))
         for nid in adjacency:
@@ -709,6 +751,83 @@ class GraphService:
                     )
 
         return None
+
+    async def find_paths(
+        self,
+        source_type: str,
+        source_id: str,
+        target_type: str,
+        target_id: str,
+        max_depth: int = 6,
+        max_paths: int = 10,
+        relation_filter: str | None = None,
+    ) -> list[PathResult]:
+        """Find all paths (up to max_paths) between two entities using BFS.
+
+        Each path is a continuous multi-hop sequence: A → B → C with ordered nodes,
+        ordered edges, hop_count, and evidence on each edge.
+        """
+        source_node_id = f"{source_type}:{source_id}"
+        target_node_id = f"{target_type}:{target_id}"
+
+        if source_node_id == target_node_id:
+            src_node = await _fetch_node(self.session, source_type, str(source_id))
+            if src_node is None:
+                return []
+            return [PathResult(nodes=[src_node], edges=[], length=0)]
+
+        all_edges, node_lookup = await self._collect_all_edges()
+
+        adjacency: dict[str, list[tuple[str, GraphEdge]]] = {}
+        for edge in all_edges:
+            if relation_filter and edge.relation_type != relation_filter:
+                continue
+            adjacency.setdefault(edge.source_id, []).append((edge.target_id, edge))
+            adjacency.setdefault(edge.target_id, []).append((edge.source_id, edge))
+        for nid in adjacency:
+            adjacency[nid].sort(key=lambda x: x[0])
+
+        paths_found: list[PathResult] = []
+        queue: deque[tuple[str, list[str], list[str]]] = deque()
+        queue.append((source_node_id, [source_node_id], []))
+        visited_at_depth: dict[tuple[str, int], bool] = {}
+
+        while queue and len(paths_found) < max_paths:
+            current, path_nodes, path_edges = queue.popleft()
+            depth = len(path_nodes)
+            if depth > max_depth:
+                continue
+
+            for neighbor_id, edge in adjacency.get(current, []):
+                # Prevent cycles
+                if neighbor_id in path_nodes:
+                    continue
+
+                state_key = (neighbor_id, depth)
+                if state_key in visited_at_depth:
+                    continue
+                visited_at_depth[state_key] = True
+
+                if neighbor_id == target_node_id:
+                    final_nodes = list(path_nodes) + [neighbor_id]
+                    final_edges = list(path_edges) + [edge.id]
+                    paths_found.append(
+                        self._build_path_result(
+                            final_nodes, final_edges, node_lookup, all_edges
+                        )
+                    )
+                else:
+                    queue.append(
+                        (
+                            neighbor_id,
+                            list(path_nodes) + [neighbor_id],
+                            list(path_edges) + [edge.id],
+                        )
+                    )
+
+        # Stable sort by path length
+        paths_found.sort(key=lambda p: p.length)
+        return paths_found[:max_paths]
 
     def _build_path_result(
         self,
@@ -764,7 +883,30 @@ class GraphService:
             entity_types = sorted(GRAPH_ENTITY_TYPES)
 
         nodes: list[GraphNode] = []
+        tcm_types = {"herb", "prescription", "meridian", "symptom"}
         for et in sorted(entity_types):
+            if et in tcm_types:
+                # Search TCMEntity by entity_type filter
+                stmt = (
+                    select(TCMEntity)
+                    .where(
+                        TCMEntity.entity_type == et,
+                        TCMEntity.is_deleted.is_(False),
+                    )
+                    .order_by(TCMEntity.id)
+                )
+                if query:
+                    stmt = stmt.where(TCMEntity.name.contains(query))
+                stmt = stmt.limit(limit)
+                result = await self.session.execute(stmt)
+                for obj in result.scalars().all():
+                    nodes.append(_entity_to_node(obj, et))
+                    if len(nodes) >= limit:
+                        break
+                if len(nodes) >= limit:
+                    break
+                continue
+
             model_cls = ENTITY_MODEL_MAP.get(et)
             if model_cls is None:
                 continue

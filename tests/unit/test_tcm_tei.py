@@ -2,13 +2,11 @@
 
 import json
 
-import pytest
 
 from tcm_tei.models import (
     Token,
     Sentence,
     Paragraph,
-    Variant,
     TextVersion,
     Document,
 )

@@ -11,7 +11,6 @@ from tcm_tei.models import (
     Paragraph,
     Sentence,
     Variant,
-    Token,
 )
 
 

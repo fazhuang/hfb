@@ -30,7 +30,11 @@ class TestGraphConstants:
         assert "book" in GRAPH_ENTITY_TYPES
         assert "version" in GRAPH_ENTITY_TYPES
         assert "passage" in GRAPH_ENTITY_TYPES
-        assert len(GRAPH_ENTITY_TYPES) == 4
+        # Ontology expansion: now includes text, herb, prescription, meridian, symptom
+        assert "text" in GRAPH_ENTITY_TYPES
+        assert "herb" in GRAPH_ENTITY_TYPES
+        assert "prescription" in GRAPH_ENTITY_TYPES
+        assert len(GRAPH_ENTITY_TYPES) >= 9
 
     def test_relation_types(self) -> None:
         assert "authored" in GRAPH_RELATION_TYPES

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tcm_ontology.entity_type import EntityType, ENTITY_SCHEMA, EntitySchema, RelationDef
+from tcm_ontology.entity_type import EntityType, ENTITY_SCHEMA, EntitySchema
 from tcm_ontology.registry import EntityRegistry
 from tcm_ontology.schema_loader import SchemaLoader
 

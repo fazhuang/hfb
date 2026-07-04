@@ -96,7 +96,7 @@ class RAGService:
             chunk["content"] = getattr(obj, "content_text", "")
             chunk["translation"] = getattr(obj, "translation", "")
             chunk["notes"] = getattr(obj, "notes", "")
-            chunk["citation"] = f"《{self._get_book_title(obj)}》#{getattr(obj, 'order', '')}"
+            chunk["citation"] = f"《{await self._get_book_title(obj)}》#{getattr(obj, 'order', '')}"
             # Also fetch version info
             ver_id = getattr(obj, "version_id", None)
             if ver_id:
