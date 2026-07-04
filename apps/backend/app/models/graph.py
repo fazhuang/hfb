@@ -13,9 +13,10 @@ are rejected or idempotently returned.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Text, Index
+from sqlalchemy import String, Text, DateTime, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
@@ -121,6 +122,30 @@ class EntityRelation(BaseModel):
             "target_entity_id",
             "relation_type",
         ),
+        # P0-6: Ontology DB hard constraints
+        CheckConstraint(
+            "source_entity_type IN ("
+            "'person','book','version','passage','text',"
+            "'herb','prescription','meridian','symptom')",
+            name="ck_entity_relations_source_type",
+        ),
+        CheckConstraint(
+            "target_entity_type IN ("
+            "'person','book','version','passage','text',"
+            "'herb','prescription','meridian','symptom')",
+            name="ck_entity_relations_target_type",
+        ),
+        CheckConstraint(
+            "relation_type IN ("
+            "'authored','compiled','commented_on','cited_in',"
+            "'studied','compared','referenced','related_to',"
+            "'contains','treats','corresponds_to')",
+            name="ck_entity_relations_relation_type",
+        ),
+        CheckConstraint(
+            "evidence_status IN ('unverified','verified','rejected')",
+            name="ck_entity_relations_evidence_status",
+        ),
     )
 
     source_entity_type: Mapped[str] = mapped_column(
@@ -157,6 +182,29 @@ class EntityRelation(BaseModel):
     )
     evidence_citation: Mapped[Optional[str]] = mapped_column(
         String(200), nullable=True, comment="格式化引用 [document_id:chunk_id]"
+    )
+    # P0-4: Extended evidence provenance and verification fields
+    evidence_version_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, comment="证据来源 version ID"
+    )
+    evidence_passage_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, comment="证据来源 passage ID"
+    )
+    evidence_source_uri: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="稳定来源 URI 或馆藏信息"
+    )
+    evidence_status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="unverified", server_default="'unverified'",
+        comment="证据状态: unverified, verified, rejected"
+    )
+    claim_text: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="该关系所支持的具体学术论断"
+    )
+    verified_by: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, comment="校核人标识"
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="校核时间"
     )
 
     def __repr__(self) -> str:

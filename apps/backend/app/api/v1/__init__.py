@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from app.api.v1.academic_rag import router as academic_rag_router
 from app.api.v1.ai import ai_router, workspace_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -33,6 +34,7 @@ router.include_router(version_center_router)
 router.include_router(graph_router)
 router.include_router(research_router)
 router.include_router(search_router)
+router.include_router(academic_rag_router)
 router.include_router(ai_router)
 router.include_router(workspace_router)
 router.include_router(dashboard_router)

@@ -571,6 +571,10 @@ class GraphService:
         if err is not None:
             return None
 
+        # P0-4: evidence_status must be 'verified'
+        if getattr(er, "evidence_status", "unverified") != "verified":
+            return None
+
         return _make_evidence(
             er.evidence_document_id,
             er.evidence_chunk_id,

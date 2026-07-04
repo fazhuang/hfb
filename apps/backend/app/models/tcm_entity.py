@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import JSON, String, Text
+from sqlalchemy import JSON, String, Text, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
@@ -23,6 +23,15 @@ class TCMEntity(BaseModel):
     """
 
     __tablename__ = "tcm_entities"
+
+    __table_args__ = (
+        CheckConstraint(
+            "entity_type IN ("
+            "'person','book','version','passage','text',"
+            "'herb','prescription','meridian','symptom')",
+            name="ck_tcm_entities_entity_type",
+        ),
+    )
 
     entity_type: Mapped[str] = mapped_column(
         String(50), nullable=False, index=True, comment="Entity type from canonical ontology"

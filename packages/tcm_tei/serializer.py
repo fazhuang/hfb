@@ -30,10 +30,11 @@ class TEISerializer:
         return _document_from_dict(d)
 
     @staticmethod
-    def to_xml(doc: Document) -> str:
-        """Serialize a Document to basic TEI XML.
+    def to_xml(doc: Document, variants: list[Variant] | None = None) -> str:
+        """Serialize a Document to TEI XML with critical apparatus.
 
-        Outputs a minimal TEI structure: <TEI><text><body>...
+        Outputs <TEI><teiHeader>...<text><body>... with <app>/<lem>/<rdg>
+        for textual variants when variants are provided.
         """
         parts: list[str] = []
         parts.append('<?xml version="1.0" encoding="UTF-8"?>')
@@ -56,6 +57,21 @@ class TEISerializer:
                     parts.append(f"            {_escape_xml(sent.text)}")
                     parts.append("          </s>")
                 parts.append("        </p>")
+            parts.append("      </div>")
+
+        # Critical apparatus section
+        if variants:
+            parts.append('      <div type="apparatus">')
+            for var in variants:
+                parts.append(f'        <app from="{_escape_xml(var.location)}">')
+                # First reading is lemma
+                readings = list(var.readings.items())
+                if readings:
+                    first_label, first_text = readings[0]
+                    parts.append(f"          <lem>{_escape_xml(first_text)}</lem>")
+                for label, text in readings[1:]:
+                    parts.append(f'          <rdg wit="{_escape_xml(label)}">{_escape_xml(text)}</rdg>')
+                parts.append("        </app>")
             parts.append("      </div>")
 
         parts.append("    </body>")

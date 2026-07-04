@@ -155,6 +155,10 @@ class TestGraphServiceAsync:
             description="测试关系",
             evidence=ev,
         )
+        # Mark as verified so it passes evidence_status check
+        relation.evidence_status = "verified"
+        await db_session.flush()
+
         assert relation.id is not None
         assert relation.relation_type == "authored"
         assert relation.source_entity_type == "person"
@@ -297,9 +301,11 @@ class TestGraphServiceAsync:
         )
 
         svc = GraphService(db_session)
-        await svc.create_relation(
+        rel = await svc.create_relation(
             "person", p.id, "book", b.id, "authored", evidence=ev,
         )
+        rel.evidence_status = "verified"
+        await db_session.flush()
 
         path = await svc.find_path("person", p.id, "book", b.id)
         # Should find a path since explicit EntityRelation was created

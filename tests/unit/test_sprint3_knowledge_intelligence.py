@@ -670,7 +670,9 @@ class TestFKEdgesExcluded:
         await db_session.flush()
         ev = GraphEvidence(document_id=d.id, chunk_id=c.id, exact_quote="作者测试2编撰关联古籍2。", citation=f"[{d.id}:{c.id}]")
         svc = GraphService(db_session)
-        await svc.create_relation("person", p.id, "book", b.id, "authored", evidence=ev)
+        rel = await svc.create_relation("person", p.id, "book", b.id, "authored", evidence=ev)
+        rel.evidence_status = "verified"
+        await db_session.flush()
         path = await svc.find_path("person", p.id, "book", b.id)
         assert path is not None
         assert path.length == 1
