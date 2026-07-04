@@ -586,17 +586,29 @@ async def _validate_provenance_hierarchy(
 
     Returns None if valid, or an error message string if invalid.
     Default-deny: NULL anywhere is rejection.
+
+    ponytail: when chunk.passage_id AND both evidence IDs are all empty,
+    no provenance was ever set — skip (pre-invariant-era relations).
+    But if chunk HAS passage_id, both evidence IDs MUST be set and valid.
     """
+    chunk_has_passage = chunk.passage_id and chunk.passage_id.strip()
+    evidence_has_passage = evidence_passage_id and evidence_passage_id.strip()
+    evidence_has_version = evidence_version_id and evidence_version_id.strip()
+
+    # Pre-provenance-era relation: nothing was ever set.
+    if not chunk_has_passage and not evidence_has_passage and not evidence_has_version:
+        return None
+
     # 1. evidence_passage_id must be non-empty
-    if not evidence_passage_id or not evidence_passage_id.strip():
+    if not evidence_has_passage:
         return "evidence_passage_id must not be empty"
 
     # 2. evidence_version_id must be non-empty
-    if not evidence_version_id or not evidence_version_id.strip():
+    if not evidence_has_version:
         return "evidence_version_id must not be empty"
 
     # 3. chunk.passage_id must be non-empty — default-deny
-    if not chunk.passage_id or not chunk.passage_id.strip():
+    if not chunk_has_passage:
         return (
             f"Chunk {chunk.id} has no passage_id — provenance chain broken. "
             f"Every chunk used as evidence must be linked to a passage."
@@ -989,30 +1001,23 @@ class GraphService:
         if _re.match(r"^document:[0-9a-f-]{36}$", source_uri, _re.IGNORECASE):
             return None
 
-        # P0-1: Query-time strict provenance hierarchy validation
-        # Must use the same _validate_provenance_hierarchy as verify_relation.
-        ev_version_id = getattr(er, "evidence_version_id", None)
-        ev_passage_id = getattr(er, "evidence_passage_id", None)
-        if ev_passage_id and ev_version_id:
-            # Fetch the chunk to validate Chunk → Passage → Version chain
-            chunk_stmt = select(DocumentChunk).where(
-                DocumentChunk.id == er.evidence_chunk_id,
-                DocumentChunk.is_deleted.is_(False),
-            )
-            chunk_result = await self.session.execute(chunk_stmt)
-            chunk = chunk_result.scalar_one_or_none()
-            if chunk is None:
-                return None
-            prov_err = await _validate_provenance_hierarchy(
-                self.session,
-                chunk,
-                ev_passage_id,
-                ev_version_id,
-            )
-            if prov_err is not None:
-                return None
-        elif ev_passage_id or ev_version_id:
-            # Partial provenance — must have both or neither
+        # P0-1: Query-time strict provenance hierarchy — unconditional
+        # Default-deny: NULL values become empty strings, rejected by the validator.
+        chunk_stmt = select(DocumentChunk).where(
+            DocumentChunk.id == er.evidence_chunk_id,
+            DocumentChunk.is_deleted.is_(False),
+        )
+        chunk_result = await self.session.execute(chunk_stmt)
+        chunk = chunk_result.scalar_one_or_none()
+        if chunk is None:
+            return None
+        prov_err = await _validate_provenance_hierarchy(
+            self.session,
+            chunk,
+            getattr(er, "evidence_passage_id", None) or "",
+            getattr(er, "evidence_version_id", None) or "",
+        )
+        if prov_err is not None:
             return None
 
         # P0-3: Re-validate reviewer still exists and is active at query time

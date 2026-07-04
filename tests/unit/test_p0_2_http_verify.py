@@ -789,6 +789,80 @@ class TestProvenanceHierarchyIsolation:
             f"Tampered provenance must be excluded from validated relations. Got {len(validated)}."
         )
 
+    async def test_tampered_both_provenance_ids_null_excluded(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Blocking-1: verified relation with both provenance IDs set to NULL → excluded.
+
+        Steps:
+        1. Create legal Chunk→Passage→Version chain
+        2. Verify through verify_relation() — keeps evidence_status='verified'
+        3. Set evidence_passage_id=NULL, evidence_version_id=NULL in DB
+        4. Provenance fields become empty strings → _validate_provenance_hierarchy rejects
+        5. find_paths, neighbors, get_validated_relations_for_entity all exclude
+        """
+        uid = f"rev-{uuid.uuid4().hex[:8]}"
+        await _seed_user(db_session, uid, uid, permissions=[("graph", "review")])
+        seed = await _make_corpus(db_session)
+        rel_id = await _make_relation(db_session, seed)
+
+        svc = GraphService(db_session)
+        ev = GraphEvidence(
+            document_id=seed["doc"].id,
+            chunk_id=seed["chunk"].id,
+            exact_quote="皇甫谧撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            citation=f"[{seed['doc'].id}:{seed['chunk'].id}]",
+        )
+        verified = await svc.verify_relation(
+            relation_id=rel_id,
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_document_id=ev.document_id,
+            evidence_version_id=seed["version"].id,
+            evidence_passage_id=seed["passage"].id,
+            evidence_chunk_id=ev.chunk_id,
+            evidence_quote=ev.exact_quote,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+            verified_by=uid,
+        )
+        assert verified.evidence_status == "verified"
+
+        # Direct DB tamper: set BOTH provenance IDs to None
+        # Keep evidence_status='verified', verified_by, verified_at, claim_text, source_uri unchanged
+        from app.models.graph import EntityRelation
+
+        rel = await db_session.get(EntityRelation, rel_id)
+        rel.evidence_passage_id = None
+        rel.evidence_version_id = None
+        await db_session.flush()
+
+        # find_paths must exclude
+        paths = await svc.find_paths(
+            source_type="person",
+            source_id=seed["person"].id,
+            target_type="book",
+            target_id=seed["book"].id,
+            max_depth=3,
+            max_paths=10,
+        )
+        assert len(paths) == 0, (
+            f"Double-NULL provenance must be excluded from find_paths. Got {len(paths)} paths."
+        )
+
+        # neighbors must exclude
+        neighbors = await svc.get_neighbors("person", seed["person"].id)
+        person_edges = [e for e in neighbors.edges if e.source_id.startswith("person:")]
+        assert len(person_edges) == 0, (
+            "Double-NULL provenance must be excluded from neighbors."
+        )
+
+        # get_validated_relations_for_entity must exclude
+        validated = await svc.get_validated_relations_for_entity(
+            "person", seed["person"].id
+        )
+        assert len(validated) == 0, (
+            f"Double-NULL provenance must be excluded from validated relations. Got {len(validated)}."
+        )
+
 
 # ======================================================================
 # P0-5: Source URI and treats regression tests
@@ -1131,7 +1205,12 @@ class TestTreatsEvidencePolicy:
     async def test_tampered_treats_excluded_at_query(
         self, db_session: AsyncSession
     ) -> None:
-        """Verify a treats relation, then DB-tamper it → excluded from find_paths + neighbors."""
+        """Blocking-2: re-validate treats semantic policy at query time.
+
+        Quote is changed so it no longer contains target symptom '头痛',
+        but evidence_status, provenance, citation, reviewer all stay valid.
+        Exclusion must come from RelationEvidencePolicy, not from status/provenance/citation.
+        """
         seed = await self._seed_tcm_entities(db_session)
 
         svc = GraphService(db_session)
@@ -1174,14 +1253,20 @@ class TestTreatsEvidencePolicy:
         )
         assert len(paths_before) == 1
 
-        # DB tamper: set evidence_status back to unverified
+        # Tamper: change chunk content + evidence_quote so the quote no longer
+        # contains target symptom "头痛".  Keep evidence_status, verified_by,
+        # verified_at, provenance chain, source_uri, and citation all valid.
+        # Exclusion must come from RelationEvidencePolicy (target term missing).
+        seed["chunk"].content = "本草记载黄芪性温。"
+        await db_session.flush()
+
         from app.models.graph import EntityRelation
 
         rel_db = await db_session.get(EntityRelation, rel.id)
-        rel_db.evidence_status = "unverified"
+        rel_db.evidence_quote = "本草记载黄芪性温。"
         await db_session.flush()
 
-        # Now must be excluded
+        # Now must be excluded — because query-time semantic re-validation fails
         paths_after = await svc.find_paths(
             source_type="herb",
             source_id=seed["herb"].id,
@@ -1191,11 +1276,19 @@ class TestTreatsEvidencePolicy:
             max_paths=10,
         )
         assert len(paths_after) == 0, (
-            "Tampered treats relation must be excluded from find_paths."
+            "Tampered treats quote must be excluded from find_paths."
         )
 
         # neighbors must also exclude
         neighbors = await svc.get_neighbors("herb", seed["herb"].id)
         assert len(neighbors.edges) == 0, (
-            "Tampered treats relation must be excluded from neighbors."
+            "Tampered treats quote must be excluded from neighbors."
+        )
+
+        # get_validated_relations_for_entity must exclude
+        validated = await svc.get_validated_relations_for_entity(
+            "herb", seed["herb"].id
+        )
+        assert len(validated) == 0, (
+            "Tampered treats quote must be excluded from validated relations."
         )
