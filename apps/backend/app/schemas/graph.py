@@ -151,6 +151,7 @@ RELATION_LABELS: dict[str, str] = {
     "contains": "包含",
     "treats": "治疗",
     "corresponds_to": "对应",
+    "indicates": "指示",
     # VersionRelation types
     "derived_from": "承袭",
     "revised_from": "修订",

@@ -28,7 +28,7 @@ class TCMEntity(BaseModel):
         CheckConstraint(
             "entity_type IN ("
             "'person','book','version','passage','text',"
-            "'herb','prescription','meridian','symptom')",
+            "'herb','prescription','meridian','symptom','syndrome')",
             name="ck_tcm_entities_entity_type",
         ),
     )

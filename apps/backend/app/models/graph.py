@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Text, DateTime, Index, CheckConstraint, ForeignKey
+from sqlalchemy import String, Text, DateTime, Integer, Index, CheckConstraint, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import text as sa_text
 
@@ -34,6 +34,7 @@ GRAPH_ENTITY_TYPES = {
     "prescription",  # prescription / 方剂
     "meridian",  # meridian / 经络
     "symptom",  # symptom / 症候
+    "syndrome",  # Phase 2a: 证候
 }
 
 # Ontology: which entity types can appear as source for a relation
@@ -47,22 +48,15 @@ ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
     "compared": {"person", "book", "version"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person",
-        "book",
-        "version",
-        "passage",
-        "text",
-        "herb",
-        "prescription",
-        "meridian",
-        "symptom",
+        "person", "book", "version", "passage", "text",
+        "herb", "prescription", "meridian", "symptom", "syndrome",
     },
     "contains": {"book", "text", "version", "prescription"},
     "treats": {"prescription", "herb"},
     "corresponds_to": {"meridian", "herb"},
+    "indicates": {"symptom"},  # Phase 2a: symptom → syndrome
 }
 
-# Ontology: which entity types can appear as target for a relation
 ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
     "authored": {"book", "text"},
     "compiled": {"book", "text"},
@@ -73,19 +67,13 @@ ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
     "compared": {"book", "version", "text"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person",
-        "book",
-        "version",
-        "passage",
-        "text",
-        "herb",
-        "prescription",
-        "meridian",
-        "symptom",
+        "person", "book", "version", "passage", "text",
+        "herb", "prescription", "meridian", "symptom", "syndrome",
     },
-    "contains": {"passage", "prescription", "herb", "symptom"},
-    "treats": {"symptom"},
+    "contains": {"passage", "prescription", "herb", "symptom", "syndrome"},
+    "treats": {"syndrome"},  # Phase 2a: 治疗证候，而非症状
     "corresponds_to": {"meridian", "herb"},
+    "indicates": {"syndrome"},  # Phase 2a: symptom → syndrome
 }
 
 # Valid explicit relation types (cross-entity, user-curated)
@@ -99,6 +87,10 @@ GRAPH_RELATION_TYPES = set(ONTOLOGY_SOURCE_TYPES.keys()) | {
     "compared",
     "referenced",
     "related_to",
+    "contains",
+    "treats",
+    "corresponds_to",
+    "indicates",
 }
 
 # Relation types that explicitly allow self-loops
@@ -120,35 +112,36 @@ class EntityRelation(BaseModel):
     __table_args__ = (
         Index(
             "ix_entity_relations_lookup",
-            "source_entity_type",
-            "source_entity_id",
-            "target_entity_type",
-            "target_entity_id",
+            "source_entity_type", "source_entity_id",
+            "target_entity_type", "target_entity_id",
             "relation_type",
         ),
-        # P0-6: Ontology DB hard constraints
         CheckConstraint(
             "source_entity_type IN ("
             "'person','book','version','passage','text',"
-            "'herb','prescription','meridian','symptom')",
+            "'herb','prescription','meridian','symptom','syndrome')",
             name="ck_entity_relations_source_type",
         ),
         CheckConstraint(
             "target_entity_type IN ("
             "'person','book','version','passage','text',"
-            "'herb','prescription','meridian','symptom')",
+            "'herb','prescription','meridian','symptom','syndrome')",
             name="ck_entity_relations_target_type",
         ),
         CheckConstraint(
             "relation_type IN ("
             "'authored','compiled','compiled_from','commented_on','cited_in',"
             "'studied','compared','referenced','related_to',"
-            "'contains','treats','corresponds_to')",
+            "'contains','treats','corresponds_to','indicates')",
             name="ck_entity_relations_relation_type",
         ),
         CheckConstraint(
             "evidence_status IN ('unverified','verified','rejected')",
             name="ck_entity_relations_evidence_status",
+        ),
+        CheckConstraint(
+            "evidence_level IN (0, 1, 2, 3, 4)",
+            name="ck_entity_relations_level",
         ),
     )
 
@@ -169,6 +162,11 @@ class EntityRelation(BaseModel):
     )
     description: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="关系说明"
+    )
+    evidence_level: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0,
+        server_default=sa_text("0"),
+        comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据"
     )
     # Deprecated free-text evidence — kept for backward compat, NOT used in P0 validation
     evidence: Mapped[Optional[str]] = mapped_column(
