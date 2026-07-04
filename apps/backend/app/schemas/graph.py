@@ -20,7 +20,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class GraphEvidence(BaseModel):
-    """Structured corpus evidence bound to a chunk."""
+    """Structured corpus evidence bound to a chunk — P0-2: full provenance chain.
+
+    Every field carried through from EntityRelation → RAG response without loss.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -28,6 +31,11 @@ class GraphEvidence(BaseModel):
     chunk_id: str = Field(..., min_length=1)
     exact_quote: str = Field(..., min_length=1)
     citation: str = Field(..., min_length=1)  # [document_id:chunk_id]
+    # P0-2: provenance chain fields — carried losslessly to citation
+    version_id: str = Field(default="")
+    passage_id: str = Field(default="")
+    source_uri: str = Field(default="")
+    claim_text: str = Field(default="")
 
 
 # ============================================================
@@ -91,7 +99,9 @@ class GraphEdge(BaseModel):
     relation_type: str
     label: str
     source: str = "explicit"  # "explicit" | "fk" | "version" | "concept"
-    evidence: GraphEvidence  # required — no null evidence edges allowed in knowledge graph
+    evidence: (
+        GraphEvidence  # required — no null evidence edges allowed in knowledge graph
+    )
 
 
 class Subgraph(BaseModel):
@@ -131,6 +141,7 @@ RELATION_LABELS: dict[str, str] = {
     # Explicit EntityRelation types
     "authored": "作者",
     "compiled": "编撰",
+    "compiled_from": "编纂依据",
     "commented_on": "注释",
     "cited_in": "引用",
     "studied": "研究",
@@ -277,7 +288,9 @@ class IntelligenceRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    query: str = Field(..., min_length=1, description="Whitespace-separated concept keywords")
+    query: str = Field(
+        ..., min_length=1, description="Whitespace-separated concept keywords"
+    )
 
 
 class IntelligenceResponse(BaseModel):

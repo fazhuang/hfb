@@ -18,6 +18,7 @@ from typing import Optional
 
 from sqlalchemy import String, Text, DateTime, Index, CheckConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import text as sa_text
 
 from app.db.base import BaseModel
 
@@ -39,6 +40,7 @@ GRAPH_ENTITY_TYPES = {
 ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
     "authored": {"person"},
     "compiled": {"person"},
+    "compiled_from": {"book", "text"},
     "commented_on": {"person"},
     "cited_in": {"person", "book", "version", "passage", "text"},
     "studied": {"person"},
@@ -64,6 +66,7 @@ ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
 ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
     "authored": {"book", "text"},
     "compiled": {"book", "text"},
+    "compiled_from": {"book", "text"},
     "commented_on": {"book", "text"},
     "cited_in": {"person", "book", "version", "passage", "text"},
     "studied": {"book", "text", "person", "prescription", "herb"},
@@ -89,6 +92,7 @@ ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
 GRAPH_RELATION_TYPES = set(ONTOLOGY_SOURCE_TYPES.keys()) | {
     "authored",
     "compiled",
+    "compiled_from",
     "commented_on",
     "cited_in",
     "studied",
@@ -137,7 +141,7 @@ class EntityRelation(BaseModel):
         ),
         CheckConstraint(
             "relation_type IN ("
-            "'authored','compiled','commented_on','cited_in',"
+            "'authored','compiled','compiled_from','commented_on','cited_in',"
             "'studied','compared','referenced','related_to',"
             "'contains','treats','corresponds_to')",
             name="ck_entity_relations_relation_type",
@@ -194,8 +198,11 @@ class EntityRelation(BaseModel):
         String(500), nullable=True, comment="稳定来源 URI 或馆藏信息"
     )
     evidence_status: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="unverified", server_default="'unverified'",
-        comment="证据状态: unverified, verified, rejected"
+        String(20),
+        nullable=False,
+        default="unverified",
+        server_default=sa_text("'unverified'"),
+        comment="证据状态: unverified, verified, rejected",
     )
     claim_text: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="该关系所支持的具体学术论断"

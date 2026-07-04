@@ -1,6 +1,7 @@
 """
 Version Center tests — lineage, comparison, diff, passage mapping.
 """
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,9 +12,22 @@ from app.models.passage import Passage
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 
 
-async def _seed_versions(session: AsyncSession) -> tuple[Version, Version, Passage, Passage]:
+async def _seed_versions(
+    session: AsyncSession,
+) -> tuple[Version, Version, Passage, Passage]:
     """Create two versions with passages for testing."""
-    v1 = Version(book_id="b1", version_name="北宋刻本", era="宋", repository="国家图书馆")
+    from app.models.book import Book
+    from app.models.chapter import Chapter
+
+    book = Book(id="b1", title="测试书籍", dynasty="宋")
+    session.add(book)
+    chapter = Chapter(id="c1", book_id="b1", title="第一章", order=1)
+    session.add(chapter)
+    await session.flush()
+
+    v1 = Version(
+        book_id="b1", version_name="北宋刻本", era="宋", repository="国家图书馆"
+    )
     v2 = Version(book_id="b1", version_name="明刻本", era="明", repository="上海图书馆")
     session.add_all([v1, v2])
     await session.flush()
@@ -44,8 +58,13 @@ async def _seed_versions(session: AsyncSession) -> tuple[Version, Version, Passa
 class TestVersionLineage:
     @pytest.mark.asyncio
     async def test_get_lineage_empty(self, db_session: AsyncSession):
-        v = Version(book_id="b1", version_name="测试版本")
+        from app.models.book import Book
+
         session = db_session
+        b = Book(id="b1", title="测试书籍", dynasty="宋")
+        session.add(b)
+        await session.flush()
+        v = Version(book_id="b1", version_name="测试版本")
         session.add(v)
         await session.flush()
 
@@ -57,7 +76,12 @@ class TestVersionLineage:
 
     @pytest.mark.asyncio
     async def test_add_relation_and_lineage(self, db_session: AsyncSession):
+        from app.models.book import Book
+
         session = db_session
+        b = Book(id="b1", title="测试书籍", dynasty="宋")
+        session.add(b)
+        await session.flush()
         v_src = Version(book_id="b1", version_name="宋本")
         v_tgt = Version(book_id="b1", version_name="明本")
         session.add_all([v_src, v_tgt])
@@ -92,13 +116,31 @@ class TestVersionComparison:
 
     @pytest.mark.asyncio
     async def test_compare_identical_passages(self, db_session: AsyncSession):
+        from app.models.book import Book
+        from app.models.chapter import Chapter
+
         session = db_session
+        b = Book(id="b1", title="测试书籍", dynasty="宋")
+        session.add(b)
+        c = Chapter(id="c1", book_id="b1", title="第一章", order=1)
+        session.add(c)
+        await session.flush()
         v = Version(book_id="b1", version_name="Test")
         session.add(v)
         await session.flush()
 
-        p1 = Passage(chapter_id="c1", version_id=v.id, content_text="黄帝问曰：针道可得闻乎？", order=1)
-        p2 = Passage(chapter_id="c1", version_id=v.id, content_text="黄帝问曰：针道可得闻乎？", order=2)
+        p1 = Passage(
+            chapter_id="c1",
+            version_id=v.id,
+            content_text="黄帝问曰：针道可得闻乎？",
+            order=1,
+        )
+        p2 = Passage(
+            chapter_id="c1",
+            version_id=v.id,
+            content_text="黄帝问曰：针道可得闻乎？",
+            order=2,
+        )
         session.add_all([p1, p2])
         await session.flush()
 

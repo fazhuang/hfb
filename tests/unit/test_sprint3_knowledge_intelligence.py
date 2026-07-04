@@ -84,8 +84,10 @@ async def _setup_test_entities(session: AsyncSession) -> dict:
     await session.flush()
 
     c = DocumentChunk(
-        document_id=d.id, chunk_index=0,
-        content="测试人物编撰测试古籍。", token_count=20,
+        document_id=d.id,
+        chunk_index=0,
+        content="测试人物编撰测试古籍。",
+        token_count=20,
     )
     session.add(c)
     await session.flush()
@@ -95,8 +97,10 @@ async def _setup_test_entities(session: AsyncSession) -> dict:
 
 def _make_valid_evidence(doc_id: str, chunk_id: str, quote: str) -> GraphEvidence:
     return GraphEvidence(
-        document_id=doc_id, chunk_id=chunk_id,
-        exact_quote=quote, citation=f"[{doc_id}:{chunk_id}]",
+        document_id=doc_id,
+        chunk_id=chunk_id,
+        exact_quote=quote,
+        citation=f"[{doc_id}:{chunk_id}]",
     )
 
 
@@ -114,46 +118,65 @@ class TestEvidenceValidation:
         assert err is not None
         assert "not found" in err.lower()
 
-    async def test_source_or_target_missing_rejected(self, db_session: AsyncSession) -> None:
+    async def test_source_or_target_missing_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
         with pytest.raises(ValueError, match="not found"):
             await svc.create_relation(
-                source_entity_type="person", source_entity_id="00000000-0000-0000-0000-000000000000",
-                target_entity_type="book", target_entity_id=ents["book"].id,
-                relation_type="authored", evidence=ev,
+                source_entity_type="person",
+                source_entity_id="00000000-0000-0000-0000-000000000000",
+                target_entity_type="book",
+                target_entity_id=ents["book"].id,
+                relation_type="authored",
+                evidence=ev,
             )
         with pytest.raises(ValueError, match="not found"):
             await svc.create_relation(
-                source_entity_type="person", source_entity_id=ents["person"].id,
-                target_entity_type="book", target_entity_id="00000000-0000-0000-0000-000000000000",
-                relation_type="authored", evidence=ev,
+                source_entity_type="person",
+                source_entity_id=ents["person"].id,
+                target_entity_type="book",
+                target_entity_id="00000000-0000-0000-0000-000000000000",
+                relation_type="authored",
+                evidence=ev,
             )
 
     async def test_document_deleted_rejected(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
         d, c = ents["document"], ents["chunk"]
         from datetime import datetime, timezone
+
         d.is_deleted = True  # type: ignore[assignment]
         d.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         await db_session.flush()
-        err = await _validate_graph_evidence(db_session, d.id, c.id, "测试人物编撰测试古籍。", f"[{d.id}:{c.id}]")
+        err = await _validate_graph_evidence(
+            db_session, d.id, c.id, "测试人物编撰测试古籍。", f"[{d.id}:{c.id}]"
+        )
         assert err is not None
 
-    async def test_chunk_document_mismatch_rejected(self, db_session: AsyncSession) -> None:
+    async def test_chunk_document_mismatch_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
         c = ents["chunk"]
         d2 = Document(title="另一个文献", dynasty="宋")
         db_session.add(d2)
         await db_session.flush()
-        err = await _validate_graph_evidence(db_session, d2.id, c.id, "测试人物编撰测试古籍。", f"[{d2.id}:{c.id}]")
+        err = await _validate_graph_evidence(
+            db_session, d2.id, c.id, "测试人物编撰测试古籍。", f"[{d2.id}:{c.id}]"
+        )
         assert err is not None
 
     async def test_quote_not_in_chunk_rejected(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
         d, c = ents["document"], ents["chunk"]
-        err = await _validate_graph_evidence(db_session, d.id, c.id, "这段文字不在chunk中", f"[{d.id}:{c.id}]")
+        err = await _validate_graph_evidence(
+            db_session, d.id, c.id, "这段文字不在chunk中", f"[{d.id}:{c.id}]"
+        )
         assert err is not None
         assert "substring" in err.lower()
 
@@ -165,12 +188,17 @@ class TestEvidenceValidation:
 
 @pytest.mark.asyncio
 class TestQueryStageRejection:
-    async def test_orphan_edge_excluded_from_neighbors(self, db_session: AsyncSession) -> None:
+    async def test_orphan_edge_excluded_from_neighbors(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
         orphan = EntityRelation(
-            source_entity_type="person", source_entity_id=ents["person"].id,
-            target_entity_type="book", target_entity_id=ents["book"].id,
-            relation_type="authored", description="孤立边",
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="authored",
+            description="孤立边",
         )
         db_session.add(orphan)
         await db_session.flush()
@@ -182,8 +210,10 @@ class TestQueryStageRejection:
     async def test_tampered_quote_excluded(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
         tampered = EntityRelation(
-            source_entity_type="person", source_entity_id=ents["person"].id,
-            target_entity_type="book", target_entity_id=ents["book"].id,
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
             relation_type="compiled",
             evidence_document_id=ents["document"].id,
             evidence_chunk_id=ents["chunk"].id,
@@ -206,6 +236,7 @@ class TestQueryStageRejection:
 class TestEntityRelationResponseEvidence:
     def test_response_schema_has_evidence_field(self) -> None:
         from app.schemas.graph import EntityRelationResponse
+
         assert "evidence" in EntityRelationResponse.model_fields
 
 
@@ -217,45 +248,76 @@ class TestEntityRelationResponseEvidence:
 class TestOpenAPIStrictSchemas:
     def test_graph_routes_not_dict(self) -> None:
         from app.api.v1.graph import router
+
         for route in router.routes:
             if hasattr(route, "response_model"):
                 rm = route.response_model
-                assert rm is not dict, f"Route {route.path} still uses response_model=dict"
+                assert rm is not dict, (
+                    f"Route {route.path} still uses response_model=dict"
+                )
                 assert rm is not None, f"Route {route.path} has no response_model"
 
     def test_graph_edge_evidence_required(self) -> None:
         """GraphEdge rejects evidence=None."""
         from app.schemas.graph import GraphEdge as GE
+
         with pytest.raises(Exception):
             GE(
-                id="e1", source_id="s", target_id="t",
-                relation_type="authored", label="作者",
-                source="explicit", evidence=None,
+                id="e1",
+                source_id="s",
+                target_id="t",
+                relation_type="authored",
+                label="作者",
+                source="explicit",
+                evidence=None,
             )
 
     def test_concept_edge_evidence_min_length(self) -> None:
         """ConceptEdge rejects evidence=[]."""
         from app.schemas.graph import ConceptEdge as CE
+
         with pytest.raises(Exception):
             CE(
-                edge_id="test1234abc", source_concept_id="s1",
-                target_concept_id="t1", relation_type="co_occurs_with",
-                label="共现", evidence=[],
+                edge_id="test1234abc",
+                source_concept_id="s1",
+                target_concept_id="t1",
+                relation_type="co_occurs_with",
+                label="共现",
+                evidence=[],
             )
 
     def test_all_graph_envelopes_have_extra_forbid(self) -> None:
         """All Graph envelope schemas have extra='forbid'."""
         from app.schemas.graph import (
-            GraphEntitiesEnvelope, GraphNeighborsEnvelope, GraphPathEnvelope,
-            GraphSubgraphEnvelope, GraphCreateRelationEnvelope,
-            GraphRelationsEnvelope, GraphDeleteEnvelope, IntelligenceEnvelope,
-            GraphNode, Subgraph, PathResult, NeighborResult, ConceptGraph,
+            GraphEntitiesEnvelope,
+            GraphNeighborsEnvelope,
+            GraphPathEnvelope,
+            GraphSubgraphEnvelope,
+            GraphCreateRelationEnvelope,
+            GraphRelationsEnvelope,
+            GraphDeleteEnvelope,
+            IntelligenceEnvelope,
+            GraphNode,
+            Subgraph,
+            PathResult,
+            NeighborResult,
+            ConceptGraph,
         )
+
         schemas = [
-            GraphEntitiesEnvelope, GraphNeighborsEnvelope, GraphPathEnvelope,
-            GraphSubgraphEnvelope, GraphCreateRelationEnvelope,
-            GraphRelationsEnvelope, GraphDeleteEnvelope, IntelligenceEnvelope,
-            GraphNode, Subgraph, PathResult, NeighborResult, ConceptGraph,
+            GraphEntitiesEnvelope,
+            GraphNeighborsEnvelope,
+            GraphPathEnvelope,
+            GraphSubgraphEnvelope,
+            GraphCreateRelationEnvelope,
+            GraphRelationsEnvelope,
+            GraphDeleteEnvelope,
+            IntelligenceEnvelope,
+            GraphNode,
+            Subgraph,
+            PathResult,
+            NeighborResult,
+            ConceptGraph,
         ]
         for s in schemas:
             mc = getattr(s, "model_config", {})
@@ -275,12 +337,15 @@ class TestOpenAPIStrictSchemas:
 
 @pytest.mark.asyncio
 class TestCooccurrenceSameSentence:
-    async def test_different_sentence_no_cooccurrence(self, db_session: AsyncSession) -> None:
+    async def test_different_sentence_no_cooccurrence(
+        self, db_session: AsyncSession
+    ) -> None:
         d = Document(title="同句测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
         c = DocumentChunk(
-            document_id=d.id, chunk_index=0,
+            document_id=d.id,
+            chunk_index=0,
             content="经络是中医理论的重要组成部分。腧穴则是针灸操作的具体部位。",
             token_count=50,
         )
@@ -295,7 +360,12 @@ class TestCooccurrenceSameSentence:
         d = Document(title="同句测试2", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="经络与腧穴都是针灸的核心概念。", token_count=50)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="经络与腧穴都是针灸的核心概念。",
+            token_count=50,
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -303,17 +373,26 @@ class TestCooccurrenceSameSentence:
         co_oc_edges = [e for e in cg.edges if e.relation_type == "co_occurs_with"]
         assert len(co_oc_edges) == 1
 
-    async def test_all_concept_edges_have_non_empty_evidence(self, db_session: AsyncSession) -> None:
+    async def test_all_concept_edges_have_non_empty_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
         d = Document(title="证据测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="经络与腧穴都是针灸的核心概念。", token_count=50)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="经络与腧穴都是针灸的核心概念。",
+            token_count=50,
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
         cg = await svc.build_concept_graph(["经络", "腧穴"])
         for edge in cg.edges:
-            assert len(edge.evidence) > 0, f"Edge {edge.relation_type} has empty evidence"
+            assert len(edge.evidence) > 0, (
+                f"Edge {edge.relation_type} has empty evidence"
+            )
             for ev in edge.evidence:
                 assert ev.document_id
                 assert ev.chunk_id
@@ -332,7 +411,9 @@ class TestHierarchyDirection:
         d = Document(title="层级方向测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="经络属于针灸。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id, chunk_index=0, content="经络属于针灸。", token_count=20
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -352,7 +433,9 @@ class TestHierarchyDirection:
         d = Document(title="包括测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="针灸包括经络。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id, chunk_index=0, content="针灸包括经络。", token_count=20
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -368,11 +451,15 @@ class TestHierarchyDirection:
         assert broader[0].source_concept_id == zhenjiu_id
         assert broader[0].target_concept_id == jingluo_id
 
-    async def test_ambiguous_expression_no_hierarchy(self, db_session: AsyncSession) -> None:
+    async def test_ambiguous_expression_no_hierarchy(
+        self, db_session: AsyncSession
+    ) -> None:
         d = Document(title="模糊测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="针灸和经络有关。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id, chunk_index=0, content="针灸和经络有关。", token_count=20
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -392,12 +479,21 @@ class TestHierarchyDirection:
 
 @pytest.mark.asyncio
 class TestMultipleSharedChunks:
-    async def test_multiple_chunks_produce_all_evidence(self, db_session: AsyncSession) -> None:
+    async def test_multiple_chunks_produce_all_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
         d = Document(title="多chunk测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d.id, chunk_index=0, content="经络和腧穴有关。", token_count=20)
-        c2 = DocumentChunk(document_id=d.id, chunk_index=1, content="经络与腧穴都是中医概念。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d.id, chunk_index=0, content="经络和腧穴有关。", token_count=20
+        )
+        c2 = DocumentChunk(
+            document_id=d.id,
+            chunk_index=1,
+            content="经络与腧穴都是中医概念。",
+            token_count=20,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -513,8 +609,18 @@ class TestContradictionDetection:
         d2 = Document(title="文献B", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸不是唯一疗法。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸可用于部分疼痛。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸不是唯一疗法。",
+            token_count=20,
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id,
+            chunk_index=0,
+            content="针灸可用于部分疼痛。",
+            token_count=20,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -530,8 +636,12 @@ class TestContradictionDetection:
         d2 = Document(title="文献I", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -547,8 +657,18 @@ class TestContradictionDetection:
         d2 = Document(title="文献K", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸不能缓解疼痛。",
+            token_count=20,
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id,
+            chunk_index=0,
+            content="针灸不能缓解疼痛。",
+            token_count=20,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -564,8 +684,15 @@ class TestContradictionDetection:
         d2 = Document(title="文献D", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸不能缓解疼痛。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id, chunk_index=0, content="针灸能缓解疼痛。", token_count=20
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id,
+            chunk_index=0,
+            content="针灸不能缓解疼痛。",
+            token_count=20,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -581,8 +708,15 @@ class TestContradictionDetection:
         d2 = Document(title="文献M", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸可缓解疼痛但不是唯一疗法。", token_count=30)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸可缓解疼痛。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸可缓解疼痛但不是唯一疗法。",
+            token_count=30,
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id, chunk_index=0, content="针灸可缓解疼痛。", token_count=20
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -592,25 +726,44 @@ class TestContradictionDetection:
         assert analysis.status == "insufficient_evidence"
         assert len(analysis.contradictions) == 0
 
-    async def test_single_document_insufficient_evidence(self, db_session: AsyncSession) -> None:
+    async def test_single_document_insufficient_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
         d1 = Document(title="文献E", dynasty="唐")
         db_session.add(d1)
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸是中医的重要组成部分。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸是中医的重要组成部分。",
+            token_count=20,
+        )
         db_session.add(c1)
         await db_session.flush()
         svc = GraphService(db_session)
         analysis = await svc.cross_document_analysis("针灸")
         assert analysis.status == "insufficient_evidence"
 
-    async def test_two_docs_no_comparable_insufficient_evidence(self, db_session: AsyncSession) -> None:
+    async def test_two_docs_no_comparable_insufficient_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
         """Two documents but different subjects → insufficient_evidence."""
         d1 = Document(title="文献F", dynasty="唐")
         d2 = Document(title="文献G", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸是中医的重要组成部分。", token_count=20)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="经络理论指导针灸取穴。", token_count=20)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸是中医的重要组成部分。",
+            token_count=20,
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id,
+            chunk_index=0,
+            content="经络理论指导针灸取穴。",
+            token_count=20,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -625,8 +778,18 @@ class TestContradictionDetection:
         d2 = Document(title="文献O", dynasty="宋")
         db_session.add_all([d1, d2])
         await db_session.flush()
-        c1 = DocumentChunk(document_id=d1.id, chunk_index=0, content="针灸是传统中医的宝贵遗产，历史悠久。", token_count=30)
-        c2 = DocumentChunk(document_id=d2.id, chunk_index=0, content="针灸广泛用于临床治疗各种疾病。", token_count=30)
+        c1 = DocumentChunk(
+            document_id=d1.id,
+            chunk_index=0,
+            content="针灸是传统中医的宝贵遗产，历史悠久。",
+            token_count=30,
+        )
+        c2 = DocumentChunk(
+            document_id=d2.id,
+            chunk_index=0,
+            content="针灸广泛用于临床治疗各种疾病。",
+            token_count=30,
+        )
         db_session.add_all([c1, c2])
         await db_session.flush()
         svc = GraphService(db_session)
@@ -641,7 +804,9 @@ class TestContradictionDetection:
 
 @pytest.mark.asyncio
 class TestFKEdgesExcluded:
-    async def test_fk_author_edge_excluded_without_evidence(self, db_session: AsyncSession) -> None:
+    async def test_fk_author_edge_excluded_without_evidence(
+        self, db_session: AsyncSession
+    ) -> None:
         """Book.author_id creates no graph edge unless explicit EntityRelation with evidence."""
         p = Person(name="作者测试", dynasty="唐")
         db_session.add(p)
@@ -654,7 +819,9 @@ class TestFKEdgesExcluded:
         # No explicit EntityRelation with evidence → no path via FK
         assert path is None
 
-    async def test_explicit_relation_with_evidence_enables_path(self, db_session: AsyncSession) -> None:
+    async def test_explicit_relation_with_evidence_enables_path(
+        self, db_session: AsyncSession
+    ) -> None:
         """Explicit EntityRelation with corpus evidence creates a valid path."""
         p = Person(name="作者测试2", dynasty="唐")
         db_session.add(p)
@@ -665,13 +832,31 @@ class TestFKEdgesExcluded:
         d = Document(title="测试文献", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="作者测试2编撰关联古籍2。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="作者测试2编撰关联古籍2。",
+            token_count=20,
+        )
         db_session.add(c)
         await db_session.flush()
-        ev = GraphEvidence(document_id=d.id, chunk_id=c.id, exact_quote="作者测试2编撰关联古籍2。", citation=f"[{d.id}:{c.id}]")
+        ev = GraphEvidence(
+            document_id=d.id,
+            chunk_id=c.id,
+            exact_quote="作者测试2编撰关联古籍2。",
+            citation=f"[{d.id}:{c.id}]",
+        )
         svc = GraphService(db_session)
-        rel = await svc.create_relation("person", p.id, "book", b.id, "authored", evidence=ev)
+        rel = await svc.create_relation(
+            "person", p.id, "book", b.id, "authored", evidence=ev
+        )
         rel.evidence_status = "verified"
+        from datetime import datetime, timezone
+
+        rel.verified_by = "test-reviewer"
+        rel.verified_at = datetime.now(timezone.utc)
+        rel.claim_text = "作者测试2编撰关联古籍2"
+        rel.evidence_source_uri = "https://example.com/test-source2"
         await db_session.flush()
         path = await svc.find_path("person", p.id, "book", b.id)
         assert path is not None
@@ -686,39 +871,79 @@ class TestFKEdgesExcluded:
 
 @pytest.mark.asyncio
 class TestRelationsFiltering:
-    async def test_validated_relations_filters_forged_quote(self, db_session: AsyncSession) -> None:
+    async def test_validated_relations_filters_forged_quote(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
         # Insert with valid evidence
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        rel = await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        rel = await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         # Now tamper in DB
         rel.evidence_quote = "被篡改的内容"
         await db_session.flush()
-        validated = await svc.get_validated_relations_for_entity("person", ents["person"].id)
+        validated = await svc.get_validated_relations_for_entity(
+            "person", ents["person"].id
+        )
         assert len(validated) == 0
 
-    async def test_validated_relations_filters_wrong_citation(self, db_session: AsyncSession) -> None:
+    async def test_validated_relations_filters_wrong_citation(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        rel = await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        rel = await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         rel.evidence_citation = "[fake:citation]"
         await db_session.flush()
-        validated = await svc.get_validated_relations_for_entity("person", ents["person"].id)
+        validated = await svc.get_validated_relations_for_entity(
+            "person", ents["person"].id
+        )
         assert len(validated) == 0
 
-    async def test_validated_relations_filters_missing_entity(self, db_session: AsyncSession) -> None:
+    async def test_validated_relations_filters_missing_entity(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         # Soft-delete the source entity
         from datetime import datetime, timezone
+
         ents["person"].is_deleted = True  # type: ignore[assignment]
         ents["person"].deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
         await db_session.flush()
-        validated = await svc.get_validated_relations_for_entity("person", ents["person"].id)
+        validated = await svc.get_validated_relations_for_entity(
+            "person", ents["person"].id
+        )
         assert len(validated) == 0
 
 
@@ -731,33 +956,83 @@ class TestRelationsFiltering:
 class TestActiveUniqueConstraint:
     async def test_active_duplicate_rejected(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         with pytest.raises(ValueError, match="Duplicate|already exists"):
-            await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+            await svc.create_relation(
+                "person",
+                ents["person"].id,
+                "book",
+                ents["book"].id,
+                "authored",
+                evidence=ev,
+            )
 
     async def test_soft_delete_allows_recreate(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        rel1 = await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        rel1 = await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         # Soft delete
         ok = await svc.delete_relation(rel1.id)
         assert ok is True
         # Re-create should work
-        rel2 = await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        rel2 = await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         assert rel2.id != rel1.id
 
-    async def test_two_active_duplicates_rejected(self, db_session: AsyncSession) -> None:
+    async def test_two_active_duplicates_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
         """Two active duplicate edges are rejected at the service level."""
         ents = await _setup_test_entities(db_session)
-        ev = _make_valid_evidence(ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。")
+        ev = _make_valid_evidence(
+            ents["document"].id, ents["chunk"].id, "测试人物编撰测试古籍。"
+        )
         svc = GraphService(db_session)
-        await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+        await svc.create_relation(
+            "person",
+            ents["person"].id,
+            "book",
+            ents["book"].id,
+            "authored",
+            evidence=ev,
+        )
         # Second create with same parameters must be rejected
         with pytest.raises(ValueError, match="Duplicate|already exists"):
-            await svc.create_relation("person", ents["person"].id, "book", ents["book"].id, "authored", evidence=ev)
+            await svc.create_relation(
+                "person",
+                ents["person"].id,
+                "book",
+                ents["book"].id,
+                "authored",
+                evidence=ev,
+            )
 
 
 # ===================================================================
@@ -767,11 +1042,18 @@ class TestActiveUniqueConstraint:
 
 @pytest.mark.asyncio
 class TestIntelligenceAPI:
-    async def test_intelligence_returns_concept_graph(self, db_session: AsyncSession) -> None:
+    async def test_intelligence_returns_concept_graph(
+        self, db_session: AsyncSession
+    ) -> None:
         d = Document(title="智能测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="皇甫谧编撰的针灸甲乙经系统阐述了经络和腧穴的理论。", token_count=100)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="皇甫谧编撰的针灸甲乙经系统阐述了经络和腧穴的理论。",
+            token_count=100,
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -798,12 +1080,19 @@ class TestIndependentHashVerification:
         assert all(c in "0123456789abcdef" for c in test_hash)
 
     @pytest.mark.asyncio
-    async def test_corpus_hash_independently_verifiable(self, db_session: AsyncSession) -> None:
+    async def test_corpus_hash_independently_verifiable(
+        self, db_session: AsyncSession
+    ) -> None:
         """corpus_sha256 can be independently recomputed from corpus bytes."""
         d = Document(title="复算测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="针灸甲乙经记载大量穴位。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="针灸甲乙经记载大量穴位。",
+            token_count=20,
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -812,20 +1101,34 @@ class TestIndependentHashVerification:
         corpus_sha = result["corpus_sha256"]
         # Recompute from the known chunks
         from sqlalchemy import select
-        chunk_stmt = select(DocumentChunk).where(DocumentChunk.is_deleted.is_(False)).order_by(DocumentChunk.id)
+
+        chunk_stmt = (
+            select(DocumentChunk)
+            .where(DocumentChunk.is_deleted.is_(False))
+            .order_by(DocumentChunk.id)
+        )
         chunk_result = await db_session.execute(chunk_stmt)
         all_chunks = chunk_result.scalars().all()
         corpus_parts = sorted(f"{c.document_id}:{c.id}:{c.content}" for c in all_chunks)
         expected_sha = hashlib.sha256("\n".join(corpus_parts).encode()).hexdigest()
-        assert corpus_sha == expected_sha, "corpus_sha256 does not match independent recomputation"
+        assert corpus_sha == expected_sha, (
+            "corpus_sha256 does not match independent recomputation"
+        )
 
     @pytest.mark.asyncio
-    async def test_output_hash_independently_verifiable(self, db_session: AsyncSession) -> None:
+    async def test_output_hash_independently_verifiable(
+        self, db_session: AsyncSession
+    ) -> None:
         """output_sha256 is canonical JSON hash with output_sha256 cleared."""
         d = Document(title="输出复算测试", dynasty="唐")
         db_session.add(d)
         await db_session.flush()
-        c = DocumentChunk(document_id=d.id, chunk_index=0, content="针灸是传统中医的宝贵遗产。", token_count=20)
+        c = DocumentChunk(
+            document_id=d.id,
+            chunk_index=0,
+            content="针灸是传统中医的宝贵遗产。",
+            token_count=20,
+        )
         db_session.add(c)
         await db_session.flush()
         svc = GraphService(db_session)
@@ -834,9 +1137,13 @@ class TestIndependentHashVerification:
         # Clear output_sha256 and recompute
         payload_for_hash = dict(result)
         payload_for_hash["output_sha256"] = ""
-        output_str = json.dumps(payload_for_hash, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        output_str = json.dumps(
+            payload_for_hash, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        )
         expected_sha = hashlib.sha256(output_str.encode()).hexdigest()
-        assert output_sha == expected_sha, "output_sha256 does not match independent recomputation"
+        assert output_sha == expected_sha, (
+            "output_sha256 does not match independent recomputation"
+        )
 
 
 # ===================================================================
@@ -846,12 +1153,17 @@ class TestIndependentHashVerification:
 
 @pytest.mark.asyncio
 class TestOldSeedRelationsExcluded:
-    async def test_evidenceless_relation_excluded(self, db_session: AsyncSession) -> None:
+    async def test_evidenceless_relation_excluded(
+        self, db_session: AsyncSession
+    ) -> None:
         ents = await _setup_test_entities(db_session)
         seed = EntityRelation(
-            source_entity_type="person", source_entity_id=ents["person"].id,
-            target_entity_type="book", target_entity_id=ents["book"].id,
-            relation_type="authored", description="无证据种子数据",
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="authored",
+            description="无证据种子数据",
         )
         db_session.add(seed)
         await db_session.flush()
@@ -872,7 +1184,9 @@ class TestHTTPDeterminism:
     comparing raw response.content directly (no json.dumps, no sort_keys).
     """
 
-    async def test_http_10_repeat_byte_identical(self, db_session_persistent: AsyncSession):
+    async def test_http_10_repeat_byte_identical(
+        self, db_session_persistent: AsyncSession
+    ):
         """POST /api/v1/graph/intelligence × 10 → raw response.content identical."""
         from app.models.document import Document
         from app.models.document_chunk import DocumentChunk
@@ -883,12 +1197,18 @@ class TestHTTPDeterminism:
         await db_session_persistent.flush()
 
         c1 = DocumentChunk(
-            id="http-det-chunk-001", document_id=d.id, chunk_index=0,
-            content="皇甫谧编撰的针灸甲乙经系统阐述了经络理论。", token_count=50,
+            id="http-det-chunk-001",
+            document_id=d.id,
+            chunk_index=0,
+            content="皇甫谧编撰的针灸甲乙经系统阐述了经络理论。",
+            token_count=50,
         )
         c2 = DocumentChunk(
-            id="http-det-chunk-002", document_id=d.id, chunk_index=1,
-            content="针灸是传统中医的重要组成部分。", token_count=50,
+            id="http-det-chunk-002",
+            document_id=d.id,
+            chunk_index=1,
+            content="针灸是传统中医的重要组成部分。",
+            token_count=50,
         )
         db_session_persistent.add_all([c1, c2])
         await db_session_persistent.flush()
@@ -908,6 +1228,7 @@ class TestHTTPDeterminism:
 
         # Override auth: patch the require_permission factory so all guards are no-ops
         import app.middleware.auth as auth_mod
+
         app.dependency_overrides[auth_mod.get_current_user] = lambda: "test-user-id"
 
         # require_permission returns a Depends-wrapped async checker.
@@ -917,9 +1238,12 @@ class TestHTTPDeterminism:
             class FakeAuth:
                 async def has_permission(self, *a, **kw):
                     return True
+
                 async def has_any_permission(self, *a, **kw):
                     return True
+
             return FakeAuth()
+
         app.dependency_overrides[auth_mod.get_auth_service] = _fake_auth_service
 
         app.include_router(graph_router, prefix="/api/v1")
@@ -928,7 +1252,9 @@ class TestHTTPDeterminism:
         import httpx
 
         transport = httpx.ASGITransport(app=app)  # type: ignore[arg-type]
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as client:
             responses = []
             for _ in range(10):
                 r = await client.post(
@@ -956,7 +1282,7 @@ class TestHashSeedDeterminism:
     """
 
     def test_cross_pythonhashseed_identical(self):
-        worker_code = '''
+        worker_code = """
 import asyncio, os, sys
 os.environ["PYTHONHASHSEED"] = os.environ.get("PYTHONHASHSEED", "1")
 
@@ -1038,9 +1364,10 @@ async def main():
     await engine.dispose()
 
 asyncio.run(main())
-'''
+"""
 
         import os as _os
+
         _test_dir = _os.path.dirname(_os.path.abspath(__file__))
         _repo_root = _os.path.dirname(_os.path.dirname(_test_dir))
         _backend_dir = _os.path.join(_repo_root, "apps", "backend")

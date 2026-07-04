@@ -1089,6 +1089,197 @@ class TestCitationProvenance:
                 f"source_uri must not be pseudo document:UUID, got {er.evidence_source_uri}"
             )
 
+        # P0-2: Also assert the HTTP JSON carries provenance in citations
+        for citation in data["citations"]:
+            assert citation.get("version_id", ""), (
+                f"Citation version_id must be non-empty: {citation}"
+            )
+            assert citation.get("passage_id", ""), (
+                f"Citation passage_id must be non-empty: {citation}"
+            )
+            assert citation.get("source_uri", ""), (
+                f"Citation source_uri must be non-empty: {citation}"
+            )
+            assert citation.get("exact_quote", ""), (
+                f"Citation exact_quote must be non-empty: {citation}"
+            )
+
+        # P0-2: Every edge in every path must have claim_text
+        for path in data["kg_paths"]:
+            for edge in path.get("edges", []):
+                assert edge.get("claim_text", ""), (
+                    f"Edge claim_text must be non-empty: {edge}"
+                )
+                assert edge.get("version_id", ""), (
+                    f"Edge version_id must be non-empty: {edge}"
+                )
+                assert edge.get("passage_id", ""), (
+                    f"Edge passage_id must be non-empty: {edge}"
+                )
+                assert edge.get("source_uri", ""), (
+                    f"Edge source_uri must be non-empty: {edge}"
+                )
+
+
+# ============================================================
+# P0-2: CitationProvenanceSurvivesHttpProjectionTest
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestCitationProvenanceSurvivesHttpProjection:
+    """P0-2: Every provenance field must survive the full HTTP projection chain.
+
+    EntityRelation → GraphEvidence → AcademicKGEdge → AcademicCitation
+    must be lossless. Check the raw HTTP JSON, not just DB objects.
+    """
+
+    async def test_http_provenance_chain_is_lossless(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """Full provenance chain via HTTP: version_id, passage_id, source_uri,
+        exact_quote, claim_text all non-empty. ID cross-references resolve."""
+        ents = await _seed_acceptance_corpus(db_session)
+
+        # Create 2-hop path: person → compiled → book → compiled_from → suwen
+        await _create_and_verify_relation(
+            db_session,
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            ev=_make_ev(
+                ents["doc"].id,
+                ents["chunk2"].id,
+                "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            ),
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+        )
+
+        await _create_and_verify_relation(
+            db_session,
+            source_entity_type="book",
+            source_entity_id=ents["book"].id,
+            target_entity_type="book",
+            target_entity_id=ents["suwen"].id,
+            relation_type="compiled_from",
+            description="针灸甲乙经编纂依据素问",
+            ev=_make_ev(
+                ents["doc_preface"].id,
+                ents["preface_chunk"].id,
+                "今有《针经》九卷、《素问》九卷，二九十八卷，即《内经》也。",
+            ),
+            claim_text="针灸甲乙经以《素问》为主要编纂依据",
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_source_uri="https://ctext.org/zhenjiu-jiayi-jing/xu",
+        )
+
+        resp = await acceptance_app.post(
+            "/api/v1/academic-rag/query",
+            json={"query": "皇甫谧针灸思想来源是什么？"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        data = body["data"]
+
+        # --- Condition 1: refusal is False ---
+        assert data["refusal"] is False, (
+            f"Expected refusal=False, got {data['refusal']}"
+        )
+
+        # --- Condition 2: citations non-empty ---
+        assert len(data["citations"]) > 0, "citations must be non-empty"
+
+        # --- Condition 3: at least one 2-hop path ---
+        two_hop_paths = [p for p in data["kg_paths"] if p.get("hop_count", 0) >= 2]
+        assert len(two_hop_paths) > 0, "Must have at least one 2-hop path"
+
+        # --- Condition 4: every citation has all provenance fields non-empty ---
+        for citation in data["citations"]:
+            assert citation.get("version_id"), f"Citation version_id empty: {citation}"
+            assert citation.get("passage_id"), f"Citation passage_id empty: {citation}"
+            assert citation.get("source_uri"), f"Citation source_uri empty: {citation}"
+            assert citation.get("exact_quote"), (
+                f"Citation exact_quote empty: {citation}"
+            )
+
+        # --- Condition 5: every edge has claim_text non-empty ---
+        for path in data["kg_paths"]:
+            for edge in path.get("edges", []):
+                assert edge.get("claim_text"), f"Edge claim_text empty: {edge}"
+                assert edge.get("version_id"), f"Edge version_id empty: {edge}"
+                assert edge.get("passage_id"), f"Edge passage_id empty: {edge}"
+                assert edge.get("source_uri"), f"Edge source_uri empty: {edge}"
+
+        # --- Condition 6: evidence_chain IDs resolve to real objects ---
+        evidence_chain = data["evidence_chain"]
+        assert len(evidence_chain) > 0, "evidence_chain must be non-empty"
+
+        # Collect all IDs from edges and citations for cross-reference
+        all_edge_ids: set[str] = set()
+        all_evidence_ids: set[str] = set()
+        all_citation_ids: set[str] = {c["citation_id"] for c in data["citations"]}
+        for path in data["kg_paths"]:
+            for edge in path.get("edges", []):
+                if edge.get("edge_id"):
+                    all_edge_ids.add(edge["edge_id"])
+                if edge.get("evidence_id"):
+                    all_evidence_ids.add(edge["evidence_id"])
+
+        for link in evidence_chain:
+            # path_id must be non-empty
+            assert link.get("path_id"), f"Link path_id empty: {link}"
+
+            # edge_ids must resolve to edges in kg_paths
+            for eid in link.get("edge_ids", []):
+                assert eid in all_edge_ids, (
+                    f"Link edge_id '{eid}' not found in any kg_path edge"
+                )
+
+            # evidence_ids must resolve to edges
+            for evid in link.get("evidence_ids", []):
+                assert evid in all_evidence_ids, (
+                    f"Link evidence_id '{evid}' not found in any kg_path edge"
+                )
+
+            # citation_ids must resolve to citations
+            for cid in link.get("citation_ids", []):
+                assert cid in all_citation_ids, (
+                    f"Link citation_id '{cid}' not found in citations"
+                )
+
+        # --- Condition 7: same provenance fields across the chain ---
+        # Every citation's document_id + chunk_id must match at least one edge's
+        # evidence_citation which encodes [document_id:chunk_id]
+        for citation in data["citations"]:
+            expected_cit = f"[{citation['document_id']}:{citation['chunk_id']}]"
+            found = False
+            for path in data["kg_paths"]:
+                for edge in path.get("edges", []):
+                    if edge.get("evidence_citation") == expected_cit:
+                        found = True
+                        # Cross-check: exact_quote must also match
+                        assert edge.get("evidence_quote") == citation.get(
+                            "exact_quote"
+                        ), (
+                            f"Edge evidence_quote mismatch: "
+                            f"edge={edge.get('evidence_quote', '')[:60]}, "
+                            f"citation={citation.get('exact_quote', '')[:60]}"
+                        )
+                        break
+                if found:
+                    break
+            assert found, (
+                f"Citation [{citation['document_id']}:{citation['chunk_id']}] "
+                f"not referenced by any edge"
+            )
+
 
 # ============================================================
 # P0-1: ExactQuestionTest — no query rewriting

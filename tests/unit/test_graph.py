@@ -155,8 +155,14 @@ class TestGraphServiceAsync:
             description="测试关系",
             evidence=ev,
         )
-        # Mark as verified so it passes evidence_status check
+        # P0-2: must set complete verification audit fields
+        from datetime import datetime, timezone
+
         relation.evidence_status = "verified"
+        relation.verified_by = "test-reviewer"
+        relation.verified_at = datetime.now(timezone.utc)
+        relation.claim_text = "测试关系"
+        relation.evidence_source_uri = "https://example.com/test-source"
         await db_session.flush()
 
         assert relation.id is not None
@@ -286,8 +292,10 @@ class TestGraphServiceAsync:
         db_session.add(d)
         await db_session.flush()
         c = DocumentChunk(
-            document_id=d.id, chunk_index=0,
-            content="作者测试编撰关联古籍。", token_count=20,
+            document_id=d.id,
+            chunk_index=0,
+            content="作者测试编撰关联古籍。",
+            token_count=20,
         )
         db_session.add(c)
         await db_session.flush()
@@ -295,16 +303,28 @@ class TestGraphServiceAsync:
         from app.schemas.graph import GraphEvidence
 
         ev = GraphEvidence(
-            document_id=d.id, chunk_id=c.id,
+            document_id=d.id,
+            chunk_id=c.id,
             exact_quote="作者测试编撰关联古籍。",
             citation=f"[{d.id}:{c.id}]",
         )
 
         svc = GraphService(db_session)
         rel = await svc.create_relation(
-            "person", p.id, "book", b.id, "authored", evidence=ev,
+            "person",
+            p.id,
+            "book",
+            b.id,
+            "authored",
+            evidence=ev,
         )
         rel.evidence_status = "verified"
+        from datetime import datetime, timezone
+
+        rel.verified_by = "test-reviewer"
+        rel.verified_at = datetime.now(timezone.utc)
+        rel.claim_text = "作者测试编撰关联古籍"
+        rel.evidence_source_uri = "https://example.com/test-find-path"
         await db_session.flush()
 
         path = await svc.find_path("person", p.id, "book", b.id)

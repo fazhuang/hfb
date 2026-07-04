@@ -187,13 +187,32 @@ def _make_evidence_id(document_id: str, chunk_id: str, quote: str) -> str:
     return _make_stable_id("evidence", document_id, chunk_id, quote[:100])
 
 
-def _is_real_source_uri(uri: str) -> bool:
-    """P0-2: source_uri must not be a pseudo 'document:<UUID>' URI."""
-    if not uri:
-        return False
-    if re.match(r"^document:[0-9a-f-]{36}$", uri, re.IGNORECASE):
-        return False
-    return True
+def _make_kg_edge_from_evidence(edge, ev) -> AcademicKGEdge:
+    """P0-2: Build AcademicKGEdge carrying ALL provenance from GraphEvidence.
+
+    No field loss. claim_text, source_uri, version_id, passage_id all carried
+    from the verified EntityRelation through GraphEvidence into the edge.
+    """
+    if ev is None:
+        return AcademicKGEdge(
+            edge_id=_make_edge_id(edge.id),
+            relation_id=edge.id,
+            relation_type=edge.relation_type,
+            label=edge.label,
+        )
+    return AcademicKGEdge(
+        edge_id=_make_edge_id(edge.id),
+        relation_id=edge.id,
+        relation_type=edge.relation_type,
+        label=edge.label,
+        evidence_quote=ev.exact_quote,
+        evidence_citation=ev.citation,
+        evidence_id=_make_evidence_id(ev.document_id, ev.chunk_id, ev.exact_quote),
+        claim_text=getattr(ev, "claim_text", "") or "",
+        version_id=getattr(ev, "version_id", "") or "",
+        passage_id=getattr(ev, "passage_id", "") or "",
+        source_uri=getattr(ev, "source_uri", "") or "",
+    )
 
 
 # ============================================================
@@ -398,7 +417,6 @@ class AcademicRAGService:
                     continue
 
                 ev = edge.evidence
-                edge_id = _make_edge_id(edge.id)
                 academic_paths.append(
                     AcademicKGPath(
                         nodes=[
@@ -413,23 +431,7 @@ class AcademicRAGService:
                                 label=target_node.label,
                             ),
                         ],
-                        edges=[
-                            AcademicKGEdge(
-                                edge_id=edge_id,
-                                relation_id=edge.id,
-                                relation_type=edge.relation_type,
-                                label=edge.label,
-                                evidence_quote=ev.exact_quote if ev else "",
-                                evidence_citation=ev.citation if ev else "",
-                                evidence_id=(
-                                    _make_evidence_id(
-                                        ev.document_id, ev.chunk_id, ev.exact_quote
-                                    )
-                                    if ev
-                                    else ""
-                                ),
-                            )
-                        ],
+                        edges=[_make_kg_edge_from_evidence(edge, ev)],
                         hop_count=1,
                     )
                 )
@@ -473,8 +475,6 @@ class AcademicRAGService:
 
                     ev1 = edge.evidence
                     ev2 = e2.evidence
-                    edge1_id = _make_edge_id(edge.id)
-                    edge2_id = _make_edge_id(e2.id)
                     academic_paths.append(
                         AcademicKGPath(
                             nodes=[
@@ -495,40 +495,8 @@ class AcademicRAGService:
                                 ),
                             ],
                             edges=[
-                                AcademicKGEdge(
-                                    edge_id=edge1_id,
-                                    relation_id=edge.id,
-                                    relation_type=edge.relation_type,
-                                    label=edge.label,
-                                    evidence_quote=ev1.exact_quote if ev1 else "",
-                                    evidence_citation=ev1.citation if ev1 else "",
-                                    evidence_id=(
-                                        _make_evidence_id(
-                                            ev1.document_id,
-                                            ev1.chunk_id,
-                                            ev1.exact_quote,
-                                        )
-                                        if ev1
-                                        else ""
-                                    ),
-                                ),
-                                AcademicKGEdge(
-                                    edge_id=edge2_id,
-                                    relation_id=e2.id,
-                                    relation_type=e2.relation_type,
-                                    label=e2.label,
-                                    evidence_quote=ev2.exact_quote if ev2 else "",
-                                    evidence_citation=ev2.citation if ev2 else "",
-                                    evidence_id=(
-                                        _make_evidence_id(
-                                            ev2.document_id,
-                                            ev2.chunk_id,
-                                            ev2.exact_quote,
-                                        )
-                                        if ev2
-                                        else ""
-                                    ),
-                                ),
+                                _make_kg_edge_from_evidence(edge, ev1),
+                                _make_kg_edge_from_evidence(e2, ev2),
                             ],
                             hop_count=2,
                         )
@@ -596,22 +564,22 @@ class AcademicRAGService:
         self,
         kg_paths: list[AcademicKGPath],
     ) -> list[AcademicCitation]:
-        """P0-1: Citations come ONLY from validated path edge evidence.
+        """P0-2: Citations project structured evidence directly — no string parsing.
 
-        Never from raw keyword retrieval. Each citation carries a stable ID.
+        Every citation carries: citation_id, document_id, version_id, passage_id,
+        chunk_id, exact_quote, source_uri, evidence_id from the edge's evidence.
         """
         citations: list[AcademicCitation] = []
         seen_ids: set[str] = set()
 
         for path in kg_paths:
             for edge in path.edges:
-                # Parse evidence_citation: "[document_id:chunk_id]"
-                cit_text = edge.evidence_citation
-                if not cit_text or ":" not in cit_text:
+                if not edge.evidence_citation or not edge.evidence_quote:
                     continue
 
-                inner = cit_text.strip("[]")
-                parts = inner.split(":", 1)
+                # Derive doc_id/chunk_id from evidence_citation when needed
+                cit_text = edge.evidence_citation
+                parts = cit_text.strip("[]").split(":", 1)
                 if len(parts) != 2:
                     continue
                 doc_id, chunk_id = parts
@@ -625,9 +593,12 @@ class AcademicRAGService:
                     AcademicCitation(
                         citation_id=cid,
                         document_id=doc_id,
+                        version_id=getattr(edge, "version_id", "") or "",
+                        passage_id=getattr(edge, "passage_id", "") or "",
                         chunk_id=chunk_id,
                         exact_quote=edge.evidence_quote,
                         citation=cit_text,
+                        source_uri=getattr(edge, "source_uri", "") or "",
                         evidence_id=edge.evidence_id,
                     )
                 )

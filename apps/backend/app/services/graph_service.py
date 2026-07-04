@@ -672,14 +672,22 @@ class GraphService:
 
     @staticmethod
     def _relation_evidence(er: EntityRelation) -> GraphEvidence | None:
-        """Convert an EntityRelation's structured evidence to GraphEvidence."""
+        """Convert an EntityRelation's structured evidence to GraphEvidence.
+
+        P0-2: ALL provenance fields carried losslessly:
+          version_id, passage_id, source_uri, claim_text
+        """
         if er.evidence_document_id and er.evidence_chunk_id and er.evidence_quote:
-            return _make_evidence(
-                er.evidence_document_id,
-                er.evidence_chunk_id,
-                er.evidence_quote,
-                er.evidence_citation
+            return GraphEvidence(
+                document_id=er.evidence_document_id,
+                chunk_id=er.evidence_chunk_id,
+                exact_quote=er.evidence_quote,
+                citation=er.evidence_citation
                 or f"[{er.evidence_document_id}:{er.evidence_chunk_id}]",
+                version_id=getattr(er, "evidence_version_id", "") or "",
+                passage_id=getattr(er, "evidence_passage_id", "") or "",
+                source_uri=getattr(er, "evidence_source_uri", "") or "",
+                claim_text=getattr(er, "claim_text", "") or "",
             )
         return None
 
@@ -764,11 +772,15 @@ class GraphService:
         ):
             return None
 
-        return _make_evidence(
-            er.evidence_document_id,
-            er.evidence_chunk_id,
-            er.evidence_quote,
-            er.evidence_citation,
+        return GraphEvidence(
+            document_id=er.evidence_document_id,
+            chunk_id=er.evidence_chunk_id,
+            exact_quote=er.evidence_quote,
+            citation=er.evidence_citation,
+            version_id=getattr(er, "evidence_version_id", "") or "",
+            passage_id=getattr(er, "evidence_passage_id", "") or "",
+            source_uri=getattr(er, "evidence_source_uri", "") or "",
+            claim_text=getattr(er, "claim_text", "") or "",
         )
 
     # ------------------------------------------------------------------
