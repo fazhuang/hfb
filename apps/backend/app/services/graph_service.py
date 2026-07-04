@@ -110,10 +110,13 @@ class RelationEvidencePolicy:
     """
 
     @staticmethod
-    def validate(
+    async def validate(
+        session: AsyncSession,
         relation_type: str,
         source_entity_type: str,
+        source_entity_id: str,
         target_entity_type: str,
+        target_entity_id: str,
         claim_text: str,
         exact_quote: str,
     ) -> str | None:
@@ -130,7 +133,15 @@ class RelationEvidencePolicy:
                 claim_text, exact_quote
             )
         elif relation_type == "treats":
-            return RelationEvidencePolicy._validate_treats(claim_text, exact_quote)
+            return await _validate_treats(
+                session,
+                source_entity_type,
+                source_entity_id,
+                target_entity_type,
+                target_entity_id,
+                claim_text,
+                exact_quote,
+            )
         return None
 
     @staticmethod
@@ -165,16 +176,146 @@ class RelationEvidencePolicy:
             )
         return None
 
-    @staticmethod
-    def _validate_treats(claim_text: str, exact_quote: str) -> str | None:
-        """treats: quote must mention the symptom/condition explicitly."""
-        # ponytail: basic presence check — full medical entity resolution deferred
-        return None
+
+# P0-4: treats semantic validation — term extraction & normalization
+
+
+def _normalize_term(term: str) -> str | None:
+    """Normalize a term for matching: strip whitespace, unify punctuation."""
+    t = term.strip()
+    # Collapse fullwidth/halfwidth punctuation variants
+    t = t.replace("，", ",").replace("、", ",").replace("．", ".")
+    t = t.replace("（", "(").replace("）", ")")
+    return t if t else None
+
+
+async def _load_entity_terms(
+    session: AsyncSession, entity_type: str, entity_id: str
+) -> list[str]:
+    """Load canonical terms for an entity — name, name_zh, aliases."""
+    model_cls = ENTITY_MODEL_MAP.get(entity_type)
+    if model_cls is None:
+        return []
+
+    stmt = select(model_cls).where(_entity_active_filter(model_cls, entity_id))
+    result = await session.execute(stmt)
+    entity = result.scalar_one_or_none()
+    if entity is None:
+        return []
+
+    terms: list[str] = []
+
+    # name
+    name = getattr(entity, "name", None)
+    if isinstance(name, str) and name.strip():
+        terms.append(name.strip())
+
+    # name_zh
+    name_zh = getattr(entity, "name_zh", None)
+    if isinstance(name_zh, str) and name_zh.strip():
+        terms.append(name_zh.strip())
+
+    # TCMEntity has properties.aliases
+    props = getattr(entity, "properties", None)
+    if isinstance(props, dict):
+        aliases = props.get("aliases", [])
+        if isinstance(aliases, list):
+            for alias in aliases:
+                if isinstance(alias, str):
+                    n = _normalize_term(alias)
+                    if n:
+                        terms.append(n)
+
+    return terms
+
+
+def _entity_active_filter(model_cls: type, entity_id: str):
+    """Build a WHERE filter for an active entity by ID."""
+    from sqlalchemy import and_
+
+    conditions = []
+    # Try the standard id column
+    id_col = getattr(model_cls, "id", None)
+    if id_col is not None:
+        conditions.append(id_col == entity_id)
+
+    # Soft-delete check
+    is_deleted_col = getattr(model_cls, "is_deleted", None)
+    if is_deleted_col is not None:
+        conditions.append(is_deleted_col.is_(False))
+
+    if len(conditions) >= 2:
+        return and_(*conditions)
+    elif len(conditions) == 1:
+        return conditions[0]
+    return None
+
+
+async def _validate_treats(
+    session: AsyncSession,
+    source_entity_type: str,
+    source_entity_id: str,
+    target_entity_type: str,
+    target_entity_id: str,
+    claim_text: str,
+    exact_quote: str,
+) -> str | None:
+    """treats: herb/prescription --treats--> symptom.
+
+    The exact_quote must mention at least one source term AND at least one
+    target symptom term. claim_text must also mention the target symptom term.
+    Default-deny: no entity or no terms → reject.
+    """
+    source_terms = await _load_entity_terms(
+        session, source_entity_type, source_entity_id
+    )
+    target_terms = await _load_entity_terms(
+        session, target_entity_type, target_entity_id
+    )
+
+    # Normalize all terms
+    source_norm = [t for t in (_normalize_term(t) for t in source_terms) if t]
+    target_norm = [t for t in (_normalize_term(t) for t in target_terms) if t]
+
+    if not source_norm:
+        return f"No canonical terms found for source entity {source_entity_type}:{source_entity_id}"
+    if not target_norm:
+        return f"No canonical terms found for target symptom {target_entity_type}:{target_entity_id}"
+
+    # Normalize texts for matching
+    quote_norm = exact_quote.replace("，", ",").replace("、", ",")
+    claim_norm = _normalize_term(claim_text) or ""
+
+    # exact_quote must contain at least one source term
+    source_match = any(st in quote_norm for st in source_norm)
+    if not source_match:
+        return (
+            f"Quote for 'treats' must mention the source entity "
+            f"({source_terms[0]} or alias). Got: {exact_quote[:80]}"
+        )
+
+    # exact_quote must contain at least one target symptom term
+    target_in_quote = any(tt in quote_norm for tt in target_norm)
+    if not target_in_quote:
+        return (
+            f"Quote for 'treats' must mention the target symptom "
+            f"({target_terms[0]} or alias). Got: {exact_quote[:80]}"
+        )
+
+    # claim_text must also mention the target symptom
+    target_in_claim = any(tt in claim_norm for tt in target_norm)
+    if not target_in_claim:
+        return (
+            f"claim_text for 'treats' must mention the target symptom "
+            f"({target_terms[0]} or alias). Got: {claim_text[:80]}"
+        )
+
+    return None
 
 
 # Allowed source URI check
 def _validate_source_uri(source_uri: str) -> str | None:
-    """Validate source_uri is a real academic source."""
+    """Validate source_uri is a real academic source — default-deny."""
     if not source_uri:
         return "source_uri must not be empty"
 
@@ -182,30 +323,53 @@ def _validate_source_uri(source_uri: str) -> str | None:
     if re.match(r"^document:[0-9a-f-]{36}$", source_uri, re.IGNORECASE):
         return f"source_uri '{source_uri}' is a pseudo document:UUID, not a real URI"
 
-    # Must be http/https
-    if "://" not in source_uri:
-        return f"source_uri must be http/https URL, got: {source_uri}"
+    # Must be HTTPS only
+    if not source_uri.startswith("https://"):
+        return f"source_uri must be https:// URL, got: {source_uri}"
 
-    parsed = source_uri.split("://", 1)[1]
-    host = parsed.split("/")[0].split(":")[0].lower()
+    # Parse with urllib
+    from urllib.parse import urlsplit
 
-    # Reject example.com and known test domains
+    parsed = urlsplit(source_uri)
+    host = (parsed.hostname or "").lower()
+
+    # Reject URLs with userinfo (username:password@host)
+    if parsed.username is not None or parsed.password is not None:
+        return f"source_uri must not contain userinfo (username/password), got: {source_uri}"
+
+    # Reject empty host
+    if not host:
+        return f"source_uri has no hostname: {source_uri}"
+
+    # Reject IP addresses and localhost
+    if re.match(r"^\d+\.\d+\.\d+\.\d+$", host) or host == "localhost":
+        return f"source_uri host '{host}' is not an allowed academic source"
+
+    # Reject example/test domains
     blocked = {
         "example.com",
         "example.org",
         "example.net",
         "test.com",
-        "localhost",
-        "127.0.0.1",
     }
     if host in blocked:
         return f"source_uri host '{host}' is not an allowed academic source"
 
-    # Must be in allowed hosts or be a DOI
-    if host not in _ALLOWED_SOURCE_HOSTS and not host.startswith("doi."):
-        # ponytail: for now, warn but allow unknown hosts —
-        # full institutional allowlist is a config/deploy concern
-        pass
+    # Check against allowed hosts — exact match or legitimate subdomain
+    allowed = False
+    for allowed_host in _ALLOWED_SOURCE_HOSTS:
+        if host == allowed_host:
+            allowed = True
+            break
+        if host.endswith("." + allowed_host):
+            allowed = True
+            break
+
+    if not allowed:
+        return (
+            f"source_uri host '{host}' is not in the allowed academic sources list. "
+            f"Allowed hosts: {', '.join(sorted(_ALLOWED_SOURCE_HOSTS))}"
+        )
 
     return None
 
@@ -790,10 +954,13 @@ class GraphService:
         # P0-4: Re-validate semantic evidence policy at query time
         claim_text_val = getattr(er, "claim_text", "") or ""
         evidence_quote_val = getattr(er, "evidence_quote", "") or ""
-        policy_err = RelationEvidencePolicy.validate(
+        policy_err = await RelationEvidencePolicy.validate(
+            self.session,
             er.relation_type,
             er.source_entity_type,
+            er.source_entity_id,
             er.target_entity_type,
+            er.target_entity_id,
             claim_text_val,
             evidence_quote_val,
         )
@@ -1011,10 +1178,13 @@ class GraphService:
             )
 
         # 13. P0-2: Relation-type-specific semantic evidence policy
-        policy_err = RelationEvidencePolicy.validate(
+        policy_err = await RelationEvidencePolicy.validate(
+            self.session,
             er.relation_type,
             er.source_entity_type,
+            er.source_entity_id,
             er.target_entity_type,
+            er.target_entity_id,
             claim_text,
             evidence_quote,
         )

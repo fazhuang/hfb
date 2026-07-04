@@ -403,3 +403,35 @@ class IntelligenceEnvelope(BaseModel):
     success: bool = Field(default=True)
     data: IntelligenceResponse | None = None
     message: str = Field(default="ok")
+
+
+# ============================================================
+# P0-2: Verify Relation
+# ============================================================
+
+
+class VerifyRelationRequest(BaseModel):
+    """P0-2: Request body for verify_relation — evidence fields only.
+
+    verified_by is FORBIDDEN — it comes from the authenticated user.
+    """
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    claim_text: str = Field(..., min_length=1)
+    evidence_document_id: str = Field(..., min_length=1)
+    evidence_version_id: str = Field(default="")
+    evidence_passage_id: str = Field(default="")
+    evidence_chunk_id: str = Field(..., min_length=1)
+    evidence_quote: str = Field(..., min_length=1)
+    evidence_source_uri: str = Field(..., min_length=1)
+
+
+class VerifyRelationEnvelope(BaseModel):
+    """Envelope for verify relation response."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: EntityRelationResponse | None = None
+    message: str = Field(default="ok")

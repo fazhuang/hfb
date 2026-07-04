@@ -24,7 +24,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import require_permission
+from app.middleware.auth import (
+    require_permission,
+    require_any_permission,
+    get_current_user,
+)
 from app.schemas.graph import (
     EntityRelationCreate,
     EntityRelationResponse,
@@ -38,6 +42,8 @@ from app.schemas.graph import (
     IntelligenceEnvelope,
     IntelligenceRequest,
     IntelligenceResponse,
+    VerifyRelationRequest,
+    VerifyRelationEnvelope,
 )
 from app.services.graph_service import GraphService
 
@@ -46,6 +52,7 @@ router = APIRouter(prefix="/graph", tags=["Knowledge Graph"])
 guard_read = require_permission("graph", "read")
 guard_create = require_permission("graph", "create")
 guard_delete = require_permission("graph", "delete")
+guard_verify = require_any_permission(("graph", "review"), ("graph", "approve"))
 
 
 # ============================================================
@@ -127,7 +134,11 @@ async def find_path(
     """Find the shortest path between two entities using BFS."""
     svc = GraphService(session)
     result = await svc.find_path(
-        source_type, source_id, target_type, target_id, max_depth,
+        source_type,
+        source_id,
+        target_type,
+        target_id,
+        max_depth,
         relation_filter=relation_filter,
     )
     if result is None:
@@ -203,13 +214,13 @@ async def create_relation(
         target_entity_id=relation.target_entity_id,
         relation_type=relation.relation_type,
         description=relation.description,
-        evidence=(
-            GraphService._relation_evidence(relation)
-        ),
+        evidence=(GraphService._relation_evidence(relation)),
         created_at=relation.created_at,
         updated_at=relation.updated_at,
     )
-    return GraphCreateRelationEnvelope(success=True, data=resp, message="Relation created")
+    return GraphCreateRelationEnvelope(
+        success=True, data=resp, message="Relation created"
+    )
 
 
 @router.get(
@@ -260,6 +271,61 @@ async def delete_relation(
             status_code=status.HTTP_404_NOT_FOUND, detail="Relation not found"
         )
     return GraphDeleteEnvelope(success=True, data=None, message="Relation deleted")
+
+
+# ============================================================
+# P0-2: Verify Relation — single entry point for verified status
+# ============================================================
+
+
+@router.post(
+    "/relations/{relation_id}/verify",
+    response_model=VerifyRelationEnvelope,
+    dependencies=[Depends(guard_verify)],
+)
+async def verify_relation(
+    relation_id: UUID,
+    body: VerifyRelationRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[str, Depends(get_current_user)],
+) -> VerifyRelationEnvelope:
+    """Verify a relation — the only path to evidence_status='verified'.
+
+    Requires graph.review or graph.approve permission.
+    verified_by is taken from the authenticated user, NOT the request body.
+    """
+    svc = GraphService(session)
+    try:
+        verified = await svc.verify_relation(
+            relation_id=str(relation_id),
+            claim_text=body.claim_text,
+            evidence_document_id=body.evidence_document_id,
+            evidence_version_id=body.evidence_version_id,
+            evidence_passage_id=body.evidence_passage_id,
+            evidence_chunk_id=body.evidence_chunk_id,
+            evidence_quote=body.evidence_quote,
+            evidence_source_uri=body.evidence_source_uri,
+            verified_by=current_user,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+
+    ev = GraphService._relation_evidence(verified)
+    resp = EntityRelationResponse(
+        id=UUID(verified.id),
+        source_entity_type=verified.source_entity_type,
+        source_entity_id=verified.source_entity_id,
+        target_entity_type=verified.target_entity_type,
+        target_entity_id=verified.target_entity_id,
+        relation_type=verified.relation_type,
+        description=verified.description,
+        evidence=ev,
+        created_at=verified.created_at,
+        updated_at=verified.updated_at,
+    )
+    return VerifyRelationEnvelope(success=True, data=resp, message="Relation verified")
 
 
 # ============================================================

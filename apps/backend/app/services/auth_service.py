@@ -8,6 +8,7 @@ Per:
   HFB-SEC-0702 Security Standard Ch.3-6
   HFB-PS-1704 Permission & Workspace Ch.3-5
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -27,6 +28,7 @@ from app.repositories.user import UserRepository, RoleRepository, PermissionRepo
 # Password hashing
 # ------------------------------------------------------------------
 
+
 def hash_password(plain: str) -> str:
     """Hash a plaintext password with bcrypt."""
     return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -41,9 +43,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 # JWT
 # ------------------------------------------------------------------
 
+
 def _jwt_secret() -> str:
     """Return the JWT secret, ensuring minimum key length for HMAC."""
-    raw = settings.JWT_SECRET_KEY if settings.JWT_SECRET_KEY != "change-me-to-a-random-secret-key" else settings.SECRET_KEY
+    raw = (
+        settings.JWT_SECRET_KEY
+        if settings.JWT_SECRET_KEY != "change-me-to-a-random-secret-key"
+        else settings.SECRET_KEY
+    )
     if len(raw) < 32:
         # Pad to minimum 32 bytes for HMAC-SHA256 (RFC 7518 §3.2)
         raw = raw.ljust(32, "0")
@@ -58,7 +65,9 @@ def _jwt_expiry() -> int:
     return getattr(settings, "JWT_ACCESS_TOKEN_EXPIRE_MINUTES", None) or 60
 
 
-def create_access_token(user_id: str, extra_claims: dict[str, Any] | None = None) -> str:
+def create_access_token(
+    user_id: str, extra_claims: dict[str, Any] | None = None
+) -> str:
     """Create a signed JWT access token."""
     import uuid as _uuid
 
@@ -99,6 +108,7 @@ def decode_token(token: str) -> dict[str, Any]:
 # Auth Service
 # ------------------------------------------------------------------
 
+
 class AuthService:
     """Authentication and authorization business logic."""
 
@@ -110,7 +120,9 @@ class AuthService:
 
     # ----- Login / Register -----
 
-    async def authenticate(self, username: str, password: str) -> tuple[User | None, str | None, str | None]:
+    async def authenticate(
+        self, username: str, password: str
+    ) -> tuple[User | None, str | None, str | None]:
         """Validate credentials and return (user, access_token, refresh_token) or (None, None, None)."""
         user = await self.user_repo.get_by_username(username)
         if user is None or not user.is_active:
@@ -122,7 +134,9 @@ class AuthService:
         refresh = create_refresh_token(user.id)
         return user, access, refresh
 
-    async def register(self, username: str, email: str, password: str, display_name: str | None = None) -> User:
+    async def register(
+        self, username: str, email: str, password: str, display_name: str | None = None
+    ) -> User:
         """Register a new user with default 'Researcher' role."""
         existing_user = await self.user_repo.get_by_username(username)
         if existing_user:
@@ -151,9 +165,13 @@ class AuthService:
         if default_role:
             from app.models.user import user_role
             from sqlalchemy import select as sa_select, and_
+
             existing = await self.session.execute(
                 sa_select(user_role).where(
-                    and_(user_role.c.user_id == user.id, user_role.c.role_id == default_role.id)
+                    and_(
+                        user_role.c.user_id == user.id,
+                        user_role.c.role_id == default_role.id,
+                    )
                 )
             )
             if existing.first() is None:
@@ -195,6 +213,7 @@ class AuthService:
         """
         from sqlalchemy import select as sa_select
         from app.models.user import user_role, role_permission
+
         user_exists = await self.user_repo.get_by_id(user_id)
         if user_exists is None:
             return set()
@@ -211,7 +230,9 @@ class AuthService:
         result = await self.session.execute(stmt)
         return {f"{row[0]}.{row[1]}" for row in result.all()}
 
-    async def has_permission(self, user_id: UUID | str, resource: str, action: str) -> bool:
+    async def has_permission(
+        self, user_id: UUID | str, resource: str, action: str
+    ) -> bool:
         """Check whether a user has a specific permission. Superuser bypasses RBAC."""
         user = await self.user_repo.get_by_id(user_id)
         if user is not None and user.is_superuser:
@@ -220,8 +241,13 @@ class AuthService:
         codes = await self.get_user_permissions(user_id)
         return code in codes
 
-    async def has_any_permission(self, user_id: UUID | str, *permissions: tuple[str, str]) -> bool:
-        """Check whether a user has any of the given (resource, action) tuples."""
+    async def has_any_permission(
+        self, user_id: UUID | str, *permissions: tuple[str, str]
+    ) -> bool:
+        """Check whether a user has any of the given (resource, action) tuples. Superuser bypasses RBAC."""
+        user = await self.user_repo.get_by_id(user_id)
+        if user is not None and user.is_superuser:
+            return True
         codes = await self.get_user_permissions(user_id)
         for resource, action in permissions:
             if f"{resource}.{action}" in codes:
