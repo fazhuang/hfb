@@ -1,7 +1,7 @@
 ---
 title: System Architecture — Full Blueprint
 document_id: HFB-ARC-0203
-version: 1.1.0
+version: 1.2.0
 status: Review
 owner: Project Steering Committee
 reviewer: Chief Product & Technical Architect

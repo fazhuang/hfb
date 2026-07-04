@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from pathlib import Path
 from collections import defaultdict
-import re, json, datetime
+import re
+import datetime
 
 ROOT = Path("docs")
 

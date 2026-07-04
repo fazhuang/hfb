@@ -4,35 +4,55 @@ request ID middleware, Institution model & repository.
 
 Covers:
   - Status machine: all legal transitions, all illegal transitions,
-    unknown states, terminal detection, repository integration
+    unknown states, terminal detection, repository integration,
+    bypass prevention (update, direct setattr, DB constraint)
   - Institution: valid/invalid type, empty name, ORM registration,
-    create/get/update, soft_delete state+field sync
+    create/get/update, soft_delete state+field sync,
+    ORM @validates and DB CHECK constraints
   - Exceptions: ValidationException→422, NotFoundException→404,
     RequestValidationError→422 unified, HTTPException→unified,
-    RuntimeError→500 no-leak
+    RuntimeError→500 no-leak (real HTTP)
   - Request ID: auto-generate, honour inbound, replace malicious,
-    500 still has header, caplog contains request_id
+    CORS OPTIONS has header, 500 has header, caplog contains request_id,
+    body request_id matches header
 
 Run with: uv run pytest tests/unit/test_day1_foundation.py -v
 """
 from __future__ import annotations
 
-import re
-from unittest.mock import AsyncMock, MagicMock, patch
-
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from app.core.exceptions import (
+    BaseException,
+    DomainException,
+    NotFoundError,
+    NotFoundException,
+    PermissionError,
+    PermissionException,
+    ValidationError,
+    ValidationException,
+)
+from app.core.status_machine import (
+    InvalidStatusTransitionError,
+    can_transition,
+    is_terminal,
+    is_valid_state,
+    validate_transition,
+)
+from app.db.base import Base
+from app.models.institution import Institution, InstitutionStatus
+from app.repositories.institution import InstitutionRepository
+from app.schemas.institution import InstitutionCreate, InstitutionUpdate
+from pydantic import ValidationError as PydanticValidationError
+
 
 # ============================================================
 # STATUS MACHINE
 # ============================================================
-from app.core.status_machine import (
-    can_transition,
-    validate_transition,
-    is_valid_state,
-    is_terminal,
-    InvalidStatusTransitionError,
-)
 
 
 class TestLegalTransitions:
@@ -105,10 +125,6 @@ class TestTerminal:
 # ============================================================
 # INSTITUTION MODEL
 # ============================================================
-from app.models.institution import Institution, InstitutionType
-from app.db.base import Base
-from app.schemas.institution import InstitutionCreate, InstitutionUpdate
-from pydantic import ValidationError as PydanticValidationError
 
 
 class TestInstitutionModel:
@@ -148,10 +164,6 @@ class TestInstitutionSchema:
 # ============================================================
 # INSTITUTION REPOSITORY (with SQLite-in-memory)
 # ============================================================
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from app.repositories.institution import InstitutionRepository
-from app.models.institution import InstitutionStatus
 
 
 @pytest.fixture
@@ -184,7 +196,6 @@ class TestInstitutionRepository:
         repo = InstitutionRepository(db_session)
         await repo.create(name="A", type="archive")
         await repo.create(name="B", type="institution")
-        # BaseRepository.get_all uses counted subquery — fine with SQLite
         items, total = await repo.get_all(page=1, limit=10)
         assert total >= 2
 
@@ -223,6 +234,7 @@ class TestInstitutionRepository:
 
         # But direct query confirms fields are set
         from sqlalchemy import select
+
         row = (await db_session.execute(
             select(Institution).where(Institution.id == inst.id)
         )).scalar_one()
@@ -232,20 +244,97 @@ class TestInstitutionRepository:
 
 
 # ============================================================
+# STATUS MACHINE BYPASS PREVENTION (Section 2)
+# ============================================================
+
+
+@pytest.mark.anyio
+class TestStatusMachineBypass:
+    """All three bypass vectors must be blocked."""
+
+    # --- Vector 1: repo.transition_status(draft, archived) ---
+    async def test_transition_status_rejects_draft_to_archived(self, db_session):
+        repo = InstitutionRepository(db_session)
+        inst = await repo.create(name="v1", type="archive")
+        with pytest.raises(InvalidStatusTransitionError):
+            await repo.transition_status(inst.id, "archived")
+        fresh = await repo.get_by_id(inst.id)
+        assert fresh.status == "draft"
+
+    # --- Vector 2: repo.update(id, status="archived") ---
+    async def test_update_rejects_status_kwarg(self, db_session):
+        repo = InstitutionRepository(db_session)
+        inst = await repo.create(name="v2", type="archive")
+        with pytest.raises(ValueError, match="Direct status updates are forbidden"):
+            await repo.update(inst.id, status="archived")
+        fresh = await repo.get_by_id(inst.id)
+        assert fresh.status == "draft"
+
+    # --- Vector 3: instance.status = "archived" ---
+    async def test_direct_setattr_blocked_by_validates(self, db_session):
+        inst = Institution(name="v3", type="archive")
+        db_session.add(inst)
+        await db_session.flush()
+        assert inst.status == "draft"
+
+        with pytest.raises(InvalidStatusTransitionError, match="Invalid status transition"):
+            inst.status = "archived"
+            await db_session.flush()
+
+        # DB still draft
+        await db_session.refresh(inst)
+        assert inst.status == "draft"
+
+
+# ============================================================
+# ORM @VALIDATES — name and type (Section 3)
+# ============================================================
+
+
+@pytest.mark.anyio
+class TestORMValidators:
+    async def test_create_blank_name_fails(self, db_session):
+        repo = InstitutionRepository(db_session)
+        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+            await repo.create(name="   ", type="archive")
+
+    async def test_direct_construct_blank_name_fails(self):
+        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+            Institution(name="   ", type="archive")
+
+    async def test_direct_construct_blank_name_stripped_blank(self):
+        # "\t  \n" strips to empty
+        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+            Institution(name="\t  \n", type="archive")
+
+    async def test_direct_construct_invalid_type_fails(self):
+        with pytest.raises(ValidationException, match="Invalid institution type"):
+            Institution(name="test", type="hospital")
+
+    async def test_db_rejects_blank_name(self, db_session):
+        """Raw SQL insert with empty name is rejected by DB CHECK constraint."""
+        import uuid
+        blank_id = str(uuid.uuid4())
+        with pytest.raises(Exception):
+            await db_session.execute(
+                text("INSERT INTO institutions (id, name, type, status) VALUES (:id, '   ', 'archive', 'draft')"),
+                {"id": blank_id},
+            )
+
+    async def test_db_rejects_invalid_type(self, db_session):
+        """Raw SQL insert with invalid type is rejected by DB CHECK constraint."""
+        import uuid
+        bad_id = str(uuid.uuid4())
+        with pytest.raises(Exception):
+            await db_session.execute(
+                text("INSERT INTO institutions (id, name, type, status) VALUES (:id, 'test', 'hospital', 'draft')"),
+                {"id": bad_id},
+            )
+
+
+# ============================================================
 # EXCEPTIONS — required exported names
 # ============================================================
-from app.core.exceptions import (
-    BaseException,
-    DomainException,
-    ValidationException,
-    NotFoundException,
-    PermissionException,
-    # aliases for existing code
-    ValidationError,
-    NotFoundError,
-    PermissionError,
-    ConflictError,
-)
 
 
 class TestExceptionNames:
@@ -287,50 +376,72 @@ class TestExceptionNames:
 
 
 # ============================================================
-# ERROR HANDLERS — real FastAPI request tests
+# ERROR HANDLERS — real FastAPI request tests (Sections 4, 5)
 # ============================================================
+
+
+def _make_test_app():
+    """Build a FastAPI test app with RequestID middleware outermost."""
+    from fastapi import FastAPI, Query
+    from fastapi.middleware.cors import CORSMiddleware
+
+    from app.core.error_handlers import register_error_handlers
+    from app.core.exceptions import NotFoundException, ValidationException
+    from app.middleware.request_id import RequestIDMiddleware
+
+    app = FastAPI(debug=False)
+    # CORS and TrustedHost must be added BEFORE RequestID so
+    # RequestID is outermost (Starlette: last add_middleware = outermost).
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    app.add_middleware(RequestIDMiddleware)
+    register_error_handlers(app)
+
+    @app.get("/test-validation")
+    async def validation():
+        raise ValidationException("name is required")
+
+    @app.get("/test-not-found")
+    async def not_found():
+        raise NotFoundException("Institution", "deadbeef")
+
+    @app.get("/test-http-exc")
+    async def http_exc():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=418, detail="I'm a teapot")
+
+    @app.get("/test-crash")
+    async def crash():
+        raise RuntimeError("boom")
+
+    @app.get("/test-pydantic-validation")
+    async def pydantic_val(q: str = Query(min_length=5)):
+        return {"q": q}
+
+    return app
+
+
 @pytest.mark.anyio
 class TestErrorHandlersViaHTTP:
     """All error handler tests go through real FastAPI requests."""
 
     @pytest.fixture(autouse=True)
     def _app(self):
-        from fastapi import FastAPI, Query
-        from app.core.error_handlers import register_error_handlers
-        from app.middleware.request_id import RequestIDMiddleware
-        from app.core.exceptions import ValidationException, NotFoundException
+        self._app = _make_test_app()
 
-        app = FastAPI(debug=False)
-        app.add_middleware(RequestIDMiddleware)
-        register_error_handlers(app)
-
-        @app.get("/test-validation")
-        async def validation():
-            raise ValidationException("name is required")
-
-        @app.get("/test-not-found")
-        async def not_found():
-            raise NotFoundException("Institution", "deadbeef")
-
-        @app.get("/test-http-exc")
-        async def http_exc():
-            from fastapi import HTTPException
-            raise HTTPException(status_code=418, detail="I'm a teapot")
-
-        @app.get("/test-crash")
-        async def crash():
-            raise RuntimeError("boom")
-
-        @app.get("/test-pydantic-validation")
-        async def pydantic_val(q: str = Query(min_length=5)):
-            return {"q": q}  # FastAPI will reject short q < 5
-
-        self._app = app
-
-    async def _get(self, path):
-        transport = ASGITransport(app=self._app)
+    async def _get(self, path, headers=None):
+        transport = ASGITransport(app=self._app, raise_app_exceptions=False)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            return await c.get(path)
+            return await c.get(path, headers=headers or {})
+
+    async def _options(self, path, headers=None):
+        transport = ASGITransport(app=self._app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            return await c.options(path, headers=headers or {})
 
     # ---------- 422 from ValidationException ----------
     async def test_validation_exception_returns_422(self):
@@ -369,26 +480,21 @@ class TestErrorHandlersViaHTTP:
         assert b["meta"]["error_code"] == "REQUEST_VALIDATION_ERROR"
         assert "validation_errors" in b["meta"]["metadata"]
 
-    # ---------- Generic 500 no leak ----------
+    # ---------- Generic 500 via real HTTP (Section 5) ----------
     async def test_runtime_error_returns_500_no_leak(self):
-        # Starlette ServerErrorMiddleware catches Exception in real HTTP but
-        # re-raises it in the ASGI test transport.  We verify that the
-        # generic_exception_handler WOULD return the right shape by checking
-        # the error_handlers module directly.
-        from app.core.error_handlers import generic_exception_handler
-
-        class MockRequest:
-            state: object
-            def __init__(self):
-                self.state = type("s", (), {"request_id": "rid-500test"})()
-        import json
-        resp = await generic_exception_handler(MockRequest(), RuntimeError("boom"))
-        assert resp.status_code == 500
-        body = json.loads(resp.body)
-        assert body["success"] is False
-        assert body["message"] == "Internal server error"
-        assert "boom" not in body["message"]
-        assert "boom" not in str(body.get("meta", {}))
+        r = await self._get("/test-crash")
+        assert r.status_code == 500
+        b = r.json()
+        assert b["success"] is False
+        assert b["message"] == "Internal server error"
+        assert b["meta"]["error_code"] == "INTERNAL_ERROR"
+        # No leak
+        assert "boom" not in b["message"]
+        assert "boom" not in str(b.get("meta", {}))
+        # Request ID present and consistent
+        header_rid = r.headers.get("X-Request-ID")
+        assert header_rid is not None
+        assert b["meta"]["request_id"] == header_rid
 
     # ---------- Request ID consistency ----------
     async def test_error_body_and_header_request_id_match(self):
@@ -398,17 +504,44 @@ class TestErrorHandlersViaHTTP:
         b = r.json()
         assert b["meta"]["request_id"] == header_rid
 
+    # ---------- CORS OPTIONS has X-Request-ID (Section 4) ----------
+    async def test_cors_preflight_has_request_id(self):
+        r = await self._options(
+            "/test-not-found",
+            headers={
+                "Origin": "http://localhost:5173",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert r.headers.get("X-Request-ID") is not None
+
+    # ---------- HTTPException has X-Request-ID (Section 4) ----------
+    async def test_http_exception_has_request_id(self):
+        r = await self._get("/test-http-exc")
+        assert r.headers.get("X-Request-ID") is not None
+
+    # ---------- RequestValidationError has X-Request-ID (Section 4) ----------
+    async def test_request_validation_error_has_request_id(self):
+        r = await self._get("/test-pydantic-validation?q=x")
+        assert r.headers.get("X-Request-ID") is not None
+        b = r.json()
+        assert "request_id" in b["meta"]
+        assert b["meta"]["request_id"] == r.headers["X-Request-ID"]
+
 
 # ============================================================
 # REQUEST ID MIDDLEWARE
 # ============================================================
+
+
 @pytest.mark.anyio
 class TestRequestID:
     @pytest.fixture(autouse=True)
     def _app(self):
         from fastapi import FastAPI
-        from app.middleware.request_id import RequestIDMiddleware
+
         from app.core.error_handlers import register_error_handlers
+        from app.middleware.request_id import RequestIDMiddleware
 
         app = FastAPI(debug=False)
         app.add_middleware(RequestIDMiddleware)
@@ -418,14 +551,10 @@ class TestRequestID:
         async def ok():
             return {"status": "ok"}
 
-        @app.get("/test-crash-rid")
-        async def crash():
-            raise RuntimeError("boom")
-
         self._app = app
 
     async def _get(self, path, headers=None):
-        transport = ASGITransport(app=self._app)
+        transport = ASGITransport(app=self._app, raise_app_exceptions=False)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
             return await c.get(path, headers=headers or {})
 
@@ -451,30 +580,11 @@ class TestRequestID:
         rid = r.headers["X-Request-ID"]
         assert len(rid) <= 128
 
-    async def test_500_response_still_has_request_id(self):
-        # RuntimeError in Starlette test transport re-raises to the caller.
-        # The middleware sets request.state.request_id BEFORE the exception,
-        # but the response object never gets a header because an exception path
-        # has no Response.  In production Starlette wraps this into a 500 with
-        # the header attached by our error handler (production verified path).
-        # Test verified: the error handler attaches X-Request-ID to its response.
-        from app.core.error_handlers import generic_exception_handler
-
-        class MockRequest:
-            state: object
-            def __init__(self):
-                self.state = type("s", (), {"request_id": "abc-def-ghi"})()
-
-        resp = await generic_exception_handler(MockRequest(), RuntimeError("x"))
-        assert resp.headers.get("X-Request-ID") == "abc-def-ghi"
-
     async def test_request_id_appears_in_caplog(self, caplog):
         import logging
-        # RequestIDMiddleware logs at INFO via get_logger.  Capture
-        # the app.middleware.request_id logger specifically.
+
         caplog.set_level(logging.INFO, logger="app.middleware.request_id")
         await self._get("/test-rid")
-        # Verify at least one log from the middleware exists
         started = [r for r in caplog.records if "request_started" in r.message]
         completed = [r for r in caplog.records if "request_completed" in r.message]
         assert len(started) >= 1 or len(completed) >= 1, \
@@ -484,11 +594,11 @@ class TestRequestID:
 # ============================================================
 # INVALID STATUS DOES NOT PERSIST — repository gate
 # ============================================================
+
+
 @pytest.mark.anyio
 async def test_illegal_transition_not_persisted(db_session):
     """Repository.transition_status must raise before flush."""
-    from app.repositories.institution import InstitutionRepository
-
     repo = InstitutionRepository(db_session)
     inst = await repo.create(name="GateTest", type="archive")
 

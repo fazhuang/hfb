@@ -12,7 +12,10 @@ It performs safe normalization helpers:
 """
 
 from pathlib import Path
-import shutil, datetime, subprocess, sys
+import shutil
+import datetime
+import subprocess
+import sys
 
 ROOT = Path("docs")
 ARCHIVE = ROOT / "_archive" / "legacy"

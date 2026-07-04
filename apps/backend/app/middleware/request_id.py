@@ -41,9 +41,9 @@ def _sanitize_request_id(raw: str | None) -> str:
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Ensures every response carries a valid X-Request-ID header.
 
-    Must be registered as the outermost user middleware (first add_middleware call)
-    so that error handlers and downstream middleware always have access to
-    request.state.request_id.
+    Must be registered last (last add_middleware call) so Starlette wraps it
+    as the outermost layer — error handlers, CORS preflight, and downstream
+    middleware always have access to request.state.request_id.
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:

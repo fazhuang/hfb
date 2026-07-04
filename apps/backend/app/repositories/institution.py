@@ -36,6 +36,19 @@ class InstitutionRepository(BaseRepository[Institution]):
         )
 
     # ------------------------------------------------------------------
+    # Update — block status bypass
+    # ------------------------------------------------------------------
+
+    async def update(self, id, **kwargs):
+        """Update fields on an entity. Status changes must go through transition_status."""
+        if "status" in kwargs:
+            raise ValueError(
+                "Direct status updates are forbidden. Use transition_status() "
+                "to ensure all transitions go through the state machine."
+            )
+        return await super().update(id, **kwargs)
+
+    # ------------------------------------------------------------------
     # Status machine integration
     # ------------------------------------------------------------------
 
@@ -53,6 +66,9 @@ class InstitutionRepository(BaseRepository[Institution]):
         if instance is None:
             raise NotFoundError("Institution", str(id))
 
+        # validate_transition is also called by the ORM @validates, but we
+        # call it here too so the error class is InvalidStatusTransitionError
+        # (rather than the ValidationException thrown by @validates).
         validate_transition(instance.status, target)
 
         instance.status = target
