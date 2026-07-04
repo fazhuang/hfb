@@ -1138,17 +1138,40 @@ class GraphService:
                 f"not claimed document {evidence_document_id}"
             )
 
-        # 6. Passage exists (required)
+        # 6. Passage exists (required) and is consistent with chunk
         if not evidence_passage_id or not evidence_passage_id.strip():
             raise ValueError("evidence_passage_id must not be empty")
         if not await _entity_exists(self.session, "passage", evidence_passage_id):
             raise ValueError(f"Passage {evidence_passage_id} not found or deleted")
+        # Chunk → Passage consistency: if chunk has passage_id, it must match
+        if (
+            chunk.passage_id
+            and chunk.passage_id.strip()
+            and chunk.passage_id != evidence_passage_id
+        ):
+            raise ValueError(
+                f"Chunk {evidence_chunk_id} is linked to passage {chunk.passage_id}, "
+                f"not claimed passage {evidence_passage_id}"
+            )
 
-        # 7. Version exists (required)
+        # 7. Version exists (required) and is consistent with passage
         if not evidence_version_id or not evidence_version_id.strip():
             raise ValueError("evidence_version_id must not be empty")
         if not await _entity_exists(self.session, "version", evidence_version_id):
             raise ValueError(f"Version {evidence_version_id} not found or deleted")
+        # Passage → Version consistency: passage.version_id must match
+        passage = await self.session.get(Passage, evidence_passage_id)
+        if passage is None:
+            raise ValueError(f"Passage {evidence_passage_id} not found")
+        if (
+            passage.version_id
+            and passage.version_id.strip()
+            and passage.version_id != evidence_version_id
+        ):
+            raise ValueError(
+                f"Passage {evidence_passage_id} is linked to version {passage.version_id}, "
+                f"not claimed version {evidence_version_id}"
+            )
 
         # 8. exact_quote is contiguous substring of chunk content
         if not _is_substring(evidence_quote, chunk.content):

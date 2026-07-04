@@ -467,3 +467,103 @@ class TestHTTPVerifyRelation:
         assert len(validated) == 0, (
             f"Deactivated reviewer's edges must be excluded. Got {len(validated)}."
         )
+
+    async def test_mismatched_chunk_passage_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Chunk → Passage mismatch: verify_relation must reject."""
+        uid = f"rev-{uuid.uuid4().hex[:8]}"
+        await _seed_user(db_session, uid, uid, permissions=[("graph", "review")])
+        seed = await _make_corpus(db_session)
+
+        # Create a second passage linked to a different version
+        v2 = Version(
+            id="ver-v2",
+            book_id=seed["book"].id,
+            version_name="明本",
+            era="明",
+        )
+        db_session.add(v2)
+        await db_session.flush()
+
+        from app.models.passage import Passage as P
+        from app.models.chapter import Chapter
+
+        ch2 = Chapter(
+            id="chap-mismatch", book_id=seed["book"].id, title="卷二", order=2
+        )
+        db_session.add(ch2)
+        await db_session.flush()
+
+        bad_passage = P(
+            id="passage-mismatch",
+            chapter_id=ch2.id,
+            version_id=v2.id,
+            order=2,
+            content_text="不同段落",
+        )
+        db_session.add(bad_passage)
+        await db_session.flush()
+
+        rel_id = await _make_relation(db_session, seed)
+
+        svc = GraphService(db_session)
+        ev = GraphEvidence(
+            document_id=seed["doc"].id,
+            chunk_id=seed["chunk"].id,
+            exact_quote="皇甫谧撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            citation=f"[{seed['doc'].id}:{seed['chunk'].id}]",
+        )
+        # bad_passage.version_id=v2.id, but we claim seed["version"].id → mismatch
+        with pytest.raises(ValueError, match="linked to version"):
+            await svc.verify_relation(
+                relation_id=rel_id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=seed["version"].id,
+                evidence_passage_id=bad_passage.id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by=uid,
+            )
+
+    async def test_mismatched_passage_version_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Passage → Version mismatch: verify_relation must reject."""
+        uid = f"rev-{uuid.uuid4().hex[:8]}"
+        await _seed_user(db_session, uid, uid, permissions=[("graph", "review")])
+        seed = await _make_corpus(db_session)
+
+        # Create a second version
+        v2 = Version(
+            id="ver-mismatch",
+            book_id=seed["book"].id,
+            version_name="明本",
+            era="明",
+        )
+        db_session.add(v2)
+        await db_session.flush()
+
+        rel_id = await _make_relation(db_session, seed)
+
+        svc = GraphService(db_session)
+        ev = GraphEvidence(
+            document_id=seed["doc"].id,
+            chunk_id=seed["chunk"].id,
+            exact_quote="皇甫谧撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            citation=f"[{seed['doc'].id}:{seed['chunk'].id}]",
+        )
+        with pytest.raises(ValueError, match="linked to version"):
+            await svc.verify_relation(
+                relation_id=rel_id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=v2.id,
+                evidence_passage_id=seed["passage"].id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by=uid,
+            )
