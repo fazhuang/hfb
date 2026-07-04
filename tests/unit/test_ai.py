@@ -3,6 +3,7 @@ Tests for AI and Workspace services.
 
 Per HFB-PS-1705 AI Research Workspace Product Specification.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -83,6 +84,17 @@ class TestAIService:
 @pytest.mark.asyncio
 class TestWorkspaceService:
     async def test_create_and_get_session(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-1",
+            username="test_user_1",
+            email="user-1@test.com",
+            hashed_password="test-hash-1",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-1", "测试研究会话")
         assert s.id is not None
@@ -93,6 +105,17 @@ class TestWorkspaceService:
         assert got.title == "测试研究会话"
 
     async def test_list_sessions(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-2",
+            username="test_user_2",
+            email="user-2@test.com",
+            hashed_password="test-hash-2",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         await svc.create_session("user-2", "研究1")
         await svc.create_session("user-2", "研究2")
@@ -101,14 +124,38 @@ class TestWorkspaceService:
         assert len(sessions) >= 2
 
     async def test_update_session(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-3",
+            username="test_user_3",
+            email="user-3@test.com",
+            hashed_password="test-hash-3",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-3", "原标题")
 
-        updated = await svc.update_session(s.id, title="新标题", active_entities=["b1", "p2"])
+        updated = await svc.update_session(
+            s.id, title="新标题", active_entities=["b1", "p2"]
+        )
         assert updated is not None
         assert updated.title == "新标题"
 
     async def test_delete_session(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-4",
+            username="test_user_4",
+            email="user-4@test.com",
+            hashed_password="test-hash-4",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-4", "待删除")
 
@@ -117,6 +164,17 @@ class TestWorkspaceService:
         assert await svc.get_session(s.id) is None
 
     async def test_chat_history(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-5",
+            username="test_user_5",
+            email="user-5@test.com",
+            hashed_password="test-hash-5",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-5", "聊天测试")
 
@@ -129,6 +187,17 @@ class TestWorkspaceService:
         assert "针灸" in history[0]["content"]
 
     async def test_create_and_list_notes(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-6",
+            username="test_user_6",
+            email="user-6@test.com",
+            hashed_password="test-hash-6",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-6", "笔记测试")
 
@@ -139,6 +208,17 @@ class TestWorkspaceService:
         assert len(notes) >= 2
 
     async def test_update_note(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-7",
+            username="test_user_7",
+            email="user-7@test.com",
+            hashed_password="test-hash-7",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-7", "更新笔记测试")
         n = await svc.create_note(s.id, "原始内容")
@@ -148,6 +228,17 @@ class TestWorkspaceService:
         assert updated.content == "更新后内容"
 
     async def test_delete_note(self, db_session: AsyncSession) -> None:
+        from app.models.user import User
+
+        u = User(
+            id="user-8",
+            username="test_user_8",
+            email="user-8@test.com",
+            hashed_password="test-hash-8",
+        )
+        db_session.add(u)
+        await db_session.flush()
+
         svc = WorkspaceService(db_session)
         s = await svc.create_session("user-8", "删除笔记测试")
         n = await svc.create_note(s.id, "待删除笔记")

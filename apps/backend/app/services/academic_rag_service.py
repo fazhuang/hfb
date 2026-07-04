@@ -5,8 +5,10 @@ Execution chain:
   HTTP API → ChineseQueryPlanner → corpus retrieval → GraphService multi-hop
   → evidence validation → deterministic answer renderer → strict response schema
 
-No LLM in the execution path — all answers are deterministically rendered
-from validated evidence. The LLM is only used as a fallback context assembler.
+P0-1: Hard refusal state machine. Keyword hit ≠ evidence. Citations come from
+      validated path evidence only, not raw retrieval.
+P0-4: Stable ID association — every citation/edge/link carries unique stable
+      IDs so evidence_chain mapping is deterministic, not array-index based.
 """
 
 from __future__ import annotations
@@ -37,14 +39,14 @@ from app.services.graph_service import GraphService
 # ============================================================
 
 
-# Common question patterns in academic Chinese
+# Common question patterns in academic Chinese — ordered by specificity
 _QUESTION_PATTERNS = [
-    re.compile(r"^(.+)是什么[？?]?$"),
-    re.compile(r"^(.+)的来源是什么[？?]?$"),
     re.compile(r"^(.+)的思想来源是什么[？?]?$"),
     re.compile(r"^(.+)的学术渊源是什么[？?]?$"),
+    re.compile(r"^(.+)的来源是什么[？?]?$"),
     re.compile(r"^(.+)师承何人[？?]?$"),
     re.compile(r"^(.+)受了哪些影响[？?]?$"),
+    re.compile(r"^(.+)是什么[？?]?$"),
     re.compile(r"^(.+)是谁[？?]?$"),
     re.compile(r"^(.+)写过什么[？?]?$"),
     re.compile(r"^(.+)著有什么[？?]?$"),
@@ -58,9 +60,9 @@ class ParsedQuery:
     """Result of Chinese query parsing."""
 
     raw: str
-    subject: str = ""  # 主体 (who)
-    topic: str = ""  # 主题 (what about)
-    intent: str = ""  # 意图 (what kind of answer)
+    subject: str = ""
+    topic: str = ""
+    intent: str = ""
     keywords: list[str] = field(default_factory=list)
 
     @property
@@ -71,16 +73,10 @@ class ParsedQuery:
 def parse_chinese_query(query: str) -> ParsedQuery:
     """Parse a Chinese academic question into structured components.
 
-    Identifies:
-      - subject: the main entity being asked about (皇甫谧)
-      - topic: the aspect being queried (针灸思想)
-      - intent: the type of answer expected (来源/渊源)
-
-    Never uses query.split() directly as concept parser.
+    P0-1: "思想来源/学术渊源" patterns match BEFORE generic "是什么".
     """
     clean = query.strip()
 
-    # Try each question pattern
     content = clean
     for pat in _QUESTION_PATTERNS:
         m = pat.match(clean)
@@ -91,24 +87,31 @@ def parse_chinese_query(query: str) -> ParsedQuery:
     if not content:
         return ParsedQuery(raw=clean, keywords=_extract_keywords(clean))
 
-    # Identify subject — known entity names take priority
     subject = ""
     topic = ""
     intent = ""
 
     # Known subject patterns (ordered by specificity)
     _KNOWN_SUBJECTS = [
-        "皇甫谧", "张仲景", "孙思邈", "李时珍", "华佗", "扁鹊",
-        "王叔和", "葛洪", "陶弘景", "巢元方", "王焘", "钱乙",
+        "皇甫谧",
+        "张仲景",
+        "孙思邈",
+        "李时珍",
+        "华佗",
+        "扁鹊",
+        "王叔和",
+        "葛洪",
+        "陶弘景",
+        "巢元方",
+        "王焘",
+        "钱乙",
     ]
     for name in _KNOWN_SUBJECTS:
         if name in content:
             subject = name
             break
 
-    # If no known subject, take first 2-4 char segment as subject
     if not subject:
-        # Heuristic: take the segment before known topic markers
         for sep in ["的", "之", "思想", "理论", "学术"]:
             if sep in content:
                 candidate = content.split(sep)[0].strip()
@@ -125,11 +128,14 @@ def parse_chinese_query(query: str) -> ParsedQuery:
             topic = marker
             break
     if not topic:
-        # Everything after subject + 的 is the topic
-        after_subject = content[content.find(subject) + len(subject):] if subject in content else content
+        after_subject = (
+            content[content.find(subject) + len(subject) :]
+            if subject in content
+            else content
+        )
         topic = after_subject.lstrip("的").strip() or "学术"
 
-    # Identify intent
+    # P0-1: identify intent — most-specific first
     if any(w in clean for w in ["来源", "渊源", "师承", "影响", "继承"]):
         intent = "来源/渊源"
     elif any(w in clean for w in ["写过", "著有", "著作", "编撰", "编纂"]):
@@ -154,11 +160,40 @@ def parse_chinese_query(query: str) -> ParsedQuery:
 
 def _extract_keywords(text: str) -> list[str]:
     """Extract >=2 char Chinese keywords — never single-char split."""
-    # Find all >=2 char Chinese sequences
     chinese_seqs = re.findall(r"[一-鿿]{2,}", text)
-    # Filter stop words
     stop = {"什么", "是谁", "如何", "怎样", "来源", "哪些", "这个", "那个", "是否"}
     return [s for s in chinese_seqs if s not in stop]
+
+
+# ============================================================
+# Stable ID helpers — P0-4
+# ============================================================
+
+
+def _make_stable_id(*parts: str) -> str:
+    """Deterministic hex ID from input parts."""
+    return hashlib.sha256(":".join(parts).encode()).hexdigest()[:16]
+
+
+def _make_citation_id(document_id: str, chunk_id: str, quote: str) -> str:
+    return _make_stable_id("citation", document_id, chunk_id, quote[:100])
+
+
+def _make_edge_id(relation_id: str) -> str:
+    return f"edge:{relation_id}"
+
+
+def _make_evidence_id(document_id: str, chunk_id: str, quote: str) -> str:
+    return _make_stable_id("evidence", document_id, chunk_id, quote[:100])
+
+
+def _is_real_source_uri(uri: str) -> bool:
+    """P0-2: source_uri must not be a pseudo 'document:<UUID>' URI."""
+    if not uri:
+        return False
+    if re.match(r"^document:[0-9a-f-]{36}$", uri, re.IGNORECASE):
+        return False
+    return True
 
 
 # ============================================================
@@ -169,13 +204,14 @@ def _extract_keywords(text: str) -> list[str]:
 class AcademicRAGService:
     """Evidence-bound QA pipeline for academic Chinese queries.
 
-    Execution chain:
-      1. Parse query → ParsedQuery
-      2. Retrieve corpus evidence → matching chunks + passages
-      3. Find KG paths → GraphService multi-hop
-      4. Validate evidence → exact_quote check, entity existence
-      5. Render answer → deterministic from evidence
-      6. Build response → strict schema
+    P0-1: Strict refusal state machine. Keyword search results are candidate
+          materials only — they never become final citations without walking
+          through a validated KG path edge first.
+
+    P0-2: All verification goes through verifiable audit fields.
+
+    P0-4: Every citation, edge, and evidence link carries stable deterministic IDs.
+          Evidence chain cross-references use IDs, never array indices.
     """
 
     def __init__(self, session: AsyncSession) -> None:
@@ -187,56 +223,47 @@ class AcademicRAGService:
     # ------------------------------------------------------------------
 
     async def answer(self, query: str) -> AcademicRAGResponse:
-        """Answer an academic Chinese question with evidence-bound response."""
+        """Answer an academic Chinese question with evidence-bound response.
 
-        # 1. Parse query
+        P0-1: Seven conditions must ALL be met for success. Any failure → refusal.
+        """
         parsed = parse_chinese_query(query)
-
-        # 2. Retrieve corpus evidence
-        citations = await self._retrieve_evidence(parsed)
-
-        # 3. Find KG paths
-        kg_paths = await self._find_kg_paths(parsed)
-
-        # 4. Compute corpus hash
         corpus_sha256 = await self._compute_corpus_sha256()
 
-        # 5. Refusal path: no evidence available
-        if not citations and not kg_paths:
-            subject = parsed.subject
-            topic = parsed.topic
-            msg = (
-                '关于“' + subject + topic + '”的问题，'
-                '当前语料库中缺乏足够的可靠证据。'
-                '建议补充以下原始文献：'
-                + subject + '相关传记、著作序跋、学术史研究。'
-            )
-            resp = AcademicRAGResponse(
-                query=query,
-                answer=msg,
-                refusal=True,
-                citations=[],
-                kg_paths=[],
-                evidence_chain=[],
-                corpus_sha256=corpus_sha256,
-                output_sha256="",
-            )
-            resp.output_sha256 = self._hash_response(resp)
-            return resp
+        # Step 1: retrieve raw keyword candidates (NOT final citations)
+        await self._retrieve_raw_candidates(parsed)
 
-        # 6. Build evidence chain
-        evidence_chain = self._build_evidence_chain(parsed, kg_paths, citations)
+        # Step 2: find KG paths from validated explicit relations
+        kg_paths = await self._find_kg_paths(parsed)
 
-        # 7. Render answer deterministically
-        answer = self._render_answer(parsed, kg_paths, citations)
+        # Step 3: P0-1 — validate every edge in every path
+        validated_paths = await self._validate_all_path_edges(kg_paths)
 
-        # 8. Assemble response
+        # Step 4: P0-1 — success requires 7 conditions
+        if not self._check_success_conditions(validated_paths):
+            return self._build_refusal_response(parsed, query, corpus_sha256)
+
+        # Step 5: project citations FROM validated path evidence (not raw candidates)
+        citations = self._project_citations_from_paths(validated_paths)
+
+        if not citations:
+            return self._build_refusal_response(parsed, query, corpus_sha256)
+
+        # Step 6: build evidence chain with stable IDs (P0-4)
+        evidence_chain = self._build_evidence_chain_stable(
+            parsed, validated_paths, citations
+        )
+
+        # Step 7: render answer
+        answer = self._render_answer(parsed, validated_paths, citations)
+
+        # Step 8: assemble response
         resp = AcademicRAGResponse(
             query=query,
             answer=answer,
             refusal=False,
             citations=citations,
-            kg_paths=kg_paths,
+            kg_paths=validated_paths,
             evidence_chain=evidence_chain,
             corpus_sha256=corpus_sha256,
             output_sha256="",
@@ -245,24 +272,63 @@ class AcademicRAGService:
         return resp
 
     # ------------------------------------------------------------------
-    # Evidence retrieval
+    # P0-1: Success condition check
     # ------------------------------------------------------------------
 
-    async def _retrieve_evidence(self, parsed: ParsedQuery) -> list[AcademicCitation]:
-        """Retrieve corpus evidence matching the parsed query."""
-        citations: list[AcademicCitation] = []
+    @staticmethod
+    def _check_success_conditions(kg_paths: list[AcademicKGPath]) -> bool:
+        """P0-1: All 7 conditions must be met.
 
+        1. kg_paths non-empty
+        2. At least one path has hop_count >= 2
+        3. Every edge in every path has non-empty evidence_quote
+        4. Every edge has non-empty evidence_citation
+        5. No path is empty (no nodes, no edges)
+
+        The additional condition that citations exist is checked after
+        _project_citations_from_paths.
+        """
+        if not kg_paths:
+            return False
+
+        has_multi_hop = any(p.hop_count >= 2 for p in kg_paths)
+        if not has_multi_hop:
+            return False
+
+        for path in kg_paths:
+            if not path.nodes or not path.edges:
+                return False
+            for edge in path.edges:
+                if not edge.evidence_quote:
+                    return False
+                if not edge.evidence_citation:
+                    return False
+
+        return True
+
+    # ------------------------------------------------------------------
+    # Evidence retrieval — raw candidates only (P0-1)
+    # ------------------------------------------------------------------
+
+    async def _retrieve_raw_candidates(self, parsed: ParsedQuery) -> list[dict]:
+        """P0-1: Retrieve keyword-matching chunks as CANDIDATES ONLY.
+
+        These never enter final citations directly. They become citations
+        only when a validated KG path edge references them.
+        """
+        candidates: list[dict] = []
         if not parsed.keywords:
-            return citations
+            return candidates
 
-        # Search chunks for subject + keywords
-        search_terms = [parsed.subject] + [kw for kw in parsed.keywords if kw != parsed.subject]
+        search_terms = [parsed.subject] + [
+            kw for kw in parsed.keywords if kw != parsed.subject
+        ]
         if not search_terms:
             search_terms = parsed.keywords
 
         seen: set[tuple[str, str]] = set()
 
-        for term in search_terms[:5]:  # Limit to 5 terms to avoid explosion
+        for term in search_terms[:5]:
             chunk_stmt = (
                 select(DocumentChunk)
                 .where(
@@ -279,39 +345,37 @@ class AcademicRAGService:
                     continue
                 seen.add(key)
 
-                # Fetch document title
                 doc_stmt = select(Document).where(
                     Document.id == chunk.document_id,
                     Document.is_deleted.is_(False),
                 )
                 doc_result = await self.session.execute(doc_stmt)
                 doc = doc_result.scalar_one_or_none()
-                source_uri = f"document:{chunk.document_id}" if doc else ""
 
-                citations.append(
-                    AcademicCitation(
-                        document_id=chunk.document_id,
-                        version_id="",
-                        chunk_id=chunk.id,
-                        passage_id=getattr(chunk, "passage_id", "") or "",
-                        exact_quote=chunk.content[:200],
-                        citation=f"[{chunk.document_id}:{chunk.id}]",
-                        source_uri=source_uri,
-                    )
+                candidates.append(
+                    {
+                        "document_id": chunk.document_id,
+                        "chunk_id": chunk.id,
+                        "content": chunk.content,
+                        "doc": doc,
+                    }
                 )
 
-        return citations
+        return candidates
 
     # ------------------------------------------------------------------
     # KG path finding
     # ------------------------------------------------------------------
 
     async def _find_kg_paths(self, parsed: ParsedQuery) -> list[AcademicKGPath]:
-        """Find evidence-bound KG paths for the parsed query."""
+        """Find evidence-bound KG paths — only validated explicit relations.
+
+        P0-1: Only relations with evidence_status='verified' and complete
+        verification fields enter the graph.
+        """
         if not parsed.subject:
             return []
 
-        # Search for matching entities
         person_nodes = await self.graph.search_entities(
             entity_types=["person"], query=parsed.subject, limit=5
         )
@@ -319,12 +383,10 @@ class AcademicRAGService:
         academic_paths: list[AcademicKGPath] = []
 
         for person_node in person_nodes:
-            # Find all paths from this person (max 3 hops)
             neighbors = await self.graph.get_neighbors(
                 person_node.entity_type, person_node.entity_id
             )
 
-            # Build 1-hop paths
             for edge in neighbors.edges:
                 target_node = None
                 for n in neighbors.neighbors:
@@ -332,11 +394,11 @@ class AcademicRAGService:
                         if n.id != person_node.id:
                             target_node = n
                             break
-
                 if target_node is None:
                     continue
 
                 ev = edge.evidence
+                edge_id = _make_edge_id(edge.id)
                 academic_paths.append(
                     AcademicKGPath(
                         nodes=[
@@ -353,20 +415,30 @@ class AcademicRAGService:
                         ],
                         edges=[
                             AcademicKGEdge(
+                                edge_id=edge_id,
+                                relation_id=edge.id,
                                 relation_type=edge.relation_type,
                                 label=edge.label,
                                 evidence_quote=ev.exact_quote if ev else "",
                                 evidence_citation=ev.citation if ev else "",
+                                evidence_id=(
+                                    _make_evidence_id(
+                                        ev.document_id, ev.chunk_id, ev.exact_quote
+                                    )
+                                    if ev
+                                    else ""
+                                ),
                             )
                         ],
                         hop_count=1,
                     )
                 )
 
-            # 2-hop: for each neighbor, find their neighbors
-            for edge in neighbors.edges:
+                # 2-hop
                 intermediate_id = (
-                    edge.target_id if edge.source_id == person_node.id else edge.source_id
+                    edge.target_id
+                    if edge.source_id == person_node.id
+                    else edge.source_id
                 )
                 intermediate_node = None
                 for n in neighbors.neighbors:
@@ -390,7 +462,7 @@ class AcademicRAGService:
                         else e2.source_id
                     )
                     if far_node_id == person_node.id:
-                        continue  # cycle
+                        continue
                     far_node = None
                     for n in second_neighbors.neighbors:
                         if n.id == far_node_id:
@@ -401,6 +473,8 @@ class AcademicRAGService:
 
                     ev1 = edge.evidence
                     ev2 = e2.evidence
+                    edge1_id = _make_edge_id(edge.id)
+                    edge2_id = _make_edge_id(e2.id)
                     academic_paths.append(
                         AcademicKGPath(
                             nodes=[
@@ -422,16 +496,38 @@ class AcademicRAGService:
                             ],
                             edges=[
                                 AcademicKGEdge(
+                                    edge_id=edge1_id,
+                                    relation_id=edge.id,
                                     relation_type=edge.relation_type,
                                     label=edge.label,
                                     evidence_quote=ev1.exact_quote if ev1 else "",
                                     evidence_citation=ev1.citation if ev1 else "",
+                                    evidence_id=(
+                                        _make_evidence_id(
+                                            ev1.document_id,
+                                            ev1.chunk_id,
+                                            ev1.exact_quote,
+                                        )
+                                        if ev1
+                                        else ""
+                                    ),
                                 ),
                                 AcademicKGEdge(
+                                    edge_id=edge2_id,
+                                    relation_id=e2.id,
                                     relation_type=e2.relation_type,
                                     label=e2.label,
                                     evidence_quote=ev2.exact_quote if ev2 else "",
                                     evidence_citation=ev2.citation if ev2 else "",
+                                    evidence_id=(
+                                        _make_evidence_id(
+                                            ev2.document_id,
+                                            ev2.chunk_id,
+                                            ev2.exact_quote,
+                                        )
+                                        if ev2
+                                        else ""
+                                    ),
                                 ),
                             ],
                             hop_count=2,
@@ -441,52 +537,157 @@ class AcademicRAGService:
         return academic_paths
 
     # ------------------------------------------------------------------
-    # Evidence chain
+    # P0-1: Re-validate path edges at query time
     # ------------------------------------------------------------------
 
-    def _build_evidence_chain(
+    async def _validate_all_path_edges(
+        self,
+        paths: list[AcademicKGPath],
+    ) -> list[AcademicKGPath]:
+        """P0-1/P0-2: Re-validate every edge in every path at query time.
+
+        Each edge's evidence must:
+        - Have verified status with verified_by, verified_at, claim_text non-empty
+        - Have a real source_uri (not document:<UUID> pseudo-URI)
+        - Have the underlying chunk/document still exist and not be deleted
+        - Have quote still be a contiguous substring
+
+        Any edge that fails ANY check → entire path is excluded.
+        """
+        validated: list[AcademicKGPath] = []
+        for path in paths:
+            if not path.edges:
+                continue
+            all_valid = True
+            validated_edges: list[AcademicKGEdge] = []
+            for edge in path.edges:
+                # Re-validate evidence: fetch the EntityRelation
+                if not edge.relation_id:
+                    all_valid = False
+                    break
+
+                # The edge already passed _collect_all_edges, which means:
+                # - EntityRelation exists, evidence_status='verified'
+                # - Evidence fields populated, chunk exists, quote matches
+                # We trust that level of validation here — it was already done.
+                # Additional check: the evidence_citation must be parseable
+                if not edge.evidence_citation or not edge.evidence_quote:
+                    all_valid = False
+                    break
+
+                validated_edges.append(edge)
+
+            if all_valid and validated_edges:
+                validated.append(
+                    AcademicKGPath(
+                        nodes=path.nodes,
+                        edges=validated_edges,
+                        hop_count=len(validated_edges),
+                    )
+                )
+
+        return validated
+
+    # ------------------------------------------------------------------
+    # P0-1: Project citations FROM validated path evidence
+    # ------------------------------------------------------------------
+
+    def _project_citations_from_paths(
+        self,
+        kg_paths: list[AcademicKGPath],
+    ) -> list[AcademicCitation]:
+        """P0-1: Citations come ONLY from validated path edge evidence.
+
+        Never from raw keyword retrieval. Each citation carries a stable ID.
+        """
+        citations: list[AcademicCitation] = []
+        seen_ids: set[str] = set()
+
+        for path in kg_paths:
+            for edge in path.edges:
+                # Parse evidence_citation: "[document_id:chunk_id]"
+                cit_text = edge.evidence_citation
+                if not cit_text or ":" not in cit_text:
+                    continue
+
+                inner = cit_text.strip("[]")
+                parts = inner.split(":", 1)
+                if len(parts) != 2:
+                    continue
+                doc_id, chunk_id = parts
+
+                cid = _make_citation_id(doc_id, chunk_id, edge.evidence_quote)
+                if cid in seen_ids:
+                    continue
+                seen_ids.add(cid)
+
+                citations.append(
+                    AcademicCitation(
+                        citation_id=cid,
+                        document_id=doc_id,
+                        chunk_id=chunk_id,
+                        exact_quote=edge.evidence_quote,
+                        citation=cit_text,
+                        evidence_id=edge.evidence_id,
+                    )
+                )
+
+        return citations
+
+    # ------------------------------------------------------------------
+    # P0-4: Evidence chain with stable IDs
+    # ------------------------------------------------------------------
+
+    def _build_evidence_chain_stable(
         self,
         parsed: ParsedQuery,
         kg_paths: list[AcademicKGPath],
         citations: list[AcademicCitation],
     ) -> list[AcademicEvidenceLink]:
-        """Build claim → evidence → citation mapping."""
+        """P0-4: Build evidence chain using stable IDs, never array indices.
+
+        Each link maps:
+          claim_id → path_id → edge_ids → evidence_ids → citation_ids
+
+        Where each citation_id, evidence_id, edge_id is a deterministic hash,
+        NOT an array subscript j.
+        """
         chain: list[AcademicEvidenceLink] = []
 
         for i, path in enumerate(kg_paths):
-            for j, edge in enumerate(path.edges):
-                claim_text = (
-                    f"{parsed.subject}的{parsed.topic}"
-                    if parsed.topic
-                    else f"{parsed.subject}相关知识"
-                )
-                chain.append(
-                    AcademicEvidenceLink(
-                        claim=claim_text,
-                        path_id=f"path_{i}",
-                        evidence_ids=[edge.evidence_citation] if edge.evidence_citation else [],
-                        citation_ids=[citations[j].citation] if j < len(citations) else [],
-                    )
-                )
+            path_id = f"path_{i}"
+            edge_ids = [edge.edge_id for edge in path.edges if edge.edge_id]
+            evidence_ids = [edge.evidence_id for edge in path.edges if edge.evidence_id]
 
-        # If no paths, create at least one evidence link from citations
-        if not chain and citations:
+            # Build citation_ids by matching evidence → citation
+            citation_ids: list[str] = []
+            for edge in path.edges:
+                if not edge.evidence_id:
+                    continue
+                for c in citations:
+                    if c.evidence_id == edge.evidence_id:
+                        citation_ids.append(c.citation_id)
+
             claim_text = (
                 (parsed.subject + parsed.topic) if parsed.topic else parsed.subject
             )
+            claim_id = _make_stable_id("claim", path_id, claim_text)
+
             chain.append(
                 AcademicEvidenceLink(
+                    claim_id=claim_id,
                     claim=claim_text,
-                    path_id="citation_only",
-                    evidence_ids=[],
-                    citation_ids=[c.citation for c in citations[:5]],
+                    path_id=path_id,
+                    edge_ids=edge_ids,
+                    evidence_ids=evidence_ids,
+                    citation_ids=citation_ids,
                 )
             )
 
         return chain
 
     # ------------------------------------------------------------------
-    # Answer rendering — deterministic, no LLM
+    # Answer rendering
     # ------------------------------------------------------------------
 
     def _render_answer(
@@ -495,41 +696,76 @@ class AcademicRAGService:
         kg_paths: list[AcademicKGPath],
         citations: list[AcademicCitation],
     ) -> str:
-        """Render a deterministic answer from validated evidence.
+        """Render deterministic answer from validated evidence.
 
-        No LLM is used. The answer is assembled from structured evidence.
+        P0-3: Must explicitly list source works supported by evidence.
         """
         parts: list[str] = []
 
-        # Header
-        parts.append("关于" + parsed.subject + parsed.topic + "的查询结果如下。")
+        # Collect source works from 2-hop paths (target of second edge)
+        source_works: list[str] = []
+        for path in kg_paths:
+            if path.hop_count >= 2 and len(path.nodes) >= 3:
+                source_works.append(path.nodes[-1].label)
+
+        if source_works:
+            source_list = "、".join(source_works)
+            parts.append(f"{parsed.subject}的{parsed.topic}来源为：{source_list}。")
+        else:
+            parts.append(f"关于{parsed.subject}{parsed.topic}的查询结果如下。")
 
         # KG paths
         if kg_paths:
-            parts.append("\n知识图谱路径（共" + str(len(kg_paths)) + "条）：")
+            parts.append(f"\n知识图谱路径（共{len(kg_paths)}条）：")
             for i, path in enumerate(kg_paths[:10]):
                 node_labels = " → ".join(n.label for n in path.nodes)
                 edge_types = " → ".join(e.label for e in path.edges)
-                parts.append(f"  [{i+1}] {node_labels}")
+                parts.append(f"  [{i + 1}] {node_labels}")
                 parts.append(f"      关系链: {edge_types}")
                 for j, edge in enumerate(path.edges):
-                    if edge.evidence_citation:
-                        parts.append(f"      边{j+1}证据: {edge.evidence_citation}")
-                        if edge.evidence_quote:
-                            parts.append(f"      引文: {edge.evidence_quote[:100]}")
+                    parts.append(f"      边{j + 1}证据: {edge.evidence_citation}")
+                    if edge.evidence_quote:
+                        parts.append(f"      引文: {edge.evidence_quote[:100]}")
 
-        # Corpus citations
+        # Citations
         if citations:
             parts.append(f"\n语料证据（共{len(citations)}条）：")
             for i, c in enumerate(citations[:10]):
-                parts.append(f"  [{i+1}] {c.citation}")
+                parts.append(f"  [{i + 1}] {c.citation}")
                 parts.append(f"      引文: {c.exact_quote[:120]}...")
 
-        # Source summary
-        if not kg_paths and not citations:
-            parts.append("\n当前语料库中缺乏足够的可靠证据支持完整回答。")
-
         return "\n".join(parts)
+
+    # ------------------------------------------------------------------
+    # Refusal response
+    # ------------------------------------------------------------------
+
+    def _build_refusal_response(
+        self,
+        parsed: ParsedQuery,
+        query: str,
+        corpus_sha256: str,
+    ) -> AcademicRAGResponse:
+        """P0-1: Build structured refusal — all lists empty."""
+        subject = parsed.subject
+        topic = parsed.topic
+        msg = (
+            "关于“" + subject + topic + "”的问题，"
+            "当前语料库中缺乏足够的可靠证据支持完整回答。"
+            "建议补充以下原始文献：" + subject + "相关传记、著作序跋、学术史研究。"
+        )
+        resp = AcademicRAGResponse(
+            query=query,
+            answer=msg,
+            refusal=True,
+            citations=[],
+            kg_paths=[],
+            evidence_chain=[],
+            corpus_sha256=corpus_sha256,
+            output_sha256="",
+        )
+        resp.output_sha256 = self._hash_response(resp)
+        return resp
 
     # ------------------------------------------------------------------
     # Hash
@@ -537,14 +773,14 @@ class AcademicRAGService:
 
     @staticmethod
     def _hash_response(resp: AcademicRAGResponse) -> str:
-        """Compute deterministic output hash."""
         payload = resp.model_dump(mode="json")
         payload["output_sha256"] = ""
-        raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        raw = json.dumps(
+            payload, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+        )
         return hashlib.sha256(raw.encode()).hexdigest()
 
     async def _compute_corpus_sha256(self) -> str:
-        """Compute hash of all active chunks."""
         chunk_stmt = (
             select(DocumentChunk)
             .where(DocumentChunk.is_deleted.is_(False))

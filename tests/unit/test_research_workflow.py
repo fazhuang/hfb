@@ -1,4 +1,5 @@
 """Evidence-backed version comparison workflow tests."""
+
 from __future__ import annotations
 
 import pytest
@@ -8,6 +9,7 @@ from uuid import UUID
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.passage import Passage
+from app.models.user import User
 from app.models.version import Version
 from app.services.research_workflow_service import ResearchWorkflowService
 from app.services.workspace_service import WorkspaceService
@@ -60,6 +62,16 @@ async def test_configure_version_comparison_persists_evidence_snapshot(
     db_session: AsyncSession,
 ) -> None:
     source, target = await _seed_comparable_passages(db_session)
+    # FK constraint: ResearchSession.user_id must reference an existing User
+    u = User(
+        id="researcher-1",
+        username="researcher-1",
+        email="researcher-1@test.com",
+        hashed_password="test-hash-r1",
+    )
+    db_session.add(u)
+    await db_session.flush()
+
     research_session = await WorkspaceService(db_session).create_session(
         "researcher-1",
         "针灸甲乙经版本比较",
@@ -88,6 +100,16 @@ async def test_export_markdown_contains_citations_diff_and_research_notes(
     db_session: AsyncSession,
 ) -> None:
     source, target = await _seed_comparable_passages(db_session)
+    # FK constraint: ResearchSession.user_id must reference an existing User
+    u = User(
+        id="researcher-2",
+        username="researcher-2",
+        email="researcher-2@test.com",
+        hashed_password="test-hash-r2",
+    )
+    db_session.add(u)
+    await db_session.flush()
+
     workspace = WorkspaceService(db_session)
     research_session = await workspace.create_session(
         "researcher-2",
@@ -95,7 +117,7 @@ async def test_export_markdown_contains_citations_diff_and_research_notes(
     )
     await workspace.update_session(
         research_session.id,
-        context_notes="重点核对“八正”与“八节”的语义差异。",
+        context_notes="重点核对「八正」与「八节」的语义差异。",
     )
     await workspace.create_note(
         research_session.id,

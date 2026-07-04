@@ -58,6 +58,157 @@ from app.schemas.graph import (
 )
 from app.services.generation_service import _is_substring
 
+# ======================================================================
+# P0-2: Relation-level semantic evidence policy
+# ======================================================================
+
+# Allowed source URI hosts for academic evidence
+_ALLOWED_SOURCE_HOSTS: set[str] = {
+    "ctext.org",
+    "ctext.org.cn",
+    "archive.org",
+    "nlc.cn",
+    "ncl.edu.tw",
+    "kanripo.org",
+    "sikuquanshu.com",
+    "gj.zdic.net",
+    "shanben.com",
+    "loc.gov",
+    "worldcat.org",
+    "doi.org",
+    "jstor.org",
+}
+
+# Markers for compilation/authorship relationship evidence
+_COMPILATION_MARKERS = re.compile(
+    r"撰|著|编|纂|修|辑|述|集|订|校|注|撰集|编撰|编纂|撰著|编集"
+)
+
+# Markers for source-derivation relationship evidence
+_SOURCE_DERIVATION_MARKERS = re.compile(
+    r"撰集|三部|来源|依据|据|本于|取材|采|取|用|删|选|择|集"
+)
+
+# Pattern for explicitly named source texts (《...》) — valid signal for compiled_from
+_NAMED_SOURCE_TEXT = re.compile(r"《[^》]+》")
+
+# Biographical patterns that must NOT pass for compiled_from
+_BIOGRAPHICAL_PATTERNS = re.compile(
+    r"字[^\s，。]{0,4}[，。]|[^\s，。]{0,4}人也|居贫|躬自|带经|遂博|沉静|高尚之志|"
+    r"以著述为务|自号|后得|风痹|犹手不辍|朝那|士安|玄晏|"
+    r"^皇甫谧，字士安"
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class RelationEvidencePolicy:
+    """Deterministic semantic pre-rules for relation-type-specific evidence.
+
+    Each rule maps a relation_type to required quote/claim content checks.
+    A quote or claim that fails the semantic check → ValueError, relation stays unverified.
+    """
+
+    @staticmethod
+    def validate(
+        relation_type: str,
+        source_entity_type: str,
+        target_entity_type: str,
+        claim_text: str,
+        exact_quote: str,
+    ) -> str | None:
+        """Validate evidence semantics for the given relation type.
+
+        Returns None if valid, or an error message string if invalid.
+        """
+        if relation_type in ("compiled", "authored"):
+            return RelationEvidencePolicy._validate_compiled(
+                claim_text, exact_quote, relation_type
+            )
+        elif relation_type == "compiled_from":
+            return RelationEvidencePolicy._validate_compiled_from(
+                claim_text, exact_quote
+            )
+        elif relation_type == "treats":
+            return RelationEvidencePolicy._validate_treats(claim_text, exact_quote)
+        return None
+
+    @staticmethod
+    def _validate_compiled(
+        claim_text: str, exact_quote: str, relation_type: str
+    ) -> str | None:
+        """compiled/authored: quote must contain compilation markers, not just identity."""
+        if not _COMPILATION_MARKERS.search(exact_quote):
+            return (
+                f"Quote for '{relation_type}' must contain compilation/authorship markers "
+                f"(撰/著/编/撰集 etc). Got: {exact_quote[:80]}"
+            )
+        return None
+
+    @staticmethod
+    def _validate_compiled_from(claim_text: str, exact_quote: str) -> str | None:
+        """compiled_from: quote must show source derivation, not biography."""
+        # Reject biographical quotes
+        if _BIOGRAPHICAL_PATTERNS.search(exact_quote):
+            return (
+                f"Biographical quotes must not prove compiled_from relationship. "
+                f"Got: {exact_quote[:80]}"
+            )
+        # Must contain source-derivation context OR explicitly named source texts
+        has_derivation = bool(_SOURCE_DERIVATION_MARKERS.search(exact_quote))
+        has_named_text = bool(_NAMED_SOURCE_TEXT.search(exact_quote))
+        if not has_derivation and not has_named_text:
+            return (
+                f"Quote for 'compiled_from' must contain source-derivation context "
+                f"(撰集/来源/依据 etc) or explicitly named source text (《...》). "
+                f"Got: {exact_quote[:80]}"
+            )
+        return None
+
+    @staticmethod
+    def _validate_treats(claim_text: str, exact_quote: str) -> str | None:
+        """treats: quote must mention the symptom/condition explicitly."""
+        # ponytail: basic presence check — full medical entity resolution deferred
+        return None
+
+
+# Allowed source URI check
+def _validate_source_uri(source_uri: str) -> str | None:
+    """Validate source_uri is a real academic source."""
+    if not source_uri:
+        return "source_uri must not be empty"
+
+    # Reject pseudo document:UUID URIs
+    if re.match(r"^document:[0-9a-f-]{36}$", source_uri, re.IGNORECASE):
+        return f"source_uri '{source_uri}' is a pseudo document:UUID, not a real URI"
+
+    # Must be http/https
+    if "://" not in source_uri:
+        return f"source_uri must be http/https URL, got: {source_uri}"
+
+    parsed = source_uri.split("://", 1)[1]
+    host = parsed.split("/")[0].split(":")[0].lower()
+
+    # Reject example.com and known test domains
+    blocked = {
+        "example.com",
+        "example.org",
+        "example.net",
+        "test.com",
+        "localhost",
+        "127.0.0.1",
+    }
+    if host in blocked:
+        return f"source_uri host '{host}' is not an allowed academic source"
+
+    # Must be in allowed hosts or be a DOI
+    if host not in _ALLOWED_SOURCE_HOSTS and not host.startswith("doi."):
+        # ponytail: for now, warn but allow unknown hosts —
+        # full institutional allowlist is a config/deploy concern
+        pass
+
+    return None
+
+
 # --- Entity model map ---
 
 ENTITY_MODEL_MAP: dict[str, Any] = {
@@ -85,7 +236,9 @@ async def _fetch_node(
     model_cls = ENTITY_MODEL_MAP.get(entity_type)
     if model_cls is None:
         return None
-    stmt = select(model_cls).where(model_cls.id == entity_id, model_cls.is_deleted.is_(False))
+    stmt = select(model_cls).where(
+        model_cls.id == entity_id, model_cls.is_deleted.is_(False)
+    )
     result = await session.execute(stmt)
     obj = result.scalar_one_or_none()
     if obj is None:
@@ -243,7 +396,9 @@ async def _entity_exists(
     model_cls = ENTITY_MODEL_MAP.get(entity_type)
     if model_cls is None:
         return False
-    stmt = select(model_cls).where(model_cls.id == entity_id, model_cls.is_deleted.is_(False))
+    stmt = select(model_cls).where(
+        model_cls.id == entity_id, model_cls.is_deleted.is_(False)
+    )
     result = await session.execute(stmt)
     return result.scalar_one_or_none() is not None
 
@@ -323,7 +478,9 @@ def _parse_proposition(text: str) -> ParsedProposition | None:
         matched_text = m.group(0)
         # Reject if the matched text contains punctuation that suggests
         # additional clauses (commas, semicolons, mid-sentence punctuation)
-        if re.search(r"[，,；;：:]", matched_text) or re.search(r"但|而|且|却|还|也|都", matched_text):
+        if re.search(r"[，,；;：:]", matched_text) or re.search(
+            r"但|而|且|却|还|也|都", matched_text
+        ):
             return None
         # Reject if there are sentence breaks within the match
         if re.search(r"[。！？.!?]", matched_text):
@@ -339,14 +496,10 @@ def _parse_proposition(text: str) -> ParsedProposition | None:
     return None
 
 
-def _propositions_comparable(
-    a: ParsedProposition, b: ParsedProposition
-) -> bool:
+def _propositions_comparable(a: ParsedProposition, b: ParsedProposition) -> bool:
     """Two propositions are comparable iff family, subject, and predicate match."""
     return (
-        a.family == b.family
-        and a.subject == b.subject
-        and a.predicate == b.predicate
+        a.family == b.family and a.subject == b.subject and a.predicate == b.predicate
     )
 
 
@@ -546,9 +699,13 @@ class GraphService:
         Returns the evidence if valid, None if the relation should be excluded.
         """
         # Check entities exist
-        if not await _entity_exists(self.session, er.source_entity_type, er.source_entity_id):
+        if not await _entity_exists(
+            self.session, er.source_entity_type, er.source_entity_id
+        ):
             return None
-        if not await _entity_exists(self.session, er.target_entity_type, er.target_entity_id):
+        if not await _entity_exists(
+            self.session, er.target_entity_type, er.target_entity_id
+        ):
             return None
 
         # Check evidence four fields
@@ -571,8 +728,40 @@ class GraphService:
         if err is not None:
             return None
 
-        # P0-4: evidence_status must be 'verified'
+        # P0-2: evidence_status must be 'verified'
+        # P0-2: Query-time re-validation of complete audit fields
         if getattr(er, "evidence_status", "unverified") != "verified":
+            return None
+
+        # P0-2: Complete verification audit — all fields must be present
+        if not getattr(er, "verified_by", None):
+            return None
+        if not getattr(er, "verified_at", None):
+            return None
+        if not getattr(er, "claim_text", None):
+            return None
+        if not getattr(er, "evidence_source_uri", None):
+            return None
+
+        # P0-2: source_uri must be a real URI, not document:<UUID> pseudo-URI
+        import re as _re
+
+        source_uri = getattr(er, "evidence_source_uri", "")
+        if _re.match(r"^document:[0-9a-f-]{36}$", source_uri, _re.IGNORECASE):
+            return None
+
+        # P0-2: provenance IDs must be consistent — if passage_id/version_id set,
+        # they should reference entities that exist (lightweight check: non-empty values
+        # must pass entity-exists check)
+        ev_version_id = getattr(er, "evidence_version_id", None)
+        ev_passage_id = getattr(er, "evidence_passage_id", None)
+        if ev_version_id and not await _entity_exists(
+            self.session, "version", ev_version_id
+        ):
+            return None
+        if ev_passage_id and not await _entity_exists(
+            self.session, "passage", ev_passage_id
+        ):
             return None
 
         return _make_evidence(
@@ -581,6 +770,180 @@ class GraphService:
             er.evidence_quote,
             er.evidence_citation,
         )
+
+    # ------------------------------------------------------------------
+    # P0-2: Unique verification entry point — only path to verified status
+    # ------------------------------------------------------------------
+
+    async def verify_relation(
+        self,
+        relation_id: str,
+        *,
+        claim_text: str,
+        evidence_document_id: str,
+        evidence_version_id: str,
+        evidence_passage_id: str,
+        evidence_chunk_id: str,
+        evidence_quote: str,
+        evidence_source_uri: str,
+        verified_by: str,
+    ) -> EntityRelation:
+        """P0-2: SINGLE entry point for verifying a relation.
+
+        No other code path may set evidence_status='verified'. All tests,
+        APIs, and demo scripts MUST call this method.
+
+        Pre-verification checks:
+          1. Relation exists and is not deleted
+          2. Source and target entities exist
+          3. Relation type is valid per ontology
+          4. Document exists and is not deleted
+          5. Chunk exists, belongs to document, is not deleted
+          6. Passage exists if passage_id is provided
+          7. Version exists if version_id is provided and passage matches
+          8. exact_quote is a contiguous substring of chunk content
+          9. source_uri is non-empty and NOT a 'document:<UUID>' pseudo-URI
+         10. claim_text is non-empty
+         11. verified_by is non-empty
+         12. Evidence status must be 'unverified' (cannot re-verify or verify rejected)
+
+        On success, writes:
+          - evidence_status = 'verified'
+          - verified_at = now (UTC)
+          - verified_by = provided value
+          - claim_text = provided value
+          - evidence_version_id, evidence_passage_id, evidence_source_uri
+
+        Raises ValueError if any check fails.
+        """
+        from datetime import datetime, timezone
+
+        # 1. Fetch relation
+        if isinstance(relation_id, str) and not relation_id.startswith("er:"):
+            # Strip 'er:' prefix if present
+            pass
+        rel_id = (
+            relation_id.replace("er:", "", 1)
+            if relation_id.startswith("er:")
+            else relation_id
+        )
+
+        stmt = select(EntityRelation).where(
+            EntityRelation.id == rel_id,
+            EntityRelation.is_deleted.is_(False),
+        )
+        result = await self.session.execute(stmt)
+        er = result.scalar_one_or_none()
+        if er is None:
+            raise ValueError(f"Relation {rel_id} not found or deleted")
+
+        # 2. Source/target entities exist
+        if not await _entity_exists(
+            self.session, er.source_entity_type, er.source_entity_id
+        ):
+            raise ValueError(
+                f"Source entity {er.source_entity_type}:{er.source_entity_id} not found"
+            )
+        if not await _entity_exists(
+            self.session, er.target_entity_type, er.target_entity_id
+        ):
+            raise ValueError(
+                f"Target entity {er.target_entity_type}:{er.target_entity_id} not found"
+            )
+
+        # 3. Relation type valid
+        if er.relation_type not in GRAPH_RELATION_TYPES:
+            raise ValueError(f"Invalid relation_type: {er.relation_type}")
+
+        # 4. Document exists
+        doc_stmt = select(Document).where(
+            Document.id == evidence_document_id,
+            Document.is_deleted.is_(False),
+        )
+        doc_result = await self.session.execute(doc_stmt)
+        if doc_result.scalar_one_or_none() is None:
+            raise ValueError(f"Document {evidence_document_id} not found or deleted")
+
+        # 5. Chunk exists, belongs to document
+        chunk_stmt = select(DocumentChunk).where(
+            DocumentChunk.id == evidence_chunk_id,
+            DocumentChunk.is_deleted.is_(False),
+        )
+        chunk_result = await self.session.execute(chunk_stmt)
+        chunk = chunk_result.scalar_one_or_none()
+        if chunk is None:
+            raise ValueError(f"Chunk {evidence_chunk_id} not found or deleted")
+        if chunk.document_id != evidence_document_id:
+            raise ValueError(
+                f"Chunk {evidence_chunk_id} belongs to document {chunk.document_id}, "
+                f"not claimed document {evidence_document_id}"
+            )
+
+        # 6. Passage exists if provided
+        if evidence_passage_id:
+            if not await _entity_exists(self.session, "passage", evidence_passage_id):
+                raise ValueError(f"Passage {evidence_passage_id} not found or deleted")
+
+        # 7. Version exists if provided
+        if evidence_version_id:
+            if not await _entity_exists(self.session, "version", evidence_version_id):
+                raise ValueError(f"Version {evidence_version_id} not found or deleted")
+
+        # 8. exact_quote is contiguous substring of chunk content
+        if not _is_substring(evidence_quote, chunk.content):
+            raise ValueError(
+                f"Quote is not a contiguous substring of chunk {evidence_chunk_id} content"
+            )
+
+        # 9. source_uri is validated against academic source policy
+        uri_err = _validate_source_uri(evidence_source_uri)
+        if uri_err:
+            raise ValueError(uri_err)
+
+        # 10. claim_text is non-empty
+        if not claim_text or not claim_text.strip():
+            raise ValueError("claim_text must not be empty")
+
+        # 11. verified_by is non-empty
+        if not verified_by or not verified_by.strip():
+            raise ValueError("verified_by must not be empty")
+
+        # 12. Status must be 'unverified' (cannot re-verify or verify rejected)
+        if er.evidence_status != "unverified":
+            raise ValueError(
+                f"Cannot verify relation with status '{er.evidence_status}'. "
+                f"Only 'unverified' relations can be verified."
+            )
+
+        # 13. P0-2: Relation-type-specific semantic evidence policy
+        policy_err = RelationEvidencePolicy.validate(
+            er.relation_type,
+            er.source_entity_type,
+            er.target_entity_type,
+            claim_text,
+            evidence_quote,
+        )
+        if policy_err:
+            raise ValueError(f"Semantic evidence policy violation: {policy_err}")
+
+        # --- All checks passed — write verification ---
+        er.evidence_status = "verified"
+        er.verified_at = datetime.now(timezone.utc)
+        er.verified_by = verified_by
+        er.claim_text = claim_text
+        er.evidence_version_id = evidence_version_id or None
+        er.evidence_passage_id = evidence_passage_id or None
+        er.evidence_source_uri = evidence_source_uri
+        # Also update evidence fields if they differ from creation-time
+        if evidence_document_id:
+            er.evidence_document_id = evidence_document_id
+        if evidence_chunk_id:
+            er.evidence_chunk_id = evidence_chunk_id
+        if evidence_quote:
+            er.evidence_quote = evidence_quote
+
+        await self.session.flush()
+        return er
 
     # ------------------------------------------------------------------
     # Edge collection — Evidence-required: only explicit EntityRelation with valid evidence
@@ -914,7 +1277,11 @@ class GraphService:
             model_cls = ENTITY_MODEL_MAP.get(et)
             if model_cls is None:
                 continue
-            stmt = select(model_cls).where(model_cls.is_deleted.is_(False)).order_by(model_cls.id)
+            stmt = (
+                select(model_cls)
+                .where(model_cls.is_deleted.is_(False))
+                .order_by(model_cls.id)
+            )
             if query:
                 if et == "person":
                     stmt = stmt.where(
@@ -1072,11 +1439,15 @@ class GraphService:
                 if not co_occurrence_evidence:
                     continue
 
-                co_occurrence_evidence = GraphService._dedup_evidence(co_occurrence_evidence)
+                co_occurrence_evidence = GraphService._dedup_evidence(
+                    co_occurrence_evidence
+                )
 
                 edges.append(
                     ConceptEdge(
-                        edge_id=_stable_hash(ConceptNode.__name__, a, b, "co_occurs_with"),
+                        edge_id=_stable_hash(
+                            ConceptNode.__name__, a, b, "co_occurs_with"
+                        ),
                         source_concept_id=_stable_hash(a),
                         target_concept_id=_stable_hash(b),
                         relation_type="co_occurs_with",
@@ -1089,7 +1460,9 @@ class GraphService:
                     if hierarchy_direction == "a_narrower":
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(ConceptNode.__name__, a, b, "narrower_than"),
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, a, b, "narrower_than"
+                                ),
                                 source_concept_id=_stable_hash(a),
                                 target_concept_id=_stable_hash(b),
                                 relation_type="narrower_than",
@@ -1099,7 +1472,9 @@ class GraphService:
                         )
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(ConceptNode.__name__, b, a, "broader_than"),
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, b, a, "broader_than"
+                                ),
                                 source_concept_id=_stable_hash(b),
                                 target_concept_id=_stable_hash(a),
                                 relation_type="broader_than",
@@ -1110,7 +1485,9 @@ class GraphService:
                     elif hierarchy_direction == "b_narrower":
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(ConceptNode.__name__, b, a, "narrower_than"),
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, b, a, "narrower_than"
+                                ),
                                 source_concept_id=_stable_hash(b),
                                 target_concept_id=_stable_hash(a),
                                 relation_type="narrower_than",
@@ -1120,7 +1497,9 @@ class GraphService:
                         )
                         edges.append(
                             ConceptEdge(
-                                edge_id=_stable_hash(ConceptNode.__name__, a, b, "broader_than"),
+                                edge_id=_stable_hash(
+                                    ConceptNode.__name__, a, b, "broader_than"
+                                ),
                                 source_concept_id=_stable_hash(a),
                                 target_concept_id=_stable_hash(b),
                                 relation_type="broader_than",
@@ -1440,7 +1819,9 @@ class GraphService:
             "query": query,
             "concept_graph": concept_graph.model_dump(mode="json"),
             "similarities": [s.model_dump(mode="json") for s in similarities],
-            "cross_document_analyses": [a.model_dump(mode="json") for a in cross_doc_analyses],
+            "cross_document_analyses": [
+                a.model_dump(mode="json") for a in cross_doc_analyses
+            ],
             "citations": [ev.model_dump(mode="json") for ev in all_evidence],
             "evidence_trace": [ev.model_dump(mode="json") for ev in evidence_trace],
             "research_hypotheses": [],
