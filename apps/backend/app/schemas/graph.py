@@ -420,8 +420,8 @@ class VerifyRelationRequest(BaseModel):
 
     claim_text: str = Field(..., min_length=1)
     evidence_document_id: str = Field(..., min_length=1)
-    evidence_version_id: str = Field(default="")
-    evidence_passage_id: str = Field(default="")
+    evidence_version_id: str = Field(..., min_length=1)
+    evidence_passage_id: str = Field(..., min_length=1)
     evidence_chunk_id: str = Field(..., min_length=1)
     evidence_quote: str = Field(..., min_length=1)
     evidence_source_uri: str = Field(..., min_length=1)

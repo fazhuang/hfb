@@ -22,7 +22,9 @@ from app.models.book import Book
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.graph import EntityRelation
+from app.models.passage import Passage
 from app.models.person import Person
+from app.models.version import Version
 from app.models.user import User, Role, Permission
 from app.schemas.graph import GraphEvidence
 from app.services.auth_service import create_access_token
@@ -53,7 +55,40 @@ async def _make_corpus(session: AsyncSession) -> dict:
     session.add(chunk)
     await session.flush()
 
-    return {"person": person, "book": book, "doc": doc, "chunk": chunk}
+    # Passage requires Chapter FK — seed a minimal chapter first
+    from app.models.chapter import Chapter
+
+    chapter = Chapter(id="chap-verify", book_id=book.id, title="卷一", order=1)
+    session.add(chapter)
+    await session.flush()
+
+    version = Version(
+        id="ver-verify",
+        book_id=book.id,
+        version_name="宋本",
+        era="宋",
+    )
+    session.add(version)
+    await session.flush()
+
+    passage = Passage(
+        id="passage-verify",
+        chapter_id=chapter.id,
+        version_id=version.id,
+        order=1,
+        content_text="皇甫谧撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+    )
+    session.add(passage)
+    await session.flush()
+
+    return {
+        "person": person,
+        "book": book,
+        "doc": doc,
+        "chunk": chunk,
+        "version": version,
+        "passage": passage,
+    }
 
 
 async def _make_relation(session: AsyncSession, seed: dict) -> str:
@@ -174,8 +209,6 @@ def _cleanup_overrides() -> None:
 
 VERIFY_BODY: dict[str, str] = {
     "claim_text": "皇甫谧编撰《针灸甲乙经》",
-    "evidence_version_id": "",
-    "evidence_passage_id": "",
 }
 
 
@@ -192,6 +225,8 @@ class TestHTTPVerifyRelation:
         body.update(
             {
                 "evidence_document_id": seed["doc"].id,
+                "evidence_version_id": seed["version"].id,
+                "evidence_passage_id": seed["passage"].id,
                 "evidence_chunk_id": seed["chunk"].id,
                 "evidence_quote": seed["chunk"].content,
                 "evidence_source_uri": "https://ctext.org/jinshu/huangfu-mi-zhuan",
@@ -225,6 +260,8 @@ class TestHTTPVerifyRelation:
         body.update(
             {
                 "evidence_document_id": seed["doc"].id,
+                "evidence_version_id": seed["version"].id,
+                "evidence_passage_id": seed["passage"].id,
                 "evidence_chunk_id": seed["chunk"].id,
                 "evidence_quote": seed["chunk"].content,
                 "evidence_source_uri": "https://ctext.org/jinshu/huangfu-mi-zhuan",
@@ -259,6 +296,8 @@ class TestHTTPVerifyRelation:
         body.update(
             {
                 "evidence_document_id": seed["doc"].id,
+                "evidence_version_id": seed["version"].id,
+                "evidence_passage_id": seed["passage"].id,
                 "evidence_chunk_id": seed["chunk"].id,
                 "evidence_quote": seed["chunk"].content,
                 "evidence_source_uri": "https://ctext.org/jinshu/huangfu-mi-zhuan",
@@ -306,6 +345,8 @@ class TestHTTPVerifyRelation:
         body.update(
             {
                 "evidence_document_id": seed["doc"].id,
+                "evidence_version_id": seed["version"].id,
+                "evidence_passage_id": seed["passage"].id,
                 "evidence_chunk_id": seed["chunk"].id,
                 "evidence_quote": seed["chunk"].content,
                 "evidence_source_uri": "https://ctext.org/jinshu/huangfu-mi-zhuan",
@@ -346,6 +387,8 @@ class TestHTTPVerifyRelation:
         body.update(
             {
                 "evidence_document_id": seed["doc"].id,
+                "evidence_version_id": seed["version"].id,
+                "evidence_passage_id": seed["passage"].id,
                 "evidence_chunk_id": seed["chunk"].id,
                 "evidence_quote": seed["chunk"].content,
                 "evidence_source_uri": "https://ctext.org/jinshu/huangfu-mi-zhuan",
@@ -390,8 +433,8 @@ class TestHTTPVerifyRelation:
             relation_id=rel_id,
             claim_text="皇甫谧编撰《针灸甲乙经》",
             evidence_document_id=ev.document_id,
-            evidence_version_id="",
-            evidence_passage_id="",
+            evidence_version_id=seed["version"].id,
+            evidence_passage_id=seed["passage"].id,
             evidence_chunk_id=ev.chunk_id,
             evidence_quote=ev.exact_quote,
             evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",

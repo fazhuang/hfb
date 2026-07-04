@@ -1138,15 +1138,17 @@ class GraphService:
                 f"not claimed document {evidence_document_id}"
             )
 
-        # 6. Passage exists if provided
-        if evidence_passage_id:
-            if not await _entity_exists(self.session, "passage", evidence_passage_id):
-                raise ValueError(f"Passage {evidence_passage_id} not found or deleted")
+        # 6. Passage exists (required)
+        if not evidence_passage_id or not evidence_passage_id.strip():
+            raise ValueError("evidence_passage_id must not be empty")
+        if not await _entity_exists(self.session, "passage", evidence_passage_id):
+            raise ValueError(f"Passage {evidence_passage_id} not found or deleted")
 
-        # 7. Version exists if provided
-        if evidence_version_id:
-            if not await _entity_exists(self.session, "version", evidence_version_id):
-                raise ValueError(f"Version {evidence_version_id} not found or deleted")
+        # 7. Version exists (required)
+        if not evidence_version_id or not evidence_version_id.strip():
+            raise ValueError("evidence_version_id must not be empty")
+        if not await _entity_exists(self.session, "version", evidence_version_id):
+            raise ValueError(f"Version {evidence_version_id} not found or deleted")
 
         # 8. exact_quote is contiguous substring of chunk content
         if not _is_substring(evidence_quote, chunk.content):
