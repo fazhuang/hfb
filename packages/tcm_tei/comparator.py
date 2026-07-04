@@ -17,6 +17,7 @@ from tcm_tei.models import (
 def _lcs_align_sentences(
     sents_a: list[Sentence],
     sents_b: list[Sentence],
+    ignore_whitespace: bool = False,
 ) -> list[tuple[Sentence | None, Sentence | None]]:
     """Align sentences using longest common subsequence on text.
 
@@ -24,6 +25,9 @@ def _lcs_align_sentences(
     (s_a, s_b) pairs. Unmatched sentences get None on the other side.
     This tolerates insertions, deletions, and transpositions that
     position-based alignment would misalign.
+
+    When ignore_whitespace is True, whitespace differences are ignored
+    when comparing sentence texts for alignment purposes.
     """
     m, n = len(sents_a), len(sents_b)
     # DP table: dp[i][j] = LCS length for sents_a[:i], sents_b[:j]
@@ -31,7 +35,9 @@ def _lcs_align_sentences(
 
     for i in range(1, m + 1):
         for j in range(1, n + 1):
-            if sents_a[i - 1].text == sents_b[j - 1].text:
+            ta = _clean(sents_a[i - 1].text, ignore_whitespace)
+            tb = _clean(sents_b[j - 1].text, ignore_whitespace)
+            if ta == tb:
                 dp[i][j] = dp[i - 1][j - 1] + 1
             else:
                 dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
@@ -40,11 +46,15 @@ def _lcs_align_sentences(
     aligned: list[tuple[Sentence | None, Sentence | None]] = []
     i, j = m, n
     while i > 0 or j > 0:
-        if i > 0 and j > 0 and sents_a[i - 1].text == sents_b[j - 1].text:
-            aligned.append((sents_a[i - 1], sents_b[j - 1]))
-            i -= 1
-            j -= 1
-        elif j > 0 and (i == 0 or dp[i][j - 1] >= dp[i - 1][j]):
+        if i > 0 and j > 0:
+            ta = _clean(sents_a[i - 1].text, ignore_whitespace)
+            tb = _clean(sents_b[j - 1].text, ignore_whitespace)
+            if ta == tb:
+                aligned.append((sents_a[i - 1], sents_b[j - 1]))
+                i -= 1
+                j -= 1
+                continue
+        if j > 0 and (i == 0 or dp[i][j - 1] >= dp[i - 1][j]):
             aligned.append((None, sents_b[j - 1]))
             j -= 1
         else:
@@ -69,12 +79,12 @@ class VersionComparator:
         version_a: TextVersion,
         version_b: TextVersion,
         ignore_whitespace: bool = True,
+        algorithm: str = "lcs",
     ) -> list[Variant]:
-        """Compute all variants between two versions.
+        """Compute all variants between two versions using LCS alignment.
 
-        Aligns paragraphs and sentences, then compares text at the
-        sentence level. Returns a list of Variant objects for positions
-        where the text differs.
+        Uses LCS alignment so that inserted/deleted sentences don't cause
+        every subsequent pair to be misaligned and reported as false variants.
         """
         variants: list[Variant] = []
         max_paras = max(version_a.paragraph_count, version_b.paragraph_count)
@@ -84,7 +94,6 @@ class VersionComparator:
             para_b = version_b.paragraphs[i] if i < version_b.paragraph_count else None
 
             if para_a is None and para_b is not None:
-                # Entire paragraph inserted in version B
                 variants.append(
                     Variant(
                         location=f"para_{i}",
@@ -98,7 +107,6 @@ class VersionComparator:
                 continue
 
             if para_b is None and para_a is not None:
-                # Entire paragraph deleted in version B
                 variants.append(
                     Variant(
                         location=f"para_{i}",
@@ -111,14 +119,24 @@ class VersionComparator:
                 )
                 continue
 
-            # Both paragraphs exist — compare sentences
-            if para_a is None or para_b is None:
-                continue  # Unreachable, but type-safe
+            assert para_a is not None and para_b is not None
+            # LCS-align sentences, then compare aligned pairs
+            aligned = _lcs_align_sentences(para_a.sentences, para_b.sentences, ignore_whitespace)
+            for idx, (s_a, s_b) in enumerate(aligned):
+                text_a = _clean(s_a.text, ignore_whitespace) if s_a else ""
+                text_b = _clean(s_b.text, ignore_whitespace) if s_b else ""
 
-            sent_variants = _compare_paragraph(
-                para_a, para_b, version_a.id, version_b.id, ignore_whitespace
-            )
-            variants.extend(sent_variants)
+                if text_a != text_b:
+                    variants.append(
+                        Variant(
+                            location=f"{para_a.id}.sent_{idx}",
+                            readings={
+                                version_a.id: s_a.text if s_a else "(absent)",
+                                version_b.id: s_b.text if s_b else "(absent)",
+                            },
+                            apparatus=f"差异: [{version_a.id}] vs [{version_b.id}]",
+                        )
+                    )
 
         return variants
 

@@ -158,12 +158,18 @@ class TestVersionComparator:
     def test_diff_detects_variant(self) -> None:
         doc = _make_document_with_two_versions()
         variants = VersionComparator.diff(doc.versions[0], doc.versions[1])
-        # Should find at least one variant: "也" vs "耳"
-        assert len(variants) == 1
-        v = variants[0]
-        assert v.location == "para_0.sent_1"
-        assert "也" in v.readings["song_ben"]
-        assert "耳" in v.readings["ming_ben"]
+        # LCS separates the variant into two entries: one for each side
+        assert len(variants) == 2
+        # First: sentence present only in song_ben ("也")
+        v0 = variants[0]
+        assert v0.location == "para_0.sent_1"
+        assert "也" in v0.readings["song_ben"]
+        assert v0.readings["ming_ben"] == "(absent)"
+        # Second: sentence present only in ming_ben ("耳")
+        v1 = variants[1]
+        assert v1.location == "para_0.sent_2"
+        assert "耳" in v1.readings["ming_ben"]
+        assert v1.readings["song_ben"] == "(absent)"
 
     def test_diff_extra_paragraph(self) -> None:
         v1 = TextVersion(
@@ -212,8 +218,79 @@ class TestVersionComparator:
         )
         variants_no_ignore = VersionComparator.diff(v1, v2, ignore_whitespace=False)
         variants_ignore = VersionComparator.diff(v1, v2, ignore_whitespace=True)
-        assert len(variants_no_ignore) == 1
+        # Without whitespace-ignore, LCS sees different texts -> 2 unaligned entries
+        assert len(variants_no_ignore) == 2
+        # With whitespace-ignore, LCS aligns them -> identical -> 0 variants
         assert len(variants_ignore) == 0
+
+
+def test_lcs_alignment_insertion_does_not_misalign_remainder():
+    """A sentence inserted in version B should not misalign all following pairs."""
+    v1 = TextVersion(id="v1", label="原本")
+    v2 = TextVersion(id="v2", label="增补本")
+
+    para1 = Paragraph(id="p1", sentences=[
+        Sentence(id="s1", text="黄帝问曰"),
+        Sentence(id="s2", text="岐伯对曰"),
+        Sentence(id="s3", text="经脉流行不止"),
+        Sentence(id="s4", text="环周不休"),
+    ])
+    para2 = Paragraph(id="p1", sentences=[
+        Sentence(id="s1", text="黄帝问曰"),
+        Sentence(id="s2", text="岐伯对曰"),
+        Sentence(id="sX", text="此乃要言也"),  # inserted
+        Sentence(id="s3", text="经脉流行不止"),
+        Sentence(id="s4", text="环周不休"),
+    ])
+    v1.paragraphs = [para1]
+    v2.paragraphs = [para2]
+
+    variants = VersionComparator.diff(v1, v2, algorithm="lcs")
+
+    # Should have exactly 1 variant: the inserted sentence
+    # Without LCS, position-based would flag s3 & s4 as misaligned too
+    assert len(variants) == 1
+    assert "sent_2" in variants[0].location  # the X position
+
+
+def test_lcs_alignment_deletion_does_not_misalign_remainder():
+    """A sentence deleted in version B should not misalign all following pairs."""
+    v1 = TextVersion(id="v1", label="原本")
+    v2 = TextVersion(id="v2", label="删节本")
+
+    para1 = Paragraph(id="p1", sentences=[
+        Sentence(id="s1", text="黄帝问曰"),
+        Sentence(id="s2", text="岐伯对曰"),
+        Sentence(id="s3", text="经脉流行不止"),
+        Sentence(id="s4", text="环周不休"),
+    ])
+    para2 = Paragraph(id="p1", sentences=[
+        Sentence(id="s1", text="黄帝问曰"),
+        Sentence(id="s3", text="经脉流行不止"),
+        Sentence(id="s4", text="环周不休"),
+    ])
+    v1.paragraphs = [para1]
+    v2.paragraphs = [para2]
+
+    variants = VersionComparator.diff(v1, v2, algorithm="lcs")
+
+    # Should have exactly 1 variant: the deleted sentence
+    assert len(variants) == 1
+
+
+def test_lcs_alignment_identical_texts_zero_variants():
+    """Identical texts should produce zero variants with LCS alignment."""
+    v1 = TextVersion(id="v1", label="宋本")
+    v2 = TextVersion(id="v2", label="明本")
+    para = Paragraph(id="p1", sentences=[
+        Sentence(id="s1", text="黄帝问曰"),
+        Sentence(id="s2", text="岐伯对曰"),
+    ])
+    v1.paragraphs = [para]
+    v2.paragraphs = [para]
+
+    variants = VersionComparator.diff(v1, v2, algorithm="lcs")
+    assert len(variants) == 0
 
 
 class TestTEISerializer:
@@ -246,6 +323,6 @@ class TestTEISerializer:
         variants = VersionComparator.diff(doc.versions[0], doc.versions[1])
         json_str = TEISerializer.variants_to_json(variants)
         parsed = json.loads(json_str)
-        assert len(parsed) == 1
+        assert len(parsed) == 2
         assert "location" in parsed[0]
         assert "readings" in parsed[0]
