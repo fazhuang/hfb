@@ -2021,3 +2021,362 @@ class TestTEIHierarchy:
         assert p_song.content_text != p_ming.content_text
         assert "也" in p_song.content_text
         assert "耳" in p_ming.content_text
+
+
+# ============================================================
+# P0-3: Reviewer Identity Tests
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestReviewerIdentity:
+    """P0-3: Unforgeable academic reviewer — verified_by must be real user with permission."""
+
+    async def test_nonexistent_user_rejected(self, db_session: AsyncSession) -> None:
+        """verify_relation with nonexistent user ID must fail."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        rel = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev,
+        )
+
+        with pytest.raises(ValueError, match="not found.*deleted.*deactivated"):
+            await svc.verify_relation(
+                relation_id=rel.id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=ents["v_song"].id,
+                evidence_passage_id=ents["passage_song"].id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by="nonexistent-user-id",
+            )
+
+        # Status stays unverified
+        await db_session.refresh(rel)
+        assert rel.evidence_status == "unverified"
+
+    async def test_deactivated_user_rejected(self, db_session: AsyncSession) -> None:
+        """verify_relation with deactivated user must fail."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        # Create a deactivated user directly in DB
+        from app.models.user import User
+
+        deactivated = User(
+            id="deactivated-user",
+            username="deactivated",
+            email="deactivated@test.com",
+            hashed_password="test",
+            is_active=False,
+        )
+        db_session.add(deactivated)
+        await db_session.flush()
+
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        rel = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev,
+        )
+
+        with pytest.raises(ValueError, match="not found.*deleted.*deactivated"):
+            await svc.verify_relation(
+                relation_id=rel.id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=ents["v_song"].id,
+                evidence_passage_id=ents["passage_song"].id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by="deactivated-user",
+            )
+
+    async def test_unprivileged_user_rejected(self, db_session: AsyncSession) -> None:
+        """verify_relation with user lacking graph.review permission must fail."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        # Create user with no reviewer role
+        from app.models.user import User
+
+        plain_user = User(
+            id="plain-user",
+            username="plain-user",
+            email="plain@test.com",
+            hashed_password="test",
+            is_active=True,
+            is_superuser=False,
+        )
+        db_session.add(plain_user)
+        await db_session.flush()
+
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        rel = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev,
+        )
+
+        with pytest.raises(ValueError, match="lacks reviewer permission"):
+            await svc.verify_relation(
+                relation_id=rel.id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=ents["v_song"].id,
+                evidence_passage_id=ents["passage_song"].id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by="plain-user",
+            )
+
+    async def test_legitimate_reviewer_passes(self, db_session: AsyncSession) -> None:
+        """verify_relation with active reviewer user must pass."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        rel = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev,
+        )
+
+        verified = await svc.verify_relation(
+            relation_id=rel.id,
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_document_id=ev.document_id,
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_chunk_id=ev.chunk_id,
+            evidence_quote=ev.exact_quote,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+            verified_by="test-reviewer",  # pre-seeded in conftest_db
+        )
+        assert verified.evidence_status == "verified"
+        assert verified.verified_by == "test-reviewer"
+
+    async def test_client_spoofed_verified_by_ignored(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """P0-3: verified_by from client body must be ignored. The server
+        uses current_user from auth context only.
+
+        Since the current API endpoint for verify_relation doesn't exist yet,
+        we test at the service level: GraphService.verify_relation accepts
+        verified_by as a STRING parameter (not Pydantic model), so the API
+        layer responsibility is to pass current_user.id, not the request body.
+        """
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        rel = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev,
+        )
+
+        # Attempt to spoof: pass "admin" as verified_by
+        # This must fail because "admin" is not a real user
+        with pytest.raises(ValueError, match="not found.*deleted.*deactivated"):
+            await svc.verify_relation(
+                relation_id=rel.id,
+                claim_text="皇甫谧编撰《针灸甲乙经》",
+                evidence_document_id=ev.document_id,
+                evidence_version_id=ents["v_song"].id,
+                evidence_passage_id=ents["passage_song"].id,
+                evidence_chunk_id=ev.chunk_id,
+                evidence_quote=ev.exact_quote,
+                evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+                verified_by="admin",  # spoof attempt — not a real user ID
+            )
+
+        # Status stays unverified
+        await db_session.refresh(rel)
+        assert rel.evidence_status == "unverified"
+
+
+# ============================================================
+# P0-4: DB Tamper Tests — semantic mismatch directly set to verified
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestDBTamperMustBeExcluded:
+    """P0-4: Relations tampered to 'verified' via DB must be excluded at query time."""
+
+    async def test_semantic_mismatch_tampered_to_verified_excluded(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Directly set a semantic-mismatch edge to verified with all surface
+        fields filled. find_paths and RAG must still exclude it."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        # Create a compiled_from edge with a biographical quote (semantically invalid)
+        ev = _make_ev(
+            ents["doc"].id,
+            ents["chunk1"].id,
+            "皇甫谧，字士安，安定朝那人也。",  # identity, not source derivation
+        )
+        rel = await svc.create_relation(
+            source_entity_type="book",
+            source_entity_id=ents["book"].id,
+            target_entity_type="book",
+            target_entity_id=ents["suwen"].id,
+            relation_type="compiled_from",
+            description="针灸甲乙经编纂依据素问",
+            evidence=ev,
+        )
+        assert rel.evidence_status == "unverified"
+
+        # Tamper: directly set all fields to "verified" via DB
+        from datetime import datetime, timezone
+
+        rel.evidence_status = "verified"
+        rel.verified_by = "test-reviewer"  # real reviewer from conftest
+        rel.verified_at = datetime.now(timezone.utc)
+        rel.claim_text = "针灸甲乙经以素问为编纂来源"
+        rel.evidence_source_uri = "https://ctext.org/jinshu/huangfu-mi-zhuan"
+        rel.evidence_version_id = ents["v_song"].id
+        rel.evidence_passage_id = ents["passage_song"].id
+        await db_session.flush()
+
+        # find_paths must exclude this tampered edge (semantic policy fails at query time)
+        paths = await svc.find_paths(
+            source_type="book",
+            source_id=ents["book"].id,
+            target_type="book",
+            target_id=ents["suwen"].id,
+            max_depth=3,
+            max_paths=10,
+        )
+        assert len(paths) == 0, (
+            f"Tampered semantic-mismatch edge must be excluded from paths. "
+            f"Got {len(paths)} paths."
+        )
+
+    async def test_tampered_edge_excluded_from_rag(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """Tampered edge must be excluded from HTTP RAG response."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        # Create person → compiled → book (valid, will be verified properly)
+        ev1 = _make_ev(
+            ents["doc"].id,
+            ents["chunk2"].id,
+            "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+        )
+        r1 = await svc.create_relation(
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            evidence=ev1,
+        )
+        await svc.verify_relation(
+            relation_id=r1.id,
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_document_id=ev1.document_id,
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_chunk_id=ev1.chunk_id,
+            evidence_quote=ev1.exact_quote,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+            verified_by="test-reviewer",
+        )
+
+        # Create a second edge book → compiled_from → suwen but TAMPER it
+        ev2 = _make_ev(
+            ents["doc"].id,
+            ents["chunk1"].id,
+            "皇甫谧，字士安，安定朝那人也。",  # biographical — not source evidence
+        )
+        r2 = await svc.create_relation(
+            source_entity_type="book",
+            source_entity_id=ents["book"].id,
+            target_entity_type="book",
+            target_entity_id=ents["suwen"].id,
+            relation_type="compiled_from",
+            description="针灸甲乙经编纂依据素问",
+            evidence=ev2,
+        )
+        from datetime import datetime, timezone
+
+        r2.evidence_status = "verified"
+        r2.verified_by = "test-reviewer"
+        r2.verified_at = datetime.now(timezone.utc)
+        r2.claim_text = "针灸甲乙经以素问为编纂来源"
+        r2.evidence_source_uri = "https://ctext.org/jinshu/huangfu-mi-zhuan"
+        r2.evidence_version_id = ents["v_song"].id
+        r2.evidence_passage_id = ents["passage_song"].id
+        await db_session.flush()
+
+        # RAG: only 1-hop verified path exists (2-hop edge was tampered, excluded)
+        resp = await acceptance_app.post(
+            "/api/v1/academic-rag/query",
+            json={"query": "皇甫谧针灸思想来源是什么？"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+
+        # Only 1-hop verified path → must refuse (hop_count >= 2 required)
+        assert data["refusal"] is True, (
+            f"Expected refusal=True when 2-hop edge is tampered and excluded. "
+            f"Got refusal={data['refusal']}"
+        )
+        assert data["citations"] == []
+        assert data["kg_paths"] == []

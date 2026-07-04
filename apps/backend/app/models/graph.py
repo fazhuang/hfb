@@ -16,7 +16,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Text, DateTime, Index, CheckConstraint
+from sqlalchemy import String, Text, DateTime, Index, CheckConstraint, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import text as sa_text
 
@@ -208,7 +208,10 @@ class EntityRelation(BaseModel):
         Text, nullable=True, comment="该关系所支持的具体学术论断"
     )
     verified_by: Mapped[Optional[str]] = mapped_column(
-        String(100), nullable=True, comment="校核人标识"
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="校核人用户ID (FK to users)",
     )
     verified_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="校核时间"

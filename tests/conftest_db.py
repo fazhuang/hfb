@@ -64,12 +64,57 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session() as session:
         # P0-5: pre-seed test user for FK-dependent tests (ResearchSession etc.)
-        session.add(
-            User(
-                id="test-user-1",
-                username="test-user-1",
-                email="test@test.com",
-                hashed_password="test",
+        test_user = User(
+            id="test-user-1",
+            username="test-user-1",
+            email="test@test.com",
+            hashed_password="test",
+            is_active=True,
+            is_superuser=True,
+        )
+        session.add(test_user)
+        await session.flush()
+
+        # P0-3: pre-seed reviewer user + role + permission for verify_relation tests
+        from app.models.user import Role, Permission as PermModel
+        from app.models.user import user_role as ur_table
+        from app.models.user import role_permission as rp_table
+
+        reviewer = User(
+            id="test-reviewer",
+            username="test-reviewer",
+            email="reviewer@test.com",
+            hashed_password="test",
+            is_active=True,
+            is_superuser=False,
+        )
+        session.add(reviewer)
+        await session.flush()
+
+        review_role = Role(
+            id="role-reviewer",
+            name="Reviewer",
+            description="Test reviewer role",
+            is_system=True,
+        )
+        session.add(review_role)
+        await session.flush()
+
+        review_perm = PermModel(
+            id="perm-graph-review",
+            resource="graph",
+            action="review",
+            description="Review graph evidence",
+        )
+        session.add(review_perm)
+        await session.flush()
+
+        await session.execute(
+            ur_table.insert().values(user_id=reviewer.id, role_id=review_role.id)
+        )
+        await session.execute(
+            rp_table.insert().values(
+                role_id=review_role.id, permission_id=review_perm.id
             )
         )
         await session.flush()

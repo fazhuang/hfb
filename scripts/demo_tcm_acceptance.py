@@ -119,6 +119,42 @@ print("Ontology → Production bridge verified ✓")
 sep("验收 2: Knowledge Graph — Production GraphService 多跳查询 + verify_relation()")
 
 
+async def _seed_reviewer(session):
+    """P0-3: seed a reviewer user + role + permission for verify_relation."""
+    from app.models.user import User, Role  # noqa: E402
+    from app.models.user import Permission as PermModel  # noqa: E402
+    from app.models.user import user_role as ur_table  # noqa: E402
+    from app.models.user import role_permission as rp_table  # noqa: E402
+
+    reviewer = User(
+        id="demo-reviewer",
+        username="demo-reviewer",
+        email="reviewer@demo.test",
+        hashed_password="demo",
+        is_active=True,
+    )
+    session.add(reviewer)
+    await session.flush()
+    review_role = Role(
+        id="demo-review-role",
+        name="Reviewer",
+        description="Demo",
+        is_system=True,
+    )
+    session.add(review_role)
+    await session.flush()
+    review_perm = PermModel(id="demo-graph-review", resource="graph", action="review")
+    session.add(review_perm)
+    await session.flush()
+    await session.execute(
+        ur_table.insert().values(user_id=reviewer.id, role_id=review_role.id)
+    )
+    await session.execute(
+        rp_table.insert().values(role_id=review_role.id, permission_id=review_perm.id)
+    )
+    await session.flush()
+
+
 async def demo_kg():
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
@@ -144,6 +180,8 @@ async def demo_kg():
         engine, class_=AsyncSession, expire_on_commit=False
     )
     async with session_factory() as session:
+        await _seed_reviewer(session)
+
         # Seed data
         person = Person(
             name="皇甫谧",
@@ -506,6 +544,8 @@ async def demo_academic_rag_http():
     )
 
     async with session_factory() as session:
+        await _seed_reviewer(session)
+
         # Seed data with real sources
         person = Person(
             name="皇甫谧",

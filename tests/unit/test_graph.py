@@ -162,7 +162,7 @@ class TestGraphServiceAsync:
         relation.verified_by = "test-reviewer"
         relation.verified_at = datetime.now(timezone.utc)
         relation.claim_text = "测试关系"
-        relation.evidence_source_uri = "https://example.com/test-source"
+        relation.evidence_source_uri = "https://ctext.org/test-source"
         await db_session.flush()
 
         assert relation.id is not None
@@ -324,7 +324,7 @@ class TestGraphServiceAsync:
         rel.verified_by = "test-reviewer"
         rel.verified_at = datetime.now(timezone.utc)
         rel.claim_text = "作者测试编撰关联古籍"
-        rel.evidence_source_uri = "https://example.com/test-find-path"
+        rel.evidence_source_uri = "https://ctext.org/test-find-path"
         await db_session.flush()
 
         path = await svc.find_path("person", p.id, "book", b.id)

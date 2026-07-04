@@ -856,7 +856,7 @@ class TestFKEdgesExcluded:
         rel.verified_by = "test-reviewer"
         rel.verified_at = datetime.now(timezone.utc)
         rel.claim_text = "作者测试2编撰关联古籍2"
-        rel.evidence_source_uri = "https://example.com/test-source2"
+        rel.evidence_source_uri = "https://ctext.org/test-source2"
         await db_session.flush()
         path = await svc.find_path("person", p.id, "book", b.id)
         assert path is not None

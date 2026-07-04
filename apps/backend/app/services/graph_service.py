@@ -40,6 +40,7 @@ from app.models.graph import (
 from app.models.passage import Passage  # noqa: F401
 from app.models.person import Person
 from app.models.tcm_entity import TCMEntity
+from app.models.user import User, Role, Permission
 from app.models.version import Version
 from app.schemas.graph import (
     RELATION_LABELS,
@@ -772,6 +773,33 @@ class GraphService:
         ):
             return None
 
+        # P0-3: Re-validate reviewer still exists and is active at query time
+        reviewer_id = getattr(er, "verified_by", None)
+        if reviewer_id:
+            try:
+                await self._validate_reviewer(reviewer_id)
+            except ValueError:
+                return None
+
+        # P0-4: Re-validate source_uri against academic source policy
+        source_uri = getattr(er, "evidence_source_uri", "")
+        source_err = _validate_source_uri(source_uri)
+        if source_err:
+            return None
+
+        # P0-4: Re-validate semantic evidence policy at query time
+        claim_text_val = getattr(er, "claim_text", "") or ""
+        evidence_quote_val = getattr(er, "evidence_quote", "") or ""
+        policy_err = RelationEvidencePolicy.validate(
+            er.relation_type,
+            er.source_entity_type,
+            er.target_entity_type,
+            claim_text_val,
+            evidence_quote_val,
+        )
+        if policy_err:
+            return None
+
         return GraphEvidence(
             document_id=er.evidence_document_id,
             chunk_id=er.evidence_chunk_id,
@@ -782,6 +810,58 @@ class GraphService:
             source_uri=getattr(er, "evidence_source_uri", "") or "",
             claim_text=getattr(er, "claim_text", "") or "",
         )
+
+    # ------------------------------------------------------------------
+    # P0-3: Reviewer validation
+    # ------------------------------------------------------------------
+
+    async def _validate_reviewer(self, user_id: str) -> None:
+        """P0-3: Validate that user_id refers to a real, active user
+        with reviewer or admin permission.
+
+        Rejects: nonexistent users, deleted users, deactivated users,
+                 users without graph.review or admin permission.
+        """
+        from app.models.user import user_role, role_permission
+
+        # User exists, not deleted, is active
+        user_stmt = select(User).where(
+            User.id == user_id,
+            User.is_deleted.is_(False),
+            User.is_active.is_(True),
+        )
+        user_result = await self.session.execute(user_stmt)
+        user = user_result.scalar_one_or_none()
+        if user is None:
+            raise ValueError(
+                f"Reviewer user '{user_id}' not found, deleted, or deactivated"
+            )
+
+        # Superuser bypasses RBAC
+        if user.is_superuser:
+            return
+
+        # Must have graph.review permission or be admin (graph.approve)
+        perm_codes: set[str] = set()
+        stmt = (
+            select(Permission.resource, Permission.action)
+            .select_from(User)
+            .join(user_role, User.id == user_role.c.user_id)
+            .join(Role, user_role.c.role_id == Role.id)
+            .join(role_permission, Role.id == role_permission.c.role_id)
+            .join(Permission, role_permission.c.permission_id == Permission.id)
+            .where(User.id == user_id)
+        )
+        result = await self.session.execute(stmt)
+        for row in result.all():
+            perm_codes.add(f"{row[0]}.{row[1]}")
+
+        required = {"graph.review", "graph.approve"}
+        if not (perm_codes & required):
+            raise ValueError(
+                f"User '{user_id}' lacks reviewer permission "
+                f"(graph.review or graph.approve required)"
+            )
 
     # ------------------------------------------------------------------
     # P0-2: Unique verification entry point — only path to verified status
@@ -919,6 +999,9 @@ class GraphService:
         # 11. verified_by is non-empty
         if not verified_by or not verified_by.strip():
             raise ValueError("verified_by must not be empty")
+
+        # P0-3: verified_by must be a real, active user with reviewer/admin permission
+        await self._validate_reviewer(verified_by)
 
         # 12. Status must be 'unverified' (cannot re-verify or verify rejected)
         if er.evidence_status != "unverified":
