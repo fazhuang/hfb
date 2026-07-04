@@ -242,6 +242,7 @@ async def demo_kg():
             chunk_index=0,
             content="皇甫谧，字士安，安定朝那人也。撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
             token_count=30,
+            passage_id=passage.id,
         )
         session.add(chunk_bio)
         await session.flush()
@@ -261,6 +262,7 @@ async def demo_kg():
             chunk_index=0,
             content="乃撰集三部，使事类相从。按《七略》艺文志，《黄帝内经》十八卷，今有《针经》九卷、《素问》九卷，二九十八卷，即《内经》也。又有《明堂孔穴针灸治要》，皆黄帝岐伯遗事也。",
             token_count=60,
+            passage_id=passage.id,
         )
         session.add(chunk_preface)
         await session.flush()
@@ -614,6 +616,7 @@ async def demo_academic_rag_http():
             chunk_index=0,
             content="皇甫谧，字士安，安定朝那人也。撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
             token_count=30,
+            passage_id=passage.id,
         )
         session.add(chunk_bio)
         await session.flush()
@@ -634,6 +637,7 @@ async def demo_academic_rag_http():
             chunk_index=0,
             content="乃撰集三部，使事类相从。按《七略》艺文志，《黄帝内经》十八卷，今有《针经》九卷、《素问》九卷，二九十八卷，即《内经》也。又有《明堂孔穴针灸治要》，皆黄帝岐伯遗事也。",
             token_count=60,
+            passage_id=passage.id,
         )
         session.add(chunk_preface)
         await session.flush()

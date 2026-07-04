@@ -568,6 +568,72 @@ async def _entity_exists(
     return result.scalar_one_or_none() is not None
 
 
+# ======================================================================
+# P0-1: Strict provenance hierarchy invariant
+# ======================================================================
+
+
+async def _validate_provenance_hierarchy(
+    session: AsyncSession,
+    chunk: DocumentChunk,
+    evidence_passage_id: str,
+    evidence_version_id: str,
+) -> str | None:
+    """Validate the provenance chain: Chunk → Passage → Version.
+
+    The ONLY legal chain is:
+      chunk.passage_id == evidence_passage_id → Passage.version_id == evidence_version_id
+
+    Returns None if valid, or an error message string if invalid.
+    Default-deny: NULL anywhere is rejection.
+    """
+    # 1. evidence_passage_id must be non-empty
+    if not evidence_passage_id or not evidence_passage_id.strip():
+        return "evidence_passage_id must not be empty"
+
+    # 2. evidence_version_id must be non-empty
+    if not evidence_version_id or not evidence_version_id.strip():
+        return "evidence_version_id must not be empty"
+
+    # 3. chunk.passage_id must be non-empty — default-deny
+    if not chunk.passage_id or not chunk.passage_id.strip():
+        return (
+            f"Chunk {chunk.id} has no passage_id — provenance chain broken. "
+            f"Every chunk used as evidence must be linked to a passage."
+        )
+
+    # 4. Chunk → Passage match
+    if chunk.passage_id != evidence_passage_id:
+        return (
+            f"Chunk {chunk.id} is linked to passage {chunk.passage_id}, "
+            f"not claimed passage {evidence_passage_id}"
+        )
+
+    # 5. Passage exists and is not deleted
+    passage = await session.get(Passage, evidence_passage_id)
+    if passage is None:
+        return f"Passage {evidence_passage_id} not found or deleted"
+
+    # 6. Passage.version_id must be non-empty
+    if not passage.version_id or not passage.version_id.strip():
+        return (
+            f"Passage {evidence_passage_id} has no version_id — provenance chain broken"
+        )
+
+    # 7. Passage → Version match
+    if passage.version_id != evidence_version_id:
+        return (
+            f"Passage {evidence_passage_id} is linked to version {passage.version_id}, "
+            f"not claimed version {evidence_version_id}"
+        )
+
+    # 8. Version exists and is not deleted
+    if not await _entity_exists(session, "version", evidence_version_id):
+        return f"Version {evidence_version_id} not found or deleted"
+
+    return None
+
+
 # Sprint 3 P0-4: Cross-Document Analysis — parsed proposition, template-based
 # ==================================================================
 
@@ -923,18 +989,30 @@ class GraphService:
         if _re.match(r"^document:[0-9a-f-]{36}$", source_uri, _re.IGNORECASE):
             return None
 
-        # P0-2: provenance IDs must be consistent — if passage_id/version_id set,
-        # they should reference entities that exist (lightweight check: non-empty values
-        # must pass entity-exists check)
+        # P0-1: Query-time strict provenance hierarchy validation
+        # Must use the same _validate_provenance_hierarchy as verify_relation.
         ev_version_id = getattr(er, "evidence_version_id", None)
         ev_passage_id = getattr(er, "evidence_passage_id", None)
-        if ev_version_id and not await _entity_exists(
-            self.session, "version", ev_version_id
-        ):
-            return None
-        if ev_passage_id and not await _entity_exists(
-            self.session, "passage", ev_passage_id
-        ):
+        if ev_passage_id and ev_version_id:
+            # Fetch the chunk to validate Chunk → Passage → Version chain
+            chunk_stmt = select(DocumentChunk).where(
+                DocumentChunk.id == er.evidence_chunk_id,
+                DocumentChunk.is_deleted.is_(False),
+            )
+            chunk_result = await self.session.execute(chunk_stmt)
+            chunk = chunk_result.scalar_one_or_none()
+            if chunk is None:
+                return None
+            prov_err = await _validate_provenance_hierarchy(
+                self.session,
+                chunk,
+                ev_passage_id,
+                ev_version_id,
+            )
+            if prov_err is not None:
+                return None
+        elif ev_passage_id or ev_version_id:
+            # Partial provenance — must have both or neither
             return None
 
         # P0-3: Re-validate reviewer still exists and is active at query time
@@ -1138,40 +1216,15 @@ class GraphService:
                 f"not claimed document {evidence_document_id}"
             )
 
-        # 6. Passage exists (required) and is consistent with chunk
-        if not evidence_passage_id or not evidence_passage_id.strip():
-            raise ValueError("evidence_passage_id must not be empty")
-        if not await _entity_exists(self.session, "passage", evidence_passage_id):
-            raise ValueError(f"Passage {evidence_passage_id} not found or deleted")
-        # Chunk → Passage consistency: if chunk has passage_id, it must match
-        if (
-            chunk.passage_id
-            and chunk.passage_id.strip()
-            and chunk.passage_id != evidence_passage_id
-        ):
-            raise ValueError(
-                f"Chunk {evidence_chunk_id} is linked to passage {chunk.passage_id}, "
-                f"not claimed passage {evidence_passage_id}"
-            )
-
-        # 7. Version exists (required) and is consistent with passage
-        if not evidence_version_id or not evidence_version_id.strip():
-            raise ValueError("evidence_version_id must not be empty")
-        if not await _entity_exists(self.session, "version", evidence_version_id):
-            raise ValueError(f"Version {evidence_version_id} not found or deleted")
-        # Passage → Version consistency: passage.version_id must match
-        passage = await self.session.get(Passage, evidence_passage_id)
-        if passage is None:
-            raise ValueError(f"Passage {evidence_passage_id} not found")
-        if (
-            passage.version_id
-            and passage.version_id.strip()
-            and passage.version_id != evidence_version_id
-        ):
-            raise ValueError(
-                f"Passage {evidence_passage_id} is linked to version {passage.version_id}, "
-                f"not claimed version {evidence_version_id}"
-            )
+        # 6-7. Strict provenance hierarchy: Chunk → Passage → Version
+        prov_err = await _validate_provenance_hierarchy(
+            self.session,
+            chunk,
+            evidence_passage_id,
+            evidence_version_id,
+        )
+        if prov_err is not None:
+            raise ValueError(prov_err)
 
         # 8. exact_quote is contiguous substring of chunk content
         if not _is_substring(evidence_quote, chunk.content):

@@ -152,7 +152,7 @@ async def _seed_acceptance_corpus(session: AsyncSession) -> dict[str, Any]:
     session.add(doc)
     await session.flush()
 
-    # Chunks for biography
+    # Chunks for biography — P0-1: must have passage_id linked to passage_song
     chunk1 = DocumentChunk(
         document_id=doc.id,
         chunk_index=0,
@@ -162,6 +162,7 @@ async def _seed_acceptance_corpus(session: AsyncSession) -> dict[str, Any]:
             "沉静寡欲，始有高尚之志，以著述为务，自号玄晏先生。"
         ),
         token_count=60,
+        passage_id=None,  # Will be set after passage creation below
     )
     chunk2 = DocumentChunk(
         document_id=doc.id,
@@ -171,6 +172,7 @@ async def _seed_acceptance_corpus(session: AsyncSession) -> dict[str, Any]:
             "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。"
         ),
         token_count=35,
+        passage_id=None,  # Will be set after passage creation below
     )
     session.add_all([chunk1, chunk2])
     await session.flush()
@@ -191,6 +193,7 @@ async def _seed_acceptance_corpus(session: AsyncSession) -> dict[str, Any]:
         chunk_index=0,
         content=_PREFACE_CONTENT,
         token_count=80,
+        passage_id=None,  # Will be set after passage creation below
     )
     session.add(preface_chunk)
     await session.flush()
@@ -221,6 +224,12 @@ async def _seed_acceptance_corpus(session: AsyncSession) -> dict[str, Any]:
         content_text=_ZJYJ_MING_PASSAGE,
     )
     session.add_all([passage_song, passage_ming])
+    await session.flush()
+
+    # P0-1: Link chunks to passage — provenance chain must be complete
+    chunk1.passage_id = passage_song.id
+    chunk2.passage_id = passage_song.id
+    preface_chunk.passage_id = passage_song.id
     await session.flush()
 
     return {
