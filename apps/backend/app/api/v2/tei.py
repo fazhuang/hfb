@@ -235,11 +235,13 @@ async def tei_apparatus(
     pass_result = await session.execute(pass_stmt)
     _passage = pass_result.scalar_one_or_none()  # ponytail: fetch for existence, text not needed for XML
 
+    from xml.sax.saxutils import escape
+
     apps_xml = ""
     for v in variants:
-        lemma = v.lemma or ""
-        reading = v.reading or ""
-        apps_xml += f'<app><lem wit="#{source_version}">{lemma}</lem><rdg wit="#{target_version}">{reading}</rdg></app>\n'
+        lemma = escape(v.lemma or "")
+        reading = escape(v.reading or "")
+        apps_xml += f'<app><lem wit="#{escape(source_version)}">{lemma}</lem><rdg wit="#{escape(target_version)}">{reading}</rdg></app>\n'
 
     tei_xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<TEI xmlns="http://www.tei-c.org/ns/1.0">\n<text>\n<body>\n<div type="apparatus">\n{apps_xml}</div>\n</body>\n</text>\n</TEI>'
 
