@@ -860,6 +860,8 @@ class GraphService:
             evidence_citation=evidence.citation,
         )
         try:
+            # Derive evidence_level from evidence fields
+            relation.evidence_level = await self._derive_evidence_level(self.session, relation)
             self.session.add(relation)
             await self.session.flush()
         except IntegrityError:
@@ -1114,6 +1116,55 @@ class GraphService:
                 f"(graph.review or graph.approve required)"
             )
 
+    @staticmethod
+    async def _derive_evidence_level(
+        session: AsyncSession,
+        er: EntityRelation,
+    ) -> int:
+        """Derive evidence_level (0-4) from existing evidence fields.
+
+        Pure function — deterministic, reproducible from field presence only.
+
+        L0 = claim_text only, no structured evidence
+        L1 = evidence_document_id or evidence_citation, no passage_id
+        L2 = evidence_version_id + evidence_passage_id
+        L3 = L2 + evidence_quote non-empty + evidence_status == 'verified'
+        L4 = L3 + associated TextualVariant records exist
+        """
+        has_doc = bool(er.evidence_document_id)
+        has_citation = bool(er.evidence_citation)
+        has_passage = bool(getattr(er, "evidence_passage_id", None))
+        has_version = bool(getattr(er, "evidence_version_id", None))
+        has_quote = bool(er.evidence_quote)
+        is_verified = getattr(er, "evidence_status", "unverified") == "verified"
+
+        # L4 check: TextualVariant records
+        if has_version and has_passage and has_quote and is_verified:
+            from app.models.tei import TextualVariant
+
+            variant_stmt = select(TextualVariant).where(
+                TextualVariant.source_version_id == getattr(er, "evidence_version_id", ""),
+                TextualVariant.is_deleted.is_(False),
+            ).limit(1)
+            variant_result = await session.execute(variant_stmt)
+            if variant_result.scalar_one_or_none() is not None:
+                return 4
+
+        # L3: has version + passage + quote + verified
+        if has_version and has_passage and has_quote and is_verified:
+            return 3
+
+        # L2: has version + passage
+        if has_version and has_passage:
+            return 2
+
+        # L1: has document or citation but no passage
+        if has_doc or has_citation:
+            return 1
+
+        # L0: nothing structured
+        return 0
+
     # ------------------------------------------------------------------
     # P0-2: Unique verification entry point — only path to verified status
     # ------------------------------------------------------------------
@@ -1290,6 +1341,9 @@ class GraphService:
             er.evidence_chunk_id = evidence_chunk_id
         if evidence_quote:
             er.evidence_quote = evidence_quote
+
+        # Re-derive evidence_level after verification (may upgrade to L3/L4)
+        er.evidence_level = await self._derive_evidence_level(self.session, er)
 
         await self.session.flush()
         return er
