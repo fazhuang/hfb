@@ -15,6 +15,7 @@ from app.db.base import Base
 from app.models import (
     Document,  # noqa: F401
     DocumentChunk,  # noqa: F401
+    Commentary,  # noqa: F401
     Person,  # noqa: F401
     Book,  # noqa: F401
     Chapter,  # noqa: F401
@@ -64,6 +65,36 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session() as session:
         # P0-5: pre-seed test user for FK-dependent tests (ResearchSession etc.)
+        from app.models.passage import Passage
+        from app.models.person import Person as PersonModel
+        from app.models.chapter import Chapter
+        from app.models.version import Version
+        from app.models.book import Book
+
+        # Seed FK chain for Passage-dependent tests (Commentary etc.)
+        test_book = Book(id="test-book-1", title="Test Book")
+        session.add(test_book)
+        await session.flush()
+        test_chapter = Chapter(
+            id="test-chapter-1", book_id=test_book.id, title="Test Chapter", order=1
+        )
+        session.add(test_chapter)
+        await session.flush()
+        test_version = Version(id="test-version-1", book_id=test_book.id, version_name="Test Version")
+        session.add(test_version)
+        await session.flush()
+
+        for pid in ("pass-test-1", "pass-test-2", "pass-test-3"):
+            session.add(Passage(
+                id=pid,
+                chapter_id=test_chapter.id,
+                version_id=test_version.id,
+                content_text=f"Passage {pid}",
+                order=int(pid[-1]),
+            ))
+        for pid_obj in ("person-test-1", "person-test-2", "person-test-3"):
+            session.add(PersonModel(id=pid_obj, name=f"Person {pid_obj}"))
+        await session.flush()
         test_user = User(
             id="test-user-1",
             username="test-user-1",
