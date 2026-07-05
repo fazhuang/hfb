@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -230,6 +230,12 @@ async def tei_apparatus(
     )
     result = await session.execute(stmt)
     variants = result.scalars().all()
+
+    # All version IDs are UUIDs — structurally cannot contain quotes or markup.
+    # Defense-in-depth: reject anything not matching the UUID pattern.
+    import re as _re
+    if not _re.match(r'^[0-9a-f-]{36}$', source_version) or not _re.match(r'^[0-9a-f-]{36}$', target_version):
+        raise HTTPException(status_code=400, detail="Invalid version ID format")
 
     pass_stmt = select(Passage).where(Passage.id == passage_id, Passage.is_deleted.is_(False))
     pass_result = await session.execute(pass_stmt)
