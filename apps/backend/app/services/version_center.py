@@ -477,6 +477,197 @@ async def get_commentary_chain(
     return chain
 
 
+# ======================================================================
+# Phase 2b: Version Tree & Distance Matrix
+# ======================================================================
+
+
+async def compute_distance_matrix(
+    session: AsyncSession,
+    version_ids: list[str],
+) -> dict[str, float]:
+    """Compute Jaccard distance matrix for a set of versions.
+
+    Jaccard distance = lines_changed / total_lines, derived from
+    pre-computed VersionDiff records. Missing pairs return 1.0 (max distance).
+    """
+    from itertools import combinations
+
+    matrix: dict[str, float] = {}
+    for va_id, vb_id in combinations(version_ids, 2):
+        stmt = select(VersionDiff).where(
+            (
+                (VersionDiff.source_version_id == va_id) & (VersionDiff.target_version_id == vb_id)
+            ) | (
+                (VersionDiff.source_version_id == vb_id) & (VersionDiff.target_version_id == va_id)
+            ),
+            VersionDiff.is_deleted.is_(False),
+        )
+        result = await session.execute(stmt)
+        diff = result.scalar_one_or_none()
+
+        if diff and diff.diff_data:
+            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+            lines_changed = diff_data.get("lines_changed", 0)
+            total_lines = diff_data.get("total_lines", 1)
+            distance = lines_changed / max(total_lines, 1)
+        else:
+            distance = 1.0
+
+        matrix[f"{va_id}-{vb_id}"] = round(min(distance, 1.0), 4)
+
+    return matrix
+
+
+async def compute_version_tree(
+    session: AsyncSession,
+    version_id: str,
+) -> dict:
+    """Build a version lineage tree rooted at or including the given version.
+
+    Returns: root_version info, tree edges, distance matrix, closest versions,
+    and divergence points.
+    """
+    from collections import defaultdict
+
+    from app.models.tei import TextualVariant
+
+    stmt = select(Version).where(Version.id == version_id, Version.is_deleted.is_(False))
+    result = await session.execute(stmt)
+    root = result.scalar_one_or_none()
+    if not root:
+        raise ValueError(f"Version {version_id} not found")
+
+    version_set: set[str] = {version_id}
+    relations_raw: list[VersionRelation] = []
+
+    # Upward traversal
+    current_id = version_id
+    while current_id:
+        stmt = select(VersionRelation).where(
+            VersionRelation.target_version_id == current_id,
+            VersionRelation.is_deleted.is_(False),
+        )
+        result = await session.execute(stmt)
+        rel = result.scalar_one_or_none()
+        if rel:
+            relations_raw.append(rel)
+            version_set.add(rel.source_version_id)
+            current_id = rel.source_version_id
+        else:
+            break
+
+    # Downward traversal from all known versions
+    for vid in list(version_set):
+        stmt = select(VersionRelation).where(
+            VersionRelation.source_version_id == vid,
+            VersionRelation.is_deleted.is_(False),
+        )
+        result = await session.execute(stmt)
+        for rel in result.scalars().all():
+            if rel.target_version_id not in version_set:
+                relations_raw.append(rel)
+                version_set.add(rel.target_version_id)
+
+    all_versions: dict[str, Version] = {}
+    if version_set:
+        stmt = select(Version).where(Version.id.in_(version_set), Version.is_deleted.is_(False))
+        result = await session.execute(stmt)
+        all_versions = {v.id: v for v in result.scalars().all()}
+
+    # Build tree edges
+    tree_edges = []
+    for rel in relations_raw:
+        distance = 1.0
+        diff_stmt = select(VersionDiff).where(
+            (
+                (VersionDiff.source_version_id == rel.source_version_id) & (VersionDiff.target_version_id == rel.target_version_id)
+            ),
+            VersionDiff.is_deleted.is_(False),
+        )
+        diff_result = await session.execute(diff_stmt)
+        diff = diff_result.scalar_one_or_none()
+        if diff and diff.diff_data:
+            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+            lines_changed = diff_data.get("lines_changed", 0)
+            total_lines = diff_data.get("total_lines", 1)
+            distance = lines_changed / max(total_lines, 1)
+
+        tree_edges.append({
+            "parent_id": rel.source_version_id,
+            "child_id": rel.target_version_id,
+            "relation_type": rel.relation_type,
+            "distance": round(min(distance, 1.0), 4),
+        })
+
+    # Distance matrix
+    version_list = sorted(version_set)
+    distance_matrix = await compute_distance_matrix(session, version_list)
+
+    # Closest versions to root
+    closest = []
+    root_distances = {}
+    for key, dist in distance_matrix.items():
+        v1, v2 = key.split("-")
+        if v1 == version_id:
+            root_distances[v2] = dist
+        elif v2 == version_id:
+            root_distances[v1] = dist
+
+    for other_id in sorted(root_distances, key=root_distances.get):
+        v_obj = all_versions.get(other_id)
+        closest.append({
+            "version_id": other_id,
+            "name": v_obj.version_name if v_obj else other_id,
+            "distance": root_distances[other_id],
+        })
+
+    # Divergence points
+    divergence_points = []
+    for other_id in list(version_set - {version_id}):
+        variant_stmt = select(TextualVariant).where(
+            (
+                (TextualVariant.source_version_id == version_id) & (TextualVariant.target_version_id == other_id)
+            ) | (
+                (TextualVariant.source_version_id == other_id) & (TextualVariant.target_version_id == version_id)
+            ),
+            TextualVariant.is_deleted.is_(False),
+        )
+        variant_result = await session.execute(variant_stmt)
+        variants = variant_result.scalars().all()
+
+        passage_counts: dict[str, list] = defaultdict(list)
+        for v in variants:
+            pid = v.source_passage_id or v.target_passage_id
+            if pid:
+                passage_counts[pid].append(v)
+
+        for pid, vlist in passage_counts.items():
+            if len(vlist) >= 1:
+                pass_stmt = select(Passage).where(Passage.id == pid, Passage.is_deleted.is_(False))
+                pass_result = await session.execute(pass_stmt)
+                passage = pass_result.scalar_one_or_none()
+                divergence_points.append({
+                    "passage_id": pid,
+                    "passage_text": passage.content_text[:200] if passage else "",
+                    "diff_summary": f"{len(vlist)} variants between {version_id} and {other_id}",
+                    "variant_count": len(vlist),
+                })
+
+    return {
+        "root_version": {
+            "id": root.id,
+            "name": root.version_name,
+            "era": root.era or "",
+            "year": root.year or 0,
+        },
+        "tree": tree_edges,
+        "distance_matrix": distance_matrix,
+        "closest_to": closest,
+        "divergence_points": divergence_points[:20],
+    }
+
+
 async def get_commentary_graph(
     session: AsyncSession,
     passage_id: str,
