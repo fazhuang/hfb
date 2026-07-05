@@ -436,3 +436,60 @@ class VerifyRelationEnvelope(BaseModel):
     success: bool = Field(default=True)
     data: EntityRelationResponse | None = None
     message: str = Field(default="ok")
+
+
+# ======================================================================
+# Phase 2a: Evidence Chain (Multi-Hop Query)
+# ======================================================================
+
+
+class EvidenceHop(BaseModel):
+    """A single hop in an evidence chain path."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    source_type: str = Field(..., description="源实体类型")
+    source_id: str = Field(..., description="源实体 ID")
+    target_type: str = Field(..., description="目标实体类型")
+    target_id: str = Field(..., description="目标实体 ID")
+    relation_type: str = Field(..., description="关系类型")
+    evidence_level: int = Field(..., ge=0, le=4, description="证据等级 0-4")
+    confidence_score: float = Field(..., ge=0.0, le=1.0, description="置信度")
+    citation: str = Field(..., description="格式化引用")
+    exact_quote: str = Field(default="", description="原文引证")
+    source_uri: str = Field(default="", description="稳定来源 URI")
+
+
+class EvidenceChainPath(BaseModel):
+    """An ordered multi-hop path through academically verified edges."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    path_id: str = Field(..., description="SHA-256 of concatenated edge IDs")
+    hops: list[EvidenceHop] = Field(default_factory=list, description="有序跳步列表")
+    total_confidence: float = Field(..., ge=0.0, le=1.0, description="路径置信度乘积")
+    min_evidence_level: int = Field(..., ge=0, le=4, description="路径中最低证据等级")
+
+
+class MultiHopQueryRequest(BaseModel):
+    """Request for multi-hop evidence chain query."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    source_type: str = Field(..., description="起始实体类型")
+    source_id: str = Field(..., description="起始实体 ID")
+    target_type: str | None = Field(default=None, description="目标实体类型（可选）")
+    target_id: str | None = Field(default=None, description="目标实体 ID（可选）")
+    min_evidence_level: int = Field(default=2, ge=2, le=4, description="最低证据等级")
+    max_hops: int = Field(default=5, ge=1, le=10, description="最大跳数")
+    relation_types: list[str] | None = Field(default=None, description="过滤关系类型")
+
+
+class EvidenceChainEnvelope(BaseModel):
+    """Strict API response envelope for evidence chain queries."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    success: bool = Field(default=True)
+    data: list[EvidenceChainPath] = Field(default_factory=list)
+    message: str = Field(default="ok")
