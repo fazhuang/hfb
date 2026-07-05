@@ -1003,6 +1003,16 @@ class TestTreatsEvidencePolicy:
         db_session.add(symptom)
         await db_session.flush()
 
+        # Syndrome: 头痛 with aliases (Phase 2a: treats targets syndrome, not symptom)
+        syndrome = TCMEntity(
+            entity_type="syndrome",
+            name="头痛",
+            name_zh="頭痛",
+            properties={"aliases": ["头风", "头疼"]},
+        )
+        db_session.add(syndrome)
+        await db_session.flush()
+
         # Document + passage + version + chunk for evidence
         doc = Document(
             title="本草纲目",
@@ -1051,6 +1061,7 @@ class TestTreatsEvidencePolicy:
         return {
             "herb": herb,
             "symptom": symptom,
+            "syndrome": syndrome,
             "doc": doc,
             "ver": ver,
             "passage": passage,
@@ -1076,8 +1087,8 @@ class TestTreatsEvidencePolicy:
         rel = await svc.create_relation(
             source_entity_type="herb",
             source_entity_id=seed["herb"].id,
-            target_entity_type="symptom",
-            target_entity_id=seed["symptom"].id,
+            target_entity_type="syndrome",
+            target_entity_id=seed["syndrome"].id,
             relation_type="treats",
             description="黄芪治疗头痛",
             evidence=ev,
@@ -1109,8 +1120,8 @@ class TestTreatsEvidencePolicy:
         rel = await svc.create_relation(
             source_entity_type="herb",
             source_entity_id=seed["herb"].id,
-            target_entity_type="symptom",
-            target_entity_id=seed["symptom"].id,
+            target_entity_type="syndrome",
+            target_entity_id=seed["syndrome"].id,
             relation_type="treats",
             description="黄芪治疗头痛",
             evidence=ev,
@@ -1146,8 +1157,8 @@ class TestTreatsEvidencePolicy:
         rel = await svc.create_relation(
             source_entity_type="herb",
             source_entity_id=seed["herb"].id,
-            target_entity_type="symptom",
-            target_entity_id=seed["symptom"].id,
+            target_entity_type="syndrome",
+            target_entity_id=seed["syndrome"].id,
             relation_type="treats",
             description="黄芪治疗头痛",
             evidence=ev,
@@ -1183,8 +1194,8 @@ class TestTreatsEvidencePolicy:
         rel = await svc.create_relation(
             source_entity_type="herb",
             source_entity_id=seed["herb"].id,
-            target_entity_type="symptom",
-            target_entity_id=seed["symptom"].id,
+            target_entity_type="syndrome",
+            target_entity_id=seed["syndrome"].id,
             relation_type="treats",
             description="黄芪治疗头痛",
             evidence=ev,
@@ -1223,8 +1234,8 @@ class TestTreatsEvidencePolicy:
         rel = await svc.create_relation(
             source_entity_type="herb",
             source_entity_id=seed["herb"].id,
-            target_entity_type="symptom",
-            target_entity_id=seed["symptom"].id,
+            target_entity_type="syndrome",
+            target_entity_id=seed["syndrome"].id,
             relation_type="treats",
             description="黄芪治疗头痛",
             evidence=ev,
@@ -1246,8 +1257,8 @@ class TestTreatsEvidencePolicy:
         paths_before = await svc.find_paths(
             source_type="herb",
             source_id=seed["herb"].id,
-            target_type="symptom",
-            target_id=seed["symptom"].id,
+            target_type="syndrome",
+            target_id=seed["syndrome"].id,
             max_depth=3,
             max_paths=10,
         )
@@ -1270,8 +1281,8 @@ class TestTreatsEvidencePolicy:
         paths_after = await svc.find_paths(
             source_type="herb",
             source_id=seed["herb"].id,
-            target_type="symptom",
-            target_id=seed["symptom"].id,
+            target_type="syndrome",
+            target_id=seed["syndrome"].id,
             max_depth=3,
             max_paths=10,
         )

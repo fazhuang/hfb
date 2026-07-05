@@ -386,6 +386,7 @@ ENTITY_MODEL_MAP: dict[str, Any] = {
     "prescription": TCMEntity,
     "meridian": TCMEntity,
     "symptom": TCMEntity,
+    "syndrome": TCMEntity,  # Phase 2a
 }
 
 
