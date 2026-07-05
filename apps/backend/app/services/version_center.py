@@ -1,5 +1,5 @@
 """
-Version Center services — comparison, lineage, diff, passage mapping.
+Version Center services — comparison, lineage, diff, passage mapping, commentary.
 
 Per HFB-PS-1701 Version Center Product Specification.
 Per HFB-DOM-0803 Version Knowledge Model Ch.8-13.
@@ -17,7 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.version import Version
 from app.models.version_relation import VersionRelation, PassageMapping, VersionDiff
 from app.models.passage import Passage
+from app.models.commentary import Commentary
 from app.repositories.entities import VersionRepository, PassageRepository
+from app.schemas.commentary import CommentaryCreate, CommentaryResponse
 
 
 class VersionComparisonService:
@@ -369,3 +371,139 @@ class VersionComparisonService:
             }
             for m in mappings
         ]
+
+
+# ======================================================================
+# Phase 2b: Commentary (注疏链) CRUD
+# ======================================================================
+
+
+async def create_commentary(
+    session: AsyncSession,
+    data: CommentaryCreate,
+) -> CommentaryResponse:
+    """Create a commentary annotation."""
+    c = Commentary(
+        passage_id=data.passage_id,
+        version_id=data.version_id,
+        author_id=data.author_id,
+        commentary_type=data.commentary_type,
+        layer=data.layer,
+        content_text=data.content_text,
+        target_position_start=data.target_position_start,
+        target_position_end=data.target_position_end,
+        parent_id=data.parent_id,
+        relation_type=data.relation_type,
+    )
+    session.add(c)
+    await session.flush()
+    await session.refresh(c)
+    return CommentaryResponse(
+        id=c.id,
+        passage_id=c.passage_id,
+        version_id=c.version_id,
+        author_id=c.author_id,
+        commentary_type=c.commentary_type,
+        layer=c.layer,
+        content_text=c.content_text,
+        target_position_start=c.target_position_start,
+        target_position_end=c.target_position_end,
+        parent_id=c.parent_id,
+        relation_type=c.relation_type,
+        created_at=c.created_at,
+        updated_at=c.updated_at,
+    )
+
+
+async def get_commentaries_for_passage(
+    session: AsyncSession,
+    passage_id: str,
+    layer: str | None = None,
+) -> list[CommentaryResponse]:
+    """Get all commentaries for a passage, optionally filtered by layer."""
+    stmt = select(Commentary).where(
+        Commentary.passage_id == passage_id,
+        Commentary.is_deleted.is_(False),
+    )
+    if layer:
+        stmt = stmt.where(Commentary.layer == layer)
+    stmt = stmt.order_by(Commentary.created_at)
+    result = await session.execute(stmt)
+    commentaries = result.scalars().all()
+    return [
+        CommentaryResponse(
+            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
+            author_id=c.author_id, commentary_type=c.commentary_type,
+            layer=c.layer, content_text=c.content_text,
+            target_position_start=c.target_position_start,
+            target_position_end=c.target_position_end,
+            parent_id=c.parent_id, relation_type=c.relation_type,
+            created_at=c.created_at, updated_at=c.updated_at,
+        ) for c in commentaries
+    ]
+
+
+async def get_commentary_chain(
+    session: AsyncSession,
+    commentary_id: str,
+) -> list[CommentaryResponse]:
+    """Trace the full commentary chain from root to the given node."""
+    chain: list[CommentaryResponse] = []
+    current_id: str | None = commentary_id
+    visited: set[str] = set()
+
+    while current_id and current_id not in visited:
+        visited.add(current_id)
+        stmt = select(Commentary).where(
+            Commentary.id == current_id,
+            Commentary.is_deleted.is_(False),
+        )
+        result = await session.execute(stmt)
+        c = result.scalar_one_or_none()
+        if not c:
+            break
+        chain.append(CommentaryResponse(
+            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
+            author_id=c.author_id, commentary_type=c.commentary_type,
+            layer=c.layer, content_text=c.content_text,
+            target_position_start=c.target_position_start,
+            target_position_end=c.target_position_end,
+            parent_id=c.parent_id, relation_type=c.relation_type,
+            created_at=c.created_at, updated_at=c.updated_at,
+        ))
+        current_id = c.parent_id
+
+    chain.reverse()  # root first
+    return chain
+
+
+async def get_commentary_graph(
+    session: AsyncSession,
+    passage_id: str,
+) -> dict:
+    """Get the commentary debate/supplement graph for a passage."""
+    stmt = select(Commentary).where(
+        Commentary.passage_id == passage_id,
+        Commentary.is_deleted.is_(False),
+    )
+    result = await session.execute(stmt)
+    commentaries = result.scalars().all()
+
+    nodes = [
+        CommentaryResponse(
+            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
+            author_id=c.author_id, commentary_type=c.commentary_type,
+            layer=c.layer, content_text=c.content_text,
+            target_position_start=c.target_position_start,
+            target_position_end=c.target_position_end,
+            parent_id=c.parent_id, relation_type=c.relation_type,
+            created_at=c.created_at, updated_at=c.updated_at,
+        ) for c in commentaries
+    ]
+
+    edges = [
+        {"parent_id": c.parent_id, "child_id": c.id, "relation_type": c.relation_type}
+        for c in commentaries if c.parent_id
+    ]
+
+    return {"nodes": nodes, "edges": edges}
