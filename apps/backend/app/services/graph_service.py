@@ -50,6 +50,8 @@ from app.schemas.graph import (
     ConceptSimilarity,
     CrossDocumentAnalysis,
     CrossDocumentClaim,
+    EvidenceChainPath,
+    EvidenceHop,
     GraphEdge,
     GraphEvidence,
     GraphNode,
@@ -1610,6 +1612,133 @@ class GraphService:
         nodes = [node_lookup[nid] for nid in node_ids if nid in node_lookup]
         edges = [edge_map[eid] for eid in edge_ids if eid in edge_map]
         return PathResult(nodes=nodes, edges=edges, length=len(edges))
+
+    # ------------------------------------------------------------------
+    # Multi-hop evidence chain query
+    # ------------------------------------------------------------------
+
+    async def multi_hop_query(
+        self,
+        source_type: str,
+        source_id: str,
+        target_type: str | None = None,
+        target_id: str | None = None,
+        min_evidence_level: int = 2,
+        max_hops: int = 5,
+        relation_types: list[str] | None = None,
+    ) -> list[EvidenceChainPath]:
+        """Multi-hop BFS over academically verified edges only.
+
+        Each path is an ordered chain of AcademicEdge hops with full evidence.
+        Only traverses edges with evidence_level >= min_evidence_level,
+        evidence_status = 'verified', and is_deleted = 0.
+        """
+        stmt = select(EntityRelation).where(
+            EntityRelation.evidence_level >= min_evidence_level,
+            EntityRelation.evidence_status == "verified",
+            EntityRelation.is_deleted.is_(False),
+        )
+        if relation_types:
+            stmt = stmt.where(EntityRelation.relation_type.in_(relation_types))
+        result = await self.session.execute(stmt)
+        all_edges: list[EntityRelation] = list(result.scalars().all())
+
+        # Build adjacency list: (type, id) -> list[EntityRelation]
+        from collections import defaultdict
+
+        adj: dict[tuple[str, str], list[EntityRelation]] = defaultdict(list)
+        for edge in all_edges:
+            adj[(edge.source_entity_type, edge.source_entity_id)].append(edge)
+
+        # BFS
+        paths: list[EvidenceChainPath] = []
+        queue: deque[tuple[str, str, list[EntityRelation]]] = deque()
+        queue.append((source_type, source_id, []))
+
+        while queue:
+            current_type, current_id, edge_list = queue.popleft()
+            if len(edge_list) >= max_hops:
+                continue
+
+            for edge in adj.get((current_type, current_id), []):
+                new_list = edge_list + [edge]
+                next_type = edge.target_entity_type
+                next_id = edge.target_entity_id
+
+                # Check if we reached the target (if target specified)
+                if target_type and target_id:
+                    if next_type == target_type and next_id == target_id:
+                        paths.append(self._build_evidence_path(new_list))
+                        continue
+
+                queue.append((next_type, next_id, new_list))
+
+            # If no target specified, collect all paths at max depth
+            if not target_type and len(edge_list) == max_hops - 1:
+                # Already at max, collect if reached a leaf
+                pass
+
+        # If no target specified, collect all maximal paths
+        if not target_type:
+            # Re-run to collect all paths up to max_hops
+            paths.clear()
+            queue.clear()
+            queue.append((source_type, source_id, []))
+            while queue:
+                current_type, current_id, edge_list = queue.popleft()
+                neighbors = adj.get((current_type, current_id), [])
+                if not neighbors or len(edge_list) >= max_hops:
+                    if edge_list:
+                        paths.append(self._build_evidence_path(edge_list))
+                    continue
+                for edge in neighbors:
+                    new_list = edge_list + [edge]
+                    queue.append((edge.target_entity_type, edge.target_entity_id, new_list))
+
+        # Sort: highest confidence first
+        paths.sort(key=lambda p: p.total_confidence, reverse=True)
+        return paths
+
+    def _build_evidence_path(self, edges: list[EntityRelation]) -> EvidenceChainPath:
+        """Build an EvidenceChainPath from a list of EntityRelation edges."""
+        import hashlib
+
+        hop_data: list[EvidenceHop] = []
+        for er in edges:
+            level = er.evidence_level
+            # confidence_score derived from level
+            score_map = {2: 0.65, 3: 0.85, 4: 0.98}
+            score = score_map.get(level, 0.0)
+
+            hop_data.append(EvidenceHop(
+                source_type=er.source_entity_type,
+                source_id=er.source_entity_id,
+                target_type=er.target_entity_type,
+                target_id=er.target_entity_id,
+                relation_type=er.relation_type,
+                evidence_level=level,
+                confidence_score=score,
+                citation=er.evidence_citation or "",
+                exact_quote=er.evidence_quote or "",
+                source_uri=getattr(er, "evidence_source_uri", "") or "",
+            ))
+
+        path_id = hashlib.sha256(
+            "|".join(e.id for e in edges).encode()
+        ).hexdigest()
+
+        total_confidence = 1.0
+        for h in hop_data:
+            total_confidence *= h.confidence_score
+
+        min_level = min((h.evidence_level for h in hop_data), default=0)
+
+        return EvidenceChainPath(
+            path_id=path_id,
+            hops=hop_data,
+            total_confidence=round(total_confidence, 4),
+            min_evidence_level=min_level,
+        )
 
     # ------------------------------------------------------------------
     # Entity Subgraph
