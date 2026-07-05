@@ -85,7 +85,6 @@ class PaperService:
             "min_evidence_level": min_evidence_level,
             "max_hops": max_hops,
             "relation_types": relation_types,
-            "modules": modules,
         }
         paper_json = json.dumps(paper_data, ensure_ascii=False, sort_keys=True, default=str)
         paper_id = hashlib.sha256(paper_json.encode()).hexdigest()
