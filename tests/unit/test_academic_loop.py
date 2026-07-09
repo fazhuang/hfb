@@ -295,6 +295,196 @@ async def test_confidence_conflict_penalty(db_session: AsyncSession):
 
 
 @pytest.mark.asyncio
+async def test_confidence_conflict_reverse(db_session: AsyncSession):
+    """CONTRAINDICATE vs TREAT conflict (symmetric) → 0.5× penalty."""
+    entity_a = AcademicEntity(name="合谷", entity_type=AcademicEntityType.ACUPOINT)
+    entity_b = AcademicEntity(name="头痛", entity_type=AcademicEntityType.DISEASE)
+    db_session.add_all([entity_a, entity_b])
+    await db_session.flush()
+
+    # 1. TREAT exists first
+    treat_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="TREAT",
+        description="合谷穴主治头痛",
+    )
+    db_session.add(treat_rel)
+    await db_session.flush()
+
+    # 2. Now calculate confidence on CONTRAINDICATE — should detect TREAT as conflict
+    contra_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="CONTRAINDICATE",
+        description="合谷穴禁刺头痛",
+    )
+    db_session.add(contra_rel)
+    await db_session.flush()
+
+    ev = Evidence(
+        description="宋本校勘证据",
+        evidence_level=EvidenceLevel.LEVEL_2,
+    )
+    db_session.add(ev)
+    await db_session.flush()
+
+    from app.models.academic_relation import relation_evidences
+    from sqlalchemy import insert
+
+    await db_session.execute(
+        insert(relation_evidences).values(
+            relation_id=contra_rel.id, evidence_id=ev.id
+        )
+    )
+    await db_session.flush()
+
+    score = await calculate_relation_confidence(db_session, contra_rel.id)
+    # Single LEVEL_2 = 0.9, conflict × 0.5 → 0.45
+    assert score == 0.45
+
+    from app.models.academic_relation import RelationConfidence
+    from sqlalchemy import select as _sel
+
+    conf_result = await db_session.execute(
+        _sel(RelationConfidence).where(
+            RelationConfidence.relation_id == contra_rel.id
+        )
+    )
+    confidence = conf_result.scalar_one_or_none()
+    assert confidence is not None
+    assert confidence.logic_checked is False
+    import json
+    log = json.loads(confidence.calculation_log or "{}")
+    assert log["conflict_penalty"] is True
+    assert log["conflicting_relation_id"] == treat_rel.id
+    assert log["current_relation_type"] == "CONTRAINDICATE"
+    assert log["conflicting_relation_type"] == "TREAT"
+    assert log["source_entity_id"] == entity_a.id
+    assert log["target_entity_id"] == entity_b.id
+
+
+@pytest.mark.asyncio
+async def test_confidence_conflict_log_structured(db_session: AsyncSession):
+    """Calculation log contains structured conflict info including IDs."""
+    entity_a = AcademicEntity(name="足三里", entity_type=AcademicEntityType.ACUPOINT)
+    entity_b = AcademicEntity(name="胃痛", entity_type=AcademicEntityType.DISEASE)
+    db_session.add_all([entity_a, entity_b])
+    await db_session.flush()
+
+    treat_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="TREAT",
+        description="足三里穴主治胃痛",
+    )
+    db_session.add(treat_rel)
+    await db_session.flush()
+
+    ev = Evidence(
+        description="出土帛书证据",
+        evidence_level=EvidenceLevel.LEVEL_1,
+    )
+    db_session.add(ev)
+    await db_session.flush()
+
+    from app.models.academic_relation import relation_evidences
+    from sqlalchemy import insert
+    await db_session.execute(
+        insert(relation_evidences).values(
+            relation_id=treat_rel.id, evidence_id=ev.id
+        )
+    )
+    await db_session.flush()
+
+    contra_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="CONTRAINDICATE",
+        description="足三里禁刺胃痛",
+    )
+    db_session.add(contra_rel)
+    await db_session.flush()
+
+    score = await calculate_relation_confidence(db_session, treat_rel.id)
+    assert score == 0.5  # LEVEL_1 = 1.0, conflict × 0.5 → 0.5
+
+    from app.models.academic_relation import RelationConfidence
+    from sqlalchemy import select as _sel
+
+    conf_result = await db_session.execute(
+        _sel(RelationConfidence).where(
+            RelationConfidence.relation_id == treat_rel.id
+        )
+    )
+    confidence = conf_result.scalar_one_or_none()
+    assert confidence is not None
+    assert confidence.logic_checked is False
+
+    import json
+    log = json.loads(confidence.calculation_log or "{}")
+    assert log["conflict_penalty"] is True
+    assert log["conflicting_relation_id"] == contra_rel.id
+    assert log["current_relation_type"] == "TREAT"
+    assert log["conflicting_relation_type"] == "CONTRAINDICATE"
+    assert log["source_entity_id"] == entity_a.id
+    assert log["target_entity_id"] == entity_b.id
+    assert "conflict_note" in log
+
+
+@pytest.mark.asyncio
+async def test_confidence_no_conflict_structured_log(db_session: AsyncSession):
+    """No conflict → log is structured with conflict_penalty: false."""
+    entity_a = AcademicEntity(name="商阳", entity_type=AcademicEntityType.ACUPOINT)
+    entity_b = AcademicEntity(name="齿痛", entity_type=AcademicEntityType.DISEASE)
+    db_session.add_all([entity_a, entity_b])
+    await db_session.flush()
+
+    rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="TREAT",
+        description="商阳穴主治齿痛",
+    )
+    db_session.add(rel)
+    await db_session.flush()
+
+    ev = Evidence(
+        description="宋校本证据",
+        evidence_level=EvidenceLevel.LEVEL_2,
+    )
+    db_session.add(ev)
+    await db_session.flush()
+
+    from app.models.academic_relation import relation_evidences
+    from sqlalchemy import insert
+    await db_session.execute(
+        insert(relation_evidences).values(
+            relation_id=rel.id, evidence_id=ev.id
+        )
+    )
+    await db_session.flush()
+
+    score = await calculate_relation_confidence(db_session, rel.id)
+    assert score == 0.9  # no conflict
+
+    from app.models.academic_relation import RelationConfidence
+    from sqlalchemy import select as _sel
+    conf_result = await db_session.execute(
+        _sel(RelationConfidence).where(RelationConfidence.relation_id == rel.id)
+    )
+    confidence = conf_result.scalar_one_or_none()
+    assert confidence is not None
+    assert confidence.logic_checked is True
+
+    import json
+    log = json.loads(confidence.calculation_log or "{}")
+    assert log["conflict_penalty"] is False
+    assert "conflicting_relation_id" not in log
+    assert "weights" in log
+
+
+@pytest.mark.asyncio
 @pytest.mark.asyncio
 async def test_passage_detail_includes_sentences(db_session: AsyncSession):
     """GET /api/v1/passages/{id}/detail returns sentences/tokens/variants."""

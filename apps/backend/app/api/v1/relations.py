@@ -71,36 +71,43 @@ async def calculate_relation_confidence(
         combined_score *= 1.0 - w
     score = round(1.0 - combined_score, 3)
 
-    # 3. TCM logic consistency check
-    # Detect: same (source, target) has both TREAT and CONTRAINDICATE/禁刺/禁治
+    # 3. TCM logic consistency check — symmetric: TREAT ↔ CONTRAINDICATE/禁/contra
     logic_checked = True
-    conflict_note = ""
+    conflicting_id: str | None = None
+    conflicting_relation_type: str | None = None
 
     if relation.evidences:
         from sqlalchemy import or_
 
-        # Find any contradicting relation for the same entity pair
-        conflict_rel = await session.execute(
-            select(AcademicRelation).where(
-                AcademicRelation.source_entity_id == relation.source_entity_id,
-                AcademicRelation.target_entity_id == relation.target_entity_id,
-                AcademicRelation.id != relation.id,
-                AcademicRelation.is_deleted.is_(False),
-                or_(
-                    AcademicRelation.relation_type == "CONTRAINDICATE",
-                    AcademicRelation.relation_type.ilike("%禁%"),
-                    AcademicRelation.relation_type.ilike("%contra%"),
-                ),
-            ).limit(1)
+        _is_contra = or_(
+            AcademicRelation.relation_type == "CONTRAINDICATE",
+            AcademicRelation.relation_type.ilike("%禁%"),
+            AcademicRelation.relation_type.ilike("%contra%"),
         )
-        conflicting = conflict_rel.scalar_one_or_none()
-        if conflicting is not None:
-            conflict_note = (
-                f"Conflict: {relation.relation_type} vs {conflicting.relation_type} "
-                f"for same entity pair ({relation.source_entity_id[:8]}..{relation.target_entity_id[:8]})"
-            )
 
-    if conflict_note:
+        if _is_treat_or_contra(relation.relation_type):
+            if _is_treat_like(relation.relation_type):
+                # Current is TREAT-like → look for CONTRAINDICATE-like
+                opposite_filter = _is_contra
+            else:
+                # Current is CONTRAINDICATE-like → look for TREAT-like
+                opposite_filter = AcademicRelation.relation_type == "TREAT"
+
+            conflict_rel = await session.execute(
+                select(AcademicRelation).where(
+                    AcademicRelation.source_entity_id == relation.source_entity_id,
+                    AcademicRelation.target_entity_id == relation.target_entity_id,
+                    AcademicRelation.id != relation.id,
+                    AcademicRelation.is_deleted.is_(False),
+                    opposite_filter,
+                ).limit(1)
+            )
+            conflicting = conflict_rel.scalar_one_or_none()
+            if conflicting is not None:
+                conflicting_id = conflicting.id
+                conflicting_relation_type = conflicting.relation_type
+
+    if conflicting_id is not None:
         score = round(score * 0.5, 3)
         logic_checked = False
 
@@ -118,13 +125,42 @@ async def calculate_relation_confidence(
     confidence.calculated_score = score
     confidence.logic_checked = logic_checked
     confidence.calculation_log = json.dumps(
-        {"weights": weights, "conflict_penalty": bool(conflict_note)},
+        {
+            "weights": weights,
+            "conflict_penalty": conflicting_id is not None,
+            **({
+                "conflict_note": (
+                    f"{relation.relation_type} ↔ {conflicting_relation_type} conflict "
+                    f"for same entity pair"
+                ),
+                "conflicting_relation_id": conflicting_id,
+                "current_relation_type": relation.relation_type,
+                "conflicting_relation_type": conflicting_relation_type,
+                "source_entity_id": relation.source_entity_id,
+                "target_entity_id": relation.target_entity_id,
+            } if conflicting_id is not None else {}),
+        },
         ensure_ascii=False,
     )
     confidence.last_calculated_at = datetime.now(timezone.utc)
     await session.commit()
 
     return score
+
+
+def _is_treat_like(relation_type: str) -> bool:
+    """Check if a relation_type is TREAT (主治)."""
+    return relation_type == "TREAT"
+
+
+def _is_treat_or_contra(relation_type: str) -> bool:
+    """Check if relation_type is part of the TREAT/CONTRAINDICATE conflict domain."""
+    return (
+        relation_type == "TREAT"
+        or relation_type == "CONTRAINDICATE"
+        or "禁" in relation_type
+        or "contra" in relation_type.lower()
+    )
 
 
 # ---------------------------------------------------------------------------
