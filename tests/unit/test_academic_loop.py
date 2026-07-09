@@ -23,7 +23,6 @@ from app.models.academic_relation import (
     AcademicEntity,
     AcademicEntityType,
     AcademicRelation,
-    RelationConfidence,
 )
 from app.api.v1.relations import calculate_relation_confidence
 
@@ -225,3 +224,144 @@ async def test_confidence_multiple_evidences(db_session: AsyncSession):
 
     score = await calculate_relation_confidence(db_session, rel.id)
     assert score == 1.0  # 1 - (1-1.0)*(1-0.9) = 1.0
+
+
+@pytest.mark.asyncio
+async def test_confidence_conflict_penalty(db_session: AsyncSession):
+    """TREAT vs CONTRAINDICATE conflict → 0.5× penalty + logic_checked=False."""
+    entity_a = AcademicEntity(name="商阳", entity_type=AcademicEntityType.ACUPOINT)
+    entity_b = AcademicEntity(name="齿痛", entity_type=AcademicEntityType.DISEASE)
+    db_session.add_all([entity_a, entity_b])
+    await db_session.flush()
+
+    # 1. TREAT relation (主治)
+    treat_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="TREAT",
+        description="商阳穴主治齿痛",
+    )
+    db_session.add(treat_rel)
+    await db_session.flush()
+
+    # Bind LEVEL_2 evidence → score = 0.9 normally
+    ev = Evidence(
+        description="宋校本证据",
+        evidence_level=EvidenceLevel.LEVEL_2,
+    )
+    db_session.add(ev)
+    await db_session.flush()
+
+    from app.models.academic_relation import relation_evidences
+    from sqlalchemy import insert
+
+    await db_session.execute(
+        insert(relation_evidences).values(
+            relation_id=treat_rel.id, evidence_id=ev.id
+        )
+    )
+    await db_session.flush()
+
+    # 2. CONTRAINDICATE relation (禁刺齿痛) — same entity pair
+    contra_rel = AcademicRelation(
+        source_entity_id=entity_a.id,
+        target_entity_id=entity_b.id,
+        relation_type="CONTRAINDICATE",
+        description="商阳穴禁刺齿痛",
+    )
+    db_session.add(contra_rel)
+    await db_session.flush()
+
+    score = await calculate_relation_confidence(db_session, treat_rel.id)
+
+    # With single LEVEL_2 evidence: base = 0.9, conflict penalty = *0.5 → 0.45
+    assert score == 0.45
+
+    # Verify RelationConfidence was updated
+    from app.models.academic_relation import RelationConfidence
+    from sqlalchemy import select as _select
+
+    conf_result = await db_session.execute(
+        _select(RelationConfidence).where(
+            RelationConfidence.relation_id == treat_rel.id
+        )
+    )
+    confidence = conf_result.scalar_one_or_none()
+    assert confidence is not None
+    assert confidence.logic_checked is False
+    assert "conflict" in (confidence.calculation_log or "").lower()
+    assert "conflict_penalty" in (confidence.calculation_log or "")
+    assert confidence.calculated_score == 0.45
+
+
+@pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_passage_detail_includes_sentences(db_session: AsyncSession):
+    """GET /api/v1/passages/{id}/detail returns sentences/tokens/variants."""
+    from sqlalchemy import select as _sel
+    from app.models.book import Book as B
+    from app.models.chapter import Chapter as C
+    from app.models.passage import Passage as P
+    from app.models.version import Version as V
+    from app.models.version_criticism import (
+        Sentence as S, Token as T, Variant as Var, VariantType,
+    )
+
+    book = B(id="bk-detail-1", title="测试书", dynasty="唐")
+    db_session.add(book)
+    await db_session.flush()
+
+    ver = V(id="ver-detail-1", book_id=book.id, version_name="测试版本")
+    db_session.add(ver)
+    await db_session.flush()
+
+    chap = C(id="ch-detail-1", book_id=book.id, title="测试章", order=1)
+    db_session.add(chap)
+    await db_session.flush()
+
+    p = P(
+        id="pass-detail-999", chapter_id=chap.id, version_id=ver.id,
+        content_text="帝曰：善。", order=1,
+    )
+    db_session.add(p)
+    await db_session.flush()
+
+    s = S(id="sent-detail-1", passage_id=p.id, content_text="帝曰：善。", order=1)
+    db_session.add(s)
+    await db_session.flush()
+
+    t = T(id="tok-detail-1", sentence_id=s.id, char_text="善", position=1)
+    db_session.add(t)
+    await db_session.flush()
+
+    vt = Var(
+        id="var-detail-1", base_token_id=t.id,
+        variant_type=VariantType.SUBSTITUTION, description="善 ↔ 差",
+    )
+    db_session.add(vt)
+    await db_session.flush()
+    await db_session.commit()
+
+    # Verify via ORM directly — the passage has sentences with tokens with variants
+    from sqlalchemy.orm import selectinload
+
+    stmt = (
+        _sel(P)
+        .options(
+            selectinload(P.sentences)
+            .selectinload(S.tokens)
+            .selectinload(T.variants_as_base),
+        )
+        .where(P.id == "pass-detail-999")
+    )
+    result = await db_session.execute(stmt)
+    passage = result.scalar_one_or_none()
+
+    assert passage is not None
+    assert len(passage.sentences) == 1
+    assert passage.sentences[0].content_text == "帝曰：善。"
+    assert len(passage.sentences[0].tokens) == 1
+    tok = passage.sentences[0].tokens[0]
+    assert tok.char_text == "善"
+    assert len(tok.variants_as_base) == 1
+    assert tok.variants_as_base[0].description == "善 ↔ 差"

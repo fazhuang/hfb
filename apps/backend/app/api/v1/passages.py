@@ -75,7 +75,7 @@ class PassageDetailResponse(BaseModel):
 
 
 @router.get(
-    "/passages/{passage_id}",
+    "/passages/{passage_id}/detail",
     response_model=dict,
     dependencies=[Depends(require_permission("passage", "read"))],
 )

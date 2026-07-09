@@ -9,8 +9,8 @@ import json
 from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -72,15 +72,33 @@ async def calculate_relation_confidence(
     score = round(1.0 - combined_score, 3)
 
     # 3. TCM logic consistency check
+    # Detect: same (source, target) has both TREAT and CONTRAINDICATE/禁刺/禁治
     logic_checked = True
     conflict_note = ""
 
-    # Find reverse relations for same source/target pair that suggest contradiction
-    # e.g. TREAT vs a hypothetical CONTRAINDICATE for the same entity pair
     if relation.evidences:
-        # ponytail: only check within this relation's own evidence set for conflicts
-        # full cross-relation traversal would need GraphService, deferred until needed
-        pass
+        from sqlalchemy import or_
+
+        # Find any contradicting relation for the same entity pair
+        conflict_rel = await session.execute(
+            select(AcademicRelation).where(
+                AcademicRelation.source_entity_id == relation.source_entity_id,
+                AcademicRelation.target_entity_id == relation.target_entity_id,
+                AcademicRelation.id != relation.id,
+                AcademicRelation.is_deleted.is_(False),
+                or_(
+                    AcademicRelation.relation_type == "CONTRAINDICATE",
+                    AcademicRelation.relation_type.ilike("%禁%"),
+                    AcademicRelation.relation_type.ilike("%contra%"),
+                ),
+            ).limit(1)
+        )
+        conflicting = conflict_rel.scalar_one_or_none()
+        if conflicting is not None:
+            conflict_note = (
+                f"Conflict: {relation.relation_type} vs {conflicting.relation_type} "
+                f"for same entity pair ({relation.source_entity_id[:8]}..{relation.target_entity_id[:8]})"
+            )
 
     if conflict_note:
         score = round(score * 0.5, 3)
