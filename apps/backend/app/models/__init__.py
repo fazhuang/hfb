@@ -6,8 +6,13 @@ Core entities:
   - User, Role, Permission                     [Phase 2]
   - Book, Version, Chapter, Passage, Paper, Image  [Phase 3]
   - EntityRelation                             [Phase 6] Knowledge Graph
+  - TCMEntity                                  [Phase 3] TCM ontology
+  - TextSentence, TextToken, TextualVariant    [Phase 4] TEI persistence
   - ResearchSession, ResearchNote              [Phase 8] AI Workspace
   - Institution                                [Sprint 1 Day 1]
+  - Sentence, Token, Variant, VariantType      [Phase 2] Version criticism
+  - SourceRef, Evidence, Citation, EvidenceLevel  [Phase 2] Academic evidence
+  - AcademicEntity, AcademicRelation, RelationConfidence, AcademicEntityType  [Phase 2] Academic relations
 """
 from __future__ import annotations
 
@@ -22,18 +27,29 @@ from app.models.institution import Institution
 from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
+from app.models.tcm_entity import TCMEntity
+from app.models.tei import TextSentence, TextToken, TextualVariant
 from app.models.user import User, Role, Permission
 from app.models.version import Version
 from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection
+from app.models.version_criticism import Sentence, Token, Variant, VariantType
+from app.models.academic_evidence import SourceRef, Evidence, Citation, EvidenceLevel
+from app.models.academic_relation import AcademicEntity, AcademicRelation, RelationConfidence, AcademicEntityType
 
 __all__ = [
+    "AcademicEntity",
+    "AcademicEntityType",
+    "AcademicRelation",
     "Book",
     "Chapter",
+    "Citation",
     "CitationCollection",
     "Commentary",
     "Document",
     "DocumentChunk",
     "EntityRelation",
+    "Evidence",
+    "EvidenceLevel",
     "Image",
     "Institution",
     "Paper",
@@ -41,9 +57,15 @@ __all__ = [
     "Person",
     "Permission",
     "QueryHistory",
+    "RelationConfidence",
     "ResearchNote",
     "ResearchSession",
     "Role",
+    "Sentence",
+    "SourceRef",
+    "Token",
     "User",
+    "Variant",
+    "VariantType",
     "Version",
 ]

@@ -20,6 +20,7 @@ from app.db.base import BaseModel
 if TYPE_CHECKING:
     from app.models.chapter import Chapter
     from app.models.version import Version
+    from app.models.version_criticism import Sentence
 
 
 class Passage(BaseModel):
@@ -44,6 +45,9 @@ class Passage(BaseModel):
     # Relationships
     chapter: Mapped["Chapter"] = relationship("Chapter", lazy="selectin")
     version: Mapped[Optional["Version"]] = relationship("Version", lazy="selectin")
+    sentences: Mapped[list["Sentence"]] = relationship(
+        "Sentence", back_populates="passage", cascade="all, delete-orphan", lazy="selectin"
+    )
 
     def __repr__(self) -> str:
         preview = self.content_text[:40] + "..." if len(self.content_text) > 40 else self.content_text

@@ -18,7 +18,10 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.day2_search import router as day2_search_router
 from app.api.v1.entities import router as entities_router
+from app.api.v1.evidences import router as evidences_router
 from app.api.v1.graph import router as graph_router
+from app.api.v1.passages import router as passages_router
+from app.api.v1.relations import router as relations_router
 from app.api.v1.research import router as research_router
 from app.api.v1.search import router as search_router
 from app.api.v1.users import router as users_router
@@ -38,3 +41,6 @@ router.include_router(academic_rag_router)
 router.include_router(ai_router)
 router.include_router(workspace_router)
 router.include_router(dashboard_router)
+router.include_router(evidences_router)
+router.include_router(passages_router)
+router.include_router(relations_router)
