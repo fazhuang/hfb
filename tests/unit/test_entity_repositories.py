@@ -34,9 +34,10 @@ class TestBookRepository:
     @pytest.mark.asyncio
     async def test_count(self, db_session: AsyncSession):
         repo = BookRepository(db_session)
+        baseline = await repo.count()
         for i in range(3):
             await repo.create(title=f"Book {i}")
-        assert await repo.count() == 3
+        assert await repo.count() == baseline + 3
 
 
 class TestVersionRepository:

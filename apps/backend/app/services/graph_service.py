@@ -863,7 +863,9 @@ class GraphService:
         )
         try:
             # Derive evidence_level from evidence fields
-            relation.evidence_level = await self._derive_evidence_level(self.session, relation)
+            relation.evidence_level = await self._derive_evidence_level(
+                self.session, relation
+            )
             self.session.add(relation)
             await self.session.flush()
         except IntegrityError:
@@ -1144,10 +1146,15 @@ class GraphService:
         if has_version and has_passage and has_quote and is_verified:
             from app.models.tei import TextualVariant
 
-            variant_stmt = select(TextualVariant).where(
-                TextualVariant.source_version_id == getattr(er, "evidence_version_id", ""),
-                TextualVariant.is_deleted.is_(False),
-            ).limit(1)
+            variant_stmt = (
+                select(TextualVariant)
+                .where(
+                    TextualVariant.source_version_id
+                    == getattr(er, "evidence_version_id", ""),
+                    TextualVariant.is_deleted.is_(False),
+                )
+                .limit(1)
+            )
             variant_result = await session.execute(variant_stmt)
             if variant_result.scalar_one_or_none() is not None:
                 return 4
@@ -1629,26 +1636,42 @@ class GraphService:
     ) -> list[EvidenceChainPath]:
         """Multi-hop BFS over academically verified edges only.
 
-        Each path is an ordered chain of AcademicEdge hops with full evidence.
-        Only traverses edges with evidence_level >= min_evidence_level,
-        evidence_status = 'verified', and is_deleted = 0.
+        Every candidate EntityRelation undergoes query-time re-validation via
+        _validate_explicit_relation() and evidence_level re-derivation via
+        _derive_evidence_level().  Persisted evidence_status and evidence_level
+        are NEVER trusted — they may have been tampered via direct DB writes.
+        Only edges that pass full validation AND whose re-derived level meets
+        min_evidence_level enter the BFS adjacency list.
         """
+        # Query ALL non-deleted EntityRelations — do NOT trust persisted
+        # evidence_status or evidence_level (they may be tampered).
         stmt = select(EntityRelation).where(
-            EntityRelation.evidence_level >= min_evidence_level,
-            EntityRelation.evidence_status == "verified",
             EntityRelation.is_deleted.is_(False),
         )
         if relation_types:
             stmt = stmt.where(EntityRelation.relation_type.in_(relation_types))
         result = await self.session.execute(stmt)
-        all_edges: list[EntityRelation] = list(result.scalars().all())
+        all_candidates: list[EntityRelation] = list(result.scalars().all())
 
-        # Build adjacency list: (type, id) -> list[EntityRelation]
+        # Query-time re-validation: every edge must pass _validate_explicit_relation
+        # AND have its evidence_level re-derived from source fields.
+        validated: dict[str, tuple[int, GraphEvidence]] = {}
+        for er in all_candidates:
+            ev = await self._validate_explicit_relation(er)
+            if ev is None:
+                continue
+            level = await self._derive_evidence_level(self.session, er)
+            if level >= min_evidence_level:
+                validated[er.id] = (level, ev)
+
+        # Build adjacency list from validated edges only
         from collections import defaultdict
 
         adj: dict[tuple[str, str], list[EntityRelation]] = defaultdict(list)
-        for edge in all_edges:
-            adj[(edge.source_entity_type, edge.source_entity_id)].append(edge)
+        for er in all_candidates:
+            if er.id not in validated:
+                continue
+            adj[(er.source_entity_type, er.source_entity_id)].append(er)
 
         # BFS
         paths: list[EvidenceChainPath] = []
@@ -1668,19 +1691,17 @@ class GraphService:
                 # Check if we reached the target (if target specified)
                 if target_type and target_id:
                     if next_type == target_type and next_id == target_id:
-                        paths.append(self._build_evidence_path(new_list))
+                        paths.append(self._build_evidence_path(new_list, validated))
                         continue
 
                 queue.append((next_type, next_id, new_list))
 
             # If no target specified, collect all paths at max depth
             if not target_type and len(edge_list) == max_hops - 1:
-                # Already at max, collect if reached a leaf
                 pass
 
         # If no target specified, collect all maximal paths
         if not target_type:
-            # Re-run to collect all paths up to max_hops
             paths.clear()
             queue.clear()
             queue.append((source_type, source_id, []))
@@ -1689,43 +1710,64 @@ class GraphService:
                 neighbors = adj.get((current_type, current_id), [])
                 if not neighbors or len(edge_list) >= max_hops:
                     if edge_list:
-                        paths.append(self._build_evidence_path(edge_list))
+                        paths.append(self._build_evidence_path(edge_list, validated))
                     continue
                 for edge in neighbors:
                     new_list = edge_list + [edge]
-                    queue.append((edge.target_entity_type, edge.target_entity_id, new_list))
+                    queue.append(
+                        (edge.target_entity_type, edge.target_entity_id, new_list)
+                    )
 
         # Sort: highest confidence first
         paths.sort(key=lambda p: p.total_confidence, reverse=True)
         return paths
 
-    def _build_evidence_path(self, edges: list[EntityRelation]) -> EvidenceChainPath:
-        """Build an EvidenceChainPath from a list of EntityRelation edges."""
+    def _build_evidence_path(
+        self,
+        edges: list[EntityRelation],
+        validated: dict[str, tuple[int, GraphEvidence]] | None = None,
+    ) -> EvidenceChainPath:
+        """Build an EvidenceChainPath from a list of EntityRelation edges.
+
+        Uses re-derived evidence_level and validated provenance fields
+        (citation, exact_quote, source_uri) from the query-time validation
+        dict — NEVER trusts persisted fields that may have been tampered.
+        """
         import hashlib
 
         hop_data: list[EvidenceHop] = []
         for er in edges:
-            level = er.evidence_level
-            # confidence_score derived from level
+            if validated is not None and er.id in validated:
+                level, ev = validated[er.id]
+            else:
+                # Fallback: use persisted level (legacy path from
+                # _collect_all_edges which already validates)
+                level = er.evidence_level
+                ev = self._relation_evidence(er)
+
             score_map = {2: 0.65, 3: 0.85, 4: 0.98}
             score = score_map.get(level, 0.0)
 
-            hop_data.append(EvidenceHop(
-                source_type=er.source_entity_type,
-                source_id=er.source_entity_id,
-                target_type=er.target_entity_type,
-                target_id=er.target_entity_id,
-                relation_type=er.relation_type,
-                evidence_level=level,
-                confidence_score=score,
-                citation=er.evidence_citation or "",
-                exact_quote=er.evidence_quote or "",
-                source_uri=getattr(er, "evidence_source_uri", "") or "",
-            ))
+            hop_data.append(
+                EvidenceHop(
+                    source_type=er.source_entity_type,
+                    source_id=er.source_entity_id,
+                    target_type=er.target_entity_type,
+                    target_id=er.target_entity_id,
+                    relation_type=er.relation_type,
+                    evidence_level=level,
+                    confidence_score=score,
+                    citation=ev.citation if ev else (er.evidence_citation or ""),
+                    exact_quote=ev.exact_quote if ev else (er.evidence_quote or ""),
+                    source_uri=(
+                        ev.source_uri
+                        if ev
+                        else (getattr(er, "evidence_source_uri", "") or "")
+                    ),
+                )
+            )
 
-        path_id = hashlib.sha256(
-            "|".join(e.id for e in edges).encode()
-        ).hexdigest()
+        path_id = hashlib.sha256("|".join(e.id for e in edges).encode()).hexdigest()
 
         total_confidence = 1.0
         for h in hop_data:

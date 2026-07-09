@@ -2389,3 +2389,185 @@ class TestDBTamperMustBeExcluded:
         )
         assert data["citations"] == []
         assert data["kg_paths"] == []
+
+
+# ============================================================
+# Blocking item 1: multi_hop HTTP-path V2 verification
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestMultiHopEvidenceChainsV2HTTP:
+    """HTTP-level verification for POST /api/v2/graph/evidence-chains.
+
+    Must demonstrate that tampered relations are excluded through the full
+    HTTP projection chain, not just at the service-internal call level.
+    """
+
+    async def test_v2_evidence_chains_returns_valid_2hop(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """A proper 2-hop verified path survives the HTTP evidence_chains endpoint."""
+        ents = await _seed_acceptance_corpus(db_session)
+
+        # Create 2-hop verified path
+        await _create_and_verify_relation(
+            db_session,
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            ev=_make_ev(
+                ents["doc"].id,
+                ents["chunk2"].id,
+                "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            ),
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+        )
+
+        await _create_and_verify_relation(
+            db_session,
+            source_entity_type="book",
+            source_entity_id=ents["book"].id,
+            target_entity_type="book",
+            target_entity_id=ents["suwen"].id,
+            relation_type="compiled_from",
+            description="针灸甲乙经编纂依据素问",
+            ev=_make_ev(
+                ents["doc_preface"].id,
+                ents["preface_chunk"].id,
+                "今有《针经》九卷、《素问》九卷，二九十八卷，即《内经》也。",
+            ),
+            claim_text="针灸甲乙经以《素问》为主要编纂依据",
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_source_uri="https://ctext.org/zhenjiu-jiayi-jing/xu",
+        )
+
+        resp = await acceptance_app.post(
+            "/api/v2/graph/evidence-chains",
+            json={
+                "source_type": "person",
+                "source_id": ents["person"].id,
+                "target_type": "book",
+                "target_id": ents["suwen"].id,
+                "min_evidence_level": 2,
+                "max_hops": 5,
+            },
+        )
+        assert resp.status_code == 200, f"HTTP {resp.status_code}: {resp.text}"
+        body = resp.json()
+        assert body["success"] is True
+        paths = body["data"]  # data is the list of paths directly
+        assert len(paths) >= 1, f"Expected at least 1 valid path, got {len(paths)}"
+        # Must be a 2-hop path
+        two_hop = [p for p in paths if len(p["hops"]) >= 2]
+        assert len(two_hop) >= 1, "Must have at least one 2-hop path"
+
+    async def test_v2_evidence_chains_excludes_tampered_relation(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """Tampered relation that bypassed verify_relation is excluded
+        even through the full HTTP V2 evidence_chains endpoint."""
+        ents = await _seed_acceptance_corpus(db_session)
+        svc = GraphService(db_session)
+
+        # Create verified hop 1
+        await _create_and_verify_relation(
+            db_session,
+            source_entity_type="person",
+            source_entity_id=ents["person"].id,
+            target_entity_type="book",
+            target_entity_id=ents["book"].id,
+            relation_type="compiled",
+            description="皇甫谧编撰《针灸甲乙经》",
+            ev=_make_ev(
+                ents["doc"].id,
+                ents["chunk2"].id,
+                "撰《针灸甲乙经》及《帝王世纪》《高士传》《逸士传》《列女传》等。",
+            ),
+            claim_text="皇甫谧编撰《针灸甲乙经》",
+            evidence_version_id=ents["v_song"].id,
+            evidence_passage_id=ents["passage_song"].id,
+            evidence_source_uri="https://ctext.org/jinshu/huangfu-mi-zhuan",
+        )
+
+        # Create hop 2 but tamper it (omit verified_at)
+        ev2 = _make_ev(
+            ents["doc_preface"].id,
+            ents["preface_chunk"].id,
+            "今有《针经》九卷、《素问》九卷，二九十八卷，即《内经》也。",
+        )
+        r2 = await svc.create_relation(
+            source_entity_type="book",
+            source_entity_id=ents["book"].id,
+            target_entity_type="book",
+            target_entity_id=ents["suwen"].id,
+            relation_type="compiled_from",
+            description="针灸甲乙经编纂依据素问",
+            evidence=ev2,
+        )
+        # Tamper: set verified but skip verified_at
+        r2.evidence_status = "verified"
+        r2.verified_by = "test-reviewer"
+        r2.claim_text = "针灸甲乙经以《素问》为主要编纂依据"
+        r2.evidence_source_uri = "https://ctext.org/zhenjiu-jiayi-jing/xu"
+        r2.evidence_version_id = ents["v_song"].id
+        r2.evidence_passage_id = ents["passage_song"].id
+        # verified_at intentionally None
+        await db_session.flush()
+
+        resp = await acceptance_app.post(
+            "/api/v2/graph/evidence-chains",
+            json={
+                "source_type": "person",
+                "source_id": ents["person"].id,
+                "target_type": "book",
+                "target_id": ents["suwen"].id,
+                "min_evidence_level": 2,
+                "max_hops": 5,
+            },
+        )
+        assert resp.status_code == 200, f"HTTP {resp.status_code}: {resp.text}"
+        body = resp.json()
+        paths = body["data"]  # data is the list of paths directly
+        two_hop = [p for p in paths if len(p["hops"]) >= 2]
+        assert len(two_hop) == 0, (
+            f"Tampered relation must be excluded. Got {len(two_hop)} 2-hop paths."
+        )
+
+
+# ============================================================
+# Blocking item 2: version-tree HTTP endpoint with UUID
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestVersionTreeHTTPWithUUID:
+    """HTTP-level verification for GET /api/v2/tei/version-tree/{uuid}."""
+
+    async def test_version_tree_http_success_with_uuid(
+        self, acceptance_app, db_session: AsyncSession
+    ) -> None:
+        """GET /api/v2/tei/version-tree/{uuid} returns success with real UUID."""
+        ents = await _seed_acceptance_corpus(db_session)
+        vid = ents["v_song"].id  # Real UUID from seeded data
+
+        resp = await acceptance_app.get(f"/api/v2/tei/version-tree/{vid}")
+        assert resp.status_code == 200, f"HTTP {resp.status_code}: {resp.text}"
+        body = resp.json()
+        assert body["success"] is True
+        data = body["data"]
+        assert "root_version" in data
+        assert data["root_version"]["id"] == vid
+        assert "tree" in data
+        assert "distance_matrix" in data
+        assert "closest_to" in data, (
+            f"Missing closest_to in response: {list(data.keys())}"
+        )
+        assert "divergence_points" in data

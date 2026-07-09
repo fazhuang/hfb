@@ -4,6 +4,7 @@ Version Center services — comparison, lineage, diff, passage mapping, commenta
 Per HFB-PS-1701 Version Center Product Specification.
 Per HFB-DOM-0803 Version Knowledge Model Ch.8-13.
 """
+
 from __future__ import annotations
 
 import difflib
@@ -112,7 +113,14 @@ class VersionComparisonService:
         evidence: str | None = None,
     ) -> VersionRelation:
         """Create a VersionRelation."""
-        valid_types = {"derived_from", "revised_from", "corrected_by", "annotated_by", "compared_with", "referenced_by"}
+        valid_types = {
+            "derived_from",
+            "revised_from",
+            "corrected_by",
+            "annotated_by",
+            "compared_with",
+            "referenced_by",
+        }
         if relation_type not in valid_types:
             raise ValueError(f"Invalid relation_type. Must be one of: {valid_types}")
 
@@ -153,15 +161,17 @@ class VersionComparisonService:
         operations: list[dict[str, Any]] = []
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
             if tag != "equal":
-                operations.append({
-                    "op": tag,  # replace, delete, insert
-                    "source_start": i1,
-                    "source_end": i2,
-                    "source_text": text1[i1:i2],
-                    "target_start": j1,
-                    "target_end": j2,
-                    "target_text": text2[j1:j2],
-                })
+                operations.append(
+                    {
+                        "op": tag,  # replace, delete, insert
+                        "source_start": i1,
+                        "source_end": i2,
+                        "source_text": text1[i1:i2],
+                        "target_start": j1,
+                        "target_end": j2,
+                        "target_text": text2[j1:j2],
+                    }
+                )
 
         return {
             "source_passage": {
@@ -188,14 +198,22 @@ class VersionComparisonService:
         Falls back to order-based alignment if no mappings exist.
         """
         # Fetch all passages for each version
-        stmt_src = select(Passage).where(
-            Passage.version_id == str(source_version_id),
-            Passage.is_deleted.is_(False),
-        ).order_by(Passage.order)
-        stmt_tgt = select(Passage).where(
-            Passage.version_id == str(target_version_id),
-            Passage.is_deleted.is_(False),
-        ).order_by(Passage.order)
+        stmt_src = (
+            select(Passage)
+            .where(
+                Passage.version_id == str(source_version_id),
+                Passage.is_deleted.is_(False),
+            )
+            .order_by(Passage.order)
+        )
+        stmt_tgt = (
+            select(Passage)
+            .where(
+                Passage.version_id == str(target_version_id),
+                Passage.is_deleted.is_(False),
+            )
+            .order_by(Passage.order)
+        )
 
         src_result = await self.session.execute(stmt_src)
         tgt_result = await self.session.execute(stmt_tgt)
@@ -222,8 +240,12 @@ class VersionComparisonService:
             mapped_src_ids: set[str] = set()
             mapped_tgt_ids: set[str] = set()
             for m in mappings:
-                sp = next((p for p in src_passages if p.id == m.source_passage_id), None)
-                tp = next((p for p in tgt_passages if p.id == m.target_passage_id), None)
+                sp = next(
+                    (p for p in src_passages if p.id == m.source_passage_id), None
+                )
+                tp = next(
+                    (p for p in tgt_passages if p.id == m.target_passage_id), None
+                )
                 if sp and tp:
                     mapped_pairs.append((sp, tp))
                     mapped_src_ids.add(m.source_passage_id)
@@ -252,7 +274,13 @@ class VersionComparisonService:
                     "source_passage": {"id": sp.id, "text": sp.content_text},
                     "target_passage": None,
                     "differences": 1,
-                    "operations": [{"op": "delete", "source_text": sp.content_text, "target_text": ""}],
+                    "operations": [
+                        {
+                            "op": "delete",
+                            "source_text": sp.content_text,
+                            "target_text": "",
+                        }
+                    ],
                     "similarity_ratio": 0,
                 }
             elif tp:
@@ -260,7 +288,13 @@ class VersionComparisonService:
                     "source_passage": None,
                     "target_passage": {"id": tp.id, "text": tp.content_text},
                     "differences": 1,
-                    "operations": [{"op": "insert", "source_text": "", "target_text": tp.content_text}],
+                    "operations": [
+                        {
+                            "op": "insert",
+                            "source_text": "",
+                            "target_text": tp.content_text,
+                        }
+                    ],
                     "similarity_ratio": 0,
                 }
             else:
@@ -432,14 +466,21 @@ async def get_commentaries_for_passage(
     commentaries = result.scalars().all()
     return [
         CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
+            id=c.id,
+            passage_id=c.passage_id,
+            version_id=c.version_id,
+            author_id=c.author_id,
+            commentary_type=c.commentary_type,
+            layer=c.layer,
+            content_text=c.content_text,
             target_position_start=c.target_position_start,
             target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ) for c in commentaries
+            parent_id=c.parent_id,
+            relation_type=c.relation_type,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+        for c in commentaries
     ]
 
 
@@ -462,15 +503,23 @@ async def get_commentary_chain(
         c = result.scalar_one_or_none()
         if not c:
             break
-        chain.append(CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
-            target_position_start=c.target_position_start,
-            target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ))
+        chain.append(
+            CommentaryResponse(
+                id=c.id,
+                passage_id=c.passage_id,
+                version_id=c.version_id,
+                author_id=c.author_id,
+                commentary_type=c.commentary_type,
+                layer=c.layer,
+                content_text=c.content_text,
+                target_position_start=c.target_position_start,
+                target_position_end=c.target_position_end,
+                parent_id=c.parent_id,
+                relation_type=c.relation_type,
+                created_at=c.created_at,
+                updated_at=c.updated_at,
+            )
+        )
         current_id = c.parent_id
 
     chain.reverse()  # root first
@@ -497,9 +546,12 @@ async def compute_distance_matrix(
     for va_id, vb_id in combinations(version_ids, 2):
         stmt = select(VersionDiff).where(
             (
-                (VersionDiff.source_version_id == va_id) & (VersionDiff.target_version_id == vb_id)
-            ) | (
-                (VersionDiff.source_version_id == vb_id) & (VersionDiff.target_version_id == va_id)
+                (VersionDiff.source_version_id == va_id)
+                & (VersionDiff.target_version_id == vb_id)
+            )
+            | (
+                (VersionDiff.source_version_id == vb_id)
+                & (VersionDiff.target_version_id == va_id)
             ),
             VersionDiff.is_deleted.is_(False),
         )
@@ -507,7 +559,11 @@ async def compute_distance_matrix(
         diff = result.scalar_one_or_none()
 
         if diff and diff.diff_data:
-            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+            diff_data = (
+                json.loads(diff.diff_data)
+                if isinstance(diff.diff_data, str)
+                else diff.diff_data
+            )
             lines_changed = diff_data.get("lines_changed", 0)
             total_lines = diff_data.get("total_lines", 1)
             distance = lines_changed / max(total_lines, 1)
@@ -525,14 +581,20 @@ async def compute_version_tree(
 ) -> dict:
     """Build a version lineage tree rooted at or including the given version.
 
+    Exhaustive BFS in both directions — visited node and visited edge sets
+    control termination and prevent infinite loops, not an arbitrary depth
+    cap.  Every reachable version and relation is included.
+
     Returns: root_version info, tree edges, distance matrix, closest versions,
     and divergence points.
     """
-    from collections import defaultdict
+    from collections import defaultdict, deque
 
     from app.models.tei import TextualVariant
 
-    stmt = select(Version).where(Version.id == version_id, Version.is_deleted.is_(False))
+    stmt = select(Version).where(
+        Version.id == version_id, Version.is_deleted.is_(False)
+    )
     result = await session.execute(stmt)
     root = result.scalar_one_or_none()
     if not root:
@@ -540,96 +602,151 @@ async def compute_version_tree(
 
     version_set: set[str] = {version_id}
     relations_raw: list[VersionRelation] = []
+    visited_edges: set[tuple[str, str, str]] = set()  # (source, target, relation_type)
 
-    # Upward traversal
-    current_id = version_id
-    while current_id:
-        stmt = select(VersionRelation).where(
-            VersionRelation.target_version_id == current_id,
-            VersionRelation.is_deleted.is_(False),
-        )
-        result = await session.execute(stmt)
-        rel = result.scalar_one_or_none()
-        if rel:
-            relations_raw.append(rel)
-            version_set.add(rel.source_version_id)
-            current_id = rel.source_version_id
-        else:
-            break
-
-    # Downward traversal from all known versions
-    for vid in list(version_set):
-        stmt = select(VersionRelation).where(
-            VersionRelation.source_version_id == vid,
-            VersionRelation.is_deleted.is_(False),
+    # --- Upward BFS (ancestors) — exhaust until closure ---
+    up_queue: deque[str] = deque()
+    up_queue.append(version_id)
+    up_visited: set[str] = {version_id}
+    while up_queue:
+        current_id = up_queue.popleft()
+        stmt = (
+            select(VersionRelation)
+            .where(
+                VersionRelation.target_version_id == current_id,
+                VersionRelation.is_deleted.is_(False),
+            )
+            .order_by(VersionRelation.source_version_id)
         )
         result = await session.execute(stmt)
         for rel in result.scalars().all():
-            if rel.target_version_id not in version_set:
-                relations_raw.append(rel)
-                version_set.add(rel.target_version_id)
+            edge_key = (
+                rel.source_version_id,
+                rel.target_version_id,
+                rel.relation_type,
+            )
+            if edge_key in visited_edges:
+                continue
+            visited_edges.add(edge_key)
+            relations_raw.append(rel)
+            version_set.add(rel.source_version_id)
+            if rel.source_version_id not in up_visited:
+                up_visited.add(rel.source_version_id)
+                up_queue.append(rel.source_version_id)
+
+    # --- Downward BFS (descendants) — exhaust until closure ---
+    # Dynamically expands as newly discovered versions enter version_set.
+    down_visited: set[str] = set()
+    # Seed with versions known so far
+    for vid in sorted(version_set):
+        if vid not in down_visited:
+            down_visited.add(vid)
+    down_queue: deque[str] = deque(sorted(version_set))
+    while down_queue:
+        current_id = down_queue.popleft()
+        stmt = (
+            select(VersionRelation)
+            .where(
+                VersionRelation.source_version_id == current_id,
+                VersionRelation.is_deleted.is_(False),
+            )
+            .order_by(VersionRelation.target_version_id)
+        )
+        result = await session.execute(stmt)
+        for rel in result.scalars().all():
+            edge_key = (
+                rel.source_version_id,
+                rel.target_version_id,
+                rel.relation_type,
+            )
+            if edge_key in visited_edges:
+                continue
+            visited_edges.add(edge_key)
+            relations_raw.append(rel)
+            version_set.add(rel.target_version_id)
+            if rel.target_version_id not in down_visited:
+                down_visited.add(rel.target_version_id)
+                down_queue.append(rel.target_version_id)
 
     all_versions: dict[str, Version] = {}
     if version_set:
-        stmt = select(Version).where(Version.id.in_(version_set), Version.is_deleted.is_(False))
+        stmt = select(Version).where(
+            Version.id.in_(version_set), Version.is_deleted.is_(False)
+        )
         result = await session.execute(stmt)
         all_versions = {v.id: v for v in result.scalars().all()}
 
-    # Build tree edges
+    # Build tree edges — deterministic order
     tree_edges = []
-    for rel in relations_raw:
+    for rel in sorted(
+        relations_raw,
+        key=lambda r: (r.source_version_id, r.target_version_id, r.relation_type),
+    ):
         distance = 1.0
         diff_stmt = select(VersionDiff).where(
             (
-                (VersionDiff.source_version_id == rel.source_version_id) & (VersionDiff.target_version_id == rel.target_version_id)
+                (VersionDiff.source_version_id == rel.source_version_id)
+                & (VersionDiff.target_version_id == rel.target_version_id)
             ),
             VersionDiff.is_deleted.is_(False),
         )
         diff_result = await session.execute(diff_stmt)
         diff = diff_result.scalar_one_or_none()
         if diff and diff.diff_data:
-            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+            diff_data = (
+                json.loads(diff.diff_data)
+                if isinstance(diff.diff_data, str)
+                else diff.diff_data
+            )
             lines_changed = diff_data.get("lines_changed", 0)
             total_lines = diff_data.get("total_lines", 1)
             distance = lines_changed / max(total_lines, 1)
 
-        tree_edges.append({
-            "parent_id": rel.source_version_id,
-            "child_id": rel.target_version_id,
-            "relation_type": rel.relation_type,
-            "distance": round(min(distance, 1.0), 4),
-        })
+        tree_edges.append(
+            {
+                "parent_id": rel.source_version_id,
+                "child_id": rel.target_version_id,
+                "relation_type": rel.relation_type,
+                "distance": round(min(distance, 1.0), 4),
+            }
+        )
 
     # Distance matrix
     version_list = sorted(version_set)
     distance_matrix = await compute_distance_matrix(session, version_list)
 
-    # Closest versions to root
+    # Closest versions to root — construct lookup keys from known IDs,
+    # NEVER parse UUIDs via split("-") which fragments UUID hyphens.
     closest = []
-    root_distances = {}
-    for key, dist in distance_matrix.items():
-        v1, v2 = key.split("-")
-        if v1 == version_id:
-            root_distances[v2] = dist
-        elif v2 == version_id:
-            root_distances[v1] = dist
+    root_distances: dict[str, float] = {}
+    for other_id in sorted(version_set - {version_id}):
+        key_a = f"{version_id}-{other_id}"
+        key_b = f"{other_id}-{version_id}"
+        dist = distance_matrix.get(key_a, distance_matrix.get(key_b))
+        if dist is not None:
+            root_distances[other_id] = dist
 
-    for other_id in sorted(root_distances, key=root_distances.get):
+    for other_id in sorted(root_distances, key=lambda k: root_distances[k]):
         v_obj = all_versions.get(other_id)
-        closest.append({
-            "version_id": other_id,
-            "name": v_obj.version_name if v_obj else other_id,
-            "distance": root_distances[other_id],
-        })
+        closest.append(
+            {
+                "version_id": other_id,
+                "name": v_obj.version_name if v_obj else other_id,
+                "distance": root_distances[other_id],
+            }
+        )
 
     # Divergence points
     divergence_points = []
-    for other_id in list(version_set - {version_id}):
+    for other_id in sorted(version_set - {version_id}):
         variant_stmt = select(TextualVariant).where(
             (
-                (TextualVariant.source_version_id == version_id) & (TextualVariant.target_version_id == other_id)
-            ) | (
-                (TextualVariant.source_version_id == other_id) & (TextualVariant.target_version_id == version_id)
+                (TextualVariant.source_version_id == version_id)
+                & (TextualVariant.target_version_id == other_id)
+            )
+            | (
+                (TextualVariant.source_version_id == other_id)
+                & (TextualVariant.target_version_id == version_id)
             ),
             TextualVariant.is_deleted.is_(False),
         )
@@ -644,15 +761,19 @@ async def compute_version_tree(
 
         for pid, vlist in passage_counts.items():
             if len(vlist) >= 1:
-                pass_stmt = select(Passage).where(Passage.id == pid, Passage.is_deleted.is_(False))
+                pass_stmt = select(Passage).where(
+                    Passage.id == pid, Passage.is_deleted.is_(False)
+                )
                 pass_result = await session.execute(pass_stmt)
                 passage = pass_result.scalar_one_or_none()
-                divergence_points.append({
-                    "passage_id": pid,
-                    "passage_text": passage.content_text[:200] if passage else "",
-                    "diff_summary": f"{len(vlist)} variants between {version_id} and {other_id}",
-                    "variant_count": len(vlist),
-                })
+                divergence_points.append(
+                    {
+                        "passage_id": pid,
+                        "passage_text": passage.content_text[:200] if passage else "",
+                        "diff_summary": f"{len(vlist)} variants between {version_id} and {other_id}",
+                        "variant_count": len(vlist),
+                    }
+                )
 
     return {
         "root_version": {
@@ -682,19 +803,27 @@ async def get_commentary_graph(
 
     nodes = [
         CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
+            id=c.id,
+            passage_id=c.passage_id,
+            version_id=c.version_id,
+            author_id=c.author_id,
+            commentary_type=c.commentary_type,
+            layer=c.layer,
+            content_text=c.content_text,
             target_position_start=c.target_position_start,
             target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ) for c in commentaries
+            parent_id=c.parent_id,
+            relation_type=c.relation_type,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+        for c in commentaries
     ]
 
     edges = [
         {"parent_id": c.parent_id, "child_id": c.id, "relation_type": c.relation_type}
-        for c in commentaries if c.parent_id
+        for c in commentaries
+        if c.parent_id
     ]
 
     return {"nodes": nodes, "edges": edges}
