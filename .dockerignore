@@ -1,0 +1,114 @@
+# ============================================================
+# 皇甫谧数字人文平台 — .dockerignore
+# ============================================================
+
+# --- VCS ---
+.git
+.gitignore
+.gitattributes
+.github
+
+# --- Agent skills (local only) ---
+.agents
+.codex
+
+# --- Python virtual environments ---
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info
+dist
+build
+eggs
+*.egg
+*.whl
+
+# --- Python caches ---
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.dmypy.json
+.pyre
+.pytype
+
+# --- Coverage ---
+.coverage
+.coverage.*
+htmlcov
+coverage.xml
+.tox
+.nox
+
+# --- Databases (local dev only) ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Environment files ---
+.env
+.env.*
+!.env.example
+
+# --- Node ---
+node_modules
+.npm
+.yarn
+.pnpm-store
+*.tsbuildinfo
+.next
+.nuxt
+.output
+
+# --- Docker ---
+.docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# --- OS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+
+# --- IDE ---
+.idea
+*.iml
+*.swp
+*.swo
+*~
+.vscode
+
+# --- Logs ---
+*.log
+logs
+
+# --- Temp ---
+tmp
+temp
+.tmp
+*.tmp
+*.bak
+*.orig
+
+# --- macOS ---
+/private
+
+# --- Sensitive ---
+*.pem
+*.key
+*.crt
+credentials.json
+service-account.json
+
+# --- Project specific ---
+backups
+.cache
+.eslintcache

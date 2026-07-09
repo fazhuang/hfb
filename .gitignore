@@ -74,12 +74,16 @@ backups/
 
 # --- Env files ---
 .env
-.env.local
-.env.*.local
-*.env.local
+.env.*
+!.env.example
 
 # --- Docker ---
 .docker/
+
+# --- Databases (local dev) ---
+*.db
+*.sqlite
+*.sqlite3
 
 # --- Logs ---
 *.log
@@ -99,6 +103,7 @@ credentials.json
 service-account.json
 
 # --- AI ---
+.agents/
 .claude/memory/
 .claude/plans/
 .claude/agent-*.jsonl
