@@ -87,7 +87,23 @@ async def create_evidence(
             detail=f"Invalid evidence_level: {body.evidence_level}. Must be LEVEL_1, LEVEL_2, LEVEL_3, or LEVEL_4.",
         )
 
-    # 3. Create Evidence
+    # 3. Validate source_passage exists if provided
+    if body.source_passage_id:
+        from app.models.passage import Passage
+        from sqlalchemy import select as _select
+
+        pass_stmt = _select(Passage).where(
+            Passage.id == body.source_passage_id,
+            Passage.is_deleted.is_(False),
+        )
+        pass_result = await session.execute(pass_stmt)
+        if pass_result.scalar_one_or_none() is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Passage {body.source_passage_id} not found",
+            )
+
+    # 4. Create Evidence
     evidence = Evidence(
         description=body.description,
         evidence_level=level,
