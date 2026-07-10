@@ -78,9 +78,16 @@ class IngestionJob:
 # ---------------------------------------------------------------------------
 
 def _http_client(timeout: float = 15.0) -> httpx.AsyncClient:
+    from app.core.settings import settings
+
+    email = getattr(settings, "CONTACT_EMAIL", "") or "dev@huangfumi.org"
     return httpx.AsyncClient(
         timeout=httpx.Timeout(timeout),
-        headers={"User-Agent": "HuangfuMi-Platform/0.2 (academic-research; mailto:dev@huangfumi.org)"},
+        headers={
+            "User-Agent": f"HuangfuMi-Platform/0.2 (mailto:{email})",
+            "Accept": "application/json",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
         follow_redirects=True,
     )
 

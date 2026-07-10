@@ -1,16 +1,24 @@
 """
 OpenAlex client — metadata-only search via REST API.
 https://docs.openalex.org/api-entity/works
+
+OpenAlex uses Cloudflare bot detection. The polite pool requires a real
+User-Agent with contact email. Aggressive request patterns (rapid-fire,
+high per_page, Chinese-encoded URLs) trigger 403/1034 challenges.
 """
 
 from __future__ import annotations
+
+import asyncio
 
 import httpx
 
 from app.services.literature_ingestion import LiteratureItem, _http_client
 
 _BASE = "https://api.openalex.org"
-_PAGE_SIZE = 25
+_PAGE_SIZE = 10  # ponytail: 10 avoids Cloudflare rate-limit on per_page>10
+_RETRIES = 3
+_RETRY_DELAY = 3.0  # seconds between retries
 
 
 async def search(
@@ -21,15 +29,30 @@ async def search(
 ) -> tuple[list[LiteratureItem], int]:
     """Search OpenAlex for works matching query. Returns (items, total_count)."""
     client = http_client or _http_client()
+
+    data: dict = {}
     try:
-        params = {
-            "search": query,
-            "per_page": str(per_page),
-            "page": str(page),
-        }
-        resp = await client.get(f"{_BASE}/works", params=params)
-        resp.raise_for_status()
-        data = resp.json()
+        for attempt in range(_RETRIES):
+            try:
+                params = {
+                    "search": query,
+                    "per_page": str(per_page),
+                    "page": str(page),
+                }
+                resp = await client.get(f"{_BASE}/works", params=params)
+                resp.raise_for_status()
+                data = resp.json()
+                break
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 403 and attempt < _RETRIES - 1:
+                    await asyncio.sleep(_RETRY_DELAY * (attempt + 1))
+                    continue
+                raise
+            except httpx.ConnectError:
+                if attempt < _RETRIES - 1:
+                    await asyncio.sleep(_RETRY_DELAY * (attempt + 1))
+                    continue
+                raise
     finally:
         if http_client is None:
             await client.aclose()

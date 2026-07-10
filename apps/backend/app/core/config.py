@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     AI_TEMPERATURE: float = 0.3
     AI_RATE_LIMIT_PER_MINUTE: int = 20
 
+    # --- Literature Ingestion ---
+    CONTACT_EMAIL: str = "dev@huangfumi.org"
+    CORE_API_KEY: str = ""  # optional, for higher rate limits
+
     # --- Database connection string ---
     @property
     def database_url(self) -> str:
