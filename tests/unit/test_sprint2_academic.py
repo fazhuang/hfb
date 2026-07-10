@@ -56,7 +56,13 @@ async def _seed_chunks(
 ) -> dict[str, Document]:
     docs: dict[str, Document] = {}
     for title, dynasty, chunks in docs_with_content:
-        d = Document(title=title, dynasty=dynasty)
+        d = Document(
+            title=title,
+            dynasty=dynasty,
+            copyright_status="public_domain",
+            authorization_basis="test seed",
+            rag_enabled=True,
+        )
         session.add(d)
         await session.flush()
         for i, content in enumerate(chunks):
@@ -792,7 +798,7 @@ async def test_v2_report_endpoint_returns_200(v2_db_session):
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
 
-    d = Document(title="针灸甲乙经", dynasty="西晋")
+    d = Document(title="针灸甲乙经", dynasty="西晋", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     v2_db_session.add(d)
     await v2_db_session.flush()
     c = DocumentChunk(
@@ -846,7 +852,7 @@ async def test_v2_all_endpoints_return_200(v2_db_session):
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
 
-    d = Document(title="针灸甲乙经", dynasty="西晋")
+    d = Document(title="针灸甲乙经", dynasty="西晋", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     v2_db_session.add(d)
     await v2_db_session.flush()
     c = DocumentChunk(

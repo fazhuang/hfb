@@ -66,7 +66,7 @@ async def _seed_data(session):
             "该书对后世针灸学发展有深远影响。\n\n"
             "系统总结了腧穴定位和刺灸方法。"
         ),
-        metadata={"dynasty": "西晋", "category": "针灸"},
+        metadata={"dynasty": "西晋", "category": "针灸", "copyright_status": "public_domain", "authorization_basis": "test seed"},
     )
     await svc.ingest_text(
         title="伤寒杂病论",
@@ -75,7 +75,7 @@ async def _seed_data(session):
             "该书系统论述了伤寒病证治。\n\n"
             "对后世医学发展影响深远。"
         ),
-        metadata={"dynasty": "东汉", "category": "伤寒"},
+        metadata={"dynasty": "东汉", "category": "伤寒", "copyright_status": "public_domain", "authorization_basis": "test seed"},
     )
     await session.flush()
 

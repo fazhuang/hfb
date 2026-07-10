@@ -49,7 +49,14 @@ def _seed_chunks_with_passage(db, doc_id: str, title: str, dynasty: str,
     """Seed document + chunks WITH passage_id set — valid lineage."""
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
-    doc = Document(id=doc_id, title=title, dynasty=dynasty)
+    doc = Document(
+        id=doc_id,
+        title=title,
+        dynasty=dynasty,
+        copyright_status="public_domain",
+        authorization_basis="test seed",
+        rag_enabled=True,
+    )
     db.add(doc)
     contents = [
         "经脉流行不止，环周不休。针灸治疗以经络理论为基础。",
@@ -287,7 +294,7 @@ async def test_query_unmapped_passage_fail_closed(db_session_persistent):
     # Seed document + chunks WITHOUT passage_id
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
-    doc = Document(id="v4-doc-nop", title="无映射文献", dynasty="唐")
+    doc = Document(id="v4-doc-nop", title="无映射文献", dynasty="唐", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     db_session_persistent.add(doc)
     db_session_persistent.add(DocumentChunk(
         id="v4-chk-nop-0", document_id=doc.id, chunk_index=0,
@@ -382,7 +389,7 @@ async def test_resolver_strict_missing_passage_fails(db_session_persistent):
     from app.models.document_chunk import DocumentChunk
     from app.models.workspace import ResearchSession, QueryHistory
 
-    doc = Document(id="v4-doc-str", title="strict test", dynasty="汉")
+    doc = Document(id="v4-doc-str", title="strict test", dynasty="汉", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     db_session_persistent.add(doc)
     db_session_persistent.add(DocumentChunk(
         id="v4-chk-str-0", document_id=doc.id, chunk_index=0,
@@ -821,7 +828,7 @@ async def test_passage_mapping_stats(db_session_persistent):
     from app.models.document_chunk import DocumentChunk
     from app.services.trace_lineage import passage_mapping_stats
 
-    doc = Document(id="v4-doc-stats", title="统计测试", dynasty="唐")
+    doc = Document(id="v4-doc-stats", title="统计测试", dynasty="唐", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     db_session_persistent.add(doc)
     db_session_persistent.add_all([
         DocumentChunk(id="v4-chk-s0", document_id=doc.id, chunk_index=0,
@@ -1072,7 +1079,7 @@ async def test_timeline_no_document_dynasty_fallback(db_session_persistent):
                       content_text="测试", order=1)
     db_session_persistent.add(passage)
 
-    doc = Document(id="doc-tl2", title="TL Doc", dynasty="汉")
+    doc = Document(id="doc-tl2", title="TL Doc", dynasty="汉", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     db_session_persistent.add(doc)
     chunk = DocumentChunk(id="chk-tl2-0", document_id=doc.id, chunk_index=0,
                           content="测试内容", token_count=5, passage_id="passage-tl2")
