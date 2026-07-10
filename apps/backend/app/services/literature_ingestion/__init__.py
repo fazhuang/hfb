@@ -36,12 +36,36 @@ class LiteratureItem:
     is_open_access: bool = False
     language: str = "en"
 
+    def __post_init__(self) -> None:
+        """Reject items with empty required fields."""
+        if not self.title.strip():
+            raise ValueError("LiteratureItem.title must not be empty")
+        if not self.source.strip():
+            raise ValueError("LiteratureItem.source must not be empty")
+        if not self.source_url.strip():
+            raise ValueError("LiteratureItem.source_url must not be empty")
+        if not (self.source_url.startswith("http://") or self.source_url.startswith("https://")):
+            raise ValueError(f"LiteratureItem.source_url must be an HTTP(S) URL, got: {self.source_url!r}")
+
     def dedup_key(self) -> str:
         """Deterministic dedup: DOI if available, else normalized title+year."""
         if self.doi:
             return f"doi:{self.doi.lower().strip()}"
         norm = " ".join(self.title.lower().split())
         return f"title:{norm}|{self.year or ''}"
+
+    @staticmethod
+    def normalized_title(title: str) -> str:
+        """Normalize title for case/whitespace-insensitive comparison."""
+        return " ".join(title.lower().split())
+
+    @classmethod
+    def try_create(cls, **kwargs: object) -> "LiteratureItem | None":
+        """Create a LiteratureItem, returning None if validation fails."""
+        try:
+            return cls(**kwargs)  # type: ignore[arg-type]
+        except ValueError:
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +124,7 @@ async def filter_new_items(
     session: "AsyncSession",
     items: list[LiteratureItem],
 ) -> list[LiteratureItem]:
-    """Filter out items already in the DB (by DOI or title+year match)."""
+    """Filter out items already in the DB (by DOI or normalized title+year match)."""
     if not items:
         return []
 
@@ -112,12 +136,11 @@ async def filter_new_items(
     conditions: list = []
     if dois:
         conditions.append(func.lower(Paper.doi).in_(dois))
-    # For items without DOI, check title + year
-    for i in items:
-        if not i.doi:
-            conditions.append(
-                (Paper.title == i.title) & (Paper.year == i.year)
-            )
+    # For non-DOI items, fetch by year then normalize title in Python.
+    # ponytail: simpler than cross-DB SQL normalize; batch size < 100 so O(n) is fine.
+    non_doi_years = {i.year for i in items if not i.doi and i.year is not None}
+    for year in non_doi_years:
+        conditions.append((Paper.doi.is_(None)) & (Paper.year == year))
 
     if not conditions:
         return items
@@ -134,13 +157,16 @@ async def filter_new_items(
     rows = result.fetchall()
 
     existing_dois: set[str] = {row.doi_lower for row in rows if row.doi_lower}
-    existing_title_years: set[tuple[str, int | None]] = {(row.title, row.year) for row in rows if not row.doi_lower}
+    existing_title_years: set[tuple[str, int | None]] = {
+        (LiteratureItem.normalized_title(row.title), row.year)
+        for row in rows if not row.doi_lower and row.title
+    }
 
     new_items: list[LiteratureItem] = []
     for item in items:
         if item.doi and item.doi.lower().strip() in existing_dois:
             continue
-        if not item.doi and (item.title, item.year) in existing_title_years:
+        if not item.doi and (LiteratureItem.normalized_title(item.title), item.year) in existing_title_years:
             continue
         new_items.append(item)
     return new_items

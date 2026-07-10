@@ -46,7 +46,7 @@ async def search(
         identifier = d.get("identifier", "")
         source_url = f"https://archive.org/details/{identifier}" if identifier else ""
         doi = _extract_doi(d)
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=d.get("title", ""),
             source="internet_archive",
             source_url=source_url,
@@ -58,7 +58,9 @@ async def search(
             journal="",
             is_open_access=_is_ia_oa(d),
             language=_first_lang(d),
-        ))
+        )
+        if item is not None:
+            items.append(item)
 
     return items, total
 

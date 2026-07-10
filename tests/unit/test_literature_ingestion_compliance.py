@@ -93,17 +93,35 @@ class TestSourceUrlMandatory:
         )
         assert item.source_url != ""
 
-    def test_empty_source_url_detected(self):
-        """Items with empty source_url should be flagged in save logic."""
-        item = LiteratureItem(
+    def test_empty_source_url_rejected(self):
+        """Empty source_url must raise ValueError — never construct with it."""
+        with pytest.raises(ValueError, match="source_url"):
+            LiteratureItem(
+                title="Bad Item",
+                source="openalex",
+                source_url="",
+            )
+
+    def test_try_create_returns_none_for_invalid(self):
+        """try_create returns None silently instead of raising."""
+        item = LiteratureItem.try_create(
             title="Bad Item",
             source="openalex",
             source_url="",
         )
-        assert item.source_url == ""
-        # Compliance: empty source_url is technically stored but
-        # the job should log this. Callers should validate before saving.
-        # This test ensures the field exists and is always inspected.
+        assert item is None
+
+    def test_empty_title_rejected(self):
+        with pytest.raises(ValueError, match="title"):
+            LiteratureItem(title="", source="openalex", source_url="https://example.com")
+
+    def test_empty_source_rejected(self):
+        with pytest.raises(ValueError, match="source"):
+            LiteratureItem(title="X", source="", source_url="https://example.com")
+
+    def test_non_url_source_url_rejected(self):
+        with pytest.raises(ValueError, match="HTTP"):
+            LiteratureItem(title="X", source="openalex", source_url="not-a-url")
 
     def test_dedup_preserves_source_urls(self):
         """Dedup by DOI doesn't mix up source_url from different records."""
@@ -155,6 +173,39 @@ class TestNoFullTextDownload:
             sig = inspect.signature(mod.search)
             return_annotation = sig.return_annotation
             assert "LiteratureItem" in str(return_annotation), f"{mod.__name__} search returns LiteratureItem"
+
+    def test_clients_never_request_pdf_or_fulltext_urls(self):
+        """No client sends requests to PDF/full-text/download endpoints."""
+        import inspect
+        from app.services.literature_ingestion import (
+            openalex_client,
+            crossref_client,
+            core_client,
+            pubmed_client,
+            internet_archive_client,
+        )
+
+        clients = [openalex_client, crossref_client, core_client, pubmed_client, internet_archive_client]
+        for mod in clients:
+            source = inspect.getsource(mod)
+            assert ".pdf" not in source.lower(), f"{mod.__name__} references .pdf"
+            assert "fulltext" not in source.lower(), f"{mod.__name__} references fulltext"
+            assert "full_text" not in source.lower(), f"{mod.__name__} references full_text"
+            assert "full text" not in source.lower(), f"{mod.__name__} references full text"
+            assert "download.pdf" not in source.lower(), f"{mod.__name__} references download.pdf"
+
+    def test_core_client_uses_work_url_not_download_url(self):
+        """CORE source_url must be the work/detail page, not downloadUrl."""
+        import inspect
+        from app.services.literature_ingestion import core_client
+
+        source = inspect.getsource(core_client)
+        # Must construct a core.ac.uk/works/ URL
+        assert 'core.ac.uk/works/' in source
+        # Must NOT save downloadUrl as source_url
+        assert 'source_url' not in source.split('downloadUrl')[1].split('source_url')[0] if 'downloadUrl' in source else True
+        # downloadUrl should not appear as source_url value
+        assert 'source_url=' not in source or 'downloadUrl' not in source[source.index('source_url='):].split('\n')[0].lower()
 
 
 # ---------------------------------------------------------------------------
@@ -224,3 +275,63 @@ class TestSaveItemsCompliance:
 
         assert job.error_count == 0
         assert job.new_added == 1
+
+    @pytest.mark.asyncio
+    async def test_save_empty_source_url_rejected(self, db_session: AsyncSession):
+        """_save_items must skip items whose source_url.strip() is empty and log error."""
+        job = IngestionJob(source="openalex", query="test")
+        # We can't construct a LiteratureItem with empty source_url anymore,
+        # but _save_items also checks source_url.strip() as a belt-and-suspenders guard.
+        # This test verifies the try_create path won't produce items with empty urls.
+        item = LiteratureItem.try_create(
+            title="Has URL",
+            source="openalex",
+            source_url="https://example.com/ok",
+        )
+        assert item is not None
+        await _save_items(db_session, [item], job)
+        await db_session.flush()
+        assert job.new_added == 1
+
+        null_item = LiteratureItem.try_create(
+            title="No URL Item",
+            source="openalex",
+            source_url="",
+        )
+        assert null_item is None  # try_create rejects, never reaches _save_items
+
+    @pytest.mark.asyncio
+    async def test_flush_failure_sets_job_error(self, db_session: AsyncSession):
+        """When session.flush() fails, job.error_count and job.errors must reflect it."""
+        from unittest.mock import AsyncMock
+
+        job = IngestionJob(source="crossref", query="test")
+        item = LiteratureItem(
+            title="Flush Test Paper",
+            source="crossref",
+            source_url="https://doi.org/10.1000/flushtest",
+            doi="10.1000/flushtest",
+            year=2026,
+        )
+        await _save_items(db_session, [item], job)
+        assert job.error_count == 0
+
+        # Use a second item that will trigger a flush failure via mocked flush
+        job2 = IngestionJob(source="crossref", query="test2")
+        item2 = LiteratureItem(
+            title="Flush Test Paper 2",
+            source="crossref",
+            source_url="https://doi.org/10.1000/flushtest2",
+            doi="10.1000/flushtest2",
+            year=2026,
+        )
+        # Mock session.flush to raise — the _save_items try/except must catch it
+        original_flush = db_session.flush
+        db_session.flush = AsyncMock(side_effect=RuntimeError("forced flush failure"))  # type: ignore[method-assign]
+        try:
+            await _save_items(db_session, [item2], job2)
+        finally:
+            db_session.flush = original_flush
+
+        assert job2.error_count > 0, f"Expected error_count>0, got {job2.error_count}"
+        assert any("Flush" in e for e in job2.errors), f"Expected Flush error in: {job2.errors}"

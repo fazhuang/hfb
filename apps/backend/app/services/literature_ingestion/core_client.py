@@ -49,10 +49,10 @@ async def search(
         )
         kw = ", ".join(w.get("subjects", []) or [])
         doi = w.get("doi", "") or ""
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=w.get("title", ""),
             source="core",
-            source_url=w.get("downloadUrl", "") or f"https://core.ac.uk/works/{w.get('id', '')}",
+            source_url=f"https://core.ac.uk/works/{w.get('id', '')}" if w.get("id") else "",
             authors=authors,
             year=w.get("yearPublished"),
             abstract=w.get("abstract", "") or "",
@@ -61,6 +61,8 @@ async def search(
             journal=w.get("publisher", "") or "",
             is_open_access=bool(w.get("downloadUrl")),
             language=w.get("language", {}).get("code", "en") if isinstance(w.get("language"), dict) else "en",
-        ))
+        )
+        if item is not None:
+            items.append(item)
 
     return items, total

@@ -58,10 +58,10 @@ async def _search_europe_pmc(
     items: list[LiteratureItem] = []
     for r in result:
         doi = r.get("doi", "") or ""
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=r.get("title", ""),
             source="pubmed",
-            source_url=f"https://europepmc.org/article/MED/{r.get('id', '')}" if r.get("id") else r.get("source", ""),
+            source_url=f"https://europepmc.org/article/MED/{r.get('id', '')}" if r.get("id") else "",
             authors=r.get("authorString", ""),
             year=int(r.get("pubYear", 0)) if r.get("pubYear") else None,
             abstract=r.get("abstractText", "") or "",
@@ -70,10 +70,12 @@ async def _search_europe_pmc(
             journal=r.get("journalTitle", "") or r.get("journalInfo", {}).get("journal", {}).get("title", ""),
             is_open_access=_check_epmc_oa(r),
             language=r.get("language", "en") or "en",
-        ))
-        # keywords may be list
-        if isinstance(items[-1].keywords, list):
-            items[-1].keywords = ", ".join(items[-1].keywords)
+        )
+        if item is not None:
+            items.append(item)
+            # keywords may be list
+            if isinstance(item.keywords, list):
+                item.keywords = ", ".join(item.keywords)
 
     return items, total
 
@@ -160,7 +162,7 @@ def _parse_pubmed_xml(xml_text: str) -> list[LiteratureItem]:
                 kw_list.append(kw.text)
 
         pmid = medline.findtext("PMID") or ""
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=title,
             source="pubmed",
             source_url=f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/" if pmid else "",
@@ -172,7 +174,9 @@ def _parse_pubmed_xml(xml_text: str) -> list[LiteratureItem]:
             journal=journal,
             is_open_access=False,  # PubMed doesn't tag OA directly
             language="en",
-        ))
+        )
+        if item is not None:
+            items.append(item)
 
     return items
 

@@ -70,7 +70,7 @@ async def search(
         kw = ", ".join(
             c.get("display_name", "") for c in w.get("concepts", [])[:10]
         )
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=w.get("title", ""),
             source="openalex",
             source_url=w.get("id", ""),
@@ -82,7 +82,9 @@ async def search(
             journal=_host_venue_name(w),
             is_open_access=w.get("open_access", {}).get("is_oa", False),
             language=w.get("language", "en") or "en",
-        ))
+        )
+        if item is not None:
+            items.append(item)
 
     return items, total
 

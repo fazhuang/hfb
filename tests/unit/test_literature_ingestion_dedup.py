@@ -152,6 +152,50 @@ class TestFilterNewItems:
         result = await filter_new_items(db_session, items)
         assert len(result) == 0
 
+    @pytest.mark.asyncio
+    async def test_title_year_case_insensitive_dedup(self, db_session: AsyncSession):
+        """DB dedup must be case-insensitive for non-DOI records."""
+        existing = Paper(
+            title="ZHENJIU JIAYI JING",
+            year=2019,
+            source_url="https://existing.example",
+        )
+        db_session.add(existing)
+        await db_session.flush()
+
+        items = [
+            LiteratureItem(
+                title="zhenjiu jiayi jing",
+                source="pubmed",
+                source_url="https://new.example",
+                year=2019,
+            ),
+        ]
+        result = await filter_new_items(db_session, items)
+        assert len(result) == 0
+
+    @pytest.mark.asyncio
+    async def test_title_year_whitespace_insensitive_dedup(self, db_session: AsyncSession):
+        """DB dedup must be whitespace-insensitive for non-DOI records."""
+        existing = Paper(
+            title="Huangfu Mi Study",
+            year=2018,
+            source_url="https://existing.example",
+        )
+        db_session.add(existing)
+        await db_session.flush()
+
+        items = [
+            LiteratureItem(
+                title="  Huangfu   Mi   Study  ",
+                source="core",
+                source_url="https://new.example",
+                year=2018,
+            ),
+        ]
+        result = await filter_new_items(db_session, items)
+        assert len(result) == 0
+
 
 class TestCrossSourceDedup:
     """Same paper from different sources should dedup to one record."""
@@ -184,6 +228,38 @@ class TestCrossSourceDedup:
             title="黄帝内经考",
             source="core",
             source_url="https://core.example/1",
+            year=2020,
+        )
+        assert a.dedup_key() == b.dedup_key()
+
+    def test_title_case_insensitive_dedup(self):
+        """Titles differing only in case should produce same dedup key."""
+        a = LiteratureItem(
+            title="Zhenjiu Jiayi Jing",
+            source="openalex",
+            source_url="https://oa.example/1",
+            year=2019,
+        )
+        b = LiteratureItem(
+            title="ZHENJIU JIAYI JING",
+            source="crossref",
+            source_url="https://cr.example/1",
+            year=2019,
+        )
+        assert a.dedup_key() == b.dedup_key()
+
+    def test_title_whitespace_insensitive_dedup(self):
+        """Leading/trailing/multiple whitespace should be normalized."""
+        a = LiteratureItem(
+            title="  Huangfu Mi  Study  ",
+            source="openalex",
+            source_url="https://oa.example/1",
+            year=2020,
+        )
+        b = LiteratureItem(
+            title="huangfu mi study",
+            source="pubmed",
+            source_url="https://pm.example/1",
             year=2020,
         )
         assert a.dedup_key() == b.dedup_key()

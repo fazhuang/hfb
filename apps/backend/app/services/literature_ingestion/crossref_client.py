@@ -46,7 +46,7 @@ async def search(
         )
         kw_list = w.get("subject", []) or []
         is_oa = _check_crossref_oa(w)
-        items.append(LiteratureItem(
+        item = LiteratureItem.try_create(
             title=" ".join((w.get("title", []) or [""])[0].split()),
             source="crossref",
             source_url=f"https://doi.org/{doi}" if doi else w.get("URL", ""),
@@ -59,7 +59,9 @@ async def search(
             journal=" ".join((w.get("container-title", []) or [""])[0].split()),
             is_open_access=is_oa,
             language=w.get("language", "en") or "en",
-        ))
+        )
+        if item is not None:
+            items.append(item)
 
     return items, total
 

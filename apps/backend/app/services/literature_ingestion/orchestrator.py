@@ -136,6 +136,12 @@ async def _save_items(
     added = 0
     for item in items:
         try:
+            # Reject items with empty or non-URL source_url
+            if not item.source_url.strip():
+                job.error_count += 1
+                job.errors.append(f"Save {item.title[:80]}: empty source_url")
+                continue
+
             # Check DOI uniqueness again (race-safe within transaction)
             if item.doi:
                 stmt = select(Paper.id).where(
@@ -144,6 +150,27 @@ async def _save_items(
                 )
                 existing = await session.execute(stmt)
                 if existing.scalar_one_or_none():
+                    continue
+            else:
+                # Check normalized title+year for non-DOI records
+                norm_title = LiteratureItem.normalized_title(item.title)
+                stmt = select(Paper.id).where(
+                    Paper.is_deleted.is_(False),
+                    Paper.year == item.year,
+                )
+                rows = await session.execute(stmt)
+                existing = rows.scalars().all()
+                # ponytail: O(n) in-memory check for small result sets
+                duplicate = False
+                for pid in existing:
+                    # Fetch title to compare normalized
+                    title_stmt = select(Paper.title).where(Paper.id == pid)
+                    title_result = await session.execute(title_stmt)
+                    db_title = title_result.scalar_one()
+                    if LiteratureItem.normalized_title(db_title) == norm_title:
+                        duplicate = True
+                        break
+                if duplicate:
                     continue
 
             paper = Paper(
@@ -163,5 +190,9 @@ async def _save_items(
             job.error_count += 1
             job.errors.append(f"Save {item.title[:80]}: {type(e).__name__}: {e}")
 
-    await session.flush()
+    try:
+        await session.flush()
+    except Exception as e:
+        job.error_count += 1
+        job.errors.append(f"Flush failed: {type(e).__name__}: {e}")
     job.new_added = added
