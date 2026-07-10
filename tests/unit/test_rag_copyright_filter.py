@@ -11,6 +11,7 @@ Covers:
 from __future__ import annotations
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.db.base import Base
@@ -310,3 +311,82 @@ class TestCommercialMetadataExclusion:
             assert e.document_title == "正常文献", (
                 f"Only allowed docs should appear, got: {e.document_title}"
             )
+
+
+@pytest.mark.anyio
+class TestAuthorizationBasisGate:
+    """public_domain + rag_enabled=True but empty authorization_basis → refused."""
+
+    async def test_public_domain_no_authorization_basis_refused(self, db_session):
+        """public_domain + rag_enabled=True + authorization_basis='' + license_type=None → refusal."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        doc = _make_doc(
+            "无授权公版", "public_domain", rag_enabled=True,
+            authorization_basis="",  # empty — polluting
+        )
+        db_session.add(doc)
+        await db_session.flush()
+        db_session.add(_make_chunk(doc.id, "无授权公版"))
+        await db_session.flush()
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("无授权")
+
+        assert resp.refusal is True, (
+            f"public_domain without authorization_basis or license_type must refuse, "
+            f"got refusal={resp.refusal}, evidence={len(resp.evidence)}"
+        )
+        assert resp.citations == []
+        assert resp.evidence == []
+
+    async def test_public_domain_with_license_type_only_allowed(self, db_session):
+        """public_domain + rag_enabled=True + license_type non-empty → allowed even without authorization_basis."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        doc = _make_doc(
+            "许可型公版", "public_domain", rag_enabled=True,
+            authorization_basis="",  # empty — but license_type fills the gap
+        )
+        db_session.add(doc)
+        await db_session.flush()
+        db_session.add(_make_chunk(doc.id, "许可型公版"))
+        await db_session.flush()
+
+        # patch license_type after _make_doc (factory doesn't set it)
+        from app.models.document import Document as DocModel
+        d = (await db_session.execute(
+            select(DocModel).where(DocModel.id == doc.id)
+        )).scalar_one()
+        d.license_type = "CC-BY"
+        await db_session.flush()
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("许可型")
+
+        assert resp.refusal is False, (
+            f"license_type alone should satisfy auth gate, got refusal={resp.refusal}"
+        )
+        assert len(resp.evidence) > 0
+        for e in resp.evidence:
+            assert "许可型公版" in e.document_title
+
+    async def test_open_access_no_authorization_basis_refused(self, db_session):
+        """open_access + rag_enabled=True + empty auth → refusal."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        doc = _make_doc(
+            "无授权OA", "open_access", rag_enabled=True,
+            authorization_basis="",
+        )
+        db_session.add(doc)
+        await db_session.flush()
+        db_session.add(_make_chunk(doc.id, "无授权OA"))
+        await db_session.flush()
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("无授权")
+
+        assert resp.refusal is True
+        assert resp.citations == []
+        assert resp.evidence == []

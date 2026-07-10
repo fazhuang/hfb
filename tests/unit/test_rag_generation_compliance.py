@@ -62,6 +62,27 @@ async def _seed_doc(session, title, copyright_status, rag_enabled, content, auth
     return doc.id, chunk.id
 
 
+async def _seed_doc_withdrawn(session, title, copyright_status, rag_enabled, content, auth_basis="", source_url=""):
+    """Seed a compliant doc + chunk, then set withdrawn_at (polluted state).
+
+    Returns (doc_id, chunk_id, doc_withdrawn_at).
+    """
+    from datetime import datetime, timezone
+    doc_id, chunk_id = await _seed_doc(session, title, copyright_status, rag_enabled, content, auth_basis, source_url)
+    from app.models.document import Document as DocModel
+    d = (await session.execute(select(DocModel).where(DocModel.id == doc_id))).scalar_one()
+    d.withdrawn_at = datetime.now(timezone.utc)
+    # pollute: soft-deleted=False, rag_enabled=True — withdrawn_at is the only guard
+    d.is_deleted = False
+    d.rag_enabled = True
+    # also ensure chunk is not soft-deleted
+    from app.models.document_chunk import DocumentChunk as ChunkModel
+    c = (await session.execute(select(ChunkModel).where(ChunkModel.id == chunk_id))).scalar_one()
+    c.is_deleted = False
+    await session.flush()
+    return doc_id, chunk_id, d.withdrawn_at
+
+
 # ============================================================
 # GenerationPipeline-level copyright gate
 # ============================================================
@@ -201,6 +222,364 @@ class TestGenerationPipelineCopyrightGate:
             assert r.get("copyright_status") in {
                 "public_domain", "open_access", "licensed", "user_uploaded_with_permission"
             }, f"Non-compliant copyright_status leaked: {r.get('copyright_status')}"
+
+
+# ============================================================
+# Authorization basis / license_type gate — Context 22 recheck
+# ============================================================
+
+
+@pytest.mark.anyio
+class TestAuthorizationBasisGate:
+    """query-time auth-basis check: public_domain + rag_enabled=True
+    but empty authorization_basis & license_type → refused."""
+
+    # ------------------------------------------------------------------
+    # EvidenceRAGService
+    # ------------------------------------------------------------------
+
+    async def test_evidence_rag_public_domain_no_auth_refused(self, db_session):
+        """EvidenceRAGService: public_domain + rag_enabled=True + no auth → refusal=True."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        await _seed_doc(db_session, "公版无授权", "public_domain", True,
+                        "公版文献但没有授权依据的全文内容。",
+                        auth_basis="")
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("公版无授权")
+
+        assert resp.refusal is True, (
+            f"Expected refusal for no-auth doc, got refusal={resp.refusal}"
+        )
+        assert resp.citations == []
+        assert resp.evidence == []
+
+    async def test_evidence_rag_license_type_only_allowed(self, db_session):
+        """EvidenceRAGService: license_type non-empty → allowed even without authorization_basis."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        doc_id, _ = await _seed_doc(db_session, "许可公版", "public_domain", True,
+                                     "授权公版文献的全文内容。",
+                                     auth_basis="")
+        # patch license_type after _seed_doc
+        from app.models.document import Document as DocModel
+        d = (await db_session.execute(
+            select(DocModel).where(DocModel.id == doc_id)
+        )).scalar_one()
+        d.license_type = "CC-BY"
+        await db_session.flush()
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("授权公版")
+
+        assert resp.refusal is False, (
+            f"license_type alone should satisfy auth gate, got refusal={resp.refusal}"
+        )
+        assert len(resp.evidence) > 0
+
+    # ------------------------------------------------------------------
+    # GenerationPipeline
+    # ------------------------------------------------------------------
+
+    async def test_generation_pipeline_no_auth_refused(self, db_session):
+        """GenerationPipeline: public_domain + rag_enabled=True + no auth → EVIDENCE_GATE_REFUSAL."""
+        from app.services.generation_service import GenerationPipeline
+
+        await _seed_doc(db_session, "公版无授权", "public_domain", True,
+                        "公版文献但没有授权依据的全文内容。",
+                        auth_basis="")
+
+        pipeline = GenerationPipeline(db_session)
+        result = await pipeline.generate("公版无授权", top_k=5)
+
+        assert "EVIDENCE_GATE_REFUSAL" in result.answer, (
+            f"Expected refusal, got: {result.answer[:200]}"
+        )
+        assert result.results == []
+        assert result.citations == []
+
+    async def test_generation_pipeline_license_type_only_allowed(self, db_session):
+        """GenerationPipeline: license_type non-empty → still allowed."""
+        from app.services.generation_service import GenerationPipeline
+
+        doc_id, _ = await _seed_doc(db_session, "许可公版", "public_domain", True,
+                                     "授权公版文献的全文内容。",
+                                     auth_basis="")
+        from app.models.document import Document as DocModel
+        d = (await db_session.execute(
+            select(DocModel).where(DocModel.id == doc_id)
+        )).scalar_one()
+        d.license_type = "CC-BY"
+        await db_session.flush()
+
+        pipeline = GenerationPipeline(db_session)
+        result = await pipeline.generate("授权公版", top_k=5)
+
+        assert "EVIDENCE_GATE_REFUSAL" not in result.answer, (
+            f"license_type alone should satisfy auth gate, got: {result.answer[:200]}"
+        )
+        assert len(result.citations) >= 1
+
+    # ------------------------------------------------------------------
+    # API endpoint — /api/v1/ai/generate
+    # ------------------------------------------------------------------
+
+    async def test_api_generate_public_domain_no_auth_refused(self, api_db_session):
+        """POST /api/v1/ai/generate: public_domain + rag_enabled=True + no auth → refusal."""
+        import httpx
+        from app.db.database import get_session
+        from app.middleware.auth import get_current_user
+        from app.api.v1.ai import guard_ai_read
+
+        await _seed_doc(api_db_session, "无授权公版", "public_domain", True,
+                        "公版文献但没有授权依据的全文内容。",
+                        auth_basis="")
+        await api_db_session.commit()
+
+        app = _make_test_app()
+
+        async def override_get_session():
+            yield api_db_session
+
+        async def override_get_current_user():
+            return "test-user"
+
+        async def override_guard_ai_read():
+            pass
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_current_user] = override_get_current_user
+        app.dependency_overrides[guard_ai_read] = override_guard_ai_read
+
+        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/v1/ai/generate", json={"query": "授权公版", "top_k": 5})
+            assert resp.status_code == 200
+            data = resp.json()
+            inner = data["data"]
+            assert "EVIDENCE_GATE_REFUSAL" in inner["answer"], (
+                f"Expected refusal for no-auth doc, got: {inner['answer'][:200]}"
+            )
+            assert inner["results"] == []
+            assert inner["citations"] == []
+
+    async def test_api_generate_license_type_only_allowed(self, api_db_session):
+        """POST /api/v1/ai/generate: license_type alone → success."""
+        import httpx
+        from app.db.database import get_session
+        from app.middleware.auth import get_current_user
+        from app.api.v1.ai import guard_ai_read
+
+        doc_id, _ = await _seed_doc(api_db_session, "许可公版", "public_domain", True,
+                                     "授权公版文献的全文内容。",
+                                     auth_basis="")
+        from app.models.document import Document as DocModel
+        d = (await api_db_session.execute(
+            select(DocModel).where(DocModel.id == doc_id)
+        )).scalar_one()
+        d.license_type = "CC-BY"
+        await api_db_session.commit()
+
+        app = _make_test_app()
+
+        async def override_get_session():
+            yield api_db_session
+
+        async def override_get_current_user():
+            return "test-user"
+
+        async def override_guard_ai_read():
+            pass
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_current_user] = override_get_current_user
+        app.dependency_overrides[guard_ai_read] = override_guard_ai_read
+
+        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/v1/ai/generate", json={"query": "授权公版", "top_k": 5})
+            assert resp.status_code == 200
+            data = resp.json()
+            inner = data["data"]
+            assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"], (
+                f"license_type alone should satisfy auth gate, got: {inner['answer'][:200]}"
+            )
+            assert len(inner["citations"]) >= 1
+
+
+# ============================================================
+# Withdrawn-at pollution gate — Context 22 recheck
+# ============================================================
+
+
+@pytest.mark.anyio
+class TestWithdrawnAtGate:
+    """withdrawn_at != NULL + is_deleted=False + rag_enabled=True
+    + all other fields compliant → must refusal."""
+
+    # ------------------------------------------------------------------
+    # EvidenceRAGService
+    # ------------------------------------------------------------------
+
+    async def test_evidence_rag_withdrawn_pollution_refused(self, db_session):
+        """EvidenceRAGService: withdrawn doc with everything else clean → refusal=True, evidence=[]."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        await _seed_doc_withdrawn(db_session, "撤回文献", "public_domain", True,
+                                   "已撤回但其他字段都合规的全文内容。",
+                                   auth_basis="public domain")
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("已撤回")
+
+        assert resp.refusal is True, (
+            f"Withdrawn doc must be refused, got refusal={resp.refusal}"
+        )
+        assert resp.citations == []
+        assert resp.evidence == []
+
+    async def test_evidence_rag_clean_withdrawn_none_allowed(self, db_session):
+        """EvidenceRAGService: withdrawn_at=NULL + all compliant → allowed."""
+        from app.services.evidence_rag_service import EvidenceRAGService
+
+        await _seed_doc(db_session, "正常公版", "public_domain", True,
+                        "正常公版文献全文内容。",
+                        auth_basis="public domain")
+
+        svc = EvidenceRAGService(db_session)
+        resp = await svc.query("正常公版")
+
+        assert resp.refusal is False, (
+            f"Clean doc must be allowed, got refusal={resp.refusal}"
+        )
+        assert len(resp.evidence) > 0
+
+    # ------------------------------------------------------------------
+    # GenerationPipeline
+    # ------------------------------------------------------------------
+
+    async def test_generation_pipeline_withdrawn_pollution_refused(self, db_session):
+        """GenerationPipeline: withdrawn doc → EVIDENCE_GATE_REFUSAL, results=[], citations=[]."""
+        from app.services.generation_service import GenerationPipeline
+
+        await _seed_doc_withdrawn(db_session, "撤回文献", "public_domain", True,
+                                   "已撤回但其他字段都合规的全文内容。",
+                                   auth_basis="public domain")
+
+        pipeline = GenerationPipeline(db_session)
+        result = await pipeline.generate("已撤回", top_k=5)
+
+        assert "EVIDENCE_GATE_REFUSAL" in result.answer, (
+            f"Expected refusal for withdrawn doc, got: {result.answer[:200]}"
+        )
+        assert result.results == []
+        assert result.citations == []
+        assert result.metadata.error_code == "EMPTY_RETRIEVAL"
+
+    async def test_generation_pipeline_clean_withdrawn_none_allowed(self, db_session):
+        """GenerationPipeline: withdrawn_at=NULL + compliant → success with provenance."""
+        from app.services.generation_service import GenerationPipeline
+
+        await _seed_doc(db_session, "正常公版", "public_domain", True,
+                        "皇甫谧编撰《针灸甲乙经》，系统整理魏晋以前针灸学成就。",
+                        auth_basis="public domain",
+                        source_url="https://ctext.org/jiayi")
+
+        pipeline = GenerationPipeline(db_session)
+        result = await pipeline.generate("皇甫谧", top_k=5)
+
+        assert "EVIDENCE_GATE_REFUSAL" not in result.answer, (
+            f"Clean doc must be allowed, got: {result.answer[:200]}"
+        )
+        assert result.metadata.citation_validation["is_valid"] is True
+        assert len(result.citations) >= 1
+        # provenance
+        for c in result.citations:
+            assert "source_url" in c
+
+    # ------------------------------------------------------------------
+    # API endpoint — /api/v1/ai/generate
+    # ------------------------------------------------------------------
+
+    async def test_api_generate_withdrawn_pollution_refused(self, api_db_session):
+        """POST /api/v1/ai/generate: withdrawn doc → refusal envelope, results=[], citations=[]."""
+        import httpx
+        from app.db.database import get_session
+        from app.middleware.auth import get_current_user
+        from app.api.v1.ai import guard_ai_read
+
+        await _seed_doc_withdrawn(api_db_session, "撤回文献", "public_domain", True,
+                                   "已撤回但其他字段都合规的全文内容。",
+                                   auth_basis="public domain")
+        await api_db_session.commit()
+
+        app = _make_test_app()
+
+        async def override_get_session():
+            yield api_db_session
+
+        async def override_get_current_user():
+            return "test-user"
+
+        async def override_guard_ai_read():
+            pass
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_current_user] = override_get_current_user
+        app.dependency_overrides[guard_ai_read] = override_guard_ai_read
+
+        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/v1/ai/generate", json={"query": "撤回文献", "top_k": 5})
+            assert resp.status_code == 200
+            data = resp.json()
+            inner = data["data"]
+            assert "EVIDENCE_GATE_REFUSAL" in inner["answer"], (
+                f"Expected refusal for withdrawn doc, got: {inner['answer'][:200]}"
+            )
+            assert inner["results"] == []
+            assert inner["citations"] == []
+
+    async def test_api_generate_clean_withdrawn_none_allowed(self, api_db_session):
+        """POST /api/v1/ai/generate: withdrawn_at=NULL → success with provenance."""
+        import httpx
+        from app.db.database import get_session
+        from app.middleware.auth import get_current_user
+        from app.api.v1.ai import guard_ai_read
+
+        await _seed_doc(api_db_session, "正常公版", "public_domain", True,
+                        "皇甫谧编撰《针灸甲乙经》，系统整理魏晋以前针灸学成就。",
+                        auth_basis="public domain",
+                        source_url="https://ctext.org/jiayi")
+        await api_db_session.commit()
+
+        app = _make_test_app()
+
+        async def override_get_session():
+            yield api_db_session
+
+        async def override_get_current_user():
+            return "test-user"
+
+        async def override_guard_ai_read():
+            pass
+
+        app.dependency_overrides[get_session] = override_get_session
+        app.dependency_overrides[get_current_user] = override_get_current_user
+        app.dependency_overrides[guard_ai_read] = override_guard_ai_read
+
+        transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.post("/api/v1/ai/generate", json={"query": "皇甫谧", "top_k": 5})
+            assert resp.status_code == 200
+            data = resp.json()
+            inner = data["data"]
+            assert "EVIDENCE_GATE_REFUSAL" not in inner["answer"], (
+                f"Clean doc must succeed, got: {inner['answer'][:200]}"
+            )
+            assert len(inner["citations"]) >= 1
+            assert len(inner["results"]) >= 1
 
 
 # ============================================================

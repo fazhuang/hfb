@@ -31,6 +31,39 @@ _COMPLIANT_COPYRIGHT_STATUSES = frozenset({
 })
 
 
+def _compliance_clauses(
+    *,
+    rag_col,
+    status_col,
+    auth_col,
+    license_col,
+    withdrawn_col,
+) -> list:
+    """Return SQL WHERE clauses for the full compliance predicate.
+
+    Used by both RetrievalService (strict_compliance) and
+    EvidenceRAGService (_retrieve_evidence_chunks).
+
+    Predicate (AND):
+      1. rag_enabled is True
+      2. copyright_status in compliant set
+      3. (authorization_basis non-empty) OR (license_type non-empty)
+      4. withdrawn_at IS NULL — guards against rows soft-deleted via withdrawal
+         that still have is_deleted=False / rag_enabled=True
+    """
+    from sqlalchemy import or_
+
+    return [
+        rag_col.is_(True),
+        status_col.in_(_COMPLIANT_COPYRIGHT_STATUSES),
+        or_(
+            auth_col.isnot(None) & (auth_col != ""),
+            license_col.isnot(None) & (license_col != ""),
+        ),
+        withdrawn_col.is_(None),
+    ]
+
+
 @dataclass
 class RetrievalResult:
     """A single retrieval result with citation metadata."""
@@ -110,10 +143,13 @@ class RetrievalService:
             Document.is_deleted.is_(False),
         )
         if strict_compliance:
-            stmt = stmt.where(
-                Document.rag_enabled.is_(True),
-                Document.copyright_status.in_(_COMPLIANT_COPYRIGHT_STATUSES),
-            )
+            stmt = stmt.where(*_compliance_clauses(
+                rag_col=Document.rag_enabled,
+                status_col=Document.copyright_status,
+                auth_col=Document.authorization_basis,
+                license_col=Document.license_type,
+                withdrawn_col=Document.withdrawn_at,
+            ))
         if document_id:
             stmt = stmt.where(DocumentChunk.document_id == document_id)
         if year is not None:

@@ -25,12 +25,14 @@ from app.schemas.evidence_rag import (
     EvidenceCitation,
     EvidenceRAGResponse,
 )
+from app.services.retrieval import _compliance_clauses
 
 
 # Threshold below which OCR content is only advisory
 OCR_PRIMARY_THRESHOLD = 0.7
 
-# Copyright statuses allowed in evidence retrieval
+# Copyright statuses allowed in evidence retrieval — keep local copy for
+# independent readability, _compliance_clauses is the authoritative gate.
 _COMPLIANT_COPYRIGHT_STATUSES = frozenset({
     "public_domain",
     "open_access",
@@ -108,12 +110,13 @@ class EvidenceRAGService:
     async def _retrieve_evidence_chunks(
         self, keywords: list[str]
     ) -> list[DocumentChunk]:
-        """Retrieve chunks ONLY from rag_enabled=true, copyright-compliant, non-deleted documents.
+        """Retrieve chunks ONLY from rag_enabled=true, copyright-compliant,
+        authorization-backed, non-deleted documents.
 
-        Copyright gate (Context 22): even if rag_enabled=True, forbidden statuses
-        (commercial_restricted, metadata_only, forbidden_fulltext, pirated, unknown)
-        are excluded. The allowlist is public_domain, open_access, licensed,
-        user_uploaded_with_permission.
+        Copyright gate (Context 22): even if rag_enabled=True +
+        copyright_status in allowlist, documents without authorization_basis
+        or license_type are excluded. The authoritative predicate is
+        _compliance_clauses from retrieval.py.
         """
         kw_filters = [
             DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
@@ -125,8 +128,13 @@ class EvidenceRAGService:
             .where(
                 DocumentChunk.is_deleted.is_(False),
                 Document.is_deleted.is_(False),
-                Document.rag_enabled.is_(True),
-                Document.copyright_status.in_(_COMPLIANT_COPYRIGHT_STATUSES),
+                *_compliance_clauses(
+                    rag_col=Document.rag_enabled,
+                    status_col=Document.copyright_status,
+                    auth_col=Document.authorization_basis,
+                    license_col=Document.license_type,
+                    withdrawn_col=Document.withdrawn_at,
+                ),
                 or_(*kw_filters),
             )
             .limit(200)  # ponytail: reasonable upper bound, tune if real-world needs more
