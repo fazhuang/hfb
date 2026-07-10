@@ -13,6 +13,7 @@ from app.db.base import Base
 
 # Import all models to ensure they are registered on Base.metadata
 from app.models import (
+    ClassicalVersion,  # noqa: F401
     Document,  # noqa: F401
     DocumentChunk,  # noqa: F401
     Commentary,  # noqa: F401

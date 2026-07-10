@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from app.models.book import Book
 from app.models.chapter import Chapter
+from app.models.classical_version import ClassicalVersion
 from app.models.commentary import Commentary
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -44,6 +45,7 @@ __all__ = [
     "Chapter",
     "Citation",
     "CitationCollection",
+    "ClassicalVersion",
     "Commentary",
     "Document",
     "DocumentChunk",
