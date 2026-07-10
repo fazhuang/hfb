@@ -11,7 +11,8 @@ def chunk_text(
     text: str,
     max_chars: int = 1000,
     overlap_chars: int = 0,
-) -> list[str]:
+    return_indices: bool = False,
+) -> list[str] | list[tuple[str, int]]:
     """Split text into chunks on paragraph boundaries.
 
     Deterministic algorithm:
@@ -20,13 +21,14 @@ def chunk_text(
       3. If a single paragraph exceeds max_chars, split at sentence
          boundaries within it (fallback: character split).
 
-    Returns list of chunk strings.
+    If return_indices=True, returns list of (chunk, first_paragraph_index).
+    Otherwise returns list of chunk strings.
     """
     if not text or not text.strip():
         return []
 
     paragraphs = _split_paragraphs(text)
-    return _build_chunks(paragraphs, max_chars)
+    return _build_chunks(paragraphs, max_chars, return_indices=return_indices)
 
 
 def _split_paragraphs(text: str) -> list[str]:
@@ -40,13 +42,22 @@ def _split_paragraphs(text: str) -> list[str]:
     return result
 
 
-def _build_chunks(paragraphs: list[str], max_chars: int) -> list[str]:
-    """Greedy paragraph merging into chunks."""
+def _build_chunks(
+    paragraphs: list[str],
+    max_chars: int,
+    return_indices: bool = False,
+) -> list[str] | list[tuple[str, int]]:
+    """Greedy paragraph merging into chunks.
+
+    If return_indices=True, each result is (chunk_text, first_paragraph_index).
+    """
     chunks: list[str] = []
+    indices: list[int] = []
     current: list[str] = []
+    current_first_idx: int = 0
     current_len = 0
 
-    for para in paragraphs:
+    for i, para in enumerate(paragraphs):
         para_len = len(para)
 
         # If a single paragraph is too large, split it
@@ -54,10 +65,12 @@ def _build_chunks(paragraphs: list[str], max_chars: int) -> list[str]:
             # Flush current chunk
             if current:
                 chunks.append("\n\n".join(current))
+                indices.append(current_first_idx)
                 current = []
                 current_len = 0
             # Split oversized paragraph
             chunks.extend(_split_long_paragraph(para, max_chars))
+            indices.extend([i] * len(_split_long_paragraph(para, max_chars)))
             continue
 
         # Would adding this paragraph overflow?
@@ -65,15 +78,22 @@ def _build_chunks(paragraphs: list[str], max_chars: int) -> list[str]:
         if current_len + separator_len + para_len > max_chars:
             # Flush current chunk and start a new one
             chunks.append("\n\n".join(current))
+            indices.append(current_first_idx)
             current = [para]
+            current_first_idx = i
             current_len = para_len
         else:
+            if not current:
+                current_first_idx = i
             current.append(para)
             current_len += separator_len + para_len
 
     if current:
         chunks.append("\n\n".join(current))
+        indices.append(current_first_idx)
 
+    if return_indices:
+        return list(zip(chunks, indices))
     return chunks
 
 

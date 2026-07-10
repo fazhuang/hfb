@@ -197,6 +197,8 @@ class IngestionService:
         metadata: dict | None = None,
         max_chunk_chars: int = 1000,
         passage_id: str | None = None,
+        page_number: int | None = None,
+        ocr_confidence: float | None = None,
     ) -> IngestionResult:
         """Ingest a plain-text document: compliance gate → store → chunk → audit.
 
@@ -210,6 +212,8 @@ class IngestionService:
                 or license_type for full-text to be stored.
             max_chunk_chars: Max characters per chunk.
             passage_id: Optional Passage ID for V4 lineage resolution.
+            page_number: Optional page number (1-based) for citation binding.
+            ocr_confidence: Optional OCR confidence 0.0-1.0 for OCR-generated text.
 
         Returns:
             IngestionResult with document_id, chunk_count, total_chars, checksum.
@@ -312,11 +316,27 @@ class IngestionService:
         await self.session.flush()
 
         try:
-            # 2. Chunk
-            chunks = chunk_text(stripped, max_chars=max_chunk_chars)
+            # 2. Chunk with paragraph indices
+            chunks_with_indices = chunk_text(
+                stripped, max_chars=max_chunk_chars, return_indices=True
+            )
+            # If return_indices=True, result is list of (text, first_paragraph_index)
+            # ponytail: backward compat — if old chunk_text returns list[str], wrap
+            if chunks_with_indices and isinstance(chunks_with_indices[0], str):
+                chunk_data: list[tuple[str, int]] = [
+                    (t, -1) for t in chunks_with_indices  # type: ignore[arg-type]
+                ]
+            else:
+                chunk_data = chunks_with_indices  # type: ignore[assignment]
 
-            # 3. Store chunks with passage_id when available
-            await self._store_chunks(doc.id, chunks, passage_id=passage_id)
+            # 3. Store chunks with paragraph_index, page_number, ocr_confidence
+            await self._store_chunks(
+                doc.id,
+                chunk_data,
+                passage_id=passage_id,
+                page_number=page_number,
+                ocr_confidence=ocr_confidence,
+            )
 
             # 4. Audit: success
             await self._write_audit(
@@ -330,13 +350,13 @@ class IngestionService:
                 checksum=checksum,
                 result_entity_type="document",
                 result_entity_id=doc.id,
-                details={"title": title.strip(), "chunk_count": len(chunks)},
+                details={"title": title.strip(), "chunk_count": len(chunk_data)},
             )
 
             return IngestionResult(
                 document_id=doc.id,
                 title=title.strip(),
-                chunk_count=len(chunks),
+                chunk_count=len(chunk_data),
                 total_chars=len(stripped),
                 checksum=checksum,
             )
@@ -370,6 +390,7 @@ class IngestionService:
         metadata: dict | None = None,
         store_raw_pdf: bool = True,
         passage_id: str | None = None,
+        ocr_confidence: float | None = None,
     ) -> IngestionResult:
         """Ingest a PDF file — extract text with pypdf, store content.
 
@@ -384,6 +405,7 @@ class IngestionService:
             store_raw_pdf: If True, store the raw PDF bytes on the Document
                 record so the original source is always traceable.
             passage_id: Optional Passage ID for V4 lineage resolution.
+            ocr_confidence: Optional OCR confidence 0.0-1.0 for OCR-generated PDFs.
 
         Returns:
             IngestionResult with document_id, chunk_count, total_chars, checksum.
@@ -413,6 +435,7 @@ class IngestionService:
             text=text.strip(),
             metadata=extra,
             passage_id=passage_id,
+            ocr_confidence=ocr_confidence,
         )
 
     # ------------------------------------------------------------------
@@ -485,10 +508,24 @@ class IngestionService:
     async def _store_chunks(
         self,
         document_id: str,
-        chunks: list[str],
+        chunks: list[str] | list[tuple[str, int]],
         passage_id: str | None = None,
+        page_number: int | None = None,
+        ocr_confidence: float | None = None,
     ) -> None:
-        for idx, text in enumerate(chunks):
+        """Store chunks with optional paragraph_index, page_number, ocr_confidence."""
+        for idx, item in enumerate(chunks):
+            if isinstance(item, str):
+                text = item
+                para_idx = -1
+            else:
+                text, para_idx = item
+
+            ocr = ocr_confidence
+            evidence_weight = "primary"
+            if ocr is not None and ocr < 0.7:
+                evidence_weight = "reference"
+
             chunk = DocumentChunk(
                 id=str(uuid4()),
                 document_id=document_id,
@@ -496,6 +533,10 @@ class IngestionService:
                 content=text,
                 token_count=len(text),
                 passage_id=passage_id.strip() if passage_id and passage_id.strip() else None,
+                page_number=page_number,
+                paragraph_index=para_idx if para_idx >= 0 else idx,  # fallback to chunk_index
+                ocr_confidence=ocr,
+                evidence_weight=evidence_weight,
             )
             self.session.add(chunk)
         await self.session.flush()

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, String, Text, ForeignKey, Index
+from sqlalchemy import Integer, String, Text, ForeignKey, Index, Float
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -53,6 +53,35 @@ class DocumentChunk(BaseModel):
         Integer,
         nullable=True,
         comment="Approximate character count (no tokenizer needed)",
+    )
+
+    # Evidence-binding fields (RAG evidence binding)
+    page_number: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="源文档页码 (1-based)",
+    )
+    paragraph_index: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="源文档段落索引 (0-based)",
+    )
+    ocr_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+        comment="OCR 可信度 0.0-1.0，NULL 表示非 OCR 文本",
+    )
+    evidence_weight: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="primary",
+        server_default="primary",
+        comment="证据权重: primary | reference",
+    )
+    citation_format: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+        comment="引文格式模板",
     )
 
     # Relationship back to parent document
