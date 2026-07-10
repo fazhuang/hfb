@@ -1,0 +1,221 @@
+<template>
+  <div class="lit-list-page">
+    <div class="page-header">
+      <h1>{{ t('nav.documents') }}</h1>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <input v-model="query" type="text" :placeholder="t('common.search') + '...'" @keyup.enter="fetchPage(1)" />
+        <button class="search-btn" @click="fetchPage(1)">{{ t('common.search') }}</button>
+      </div>
+      <select v-model="copyrightFilter" class="filter-select" @change="fetchPage(1)">
+        <option value="">— 版权状态 —</option>
+        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">{{ COPYRIGHT_LABELS[cs] || cs }}</option>
+      </select>
+      <select v-model="reviewFilter" class="filter-select" @change="fetchPage(1)">
+        <option value="">— 审核状态 —</option>
+        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">{{ REVIEW_LABELS[rs] || rs }}</option>
+      </select>
+      <select v-model="ragFilter" class="filter-select" @change="fetchPage(1)">
+        <option :value="null">— RAG 状态 —</option>
+        <option :value="true">RAG 已启用</option>
+        <option :value="false">RAG 未启用</option>
+      </select>
+    </div>
+
+    <DataTable
+      :columns="columns"
+      :rows="(items as unknown as Record<string, unknown>[])"
+      :loading="loading"
+      :error="error"
+      :clickable="true"
+      :row-key="(r: Record<string, unknown>) => r.id as string"
+      @row-click="(r: Record<string, unknown>) => router.push(`/literature/${r.id}`)"
+    />
+
+    <div v-if="total > limit" class="pagination">
+      <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
+      <span>{{ page }} / {{ totalPages }}</span>
+      <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">{{ t('common.next') }}</button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
+import api from '@/api/client';
+import DataTable, { type TableColumn } from '@/components/common/DataTable.vue';
+
+const { t } = useI18n();
+const router = useRouter();
+
+interface DocumentBrief {
+  id: string;
+  title: string;
+  dynasty: string | null;
+  category: string | null;
+  copyright_status: string;
+  review_status: string;
+  rag_enabled: boolean;
+  source_name: string | null;
+  withdrawn_at: string | null;
+  created_at: string | null;
+}
+
+const COPYRIGHT_STATUSES = ['public_domain', 'open_access', 'licensed', 'user_uploaded_with_permission', 'unknown', 'metadata_only', 'forbidden_fulltext', 'commercial_restricted', 'pirated'];
+const COPYRIGHT_LABELS: Record<string, string> = {
+  public_domain: '公共领域', open_access: '开放获取', licensed: '已授权',
+  user_uploaded_with_permission: '用户上传(已授权)', unknown: '未知',
+  metadata_only: '仅元数据', forbidden_fulltext: '禁止全文', commercial_restricted: '商业限制', pirated: '盗版',
+};
+const REVIEW_STATUSES = ['pending_review', 'under_review', 'approved', 'rejected'];
+const REVIEW_LABELS: Record<string, string> = {
+  pending_review: '待审核', under_review: '审核中', approved: '已通过', rejected: '已驳回',
+};
+
+const items = ref<DocumentBrief[]>([]);
+const total = ref(0);
+const loading = ref(false);
+const error = ref<string | null>(null);
+const page = ref(1);
+const limit = ref(20);
+const query = ref('');
+const copyrightFilter = ref('');
+const reviewFilter = ref('');
+const ragFilter = ref<boolean | null>(null);
+
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
+
+const columns: TableColumn[] = [
+  { key: 'title', label: '标题', width: '240px' },
+  { key: 'dynasty', label: '朝代', width: '80px' },
+  { key: 'category', label: '分类', width: '100px' },
+  { key: 'source_name', label: '来源', width: '100px' },
+  { key: 'copyright_status', label: '版权', width: '100px', render: (r) => `<span class="badge badge-copyright">${COPYRIGHT_LABELS[r.copyright_status as string] || r.copyright_status}</span>` },
+  { key: 'review_status', label: '审核', width: '90px', render: (r) => `<span class="badge badge-review-${r.review_status}">${REVIEW_LABELS[r.review_status as string] || r.review_status}</span>` },
+  { key: 'rag_enabled', label: 'RAG', width: '60px', render: (r) => r.rag_enabled ? '✅' : '—' },
+  { key: 'withdrawn_at', label: '状态', width: '80px', render: (r) => r.withdrawn_at ? '<span class="badge badge-withdrawn">已撤回</span>' : '' },
+  { key: 'created_at', label: '创建时间', width: '140px', render: (r) => r.created_at ? new Date(r.created_at as string).toLocaleDateString('zh-CN') : '—' },
+];
+
+async function fetchPage(p: number) {
+  page.value = p;
+  loading.value = true;
+  error.value = null;
+  try {
+    const params: Record<string, unknown> = { page: p, limit: limit.value };
+    if (query.value.trim()) params.q = query.value.trim();
+    if (copyrightFilter.value) params.copyright_status = copyrightFilter.value;
+    if (reviewFilter.value) params.review_status = reviewFilter.value;
+    if (ragFilter.value !== null) params.rag_enabled = ragFilter.value;
+
+    const { data } = await api.get('/api/v1/documents', { params });
+    const body = data.data ?? data;
+    items.value = body.items ?? [];
+    total.value = body.total ?? 0;
+  } catch (e: unknown) {
+    error.value = (e as Error).message ?? 'Failed to fetch';
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(() => fetchPage(1));
+</script>
+
+<style scoped>
+.lit-list-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.page-header {
+  margin-bottom: 16px;
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-box {
+  display: flex;
+  gap: 8px;
+}
+
+.search-box input {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  min-width: 200px;
+  background: var(--color-page-bg, #f7fafc);
+  color: var(--color-text-primary, #1a365d);
+}
+
+.search-btn {
+  padding: 8px 16px;
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--color-navbar-bg, #fff);
+  color: var(--color-text-primary, #1a365d);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #4a5568);
+}
+
+.pagination button {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 6px;
+  background: var(--color-navbar-bg, #fff);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
+
+<style>
+/* Global badge styles (unscoped so DataTable rendered HTML picks them up) */
+.badge { font-size: 12px; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+.badge-copyright { background: var(--color-tag-bg, #edf2f7); color: var(--color-text-secondary, #4a5568); }
+.badge-review-pending_review { background: #fefcbf; color: #975a16; }
+.badge-review-under_review { background: #bee3f8; color: #2a4365; }
+.badge-review-approved { background: #c6f6d5; color: #276749; }
+.badge-review-rejected { background: #fed7d7; color: #c53030; }
+.badge-withdrawn { background: #e2e8f0; color: #718096; }
+</style>

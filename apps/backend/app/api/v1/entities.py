@@ -168,7 +168,7 @@ _make_crud("image", ImageService, ImageCreate, ImageCreate, ImageBrief, ImageRes
 # ============================================================
 
 from app.schemas.person import PersonCreate, PersonBrief, PersonResponse  # noqa: E402
-from app.schemas.document import DocumentCreate, DocumentBrief, DocumentResponse  # noqa: E402
+from app.schemas.document import DocumentCreate, DocumentBrief, DocumentResponse, DocumentUpdate  # noqa: E402
 from app.services.person_service import PersonService  # noqa: E402
 from app.services.document_service import DocumentService  # noqa: E402
 
@@ -181,13 +181,129 @@ class _PersonUpdateOverride(PersonCreate):
     pass
 
 
-class _DocumentCreateOverride(DocumentCreate):
-    pass
-
-
-class _DocumentUpdateOverride(DocumentCreate):
+class _DocumentUpdateOverride(DocumentUpdate):
     pass
 
 
 _make_crud("person", PersonService, _PersonCreateOverride, _PersonCreateOverride, PersonBrief, PersonResponse)
-_make_crud("document", DocumentService, _DocumentCreateOverride, _DocumentCreateOverride, DocumentBrief, DocumentResponse)
+
+# Document is hand-wired (not via _make_crud) because we need extra filter params
+# on the list endpoint that the factory doesn't support.
+
+from sqlalchemy import select as sql_select, func  # noqa: E402
+from app.models.document import Document  # noqa: E402
+
+document_guard_read = require_permission("document", "read")
+document_guard_create = require_permission("document", "create")
+document_guard_update = require_permission("document", "update")
+document_guard_delete = require_permission("document", "delete")
+
+
+@router.get(
+    "/documents",
+    response_model=dict,
+    dependencies=[Depends(document_guard_read)],
+)
+async def list_documents(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    q: str = Query(default="", description="Search query"),
+    copyright_status: str | None = Query(default=None),
+    review_status: str | None = Query(default=None),
+    rag_enabled: bool | None = Query(default=None),
+    source_name: str | None = Query(default=None),
+) -> dict:
+    svc = DocumentService(session)
+    if q.strip():
+        items, total = await svc.search(q, page=page, limit=limit)
+    else:
+        # Build filtered query
+        stmt = sql_select(Document).where(Document.is_deleted == False)  # noqa: E712
+        if copyright_status:
+            stmt = stmt.where(Document.copyright_status == copyright_status)
+        if review_status:
+            stmt = stmt.where(Document.review_status == review_status)
+        if rag_enabled is not None:
+            stmt = stmt.where(Document.rag_enabled == rag_enabled)
+        if source_name:
+            stmt = stmt.where(Document.source_name == source_name)
+
+        count_q = sql_select(func.count()).select_from(stmt.subquery())
+        total = (await session.execute(count_q)).scalar() or 0
+
+        stmt = stmt.order_by(Document.created_at.desc())
+        stmt = stmt.offset((page - 1) * limit).limit(limit)
+        items = (await session.execute(stmt)).scalars().all()
+
+    results = [DocumentBrief.model_validate(i).model_dump(mode="json") for i in items]
+    return api_response(data={"items": results, "total": total})
+
+
+# Create, get, update, delete — use factory pattern inline
+@router.post(
+    "/documents",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(document_guard_create)],
+)
+async def create_document(
+    body: DocumentCreate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = DocumentService(session)
+    try:
+        obj = await svc.create(body)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"), message="Created")
+
+
+@router.get(
+    "/documents/{item_id}",
+    response_model=dict,
+    dependencies=[Depends(document_guard_read)],
+)
+async def get_document(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = DocumentService(session)
+    obj = await svc.get_by_id(item_id)
+    if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"))
+
+
+@router.patch(
+    "/documents/{item_id}",
+    response_model=dict,
+    dependencies=[Depends(document_guard_update)],
+)
+async def update_document(
+    item_id: UUID,
+    body: DocumentUpdate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = DocumentService(session)
+    updates = body.model_dump(exclude_unset=True)
+    obj = await svc.update(item_id, **updates)
+    if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"), message="Updated")
+
+
+@router.delete(
+    "/documents/{item_id}",
+    response_model=dict,
+    dependencies=[Depends(document_guard_delete)],
+)
+async def delete_document(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = DocumentService(session)
+    ok = await svc.soft_delete(item_id)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return api_response(data=None, message="Deleted")

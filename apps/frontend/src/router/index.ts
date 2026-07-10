@@ -94,6 +94,45 @@ const router = createRouter({
           name: 'dashboard',
           component: () => import('@/views/DashboardView.vue'),
         },
+        // Literature metadata
+        {
+          path: 'literature',
+          name: 'literature',
+          component: () => import('@/views/literature/LiteratureListView.vue'),
+        },
+        {
+          path: 'literature/:id',
+          name: 'literature-detail',
+          component: () => import('@/views/literature/LiteratureDetailView.vue'),
+        },
+        // Classical version catalogue
+        {
+          path: 'classical-versions',
+          name: 'classical-versions',
+          component: () => import('@/views/classical-versions/ClassicalVersionListView.vue'),
+          meta: { requiresAuth: true },
+        },
+        // Admin: literature review queue
+        {
+          path: 'admin/literature-review',
+          name: 'admin-literature-review',
+          component: () => import('@/views/admin/LiteratureReviewQueue.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
+        // Admin: ingestion task records
+        {
+          path: 'admin/ingestion-tasks',
+          name: 'admin-ingestion-tasks',
+          component: () => import('@/views/admin/IngestionTasksView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
+        // Admin: source policy (superuser only)
+        {
+          path: 'admin/source-policy',
+          name: 'admin-source-policy',
+          component: () => import('@/views/admin/SourcePolicyView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true },
+        },
       ],
     },
   ],
@@ -113,6 +152,14 @@ router.beforeEach(async (to: RouteLocationNormalized, _from, next) => {
 
   if (requiresAuth && !auth.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } });
+    return;
+  }
+
+  // Pages that require admin
+  const requiresAdmin = to.matched.some((r) => r.meta.requiresAdmin);
+
+  if (requiresAdmin && !auth.isAdmin) {
+    next({ name: 'home' });
     return;
   }
 

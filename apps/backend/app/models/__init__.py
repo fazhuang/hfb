@@ -29,6 +29,7 @@ from app.models.institution import Institution
 from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
+from app.models.source_policy import SourcePolicy
 from app.models.tcm_entity import TCMEntity
 from app.models.tei import TextSentence, TextToken, TextualVariant
 from app.models.user import User, Role, Permission
@@ -66,6 +67,7 @@ __all__ = [
     "ResearchSession",
     "Role",
     "Sentence",
+    "SourcePolicy",
     "SourceRef",
     "Token",
     "User",

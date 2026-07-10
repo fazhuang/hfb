@@ -78,17 +78,29 @@ const router = useRouter();
 
 const menuOpen = ref(false);
 
-const navItems = [
-  { path: '/', icon: '🏠', labelKey: 'nav.home' },
-  { path: '/books', icon: '📚', labelKey: 'nav.books' },
-  { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
-  { path: '/research', icon: '校', labelKey: 'nav.research' },
-  { path: '/v4/research', icon: '🧬', labelKey: 'nav.v4Research' },
-  { path: '/graph', icon: '🔗', labelKey: 'nav.graph' },
-  { path: '/workspace', icon: '🧪', labelKey: 'nav.workspace' },
-  { path: '/search', icon: '🔍', labelKey: 'nav.search' },
-  { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
-] as const;
+const navItems = computed(() => {
+  const base = [
+    { path: '/', icon: '🏠', labelKey: 'nav.home' },
+    { path: '/books', icon: '📚', labelKey: 'nav.books' },
+    { path: '/literature', icon: '📄', labelKey: 'nav.literature' },
+    { path: '/classical-versions', icon: '🏛️', labelKey: 'nav.classicalVersions' },
+    { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
+    { path: '/research', icon: '校', labelKey: 'nav.research' },
+    { path: '/v4/research', icon: '🧬', labelKey: 'nav.v4Research' },
+    { path: '/graph', icon: '🔗', labelKey: 'nav.graph' },
+    { path: '/workspace', icon: '🧪', labelKey: 'nav.workspace' },
+    { path: '/search', icon: '🔍', labelKey: 'nav.search' },
+    { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
+  ];
+  if (auth.isAdmin) {
+    base.push(
+      { path: '/admin/literature-review', icon: '✅', labelKey: 'nav.adminReview' },
+      { path: '/admin/ingestion-tasks', icon: '📋', labelKey: 'nav.adminIngestion' },
+      { path: '/admin/source-policy', icon: '🔐', labelKey: 'nav.adminSourcePolicy' },
+    );
+  }
+  return base;
+});
 
 const locales = SUPPORTED_LOCALES;
 

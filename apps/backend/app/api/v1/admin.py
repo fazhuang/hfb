@@ -1,0 +1,278 @@
+"""
+Admin API — document review, withdraw, ingestion audit, source policies.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Annotated
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select as sql_select, func, delete as sql_delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.database import get_session
+from app.middleware.auth import get_current_user, require_permission
+from app.models.document import Document
+from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
+from app.schemas.document import (
+    DocumentReviewRequest,
+    DocumentWithdrawRequest,
+    REVIEW_STATUSES,
+)
+from app.services.ingestion import IngestionService
+from app.utils.response import api_response
+
+router = APIRouter(tags=["Admin"])
+
+document_review_guard = require_permission("document", "review")
+document_update_guard = require_permission("document", "update")
+user_read_guard = require_permission("user", "read")
+user_create_guard = require_permission("user", "create")
+user_update_guard = require_permission("user", "update")
+user_delete_guard = require_permission("user", "delete")
+
+
+# ============================================================
+# Document review
+# ============================================================
+
+
+@router.patch(
+    "/api/v1/documents/{document_id}/review",
+    response_model=dict,
+    dependencies=[Depends(document_review_guard)],
+)
+async def review_document(
+    document_id: UUID,
+    body: DocumentReviewRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    if body.review_status not in REVIEW_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"review_status must be one of: {sorted(REVIEW_STATUSES)}",
+        )
+
+    doc = await session.get(Document, document_id)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    now = datetime.now(timezone.utc)
+    doc.review_status = body.review_status
+    doc.reviewed_by = user_id
+    doc.reviewed_at = now
+
+    # Auto-enable RAG on approve unless explicitly set
+    rag_enabled = body.rag_enabled
+    if rag_enabled is None:
+        rag_enabled = body.review_status == "approved"
+    doc.rag_enabled = rag_enabled
+
+    await session.commit()
+    await session.refresh(doc)
+
+    from app.schemas.document import DocumentResponse
+
+    return api_response(
+        data=DocumentResponse.model_validate(doc).model_dump(mode="json"),
+        message="Review updated",
+    )
+
+
+# ============================================================
+# Document withdraw
+# ============================================================
+
+
+@router.post(
+    "/api/v1/documents/{document_id}/withdraw",
+    response_model=dict,
+    dependencies=[Depends(document_update_guard)],
+)
+async def withdraw_document(
+    document_id: UUID,
+    body: DocumentWithdrawRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    doc = await session.get(Document, document_id)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    if doc.withdrawn_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Document already withdrawn",
+        )
+
+    svc = IngestionService(session)
+    await svc.withdraw_document(str(document_id), reason=body.reason, actor_id=user_id)
+    await session.commit()
+
+    return api_response(data=None, message="Document withdrawn")
+
+
+# ============================================================
+# Ingestion audit tasks
+# ============================================================
+
+
+@router.get(
+    "/api/v1/ingestion/tasks",
+    response_model=dict,
+    dependencies=[Depends(require_permission("document", "read"))],
+)
+async def list_ingestion_tasks(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    action: str | None = Query(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
+    source_name: str | None = Query(default=None),
+) -> dict:
+    query = sql_select(FulltextIngestionAudit)
+
+    if action:
+        query = query.where(FulltextIngestionAudit.action == action)
+    if status_filter:
+        query = query.where(FulltextIngestionAudit.status == status_filter)
+    if source_name:
+        query = query.where(FulltextIngestionAudit.source_name == source_name)
+
+    # Total
+    count_q = sql_select(func.count()).select_from(query.subquery())
+    total = (await session.execute(count_q)).scalar() or 0
+
+    # Paginate
+    query = query.order_by(FulltextIngestionAudit.created_at.desc())
+    query = query.offset((page - 1) * limit).limit(limit)
+    rows = (await session.execute(query)).scalars().all()
+
+    items = []
+    for r in rows:
+        items.append({
+            "id": r.id,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "action": r.action,
+            "status": r.status,
+            "source_url": r.source_url,
+            "source_name": r.source_name,
+            "copyright_status": r.copyright_status,
+            "authorization_basis": r.authorization_basis,
+            "license_type": r.license_type,
+            "review_status": r.review_status,
+            "reviewed_by": r.reviewed_by,
+            "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
+            "checksum": r.checksum,
+            "result_entity_type": r.result_entity_type,
+            "result_entity_id": r.result_entity_id,
+            "reject_reason": r.reject_reason,
+            "skipped_reason": r.skipped_reason,
+            "actor_id": r.actor_id,
+            "details": r.details,
+        })
+
+    return api_response(data={"items": items, "total": total})
+
+
+# ============================================================
+# Source Policies
+# ============================================================
+
+from app.models.source_policy import SourcePolicy  # noqa: E402
+from app.schemas.source_policy import (  # noqa: E402
+    SourcePolicyCreate,
+    SourcePolicyResponse,
+    SourcePolicyUpdate,
+)
+
+
+@router.get(
+    "/api/v1/admin/source-policies",
+    response_model=dict,
+    dependencies=[Depends(user_read_guard)],
+)
+async def list_source_policies(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    stmt = sql_select(SourcePolicy).order_by(SourcePolicy.source_name)
+    rows = (await session.execute(stmt)).scalars().all()
+    items = [SourcePolicyResponse.model_validate(r).model_dump(mode="json") for r in rows]
+    return api_response(data={"items": items, "total": len(items)})
+
+
+@router.post(
+    "/api/v1/admin/source-policies",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(user_create_guard)],
+)
+async def create_source_policy(
+    body: SourcePolicyCreate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    existing = (await session.execute(
+        sql_select(SourcePolicy).where(SourcePolicy.source_name == body.source_name)
+    )).scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Source policy for '{body.source_name}' already exists",
+        )
+
+    sp = SourcePolicy(
+        id=str(uuid4()),
+        source_name=body.source_name,
+        enabled=body.enabled,
+    )
+    session.add(sp)
+    await session.commit()
+    await session.refresh(sp)
+    return api_response(
+        data=SourcePolicyResponse.model_validate(sp).model_dump(mode="json"),
+        message="Created",
+    )
+
+
+@router.patch(
+    "/api/v1/admin/source-policies/{policy_id}",
+    response_model=dict,
+    dependencies=[Depends(user_update_guard)],
+)
+async def update_source_policy(
+    policy_id: UUID,
+    body: SourcePolicyUpdate,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    sp = await session.get(SourcePolicy, policy_id)
+    if sp is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
+
+    updates = body.model_dump(exclude_unset=True)
+    for k, v in updates.items():
+        setattr(sp, k, v)
+    await session.commit()
+    await session.refresh(sp)
+    return api_response(
+        data=SourcePolicyResponse.model_validate(sp).model_dump(mode="json"),
+        message="Updated",
+    )
+
+
+@router.delete(
+    "/api/v1/admin/source-policies/{policy_id}",
+    response_model=dict,
+    dependencies=[Depends(user_delete_guard)],
+)
+async def delete_source_policy(
+    policy_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    sp = await session.get(SourcePolicy, policy_id)
+    if sp is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
+
+    await session.delete(sp)
+    await session.commit()
+    return api_response(data=None, message="Deleted")
