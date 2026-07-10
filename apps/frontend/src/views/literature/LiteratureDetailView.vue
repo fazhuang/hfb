@@ -69,7 +69,7 @@
           <div class="field"><span class="field-label">页数</span><span>{{ doc.page_count || '—' }}</span></div>
           <div class="field">
             <span class="field-label">来源链接</span>
-            <a v-if="doc.source_url" :href="doc.source_url" target="_blank" class="external-link">查看来源</a>
+            <a v-if="doc.source_url" :href="doc.source_url" target="_blank" rel="noopener noreferrer" class="external-link">查看来源</a>
             <span v-else>—</span>
           </div>
           <div class="field"><span class="field-label">Checksum</span><span class="mono">{{ doc.content_checksum || '—' }}</span></div>
