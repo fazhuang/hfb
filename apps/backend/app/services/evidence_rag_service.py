@@ -1,12 +1,14 @@
 """
-Evidence-bound RAG Service — rag_enabled filter, full provenance binding, no fabrication.
+Evidence-bound RAG Service — rag_enabled + copyright filter, full provenance binding, no fabrication.
 
 Every retrieved chunk is bound to:
   document_id, source_url, page_number, paragraph_index,
   copyright_status, citation_format, ocr_confidence
 
 Hard rules:
-  - Only reads rag_enabled=true documents
+  - Only reads rag_enabled=true documents with compliant copyright_status
+  - Compliant statuses: public_domain, open_access, licensed, user_uploaded_with_permission
+  - Forbidden: commercial_restricted, metadata_only, forbidden_fulltext, pirated, unknown
   - Merges Document.copyright_status / source_url / source_name onto every chunk
   - OCR confidence < 0.7 → evidence_weight="reference" (never "primary")
   - No evidence → refusal, never fabrication
@@ -27,6 +29,14 @@ from app.schemas.evidence_rag import (
 
 # Threshold below which OCR content is only advisory
 OCR_PRIMARY_THRESHOLD = 0.7
+
+# Copyright statuses allowed in evidence retrieval
+_COMPLIANT_COPYRIGHT_STATUSES = frozenset({
+    "public_domain",
+    "open_access",
+    "licensed",
+    "user_uploaded_with_permission",
+})
 
 
 class EvidenceRAGService:
@@ -98,7 +108,13 @@ class EvidenceRAGService:
     async def _retrieve_evidence_chunks(
         self, keywords: list[str]
     ) -> list[DocumentChunk]:
-        """Retrieve chunks ONLY from rag_enabled=true, non-deleted documents."""
+        """Retrieve chunks ONLY from rag_enabled=true, copyright-compliant, non-deleted documents.
+
+        Copyright gate (Context 22): even if rag_enabled=True, forbidden statuses
+        (commercial_restricted, metadata_only, forbidden_fulltext, pirated, unknown)
+        are excluded. The allowlist is public_domain, open_access, licensed,
+        user_uploaded_with_permission.
+        """
         kw_filters = [
             DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
         ]
@@ -110,6 +126,7 @@ class EvidenceRAGService:
                 DocumentChunk.is_deleted.is_(False),
                 Document.is_deleted.is_(False),
                 Document.rag_enabled.is_(True),
+                Document.copyright_status.in_(_COMPLIANT_COPYRIGHT_STATUSES),
                 or_(*kw_filters),
             )
             .limit(200)  # ponytail: reasonable upper bound, tune if real-world needs more

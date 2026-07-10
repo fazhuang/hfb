@@ -40,10 +40,19 @@ from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 
 
 async def _seed_chunks(session, docs_with_content: list[tuple[str, str, list[str]]]) -> dict[str, Document]:
-    """Seed Document + DocumentChunk records. Returns {title: Document}."""
+    """Seed Document + DocumentChunk records. Returns {title: Document}.
+
+    Context 22: documents get rag_enabled=True + copyright_status='public_domain'
+    so they pass strict_compliance in the generation pipeline.
+    """
     docs: dict[str, Document] = {}
     for title, dynasty, chunks in docs_with_content:
-        d = Document(title=title, dynasty=dynasty)
+        d = Document(
+            title=title, dynasty=dynasty,
+            rag_enabled=True,
+            copyright_status="public_domain",
+            authorization_basis="public domain — ancient work",
+        )
         session.add(d)
         await session.flush()
         for i, content in enumerate(chunks):
@@ -433,7 +442,8 @@ async def test_api_generate_endpoint_contract(generate_db_session) -> None:
     from app.api.v1.ai import guard_ai_read
 
     # Seed data
-    d = Document(title="针灸甲乙经", dynasty="西晋")
+    d = Document(title="针灸甲乙经", dynasty="西晋", rag_enabled=True,
+                 copyright_status="public_domain", authorization_basis="public domain — ancient work")
     generate_db_session.add(d)
     await generate_db_session.flush()
     c = DocumentChunk(document_id=d.id, chunk_index=0, content="皇甫谧编撰《针灸甲乙经》。", token_count=14)
@@ -486,7 +496,7 @@ async def _seeded_app_and_client(generate_db_session):
     from app.middleware.auth import get_current_user
     from app.api.v1.ai import guard_ai_read
 
-    d = Document(title="针灸甲乙经", dynasty="西晋")
+    d = Document(title="针灸甲乙经", dynasty="西晋", rag_enabled=True, copyright_status="public_domain", authorization_basis="public domain — ancient work")
     generate_db_session.add(d)
     await generate_db_session.flush()
     c = DocumentChunk(document_id=d.id, chunk_index=0, content="皇甫谧编撰《针灸甲乙经》。", token_count=14)
@@ -671,13 +681,15 @@ async def _injection_seeded_app(generate_db_session):
     from app.models.document_chunk import DocumentChunk as DCDB
 
     # Seed clean document + chunks
-    d = Document(title="针灸甲乙经", dynasty="西晋")
+    d = Document(title="针灸甲乙经", dynasty="西晋", rag_enabled=True, copyright_status="public_domain", authorization_basis="public domain — ancient work")
     generate_db_session.add(d)
     await generate_db_session.flush()
     c_clean = DocumentChunk(document_id=d.id, chunk_index=0, content="皇甫谧编撰《针灸甲乙经》。", token_count=14)
     generate_db_session.add(c_clean)
-    # Also seed an injection doc + chunk
-    d2 = Document(title="恶意文献", dynasty="唐")
+    # Also seed an injection doc + chunk — must be rag_enabled + compliant copyright
+    # to enter retrieval, where injection detection will reject it
+    d2 = Document(title="恶意文献", dynasty="唐", rag_enabled=True,
+                  copyright_status="public_domain", authorization_basis="public domain — ancient work")
     generate_db_session.add(d2)
     await generate_db_session.flush()
     c_inject = DCDB(document_id=d2.id, chunk_index=0,

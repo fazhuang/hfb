@@ -4,17 +4,31 @@ Chunk-level retrieval with citation binding.
 Uses SQL ILIKE for text matching with multi-keyword tokenization.
 Every result carries a citation in the format [document_id:chunk_id],
 traceable back to the source document and individual chunk.
+
+Compliance: strict_compliance=True enforces copyright_status allowlist
+(public_domain, open_access, licensed, user_uploaded_with_permission)
+and requires rag_enabled=True. Forbidden statuses (commercial_restricted,
+metadata_only, forbidden_fulltext, pirated, unknown) are excluded.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+
+
+# Copyright statuses allowed for retrieval when strict_compliance=True
+_COMPLIANT_COPYRIGHT_STATUSES = frozenset({
+    "public_domain",
+    "open_access",
+    "licensed",
+    "user_uploaded_with_permission",
+})
 
 
 @dataclass
@@ -62,6 +76,7 @@ class RetrievalService:
         document_id: str | None = None,
         year: int | None = None,
         author_id: str | None = None,
+        strict_compliance: bool = False,
     ) -> SearchResponse:
         """Search document chunks by keywords (ILIKE per tokenized keyword).
 
@@ -74,6 +89,11 @@ class RetrievalService:
           - year: restrict to documents from a specific year
           - author_id: restrict to documents authored by a specific person
 
+        When strict_compliance=True (RAG/generation path):
+          - Only rag_enabled=True documents
+          - Only compliant copyright_status values
+          - Enhanced provenance metadata
+
         Stable sort: score descending, then document_id, then chunk_index.
         """
         keywords = self._tokenize(query)
@@ -82,13 +102,18 @@ class RetrievalService:
 
         # Fetch candidate chunks: ILIKE any keyword
         # Context 21: filter BOTH DocumentChunk.is_deleted AND Document.is_deleted
-        # so withdrawn documents are invisible to retrieval.
+        # Context 22: optional strict_compliance adds rag_enabled + copyright gate
         stmt = select(DocumentChunk).join(
             Document, DocumentChunk.document_id == Document.id
         ).where(
             DocumentChunk.is_deleted.is_(False),
             Document.is_deleted.is_(False),
         )
+        if strict_compliance:
+            stmt = stmt.where(
+                Document.rag_enabled.is_(True),
+                Document.copyright_status.in_(_COMPLIANT_COPYRIGHT_STATUSES),
+            )
         if document_id:
             stmt = stmt.where(DocumentChunk.document_id == document_id)
         if year is not None:
@@ -97,7 +122,6 @@ class RetrievalService:
             stmt = stmt.where(Document.author_id == author_id)
 
         # Build OR of keyword ILIKE conditions
-        from sqlalchemy import or_
         keyword_filters = [
             DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
         ]
@@ -107,16 +131,24 @@ class RetrievalService:
         result = await self.session.execute(stmt)
         all_chunks = result.scalars().all()
 
-        # Collect document titles in one query to avoid N+1
+        # Collect document titles and compliance data in one query to avoid N+1
         doc_ids = list({c.document_id for c in all_chunks})
         doc_titles: dict[str, str] = {}
+        doc_compliance: dict[str, dict[str, Any]] = {}
         if doc_ids:
             doc_result = await self.session.execute(
-                select(Document.id, Document.title)
-                .where(Document.id.in_(doc_ids))
+                select(
+                    Document.id, Document.title, Document.source_url,
+                    Document.copyright_status, Document.rag_enabled,
+                ).where(Document.id.in_(doc_ids))
             )
             for row in doc_result:
                 doc_titles[row[0]] = row[1]
+                doc_compliance[row[0]] = {
+                    "source_url": row[2] or "",
+                    "copyright_status": row[3] or "unknown",
+                    "rag_enabled": bool(row[4]),
+                }
 
         # Build results with citation
         items: list[RetrievalResult] = []
@@ -125,6 +157,25 @@ class RetrievalService:
             score = self._score_chunk(keywords, chunk.content)
             # Citation format: [document_id:chunk_id]
             citation = f"[{chunk.document_id}:{chunk.id}]"
+
+            compliance = doc_compliance.get(chunk.document_id, {})
+            metadata: dict[str, Any] = {
+                "token_count": chunk.token_count or 0,
+                "document_id": chunk.document_id,
+                "chunk_index": chunk.chunk_index,
+                "retrieval_method": "ili_keyword_search",
+            }
+            # Provenance fields for compliance / generation
+            if chunk.page_number is not None:
+                metadata["page_number"] = chunk.page_number
+            if chunk.paragraph_index is not None:
+                metadata["paragraph_index"] = chunk.paragraph_index
+            metadata["source_url"] = compliance.get("source_url", "")
+            metadata["copyright_status"] = compliance.get("copyright_status", "unknown")
+            if chunk.evidence_weight:
+                metadata["evidence_weight"] = chunk.evidence_weight
+            if chunk.ocr_confidence is not None:
+                metadata["ocr_confidence"] = chunk.ocr_confidence
 
             items.append(
                 RetrievalResult(
@@ -135,12 +186,7 @@ class RetrievalService:
                     content=chunk.content,
                     citation=citation,
                     score=score,
-                    metadata={
-                        "token_count": chunk.token_count or 0,
-                        "document_id": chunk.document_id,
-                        "chunk_index": chunk.chunk_index,
-                        "retrieval_method": "ili_keyword_search",
-                    },
+                    metadata=metadata,
                 )
             )
 

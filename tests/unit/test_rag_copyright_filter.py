@@ -76,11 +76,11 @@ class TestCopyrightFilter:
     """Documents with forbidden copyright statuses are excluded from RAG."""
 
     async def test_commercial_restricted_excluded(self, db_session):
-        """commercial_restricted docs excluded even if rag_enabled=true."""
+        """commercial_restricted docs excluded even if rag_enabled=True (polluted state)."""
         from app.services.evidence_rag_service import EvidenceRAGService
 
-        # Commercial doc — should NOT be rage enabled
-        doc = _make_doc("商业数据库文献", "commercial_restricted", rag_enabled=False)
+        # Commercial doc with rag_enabled=True — polluted, must still be excluded
+        doc = _make_doc("商业数据库文献", "commercial_restricted", rag_enabled=True)
         db_session.add(doc)
         await db_session.flush()
         db_session.add(_make_chunk(doc.id, "商业数据库文献"))
@@ -89,15 +89,14 @@ class TestCopyrightFilter:
         svc = EvidenceRAGService(db_session)
         resp = await svc.query("商业数据库")
 
-        # Must not find commercial_restricted content
-        for e in resp.evidence:
-            assert "商业数据库" not in e.content, (
-                "commercial_restricted documents must be excluded from RAG"
-            )
+        # Must not find commercial_restricted content even with rag_enabled=True
+        assert resp.refusal is True or all(
+            "商业数据库" not in e.content for e in resp.evidence
+        ), "commercial_restricted documents must be excluded from RAG even if rag_enabled=True"
 
     async def test_pirated_excluded(self, db_session):
-        """Pirated documents excluded."""
-        doc = _make_doc("盗版文献", "pirated", rag_enabled=False)
+        """Pirated documents excluded — even with rag_enabled=True (polluted state)."""
+        doc = _make_doc("盗版文献", "pirated", rag_enabled=True)
         db_session.add(doc)
         await db_session.flush()
         db_session.add(_make_chunk(doc.id, "盗版文献"))
@@ -108,12 +107,13 @@ class TestCopyrightFilter:
         svc = EvidenceRAGService(db_session)
         resp = await svc.query("盗版")
 
-        for e in resp.evidence:
-            assert "盗版" not in e.content, "pirated documents must be excluded"
+        assert resp.refusal is True or all(
+            "盗版" not in e.content for e in resp.evidence
+        ), "pirated documents must be excluded even with rag_enabled=True"
 
     async def test_forbidden_fulltext_excluded(self, db_session):
-        """forbidden_fulltext excluded even with rag_enabled=True (shouldn't happen)."""
-        doc = _make_doc("禁止全文", "forbidden_fulltext", rag_enabled=False)
+        """forbidden_fulltext excluded even with rag_enabled=True (polluted state)."""
+        doc = _make_doc("禁止全文", "forbidden_fulltext", rag_enabled=True)
         db_session.add(doc)
         await db_session.flush()
         db_session.add(_make_chunk(doc.id, "禁止全文"))
@@ -124,12 +124,13 @@ class TestCopyrightFilter:
         svc = EvidenceRAGService(db_session)
         resp = await svc.query("禁止")
 
-        for e in resp.evidence:
-            assert "禁止全文" not in e.content, "forbidden_fulltext must be excluded"
+        assert resp.refusal is True or all(
+            "禁止全文" not in e.content for e in resp.evidence
+        ), "forbidden_fulltext must be excluded even with rag_enabled=True"
 
     async def test_unknown_copyright_excluded(self, db_session):
-        """unknown copyright status → rag_enabled=false → excluded."""
-        doc = _make_doc("未知版权", "unknown", rag_enabled=False)
+        """unknown copyright status excluded — even with rag_enabled=True (polluted state)."""
+        doc = _make_doc("未知版权", "unknown", rag_enabled=True)
         db_session.add(doc)
         await db_session.flush()
         db_session.add(_make_chunk(doc.id, "未知版权"))
@@ -140,8 +141,9 @@ class TestCopyrightFilter:
         svc = EvidenceRAGService(db_session)
         resp = await svc.query("未知")
 
-        for e in resp.evidence:
-            assert "未知版权" not in e.content, "unknown copyright must be excluded"
+        assert resp.refusal is True or all(
+            "未知版权" not in e.content for e in resp.evidence
+        ), "unknown copyright must be excluded even with rag_enabled=True"
 
 
 @pytest.mark.anyio
@@ -255,9 +257,9 @@ class TestCommercialMetadataExclusion:
     """Business database metadata records must not enter full-text RAG."""
 
     async def test_commercial_metadata_not_in_rag(self, db_session):
-        """Commercial source with metadata_only cannot be retrieved."""
+        """Commercial source with metadata_only cannot be retrieved — even with rag_enabled=True."""
         doc = _make_doc(
-            "PubMed 文献", "metadata_only", rag_enabled=False,
+            "PubMed 文献", "metadata_only", rag_enabled=True,
         )
         db_session.add(doc)
         await db_session.flush()
@@ -269,11 +271,12 @@ class TestCommercialMetadataExclusion:
         svc = EvidenceRAGService(db_session)
         resp = await svc.query("PubMed")
 
-        for e in resp.evidence:
-            assert "PubMed" not in e.content, "metadata_only must be excluded from RAG"
+        assert resp.refusal is True or all(
+            "PubMed" not in e.content for e in resp.evidence
+        ), "metadata_only must be excluded from RAG even with rag_enabled=True"
 
     async def test_multiple_forbidden_statuses_all_excluded(self, db_session):
-        """Mix of forbidden statuses — all excluded."""
+        """Mix of forbidden statuses with rag_enabled=True (polluted state) — all excluded."""
         forbidden = [
             ("商业1", "commercial_restricted"),
             ("盗版1", "pirated"),
@@ -283,7 +286,7 @@ class TestCommercialMetadataExclusion:
         from app.services.evidence_rag_service import EvidenceRAGService
 
         for title, cs in forbidden:
-            doc = _make_doc(title, cs, rag_enabled=False)
+            doc = _make_doc(title, cs, rag_enabled=True)
             db_session.add(doc)
             await db_session.flush()
             db_session.add(_make_chunk(doc.id, title))

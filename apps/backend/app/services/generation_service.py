@@ -306,9 +306,9 @@ class GenerationPipeline:
         This is the SINGLE SOURCE OF TRUTH for claim generation.
         Both generate() and generate_with_proof() call this.
         """
-        # Step 1 — Single retrieval snapshot
+        # Step 1 — Single retrieval snapshot (strict compliance: only compliant copyright)
         self.retrieval_count += 1
-        search_response = await self.retrieval.search(query, top_k=top_k)
+        search_response = await self.retrieval.search(query, top_k=top_k, strict_compliance=True)
         results: list[RetrievalResult] = search_response.results
 
         # Build snapshot and chunk_rank for deterministic ordering
@@ -369,6 +369,10 @@ class GenerationPipeline:
                         "document_id": r.document_id,
                         "chunk_id": r.chunk_id,
                         "text": r.citation,
+                        "source_url": r.metadata.get("source_url", ""),
+                        "copyright_status": r.metadata.get("copyright_status", "unknown"),
+                        "page_number": r.metadata.get("page_number"),
+                        "paragraph_index": r.metadata.get("paragraph_index"),
                     }
                 )
 
@@ -383,6 +387,10 @@ class GenerationPipeline:
                     "content": r.content,
                     "citation": r.citation,
                     "score": round(r.score, 2),
+                    "source_url": r.metadata.get("source_url", ""),
+                    "copyright_status": r.metadata.get("copyright_status", "unknown"),
+                    "page_number": r.metadata.get("page_number"),
+                    "paragraph_index": r.metadata.get("paragraph_index"),
                 }
                 for r in results
             ],
