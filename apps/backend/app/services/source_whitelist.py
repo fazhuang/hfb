@@ -41,10 +41,10 @@ class SourceWhitelist:
         self.default_metadata: bool = default.get("metadata_allowed", False)
         self.default_fulltext: bool = default.get("fulltext_allowed", False)
 
-        # Build lookup by source name (case-insensitive)
+        # Build lookup by source name — both insertion and lookup use _normalize
         self._by_name: dict[str, SourcePolicyEntry] = {}
         for e in self.entries:
-            self._by_name[e.name.lower()] = e
+            self._by_name[self._normalize(e.name)] = e
 
     @staticmethod
     def _normalize(name: str) -> str:
