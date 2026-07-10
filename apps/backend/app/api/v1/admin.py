@@ -8,7 +8,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select as sql_select, func, delete as sql_delete
+from sqlalchemy import select as sql_select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session

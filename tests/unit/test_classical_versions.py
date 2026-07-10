@@ -14,7 +14,6 @@ from app.schemas.classical_version import (
     ClassicalVersionCreate,
     ClassicalVersionUpdate,
     ClassicalVersionBrief,
-    ClassicalVersionResponse,
 )
 
 from tests.conftest_db import db_session  # noqa: F401

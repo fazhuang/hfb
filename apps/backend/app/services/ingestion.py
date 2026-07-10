@@ -456,7 +456,7 @@ class IngestionService:
         retrieval paths.
         """
         from datetime import datetime, timezone
-        from sqlalchemy import select as sql_select, update as sql_update
+        from sqlalchemy import update as sql_update
 
         # Soft-delete the document
         now = datetime.now(timezone.utc)

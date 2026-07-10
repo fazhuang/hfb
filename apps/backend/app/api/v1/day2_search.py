@@ -33,6 +33,7 @@ router = APIRouter(prefix="/search", tags=["Search"])
 # and will be wired via require_permission("search", "read") later.
 
 
+
 @router.post("", response_model=SearchResponse)
 async def search(
     body: SearchRequest,

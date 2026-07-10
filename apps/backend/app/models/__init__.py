@@ -30,8 +30,8 @@ from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
 from app.models.source_policy import SourcePolicy
-from app.models.tcm_entity import TCMEntity
-from app.models.tei import TextSentence, TextToken, TextualVariant
+from app.models.tcm_entity import TCMEntity  # noqa: F401 — Phase 3 TCM ontology
+from app.models.tei import TextSentence, TextToken, TextualVariant  # noqa: F401 — Phase 4 TEI
 from app.models.user import User, Role, Permission
 from app.models.version import Version
 from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection

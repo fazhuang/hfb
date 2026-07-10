@@ -1,7 +1,17 @@
 [project]
 name = "huangfumi-backend"
 version = "0.2.0"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 
-[tool.pytest]
-ini_options = { testpaths = ["../tests"], python_files = ["test_*.py", "*_test.py"], python_classes = ["Test*"], python_functions = ["test_*"], markers = ["unit: unit tests", "integration: integration tests (require services)", "e2e: end-to-end tests", "slow: tests that take >1s", "real_llm: tests that require a real LLM API key"] }
+[tool.pytest.ini_options]
+testpaths = ["../tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: unit tests",
+    "integration: integration tests (require services)",
+    "e2e: end-to-end tests",
+    "slow: tests that take >1s",
+    "real_llm: tests requiring a configured real LLM provider"
+]

@@ -52,6 +52,7 @@ async def ingest(
     queries: list[str] | None = None,
     sources: list[str] | None = None,
     max_pages: int = MAX_PAGES,
+    enforce_whitelist: bool = True,
 ) -> list[IngestionJob]:
     """Run ingestion across all queries and sources.
 
@@ -60,13 +61,49 @@ async def ingest(
         queries: Custom search queries (default: pre-defined Huangfu Mi keywords).
         sources: Which sources to query (default: all 5).
         max_pages: Pages per query per source.
+        enforce_whitelist: If True (default), reject sources not in the approved
+            source_whitelist.yaml. Set False only for dry-run inspection.
 
     Returns:
         List of IngestionJob logs, one per (source, query) combination.
     """
     queries = queries or QUERIES
     sources = sources or DEFAULT_SOURCES
+
+    # ── Source whitelist runtime gate ──────────────────────────────────────
+    gate_jobs: list[IngestionJob] = []
+    if enforce_whitelist:
+        try:
+            from app.services.source_whitelist import get_whitelist
+            wl = get_whitelist()
+        except Exception:
+            # ponytail: if whitelist file is missing, default-deny everything.
+            # This guards against accidental production runs without policy.
+            wl = None
+
+        filtered: list[str] = []
+        for s in sources:
+            if wl is None:
+                job = IngestionJob(source=s, query="<whitelist gate>")
+                job.error_count += 1
+                job.errors.append("SourceWhitelistNotFound: runtime policy unavailable, denying all sources")
+                job.finish()
+                gate_jobs.append(job)
+                continue
+            if not wl.is_source_allowed(s, metadata=True):
+                job = IngestionJob(source=s, query="<whitelist gate>")
+                job.error_count += 1
+                job.errors.append(f"SourceNotWhitelisted: {s} is not in the approved source whitelist")
+                job.finish()
+                gate_jobs.append(job)
+                continue
+            filtered.append(s)
+        sources = filtered
+    # ────────────────────────────────────────────────────────────────────────
+
     jobs: list[IngestionJob] = []
+
+    jobs.extend(gate_jobs)
 
     for query in queries:
         for src_name in sources:
