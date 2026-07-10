@@ -46,9 +46,14 @@ class SourceWhitelist:
         for e in self.entries:
             self._by_name[e.name.lower()] = e
 
+    @staticmethod
+    def _normalize(name: str) -> str:
+        """Collapse underscores/spaces so both 'Internet Archive' and 'internet_archive' match."""
+        return name.lower().replace("_", " ")
+
     def lookup(self, source_name: str) -> SourcePolicyEntry | None:
         """Return the policy entry for a source, or None if not whitelisted."""
-        return self._by_name.get(source_name.lower())
+        return self._by_name.get(self._normalize(source_name))
 
     def is_source_allowed(self, source_name: str, metadata: bool = True) -> bool:
         """Check whether a source is allowed for metadata (or full-text) access.
