@@ -2,10 +2,11 @@
 Document ingestion pipeline — PDF and plain-text input → stored document → chunked.
 
 Real PDF extraction via pypdf, transactional safety (no half-created documents),
-deterministic paragraph-based chunking.
+deterministic paragraph-based chunking, full-text compliance gate (Context 21).
 """
 from __future__ import annotations
 
+import hashlib
 from io import BytesIO
 from typing import BinaryIO
 from uuid import uuid4
@@ -14,14 +15,31 @@ from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
 from app.repositories.document import DocumentRepository
 from app.services.chunking import chunk_text
 
 # Whitelist: allowed metadata keys that can be stored on the Document model.
 # Prevents mass-assignment of internal fields (is_deleted, deleted_at, etc.)
 # through the ingest metadata parameter.
-_ALLOWED_METADATA_KEYS = frozenset({"dynasty", "category", "source_url", "raw_pdf_blob"})
+_ALLOWED_METADATA_KEYS = frozenset({
+    "dynasty", "category", "source_url", "raw_pdf_blob",
+    "copyright_status", "license_type", "authorization_basis",
+    "source_name",
+})
+
+# Copyright statuses that permit full-text storage and chunking.
+_ALLOWED_COPYRIGHT_STATUSES = frozenset({
+    "public_domain", "open_access", "licensed", "user_uploaded_with_permission",
+})
+
+# Copyright statuses that explicitly forbid full-text storage.
+_FORBIDDEN_COPYRIGHT_STATUSES = frozenset({
+    "unknown", "metadata_only", "forbidden_fulltext",
+    "commercial_restricted", "pirated",
+})
 
 
 class IngestionError(Exception):
@@ -30,6 +48,10 @@ class IngestionError(Exception):
 
 class PDFExtractionError(IngestionError):
     """Raised when PDF text extraction fails (encrypted, malformed, or no extractable text)."""
+
+
+class FulltextRejectedError(IngestionError):
+    """Raised when full-text ingestion is rejected by the compliance gate."""
 
 
 class IngestionResult:
@@ -41,19 +63,128 @@ class IngestionResult:
         title: str,
         chunk_count: int,
         total_chars: int,
+        checksum: str = "",
     ) -> None:
         self.document_id = document_id
         self.title = title
         self.chunk_count = chunk_count
         self.total_chars = total_chars
+        self.checksum = checksum
 
 
 class IngestionService:
-    """Ingest documents, extract text, and create chunked indices."""
+    """Ingest documents, extract text, and create chunked indices.
+
+    Context 21: Every full-text ingest path enforces copyright gate before
+    saving content_text, raw_pdf_blob, or creating DocumentChunks.
+    """
 
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.doc_repo = DocumentRepository(session)
+
+    # ------------------------------------------------------------------
+    # Copyright gate
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_checksum(text: str) -> str:
+        """Compute SHA-256 checksum of normalized text content."""
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _is_fulltext_allowed(metadata: dict | None) -> tuple[bool, str]:
+        """Check whether full-text storage is permitted based on copyright fields.
+
+        Returns (allowed, reason). Default-deny: only explicitly allowed
+        copyright_status values with non-empty authorization_basis pass.
+        """
+        if metadata is None:
+            return False, "metadata is required for copyright compliance"
+
+        copyright_status = (metadata.get("copyright_status") or "").strip()
+
+        if not copyright_status:
+            return False, "copyright_status is required and must be set"
+
+        # Explicit forbidden values
+        if copyright_status in _FORBIDDEN_COPYRIGHT_STATUSES:
+            return False, f"copyright_status={copyright_status} forbids full-text storage"
+
+        # Explicit allowed values
+        if copyright_status in _ALLOWED_COPYRIGHT_STATUSES:
+            authorization_basis = (metadata.get("authorization_basis") or
+                                   metadata.get("license_type") or "").strip()
+            if not authorization_basis:
+                return False, (
+                    f"copyright_status={copyright_status} requires "
+                    "authorization_basis or license_type to be non-empty"
+                )
+            return True, ""
+
+        return False, f"unrecognized copyright_status: {copyright_status}"
+
+    @staticmethod
+    def _is_metadata_only(metadata: dict | None) -> bool:
+        """Check if the request is explicitly metadata-only."""
+        if metadata is None:
+            return True  # no metadata = no copyright info = metadata-only
+        copyright_status = (metadata.get("copyright_status") or "").strip()
+        return copyright_status == "metadata_only"
+
+    @staticmethod
+    def _is_forbidden_fulltext(metadata: dict | None) -> bool:
+        """Check if full-text is explicitly forbidden."""
+        if metadata is None:
+            return False
+        cs = (metadata.get("copyright_status") or "").strip()
+        mf = metadata.get("forbidden_fulltext")
+        if cs == "forbidden_fulltext":
+            return True
+        if mf is True or str(mf).lower() == "true":
+            return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Audit logging
+    # ------------------------------------------------------------------
+
+    async def _write_audit(
+        self,
+        action: str,
+        status: str,
+        *,
+        source_url: str | None = None,
+        source_name: str | None = None,
+        copyright_status: str | None = None,
+        authorization_basis: str | None = None,
+        license_type: str | None = None,
+        checksum: str | None = None,
+        result_entity_type: str | None = None,
+        result_entity_id: str | None = None,
+        reject_reason: str | None = None,
+        skipped_reason: str | None = None,
+        actor_id: str | None = None,
+        details: dict | None = None,
+    ) -> None:
+        audit = FulltextIngestionAudit(
+            action=action,
+            status=status,
+            source_url=source_url,
+            source_name=source_name,
+            copyright_status=copyright_status,
+            authorization_basis=authorization_basis,
+            license_type=license_type,
+            checksum=checksum,
+            result_entity_type=result_entity_type,
+            result_entity_id=result_entity_id,
+            reject_reason=reject_reason,
+            skipped_reason=skipped_reason,
+            actor_id=actor_id,
+            details=details,
+        )
+        self.session.add(audit)
+        await self.session.flush()
 
     # ------------------------------------------------------------------
     # Ingest from plain text
@@ -67,28 +198,32 @@ class IngestionService:
         max_chunk_chars: int = 1000,
         passage_id: str | None = None,
     ) -> IngestionResult:
-        """Ingest a plain-text document: store → chunk → index.
+        """Ingest a plain-text document: compliance gate → store → chunk → audit.
 
-        Sprint 4 P0: passage_id links chunks to Passage for V4 academic lineage.
-        When passage_id is provided, validates Passage exists before ingestion.
+        Context 21: copyright_status gate enforced BEFORE any full-text storage.
+        metadata_only and forbidden_fulltext are hard-rejected with audit log.
 
         Args:
             title: Document title.
             text: Raw text content (must be non-empty after strip).
-            metadata: Optional extra fields (dynasty, category, etc.).
+            metadata: Must include copyright_status and authorization_basis
+                or license_type for full-text to be stored.
             max_chunk_chars: Max characters per chunk.
             passage_id: Optional Passage ID for V4 lineage resolution.
 
         Returns:
-            IngestionResult with document_id, chunk_count, total_chars.
+            IngestionResult with document_id, chunk_count, total_chars, checksum.
 
         Raises:
             ValueError: if text is empty after stripping, or if passage_id
                 references a non-existent Passage.
+            FulltextRejectedError: if copyright gate blocks full-text storage.
         """
         stripped = text.strip()
         if not stripped:
             raise ValueError("Cannot ingest empty text")
+
+        meta = metadata or {}
 
         # Sprint 4 P0: validate passage exists when passage_id provided
         if passage_id is not None:
@@ -104,13 +239,72 @@ class IngestionService:
             if p_result.one_or_none() is None:
                 raise ValueError(f"Passage {passage_id} not found or deleted")
 
-        # 1. Store document (flushes immediately, catches constraint violations)
+        # ------ Copyright compliance gate ------
+        if self._is_forbidden_fulltext(meta):
+            await self._write_audit(
+                action="reject",
+                status="rejected",
+                source_url=meta.get("source_url"),
+                source_name=meta.get("source_name"),
+                copyright_status=meta.get("copyright_status", "forbidden_fulltext"),
+                authorization_basis=meta.get("authorization_basis"),
+                license_type=meta.get("license_type"),
+                reject_reason="forbidden_fulltext: full-text storage explicitly forbidden",
+                details={"title": title.strip()},
+            )
+            raise FulltextRejectedError(
+                "Full-text storage rejected: forbidden_fulltext is set"
+            )
+
+        if self._is_metadata_only(meta):
+            await self._write_audit(
+                action="skip",
+                status="skipped",
+                source_url=meta.get("source_url"),
+                source_name=meta.get("source_name"),
+                copyright_status="metadata_only",
+                authorization_basis=meta.get("authorization_basis"),
+                license_type=meta.get("license_type"),
+                skipped_reason="metadata_only: full-text storage not permitted",
+                details={"title": title.strip()},
+            )
+            raise FulltextRejectedError(
+                "Full-text storage rejected: metadata_only, "
+                "full-text content cannot be saved"
+            )
+
+        allowed, reason = self._is_fulltext_allowed(meta)
+        if not allowed:
+            await self._write_audit(
+                action="reject",
+                status="rejected",
+                source_url=meta.get("source_url"),
+                source_name=meta.get("source_name"),
+                copyright_status=meta.get("copyright_status", "unknown"),
+                authorization_basis=meta.get("authorization_basis"),
+                license_type=meta.get("license_type"),
+                reject_reason=reason,
+                details={"title": title.strip()},
+            )
+            raise FulltextRejectedError(f"Full-text storage rejected: {reason}")
+
+        # ------ Compute checksum ------
+        checksum = self._compute_checksum(stripped)
+
+        # ------ 1. Store document ------
+        copyright_status = (meta.get("copyright_status") or "").strip()
+        authorization_basis = (meta.get("authorization_basis")
+                               or meta.get("license_type") or "").strip()
         doc_data: dict = {
             "title": title.strip(),
             "content_text": stripped,
+            "copyright_status": copyright_status,
+            "authorization_basis": authorization_basis,
+            "license_type": meta.get("license_type"),
+            "content_checksum": checksum,
+            "source_name": meta.get("source_name"),
         }
         if metadata:
-            # ponytail: whitelist to prevent mass assignment of internal fields
             for k, v in metadata.items():
                 if k in _ALLOWED_METADATA_KEYS:
                     doc_data.setdefault(k, v)
@@ -124,14 +318,43 @@ class IngestionService:
             # 3. Store chunks with passage_id when available
             await self._store_chunks(doc.id, chunks, passage_id=passage_id)
 
+            # 4. Audit: success
+            await self._write_audit(
+                action="fulltext_ingest",
+                status="success",
+                source_url=doc.source_url or meta.get("source_url"),
+                source_name=doc.source_name or meta.get("source_name"),
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                checksum=checksum,
+                result_entity_type="document",
+                result_entity_id=doc.id,
+                details={"title": title.strip(), "chunk_count": len(chunks)},
+            )
+
             return IngestionResult(
                 document_id=doc.id,
                 title=title.strip(),
                 chunk_count=len(chunks),
                 total_chars=len(stripped),
+                checksum=checksum,
             )
         except Exception:
             # Roll back: remove the parent document (already flushed)
+            await self._write_audit(
+                action="skip",
+                status="skipped",
+                source_url=meta.get("source_url"),
+                source_name=meta.get("source_name"),
+                copyright_status=copyright_status,
+                authorization_basis=authorization_basis,
+                license_type=meta.get("license_type"),
+                skipped_reason="chunking/storage failure, document rolled back",
+                result_entity_type="document",
+                result_entity_id=doc.id,
+                details={"title": title.strip()},
+            )
             await self.doc_repo.hard_delete(doc.id)
             await self.session.flush()
             raise
@@ -150,20 +373,25 @@ class IngestionService:
     ) -> IngestionResult:
         """Ingest a PDF file — extract text with pypdf, store content.
 
+        Context 21: The same copyright gate as ingest_text applies.
+        PDF raw bytes are stored only if copyright is allowed AND
+        store_raw_pdf is True.
+
         Args:
             title: Document title.
             file: Opened PDF file (binary mode).
-            metadata: Optional extra fields (dynasty, category, etc.).
+            metadata: Must include copyright_status and authorization_basis.
             store_raw_pdf: If True, store the raw PDF bytes on the Document
                 record so the original source is always traceable.
             passage_id: Optional Passage ID for V4 lineage resolution.
 
         Returns:
-            IngestionResult with document_id, chunk_count, total_chars.
+            IngestionResult with document_id, chunk_count, total_chars, checksum.
 
         Raises:
             PDFExtractionError: if the PDF is encrypted, malformed, or
                 yields no extractable text.
+            FulltextRejectedError: if copyright gate blocks full-text storage.
         """
         raw_bytes = file.read()
         text = self._extract_pdf_text(raw_bytes)
@@ -178,15 +406,88 @@ class IngestionService:
             extra.update(metadata)
         if store_raw_pdf:
             extra["raw_pdf_blob"] = raw_bytes
-            extra["source_url"] = f"pdf:{len(raw_bytes)}bytes"
+            extra["source_url"] = extra.get("source_url") or f"pdf:{len(raw_bytes)}bytes"
 
-        return await self.ingest_text(title=title, text=text.strip(), metadata=extra, passage_id=passage_id)
+        return await self.ingest_text(
+            title=title,
+            text=text.strip(),
+            metadata=extra,
+            passage_id=passage_id,
+        )
+
+    # ------------------------------------------------------------------
+    # Withdraw
+    # ------------------------------------------------------------------
+
+    async def withdraw_document(
+        self,
+        document_id: str,
+        reason: str = "",
+        actor_id: str | None = None,
+    ) -> None:
+        """Withdraw a document: soft-delete it AND all its chunks, audit log.
+
+        After withdrawal, the document and all chunks are soft-deleted.
+        Retrieval/RAG services filter by both Document.is_deleted and
+        DocumentChunk.is_deleted, so the content becomes invisible to all
+        retrieval paths.
+        """
+        from datetime import datetime, timezone
+        from sqlalchemy import select as sql_select, update as sql_update
+
+        # Soft-delete the document
+        now = datetime.now(timezone.utc)
+        doc_stmt = (
+            sql_update(Document)
+            .where(Document.id == document_id)
+            .values(
+                is_deleted=True,
+                deleted_at=now,
+                withdrawn_at=now,
+                withdraw_reason=reason,
+                rag_enabled=False,
+            )
+        )
+        await self.session.execute(doc_stmt)
+
+        # Soft-delete all chunks
+        chunk_stmt = (
+            sql_update(DocumentChunk)
+            .where(DocumentChunk.document_id == document_id)
+            .values(is_deleted=True, deleted_at=now)
+        )
+        await self.session.execute(chunk_stmt)
+
+        # Audit
+        doc = await self.doc_repo.get_by_id(document_id)
+        await self._write_audit(
+            action="withdraw",
+            status="withdrawn",
+            source_url=getattr(doc, "source_url", None),
+            source_name=getattr(doc, "source_name", None),
+            copyright_status=getattr(doc, "copyright_status", None),
+            authorization_basis=getattr(doc, "authorization_basis", None),
+            license_type=getattr(doc, "license_type", None),
+            checksum=getattr(doc, "content_checksum", None),
+            result_entity_type="document",
+            result_entity_id=document_id,
+            reject_reason=reason,
+            actor_id=actor_id,
+            details={"title": getattr(doc, "title", "")},
+        )
+
+        await self.session.flush()
 
     # ------------------------------------------------------------------
     # Chunk storage
     # ------------------------------------------------------------------
 
-    async def _store_chunks(self, document_id: str, chunks: list[str], passage_id: str | None = None) -> None:
+    async def _store_chunks(
+        self,
+        document_id: str,
+        chunks: list[str],
+        passage_id: str | None = None,
+    ) -> None:
         for idx, text in enumerate(chunks):
             chunk = DocumentChunk(
                 id=str(uuid4()),
@@ -228,10 +529,10 @@ class IngestionService:
         parts: list[str] = []
         for page in reader.pages:
             try:
-                text = page.extract_text()
+                t = page.extract_text()
             except Exception:
                 continue
-            if text:
-                parts.append(text)
+            if t:
+                parts.append(t)
 
         return "\n\n".join(parts)

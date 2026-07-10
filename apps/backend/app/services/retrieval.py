@@ -81,10 +81,13 @@ class RetrievalService:
             return SearchResponse(query=query, results=[], total=0, max_score=0.0)
 
         # Fetch candidate chunks: ILIKE any keyword
+        # Context 21: filter BOTH DocumentChunk.is_deleted AND Document.is_deleted
+        # so withdrawn documents are invisible to retrieval.
         stmt = select(DocumentChunk).join(
             Document, DocumentChunk.document_id == Document.id
         ).where(
             DocumentChunk.is_deleted.is_(False),
+            Document.is_deleted.is_(False),
         )
         if document_id:
             stmt = stmt.where(DocumentChunk.document_id == document_id)

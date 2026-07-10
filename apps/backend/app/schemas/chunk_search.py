@@ -66,7 +66,7 @@ class ChunkResult(BaseModel):
 
 
 class IngestTextRequest(BaseModel):
-    """Plain-text ingestion request."""
+    """Plain-text ingestion request with compliance fields (Context 21)."""
     model_config = {"extra": "forbid"}
 
     title: str = Field(..., min_length=1, max_length=500)
@@ -74,3 +74,15 @@ class IngestTextRequest(BaseModel):
     dynasty: str | None = None
     category: str | None = None
     max_chunk_chars: int = Field(default=1000, ge=100, le=5000)
+
+    # Context 21: full-text compliance fields
+    copyright_status: str = Field(
+        default="unknown",
+        description="版权状态: public_domain|open_access|licensed|user_uploaded_with_permission|unknown|metadata_only|forbidden_fulltext|commercial_restricted|pirated",
+    )
+    license_type: str | None = Field(default=None, description="许可类型: CC-BY|CC-BY-NC|CC-BY-SA|CC0|custom")
+    authorization_basis: str | None = Field(default=None, description="授权依据 URL / 协议引用 / 依据声明")
+    source_url: str | None = Field(default=None, description="来源 URL")
+    source_name: str | None = Field(default=None, description="摄入来源名称")
+    metadata_only: bool = Field(default=False, description="仅元数据，不保存全文")
+    forbidden_fulltext: bool = Field(default=False, description="明确禁止全文入库")

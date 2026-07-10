@@ -754,7 +754,11 @@ class AcademicRAGService:
     async def _compute_corpus_sha256(self) -> str:
         chunk_stmt = (
             select(DocumentChunk)
-            .where(DocumentChunk.is_deleted.is_(False))
+            .join(Document, DocumentChunk.document_id == Document.id)
+            .where(
+                DocumentChunk.is_deleted.is_(False),
+                Document.is_deleted.is_(False),
+            )
             .order_by(DocumentChunk.id)
         )
         result = await self.session.execute(chunk_stmt)

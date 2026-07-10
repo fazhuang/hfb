@@ -119,13 +119,33 @@ async def ingest_text(
     body: IngestTextRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    """Ingest a plain-text document, chunk it, and store it for retrieval."""
+    """Ingest a plain-text document, chunk it, and store it for retrieval.
+
+    Context 21: copyright_status and authorization fields are passed to
+    IngestionService.ingest_text() which enforces the compliance gate before
+    any full-text is stored or chunked.
+    """
     try:
         metadata: dict = {}
         if body.dynasty:
             metadata["dynasty"] = body.dynasty
         if body.category:
             metadata["category"] = body.category
+
+        # Context 21: compliance fields
+        metadata["copyright_status"] = body.copyright_status
+        if body.license_type:
+            metadata["license_type"] = body.license_type
+        if body.authorization_basis:
+            metadata["authorization_basis"] = body.authorization_basis
+        if body.source_url:
+            metadata["source_url"] = body.source_url
+        if body.source_name:
+            metadata["source_name"] = body.source_name
+        if body.metadata_only:
+            metadata["copyright_status"] = "metadata_only"
+        if body.forbidden_fulltext:
+            metadata["forbidden_fulltext"] = True
 
         svc = IngestionService(session)
         result = await svc.ingest_text(
@@ -140,6 +160,7 @@ async def ingest_text(
                 "title": result.title,
                 "chunk_count": result.chunk_count,
                 "total_chars": result.total_chars,
+                "checksum": result.checksum,
             }
         )
     except IngestionError as e:

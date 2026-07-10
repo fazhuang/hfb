@@ -29,6 +29,13 @@ from app.services.ingestion import (
     PDFExtractionError,
 )
 
+# Context 21: compliance metadata for all ingestion calls.
+# All callers must pass copyright_status + authorization_basis.
+_COMPLIANCE = {"copyright_status": "public_domain", "authorization_basis": "test fixture"}
+
+
+_ingest = _COMPLIANCE  # ponytail: short alias for inline use below
+
 
 # ============================================================
 # Fixtures
@@ -192,6 +199,10 @@ class TestIngestion:
         result = await svc.ingest_text(
             title="测试文献",
             text="第一段文字。\n\n第二段文字。\n\n第三段文字。" * 20,
+            metadata={
+                "copyright_status": "public_domain",
+                "authorization_basis": "public domain pre-1928",
+            },
         )
         assert result.document_id is not None
         assert result.title == "测试文献"
@@ -213,7 +224,7 @@ class TestIngestion:
         result = await svc.ingest_text(
             title="针灸甲乙经",
             text="内容内容内容。" * 30,
-            metadata={"dynasty": "西晋", "category": "针灸"},
+            metadata={"dynasty": "西晋", "category": "针灸", **_COMPLIANCE},
         )
         doc = (await db_session.execute(
             select(Document).where(Document.id == result.document_id)
@@ -227,6 +238,7 @@ class TestIngestion:
         result = await svc.ingest_text(
             title="持久化测试",
             text="第一段。\n\n第二段。\n\n第三段。",
+            metadata=_COMPLIANCE,
         )
         await db_session.flush()
 
@@ -250,7 +262,7 @@ class TestIngestion:
     async def test_ingest_empty_text_raises(self, db_session):
         svc = IngestionService(db_session)
         with pytest.raises(ValueError, match="empty"):
-            await svc.ingest_text(title="空文献", text="   ")
+            await svc.ingest_text(title="空文献", text="   ", metadata=_COMPLIANCE)
 
     # ---------- PDF ----------
 
@@ -259,7 +271,7 @@ class TestIngestion:
         svc = IngestionService(db_session)
         pdf_bytes = _simple_pdf_bytes()
         file = io.BytesIO(pdf_bytes)
-        result = await svc.ingest_pdf(title="Test PDF", file=file)
+        result = await svc.ingest_pdf(title="Test PDF", file=file, metadata=_COMPLIANCE)
         assert result.document_id is not None
         assert result.chunk_count > 0
 
@@ -275,7 +287,7 @@ class TestIngestion:
         svc = IngestionService(db_session)
         pdf_bytes = _simple_pdf_bytes()
         file = io.BytesIO(pdf_bytes)
-        result = await svc.ingest_pdf(title="Trace PDF", file=file)
+        result = await svc.ingest_pdf(title="Trace PDF", file=file, metadata=_COMPLIANCE)
         doc = (await db_session.execute(
             select(Document).where(Document.id == result.document_id)
         )).scalar_one()
@@ -294,7 +306,7 @@ class TestIngestion:
         file = io.BytesIO(pdf_bytes)
         # pypdf may raise PdfReadError or FileNotDecryptedError or our PDFExtractionError
         with pytest.raises((PDFExtractionError, Exception)):
-            await svc.ingest_pdf(title="Encrypted", file=file)
+            await svc.ingest_pdf(title="Encrypted", file=file, metadata=_COMPLIANCE)
 
         # Verify no document was created
         count = (await db_session.execute(
@@ -307,7 +319,7 @@ class TestIngestion:
         svc = IngestionService(db_session)
         file = io.BytesIO(_malformed_pdf_bytes())
         with pytest.raises(PDFExtractionError):
-            await svc.ingest_pdf(title="Bad PDF", file=file)
+            await svc.ingest_pdf(title="Bad PDF", file=file, metadata=_COMPLIANCE)
 
         count = (await db_session.execute(
             text("SELECT COUNT(*) FROM documents")
@@ -325,7 +337,7 @@ class TestIngestion:
 
         # Force failure by passing empty text (triggers ValueError)
         with pytest.raises(ValueError):
-            await svc.ingest_text(title="Should roll back", text="")
+            await svc.ingest_text(title="Should roll back", text="", metadata=_COMPLIANCE)
 
         # No new documents
         count = (await db_session.execute(
@@ -355,6 +367,7 @@ class TestRetrieval:
                 "该书系统整理了经络学说与腧穴理论。\n\n"
                 "对后世中医发展产生了深远影响。"
             ),
+            metadata=_COMPLIANCE,
         )
 
         rsvc = RetrievalService(db_session)
@@ -373,7 +386,7 @@ class TestRetrieval:
         from app.services.retrieval import RetrievalService
 
         svc = IngestionService(db_session)
-        await svc.ingest_text(title="test", text="some content here")
+        await svc.ingest_text(title="test", text="some content here", metadata=_COMPLIANCE)
 
         rsvc = RetrievalService(db_session)
         result = await rsvc.search(query="zzz_nonexistent_zzz", top_k=5)
@@ -388,6 +401,7 @@ class TestRetrieval:
             title="long",
             text=("数据" * 200 + "\n\n") * 50,
             max_chunk_chars=500,
+            metadata=_COMPLIANCE,
         )
 
         rsvc = RetrievalService(db_session)
@@ -402,6 +416,7 @@ class TestRetrieval:
         await svc.ingest_text(
             title="稳定排序测试",
             text="针灸经络。\n\n" * 20 + "经络学说。\n\n" * 10,
+            metadata=_COMPLIANCE,
         )
         rsvc = RetrievalService(db_session)
         r1 = await rsvc.search(query="经络", top_k=5)
@@ -420,7 +435,7 @@ class TestCitation:
         from app.services.retrieval import RetrievalService
 
         svc = IngestionService(db_session)
-        await svc.ingest_text(title="测试", text="段落一。\n\n段落二。\n\n段落三。")
+        await svc.ingest_text(title="测试", text="段落一。\n\n段落二。\n\n段落三。", metadata=_COMPLIANCE)
         rsvc = RetrievalService(db_session)
         search_result = await rsvc.search(query="段落", top_k=3)
 
@@ -436,6 +451,7 @@ class TestCitation:
         await svc.ingest_text(
             title="溯源测试",
             text="目标内容在这里。\n\n其他内容。",
+            metadata=_COMPLIANCE,
         )
         rsvc = RetrievalService(db_session)
         search_result = await rsvc.search(query="目标内容", top_k=1)
@@ -474,6 +490,7 @@ class TestCitation:
                 "系统总结了经络学说、腧穴定位和刺灸方法。\n\n"
                 "该书共十二卷，一百二十八篇。"
             ),
+            metadata=_COMPLIANCE,
         )
 
         rsvc = RetrievalService(db_session)
@@ -544,6 +561,7 @@ class TestSearchAPI:
                 "皇甫谧编撰的《针灸甲乙经》系统整理了经络学说。\n\n"
                 "该书对后世针灸学发展有深远影响。"
             ),
+            metadata=_COMPLIANCE,
         )
         await app_db_session.flush()
 
@@ -615,7 +633,7 @@ class TestSearchAPI:
         from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
-        await svc.ingest_text(title="test", text="some content")
+        await svc.ingest_text(title="test", text="some content", metadata=_COMPLIANCE)
         await app_db_session.flush()
 
         app = _make_test_app()
@@ -650,6 +668,7 @@ class TestSearchAPI:
                 "其编撰的《针灸甲乙经》是中国现存最早的针灸学专著，\n\n"
                 "系统总结了经络学说、腧穴定位和刺灸方法。"
             ),
+            metadata=_COMPLIANCE,
         )
         await app_db_session.flush()
 

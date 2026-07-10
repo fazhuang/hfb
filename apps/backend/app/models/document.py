@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, LargeBinary, String, Text, ForeignKey
+from sqlalchemy import Integer, LargeBinary, String, Text, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -38,6 +38,55 @@ class Document(BaseModel):
     page_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="页数")
     language: Mapped[str] = mapped_column(
         String(20), default="zh", server_default="zh", nullable=False, comment="语言"
+    )
+
+    # ----------------------------------------------------------------
+    # Full-text compliance fields (Context 21)
+    # ----------------------------------------------------------------
+    copyright_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="unknown",
+        server_default="unknown",
+        comment="版权状态: public_domain|open_access|licensed|user_uploaded_with_permission|unknown|metadata_only|forbidden_fulltext|commercial_restricted|pirated",
+    )
+    license_type: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, comment="许可类型: CC-BY|CC-BY-NC|CC-BY-SA|CC0|custom"
+    )
+    authorization_basis: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, comment="授权依据 (license URL / agreement ref / basis statement)"
+    )
+    review_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="pending_review",
+        server_default="pending_review",
+        comment="审核状态: pending_review|under_review|approved|rejected",
+    )
+    reviewed_by: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, comment="审核人 user ID"
+    )
+    reviewed_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="审核时间"
+    )
+    rag_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="是否允许进入 RAG (审核通过 + 版权允许后置为 true)",
+    )
+    content_checksum: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="全文 SHA-256 checksum"
+    )
+    source_name: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, comment="摄入来源名称 (openalex/crossref/user_upload/等)"
+    )
+    withdrawn_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="撤回时间"
+    )
+    withdraw_reason: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="撤回原因"
     )
 
     def __init__(self, **kwargs: object) -> None:
