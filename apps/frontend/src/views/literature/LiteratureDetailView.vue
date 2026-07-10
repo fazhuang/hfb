@@ -83,7 +83,7 @@
       </section>
 
       <!-- Admin actions -->
-      <section v-if="auth.isAdmin" class="panel admin-panel">
+      <section v-if="auth.canReviewDocuments" class="panel admin-panel">
         <h3>{{ t('literature.adminActions') }}</h3>
 
         <!-- Review -->

@@ -31,6 +31,7 @@ export interface CurrentUser {
   is_superuser: boolean;
   roles: Array<RoleBrief>;
   created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface TokenPair {
@@ -39,6 +40,14 @@ export interface TokenPair {
   token_type: string;
   expires_in: number;
 }
+
+// Role names that confer admin powers (case-insensitive match)
+const ADMIN_ROLE_NAMES = new Set([
+  'platform administrator',
+  'academic administrator',
+  'research leader',
+  'reviewer',
+]);
 
 // ------------------------------------------------------------------
 // Store
@@ -54,8 +63,28 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
-  const isAdmin = computed(() => user.value?.is_superuser ?? false);
+
+  /** Super admin = is_superuser flag from backend (full bypass). */
+  const isSuperAdmin = computed(() => user.value?.is_superuser ?? false);
+
+  /** Admin role = has a recognized admin role name OR is superuser. */
+  const isAdminRole = computed(() => {
+    if (isSuperAdmin.value) return true;
+    const roles = user.value?.roles ?? [];
+    return roles.some((r) => ADMIN_ROLE_NAMES.has(r.name.toLowerCase()));
+  });
+
+  /** Can review documents = admin or reviewer role. */
+  const canReviewDocuments = computed(() => isAdminRole.value);
+
+  /** Can manage source policies = super admin only. */
+  const canManageSourcePolicies = computed(() => isSuperAdmin.value);
+
   const userName = computed(() => user.value?.display_name ?? user.value?.username ?? '');
+
+  // Note: existing components/stores still use `isAdmin` — keep it for
+  // backward compatibility but point it at isAdminRole instead of isSuperAdmin.
+  const isAdmin = computed(() => isAdminRole.value);
 
   // Helpers
   function setTokens(access: string, refresh: string): void {
@@ -204,6 +233,10 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isAuthenticated,
     isAdmin,
+    isSuperAdmin,
+    isAdminRole,
+    canReviewDocuments,
+    canManageSourcePolicies,
     userName,
     login,
     register,

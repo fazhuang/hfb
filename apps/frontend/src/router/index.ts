@@ -126,12 +126,12 @@ const router = createRouter({
           component: () => import('@/views/admin/IngestionTasksView.vue'),
           meta: { requiresAuth: true, requiresAdmin: true },
         },
-        // Admin: source policy (superuser only)
+        // Admin: source policy (super admin only)
         {
           path: 'admin/source-policy',
           name: 'admin-source-policy',
           component: () => import('@/views/admin/SourcePolicyView.vue'),
-          meta: { requiresAuth: true, requiresAdmin: true },
+          meta: { requiresAuth: true, requiresSuperAdmin: true },
         },
       ],
     },
@@ -158,7 +158,15 @@ router.beforeEach(async (to: RouteLocationNormalized, _from, next) => {
   // Pages that require admin
   const requiresAdmin = to.matched.some((r) => r.meta.requiresAdmin);
 
-  if (requiresAdmin && !auth.isAdmin) {
+  if (requiresAdmin && !auth.canReviewDocuments) {
+    next({ name: 'home' });
+    return;
+  }
+
+  // Pages that require super admin
+  const requiresSuperAdmin = to.matched.some((r) => r.meta.requiresSuperAdmin);
+
+  if (requiresSuperAdmin && !auth.canManageSourcePolicies) {
     next({ name: 'home' });
     return;
   }

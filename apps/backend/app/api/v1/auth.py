@@ -31,6 +31,15 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 def _user_to_dict(user: object) -> dict:
     """Safe User→dict conversion that avoids lazy-load issues."""
+    roles = []
+    try:
+        raw_roles = getattr(user, "roles", None)
+        if raw_roles is not None and hasattr(raw_roles, "__iter__") and not isinstance(raw_roles, (str, bytes)):
+            for r in raw_roles:
+                roles.append({"id": getattr(r, "id", ""), "name": getattr(r, "name", ""), "description": getattr(r, "description", None)})
+    except Exception:
+        pass
+
     return {
         "id": getattr(user, "id", ""),
         "username": getattr(user, "username", ""),
@@ -39,6 +48,7 @@ def _user_to_dict(user: object) -> dict:
         "affiliation": getattr(user, "affiliation", None),
         "is_active": getattr(user, "is_active", True),
         "is_superuser": getattr(user, "is_superuser", False),
+        "roles": roles,
         "created_at": getattr(user, "created_at", None),
         "updated_at": getattr(user, "updated_at", None),
     }

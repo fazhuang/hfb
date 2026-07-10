@@ -92,10 +92,14 @@ const navItems = computed(() => {
     { path: '/search', icon: '🔍', labelKey: 'nav.search' },
     { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
   ];
-  if (auth.isAdmin) {
+  if (auth.canReviewDocuments) {
     base.push(
       { path: '/admin/literature-review', icon: '✅', labelKey: 'nav.adminReview' },
       { path: '/admin/ingestion-tasks', icon: '📋', labelKey: 'nav.adminIngestion' },
+    );
+  }
+  if (auth.canManageSourcePolicies) {
+    base.push(
       { path: '/admin/source-policy', icon: '🔐', labelKey: 'nav.adminSourcePolicy' },
     );
   }

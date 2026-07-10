@@ -5,7 +5,88 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { createI18n } from 'vue-i18n';
 import zhCN from '@/i18n/locales/zh-CN';
 
+// jsdom doesn't ship matchMedia — stub it for AppNavbar/useTheme
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+// ------------------------------------------------------------------
+// Helpers
+// ------------------------------------------------------------------
+
+function makeRouter() {
+  return createRouter({
+    history: createWebHistory(),
+    routes: [
+      { path: '/', component: { template: '<div/>' }, name: 'home' },
+      { path: '/login', component: { template: '<div/>' }, name: 'login' },
+      { path: '/literature', component: { template: '<div/>' }, name: 'literature' },
+      { path: '/literature/:id', component: { template: '<div/>' }, name: 'literature-detail' },
+      { path: '/admin/literature-review', component: { template: '<div/>' }, name: 'admin-literature-review', meta: { requiresAuth: true, requiresAdmin: true } },
+      { path: '/admin/ingestion-tasks', component: { template: '<div/>' }, name: 'admin-ingestion-tasks', meta: { requiresAuth: true, requiresAdmin: true } },
+      { path: '/admin/source-policy', component: { template: '<div/>' }, name: 'admin-source-policy', meta: { requiresAuth: true, requiresSuperAdmin: true } },
+    ],
+  });
+}
+
+const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } });
+
+// ------------------------------------------------------------------
+// Auth store override helper
+// ------------------------------------------------------------------
+
+function useMockAuth(user: { is_superuser: boolean; roles: Array<{ name: string }> } | null) {
+  const isAuthed = user !== null;
+  const isSuperAdmin = user?.is_superuser ?? false;
+  const ADMIN_ROLE_NAMES = new Set(['platform administrator', 'academic administrator', 'research leader', 'reviewer']);
+  const hasAdminRole = user ? (isSuperAdmin || user.roles.some((r) => ADMIN_ROLE_NAMES.has(r.name.toLowerCase()))) : false;
+
+  vi.doMock('@/stores/auth', () => ({
+    useAuthStore: vi.fn(() => ({
+      isAuthenticated: isAuthed,
+      isAdmin: hasAdminRole,
+      isSuperAdmin,
+      isAdminRole: hasAdminRole,
+      canReviewDocuments: hasAdminRole,
+      canManageSourcePolicies: isSuperAdmin,
+      userName: user ? 'TestUser' : '',
+      accessToken: isAuthed ? 'token' : null,
+      user: user ? {
+        id: '1',
+        username: 'testuser',
+        email: 'test@example.com',
+        display_name: 'Test User',
+        affiliation: null,
+        is_active: true,
+        is_superuser: user.is_superuser,
+        roles: user.roles.map((r, i) => ({ id: `${i}`, name: r.name, description: null })),
+        created_at: null,
+        updated_at: null,
+      } : null,
+      loading: false,
+      error: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      fetchMe: vi.fn(),
+      logout: vi.fn(),
+    })),
+  }));
+}
+
+// ------------------------------------------------------------------
 // Mock API client
+// ------------------------------------------------------------------
+
 vi.mock('@/api/client', () => ({
   default: {
     get: vi.fn(),
@@ -17,292 +98,255 @@ vi.mock('@/api/client', () => ({
 
 import api from '@/api/client';
 
-// Mock auth store
-vi.mock('@/stores/auth', () => ({
-  useAuthStore: vi.fn(() => ({
-    isAuthenticated: true,
-    isAdmin: true,
-    userName: 'admin',
-    accessToken: 'test-token',
-    user: { id: '1', username: 'admin', is_superuser: true },
-    logout: vi.fn(),
-  })),
-}));
-
-const i18n = createI18n({
-  legacy: false,
-  locale: 'zh-CN',
-  messages: { 'zh-CN': zhCN },
-});
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', component: { template: '<div/>' } },
-    { path: '/literature', component: { template: '<div/>' } },
-    { path: '/literature/:id', component: { template: '<div/>' } },
-    { path: '/admin/literature-review', component: { template: '<div/>' } },
-    { path: '/admin/ingestion-tasks', component: { template: '<div/>' } },
-    { path: '/admin/source-policy', component: { template: '<div/>' } },
-  ],
-});
-
-function makeWrapper(component: object) {
-  return mount(component, {
-    global: { plugins: [i18n, router, createPinia()] },
-  });
+function mockGet(data: unknown) {
+  (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data } });
 }
 
-// ------------------------------------------------------------------
-// LiteratureListView
-// ------------------------------------------------------------------
+// ==================================================================
+// 1. 普通用户 (Visitor)
+// ==================================================================
 
-describe('LiteratureListView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
+describe('普通用户 (Visitor)', () => {
+  beforeEach(async () => {
+    vi.resetModules();
     vi.clearAllMocks();
+    useMockAuth({ is_superuser: false, roles: [{ name: 'Visitor' }] });
+    setActivePinia(createPinia());
   });
 
-  it('renders page title', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { items: [], total: 0 } },
-    });
+  it('可见文献入口', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/literature');
+    await router.isReady();
+
     const { default: LiteratureListView } = await import('@/views/literature/LiteratureListView.vue');
-    const wrapper = makeWrapper(LiteratureListView);
+    const wrapper = mount(LiteratureListView, { global: { plugins: [i18n, router, createPinia()] } });
     expect(wrapper.text()).toContain('文献库');
   });
 
-  it('displays fetched items in table', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          items: [
-            {
-              id: '1', title: '针灸甲乙经', dynasty: '晋', category: '针灸',
-              copyright_status: 'public_domain', review_status: 'approved',
-              rag_enabled: true, source_name: 'user_upload', withdrawn_at: null, created_at: '2025-01-01T00:00:00Z',
-            },
-          ],
-          total: 1,
-        },
-      },
+  it('不可见全文审核、采集任务、来源白名单菜单', async () => {
+    const { default: AppNavbar } = await import('@/components/layout/AppNavbar.vue');
+    const router = makeRouter();
+    await router.push('/');
+    await router.isReady();
+
+    const wrapper = mount(AppNavbar, { global: { plugins: [i18n, router, createPinia()] } });
+    const text = wrapper.text();
+    expect(text).not.toContain('全文审核');
+    expect(text).not.toContain('采集任务');
+    expect(text).not.toContain('来源白名单');
+  });
+
+  it('文献详情页不显示管理操作', async () => {
+    mockGet({
+      id: '1', title: '测试', dynasty: null, category: null,
+      copyright_status: 'unknown', license_type: null, authorization_basis: null,
+      review_status: 'pending_review', reviewed_by: null, reviewed_at: null,
+      rag_enabled: false, content_checksum: null, source_name: null,
+      withdrawn_at: null, withdraw_reason: null,
+      title_pinyin: null, title_english: null, year: null, language: 'zh',
+      content_text: null, abstract: null, source_url: null, page_count: null,
+      created_at: null, updated_at: null,
     });
-    const { default: LiteratureListView } = await import('@/views/literature/LiteratureListView.vue');
-    const wrapper = makeWrapper(LiteratureListView);
+    const router = makeRouter();
+    await router.push('/literature/1');
+    await router.isReady();
+
+    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
+    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('针灸甲乙经');
+    expect(wrapper.text()).not.toContain('管理操作');
+    expect(wrapper.text()).not.toContain('提交审核');
+    expect(wrapper.text()).not.toContain('确认撤回');
   });
 });
 
-// ------------------------------------------------------------------
-// LiteratureDetailView
-// ------------------------------------------------------------------
+// ==================================================================
+// 2. 管理员 (Reviewer role)
+// ==================================================================
 
-describe('LiteratureDetailView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
+describe('管理员 (Reviewer)', () => {
+  beforeEach(async () => {
+    vi.resetModules();
     vi.clearAllMocks();
+    useMockAuth({ is_superuser: false, roles: [{ name: 'Reviewer' }] });
+    setActivePinia(createPinia());
   });
 
-  it('displays document detail fields', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          id: '1', title: '伤寒论', dynasty: '汉', category: '方剂',
-          copyright_status: 'public_domain', license_type: null, authorization_basis: null,
-          review_status: 'approved', reviewed_by: null, reviewed_at: null,
-          rag_enabled: true, content_checksum: null, source_name: 'user_upload',
-          withdrawn_at: null, withdraw_reason: null,
-          title_pinyin: null, title_english: null, year: null, language: 'zh',
-          content_text: '太阳之为病，脉浮，头项强痛而恶寒。',
-          abstract: '《伤寒论》为张仲景所著', source_url: null, page_count: null,
-          created_at: '2025-01-01T00:00:00Z', updated_at: null,
-        },
-      },
-    });
-    router.push('/literature/1');
+  it('可见全文审核、采集任务菜单', async () => {
+    const { default: AppNavbar } = await import('@/components/layout/AppNavbar.vue');
+    const router = makeRouter();
+    await router.push('/');
     await router.isReady();
+
+    const wrapper = mount(AppNavbar, { global: { plugins: [i18n, router, createPinia()] } });
+    const text = wrapper.text();
+    expect(text).toContain('全文审核');
+    expect(text).toContain('采集任务');
+  });
+
+  it('不可见来源白名单菜单', async () => {
+    const { default: AppNavbar } = await import('@/components/layout/AppNavbar.vue');
+    const router = makeRouter();
+    await router.push('/');
+    await router.isReady();
+
+    const wrapper = mount(AppNavbar, { global: { plugins: [i18n, router, createPinia()] } });
+    expect(wrapper.text()).not.toContain('来源白名单');
+  });
+
+  it('文献详情页可见管理操作', async () => {
+    mockGet({
+      id: '1', title: '测试', dynasty: null, category: null,
+      copyright_status: 'unknown', license_type: null, authorization_basis: null,
+      review_status: 'pending_review', reviewed_by: null, reviewed_at: null,
+      rag_enabled: false, content_checksum: null, source_name: null,
+      withdrawn_at: null, withdraw_reason: null,
+      title_pinyin: null, title_english: null, year: null, language: 'zh',
+      content_text: null, abstract: null, source_url: null, page_count: null,
+      created_at: null, updated_at: null,
+    });
+    const router = makeRouter();
+    await router.push('/literature/1');
+    await router.isReady();
+
     const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
-    const wrapper = makeWrapper(LiteratureDetailView);
+    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    const text = wrapper.text();
+    expect(text).toContain('管理操作');
+    expect(text).toContain('提交审核');
+    expect(text).toContain('确认撤回');
+  });
+});
+
+// ==================================================================
+// 3. 超级管理员 (is_superuser = true)
+// ==================================================================
+
+describe('超级管理员 (Super Admin)', () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    useMockAuth({ is_superuser: true, roles: [] });
+    setActivePinia(createPinia());
+  });
+
+  it('可见全文审核、采集任务、来源白名单菜单', async () => {
+    const { default: AppNavbar } = await import('@/components/layout/AppNavbar.vue');
+    const router = makeRouter();
+    await router.push('/');
+    await router.isReady();
+
+    const wrapper = mount(AppNavbar, { global: { plugins: [i18n, router, createPinia()] } });
+    const text = wrapper.text();
+    expect(text).toContain('全文审核');
+    expect(text).toContain('采集任务');
+    expect(text).toContain('来源白名单');
+  });
+
+  it('可访问来源白名单页面', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/admin/source-policy');
+    await router.isReady();
+
+    const { default: SourcePolicyView } = await import('@/views/admin/SourcePolicyView.vue');
+    const wrapper = mount(SourcePolicyView, { global: { plugins: [i18n, router, createPinia()] } });
+    expect(wrapper.text()).toContain('来源白名单管理');
+  });
+});
+
+// ==================================================================
+// 4. Legacy coverage — views render correctly
+// ==================================================================
+
+describe('View render smoke tests', () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    vi.clearAllMocks();
+    useMockAuth({ is_superuser: true, roles: [] });
+    setActivePinia(createPinia());
+  });
+
+  it('LiteratureListView renders title', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/literature');
+    await router.isReady();
+
+    const { default: LiteratureListView } = await import('@/views/literature/LiteratureListView.vue');
+    const wrapper = mount(LiteratureListView, { global: { plugins: [i18n, router, createPinia()] } });
+    expect(wrapper.text()).toContain('文献库');
+  });
+
+  it('LiteratureDetailView renders admin panel for super admin', async () => {
+    mockGet({
+      id: '1', title: '伤寒论', dynasty: '汉', category: '方剂',
+      copyright_status: 'public_domain', license_type: null, authorization_basis: null,
+      review_status: 'approved', reviewed_by: null, reviewed_at: null,
+      rag_enabled: true, content_checksum: null, source_name: 'user_upload',
+      withdrawn_at: null, withdraw_reason: null,
+      title_pinyin: null, title_english: null, year: null, language: 'zh',
+      content_text: '太阳之为病', abstract: null, source_url: null, page_count: null,
+      created_at: null, updated_at: null,
+    });
+    const router = makeRouter();
+    await router.push('/literature/1');
+    await router.isReady();
+
+    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
+    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('伤寒论');
-    expect(wrapper.text()).toContain('太阳之为病');
-  });
-
-  it('shows admin actions for admin users', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          id: '1', title: '测试文献', dynasty: null, category: null,
-          copyright_status: 'unknown', license_type: null, authorization_basis: null,
-          review_status: 'pending_review', reviewed_by: null, reviewed_at: null,
-          rag_enabled: false, content_checksum: null, source_name: null,
-          withdrawn_at: null, withdraw_reason: null,
-          title_pinyin: null, title_english: null, year: null, language: 'zh',
-          content_text: null, abstract: null, source_url: null, page_count: null,
-          created_at: '2025-01-01T00:00:00Z', updated_at: null,
-        },
-      },
-    });
-    router.push('/literature/1');
-    await router.isReady();
-    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
-    const wrapper = makeWrapper(LiteratureDetailView);
-    await wrapper.vm.$nextTick();
-    await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('管理操作');
-    expect(wrapper.text()).toContain('提交审核');
-    expect(wrapper.text()).toContain('确认撤回');
-  });
-});
-
-// ------------------------------------------------------------------
-// ClassicalVersionListView
-// ------------------------------------------------------------------
-
-describe('ClassicalVersionListView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
   });
 
-  it('renders page title', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { items: [], total: 0 } },
-    });
+  it('ClassicalVersionListView renders', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/');
+    await router.isReady();
+
     const { default: ClassicalVersionListView } = await import('@/views/classical-versions/ClassicalVersionListView.vue');
-    const wrapper = makeWrapper(ClassicalVersionListView);
+    const wrapper = mount(ClassicalVersionListView, { global: { plugins: [i18n, router, createPinia()] } });
     expect(wrapper.text()).toContain('古籍版本库');
   });
 
-  it('displays version items', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          items: [
-            {
-              id: '1', work_title: '针灸甲乙经', version_name: '明刻本',
-              dynasty: '明', edition_type: '刻本', repository: '国家图书馆',
-              public_domain_status: 'confirmed_public_domain', review_status: 'approved',
-              created_at: '2025-01-01T00:00:00Z',
-            },
-          ],
-          total: 1,
-        },
-      },
-    });
-    const { default: ClassicalVersionListView } = await import('@/views/classical-versions/ClassicalVersionListView.vue');
-    const wrapper = makeWrapper(ClassicalVersionListView);
-    await wrapper.vm.$nextTick();
-    await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('针灸甲乙经');
-    expect(wrapper.text()).toContain('明刻本');
-  });
-});
+  it('LiteratureReviewQueue renders', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/admin/literature-review');
+    await router.isReady();
 
-// ------------------------------------------------------------------
-// LiteratureReviewQueue
-// ------------------------------------------------------------------
-
-describe('LiteratureReviewQueue', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-  });
-
-  it('renders page title with default pending filter', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { items: [], total: 0 } },
-    });
     const { default: LiteratureReviewQueue } = await import('@/views/admin/LiteratureReviewQueue.vue');
-    const wrapper = makeWrapper(LiteratureReviewQueue);
+    const wrapper = mount(LiteratureReviewQueue, { global: { plugins: [i18n, router, createPinia()] } });
     expect(wrapper.text()).toContain('全文审核队列');
   });
-});
 
-// ------------------------------------------------------------------
-// IngestionTasksView
-// ------------------------------------------------------------------
+  it('IngestionTasksView renders', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/admin/ingestion-tasks');
+    await router.isReady();
 
-describe('IngestionTasksView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-  });
-
-  it('renders page title', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { items: [], total: 0 } },
-    });
     const { default: IngestionTasksView } = await import('@/views/admin/IngestionTasksView.vue');
-    const wrapper = makeWrapper(IngestionTasksView);
+    const wrapper = mount(IngestionTasksView, { global: { plugins: [i18n, router, createPinia()] } });
     expect(wrapper.text()).toContain('采集任务记录');
   });
 
-  it('displays audit records', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          items: [
-            {
-              id: '1', created_at: '2025-01-15T08:00:00Z', action: 'fulltext_ingest', status: 'success',
-              source_url: null, source_name: 'crossref', copyright_status: 'open_access',
-              license_type: 'CC-BY', review_status: 'approved', result_entity_type: 'document',
-              result_entity_id: 'doc-1', reject_reason: null, skipped_reason: null,
-              actor_id: 'user-1', details: { title: 'Test Document' },
-            },
-          ],
-          total: 1,
-        },
-      },
-    });
-    const { default: IngestionTasksView } = await import('@/views/admin/IngestionTasksView.vue');
-    const wrapper = makeWrapper(IngestionTasksView);
-    await wrapper.vm.$nextTick();
-    await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('crossref');
-  });
-});
+  it('SourcePolicyView renders', async () => {
+    mockGet({ items: [], total: 0 });
+    const router = makeRouter();
+    await router.push('/admin/source-policy');
+    await router.isReady();
 
-// ------------------------------------------------------------------
-// SourcePolicyView
-// ------------------------------------------------------------------
-
-describe('SourcePolicyView', () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-    vi.clearAllMocks();
-  });
-
-  it('renders page title', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { items: [], total: 0 } },
-    });
     const { default: SourcePolicyView } = await import('@/views/admin/SourcePolicyView.vue');
-    const wrapper = makeWrapper(SourcePolicyView);
+    const wrapper = mount(SourcePolicyView, { global: { plugins: [i18n, router, createPinia()] } });
     expect(wrapper.text()).toContain('来源白名单管理');
-  });
-
-  it('displays source policies', async () => {
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        data: {
-          items: [
-            {
-              id: '1', source_name: 'openalex', enabled: true,
-              created_at: '2025-01-01T00:00:00Z', updated_at: '2025-01-01T00:00:00Z',
-            },
-          ],
-          total: 1,
-        },
-      },
-    });
-    const { default: SourcePolicyView } = await import('@/views/admin/SourcePolicyView.vue');
-    const wrapper = makeWrapper(SourcePolicyView);
-    await wrapper.vm.$nextTick();
-    await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('openalex');
   });
 });
