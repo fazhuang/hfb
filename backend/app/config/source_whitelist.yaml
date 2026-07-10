@@ -1,0 +1,255 @@
+# 文献采集来源白名单
+# ==================
+# 定义：可采集文献的来源分类、权限级别及合规要求
+# 所有来源必须有合规依据，未列入白名单的来源默认禁止采集
+#
+# 分类说明：
+#   A - 可采集元数据与开放全文（开放获取资源）
+#   B - 只允许采集元数据和外链（商业数据库、付费平台）
+#   C - 需要人工审核（非正式出版物、个人或区域性资源）
+#   D - 禁止采集（侵权、盗版、未授权资源）
+# ==================
+
+sources:
+  # ========================
+  # A 类：可采集元数据与开放全文
+  # ========================
+  - name: "OpenAlex"
+    domain: "openalex.org"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "开放学术索引，CC0 许可，API 免费开放"
+
+  - name: "Crossref"
+    domain: "crossref.org"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "DOI 注册机构，元数据开放，部分全文通过 Crossref REST API 可获取"
+
+  - name: "CORE"
+    domain: "core.ac.uk"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "全球开放获取全文聚合平台，提供 API 和数据集"
+
+  - name: "PubMed"
+    domain: "pubmed.ncbi.nlm.nih.gov"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "NLM/NIH 维护的生物医学文献库，元数据免费，PMC 子集全文开放"
+
+  - name: "Europe PMC"
+    domain: "europepmc.org"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "欧洲生物医学开放获取平台，API 免费开放"
+
+  - name: "Internet Archive"
+    domain: "archive.org"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "互联网档案馆，公共领域数字资源，遵守其 robots.txt 和 API 限制"
+
+  - name: "开放机构知识库"
+    domain: "*"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "大学和研究机构的开放知识库（如 DSpace、EPrints 等），需逐个确认是否声明开放获取"
+
+  - name: "公共领域古籍平台"
+    domain: "*"
+    category: A
+    metadata_allowed: true
+    fulltext_allowed: true
+    requires_manual_review: false
+    notes: "如中国哲学书电子化计划(ctext.org)、国学大师等，仅采集已进入公共领域的古籍内容"
+
+  # ========================
+  # B 类：只允许采集元数据和外链
+  # ========================
+  - name: "中国知网 (CNKI)"
+    domain: "cnki.net"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "商业数据库，仅采集标题、作者、摘要、关键词、DOI/链接，禁止下载或缓存全文"
+
+  - name: "万方数据"
+    domain: "wanfangdata.com.cn"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "商业数据库，仅采集元数据和外链，禁止下载全文"
+
+  - name: "维普 (VIP)"
+    domain: "cqvip.com"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "中文科技期刊数据库，仅采集元数据和外链"
+
+  - name: "超星 (Chaoxing)"
+    domain: "chaoxing.com"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "数字图书平台，仅采集元数据和外链"
+
+  - name: "中华经典古籍库"
+    domain: "*"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "中华书局出版的商业古籍数据库，仅采集书目信息和链接"
+
+  - name: "商业电子书平台"
+    domain: "*"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "如京东读书、当当云阅读、Kindle 商店等，仅采集书目元数据和外链，禁止下载或缓存电子书内容"
+
+  - name: "高校付费数据库"
+    domain: "*"
+    category: B
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "如 IEEE Xplore、Elsevier、Springer、JSTOR 等，仅采集元数据和 DOI 链接，禁止绕过机构认证获取全文"
+
+  # ========================
+  # C 类：需要人工审核
+  # ========================
+  - name: "地方图书馆资源"
+    domain: "*"
+    category: C
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: true
+    notes: "地方图书馆的数字化馆藏，需逐项审核版权状态和使用条款后再决定是否采集"
+
+  - name: "个人博客整理资料"
+    domain: "*"
+    category: C
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: true
+    notes: "个人博客上的文献整理或研究笔记，需人工审核内容可信度和版权合规性"
+
+  - name: "论坛资料"
+    domain: "*"
+    category: C
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: true
+    notes: "学术论坛、BBS 上发布的资料和讨论，需审核是否涉及未经授权的转载"
+
+  - name: "公众号文章"
+    domain: "*"
+    category: C
+    metadata_allowed: true
+    fulltext_allowed: false
+    requires_manual_review: true
+    notes: "微信公众号及其他自媒体平台文章，需审核内容来源可靠性和合规性"
+
+  - name: "网盘资源"
+    domain: "*"
+    category: C
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: true
+    notes: "百度网盘、阿里云盘等分享的文献资源，默认不采集，仅经人工审核确认授权后方可采集"
+
+  # ========================
+  # D 类：禁止采集
+  # ========================
+  - name: "盗版 PDF 站"
+    domain: "*"
+    category: D
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "如 Sci-Hub、LibGen 等，明确禁止采集，不得以任何方式索引或链接"
+
+  - name: "无授权扫描本"
+    domain: "*"
+    category: D
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "未经版权持有者授权的数字化扫描件，禁止采集"
+
+  - name: "绕过登录下载资源"
+    domain: "*"
+    category: D
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "任何需要通过技术手段绕过登录、付费墙、地域限制获取的资源，禁止采集"
+
+  - name: "破解数据库"
+    domain: "*"
+    category: D
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "破解版或盗版数据库，禁止采集"
+
+  - name: "镜像站"
+    domain: "*"
+    category: D
+    metadata_allowed: false
+    fulltext_allowed: false
+    requires_manual_review: false
+    notes: "未经授权的镜像站点，禁止采集其索引和内容"
+
+# ========================
+# 默认规则
+# ========================
+default_policy:
+  metadata_allowed: false
+  fulltext_allowed: false
+  requires_manual_review: false
+  notes: "未列入白名单的来源默认禁止采集。如需新增来源，需经审批后更新本文件。"
+
+# ========================
+# 合规声明
+# ========================
+compliance:
+  # 采集行为准则
+  restrictions:
+    - "不编写真实爬虫代码（仅定义数据模型和接口契约，由授权系统按合规要求实现）"
+    - "不绕过目标网站的登录机制、付费墙或访问控制"
+    - "不访问付费数据库的全文内容"
+    - "不批量下载商业论文"
+    - "所有来源必须有合规说明和明确的许可依据"
+    - "尊重 robots.txt 和网站 API 速率限制"
+    - "采集的元数据仅用于学术研究索引，不转售或商业化使用"
+
+  # 数据存储
+  data_handling:
+    - "A 类来源的开放全文可本地缓存，需标注原始出处和许可条款"
+    - "B 类来源仅存储元数据和外链，不本地缓存全文"
+    - "C 类来源在人工审核通过前，默认按 B 类处理（仅存元数据和外链）"
+    - "D 类来源的数据不得以任何形式存储或索引"
+    - "所有存储数据需记录采集时间、来源和许可依据，支持完整的审计追踪"
