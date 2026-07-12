@@ -154,6 +154,7 @@ async def ingest_text(
             text=body.text,
             metadata=metadata if metadata else None,
             max_chunk_chars=body.max_chunk_chars,
+            passage_id=body.passage_id,
         )
         return api_response(
             data={

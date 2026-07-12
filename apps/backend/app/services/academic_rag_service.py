@@ -111,6 +111,12 @@ def parse_chinese_query(query: str) -> ParsedQuery:
             subject = name
             break
 
+    # Also detect book titles wrapped in 《》
+    if not subject:
+        book_match = re.search(r"《([^》]{2,20})》", content)
+        if book_match:
+            subject = book_match.group(0)  # Keep 《》 for display
+
     if not subject:
         for sep in ["的", "之", "思想", "理论", "学术"]:
             if sep in content:
@@ -395,35 +401,58 @@ class AcademicRAGService:
         if not parsed.subject:
             return []
 
-        person_nodes = await self.graph.search_entities(
-            entity_types=["person"], query=parsed.subject, limit=5
-        )
+        # Strip 《》 for entity search
+        search_subject = parsed.subject.strip("《》")
+
+        # Search all entity types that could match the subject
+        all_nodes: list = []
+        for et in ["person", "book", "text"]:
+            nodes = await self.graph.search_entities(
+                entity_types=[et], query=search_subject, limit=5
+            )
+            all_nodes.extend(nodes)
+
+        # Also collect neighbors of matched nodes to enable 2-hop paths
+        # from any direction. This ensures e.g. 皇甫谧→针灸甲乙经→黄帝内经
+        # works even when the query target is 针灸甲乙经.
+        expanded_nodes: dict[str, object] = {}
+        for node in all_nodes:
+            expanded_nodes[node.id] = node
+            try:
+                nbr = await self.graph.get_neighbors(node.entity_type, node.entity_id)
+                for nb in nbr.neighbors:
+                    if nb.id not in expanded_nodes:
+                        expanded_nodes[nb.id] = nb
+            except ValueError:
+                pass
 
         academic_paths: list[AcademicKGPath] = []
 
-        for person_node in person_nodes:
+        for start_node in expanded_nodes.values():
             neighbors = await self.graph.get_neighbors(
-                person_node.entity_type, person_node.entity_id
+                start_node.entity_type, start_node.entity_id
             )
 
             for edge in neighbors.edges:
                 target_node = None
                 for n in neighbors.neighbors:
                     if n.id == edge.target_id or n.id == edge.source_id:
-                        if n.id != person_node.id:
+                        if n.id != start_node.id:
                             target_node = n
                             break
                 if target_node is None:
                     continue
 
                 ev = edge.evidence
+                if ev is None:
+                    continue
                 academic_paths.append(
                     AcademicKGPath(
                         nodes=[
                             AcademicKGNode(
-                                id=person_node.id,
-                                entity_type=person_node.entity_type,
-                                label=person_node.label,
+                                id=start_node.id,
+                                entity_type=start_node.entity_type,
+                                label=start_node.label,
                             ),
                             AcademicKGNode(
                                 id=target_node.id,
@@ -439,7 +468,7 @@ class AcademicRAGService:
                 # 2-hop
                 intermediate_id = (
                     edge.target_id
-                    if edge.source_id == person_node.id
+                    if edge.source_id == start_node.id
                     else edge.source_id
                 )
                 intermediate_node = None
@@ -463,7 +492,7 @@ class AcademicRAGService:
                         if e2.source_id == intermediate_node.id
                         else e2.source_id
                     )
-                    if far_node_id == person_node.id:
+                    if far_node_id == start_node.id:
                         continue
                     far_node = None
                     for n in second_neighbors.neighbors:
@@ -475,13 +504,16 @@ class AcademicRAGService:
 
                     ev1 = edge.evidence
                     ev2 = e2.evidence
+                    # Skip edges without evidence
+                    if ev1 is None or ev2 is None:
+                        continue
                     academic_paths.append(
                         AcademicKGPath(
                             nodes=[
                                 AcademicKGNode(
-                                    id=person_node.id,
-                                    entity_type=person_node.entity_type,
-                                    label=person_node.label,
+                                    id=start_node.id,
+                                    entity_type=start_node.entity_type,
+                                    label=start_node.label,
                                 ),
                                 AcademicKGNode(
                                     id=intermediate_node.id,

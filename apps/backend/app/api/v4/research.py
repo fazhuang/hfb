@@ -148,6 +148,44 @@ async def execute_research_query(
         raw_evidence_traces = result.get("evidence_trace", [])
         citations_list = result.get("citations", [])
 
+        # Hydrate lineage: batch-resolve chunk_id → passage/version/source_uri/claim_text
+        all_chunk_ids = list({e.get("chunk_id", "") for e in raw_evidence_traces + citations_list if e.get("chunk_id")})
+        lineage_map: dict[str, dict] = {}
+        if all_chunk_ids:
+            from sqlalchemy import text as sa_text
+            lineage_result = await db.execute(sa_text(
+                "SELECT dc.id, dc.passage_id, p.version_id, "
+                "COALESCE(er.evidence_source_uri, v.source_url, '') as source_uri, "
+                "COALESCE(er.claim_text, '') as claim_text "
+                "FROM document_chunks dc "
+                "LEFT JOIN passages p ON dc.passage_id = p.id AND p.is_deleted=false "
+                "LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted=false "
+                "LEFT JOIN entity_relations er ON er.evidence_chunk_id = dc.id "
+                "AND er.is_deleted=false AND er.evidence_status='verified' "
+                "WHERE dc.is_deleted=false AND dc.id = ANY(:ids)"
+            ), {"ids": all_chunk_ids})
+            for row in lineage_result:
+                lineage_map[row[0]] = {
+                    "passage_id": row[1] or "",
+                    "version_id": row[2] or "",
+                    "source_uri": row[3] or "",
+                    "claim_text": row[4] or "",
+                }
+
+        def _hydrate(ev: dict) -> dict:
+            cid = ev.get("chunk_id", "")
+            lineage = lineage_map.get(cid, {})
+            for k in ("version_id", "passage_id", "source_uri", "claim_text"):
+                if not ev.get(k):
+                    ev[k] = lineage.get(k, "")
+            return ev
+
+        # Hydrate evidence traces and citations in-place
+        result["evidence_trace"] = [_hydrate(e) for e in raw_evidence_traces]
+        result["citations"] = [_hydrate(c) for c in citations_list]
+        raw_evidence_traces = result["evidence_trace"]
+        citations_list = result["citations"]
+
         if not raw_evidence_traces:
             return V4ApiEnvelope(
                 success=False,
@@ -160,10 +198,16 @@ async def execute_research_query(
         from app.services.trace_lineage import build_viz_traces
         from app.schemas.graph import GraphEvidence
         evidence_traces = [
-            GraphEvidence(document_id=e.get("document_id", ""),
-                          chunk_id=e.get("chunk_id", ""),
-                          exact_quote=e.get("exact_quote", ""),
-                          citation=e.get("citation", ""))
+            GraphEvidence(
+                document_id=e.get("document_id", ""),
+                chunk_id=e.get("chunk_id", ""),
+                exact_quote=e.get("exact_quote", ""),
+                citation=e.get("citation", ""),
+                version_id=e.get("version_id", ""),
+                passage_id=e.get("passage_id", ""),
+                source_uri=e.get("source_uri", ""),
+                claim_text=e.get("claim_text", ""),
+            )
             for e in raw_evidence_traces
         ]
         try:

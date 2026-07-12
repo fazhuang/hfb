@@ -488,7 +488,9 @@ def _stable_hash(*parts: str) -> str:
 
 
 def _make_evidence(
-    document_id: str, chunk_id: str, exact_quote: str, citation: str | None = None
+    document_id: str, chunk_id: str, exact_quote: str, citation: str | None = None,
+    passage_id: str = "", version_id: str = "", source_uri: str = "",
+    claim_text: str = "",
 ) -> GraphEvidence:
     if citation is None:
         citation = f"[{document_id}:{chunk_id}]"
@@ -497,6 +499,10 @@ def _make_evidence(
         chunk_id=chunk_id,
         exact_quote=exact_quote,
         citation=citation,
+        passage_id=passage_id,
+        version_id=version_id,
+        source_uri=source_uri,
+        claim_text=claim_text,
     )
 
 
@@ -2333,7 +2339,7 @@ class GraphService:
 
     async def intelligence(self, query: str) -> dict[str, Any]:
         """Unified knowledge intelligence — deterministic, evidence-bound."""
-        raw_concepts = query.split()
+        raw_concepts = re.findall(r"[一-鿿]{2,}", query)
         concepts = sorted(set(c.strip() for c in raw_concepts if c.strip()))
         if not concepts:
             concepts = [query.strip()]

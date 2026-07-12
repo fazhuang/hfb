@@ -283,32 +283,25 @@ def _check_same_sentence_support(
 # ======================================================================
 
 # Question markers to strip for retrieval
-_QUESTION_MARKERS_RE = re.compile(r"(是否|能否|是不是|有没有|可不)")
+_QUESTION_MARKERS_RE = re.compile(r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)")
 
 # Segmentation keywords — keep these as separate terms
 _SEGMENT_KEYWORDS: list[str] = [
-    "治疗",
-    "治愈",
-    "导致",
-    "证明",
-    "所有",
-    "全部",
-    "任何",
-    "一切",
-    "提出",
-    "编撰",
-    "记载",
-    "论述",
-    "包含",
-    "定义",
-    "概念",
-    "历史",
-    "来源",
-    "内容",
-    "结构",
-    "关联",
-    "影响",
-    "文献",
+    "针灸甲乙经", "伤寒杂病论", "本草纲目", "黄帝内经", "神农本草经", "难经", "脉经",
+    "针灸", "经络", "腧穴", "穴位", "脏腑", "辨证", "针刺", "艾灸",
+    "皇甫谧", "张仲景", "李时珍", "孙思邈", "华佗", "扁鹊",
+    "版本", "刻本", "抄本", "校注",
+    "成书", "成书特点", "成书背景", "成书年代", "成书过程",
+    "编纂", "编纂原则", "编纂特点", "学术思想", "学术价值",
+    "中医", "针灸学", "文献学", "本草学", "方剂学",
+    "临床", "治疗", "诊断", "脉诊", "病候", "证候",
+    "针法", "灸法", "刺法", "补泻", "得气", "留针",
+    "特点", "特征", "背景", "来源", "内容", "结构", "关联",
+    "影响", "文献", "著作", "经典", "医学",
+    "治疗", "治愈", "导致", "证明",
+    "所有", "全部", "任何", "一切",
+    "提出", "编撰", "记载", "论述", "包含",
+    "定义", "概念", "历史", "来源",
 ]
 
 
@@ -341,8 +334,21 @@ def build_academic_retrieval_query(query: str) -> str:
             result_terms.append(t)
 
     if not result_terms:
-        # Fallback: return original query stripped of markers
-        return clean if clean else query
+        # Fallback: brute-force bigram segmentation for Chinese text
+        chinese_chars = re.findall(r"[一-鿿]", clean)
+        if len(chinese_chars) >= 2:
+            for i in range(0, len(chinese_chars) - 1, 1):
+                bigram = "".join(chinese_chars[i:i+2])
+                if bigram not in result_terms:
+                    result_terms.append(bigram)
+            # Also add trigrams for better coverage
+            if len(chinese_chars) >= 3:
+                for i in range(0, len(chinese_chars) - 2, 1):
+                    trigram = "".join(chinese_chars[i:i+3])
+                    if trigram not in result_terms:
+                        result_terms.append(trigram)
+        if not result_terms:
+            return clean if clean else query
 
     return " ".join(result_terms)
 
@@ -915,7 +921,7 @@ class AcademicService:
             retrieval_template,
         ) in self._RESEARCH_DECOMPOSE_PATTERNS:
             sub_display = display_template.replace("{query}", query)
-            sub_retrieval = retrieval_template.replace("{query}", query)
+            sub_retrieval = build_academic_retrieval_query(retrieval_template.replace("{query}", query))
 
             (
                 sub_proof,

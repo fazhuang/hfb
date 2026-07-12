@@ -55,7 +55,7 @@ async def review_document(
             detail=f"review_status must be one of: {sorted(REVIEW_STATUSES)}",
         )
 
-    doc = await session.get(Document, document_id)
+    doc = await session.get(Document, str(document_id))
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
@@ -97,7 +97,7 @@ async def withdraw_document(
     session: Annotated[AsyncSession, Depends(get_session)],
     user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
-    doc = await session.get(Document, document_id)
+    doc = await session.get(Document, str(document_id))
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     if doc.withdrawn_at is not None:
@@ -245,7 +245,7 @@ async def update_source_policy(
     body: SourcePolicyUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    sp = await session.get(SourcePolicy, policy_id)
+    sp = await session.get(SourcePolicy, str(policy_id))
     if sp is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
 
@@ -269,7 +269,7 @@ async def delete_source_policy(
     policy_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    sp = await session.get(SourcePolicy, policy_id)
+    sp = await session.get(SourcePolicy, str(policy_id))
     if sp is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
 
