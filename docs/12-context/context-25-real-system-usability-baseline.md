@@ -29,15 +29,17 @@
 
 ---
 
-### P0-2: dirty worktree / clean HEAD
+### P0-2: clean HEAD / 提交状态 ✅ 已解决
 
 #### 当前状态
 
 ```
-HEAD: bb55d54
+HEAD: 6368e9b (fix: Phase 2 Task 1 P0 blockers — citation chain, V4 graph lineage, researcher flow)
 ```
 
-#### 已修改文件 (modified)
+所有 P0 修复已提交至 `6368e9b`，worktree 干净（无 modified 文件）。
+
+#### 已提交的修复文件（均在 6368e9b 中）
 
 | 文件 | 修改内容 |
 |------|----------|
@@ -48,43 +50,48 @@ HEAD: bb55d54
 | `apps/backend/app/services/academic_rag_service.py` | 图书名《》解析、扩展实体搜索（person/book/text）、2-hop 邻居扩展 |
 | `apps/backend/app/services/academic_service.py` | 中文检索词优化：扩展关键词词典 + bigram/trigram fallback |
 | `apps/backend/app/services/graph_service.py` | `_make_evidence` 传递全 lineage；`intelligence` 中文字符提取 |
-
-#### 新增未跟踪文件 (需 version control)
-
-| 文件 | 用途 |
-|------|------|
-| `apps/backend/app/db/seed_kg.py` | 创建 5 条 verified entity_relations（KG 骨干） |
+| `apps/backend/app/db/seed_kg.py` | 创建 5 条 verified entity_relations（KG 骨干）|
 | `scripts/seed_kg_relations.py` | 同上，备用版本 |
 | `scripts/seed_citations.py` | 从 entity_relations 批量创建 citations + evidences + source_refs |
 | `scripts/capture_researcher_flow.py` | Playwright 浏览器截图脚本 (P0-5) |
+| `docs/12-context/context-25-real-system-usability-baseline.md` | 本报告 |
 
-**当前限制**: 所有修改在 dirty worktree 中，未提交。如需 clean HEAD，需 commit 上述文件。
+#### 未跟踪文件（外部运行产物，非源码）
+
+| 文件 | 说明 |
+|------|------|
+| `output/` | Playwright 截图输出目录（12 张浏览器截图），运行产物，不需要入版本控制 |
+| `backend/uv.lock` | Python 依赖锁文件 |
+| `docs/03-architecture/` | 架构文档（独立交付物）|
+| `docs/06-guides/` | 指南文档（独立交付物）|
+| `docs/academic_implementation_manual.md` | 学术实现手册 |
+| `docs/03-data/huangfu-mi-literature-data-model.md` | 数据模型文档 |
+| `docs/07-compliance/literature-source-policy-codex-review.md` | 合规审查文档 |
+| 多个 `docs/12-context/context-1x-*.md` | 历史 codex review 文档 |
 
 #### Clean DB 复现路径
 
 ```bash
-# 1. 拉取 bb55d54
-git checkout bb55d54
+# 1. 切换到 6368e9b（所有修复已包含）
+git checkout 6368e9b
 
-# 2. 应用所有修改文件 (git stash pop 或 cherry-pick)
-
-# 3. 重建数据库
+# 2. 重建数据库
 dropdb hfb && createdb hfb
 
-# 4. 运行 migration + seed
+# 3. 运行 migration + seed
 cd apps/backend
 uv run alembic upgrade head
 uv run python app/db/seed_rbac.py
 uv run python app/db/seed_literature.py
 
-# 5. 创建 KG 骨干
+# 4. 创建 KG 骨干
 uv run python app/db/seed_kg.py
 
-# 6. 创建 citation/evidence/source_ref 持久链
+# 5. 创建 citation/evidence/source_ref 持久链
 cd ../..
 python3 scripts/seed_citations.py
 
-# 7. 启动服务
+# 6. 启动服务
 cd apps/backend && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
@@ -254,9 +261,9 @@ traceability: traces=3 citations=3 docs=3
 ### git status
 
 ```
-HEAD: bb55d54
-Modified: 7 files (见 P0-2)
-Untracked: 4 源码 + 12 截图 + 报告文件
+HEAD: 6368e9b (clean)
+Modified: 0
+Untracked: output/ (Playwright 截图), backend/uv.lock, docs/* (文档), 历史 codex review 文档
 ```
 
 ### /health
@@ -305,29 +312,26 @@ citation → evidence → passage → version → source_uri
 ## 五、Clean Setup 复现步骤
 
 ```bash
-# 1. 克隆并切换到 bb55d54
-git clone <repo> && cd hfb && git checkout bb55d54
+# 1. 克隆并切换到 6368e9b（所有修复已包含）
+git clone <repo> && cd hfb && git checkout 6368e9b
 
-# 2. 应用所有修改
-git stash pop  # 或逐个文件应用
-
-# 3. 重建 DB
+# 2. 重建 DB
 dropdb hfb && createdb hfb
 
-# 4. Migration + seed
+# 3. Migration + seed
 cd apps/backend
 uv run alembic upgrade head
 uv run python app/db/seed_rbac.py
 uv run python app/db/seed_literature.py
 
-# 5. KG backbone + citation chain
+# 4. KG backbone + citation chain
 uv run python app/db/seed_kg.py
 cd ../.. && python3 scripts/seed_citations.py
 
-# 6. 启动
+# 5. 启动
 cd apps/backend && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-# 7. 验证
+# 6. 验证
 curl http://localhost:8000/health
 curl http://localhost:8000/ready
 psql -h 127.0.0.1 -U hfb -d hfb -c "select count(*) from citations; select count(*) from source_refs;"
@@ -340,7 +344,7 @@ psql -h 127.0.0.1 -U hfb -d hfb -c "select count(*) from citations; select count
 | P0 | 问题 | 修复后状态 | 备注 |
 |----|------|-----------|------|
 | P0-1 | 报告未更新 | ✅ 本报告即更新 | |
-| P0-2 | dirty worktree | ⚠️ 修改未提交 | 7 modified + 4 源码 untracked；已提供 clean DB 路径 |
+| P0-2 | dirty worktree | ✅ 已提交至 6368e9b | worktree 干净，所有修复已 commit |
 | P0-3 | citations=0 | ✅ citations=5, source_refs=1 | 链路 SQL 可查 |
 | P0-4 | PDF/OCR 未证明 | ✅ Path B 声明 | 网页公版文本，ctext source_uri |
 | P0-5 | 浏览器流程未证明 | ✅ 12 截图 | 普通 Researcher 全流程 |
@@ -350,7 +354,7 @@ psql -h 127.0.0.1 -U hfb -d hfb -c "select count(*) from citations; select count
 
 ## 七、已知限制
 
-1. **dirty worktree**: 修改未提交。如果要 clean HEAD，需要 commit 所有 7 个 modified + 4 个源码 untracked 文件。
+1. **clean HEAD**: 所有修复已提交至 `6368e9b`，worktree 干净。无需额外 commit。
 2. **PDF/OCR**: Path B 声明使用网页公版文本 (ctext)，不是 PDF/OCR 路径。source_uri 可打开但无法证明 PDF 提取或 OCR 过程。
 3. **source_refs=1**: 虽然 5 条 citation 全都指向相同 ctext URL，因此 source_refs 去重后只有 1 行。citation 数量为 5，可满足单表验收。
 4. **screenshots**: 当前截图覆盖了全部主要 Researcher 页面，但未深入每个页面的交互细节（如点击具体版本、查看 Citation 弹窗等）。
@@ -369,4 +373,4 @@ psql -h 127.0.0.1 -U hfb -d hfb -c "select count(*) from citations; select count
 
 ---
 
-**结论**: 本轮修复了 P0-3 (citation 持久链) 和 P0-6 (V4 graph lineage)，更新了 P0-1 (报告)、P0-4 (Path B 声明)、P0-5 (浏览器截图)。P0-2 (dirty worktree) 仍需用户决定是否 commit。所有结论附带可复核验证命令和输出。等待 Codex 再次验收。
+**结论**: 本轮修复了 P0-3 (citation 持久链) 和 P0-6 (V4 graph lineage)，更新了 P0-1 (报告)、P0-4 (Path B 声明)、P0-5 (浏览器截图)。所有修复已提交至 `6368e9b`，worktree 干净。所有结论附带可复核验证命令和输出。等待 Codex 再次验收。

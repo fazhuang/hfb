@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -145,25 +145,39 @@ async def execute_research_query(
     if body.mode == "graph":
         gs = GraphService(db)
         result = await gs.intelligence(query=body.query)
-        raw_evidence_traces = result.get("evidence_trace", [])
-        citations_list = result.get("citations", [])
 
-        # Hydrate lineage: batch-resolve chunk_id → passage/version/source_uri/claim_text
-        all_chunk_ids = list({e.get("chunk_id", "") for e in raw_evidence_traces + citations_list if e.get("chunk_id")})
+        # Collect ALL chunk_ids from anywhere in the result dict that looks like evidence
+        def _walk_collect(obj: Any) -> set[str]:
+            ids: set[str] = set()
+            if isinstance(obj, dict):
+                cid = obj.get("chunk_id", "")
+                if cid and isinstance(cid, str) and len(cid) > 0 and "document_id" in obj:
+                    ids.add(cid)
+                for v in obj.values():
+                    ids |= _walk_collect(v)
+            elif isinstance(obj, list):
+                for item in obj:
+                    ids |= _walk_collect(item)
+            return ids
+
+        all_chunk_ids = _walk_collect(result)
         lineage_map: dict[str, dict] = {}
         if all_chunk_ids:
             from sqlalchemy import text as sa_text
             lineage_result = await db.execute(sa_text(
                 "SELECT dc.id, dc.passage_id, p.version_id, "
-                "COALESCE(er.evidence_source_uri, v.source_url, '') as source_uri, "
-                "COALESCE(er.claim_text, '') as claim_text "
+                "COALESCE("
+                "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location = 'passage:' || p.id AND sr.is_deleted=false LIMIT 1), "
+                "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location LIKE 'passage:%' AND sr.is_deleted=false LIMIT 1), "
+                "  v.source_url, "
+                "  ''"
+                ") as source_uri, "
+                "COALESCE(dc.content, '') as claim_text "
                 "FROM document_chunks dc "
                 "LEFT JOIN passages p ON dc.passage_id = p.id AND p.is_deleted=false "
                 "LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted=false "
-                "LEFT JOIN entity_relations er ON er.evidence_chunk_id = dc.id "
-                "AND er.is_deleted=false AND er.evidence_status='verified' "
                 "WHERE dc.is_deleted=false AND dc.id = ANY(:ids)"
-            ), {"ids": all_chunk_ids})
+            ), {"ids": list(all_chunk_ids)})
             for row in lineage_result:
                 lineage_map[row[0]] = {
                     "passage_id": row[1] or "",
@@ -172,19 +186,24 @@ async def execute_research_query(
                     "claim_text": row[4] or "",
                 }
 
-        def _hydrate(ev: dict) -> dict:
-            cid = ev.get("chunk_id", "")
-            lineage = lineage_map.get(cid, {})
-            for k in ("version_id", "passage_id", "source_uri", "claim_text"):
-                if not ev.get(k):
-                    ev[k] = lineage.get(k, "")
-            return ev
+        # Recursively hydrate every evidence-like dict in-place
+        def _hydrate_recursive(obj: Any) -> Any:
+            if isinstance(obj, dict):
+                if obj.get("chunk_id") and "document_id" in obj:
+                    lm = lineage_map.get(obj.get("chunk_id", ""), {})
+                    for k in ("version_id", "passage_id", "source_uri", "claim_text"):
+                        if not obj.get(k):
+                            obj[k] = lm.get(k, "")
+                for k in obj:
+                    obj[k] = _hydrate_recursive(obj[k])
+            elif isinstance(obj, list):
+                return [_hydrate_recursive(item) for item in obj]
+            return obj
 
-        # Hydrate evidence traces and citations in-place
-        result["evidence_trace"] = [_hydrate(e) for e in raw_evidence_traces]
-        result["citations"] = [_hydrate(c) for c in citations_list]
-        raw_evidence_traces = result["evidence_trace"]
-        citations_list = result["citations"]
+        result = _hydrate_recursive(result)
+
+        raw_evidence_traces = result.get("evidence_trace", [])
+        citations_list = result.get("citations", [])
 
         if not raw_evidence_traces:
             return V4ApiEnvelope(
