@@ -6,8 +6,10 @@ Creates the data backbone needed for P0-1, P0-2, P0-5.
 import asyncio, os, sys, re, hashlib
 from datetime import datetime, timezone
 
-sys.path.insert(0, 'apps/backend')
-os.chdir('apps/backend')
+_backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
+_backend_dir = os.path.abspath(_backend_dir)
+sys.path.insert(0, _backend_dir)
+os.chdir(_backend_dir)
 
 from app.db.database import async_session_factory
 from app.services.graph_service import GraphService
