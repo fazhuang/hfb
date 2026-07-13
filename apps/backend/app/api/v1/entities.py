@@ -50,18 +50,27 @@ def _make_crud(
     update_schema,
     brief_schema,
     response_schema,
+    public_read: bool = False,
 ):
-    """Generate standard CRUD routes for an entity."""
+    """Generate standard CRUD routes for an entity.
+
+    When public_read=True, list and get endpoints allow anonymous access
+    (no JWT required). Mutations (create/update/delete) always require auth.
+    """
 
     guard_create = require_permission(entity_name, "create")
     guard_read = require_permission(entity_name, "read")
     guard_update = require_permission(entity_name, "update")
     guard_delete = require_permission(entity_name, "delete")
 
+    # For public-read entities, no auth dependency on GET routes
+    _list_deps: list = [] if public_read else [Depends(guard_read)]
+    _get_deps: list = [] if public_read else [Depends(guard_read)]
+
     @router.get(
         f"/{entity_name}s",
         response_model=dict,
-        dependencies=[Depends(guard_read)],
+        dependencies=_list_deps,
     )
     async def list_items(
         session: Annotated[AsyncSession, Depends(get_session)],
@@ -101,7 +110,7 @@ def _make_crud(
     @router.get(
         f"/{entity_name}s/{{item_id}}",
         response_model=dict,
-        dependencies=[Depends(guard_read)],
+        dependencies=_get_deps,
     )
     async def get_item(
         item_id: UUID,
@@ -129,7 +138,10 @@ def _make_crud(
     ) -> dict:
         svc = svc_cls(session)
         updates = body.model_dump(exclude_unset=True)
-        obj = await svc.update(item_id, **updates)
+        # BaseService.update expects (id, schema), not (id, **kwargs).
+        # Construct a minimal schema instance with only the fields to update.
+        partial = update_schema(**updates)
+        obj = await svc.update(item_id, partial)
         if obj is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found")
         return api_response(data=resp_cls.model_validate(obj).model_dump(mode="json"), message="Updated")
@@ -155,10 +167,10 @@ def _make_crud(
 # Register CRUD routes for each entity
 # ============================================================
 
-_make_crud("book", BookService, BookCreate, BookUpdate, BookBrief, BookResponse)
-_make_crud("version", VersionService, VersionCreate, VersionUpdate, VersionBrief, VersionResponse)
-_make_crud("chapter", ChapterService, ChapterCreate, ChapterUpdate, ChapterBrief, ChapterResponse)
-_make_crud("passage", PassageService, PassageCreate, PassageUpdate, PassageBrief, PassageResponse)
+_make_crud("book", BookService, BookCreate, BookUpdate, BookBrief, BookResponse, public_read=True)
+_make_crud("version", VersionService, VersionCreate, VersionUpdate, VersionBrief, VersionResponse, public_read=True)
+_make_crud("chapter", ChapterService, ChapterCreate, ChapterUpdate, ChapterBrief, ChapterResponse, public_read=True)
+_make_crud("passage", PassageService, PassageCreate, PassageUpdate, PassageBrief, PassageResponse, public_read=True)
 _make_crud("paper", PaperService, PaperCreate, PaperUpdate, PaperBrief, PaperResponse)
 _make_crud("image", ImageService, ImageCreate, ImageCreate, ImageBrief, ImageResponse)
 
@@ -199,10 +211,16 @@ document_guard_update = require_permission("document", "update")
 document_guard_delete = require_permission("document", "delete")
 
 
+document_public_read = True
+
+_document_list_deps: list = []
+_document_get_deps: list = []
+
+
 @router.get(
     "/documents",
     response_model=dict,
-    dependencies=[Depends(document_guard_read)],
+    dependencies=_document_list_deps,
 )
 async def list_documents(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -262,7 +280,7 @@ async def create_document(
 @router.get(
     "/documents/{item_id}",
     response_model=dict,
-    dependencies=[Depends(document_guard_read)],
+    dependencies=_document_get_deps,
 )
 async def get_document(
     item_id: UUID,

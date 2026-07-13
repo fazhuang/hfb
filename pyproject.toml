@@ -40,7 +40,7 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "python-dotenv>=1.0.0",
     "redis>=5.2.0",
-    "elasticsearch[async]>=8.17.0",
+    "elasticsearch[async]>=8.17.0,<9.0.0",
     "minio>=7.2.0",
     "psycopg2-binary>=2.9.0",
     "pypdf>=5.0.0",
@@ -61,7 +61,7 @@ dev = [
 ]
 milvus = ["pymilvus>=2.4.0"]
 neo4j = ["neo4j>=5.27.0"]
-elasticsearch = ["elasticsearch>=8.17.0"]
+elasticsearch = ["elasticsearch>=8.17.0,<9.0.0"]
 ai = [
     "langchain>=0.3.0",
     "llama-index>=0.12.0",

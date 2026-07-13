@@ -16,6 +16,10 @@ services:
       - /app/.venv
     environment:
       - ENVIRONMENT=development
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - ELASTICSEARCH_HOST=elasticsearch
+      - MINIO_HOST=minio
     env_file:
       - .env
     depends_on:
