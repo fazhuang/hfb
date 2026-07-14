@@ -1,0 +1,172 @@
+{
+  "generated_utc": "2026-07-14T04:19:36.632572+00:00",
+  "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+  "all_pass": true,
+  "pass_count": 5,
+  "total": 5,
+  "facts": [
+    {
+      "fact": "皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。",
+      "citation_id": "9c42f754-6078-4cce-800d-53d7afab2919",
+      "evidence_id": "f7f11f41-4ad2-4010-bf40-09c3c415b8ce",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "30c1e030-847d-4e52-9acc-d03f7b397d1a",
+      "version_id": "a3d894c5-554c-4bf5-b8b1-359d02fc3596",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": 4,
+      "page_text_hash": "e0a0055a51adc00896c9ddb3044d77456054fbb769f6ab6509bf744a18a7675b",
+      "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+      "quote": "乃撰集三部使事類相从...至為十二卷...玄晏先生皇甫谧撰次",
+      "quote_offset_or_bbox": {
+        "page": 4,
+        "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+        "source_quote": "乃撰集三部使事類相从...至為十二卷...玄晏先生皇甫谧撰次",
+        "ocr_evidence_keywords": [
+          "撰集三部",
+          "玄晏先生",
+          "十二卷",
+          "黄帝内經"
+        ],
+        "match_method": "ocr_keyword_lcs",
+        "match_confidence": "high",
+        "ocr_engine": "paddleocr-PP-OCRv4",
+        "ocr_avg_confidence": 0.9159
+      },
+      "match_result": true,
+      "match_method": "ocr_keyword_lcs",
+      "ocr_confidence": 0.9159,
+      "chunk_id": "f1f01673-fd0c-413a-ae6e-795b83d520fc",
+      "relation_type": "compiled"
+    },
+    {
+      "fact": "《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理针灸经络理论。",
+      "citation_id": "b32dff2d-280e-4354-8985-6358b95ff776",
+      "evidence_id": "f9d96e4d-90bb-4fe8-8fdc-3795fe9fcd96",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "30c1e030-847d-4e52-9acc-d03f7b397d1a",
+      "version_id": "a3d894c5-554c-4bf5-b8b1-359d02fc3596",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": 4,
+      "page_text_hash": "e0a0055a51adc00896c9ddb3044d77456054fbb769f6ab6509bf744a18a7675b",
+      "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+      "quote": "黄帝内經十八卷今有鍼經九卷素问九卷二九十八卷即内經也...明堂孔穴鍼灸治要...至為十二卷",
+      "quote_offset_or_bbox": {
+        "page": 4,
+        "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+        "source_quote": "黄帝内經十八卷今有鍼經九卷素问九卷二九十八卷即内經也...明堂孔穴鍼灸治要...至為十二卷",
+        "ocr_evidence_keywords": [
+          "素问九卷",
+          "鍼經九卷",
+          "明堂孔穴",
+          "十二卷"
+        ],
+        "match_method": "ocr_keyword_lcs",
+        "match_confidence": "high",
+        "ocr_engine": "paddleocr-PP-OCRv4",
+        "ocr_avg_confidence": 0.9159
+      },
+      "match_result": true,
+      "match_method": "ocr_keyword_lcs",
+      "ocr_confidence": 0.9159,
+      "chunk_id": "f1f01673-fd0c-413a-ae6e-795b83d520fc",
+      "relation_type": "compiled_from"
+    },
+    {
+      "fact": "皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经典。",
+      "citation_id": "b8564f16-7010-4f78-9adc-8f232c8fc688",
+      "evidence_id": "ed90c64d-c275-4a47-9389-7f05cc5cf921",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "30c1e030-847d-4e52-9acc-d03f7b397d1a",
+      "version_id": "a3d894c5-554c-4bf5-b8b1-359d02fc3596",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": 4,
+      "page_text_hash": "e0a0055a51adc00896c9ddb3044d77456054fbb769f6ab6509bf744a18a7675b",
+      "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+      "quote": "使事類相从...除其重複...其精要",
+      "quote_offset_or_bbox": {
+        "page": 4,
+        "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
+        "source_quote": "使事類相从...除其重複...其精要",
+        "ocr_evidence_keywords": [
+          "使事類相从",
+          "除其重複",
+          "精要"
+        ],
+        "match_method": "ocr_keyword_lcs",
+        "match_confidence": "very_high",
+        "ocr_engine": "paddleocr-PP-OCRv4",
+        "ocr_avg_confidence": 0.9159
+      },
+      "match_result": true,
+      "match_method": "ocr_keyword_lcs",
+      "ocr_confidence": 0.9159,
+      "chunk_id": "f1f01673-fd0c-413a-ae6e-795b83d520fc",
+      "relation_type": "contains"
+    },
+    {
+      "fact": "该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。",
+      "citation_id": "6939b911-707a-4d48-b7f9-cb8f19664f7f",
+      "evidence_id": "6c1d5a89-85a4-4ad7-b673-75b9024997a3",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "30c1e030-847d-4e52-9acc-d03f7b397d1a",
+      "version_id": "a3d894c5-554c-4bf5-b8b1-359d02fc3596",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": 7,
+      "page_text_hash": "ec3b10cbe1fdb612124aeb3cca5fbaf0ff8c17d8e254cfe3c6adff6fa7d50821",
+      "page_image_hash": "ed388774fae740b54ba8cf7302824710",
+      "quote": "鍼灸甲乙經卷之一...凡刺之法必先本於神血脉營氣精神此五藏之所藏",
+      "quote_offset_or_bbox": {
+        "page": 7,
+        "page_image_hash": "ed388774fae740b54ba8cf7302824710",
+        "source_quote": "鍼灸甲乙經卷之一...凡刺之法必先本於神血脉營氣精神此五藏之所藏",
+        "ocr_evidence_keywords": [
+          "鍼灸甲乙經卷之一",
+          "凡刺之法",
+          "血脉營氣精神"
+        ],
+        "match_method": "ocr_keyword_lcs",
+        "match_confidence": "medium",
+        "ocr_engine": "paddleocr-PP-OCRv4",
+        "ocr_avg_confidence": 0.9128
+      },
+      "match_result": true,
+      "match_method": "ocr_keyword_lcs",
+      "ocr_confidence": 0.9128,
+      "chunk_id": "84d74ffc-34a2-4e4a-bc64-ad1aacdebbf9",
+      "relation_type": "contains"
+    },
+    {
+      "fact": "《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。",
+      "citation_id": "4ce1c5df-8761-485e-b3d2-b444dbba1cf2",
+      "evidence_id": "955a1849-633a-492c-8ead-d8dcaad9ef7c",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "30c1e030-847d-4e52-9acc-d03f7b397d1a",
+      "version_id": "a3d894c5-554c-4bf5-b8b1-359d02fc3596",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": 8,
+      "page_text_hash": "d538ca92bddfd596c3626939fd39dcda3d8538fe16ade4e4cb0f3cc214596828",
+      "page_image_hash": "9b528f25b6cc9c1ac3643f81394a11a8",
+      "quote": "肝藏血血舍魂...心藏脉脉舍神...脾藏營營舍意...肺藏氣氣舍魄...是故五藏主藏精",
+      "quote_offset_or_bbox": {
+        "page": 8,
+        "page_image_hash": "9b528f25b6cc9c1ac3643f81394a11a8",
+        "source_quote": "肝藏血血舍魂...心藏脉脉舍神...脾藏營營舍意...肺藏氣氣舍魄...是故五藏主藏精",
+        "ocr_evidence_keywords": [
+          "肝藏血血舍魂",
+          "心藏脉脉舍神",
+          "脾藏營",
+          "肺藏氣"
+        ],
+        "match_method": "ocr_keyword_lcs",
+        "match_confidence": "high",
+        "ocr_engine": "paddleocr-PP-OCRv4",
+        "ocr_avg_confidence": 0.7982
+      },
+      "match_result": true,
+      "match_method": "ocr_keyword_lcs",
+      "ocr_confidence": 0.7982,
+      "chunk_id": "b1ecd5c2-2863-4230-a38d-d79a29344553",
+      "relation_type": "contains"
+    }
+  ]
+}
