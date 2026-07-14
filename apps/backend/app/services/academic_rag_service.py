@@ -78,6 +78,8 @@ def parse_chinese_query(query: str) -> ParsedQuery:
     """Parse a Chinese academic question into structured components.
 
     P0-1: "思想来源/学术渊源" patterns match BEFORE generic "是什么".
+    Also expands search terms to include traditional variant characters
+    (e.g. 铁→鐵, 经→經) for matching against classical woodblock OCR text.
     """
     clean = query.strip()
 
@@ -157,7 +159,7 @@ def parse_chinese_query(query: str) -> ParsedQuery:
     else:
         intent = "综合"
 
-    keywords = _extract_keywords(content)
+    keywords = _expand_classical_variants(_extract_keywords(content))
 
     return ParsedQuery(
         raw=clean,
@@ -173,6 +175,67 @@ def _extract_keywords(text: str) -> list[str]:
     chinese_seqs = re.findall(r"[一-鿿]{2,}", text)
     stop = {"什么", "是谁", "如何", "怎样", "来源", "哪些", "这个", "那个", "是否"}
     return [s for s in chinese_seqs if s not in stop]
+
+
+# Simplified → traditional character variants for matching classical woodblock OCR.
+# The 1601 NLC scan uses traditional/variant characters (鐵/鍼 for 针, 經 for 经).
+_SIMPLIFIED_TO_VARIANTS = {
+    "针": ["針", "鍼", "鐵"],
+    "经": ["經"],
+    "黄": ["黃"],
+    "书": ["書"],
+    "论": ["論"],
+    "脉": ["脈"],
+    "气": ["氣"],
+    "脏": ["臟", "藏"],
+    "腑": ["府"],
+    "体": ["體"],
+    "证": ["證"],
+    "窍": ["竅"],
+    "阴": ["陰"],
+    "阳": ["陽"],
+    "汇": ["彙"],
+    "编": ["編"],
+    "辑": ["輯"],
+    "学": ["學"],
+    "医": ["醫"],
+    "国": ["國"],
+    "门": ["門"],
+    "问": ["問"],
+    "为": ["為"],
+    "时": ["時"],
+    "会": ["會"],
+    "义": ["義"],
+    "头": ["頭"],
+    "实": ["實"],
+    "写": ["寫"],
+    "剂": ["劑"],
+    "处": ["處"],
+}
+
+
+def _expand_classical_variants(keywords: list[str]) -> list[str]:
+    """Add traditional variant forms of keywords for matching classical OCR text.
+
+    The 1601 woodblock PDF uses traditional/variant characters (e.g. 鐵灸
+    not 针灸). Without variant expansion, keyword-based retrieval
+    returns zero candidates and the RAG pipeline refuses to answer.
+    """
+    expanded = list(keywords)
+    for kw in keywords:
+        # Generate all possible variant combinations for each char
+        variants = [""]
+        for ch in kw:
+            new_variants = []
+            chars_to_try = _SIMPLIFIED_TO_VARIANTS.get(ch, [ch])
+            for base in variants:
+                for vch in chars_to_try:
+                    new_variants.append(base + vch)
+            variants = new_variants
+        for v in variants:
+            if v != kw and v not in expanded and len(v) >= 2:
+                expanded.append(v)
+    return expanded
 
 
 # ============================================================
@@ -364,16 +427,34 @@ class AcademicRAGService:
         if not search_terms:
             search_terms = parsed.keywords
 
+        # Prioritize variant forms that are more likely to match classical OCR:
+        # traditional character variants (鐵/鍼) before simplified (针/针灸).
+        search_terms.sort(key=lambda t: (
+            # Boost: terms with traditional chars first
+            not any(c in t for c in '鐵鍼針經脈氣臟陰陽'),
+            # Then sort by length (longer = more specific)
+            -len(t),
+        ))
+
         seen: set[tuple[str, str]] = set()
 
-        for term in search_terms[:5]:
+        for term in search_terms[:10]:  # expanded from 5 to 10 to include all variants
+            # Try exact term first, then strip 《》 for matching against
+            # classical OCR text which often lacks formatting brackets
+            clean_term = term.strip("《》")
+
+            # Build OR conditions: term OR clean_term
+            term_conditions = [DocumentChunk.content.contains(term)]
+            if clean_term != term:
+                term_conditions.append(DocumentChunk.content.contains(clean_term))
+
             chunk_stmt = (
                 select(DocumentChunk)
                 .join(Document, DocumentChunk.document_id == Document.id)
                 .where(
                     DocumentChunk.is_deleted.is_(False),
                     Document.is_deleted.is_(False),
-                    DocumentChunk.content.contains(term),
+                    or_(*term_conditions),
                     # Page-level evidence quality gate: PDF-backed documents
                     # MUST have a verified page_number on the chunk. Non-PDF
                     # documents (ctext, etc.) pass through freely.
