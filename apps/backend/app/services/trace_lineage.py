@@ -172,6 +172,9 @@ async def build_internal_traces(
     records: list[InternalTraceRecord] = []
     seen: set[str] = set()
 
+    # P2T1: Cache version withdrawal checks per passage_id
+    checked_withdrawn: dict[str, bool] = {}
+
     # Batch-query all chunk passage_ids
     chunk_ids = list({t.chunk_id for t in evidence_traces if hasattr(t, 'chunk_id')})
     passage_map: dict[str, str] = {}
@@ -224,6 +227,24 @@ async def build_internal_traces(
             raise TraceLineageError(
                 f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} has no passage_id — "
                 f"cannot construct InternalTraceRecord for trace {tid}"
+            )
+
+        # P2T1: Reject chunks whose passage version is withdrawn
+        if passage_id not in checked_withdrawn:
+            v_stmt = select(Version.withdrawn_at).join(
+                Passage, Passage.version_id == Version.id
+            ).where(
+                Passage.id == passage_id,
+                Passage.is_deleted.is_(False),
+                Version.is_deleted.is_(False),
+            )
+            v_result = await db.execute(v_stmt)
+            v_row = v_result.one_or_none()
+            checked_withdrawn[passage_id] = bool(v_row and v_row[0] is not None)
+        if checked_withdrawn[passage_id]:
+            raise TraceLineageError(
+                f"TRACE_LINEAGE_INCOMPLETE: passage {passage_id} belongs to "
+                f"a withdrawn version — cannot construct InternalTraceRecord for trace {tid}"
             )
 
         records.append(InternalTraceRecord(

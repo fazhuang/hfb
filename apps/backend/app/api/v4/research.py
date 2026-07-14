@@ -438,12 +438,15 @@ async def execute_research_workflow(
                 trace_ids=step_trace_ids,
             ))
 
-        except Exception:
-            logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
+        except Exception as exc:
+            logger.exception("Workflow step %s failed for session %s — %s: %s",
+                           step_name, body.session_id, type(exc).__name__, str(exc))
             workflow_failed = True
             error_code = "WORKFLOW_STEP_FAILED"
+            # P2T1: structured error for client — diagnostics in server log only
             steps.append(V4WorkflowStep(name=step_name, status="failed",
-                          result={"error": "Workflow step encountered an internal error"},
+                          result={"error": "Workflow step encountered an internal error",
+                                  "error_code": error_code},
                           trace_ids=[]))
 
     if workflow_failed:

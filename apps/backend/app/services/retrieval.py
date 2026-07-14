@@ -55,8 +55,86 @@ def _compliance_clauses(
       4. withdrawn_at IS NULL — guards against rows soft-deleted via withdrawal
          that still have is_deleted=False / rag_enabled=True
     """
-    from sqlalchemy import or_
+# Simplified → traditional character variants for matching classical woodblock OCR.
+# The 1601 NLC scan uses traditional/variant characters (鐵/鍼 for 针, 經 for 经).
+# Without variant expansion, keyword-based retrieval returns zero candidates for
+# simplified-Chinese queries and the RAG pipeline refuses to answer.
+_SIMPLIFIED_TO_TRAD = {
+    "针": ["針", "鍼", "鐵"],
+    "经": ["經"],
+    "黄": ["黃"],
+    "书": ["書"],
+    "论": ["論"],
+    "脉": ["脈", "脲"],
+    "气": ["氣"],
+    "脏": ["臟", "藏"],
+    "腑": ["府"],
+    "体": ["體"],
+    "证": ["證"],
+    "阴": ["陰"],
+    "阳": ["陽"],
+    "编": ["編"],
+    "辑": ["輯"],
+    "学": ["學"],
+    "医": ["醫"],
+    "国": ["國"],
+    "门": ["門"],
+    "问": ["問"],
+    "为": ["為"],
+    "时": ["時"],
+    "会": ["會"],
+    "义": ["義"],
+    "头": ["頭"],
+    "实": ["實"],
+    "万": ["萬"],
+    "与": ["與"],
+    "号": ["號"],
+    "无": ["無"],
+    "条": ["條"],
+}
 
+
+def _expand_variants(keywords: list[str]) -> list[str]:
+    """Add traditional variant forms of keywords for matching classical OCR text."""
+    expanded: list[str] = list(keywords)
+    for kw in keywords:
+        variants = [""]
+        for ch in kw:
+            new_variants = []
+            for base in variants:
+                for vch in _SIMPLIFIED_TO_TRAD.get(ch, [ch]):
+                    new_variants.append(base + vch)
+            variants = new_variants
+        for v in variants:
+            if v != kw and v not in expanded:
+                expanded.append(v)
+    return expanded
+
+
+def _compliance_clauses(
+    *,
+    rag_col,
+    status_col,
+    auth_col,
+    license_col,
+    withdrawn_col,
+) -> list:
+    """Return SQL WHERE clauses for the full compliance predicate.
+
+    Used by both RetrievalService (strict_compliance) and
+    EvidenceRAGService (_retrieve_evidence_chunks).
+
+    Predicate (AND):
+      1. rag_enabled is True
+      2. copyright_status in compliant set
+      3. (authorization_basis non-empty) OR (license_type non-empty)
+      4. withdrawn_at IS NULL — guards against rows soft-deleted via withdrawal
+         that still have is_deleted=False / rag_enabled=True
+
+    P2T1: The compliance filter is applied to the Document model's columns.
+    Version-level withdrawal is checked separately during trace lineage
+    resolution (build_internal_traces validates version withdrawal).
+    """
     return [
         rag_col.is_(True),
         status_col.in_(_COMPLIANT_COPYRIGHT_STATUSES),
@@ -261,10 +339,43 @@ class RetrievalService:
 
     @staticmethod
     def _tokenize(query: str) -> list[str]:
-        """Split query on whitespace into non-empty, deduplicated keywords."""
-        return list(dict.fromkeys(
-            kw for kw in query.strip().split() if kw
-        ))
+        """Split query into searchable keywords with variant expansion.
+
+        Uses a local fallback bigram/trigram tokenizer for Chinese text so
+        that natural-language questions actually hit document chunk content.
+        White-space split queries (already tokenized by the caller) pass
+        through unchanged.
+
+        Applies simplified→traditional variant expansion so that OCR text
+        with 鐵/鍼/經/etc matches simplified-Chinese queries.
+        """
+        import re
+
+        # If query already contains spaces (pre-tokenized), split on whitespace
+        if " " in query.strip():
+            terms = list(dict.fromkeys(
+                kw for kw in query.strip().split() if kw and len(kw) >= 2
+            ))
+        else:
+            # Strip question markers
+            clean = re.sub(r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)", " ", query)
+            clean = re.sub(r"\s+", " ", clean).strip()
+
+            # Segment Chinese text: keep only Chinese chars, build bigrams+trigrams
+            chinese = re.findall(r"[一-鿿]", clean)
+            terms = []
+            for i in range(len(chinese) - 1):
+                terms.append("".join(chinese[i:i+2]))
+            for i in range(len(chinese) - 2):
+                terms.append("".join(chinese[i:i+3]))
+            terms = list(dict.fromkeys(terms))
+
+            if not terms:
+                return list(dict.fromkeys(
+                    kw for kw in clean.split() if kw
+                ))
+
+        return _expand_variants(terms)
 
     # ------------------------------------------------------------------
     # Scoring — multi-keyword, deterministic, stable
