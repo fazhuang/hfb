@@ -1,0 +1,174 @@
+{
+  "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+  "generated_utc": "2026-07-13T21:23:26.009234+00:00",
+  "summary": {
+    "verified": 0,
+    "uncertain": 0,
+    "nulled": 18,
+    "total": 18
+  },
+  "mappings": {
+    "b06d2e58-c440-48a4-b6cb-72ec5ceb598a": {
+      "page_number": null,
+      "method": "char_0.29",
+      "offset": 0,
+      "score": 0.1429,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "ab7a5b7cb07c47dd8cc19bbd3fd085f5be09ec149da3fa6adc690e7cce926fc8"
+    },
+    "3c9ecb6d-5204-4273-bea3-4df1b02f5540": {
+      "page_number": null,
+      "method": "char_0.47",
+      "offset": 0,
+      "score": 0.2375,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "809cb025-3e69-41b7-92b6-953523db5ebd": {
+      "page_number": null,
+      "method": "char_0.32",
+      "offset": 0,
+      "score": 0.1585,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "3ce19054-1227-4f0c-bd45-0fab799902b6": {
+      "page_number": null,
+      "method": "char_0.29",
+      "offset": 0,
+      "score": 0.1471,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "894c65c0d9adce57c4805bbe34360ed1fe0276adea8f9df646176ec8bb211c60"
+    },
+    "63b48038-5fe6-47e1-bc03-0c468064dd4b": {
+      "page_number": null,
+      "method": "char_0.26",
+      "offset": 0,
+      "score": 0.129,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "67856cf0-5399-4eb3-a081-45bf7e20060e": {
+      "page_number": null,
+      "method": "char_0.44",
+      "offset": 0,
+      "score": 0.2222,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "1bff332bf2d1ea01c8d968151b90cb9bed2d642e0cd2769de88f0508da4eedb6"
+    },
+    "2e1d7466-1f41-4a07-b6d9-35fb6e9be48d": {
+      "page_number": null,
+      "method": "char_0.33",
+      "offset": 0,
+      "score": 0.1638,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "95ef45be-5348-4025-a24a-bdb0ca2e59a6": {
+      "page_number": null,
+      "method": "char_0.31",
+      "offset": 0,
+      "score": 0.1556,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "85d9428f-86c7-4bb4-bbe4-34bc2f19cba9": {
+      "page_number": null,
+      "method": "char_0.62",
+      "offset": 0,
+      "score": 0.3077,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "d84767547fc4a5d7014a9cab85f529aea788e7a92ed71cf3de20448143979571"
+    },
+    "bc027cff-a047-45e6-a9dc-a4c43804d3f7": {
+      "page_number": null,
+      "method": "char_0.53",
+      "offset": 0,
+      "score": 0.2667,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "d84767547fc4a5d7014a9cab85f529aea788e7a92ed71cf3de20448143979571"
+    },
+    "de27a2e0-4a1b-4a43-af1f-f3dbade92cd7": {
+      "page_number": null,
+      "method": "char_0.38",
+      "offset": 0,
+      "score": 0.1909,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "b98a5284173269cdbf9792ad3e33b1b507272fe3b48b54bd351d2bd08cbc46f9"
+    },
+    "2003c3a1-11b5-4bfe-b4d7-de76c3db5f7e": {
+      "page_number": null,
+      "method": "char_0.46",
+      "offset": 0,
+      "score": 0.2292,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "d84767547fc4a5d7014a9cab85f529aea788e7a92ed71cf3de20448143979571"
+    },
+    "b8f719e8-9473-45e7-97db-4fa204fe2860": {
+      "page_number": null,
+      "method": "char_0.28",
+      "offset": 0,
+      "score": 0.1413,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "422e2709-de6c-4224-9307-a31d6906434a": {
+      "page_number": null,
+      "method": "char_0.50",
+      "offset": 0,
+      "score": 0.25,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "d84767547fc4a5d7014a9cab85f529aea788e7a92ed71cf3de20448143979571"
+    },
+    "2bbe754e-1183-4343-a3b5-449f9645f463": {
+      "page_number": null,
+      "method": "char_0.43",
+      "offset": 0,
+      "score": 0.2159,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "4c96ea15-458b-41ef-8208-cbc1b93dfab8": {
+      "page_number": null,
+      "method": "char_0.30",
+      "offset": 0,
+      "score": 0.1486,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "08c551dd-1373-4ca7-a320-b9755c1406b0": {
+      "page_number": null,
+      "method": "char_0.33",
+      "offset": 0,
+      "score": 0.1667,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    },
+    "21cbfb36-1e01-4a4b-8a82-1271021062d0": {
+      "page_number": null,
+      "method": "char_0.30",
+      "offset": 0,
+      "score": 0.1486,
+      "verified": false,
+      "uncertain": true,
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c"
+    }
+  }
+}

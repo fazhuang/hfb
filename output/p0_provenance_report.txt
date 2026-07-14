@@ -1,0 +1,48 @@
+================================================================================
+P0 PDF PAGE-LEVEL PROVENANCE REPORT
+Generated: 2026-07-13T21:26:02.166880+00:00
+================================================================================
+
+1. PDF
+   Path: /Users/likeming/Sites/hfb/output/hfb_zhenjiu_jiayi_jing_v1.pdf
+   SHA-256: c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2
+   Pages: 78
+
+2. Page Fingerprints
+   All 78 pages have unique SHA-256 image hashes
+   File: /Users/likeming/Sites/hfb/output/p0_page_fingerprints.json
+
+3. OCR
+   Engine: tesseract tesseract 5.5.2
+   Model: chi_tra_vert+chi_sim_vert (vertical Chinese)
+   DPI: 400, PSM: 5
+   Confidence: 30-47% (1601 woodblock limitation)
+
+4. Chunk-to-Page Matching
+   Verified (score >= 0.8): 0
+   Uncertain: 0
+   NULL: 18
+   Note: OCR accuracy limitation → all assignments uncertain
+
+5. Five-Fact Audit
+   Match result: 0/5
+   Note: OCR cannot reliably match text on 1601 woodblock
+
+6. Withdraw Test
+   Success: True
+   Withdrawn doc still cited: False
+
+7. Prohibitions (confirmed)
+   ✗ No estimated/fake page numbers from PASSAGE_PAGE_MAP
+   ✗ No ctext text used as OCR substitute
+   ✗ No ±N page or paragraph-order inference
+   ✓ All unverifiable pages set to NULL
+   ✓ Page image hashes as verifiable fingerprints
+   ✓ OCR engine/version/params recorded
+
+8. Regeneration
+   python3 scripts/p0_real_page_pipeline.py --full
+   python3 scripts/p0_real_page_pipeline.py --ocr --pages 1-20
+   python3 scripts/p0_real_page_pipeline.py --verify --dry-run
+   python3 scripts/p0_real_page_pipeline.py --verify   (write to DB)
+   python3 scripts/p0_real_page_pipeline.py --withdraw

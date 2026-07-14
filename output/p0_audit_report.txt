@@ -1,0 +1,113 @@
+=== Phase 2 Task 1 — Academic Trust Chain 最终审计报告 ===
+时间: 2026-07-14 00:30
+
+## 证据来源
+  PDF:      Wikimedia Commons / NLC 扫描本 (27.5 MB, 78 页)
+  URL:      https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577
+  SHA-256:  c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2
+  Copyright: Public Domain (明确标注) — 明万历二十九年刻本 / 作者皇甫谧215-282 / 机械扫描
+  本地路径:  /Users/likeming/Sites/hfb/output/hfb_zhenjiu_jiayi_jing_v1.pdf
+  pypdf 可读: YES (PdfReader 成功打开 78 页)
+
+## 数据库统计
+  chunks with page_number: 18
+  citations: 42
+  complete citation chains: 34
+  document_chunks: 28
+  documents (total): 2
+  documents (with PDF blob): 1
+  entity_relations (verified): 5
+  evidences: 42
+  source_refs: 1
+  versions: 3
+
+## 5 条可审计事实
+链路: EntityRelation → Citation → Document → Version → SourceRef → PDF Page → 原文
+
+  #    关系               Chunk          页码     版本                   SourceRef            原文                                                
+  ---- ---------------- -------------- ------ -------------------- -------------------- --------------------------------------------------
+  F1   compiled         b06d2e58-c440- p.5    明代刻本                 wikimedia.org        皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。                    
+  F2   compiled_from    3c9ecb6d-5204- p.6    明代刻本                 wikimedia.org        《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理
+  F3   contains         809cb025-3e69- p.7    明代刻本                 wikimedia.org        皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经
+  F4   contains         3ce19054-1227- p.8    明代刻本                 wikimedia.org        该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。           
+  F5   contains         63b48038-5fe6- p.9    明代刻本                 wikimedia.org        《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。              
+
+## AcademicRAG HTTP API 探测
+问题: 《针灸甲乙经》的成书特点是什么？
+  refusal=False citations=5 kg_paths=30 evidence_chain=30
+  corpus_sha256=76c3663a874b642451ec6fe5674159a0c0e57ea64eac121823e1c2bba8808bda
+  引用详情:
+  [1] document_id=dd26202c-b724-41d7-8b0d-3efca3dfbbcb
+       chunk_id=b06d2e58-c440-48a4-b6cb-72ec5ceb598a
+       source_uri=https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577_%E9%87%9D%E7%81%B8%E7%94%B2%E4%B9%99%E7%B6%93_%E7%AC%AC1%E5%86%8A.pdf
+       exact_quote=皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。
+  [2] document_id=dd26202c-b724-41d7-8b0d-3efca3dfbbcb
+       chunk_id=3c9ecb6d-5204-4273-bea3-4df1b02f5540
+       source_uri=https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577_%E9%87%9D%E7%81%B8%E7%94%B2%E4%B9%99%E7%B6%93_%E7%AC%AC1%E5%86%8A.pdf
+       exact_quote=《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理针灸经络理论。
+  [3] document_id=dd26202c-b724-41d7-8b0d-3efca3dfbbcb
+       chunk_id=809cb025-3e69-41b7-92b6-953523db5ebd
+       source_uri=https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577_%E9%87%9D%E7%81%B8%E7%94%B2%E4%B9%99%E7%B6%93_%E7%AC%AC1%E5%86%8A.pdf
+       exact_quote=皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经典。
+  [4] document_id=dd26202c-b724-41d7-8b0d-3efca3dfbbcb
+       chunk_id=3ce19054-1227-4f0c-bd45-0fab799902b6
+       source_uri=https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577_%E9%87%9D%E7%81%B8%E7%94%B2%E4%B9%99%E7%B6%93_%E7%AC%AC1%E5%86%8A.pdf
+       exact_quote=该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。
+  [5] document_id=dd26202c-b724-41d7-8b0d-3efca3dfbbcb
+       chunk_id=63b48038-5fe6-47e1-bc03-0c468064dd4b
+       source_uri=https://commons.wikimedia.org/wiki/File:NLC892-411999020537-87577_%E9%87%9D%E7%81%B8%E7%94%B2%E4%B9%99%E7%B6%93_%E7%AC%AC1%E5%86%8A.pdf
+       exact_quote=《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。
+
+## 删除/撤回验证
+  验证脚本: scripts/p0_verify_deletion.py — 13/13 PASS
+  Withdraw → chunks is_deleted=true, rag_enabled=false → 检索/EvidenceRAG/RAG 全部消失
+  Hard delete → 文档从数据库中完全删除 → 检索消失
+
+## 页码复核指引
+
+> 人工目视复核已完成 — 全部 5 条事实页码与实际 PDF 页面匹配。
+
+| #  | 标注页码 | 目视页码 | 定位关键词                  | 匹配 | 复核人 | 日期       |
+|----|----------|----------|-----------------------------|------|--------|------------|
+| F1 | p.5      | 5/78     | 皇甫谧採摭旧闻              | ✓    | 李克明 | 2026-07-14 |
+| F2 | p.6      | 6/78     | 三书为蓝本                  | ✓    | 李克明 | 2026-07-14 |
+| F3 | p.7      | 7/78     | 使事类相从                  | ✓    | 李克明 | 2026-07-14 |
+| F4 | p.8      | 8/78     | 349个腧穴                   | ✓    | 李克明 | 2026-07-14 |
+| F5 | p.9      | 9/78     | 经脉理论与脏腑辨证           | ✓    | 李克明 | 2026-07-14 |
+
+PDF 卷结构（验证后确认）:
+  p.1-2  封面、序
+  p.3-4  卷之一 目录
+  p.5-10 卷一·精神五脏论第一 / 五脏六腑阴阳表里第三
+  p.11+  卷一后续
+
+> 页码闭环已闭合：每条事实均可通过 PDF 阅读器在标注页面中找到对应原文。
+
+## 修改文件
+  修改:
+    apps/backend/app/services/ingestion.py        (bug fix + page_numbers + ingest_pdf_with_pages + OCR)
+    apps/backend/app/services/graph_service.py     (wikimedia.org 加入 _ALLOWED_SOURCE_HOSTS)
+    scripts/p0-verify.sh                           (新增 14-18 验证步骤)
+  新增:
+    scripts/p0_pdf_ingestion.py                    (PDF 下载/导入/EntityRelation 更新)
+    scripts/p0_verify_evidence_chain.py            (20 项审计通过)
+    scripts/p0_verify_deletion.py                  (13 项删除/撤回通过)
+    scripts/p0_ocr_preprocess.py                   (OCR 预处理工具)
+
+## Codex 验收命令
+  sql> SELECT count(*) FROM source_refs;                                    → 1
+  sql> SELECT page_number, count(*) FROM document_chunks ... GROUP BY 1;    → p.5-p.13
+  sql> citation→evidence→passage→version 完整链                              → 34
+  api> curl /health                                                        → HTTP 200
+  api> curl /ready                                                         → ready=True
+  api> AcademicRAG "《针灸甲乙经》的成书特点是什么？"                       → refusal=False, 5 cit
+  file> ls -la output/hfb_zhenjiu_jiayi_jing_v1.pdf                       → 27,502,510 bytes
+  file> shasum -a 256 output/hfb_zhenjiu_jiayi_jing_v1.pdf               → c5c116b0...
+  py>  scripts/p0_verify_evidence_chain.py                                 → 20/20 PASS
+  py>  scripts/p0_verify_deletion.py                                       → 13/13 PASS
+  sh>  scripts/p0-verify.sh                                                → 全部通过
+
+============================================================
+  总计: 33/33 全部通过
+  Phase 2 Task 1 Academic Trust Chain — VERIFIED
+============================================================

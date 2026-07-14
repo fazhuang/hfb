@@ -1,0 +1,124 @@
+{
+  "generated_utc": "2026-07-13T21:23:26.068991+00:00",
+  "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+  "all_pass": false,
+  "pass_count": 0,
+  "total": 5,
+  "facts": [
+    {
+      "fact": "皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。",
+      "citation_id": "9c42f754-6078-4cce-800d-53d7afab2919",
+      "evidence_id": "f7f11f41-4ad2-4010-bf40-09c3c415b8ce",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "dd26202c-b724-41d7-8b0d-3efca3dfbbcb",
+      "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": null,
+      "page_text_hash": "",
+      "page_image_hash": "ab7a5b7cb07c47dd8cc19bbd3fd085f5be09ec149da3fa6adc690e7cce926fc8",
+      "quote": "皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。",
+      "quote_offset_or_match": {
+        "verification": "page_image_hash",
+        "note": "OCR insufficient for 1601 woodblock; page image hash is verifiable fingerprint"
+      },
+      "match_result": false,
+      "ocr_confidence": 0.1429,
+      "match_method": "char_0.29",
+      "chunk_id": "b06d2e58-c440-48a4-b6cb-72ec5ceb598a",
+      "relation_id": "2e7373b8-f345-4477-941e-9d721440fa0d",
+      "relation_type": "compiled"
+    },
+    {
+      "fact": "《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理针灸经络理论。",
+      "citation_id": "b32dff2d-280e-4354-8985-6358b95ff776",
+      "evidence_id": "f9d96e4d-90bb-4fe8-8fdc-3795fe9fcd96",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "dd26202c-b724-41d7-8b0d-3efca3dfbbcb",
+      "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": null,
+      "page_text_hash": "",
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c",
+      "quote": "《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理针灸经络理论。",
+      "quote_offset_or_match": {
+        "verification": "page_image_hash",
+        "note": "OCR insufficient for 1601 woodblock; page image hash is verifiable fingerprint"
+      },
+      "match_result": false,
+      "ocr_confidence": 0.2375,
+      "match_method": "char_0.47",
+      "chunk_id": "3c9ecb6d-5204-4273-bea3-4df1b02f5540",
+      "relation_id": "a7fbcc6b-12f0-457d-8dbe-633af16a125e",
+      "relation_type": "compiled_from"
+    },
+    {
+      "fact": "皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经典。",
+      "citation_id": "b8564f16-7010-4f78-9adc-8f232c8fc688",
+      "evidence_id": "ed90c64d-c275-4a47-9389-7f05cc5cf921",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "dd26202c-b724-41d7-8b0d-3efca3dfbbcb",
+      "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": null,
+      "page_text_hash": "",
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c",
+      "quote": "皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经典。",
+      "quote_offset_or_match": {
+        "verification": "page_image_hash",
+        "note": "OCR insufficient for 1601 woodblock; page image hash is verifiable fingerprint"
+      },
+      "match_result": false,
+      "ocr_confidence": 0.1585,
+      "match_method": "char_0.32",
+      "chunk_id": "809cb025-3e69-41b7-92b6-953523db5ebd",
+      "relation_id": "eac4ee84-0dfe-4ce4-bec0-5f6ee8800cde",
+      "relation_type": "contains"
+    },
+    {
+      "fact": "该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。",
+      "citation_id": "6939b911-707a-4d48-b7f9-cb8f19664f7f",
+      "evidence_id": "6c1d5a89-85a4-4ad7-b673-75b9024997a3",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "dd26202c-b724-41d7-8b0d-3efca3dfbbcb",
+      "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": null,
+      "page_text_hash": "",
+      "page_image_hash": "894c65c0d9adce57c4805bbe34360ed1fe0276adea8f9df646176ec8bb211c60",
+      "quote": "该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。",
+      "quote_offset_or_match": {
+        "verification": "page_image_hash",
+        "note": "OCR insufficient for 1601 woodblock; page image hash is verifiable fingerprint"
+      },
+      "match_result": false,
+      "ocr_confidence": 0.1471,
+      "match_method": "char_0.29",
+      "chunk_id": "3ce19054-1227-4f0c-bd45-0fab799902b6",
+      "relation_id": "393ba8dc-0c0a-45f3-b77e-889e1cb9fb3a",
+      "relation_type": "contains"
+    },
+    {
+      "fact": "《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。",
+      "citation_id": "4ce1c5df-8761-485e-b3d2-b444dbba1cf2",
+      "evidence_id": "955a1849-633a-492c-8ead-d8dcaad9ef7c",
+      "source_ref_id": "fa277e67-8a82-46dd-af5c-24e5cc77c939",
+      "document_id": "dd26202c-b724-41d7-8b0d-3efca3dfbbcb",
+      "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",
+      "pdf_sha256": "c5c116b037ef017010f487c0bb9e650c430f996fe2cc3223da7a0089462e98d2",
+      "pdf_page_number": null,
+      "page_text_hash": "",
+      "page_image_hash": "48e568b403208399d4e9f9322a4c798643f0f47152c4808871550761a05bfd1c",
+      "quote": "《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。",
+      "quote_offset_or_match": {
+        "verification": "page_image_hash",
+        "note": "OCR insufficient for 1601 woodblock; page image hash is verifiable fingerprint"
+      },
+      "match_result": false,
+      "ocr_confidence": 0.129,
+      "match_method": "char_0.26",
+      "chunk_id": "63b48038-5fe6-47e1-bc03-0c468064dd4b",
+      "relation_id": "68e94ce1-241f-49c9-a72e-91b0adc04e0e",
+      "relation_type": "contains"
+    }
+  ]
+}
