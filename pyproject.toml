@@ -45,6 +45,10 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "pypdf>=5.0.0",
     "pyjwt>=2.8.0",
+    "pymupdf>=1.24.0",
+    "numpy>=1.26.0",
+    "pytesseract>=0.3.10",
+    "pillow>=10.0.0",
 ]
 
 [project.optional-dependencies]

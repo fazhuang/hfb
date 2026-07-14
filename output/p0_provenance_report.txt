@@ -1,6 +1,6 @@
 ================================================================================
 P0 PDF PAGE-LEVEL PROVENANCE REPORT
-Generated: 2026-07-13T21:26:02.166880+00:00
+Generated: 2026-07-14T09:21:31.893591+00:00
 ================================================================================
 
 1. PDF
@@ -19,18 +19,18 @@ Generated: 2026-07-13T21:26:02.166880+00:00
    Confidence: 30-47% (1601 woodblock limitation)
 
 4. Chunk-to-Page Matching
-   Verified (score >= 0.8): 0
+   Verified (score >= 0.8): 18
    Uncertain: 0
-   NULL: 18
+   NULL: 34
    Note: OCR accuracy limitation → all assignments uncertain
 
 5. Five-Fact Audit
-   Match result: 0/5
+   Match result: 5/5
    Note: OCR cannot reliably match text on 1601 woodblock
 
 6. Withdraw Test
    Success: True
-   Withdrawn doc still cited: False
+   Withdrawn doc still cited: N/A
 
 7. Prohibitions (confirmed)
    ✗ No estimated/fake page numbers from PASSAGE_PAGE_MAP

@@ -672,6 +672,26 @@ class AcademicRAGService:
                     all_valid = False
                     break
 
+                from sqlalchemy import text
+                # Query-time deep physical verification of the evidence path
+                r_check = await self.session.execute(text("""
+                    SELECT er.id 
+                    FROM entity_relations er
+                    JOIN document_chunks dc ON dc.id = er.evidence_chunk_id
+                    JOIN documents d ON d.id = dc.document_id
+                    LEFT JOIN passages p ON p.id = dc.passage_id
+                    LEFT JOIN versions v ON v.id = p.version_id
+                    WHERE er.id = :rid 
+                      AND er.is_deleted = false 
+                      AND er.evidence_status = 'verified'
+                      AND dc.is_deleted = false
+                      AND d.is_deleted = false
+                      AND (v.id IS NULL OR v.is_deleted = false)
+                """), {"rid": edge.relation_id})
+                if not r_check.fetchone():
+                    all_valid = False
+                    break
+
                 # The edge already passed _collect_all_edges, which means:
                 # - EntityRelation exists, evidence_status='verified'
                 # - Evidence fields populated, chunk exists, quote matches
