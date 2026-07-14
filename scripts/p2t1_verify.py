@@ -160,9 +160,16 @@ async def phase_b():
     print("[B] === PHASE B: Withdraw/Restore version ===", flush=True)
     results = {}
     async with async_session_factory() as session:
-        r = await session.execute(text(
-            "SELECT id, version_name FROM versions WHERE is_formal_source = true AND withdrawn_at IS NULL AND is_deleted = false LIMIT 1"
-        ))
+        # Pick the formal version that actually has chunks linked to it
+        r = await session.execute(text("""
+            SELECT v.id, v.version_name, count(dc.id) as n_chunks
+            FROM versions v
+            JOIN passages p ON p.version_id = v.id AND p.is_deleted = false
+            JOIN document_chunks dc ON dc.passage_id = p.id AND dc.is_deleted = false
+            WHERE v.is_formal_source = true AND v.withdrawn_at IS NULL AND v.is_deleted = false
+            GROUP BY v.id, v.version_name
+            ORDER BY n_chunks DESC LIMIT 1
+        """))
         ver = r.fetchone()
         if not ver:
             results["pass"] = False
