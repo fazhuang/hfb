@@ -15,6 +15,8 @@ Hard rules:
 """
 from __future__ import annotations
 
+import logging
+
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,7 +27,10 @@ from app.schemas.evidence_rag import (
     EvidenceCitation,
     EvidenceRAGResponse,
 )
+from app.services.citation_persistence import CitationPersistenceService
 from app.services.retrieval import _compliance_clauses
+
+logger = logging.getLogger(__name__)
 
 
 # Threshold below which OCR content is only advisory
@@ -95,6 +100,14 @@ class EvidenceRAGService:
         citations = [self._to_citation(c) for c in evidence]
         answer = self._render_answer(q, evidence, citations)
 
+        # P0: Persist citations to the citations database table (Codex requirement)
+        try:
+            await CitationPersistenceService(self.session).persist_evidence_rag_citations(
+                citations, query=q
+            )
+        except Exception:
+            logger.exception("Failed to persist evidence RAG citations")
+
         return EvidenceRAGResponse(
             query=q,
             answer=answer,
@@ -135,9 +148,19 @@ class EvidenceRAGService:
                     license_col=Document.license_type,
                     withdrawn_col=Document.withdrawn_at,
                 ),
+                # Page-level evidence quality gate: PDF-backed documents MUST
+                # have a verified page_number on the chunk. Non-PDF documents
+                # (ctext, etc.) pass through freely (raw_pdf_blob IS NULL).
+                or_(
+                    Document.raw_pdf_blob.is_(None),
+                    DocumentChunk.page_number.isnot(None),
+                ),
                 or_(*kw_filters),
             )
             .limit(200)  # ponytail: reasonable upper bound, tune if real-world needs more
+        )
+        logger.debug(
+            "Evidence RAG retrieval: PDF chunks require page_number IS NOT NULL"
         )
 
         result = await self.session.execute(stmt)
@@ -171,6 +194,22 @@ class EvidenceRAGService:
         evidence_weight = chunk.evidence_weight or "primary"
         if ocr is not None and ocr < OCR_PRIMARY_THRESHOLD:
             evidence_weight = "reference"
+            logger.debug(
+                "OCR confidence %.2f below threshold %.2f for chunk %s — downgraded to reference",
+                ocr, OCR_PRIMARY_THRESHOLD, chunk.id,
+            )
+
+        # Defense-in-depth: PDF-backed chunks without page_number should have
+        # been excluded at the SQL layer, but if one leaks through, downgrade
+        # to "reference" and log a warning so we can investigate.
+        if doc is not None and getattr(doc, "raw_pdf_blob", None) is not None:
+            if chunk.page_number is None:
+                evidence_weight = "reference"
+                logger.warning(
+                    "PDF-backed chunk %s (doc %s) has no page_number — "
+                    "defense-in-depth downgrade to reference",
+                    chunk.id, chunk.document_id,
+                )
 
         # Build citation string
         citation = self._build_citation(title, chunk, source_url)

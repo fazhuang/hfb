@@ -12,8 +12,12 @@ metadata_only, forbidden_fulltext, pirated, unknown) are excluded.
 """
 from __future__ import annotations
 
+import logging
+
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -150,6 +154,18 @@ class RetrievalService:
                 license_col=Document.license_type,
                 withdrawn_col=Document.withdrawn_at,
             ))
+            # Page-level evidence quality gate: PDF-backed documents MUST
+            # have a verified page_number on the chunk. Non-PDF documents
+            # (ctext, etc.) pass through freely (raw_pdf_blob IS NULL).
+            stmt = stmt.where(
+                or_(
+                    Document.raw_pdf_blob.is_(None),
+                    DocumentChunk.page_number.isnot(None),
+                )
+            )
+            logger.debug(
+                "strict_compliance filter active: PDF chunks require page_number IS NOT NULL"
+            )
         if document_id:
             stmt = stmt.where(DocumentChunk.document_id == document_id)
         if year is not None:

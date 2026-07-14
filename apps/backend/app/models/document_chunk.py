@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, String, Text, ForeignKey, Index, Float
+from sqlalchemy import Integer, String, Text, ForeignKey, Index, Float, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -82,6 +82,28 @@ class DocumentChunk(BaseModel):
         String(200),
         nullable=True,
         comment="引文格式模板",
+    )
+
+    # Page-level provenance (rag_evidence_binding_v2)
+    page_image_hash: Mapped[str | None] = mapped_column(
+        String(128),
+        nullable=True,
+        comment="页面区域截图或 OCR 文本的 hash (SHA-512/256 或感知 hash)",
+    )
+    ocr_engine_version: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment="OCR 引擎及参数标识，如 'paddleocr-v2.7_ch_PP-OCRv4'",
+    )
+    match_method: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        comment="引文匹配方法: exact | fuzzy | ocr_bounding_box",
+    )
+    quote_bbox: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="引文在页面上的边界框/偏移位置，如 {x0,y0,x1,y1,page} 或 {start,end}",
     )
 
     # Relationship back to parent document

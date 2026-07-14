@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import Integer, LargeBinary, String, Text, ForeignKey, Boolean, DateTime
+from sqlalchemy import Integer, LargeBinary, String, Text, ForeignKey, Boolean, DateTime, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -79,6 +79,9 @@ class Document(BaseModel):
     content_checksum: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True, comment="全文 SHA-256 checksum"
     )
+    pdf_sha256: Mapped[Optional[str]] = mapped_column(
+        String(64), nullable=True, comment="原始 PDF blob 的 SHA-256 hash"
+    )
     source_name: Mapped[Optional[str]] = mapped_column(
         String(200), nullable=True, comment="摄入来源名称 (openalex/crossref/user_upload/等)"
     )
@@ -97,6 +100,10 @@ class Document(BaseModel):
     # Relationships
     author: Mapped[Optional["Person"]] = relationship(
         "Person", foreign_keys=[author_id], lazy="selectin"
+    )
+
+    __table_args__ = (
+        Index("idx_documents_pdf_sha256", "pdf_sha256"),
     )
 
     def __repr__(self) -> str:

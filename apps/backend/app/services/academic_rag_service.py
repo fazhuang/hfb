@@ -15,10 +15,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
@@ -32,6 +33,9 @@ from app.schemas.academic_rag import (
     AcademicRAGResponse,
 )
 from app.services.graph_service import GraphService
+from app.services.citation_persistence import CitationPersistenceService
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -294,6 +298,15 @@ class AcademicRAGService:
             output_sha256="",
         )
         resp.output_sha256 = self._hash_response(resp)
+
+        # P0: Persist citations to the citations database table (Codex requirement)
+        try:
+            await CitationPersistenceService(self.session).persist_academic_rag_citations(
+                citations, query=query
+            )
+        except Exception:
+            logger.exception("Failed to persist academic RAG citations")
+
         return resp
 
     # ------------------------------------------------------------------
@@ -356,12 +369,24 @@ class AcademicRAGService:
         for term in search_terms[:5]:
             chunk_stmt = (
                 select(DocumentChunk)
+                .join(Document, DocumentChunk.document_id == Document.id)
                 .where(
                     DocumentChunk.is_deleted.is_(False),
+                    Document.is_deleted.is_(False),
                     DocumentChunk.content.contains(term),
+                    # Page-level evidence quality gate: PDF-backed documents
+                    # MUST have a verified page_number on the chunk. Non-PDF
+                    # documents (ctext, etc.) pass through freely.
+                    or_(
+                        Document.raw_pdf_blob.is_(None),
+                        DocumentChunk.page_number.isnot(None),
+                    ),
                 )
                 .order_by(DocumentChunk.id)
                 .limit(20)
+            )
+            logger.debug(
+                "academic_rag raw candidates: PDF chunks require page_number IS NOT NULL"
             )
             result = await self.session.execute(chunk_stmt)
             for chunk in result.scalars().all():
