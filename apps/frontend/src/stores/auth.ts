@@ -110,7 +110,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     // FastAPI 422: meta.validation_errors → join per-field messages
     const meta = data.meta as Record<string, unknown> | undefined;
-    const validationErrors = meta?.validation_errors as Array<{ loc: string[]; msg: string }> | undefined;
+    const validationErrors = meta?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
     if (validationErrors?.length) {
       return validationErrors.map((ve) => `${ve.loc.filter(s => s !== 'body').join('.')}: ${ve.msg}`).join('; ');
     }

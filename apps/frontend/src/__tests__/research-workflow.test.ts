@@ -124,7 +124,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
     await wrapper.vm.$nextTick();
 
     // Verify all 3 sessions were probed
-    const calls = mockGet.mock.calls.map((c: string[]) => c[0]) as string[];
+    const calls = mockGet.mock.calls.map((c: Array<string>) => c[0]) as Array<string>;
     const comparisonCalls = calls.filter((u: string) =>
       u.includes('/version-comparison'),
     );
@@ -157,7 +157,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
     expect(text).toContain('验证语料');
     expect(text).toContain('检索条文');
 
-    const calls = mockGet.mock.calls.map((c: string[]) => c[0]) as string[];
+    const calls = mockGet.mock.calls.map((c: Array<string>) => c[0]) as Array<string>;
     const comparisonCalls = calls.filter((u: string) =>
       u.includes('/version-comparison'),
     );
