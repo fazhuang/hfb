@@ -303,6 +303,7 @@ export default {
     save: 'Save',
     saving: 'Saving...',
     reSearch: 'Re-search from report',
+    noteFromCitation: 'Note from citation',
   },
   researchEntry: {
     startNew: 'Start New Research',

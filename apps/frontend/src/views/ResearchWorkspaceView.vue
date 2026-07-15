@@ -321,6 +321,14 @@
             >
               🔗 {{ t('researchWorkspace.viewInGraph') }}
             </button>
+            <!-- P2-⑤: Create note from citation -->
+            <button
+              class="rw-evidence-pill rw-evidence-pill--note"
+              @click="noteFromCitation(cit)"
+              :title="t('v4.noteFromCitation')"
+            >
+              📝 {{ t('v4.noteFromCitation') }}
+            </button>
           </div>
         </div>
       </div>
@@ -813,6 +821,24 @@ async function runV4WorkflowInline() {
   } finally {
     v4Loading.value = false;
   }
+}
+
+// P2-⑤: Create a note from a citation
+async function noteFromCitation(cit: { trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }) {
+  if (!quickNoteSession.value && sessions.value.length === 0) return;
+  const sessionId = quickNoteSession.value || sessions.value[0]?.id;
+  if (!sessionId) return;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${sessionId}/notes`, {
+      content: `引用: ${cit.citation_text || cit.claim_text || cit.quote || '—'}\n\n---\n\n`,
+      entity_type: 'citation',
+      entity_id: cit.trace_id,
+      tags: '引用笔记',
+    });
+    quickNoteText.value = '';
+    await fetchNotesForSession();
+    activeTab.value = 'notes';
+  } catch { /* ignore */ }
 }
 
 // ================================================================

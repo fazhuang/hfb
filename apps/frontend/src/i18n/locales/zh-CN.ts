@@ -305,6 +305,7 @@ export default {
     save: '保存',
     saving: '保存中...',
     reSearch: '基于报告重新搜索',
+    noteFromCitation: '从引用记笔记',
   },
   researchEntry: {
     startNew: '开始新的研究',

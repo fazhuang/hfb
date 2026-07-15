@@ -6,6 +6,12 @@
       <!-- Header -->
       <div class="detail-header">
         <router-link to="/literature" class="back-link">← {{ t('common.back') }}</router-link>
+
+        <!-- P2-②: Active research topic context banner -->
+        <div v-if="researchStore.hasActiveResearch" class="topic-context-banner">
+          🔬 {{ t('researchEntry.currentResearch') }}: <strong>{{ researchStore.currentTopic?.name }}</strong>
+        </div>
+
         <h1>{{ doc.title }}</h1>
         <div class="meta-row">
           <span v-if="doc.dynasty" class="meta-tag">{{ doc.dynasty }}</span>
@@ -137,12 +143,14 @@ import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useResearchStore } from '@/stores/research';
 import api from '@/api/client';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const researchStore = useResearchStore();
 
 interface DocumentDetail {
   id: string;
@@ -290,6 +298,17 @@ async function askAIAboutDoc() {
 
 .detail-header { margin-bottom: 24px; }
 .back-link { font-size: 13px; color: var(--color-accent, #2b6cb0); text-decoration: none; display: inline-block; margin-bottom: 8px; }
+
+/* P2-②: Topic context banner */
+.topic-context-banner {
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  background: var(--color-active, #ebf8ff);
+  border: 1px solid var(--color-accent, #2b6cb0);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-accent, #2b6cb0);
+}
 .detail-header h1 { font-size: 28px; font-weight: 700; color: var(--color-text-primary, #1a365d); margin: 0 0 8px; }
 .meta-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .meta-tag { font-size: 13px; padding: 3px 10px; background: var(--color-accent, #2b6cb0); color: white; border-radius: 4px; }
