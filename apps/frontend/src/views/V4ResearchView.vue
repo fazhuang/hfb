@@ -98,6 +98,13 @@
               <p><strong>Trace ID:</strong> <code>{{ cit.trace_id }}</code></p>
               <p v-if="cit.document_id"><strong>Document ID:</strong> <code>{{ cit.document_id }}</code></p>
               <p v-if="cit.source_ref_id"><strong>SourceRef ID:</strong> <code>{{ cit.source_ref_id }}</code></p>
+              <!-- P2-⑤: Create note from citation -->
+              <button
+                class="button button--secondary button--sm"
+                @click="noteFromCitation(cit)"
+              >
+                📝 {{ t('v4.noteFromCitation') }}
+              </button>
             </div>
           </details>
         </div>
@@ -688,6 +695,25 @@ function reSearchFromReport() {
   const lines = reportContent.value.split('\n').filter(l => l.trim() && !l.startsWith('#') && l.length > 10);
   const query = topic.value || lines[0]?.slice(0, 60) || '';
   router.push({ name: 'search', query: { q: encodeURIComponent(query) } });
+}
+
+// P2-⑤: Create a note from a citation in V4ResearchView
+async function noteFromCitation(cit: { trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }) {
+  if (!sessionId.value) {
+    try {
+      const { data } = await api.post('/api/v1/workspace/sessions', { title: `研究 - ${topic.value || '未命名'}` });
+      sessionId.value = data.data?.id as string;
+    } catch { return; }
+  }
+  try {
+    await api.post(`/api/v1/workspace/sessions/${sessionId.value}/notes`, {
+      content: `引用: ${cit.citation_text || cit.claim_text || cit.quote || '—'}\n\n---\n\n`,
+      entity_type: 'citation',
+      entity_id: cit.trace_id,
+      tags: '引用笔记',
+    });
+    noteMessage.value = t('v4.noteSaved');
+  } catch { noteMessage.value = t('v4.noteFailed'); }
 }
 
 function resetWorkflow() {
