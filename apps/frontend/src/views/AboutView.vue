@@ -44,7 +44,7 @@
         <div class="tech-card">
           <span class="tech-icon">🧠</span>
           <strong>Milvus</strong>
-          <span>向量检索 + RAG</span>
+          <span>智能文献检索</span>
         </div>
       </div>
     </div>

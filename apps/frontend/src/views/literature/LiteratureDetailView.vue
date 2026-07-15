@@ -51,7 +51,7 @@
             <span class="badge" :class="`badge-review-${doc.review_status}`">{{ REVIEW_LABELS[doc.review_status] || doc.review_status }}</span>
           </div>
           <div class="field">
-            <span class="field-label">RAG 状态</span>
+            <span class="field-label">智能检索</span>
             <span>{{ doc.rag_enabled ? '✅ 已启用' : '⛔ 未启用' }}</span>
           </div>
           <div v-if="doc.reviewed_by" class="field">
@@ -114,12 +114,12 @@
           <p v-if="reviewMsg" class="action-msg" :class="{ 'msg-ok': reviewOk }">{{ reviewMsg }}</p>
         </div>
 
-        <!-- RAG toggle -->
+        <!-- 智能检索开关 -->
         <div class="action-group">
-          <h4>RAG</h4>
+          <h4>智能检索</h4>
           <div class="action-row">
-            <button v-if="!doc.rag_enabled" class="btn btn-secondary" :disabled="ragLoading" @click="toggleRag(true)">启用 RAG</button>
-            <button v-else class="btn btn-secondary" :disabled="ragLoading" @click="toggleRag(false)">禁用 RAG</button>
+            <button v-if="!doc.rag_enabled" class="btn btn-secondary" :disabled="ragLoading" @click="toggleRag(true)">启用智能检索</button>
+            <button v-else class="btn btn-secondary" :disabled="ragLoading" @click="toggleRag(false)">停用智能检索</button>
           </div>
           <p v-if="ragMsg" class="action-msg" :class="{ 'msg-ok': ragOk }">{{ ragMsg }}</p>
         </div>
@@ -249,7 +249,7 @@ async function toggleRag(enabled: boolean) {
     await api.patch(`/api/v1/documents/${doc.value.id}`, { rag_enabled: enabled });
     doc.value.rag_enabled = enabled;
     ragOk.value = true;
-    ragMsg.value = enabled ? 'RAG 已启用' : 'RAG 已禁用';
+    ragMsg.value = enabled ? '智能检索已启用' : '智能检索已停用';
   } catch (e: unknown) {
     ragOk.value = false;
     ragMsg.value = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? '操作失败';

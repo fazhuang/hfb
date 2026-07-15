@@ -83,7 +83,7 @@ const columns: TableColumn[] = [
   { key: 'source_name', label: '来源', width: '90px' },
   { key: 'copyright_status', label: '版权', width: '100px', render: (r) => `<span class="badge">${COPYRIGHT_LABELS[r.copyright_status as string] || r.copyright_status}</span>` },
   { key: 'review_status', label: '审核', width: '90px', render: (r) => `<span class="badge badge-review-${r.review_status}">${REVIEW_LABELS[r.review_status as string] || r.review_status}</span>` },
-  { key: 'rag_enabled', label: 'RAG', width: '60px', render: (r) => r.rag_enabled ? '✅' : '—' },
+  { key: 'rag_enabled', label: '智能检索', width: '60px', render: (r) => r.rag_enabled ? '✅' : '—' },
   { key: 'withdrawn_at', label: '状态', width: '80px', render: (r) => r.withdrawn_at ? '<span class="badge badge-withdrawn">已撤回</span>' : '' },
   { key: 'created_at', label: '提交时间', width: '140px', render: (r) => r.created_at ? new Date(r.created_at as string).toLocaleDateString('zh-CN') : '—' },
 ];

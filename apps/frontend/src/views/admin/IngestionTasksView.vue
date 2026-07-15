@@ -62,7 +62,7 @@ interface AuditRecord {
 
 const ACTIONS = ['fulltext_ingest', 'reject', 'skip', 'withdraw', 'chunk_delete', 'rag_disabled'];
 const ACTION_LABELS: Record<string, string> = {
-  fulltext_ingest: '全文摄入', reject: '拒绝', skip: '跳过', withdraw: '撤回', chunk_delete: '分块删除', rag_disabled: 'RAG 禁用',
+  fulltext_ingest: '全文摄入', reject: '拒绝', skip: '跳过', withdraw: '撤回', chunk_delete: '删除已处理片段', rag_disabled: '停用智能检索',
 };
 const STATUSES = ['success', 'skipped', 'rejected', 'withdrawn'];
 const STATUS_LABELS: Record<string, string> = { success: '成功', skipped: '已跳过', rejected: '已拒绝', withdrawn: '已撤回' };
