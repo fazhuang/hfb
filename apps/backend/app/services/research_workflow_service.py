@@ -389,9 +389,11 @@ class ResearchWorkflowService:
         if source["book"]["id"] != target["book"]["id"]:
             raise ValueError("Passages must belong to versions of the same book")
         comparison = await comparisons.compare_passages(source_passage_id, target_passage_id)
+        # P2T1: corpus_status = "approved" only when both versions are formal sources
+        both_formal = source.get("is_formal_source", False) and target.get("is_formal_source", False)
         state: dict[str, Any] = {
             "workflow_type": "evidence_backed_version_comparison",
-            "corpus_status": "validation",
+            "corpus_status": "approved" if both_formal else "validation",
             "source": source, "target": target,
             "comparison": {
                 "differences": comparison["differences"],
@@ -428,9 +430,11 @@ class ResearchWorkflowService:
         notes = await self.workspace.list_notes(session_id)
         source, target = state["source"], state["target"]
         comparison = state["comparison"]
+        is_formal = state["source"].get("is_formal_source", False) and state["target"].get("is_formal_source", False)
+        validation_notice = "" if is_formal else "> 验证语料：非生产验证数据，不得作为正式学术引用。"
         lines = [
             f"# {research_session.title}", "",
-            "> 验证语料：非生产验证数据，不得作为正式学术引用。", "",
+            validation_notice, "",
             "## 比较对象", "",
             f"### 底本：{source['version']['name']}", "",
             source["text"], "", f"引用：{source['citation']}", "",
@@ -456,7 +460,8 @@ class ResearchWorkflowService:
         lines.extend(["", "## 证据状态", "",
             f"- 底本来源完整：{'是' if source['evidence_complete'] else '否'}",
             f"- 对校本来源完整：{'是' if target['evidence_complete'] else '否'}",
-            "- 学术审核状态：未审核（验证流程）", "",
+            f"- 正式学术来源：{'是' if is_formal else '否（验证流程）'}",
+            f"- 学术审核状态：{'已审核（正式引用）' if is_formal else '未审核（验证流程）'}", "",
             f"生成时间：{datetime.now(timezone.utc).isoformat()}", ""])
         return "\n".join(lines)
 
@@ -476,13 +481,17 @@ class ResearchWorkflowService:
             .join(Ch, P.chapter_id == Ch.id)
             .where(P.id == str(passage_id), P.is_deleted.is_(False),
                    V.is_deleted.is_(False), B.is_deleted.is_(False),
-                   Ch.is_deleted.is_(False))
+                   Ch.is_deleted.is_(False),
+                   V.withdrawn_at.is_(None))
         )
         row = (await self.session.execute(stmt)).one_or_none()
         if row is None:
             raise ValueError(f"Passage {passage_id} not found")
         passage, version, book, chapter = row
-        loc = "，".join(p for p in [version.repository, version.shelf_mark] if p)
+        # P2T1: Use is_academic_citable to determine formal scholarly status
+        is_formal = getattr(version, 'is_academic_citable', False)
+        loc_parts = [p for p in [version.repository, version.shelf_mark] if p]
+        loc = "，".join(loc_parts)
         citation = f"《{book.title}》·{version.version_name}，{chapter.title}，第{passage.order}条"
         if loc:
             citation += f"（{loc}）"
@@ -495,11 +504,16 @@ class ResearchWorkflowService:
                         "era": version.era, "year": version.year,
                         "repository": version.repository,
                         "shelf_mark": version.shelf_mark,
-                        "source_url": version.source_url},
+                        "source_url": version.source_url,
+                        "is_formal_source": getattr(version, 'is_formal_source', False),
+                        "rights_statement": getattr(version, 'rights_statement', None),
+                        "persistent_identifier": getattr(version, 'persistent_identifier', None),
+                        "is_withdrawn": bool(getattr(version, 'withdrawn_at', None)),
+                        },
             "book": {"id": book.id, "title": book.title, "source_url": book.source_url},
             "citation": citation,
-            "evidence_complete": bool(version.repository and version.shelf_mark
-                                      and (version.source_url or book.source_url)),
+            "evidence_complete": is_formal,
+            "is_formal_source": is_formal,
         }
 
 
@@ -543,6 +557,28 @@ async def _build_retrieval_snapshot(
 
     snapshot: list[dict] = []
     seen: set[str] = set()
+    # Pre-load source_ref map for all involved documents
+    doc_ids = set()
+    for t in result.evidence_trace:
+        if t.document_id:
+            doc_ids.add(t.document_id)
+    source_ref_by_doc: dict[str, dict[str, str]] = {}
+    if doc_ids:
+        from sqlalchemy import select as sql_select
+        from app.models.academic_evidence import SourceRef
+        sr_stmt = sql_select(SourceRef).where(
+            SourceRef.is_deleted.is_(False),
+            SourceRef.page_location.in_([f"document:{did}" for did in doc_ids]),
+        )
+        sr_result = await db.execute(sr_stmt)
+        for sr in sr_result.scalars().all():
+            doc_id = sr.page_location.replace("document:", "") if sr.page_location else ""
+            if doc_id:
+                source_ref_by_doc[doc_id] = {
+                    "source_ref_id": sr.id,
+                    "source_ref_url": sr.url or "",
+                    "source_ref_title": sr.title,
+                }
 
     for t in result.evidence_trace:
         tid = make_trace_id(t.document_id, t.chunk_id)
@@ -550,6 +586,7 @@ async def _build_retrieval_snapshot(
         if key in seen:
             continue
         seen.add(key)
+        sr_info = source_ref_by_doc.get(t.document_id, {})
         snapshot.append({
             "trace_id": tid,
             "document_id": t.document_id,
@@ -557,6 +594,9 @@ async def _build_retrieval_snapshot(
             "claim_text": t.claim_text,
             "quote": t.quote,
             "citation_text": t.citation_text,
+            "source_ref_id": sr_info.get("source_ref_id"),
+            "source_ref_url": sr_info.get("source_ref_url"),
+            "source_ref_title": sr_info.get("source_ref_title"),
         })
 
     # Build InternalTraceRecords from real snapshot

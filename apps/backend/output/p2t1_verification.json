@@ -28,8 +28,8 @@
         "withdrawn_at": null,
         "book_id": "93441ffc-68c3-4d8d-9427-aba9c75970bb",
         "book_title": "针灸甲乙经",
-        "source_ref_id": null,
-        "source_ref_url": null
+        "source_ref_id": "769bcdd0-f8dd-4528-a6f7-719f6f5540c8",
+        "source_ref_url": "https://ctext.org/wiki.pl?if=gb&res=77431"
       },
       {
         "fact_index": 2,
@@ -53,8 +53,8 @@
         "withdrawn_at": null,
         "book_id": "93441ffc-68c3-4d8d-9427-aba9c75970bb",
         "book_title": "针灸甲乙经",
-        "source_ref_id": null,
-        "source_ref_url": null
+        "source_ref_id": "769bcdd0-f8dd-4528-a6f7-719f6f5540c8",
+        "source_ref_url": "https://ctext.org/wiki.pl?if=gb&res=77431"
       },
       {
         "fact_index": 3,
@@ -78,8 +78,8 @@
         "withdrawn_at": null,
         "book_id": "93441ffc-68c3-4d8d-9427-aba9c75970bb",
         "book_title": "针灸甲乙经",
-        "source_ref_id": null,
-        "source_ref_url": null
+        "source_ref_id": "769bcdd0-f8dd-4528-a6f7-719f6f5540c8",
+        "source_ref_url": "https://ctext.org/wiki.pl?if=gb&res=77431"
       },
       {
         "fact_index": 4,
@@ -103,8 +103,8 @@
         "withdrawn_at": null,
         "book_id": "93441ffc-68c3-4d8d-9427-aba9c75970bb",
         "book_title": "针灸甲乙经",
-        "source_ref_id": null,
-        "source_ref_url": null
+        "source_ref_id": "769bcdd0-f8dd-4528-a6f7-719f6f5540c8",
+        "source_ref_url": "https://ctext.org/wiki.pl?if=gb&res=77431"
       },
       {
         "fact_index": 5,
@@ -128,8 +128,8 @@
         "withdrawn_at": null,
         "book_id": "93441ffc-68c3-4d8d-9427-aba9c75970bb",
         "book_title": "针灸甲乙经",
-        "source_ref_id": null,
-        "source_ref_url": null
+        "source_ref_id": "769bcdd0-f8dd-4528-a6f7-719f6f5540c8",
+        "source_ref_url": "https://ctext.org/wiki.pl?if=gb&res=77431"
       }
     ],
     "n_facts": 5,
@@ -138,8 +138,9 @@
     "all_have_version": true,
     "all_have_source_url": true,
     "all_have_document": true,
+    "all_have_source_ref": true,
     "all_pass": true,
-    "elapsed_s": 3.1
+    "elapsed_s": 2.6
   },
   "phase_b": {
     "version_id": "71d564bc-19bd-435b-81c4-e4ec586b8516",

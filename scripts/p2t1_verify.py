@@ -99,8 +99,8 @@ async def phase_a():
                 doc_row = r.fetchone()
 
                 r = await session.execute(text(
-                    "SELECT id, url, title FROM source_refs WHERE is_deleted = false AND page_location LIKE :loc"
-                ), {"loc": f"%{t.passage_id}%"})
+                    "SELECT id, url, title FROM source_refs WHERE is_deleted = false AND page_location = :loc"
+                ), {"loc": f"document:{t.document_id}"})
                 sr_row = r.fetchone()
 
                 facts.append({
@@ -127,13 +127,27 @@ async def phase_a():
             results["all_have_version"] = all(f.get("version_id") for f in facts) if facts else False
             results["all_have_source_url"] = all(f.get("source_url") for f in facts) if facts else False
             results["all_have_document"] = all(f.get("document_title") for f in facts) if facts else False
+            results["all_have_source_ref"] = all(f.get("source_ref_id") for f in facts) if facts else False
 
             results["all_pass"] = (
                 len(facts) >= 3
                 and results["all_have_page"]
                 and results["all_have_version"]
                 and results["all_have_document"]
+                and results["all_have_source_ref"]
             )
+
+            # Print per-fact chain diagnostics
+            for f in facts:
+                chain_parts = []
+                chain_parts.append(f"Citation(trace={f['trace_id'][:12]}...)")
+                chain_parts.append(f"SourceRef({f['source_ref_id'][:12] if f['source_ref_id'] else 'MISSING'}...)")
+                chain_parts.append(f"Document({f['document_id'][:12]}...)")
+                chain_parts.append(f"Version({f.get('version_id','')[:12]}...)")
+                chain_parts.append(f"PDF({f.get('pdf_sha256','')[:12]}...)")
+                chain_parts.append(f"Page({f.get('page_number','?')})")
+                chain_parts.append(f"Passage({f.get('passage_id','')[:12]}...)")
+                print(f"  [CHAIN] {' → '.join(chain_parts)}", flush=True)
         else:
             results["n_traces"] = 0
             results["facts"] = []
@@ -383,7 +397,14 @@ async def main():
         print("FINAL: FAIL (timeout or error)", flush=True)
         return 1
     elif not (a_pass and b_pass and c_pass):
-        print("FINAL: FAIL (checks not all passing)", flush=True)
+        missing = []
+        pa = all_results.get("phase_a", {})
+        if not a_pass:
+            if not pa.get("all_have_page"): missing.append("page")
+            if not pa.get("all_have_version"): missing.append("version")
+            if not pa.get("all_have_document"): missing.append("document")
+            if not pa.get("all_have_source_ref"): missing.append("source_ref")
+        print(f"FINAL: FAIL — A={a_pass} B={b_pass} C={c_pass}. Missing: {missing}", flush=True)
         return 1
     else:
         print("FINAL: PASS", flush=True)
