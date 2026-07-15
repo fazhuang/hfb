@@ -38,6 +38,11 @@ from app.models.workspace import (  # noqa: F401
     QueryHistory,  # noqa: F401
     CitationCollection,  # noqa: F401
 )
+from app.models.academic_evidence import (  # noqa: F401
+    SourceRef,  # noqa: F401
+    Evidence,  # noqa: F401
+    Citation,  # noqa: F401
+)
 
 
 @pytest_asyncio.fixture
