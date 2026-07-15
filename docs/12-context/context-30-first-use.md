@@ -3,7 +3,7 @@
 **日期**: 2026-07-16
 **范围**: `apps/frontend/src/**` 全量页面与交互
 **目标**: 建立首次使用引导体系：欢迎、下一步、空页面、操作提示
-**实施**: P0 全部完成 + P1 搜索无结果（commit `5a6e953`）。剩余 P1 研究工具空态、P2 脉动动画/tooltip、P3 登录页价值卡片待后续。
+**实施**: P0-P3 全部完成（commit 序列：`5a6e953` → `5d6566e` → `124f025` → `0b5b2b3`）。
 
 ---
 
@@ -40,19 +40,13 @@
 
 **文件**: `apps/frontend/src/views/AboutView.vue`
 
-当前 About 页包含技术栈描述和项目信息。应在欢迎流程中作为「了解更多」的落点。
+当前 About 页包含技术栈描述和项目信息。已在欢迎流程中作为「了解更多」的落点（WelcomeHero 匿名访客按钮指向 `/about`）。
 
-**建议**: 为 About 页增加「如何开始」区块，列出三步入门路径。
-
-### 2.3 登录/注册页
+### 2.3 登录/注册页 ✅ 已实施（P3）
 
 **文件**: `apps/frontend/src/views/LoginView.vue`, `RegisterView.vue`
 
-当前为简洁表单，无平台介绍。副标题仅一行：「欢迎回到皇甫谧数字人文平台」。
-
-**建议**: 在表单侧边（桌面端）或表单上方（移动端）增加 **价值主张卡片**：
-- 「为什么注册？」—— 三行要点
-- 已有功能：版本比较、知识图谱、AI 辅助研究
+**实施方案**: 表单右侧（桌面端）或表单上方（移动端）增加价值主张卡片：「为什么注册？」+ 三条功能要点（版本比较 / 知识图谱 / AI 辅助研究）。
 
 ---
 
@@ -90,15 +84,11 @@
 
 **步骤 3** — 用户首次进入任一工具空态时，显示上下文操作提示（见第四节）。
 
-### 3.3 导航栏研究入口
+### 3.3 导航栏研究入口 ✅ 已实施（P2）
 
 **文件**: `apps/frontend/src/components/layout/AppNavbar.vue`
 
-导航栏已实现动态研究入口：
-- 已登录 + 无课题 → 显示「开始研究」(🔬)，路由 `/research/new`
-- 已登录 + 有课题 → 显示「当前研究」(🔬)，路由 `/research/home`
-
-**建议**: 首次登录后，在导航栏「开始研究」旁增加短暂脉动动画（3 次循环后消失），引导注意力。
+**实施方案**: 已登录 + 无课题用户的「开始研究」导航链接首次加载时显示脉动缩放动画 + 光环扩散效果（5 次循环约 5 秒后自动消失）。点击链接触发 `showResearchPulse = false` 提前停止动画。
 
 ### 3.4 Dashboard 统计卡片 ✅ 已实施
 
@@ -166,24 +156,17 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 
 ## 五、操作提示（Operation Tips）
 
-### 5.1 全局提示机制
+### 5.1 全局提示机制 ✅ 已实施（P2）
 
-**方案 A — 轻量 Tooltip 提示**（推荐）
+**实施方案**: 使用 `title` 属性实现轻量 tooltip（浏览器原生行为）：
 
-在关键操作元素上增加悬浮提示（`title` 属性或自定义 tooltip），首次显示后写入 `localStorage` 标记，不再重复。
-
-需要提示的关键元素：
 | 元素 | 位置 | 提示内容 |
 |------|------|---------|
-| 研究入口 CTA | HomeView, Dashboard | 「研究课题是你使用所有工具的起点」 |
-| 语言切换器 | AppNavbar 右侧 | 支持中/英文界面切换 |
-| 主题切换器 | AppNavbar 右侧 | 三种模式：浅色、深色、跟随系统 |
-| 创建课题按钮 | ResearchNewView | 「课题名称建议简洁明确，例如"针灸甲乙经版本考证"」 |
-| 研究工具卡片 | ResearchHomeView | 每个卡片已有描述，无需额外提示 |
+| 研究入口 CTA（脉动链接） | AppNavbar | 「点击这里开始你的第一次研究」 |
+| 语言切换器 | AppNavbar 右侧 | 「切换界面语言：中文 / English」 |
+| 主题切换器 | AppNavbar 右侧 | 「切换主题：浅色 / 深色 / 跟随系统」 |
 
-**方案 B — 引导遮罩（Tour Overlay）**
-
-步骤式引导，适合新用户首次登录。不推荐此时实现——成本较高且与空态引导有重叠。可在引导体系验证后再考虑。
+Tooltip 通过 `title` 属性实现，始终悬浮可见（无 localStorage 首次标记），属于零成本轻量方案。
 
 ### 5.2 内联操作提示
 
@@ -237,10 +220,10 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 | P0 | DocumentsView 改为「功能开发中」 | ✅ 完成 | DocumentsView.vue + PlaceholderPage.vue |
 | P1 | 搜索无结果增加操作建议 | ✅ 完成 | SearchView.vue |
 | P1 | 研究工具空态增加上下文提示 | ✅ 完成 | ResearchWorkflowView, WorkspaceView, ResearchWorkspaceView |
-| P1 | 新用户 Dashboard 引导条 | ⬜ 待实施 | DashboardView.vue |
-| P2 | 导航栏「开始研究」脉动动画 | ⬜ 待实施 | AppNavbar.vue |
-| P2 | 关键元素 tooltip | ⬜ 待实施 | 多个组件 |
-| P3 | 登录/注册页价值主张卡片 | ⬜ 待实施 | LoginView.vue, RegisterView.vue |
+| P1 | 新用户 Dashboard 步骤引导条 | ✅ 完成 | DashboardView.vue |
+| P2 | 导航栏「开始研究」脉动动画 | ✅ 完成 | AppNavbar.vue |
+| P2 | 关键元素 tooltip | ✅ 完成 | AppNavbar.vue (title 属性) |
+| P3 | 登录/注册页价值主张卡片 | ✅ 完成 | LoginView.vue, RegisterView.vue |
 
 ---
 
