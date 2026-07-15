@@ -135,25 +135,22 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 - 「浏览古籍库查看完整书目」（router-link → `/books`）
 - 「浏览人物列表」（router-link → `/persons`）
 
-### 4.3 研究工具空态
+### 4.3 研究工具空态 ✅ 部分已实施（P1）
 
 **版本比较页** (`/research`) — 无检索结果时：
-- 当前：「没有找到可比较的条文。」
-- 建议追加：「试试换一个关键词，或从[古籍库](/books)浏览版本全文」
+- ✅ 已追加：「试试换一个关键词，或从古籍库浏览版本全文」
 
 **研究工作台** (`/workspace`) — 无会话时：
-- 当前：「暂无会话，点击 + 创建」
-- 建议：增加会话用途说明（一行中文）
+- ✅ 已追加：「点击 + 创建研究会话，在画布中组织你的研究资料」
 
 **统一研究主页** (`/research/workspace`) — 各标签页空态：
-- 资料：「搜索文献资料...」→ 建议追加「或从[文献管理](/literature)导入」
-- 版本：「搜索古籍版本...」→ 建议追加「或浏览[古籍版本库](/classical-versions)」
-- 笔记：「暂无笔记」→ 建议追加「在研究过程中使用速记功能，笔记将自动汇聚于此」
-- 报告：「暂无研究报告」→ 建议追加「完成 V4 研究工作流后将自动生成报告」
+- ✅ 资料：「或从文献管理导入」
+- ✅ 版本：「或浏览古籍版本库」
+- ✅ 笔记：「在研究过程中使用速记功能，笔记将自动汇聚于此」
+- ✅ 报告：「完成研究工作流后将自动生成报告」
 
 **知识图谱** (`/graph`) — 初始空态：
-- 当前：「选择左侧实体开始图谱探索」
-- 评价：已经较好，不需要修改
+- 已有「选择左侧实体开始图谱探索」，不修改。
 
 ### 4.4 数据列表中无条目
 
@@ -239,7 +236,7 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 | P0 | Dashboard 零统计引导文案 | ✅ 完成 | DashboardView.vue |
 | P0 | DocumentsView 改为「功能开发中」 | ✅ 完成 | DocumentsView.vue + PlaceholderPage.vue |
 | P1 | 搜索无结果增加操作建议 | ✅ 完成 | SearchView.vue |
-| P1 | 研究工具空态增加上下文提示 | ⬜ 待实施 | ResearchView, WorkspaceView, ResearchWorkspaceView |
+| P1 | 研究工具空态增加上下文提示 | ✅ 完成 | ResearchWorkflowView, WorkspaceView, ResearchWorkspaceView |
 | P1 | 新用户 Dashboard 引导条 | ⬜ 待实施 | DashboardView.vue |
 | P2 | 导航栏「开始研究」脉动动画 | ⬜ 待实施 | AppNavbar.vue |
 | P2 | 关键元素 tooltip | ⬜ 待实施 | 多个组件 |
