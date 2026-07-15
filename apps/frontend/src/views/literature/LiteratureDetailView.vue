@@ -12,6 +12,16 @@
           <span v-if="doc.category" class="meta-tag">{{ doc.category }}</span>
           <span v-if="doc.source_name" class="meta-tag">{{ doc.source_name }}</span>
         </div>
+        <!-- P0-③: Ask AI about this document -->
+        <div class="doc-actions">
+          <button
+            class="ask-ai-btn"
+            @click="askAIAboutDoc"
+            :title="t('literature.askAI')"
+          >
+            🤖 {{ t('literature.askAI') }}
+          </button>
+        </div>
       </div>
 
       <!-- Compliance panel -->
@@ -125,12 +135,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import api from '@/api/client';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const auth = useAuthStore();
 
 interface DocumentDetail {
@@ -258,6 +269,18 @@ async function submitWithdraw() {
 }
 
 onMounted(fetchDoc);
+
+// P0-③: Navigate to research workspace assistant tab with document context
+async function askAIAboutDoc() {
+  if (!doc.value) return;
+  const title = doc.value.title;
+  // Navigate to workspace with doc context as query param
+  router.push({
+    name: 'research-workspace',
+    query: { tab: 'assistant', ask: `请分析《${title}》` },
+  });
+}
+
 </script>
 
 <style scoped>
@@ -270,6 +293,25 @@ onMounted(fetchDoc);
 .detail-header h1 { font-size: 28px; font-weight: 700; color: var(--color-text-primary, #1a365d); margin: 0 0 8px; }
 .meta-row { display: flex; gap: 8px; flex-wrap: wrap; }
 .meta-tag { font-size: 13px; padding: 3px 10px; background: var(--color-accent, #2b6cb0); color: white; border-radius: 4px; }
+.doc-actions { margin-top: 12px; }
+.ask-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px solid var(--color-accent, #2b6cb0);
+  border-radius: 8px;
+  background: var(--color-navbar-bg, #fff);
+  color: var(--color-accent, #2b6cb0);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ask-ai-btn:hover {
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+}
 
 .panel { margin-bottom: 24px; padding: 20px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 10px; background: var(--color-navbar-bg, #fff); }
 .panel h3 { font-size: 15px; font-weight: 600; color: var(--color-text-primary, #1a365d); margin: 0 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--color-accent, #2b6cb0); }

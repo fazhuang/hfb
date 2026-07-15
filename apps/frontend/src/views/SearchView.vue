@@ -110,6 +110,17 @@
               {{ key }}: {{ val }}
             </span>
           </div>
+
+          <!-- P1-①: Quick actions -->
+          <div class="result-actions" @click.stop>
+            <button
+              class="result-action-btn"
+              @click="addToTopic(item)"
+              :title="t('search.addToTopic')"
+            >
+              📌 {{ t('search.addToTopic') }}
+            </button>
+          </div>
         </article>
       </div>
 
@@ -150,11 +161,14 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
+import { useResearchStore } from '@/stores/research';
 import api from '@/api/client';
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
+const researchStore = useResearchStore();
 
 // --- State ---
 const query = ref('');
@@ -337,6 +351,12 @@ function navigateToItem(item: SearchResultItem) {
   // Other types have no dedicated detail page yet
 }
 
+// P1-①: Add search result as research topic
+function addToTopic(item: SearchResultItem) {
+  researchStore.setTopic(item.title, item.snippet || item.subtitle || '');
+  router.push({ name: 'research-home' });
+}
+
 // Watch filters — re-search on change
 watch([selectedTypes, selectedDynasty], () => {
   page.value = 1;
@@ -345,6 +365,13 @@ watch([selectedTypes, selectedDynasty], () => {
 
 onMounted(() => {
   nextTick(() => searchInputRef.value?.focus());
+
+  // P1-⑥: Accept ?q= param from re-search navigation
+  const qParam = route.query.q as string | undefined;
+  if (qParam) {
+    query.value = decodeURIComponent(qParam);
+    search();
+  }
 });
 </script>
 
@@ -661,5 +688,27 @@ onMounted(() => {
 .page-info {
   font-size: 13px;
   color: var(--color-text-muted, #a0aec0);
+}
+
+/* P1-①: Result actions */
+.result-actions {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+.result-action-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--color-accent, #2b6cb0);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-accent, #2b6cb0);
+  transition: all 0.15s;
+}
+.result-action-btn:hover {
+  background: var(--color-accent, #2b6cb0);
+  color: white;
 }
 </style>

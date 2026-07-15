@@ -134,6 +134,7 @@ export default {
     noResults: 'No results found',
     initialHint: 'Enter keywords above to start searching',
     papers: 'Papers',
+    addToTopic: 'Add to Topic',
   },
   workspace: {
     title: 'AI Research Workspace',
@@ -292,6 +293,8 @@ export default {
     exporting: 'Exporting...',
     exported: 'Report downloaded',
     exportFailed: 'Export failed',
+    saveCitation: 'Save Citation',
+    citationSaved: 'Saved',
     saveNote: 'Save Note',
     noteLabel: 'Research Note',
     notePlaceholder: 'Write your research notes here...',
@@ -299,6 +302,7 @@ export default {
     noteFailed: 'Note save failed',
     save: 'Save',
     saving: 'Saving...',
+    reSearch: 'Re-search from report',
   },
   researchEntry: {
     startNew: 'Start New Research',
@@ -355,5 +359,16 @@ export default {
     viewInGraph: 'View in graph',
     linkedEvidence: 'Linked evidence',
     evidenceGraph: 'Evidence graph',
+  },
+  literature: {
+    fulltext: 'Full Text',
+    metadata: 'Metadata',
+    adminActions: 'Admin Actions',
+    review: 'Review',
+    submitReview: 'Submit Review',
+    withdraw: 'Withdraw',
+    withdrawReasonPlaceholder: 'Reason for withdrawal...',
+    confirmWithdraw: 'Confirm Withdrawal',
+    askAI: 'Ask AI about this document',
   },
 };

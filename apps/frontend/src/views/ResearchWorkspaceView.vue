@@ -459,13 +459,24 @@
             <div v-for="(ev, idx) in evidence" :key="idx" class="rw-evidence-item">
               <span class="rw-evidence-type">{{ ev.entity_type }}</span>
               <span class="rw-evidence-text">{{ (ev.content || '').substring(0, 120) }}</span>
-              <button
-                v-if="ev.entity_type && ev.id"
-                class="rw-evidence-graph-link"
-                @click="openEntityInGraph(ev.entity_type, ev.id)"
-                :title="t('researchWorkspace.viewInGraph')"
-              >
-                🔗
+              <div class="rw-evidence-actions">
+                <button
+                  v-if="chatSessionId"
+                  class="rw-evidence-action-btn"
+                  :class="{ saved: ev.saved }"
+                  @click="saveCitation(ev, idx)"
+                  :disabled="ev.saving"
+                  :title="ev.saved ? t('v4.citationSaved') : t('v4.saveCitation')"
+                >
+                  {{ ev.saving ? '...' : ev.saved ? '💾✓' : '💾' }}
+                </button>
+                <button
+                  v-if="ev.entity_type && ev.id"
+                  class="rw-evidence-graph-link"
+                  @click="openEntityInGraph(ev.entity_type, ev.id)"
+                  :title="t('researchWorkspace.viewInGraph')"
+                >
+                  🔗
               </button>
             </div>
 
@@ -544,7 +555,7 @@ interface ReportRun {
   step_execution_trace?: Array<{ name: string; status: string }>;
   output_artifacts?: Record<string, any>;
 }
-interface EvidenceItem { entity_type: string; content?: string; id?: string; }
+interface EvidenceItem { entity_type: string; content?: string; id?: string; saved?: boolean; saving?: boolean; }
 
 // ---- V4 inline state ----
 const v4Topic = ref('');
@@ -929,6 +940,31 @@ function sendPrompt(prompt: string) {
 }
 
 // ================================================================
+// Citation save (P0-④: AI Q&A → Citation)
+// ================================================================
+async function saveCitation(ev: EvidenceItem, _idx: number) {
+  if (!chatSessionId.value || ev.saving) return;
+  ev.saving = true;
+  try {
+    const trace = JSON.stringify({
+      entity_type: ev.entity_type,
+      entity_id: ev.id || '',
+      content: ev.content || '',
+    });
+    await api.post(`/api/v1/workspace/sessions/${chatSessionId.value}/citations`, {
+      trace_json: trace,
+      citation_text: `[${ev.entity_type}:${ev.id}] ${(ev.content || '').substring(0, 80)}`,
+      source_document: ev.entity_type || 'unknown',
+    });
+    ev.saved = true;
+  } catch {
+    // silently ignore
+  } finally {
+    ev.saving = false;
+  }
+}
+
+// ================================================================
 // Helpers
 // ================================================================
 function formatDate(iso?: string): string {
@@ -971,9 +1007,15 @@ onMounted(() => {
     // The run will be opened after reports load
     (window as any).__pendingRunId = runParam;
   }
+  // P0-③: Honor ?ask= query param (auto-ask in assistant tab)
+  const askParam = route.query.ask as string | undefined;
+  if (askParam) {
+    activeTab.value = 'assistant';
+    (window as any).__pendingAsk = askParam;
+  }
 });
 
-loadSessions().then(() => {
+loadSessions().then(async () => {
   fetchMaterials(1);
   fetchVersions(1);
   fetchNotesForSession();
@@ -986,6 +1028,29 @@ loadSessions().then(() => {
       if (found) openReportDetail(found);
     }
   });
+
+  // P0-③: Handle deferred ask — create session and send the question
+  const pendingAsk = (window as any).__pendingAsk as string | undefined;
+  if (pendingAsk) {
+    delete (window as any).__pendingAsk;
+    // Ensure a chat session exists
+    if (!chatSessionId.value) {
+      try {
+        const { data } = await api.post('/api/v1/workspace/sessions', {
+          title: '文献问答',
+        });
+        const s = data.data as SessionItem;
+        sessions.value.unshift(s);
+        chatSessionId.value = s.id;
+        chatSessionTitle.value = s.title;
+      } catch {
+        return;
+      }
+    }
+    // Send the question — small delay to let DOM settle
+    chatInput.value = pendingAsk;
+    setTimeout(() => sendMessage(), 200);
+  }
 });
 
 // Refresh notes count when sessions load
@@ -1619,6 +1684,30 @@ watch(sessions, () => {
 }
 .rw-evidence-text {
   color: var(--color-text-secondary, #718096);
+}
+.rw-evidence-actions {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.rw-evidence-action-btn {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s;
+}
+.rw-evidence-action-btn:hover {
+  opacity: 1;
+  background: var(--color-hover, #edf2f7);
+}
+.rw-evidence-action-btn.saved {
+  opacity: 1;
+  color: #38a169;
 }
 
 /* ---- Responsive ---- */

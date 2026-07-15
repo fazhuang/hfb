@@ -275,6 +275,14 @@ class WorkspaceService:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
+    async def get_citation(self, citation_id: UUID | str) -> CitationCollection | None:
+        """Get a citation by ID for ownership verification."""
+        stmt = select(CitationCollection).where(
+            CitationCollection.id == str(citation_id)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def update_citation(
         self,
         citation_id: UUID | str,

@@ -389,8 +389,109 @@ async def delete_note_route(
 
 
 # ============================================================
+# Workspace — Citation Collections
+# ============================================================
+
+
+class CitationCreateRequest(BaseModel):
+    trace_json: str = Field(..., min_length=1)
+    citation_text: str = Field(..., min_length=1)
+    source_document: str = Field(..., min_length=1)
+    tags: str | None = None
+    notes: str | None = None
+
+
+@workspace_router.get(
+    "/sessions/{session_id}/citations",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_read)],
+)
+async def list_citations(
+    session_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)] = None,
+    current_user: str = Depends(get_current_user),
+) -> dict:
+    svc = WorkspaceService(session)
+    s = await svc.get_session(session_id)
+    if s is None or s.user_id != current_user:
+        from fastapi import HTTPException
+
+        raise HTTPException(404, "Session not found")
+    items = await svc.list_citations(session_id)
+    return api_response(data=[_citation_dict(c) for c in items])
+
+
+@workspace_router.post(
+    "/sessions/{session_id}/citations",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
+async def create_citation(
+    session_id: UUID,
+    body: CitationCreateRequest,
+    session: Annotated[AsyncSession, Depends(get_session)] = None,
+    current_user: str = Depends(get_current_user),
+) -> dict:
+    svc = WorkspaceService(session)
+    s = await svc.get_session(session_id)
+    if s is None or s.user_id != current_user:
+        from fastapi import HTTPException
+
+        raise HTTPException(404, "Session not found")
+    citation = await svc.create_citation(
+        session_id,
+        body.trace_json,
+        body.citation_text,
+        body.source_document,
+        body.tags,
+        body.notes,
+    )
+    return api_response(data=_citation_dict(citation), message="Created")
+
+
+@workspace_router.delete(
+    "/citations/{citation_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
+async def delete_citation(
+    citation_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)] = None,
+    current_user: str = Depends(get_current_user),
+) -> dict:
+    svc = WorkspaceService(session)
+    citation = await svc.get_citation(citation_id)
+    if citation is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(404, "Citation not found")
+    # Verify ownership through the owning session
+    s = await svc.get_session(citation.session_id)
+    if s is None or s.user_id != current_user:
+        from fastapi import HTTPException
+
+        raise HTTPException(404, "Citation not found")
+    await svc.delete_citation(citation_id)
+    return api_response(data=None, message="Deleted")
+
+
+# ============================================================
 # Helpers
 # ============================================================
+
+
+def _citation_dict(c: Any) -> dict:
+    return {
+        "id": c.id,
+        "session_id": c.session_id,
+        "trace_json": c.trace_json,
+        "citation_text": c.citation_text,
+        "source_document": c.source_document,
+        "tags": c.tags,
+        "notes": c.notes,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+        "updated_at": c.updated_at.isoformat() if c.updated_at else None,
+    }
 
 
 def _session_dict(s: Any) -> dict:

@@ -136,6 +136,7 @@ export default {
     noResults: '未找到相关结果',
     initialHint: '在上方输入关键词开始搜索',
     papers: '论文',
+    addToTopic: '加入课题',
   },
   workspace: {
     title: 'AI 研究工作台',
@@ -294,6 +295,8 @@ export default {
     exporting: '导出中...',
     exported: '报告已下载',
     exportFailed: '导出失败',
+    saveCitation: '保存引用',
+    citationSaved: '已保存',
     saveNote: '保存笔记',
     noteLabel: '研究笔记',
     notePlaceholder: '在此记录您的研究笔记...',
@@ -301,6 +304,7 @@ export default {
     noteFailed: '笔记保存失败',
     save: '保存',
     saving: '保存中...',
+    reSearch: '基于报告重新搜索',
   },
   researchEntry: {
     startNew: '开始新的研究',
@@ -367,5 +371,6 @@ export default {
     withdraw: '撤回全文',
     withdrawReasonPlaceholder: '撤回原因...',
     confirmWithdraw: '确认撤回',
+    askAI: '就此文献提问',
   },
 };

@@ -148,6 +148,17 @@
         <!-- Note feedback (persists after editor closes) -->
         <p v-if="noteMessage && !showNoteEditor" class="note-feedback note-feedback--standalone" aria-live="polite" data-testid="note-feedback-standalone">{{ noteMessage }}</p>
 
+        <!-- P1-⑥: Re-search from report -->
+        <div v-if="reportContent" class="re-search-section">
+          <button
+            class="button button--secondary"
+            @click="reSearchFromReport"
+            data-testid="v4-re-search"
+          >
+            🔍 {{ t('v4.reSearch') }}
+          </button>
+        </div>
+
         <!-- Replay -->
         <div v-if="workflowRunId" class="replay-section">
           <button
@@ -286,13 +297,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useResearchStore } from '@/stores/research';
 
 import api from '@/api/client';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const researchStore = useResearchStore();
 
 // =========================================================================
@@ -612,7 +624,23 @@ async function exportRecord() {
   exporting.value = true;
   error.value = '';
   try {
-    const blob = new Blob([reportContent.value], { type: 'text/markdown;charset=utf-8' });
+    // P1-⑥: Append session notes to the report before export
+    let content = reportContent.value;
+    if (sessionId.value) {
+      try {
+        const notesResp = await api.get(`/api/v1/workspace/sessions/${sessionId.value}/notes`);
+        const notesList = (notesResp.data.data ?? []) as Array<{ content: string; created_at: string; tags?: string }>;
+        if (notesList.length > 0) {
+          content += '\n\n---\n\n## 研究笔记\n\n';
+          for (const note of notesList) {
+            const date = note.created_at ? new Date(note.created_at).toLocaleString('zh-CN') : '';
+            content += `> ${date}\n\n${note.content}\n\n---\n\n`;
+          }
+        }
+      } catch { /* notes fetch failed, export without notes */ }
+    }
+
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -651,6 +679,15 @@ async function saveNote() {
   } finally {
     savingNote.value = false;
   }
+}
+
+// P1-⑥: Re-search from report — extract keywords and navigate to search
+function reSearchFromReport() {
+  if (!reportContent.value) return;
+  // Extract first heading or first meaningful line as search query
+  const lines = reportContent.value.split('\n').filter(l => l.trim() && !l.startsWith('#') && l.length > 10);
+  const query = topic.value || lines[0]?.slice(0, 60) || '';
+  router.push({ name: 'search', query: { q: encodeURIComponent(query) } });
 }
 
 function resetWorkflow() {
