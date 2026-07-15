@@ -9,9 +9,10 @@ Example: 北宋刻本, 南宋刻本, 日本刊本 of 针灸甲乙经
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import String, Text, ForeignKey
+from sqlalchemy import Boolean, DateTime, String, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -37,8 +38,63 @@ class Version(BaseModel):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="版本描述")
     source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True, comment="来源链接")
 
+    # ------------------------------------------------------------------
+    # Academic credibility fields (P2T1)
+    # ------------------------------------------------------------------
+    is_formal_source: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="是否为正式学术可引用来源",
+    )
+    rights_statement: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="权利/授权依据"
+    )
+    persistent_identifier: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True, comment="稳定可核验标识"
+    )
+    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, comment="撤回时间"
+    )
+    withdraw_reason: Mapped[Optional[str]] = mapped_column(
+        Text, nullable=True, comment="撤回原因"
+    )
+
     # Relationships
     book: Mapped["Book"] = relationship("Book", back_populates="versions")
+
+    @property
+    def is_withdrawn(self) -> bool:
+        """Shortcut: is this version currently withdrawn?"""
+        return self.withdrawn_at is not None
+
+    @property
+    def is_academic_citable(self) -> bool:
+        """A version is academically citable only when it is:
+        - Marked as a formal source
+        - Has a repository (holding institution)
+        - Has a shelf mark (call number) or persistent identifier
+        - Has a source URL (linkable, verifiable)
+        - Is NOT withdrawn
+        """
+        return (
+            self.is_formal_source
+            and bool(self.repository)
+            and bool(self.shelf_mark or self.persistent_identifier)
+            and bool(self.source_url)
+            and not self.is_withdrawn
+        )
+
+    def withdraw(self, reason: str = "未说明") -> None:
+        """Withdraw this version — sets withdrawn_at and reason."""
+        self.withdrawn_at = datetime.now(timezone.utc)
+        self.withdraw_reason = reason
+
+    def restore(self) -> None:
+        """Restore a withdrawn version."""
+        self.withdrawn_at = None
+        self.withdraw_reason = None
 
     def __repr__(self) -> str:
         return f"<Version id={self.id} name={self.version_name!r}>"
