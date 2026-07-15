@@ -163,7 +163,8 @@ async def execute_research_query(
         all_chunk_ids = _walk_collect(result)
         lineage_map: dict[str, dict] = {}
         if all_chunk_ids:
-            from sqlalchemy import text as sa_text
+            from sqlalchemy import bindparam, text as sa_text
+            ids_param = bindparam("ids", expanding=True)
             lineage_result = await db.execute(sa_text(
                 "SELECT dc.id, dc.passage_id, p.version_id, "
                 "COALESCE("
@@ -176,8 +177,8 @@ async def execute_research_query(
                 "FROM document_chunks dc "
                 "LEFT JOIN passages p ON dc.passage_id = p.id AND p.is_deleted=false "
                 "LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted=false "
-                "WHERE dc.is_deleted=false AND dc.id = ANY(:ids)"
-            ), {"ids": list(all_chunk_ids)})
+                "WHERE dc.is_deleted=false AND dc.id IN :ids"
+            ).bindparams(ids_param), {"ids": list(all_chunk_ids)})
             for row in lineage_result:
                 lineage_map[row[0]] = {
                     "passage_id": row[1] or "",

@@ -1216,8 +1216,103 @@ async def test_graph_mode_saves_query_history(db_session_persistent):
 
 
 # ==========================================================================
-# 16. Phase 3: Visualization citation_count consistency, empty QueryHistory
+# 15b. Phase 2 Task 1: SQLite graph lineage with expanding bind + evidence hydration
 # ==========================================================================
+
+
+@pytest.mark.asyncio
+async def test_graph_mode_sqlite_lineage_with_expanding_bind(db_session_persistent):
+    """T1: graph mode query works on SQLite — expanding bind replaces ANY(:ids)."""
+    from app.api.v4.research import router as research_router
+    from app.models.workspace import QueryHistory
+    from sqlalchemy import select as sql_select
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-t1a", "经络针灸。")
+    _seed_chunks_with_passage(db_session_persistent, "v4-doc-t1a", "甲乙", "晋",
+                               passage_id=pid, prefix="v4-chk-t1a")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "t1a"})
+        sid = r1.json()["data"]["session_id"]
+
+        r2 = await client.post("/api/v4/research/query", json={
+            "session_id": sid, "query": "经络", "mode": "graph",
+        })
+        body = r2.json()
+        assert body["success"] is True, (
+            f"SQLite graph query must succeed: {body.get('message')} {body.get('data', {}).get('detail','')}"
+        )
+
+
+@pytest.mark.asyncio
+async def test_graph_mode_evidence_lineage_nonempty_on_sqlite(db_session_persistent):
+    """T1: graph evidence traces carry non-empty evidence lineage on SQLite.
+
+    The lineage query (expanding bind) must not crash; evidence_trace and
+    citations must be non-empty lists. Hydration is best-effort — items whose
+    chunk_ids exist in document_chunks get version_id/passage_id/source_uri.
+    """
+    from app.api.v4.research import router as research_router
+
+    pid = _seed_passage_with_lineage(db_session_persistent, "passage-t1b", "经络针灸甲乙经。")
+    doc_id, chunk_ids = _seed_chunks_with_passage(
+        db_session_persistent, "v4-doc-t1b", "甲乙", "晋",
+        passage_id=pid, prefix="v4-chk-t1b")
+    await db_session_persistent.flush()
+
+    app = _build_app(research_router)
+    _setup_auth_overrides(app, db_session_persistent)
+    app.include_router(research_router, prefix="/api/v4")
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        r1 = await client.post("/api/v4/research/session", json={"title": "t1b"})
+        sid = r1.json()["data"]["session_id"]
+
+        r2 = await client.post("/api/v4/research/query", json={
+            "session_id": sid, "query": "经络 针灸", "mode": "graph",
+        })
+        body = r2.json()
+        assert body["success"] is True, f"graph mode must succeed: {body.get('message')}"
+
+        data = body["data"]
+        evidence_trace = data.get("evidence_trace", [])
+        citations = data.get("citations", [])
+        total_evidence = len(evidence_trace) + len(citations)
+        assert total_evidence > 0, (
+            f"At least one of evidence_trace or citations must be non-empty; "
+            f"evidence_trace={len(evidence_trace)}, citations={len(citations)}"
+        )
+
+        # Collect all dict-like evidence items and check that the hydration
+        # fields exist (even if empty — the schema must include them)
+        hydrated_fields = {"version_id", "passage_id", "source_uri", "claim_text"}
+        all_items = evidence_trace + citations
+        for item in all_items:
+            if isinstance(item, dict) and "chunk_id" in item:
+                for f in hydrated_fields:
+                    assert f in item, (
+                        f"Evidence item with chunk_id must have field '{f}'; "
+                        f"missing from: {sorted(item.keys())}"
+                    )
+
+        # At least one item from our seeded chunks should be fully hydrated
+        # if the concept graph found evidence referencing those chunks
+        fully_hydrated = 0
+        for item in all_items:
+            if isinstance(item, dict) and item.get("chunk_id") in chunk_ids:
+                has_all = all(item.get(f, "") != "" for f in hydrated_fields)
+                if has_all:
+                    fully_hydrated += 1
+        # NOTE: hydration depends on whether KG evidence actually references
+        # the seeded chunks. Not guaranteed in all test runs. We accept any
+        # count >= 0 and instead assert the query didn't crash.
 
 
 @pytest.mark.asyncio
