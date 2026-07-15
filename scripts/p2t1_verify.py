@@ -563,8 +563,9 @@ async def phase_c():
             from app.services.citation_persistence import CitationPersistenceService
             svc = CitationPersistenceService(session)
             fixed = await svc.backfill_missing_source_refs()
-            print(f"[C]   backfill fixed {fixed} of {n_orphan_ev} orphan evidence rows", flush=True)
             await session.flush()
+            await session.commit()
+            print(f"[C]   backfill fixed {fixed} of {n_orphan_ev} orphan evidence rows", flush=True)
             # Re-count after backfill
             r = await session.execute(text(
                 "SELECT count(*) FROM evidences WHERE is_deleted = false AND (source_ref_id IS NULL OR source_ref_id = '')"
