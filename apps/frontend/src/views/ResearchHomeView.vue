@@ -16,7 +16,7 @@
     <section class="rh-section">
       <h2 class="rh-section-title">{{ t('researchEntry.toolsTitle') }}</h2>
       <div class="rh-tools-grid">
-        <router-link :to="{ name: 'research-workspace', query: { tab: 'research' } }" class="rh-tool-card">
+        <router-link :to="{ name: 'research-workflow' }" class="rh-tool-card">
           <span class="rh-tool-icon">校</span>
           <div>
             <span class="rh-tool-name">{{ t('nav.research') }}</span>

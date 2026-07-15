@@ -6,6 +6,20 @@ import { createRouter, createWebHistory } from 'vue-router';
 import i18n from '@/i18n';
 import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';
 
+// Router stub needed because the component uses <router-link>
+function makeRouter() {
+  return createRouter({
+    history: createWebHistory(),
+    routes: [
+      { path: '/', component: { template: '<div/>' }, name: 'home' },
+      { path: '/research/home', component: { template: '<div/>' }, name: 'research-home' },
+      { path: '/research/new', component: { template: '<div/>' }, name: 'research-new' },
+    ],
+  });
+}
+
+const router = makeRouter();
+
 // ---------------------------------------------------------------------------
 // Vitest hoisting: vi.mock factories are hoisted, so the mock implementation
 // must be defined via vi.hoisted() to be available at factory time.
@@ -102,7 +116,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
 
     const wrapper = mount(ResearchWorkflowView, {
       global: {
-        plugins: [createPinia(), i18n],
+        plugins: [router, createPinia(), i18n],
       },
     });
 
@@ -132,7 +146,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
 
     const wrapper = mount(ResearchWorkflowView, {
       global: {
-        plugins: [createPinia(), i18n],
+        plugins: [router, createPinia(), i18n],
       },
     });
 
@@ -161,7 +175,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
     // Should not throw
     const wrapper = mount(ResearchWorkflowView, {
       global: {
-        plugins: [createPinia(), i18n],
+        plugins: [router, createPinia(), i18n],
       },
     });
 

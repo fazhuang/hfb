@@ -90,7 +90,9 @@ const router = createRouter({
         },
         {
           path: 'research',
-          redirect: '/research/workspace?tab=research',
+          name: 'research-workflow',
+          component: () => import('@/views/ResearchWorkflowView.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'research/workspace',

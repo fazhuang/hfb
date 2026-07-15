@@ -242,25 +242,10 @@
     </section>
 
     <!-- ============================================================ -->
-    <!-- Tab: 版本研究 (Version Comparison Research) -->
+    <!-- Tab: 版本研究 (Version Comparison) — embedded inline        -->
     <!-- ============================================================ -->
-    <section v-if="activeTab === 'research'" class="rw-panel">
-      <div class="rw-panel-header">
-        <h2>{{ t('nav.research') }} — {{ t('research.title') }}</h2>
-      </div>
-
-      <div v-if="!store.hasActiveResearch" class="rw-empty">
-        <p>{{ t('researchEntry.noActiveResearch') }}</p>
-        <router-link :to="{ name: 'research-new' }" class="rw-btn rw-btn--primary">
-          {{ t('researchEntry.startNew') }}
-        </router-link>
-      </div>
-      <div v-else class="rw-placeholder-panel">
-        <p>{{ t('researchWorkspace.researchInlineHint') }}</p>
-        <router-link :to="{ name: 'research-workspace', query: { tab: 'research' } }" class="rw-btn rw-btn--primary">
-          校 {{ t('researchWorkspace.openVersionComparison') }}
-        </router-link>
-      </div>
+    <section v-if="activeTab === 'research'" class="rw-panel rw-panel--flush">
+      <ResearchWorkflowView />
     </section>
 
     <!-- ============================================================ -->
@@ -511,6 +496,7 @@ import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
+import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';
 
 const { t } = useI18n();
 const router = useRouter();
