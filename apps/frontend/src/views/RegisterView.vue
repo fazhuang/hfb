@@ -15,7 +15,9 @@
             autocomplete="username"
             :disabled="auth.loading"
             :placeholder="t('auth.usernamePlaceholder')"
+            :class="{ 'input-error': auth.validationErrors['username'] }"
           />
+          <span v-if="auth.validationErrors['username']" class="field-error">{{ auth.validationErrors['username'] }}</span>
         </div>
 
         <div class="form-group">
@@ -27,7 +29,9 @@
             autocomplete="email"
             :disabled="auth.loading"
             placeholder="email@example.com"
+            :class="{ 'input-error': auth.validationErrors['email'] }"
           />
+          <span v-if="auth.validationErrors['email']" class="field-error">{{ auth.validationErrors['email'] }}</span>
         </div>
 
         <div class="form-group">
@@ -36,9 +40,12 @@
             id="displayName"
             v-model="displayName"
             type="text"
+            autocomplete="name"
             :disabled="auth.loading"
             :placeholder="t('auth.displayNamePlaceholder')"
+            :class="{ 'input-error': auth.validationErrors['display_name'] }"
           />
+          <span v-if="auth.validationErrors['display_name']" class="field-error">{{ auth.validationErrors['display_name'] }}</span>
         </div>
 
         <div class="form-group">
@@ -50,9 +57,10 @@
             autocomplete="new-password"
             :disabled="auth.loading"
             :placeholder="t('auth.passwordPlaceholder')"
-            :class="{ 'input-error': passwordError }"
+            :class="{ 'input-error': passwordError || auth.validationErrors['password'] }"
           />
           <span v-if="passwordError" class="field-error">{{ passwordError }}</span>
+          <span v-else-if="auth.validationErrors['password']" class="field-error">{{ auth.validationErrors['password'] }}</span>
         </div>
 
         <div v-if="auth.error" class="error-message">{{ auth.error }}</div>

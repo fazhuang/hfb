@@ -60,6 +60,8 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = ref<string | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  /** Field-level validation errors from 422 responses, keyed by field name. */
+  const validationErrors = ref<Record<string, string>>({});
 
   // Getters
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value);
@@ -102,17 +104,26 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Extract user-readable error message from Axios error.
-  // FastAPI returns 422 with `detail` (string) OR `meta.validation_errors` (array of {loc,msg,type}).
+  // FastAPI returns 422 with the project's unified error envelope:
+  //   { meta: { metadata: { validation_errors: [...] } } }  (custom handler)
+  //   — or — { detail: [...] }  (default FastAPI, should not occur with our handler)
   // Other endpoints return `detail` (string) or `message` (string).
   function extractErrorMessage(e: unknown, fallback: string): string {
     const data = (e as { response?: { data?: Record<string, unknown> } })?.response?.data;
     if (!data) return (e as Error).message ?? fallback;
 
-    // FastAPI 422: meta.validation_errors → join per-field messages
+    // Custom handler 422: meta.metadata.validation_errors → join per-field messages
     const meta = data.meta as Record<string, unknown> | undefined;
-    const validationErrors = meta?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
-    if (validationErrors?.length) {
-      return validationErrors.map((ve) => `${ve.loc.filter(s => s !== 'body').join('.')}: ${ve.msg}`).join('; ');
+    const metadata = meta?.metadata as Record<string, unknown> | undefined;
+    const ve = metadata?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    if (ve?.length) {
+      return ve.map((e) => `${e.loc.filter(s => s !== 'body').join('.')}: ${e.msg}`).join('; ');
+    }
+
+    // Also check the legacy path (meta.validation_errors) for backward compat
+    const legacyVe = meta?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    if (legacyVe?.length) {
+      return legacyVe.map((e) => `${e.loc.filter(s => s !== 'body').join('.')}: ${e.msg}`).join('; ');
     }
 
     // Standard error: detail field
@@ -122,6 +133,27 @@ export const useAuthStore = defineStore('auth', () => {
     if (data.message) return String(data.message);
 
     return (e as Error).message ?? fallback;
+  }
+
+  /** Extract per-field validation errors keyed by field name (last element of loc). */
+  function extractFieldErrors(e: unknown): Record<string, string> {
+    const data = (e as { response?: { data?: Record<string, unknown> } })?.response?.data;
+    if (!data) return {};
+
+    const meta = data.meta as Record<string, unknown> | undefined;
+    const metadata = meta?.metadata as Record<string, unknown> | undefined;
+    const ve = metadata?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    if (!ve?.length) return {};
+
+    const result: Record<string, string> = {};
+    for (const err of ve) {
+      // loc is e.g. ["body", "username"] — take the last element as field name
+      const field = err.loc[err.loc.length - 1];
+      if (field && !result[field]) {
+        result[field] = err.msg;
+      }
+    }
+    return result;
   }
 
   function loadTokens(): void {
@@ -164,6 +196,7 @@ export const useAuthStore = defineStore('auth', () => {
   ): Promise<boolean> {
     loading.value = true;
     error.value = null;
+    validationErrors.value = {};
     try {
       await api.post('/api/v1/auth/register', {
         username,
@@ -173,6 +206,7 @@ export const useAuthStore = defineStore('auth', () => {
       });
       return true;
     } catch (e: unknown) {
+      validationErrors.value = extractFieldErrors(e);
       error.value = extractErrorMessage(e, 'Registration failed');
       return false;
     } finally {
@@ -231,6 +265,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshToken,
     loading,
     error,
+    validationErrors,
     isAuthenticated,
     isAdmin,
     isSuperAdmin,

@@ -67,6 +67,8 @@ export default {
     dbDisconnected: '数据库未连接',
     redisConnected: 'Redis 已连接',
     redisDisconnected: 'Redis 未连接',
+    esConnected: 'Elasticsearch 已连接',
+    esDisconnected: 'Elasticsearch 未连接',
     minioConnected: 'MinIO 已连接',
     minioDisconnected: 'MinIO 未连接',
     allReady: '系统就绪',

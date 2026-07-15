@@ -65,6 +65,8 @@ export default {
     dbDisconnected: 'Database Disconnected',
     redisConnected: 'Redis Connected',
     redisDisconnected: 'Redis Disconnected',
+    esConnected: 'Elasticsearch Connected',
+    esDisconnected: 'Elasticsearch Disconnected',
     minioConnected: 'MinIO Connected',
     minioDisconnected: 'MinIO Disconnected',
     allReady: 'System Ready',
