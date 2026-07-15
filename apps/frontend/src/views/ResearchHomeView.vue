@@ -16,7 +16,7 @@
     <section class="rh-section">
       <h2 class="rh-section-title">{{ t('researchEntry.toolsTitle') }}</h2>
       <div class="rh-tools-grid">
-        <router-link :to="{ name: 'research-workflow' }" class="rh-tool-card">
+        <router-link :to="{ name: 'research-workspace', query: { tab: 'research' } }" class="rh-tool-card">
           <span class="rh-tool-icon">校</span>
           <div>
             <span class="rh-tool-name">{{ t('nav.research') }}</span>
@@ -24,7 +24,7 @@
           </div>
         </router-link>
 
-        <router-link :to="{ name: 'v4-research' }" class="rh-tool-card">
+        <router-link :to="{ name: 'research-workspace', query: { tab: 'v4-research' } }" class="rh-tool-card">
           <span class="rh-tool-icon">🧬</span>
           <div>
             <span class="rh-tool-name">{{ t('nav.v4Research') }}</span>
@@ -32,7 +32,7 @@
           </div>
         </router-link>
 
-        <router-link :to="{ name: 'workspace' }" class="rh-tool-card">
+        <router-link :to="{ name: 'research-workspace' }" class="rh-tool-card">
           <span class="rh-tool-icon">🧪</span>
           <div>
             <span class="rh-tool-name">{{ t('nav.workspace') }}</span>

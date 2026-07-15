@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
+import { createRouter, createWebHistory } from 'vue-router';
 
 import i18n from '@/i18n';
 import V4ResearchView from '@/views/V4ResearchView.vue';
@@ -16,7 +17,26 @@ vi.mock('@/api/client', () => ({
 
 import api from '@/api/client';
 
+// Stub router so useRoute() in onMounted doesn't throw
+function makeRouter() {
+  return createRouter({
+    history: createWebHistory(),
+    routes: [
+      { path: '/', component: { template: '<div/>' } },
+      { path: '/v4/research-internal', name: 'v4-research', component: V4ResearchView },
+    ],
+  });
+}
+
 describe('V4ResearchView', () => {
+  let router: ReturnType<typeof createRouter>;
+
+  beforeAll(async () => {
+    router = makeRouter();
+    // Prime the router so it's ready before mount
+    await router.push('/v4/research-internal');
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -27,7 +47,7 @@ describe('V4ResearchView', () => {
 
   it('renders all three tabs: research, education, visualization', () => {
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
     const text = wrapper.text();
     expect(text).toContain('完整研究');
@@ -65,7 +85,7 @@ describe('V4ResearchView', () => {
     });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     await wrapper.find('#v4-topic').setValue('经络');
@@ -112,7 +132,7 @@ describe('V4ResearchView', () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: { runs: [] } } });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     await wrapper.find('#v4-topic').setValue('test');
@@ -152,7 +172,7 @@ describe('V4ResearchView', () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: { runs: [] } } });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     await wrapper.find('#v4-topic').setValue('test');
@@ -183,7 +203,7 @@ describe('V4ResearchView', () => {
       });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     const eduTab = wrapper.findAll('.tab-button')[1]!;
@@ -207,7 +227,7 @@ describe('V4ResearchView', () => {
       .mockRejectedValueOnce(new Error('Education failed'));
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     const eduTab = wrapper.findAll('.tab-button')[1]!;
@@ -236,7 +256,7 @@ describe('V4ResearchView', () => {
       });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     const vizTab = wrapper.findAll('.tab-button')[2]!;
@@ -268,7 +288,7 @@ describe('V4ResearchView', () => {
       });
 
     const wrapper = mount(V4ResearchView, {
-      global: { plugins: [createPinia(), i18n] },
+      global: { plugins: [router, createPinia(), i18n] },
     });
 
     const vizTab = wrapper.findAll('.tab-button')[2]!;

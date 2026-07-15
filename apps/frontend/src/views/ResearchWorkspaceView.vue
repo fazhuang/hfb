@@ -188,18 +188,18 @@
     <section v-if="activeTab === 'reports'" class="rw-panel">
       <div class="rw-panel-header">
         <h2>{{ t('researchWorkspace.reports') }}</h2>
-        <router-link :to="{ name: 'v4-research' }" class="rw-action-link">
+        <button class="rw-action-link rw-action-link--btn" @click="activeTab = 'v4-research'">
           {{ t('researchWorkspace.newReport') }} →
-        </router-link>
+        </button>
       </div>
 
       <div v-if="reportsLoading" class="rw-loading">{{ t('common.loading') }}</div>
       <div v-else-if="reportsError" class="rw-error">{{ reportsError }}</div>
       <div v-else-if="reports.length === 0" class="rw-empty">
         <p>{{ t('researchWorkspace.noReports') }}</p>
-        <router-link :to="{ name: 'v4-research' }" class="rw-btn rw-btn--primary">
+        <button class="rw-btn rw-btn--primary" @click="activeTab = 'v4-research'">
           {{ t('researchWorkspace.runFirstResearch') }}
-        </router-link>
+        </button>
       </div>
       <div v-else class="rw-reports-list">
         <div v-for="run in reports" :key="run.run_id" class="rw-report-card">
@@ -247,9 +247,6 @@
     <section v-if="activeTab === 'research'" class="rw-panel">
       <div class="rw-panel-header">
         <h2>{{ t('nav.research') }} — {{ t('research.title') }}</h2>
-        <router-link :to="{ name: 'research-workflow' }" class="rw-action-link">
-          {{ t('researchWorkspace.openFullPage') }} →
-        </router-link>
       </div>
 
       <div v-if="!store.hasActiveResearch" class="rw-empty">
@@ -260,7 +257,7 @@
       </div>
       <div v-else class="rw-placeholder-panel">
         <p>{{ t('researchWorkspace.researchInlineHint') }}</p>
-        <router-link :to="{ name: 'research-workflow' }" class="rw-btn rw-btn--primary">
+        <router-link :to="{ name: 'research-workspace', query: { tab: 'research' } }" class="rw-btn rw-btn--primary">
           校 {{ t('researchWorkspace.openVersionComparison') }}
         </router-link>
       </div>
@@ -1173,8 +1170,12 @@ watch(sessions, () => {
   text-decoration: none;
   font-weight: 600;
   white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 .rw-action-link:hover { text-decoration: underline; }
+.rw-action-link--btn { font-family: inherit; }
 
 /* ---- List ---- */
 .rw-list {

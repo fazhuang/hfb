@@ -123,13 +123,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import api from '@/api/client';
 import GraphCanvas from '@/components/graph/GraphCanvas.vue';
 import type { GraphNodeData, GraphEdgeData } from '@/components/graph/GraphCanvas.vue';
 
 const { t } = useI18n();
+const route = useRoute();
 
 // --- Search ---
 const searchQuery = ref('');
@@ -187,6 +189,48 @@ async function searchEntities() {
 }
 
 // --- Graph Exploration ---
+
+/**
+ * Pre-load entity or trace from route query on mount.
+ *
+ * Supports:
+ *   ?type=person&id=<uuid>   → load neighborhood for the given entity
+ *   ?trace=<traceId>         → search for entities matching the trace id,
+ *                              fall back to loading evidence subgraph
+ */
+onMounted(async () => {
+  const entityType = route.query.type as string | undefined;
+  const entityId = route.query.id as string | undefined;
+  const traceId = route.query.trace as string | undefined;
+
+  // Priority 1: explicit entity type + id
+  if (entityType && entityId) {
+    const node: GraphNodeData = {
+      id: `${entityType}:${entityId}`,
+      entity_type: entityType,
+      entity_id: entityId,
+      label: `${entityType}/${entityId.slice(0, 8)}`,
+      properties: {},
+    };
+    activeNode.value = node;
+    await loadNeighborhood(node);
+    return;
+  }
+
+  // Priority 2: trace id — search entities that match this trace
+  if (traceId) {
+    searchQuery.value = traceId;
+    await searchEntities();
+    // If the trace matches a known entity, auto-load its neighborhood
+    if (searchResults.value.length === 1) {
+      await exploreNode(searchResults.value[0]!);
+    } else if (searchResults.value.length > 0) {
+      // Multiple matches — show them all in the results list
+      // (user clicks one to explore)
+    }
+    return;
+  }
+});
 
 async function exploreNode(node: GraphNodeData) {
   activeNode.value = node;

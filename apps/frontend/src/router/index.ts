@@ -90,9 +90,7 @@ const router = createRouter({
         },
         {
           path: 'research',
-          name: 'research-workflow',
-          component: () => import('@/views/ResearchWorkflowView.vue'),
-          meta: { requiresAuth: true },
+          redirect: '/research/workspace?tab=research',
         },
         {
           path: 'research/workspace',
@@ -102,11 +100,11 @@ const router = createRouter({
         },
         {
           path: 'v4/research',
-          redirect: '/research/workspace?tab=reports',
+          redirect: '/research/workspace?tab=v4-research',
         },
         {
           path: 'v4',
-          redirect: '/research/workspace?tab=reports',
+          redirect: '/research/workspace?tab=v4-research',
         },
         // Keep V4ResearchView as an internal route (workspace renders it inline)
         {

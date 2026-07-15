@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia } from 'pinia';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { createRouter, createWebHistory } from 'vue-router';
 
 import i18n from '@/i18n';
 import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';

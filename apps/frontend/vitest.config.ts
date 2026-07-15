@@ -8,6 +8,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/__tests__/**/*.{test,spec}.{ts,js}'],
+    setupFiles: ['src/__tests__/setup.ts'],
+    onUnhandledRejection: 'warn',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
