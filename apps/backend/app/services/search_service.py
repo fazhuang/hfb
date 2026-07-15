@@ -236,14 +236,22 @@ class SearchService:
         meta_fields: list[str] = config.get("meta_fields", [])
         route_prefix: str | None = config.get("route_prefix")
 
-        # Build ILIKE conditions
+        # Build ILIKE conditions — split multi-word queries into AND-ed
+        # terms so that "针灸 甲乙经 成书 特点" matches passages containing
+        # ALL of those words, not the literal phrase with spaces.
         conditions = []
         getattr(model, title_field, None)
+
+        query_terms = query.split()
+        if not query_terms:
+            query_terms = [query]
 
         for field_name in search_fields:
             col = getattr(model, field_name, None)
             if col is not None:
-                conditions.append(col.ilike(f"%{query}%"))
+                # Each term must appear in the field (AND within field)
+                for term in query_terms:
+                    conditions.append(col.ilike(f"%{term}%"))
 
         if not conditions:
             return []
@@ -253,6 +261,13 @@ class SearchService:
             or_(*conditions),
             model.is_deleted.is_(False),
         )
+
+        # When searching passages, join version and exclude withdrawn (soft-deleted) versions
+        if entity_type == "passage" and hasattr(model, "version_id"):
+            from app.models.version import Version as _Version
+            stmt = stmt.join(_Version, model.version_id == _Version.id, isouter=True).where(
+                or_(_Version.is_deleted.is_(False), _Version.is_deleted.is_(None))
+            )
 
         # Apply filters
         if params.dynasty:
@@ -321,7 +336,11 @@ class SearchService:
             title_match = False
             for field_name in search_fields:
                 col_val = str(getattr(obj, field_name, "") or "").lower()
-                if q_lower in col_val:
+                # Match if the whole query appears as substring, OR every term
+                # in a multi-word query appears (AND within the field).
+                full_match = q_lower in col_val
+                terms_match = all(t.lower() in col_val for t in query_terms)
+                if full_match or terms_match:
                     match_count += 1
                     if field_name in (title_field,) or field_name in ("name", "title"):
                         title_match = True

@@ -101,12 +101,12 @@ async function fetchBook() {
     book.value = d.data ?? d;
 
     // Fetch chapters
-    const { data: ch } = await api.get('/api/v1/chapters', { params: { limit: 500 } });
+    const { data: ch } = await api.get('/api/v1/chapters', { params: { limit: 100 } });
     const allCh = (ch.data?.items ?? []) as Array<ChapterBrief>;
     chapters.value = allCh.filter((c) => (c as ChapterBrief).book_id === id);
 
     // Fetch versions
-    const { data: ver } = await api.get('/api/v1/versions', { params: { limit: 500 } });
+    const { data: ver } = await api.get('/api/v1/versions', { params: { limit: 100 } });
     const allVer = (ver.data?.items ?? []) as Array<VersionBrief>;
     versions.value = allVer.filter((v) => (v as VersionBrief).book_id === id);
   } catch (e: unknown) {

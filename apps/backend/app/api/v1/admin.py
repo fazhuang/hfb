@@ -70,6 +70,23 @@ async def review_document(
         rag_enabled = body.review_status == "approved"
     doc.rag_enabled = rag_enabled
 
+    # P0: Create SourceRef on approve if doc has source_url (Codex requirement)
+    if rag_enabled and doc.source_url:
+        try:
+            from app.services.ingestion import IngestionService as _IngSvc
+            await _IngSvc._ensure_source_ref(
+                session=session,
+                title=doc.title,
+                url=doc.source_url,
+                author=doc.source_name,
+                page_location=f"document:{doc.id}",
+            )
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception(
+                "Failed to create SourceRef on review for doc %s", document_id
+            )
+
     await session.commit()
     await session.refresh(doc)
 
@@ -276,3 +293,82 @@ async def delete_source_policy(
     await session.delete(sp)
     await session.commit()
     return api_response(data=None, message="Deleted")
+
+
+# ============================================================
+# Version withdraw / restore (P2T1)
+# ============================================================
+
+from pydantic import BaseModel as _PydanticBaseModel
+
+
+class VersionWithdrawRequest(_PydanticBaseModel):
+    reason: str = "未说明"
+
+
+@router.post(
+    "/api/v1/versions/{version_id}/withdraw",
+    response_model=dict,
+    dependencies=[Depends(document_update_guard)],
+)
+async def withdraw_version(
+    version_id: UUID,
+    body: VersionWithdrawRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    """Withdraw a version — marks it as non-academic-citable."""
+    from app.models.version import Version
+    ver = await session.get(Version, str(version_id))
+    if ver is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+    if ver.withdrawn_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Version already withdrawn",
+        )
+    ver.withdraw(reason=body.reason)
+    await session.commit()
+    await session.refresh(ver)
+    return api_response(
+        data={
+            "id": ver.id,
+            "version_name": ver.version_name,
+            "withdrawn_at": ver.withdrawn_at.isoformat() if ver.withdrawn_at else None,
+            "withdraw_reason": ver.withdraw_reason,
+        },
+        message="Version withdrawn",
+    )
+
+
+@router.post(
+    "/api/v1/versions/{version_id}/restore",
+    response_model=dict,
+    dependencies=[Depends(document_update_guard)],
+)
+async def restore_version(
+    version_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    """Restore a previously withdrawn version."""
+    from app.models.version import Version
+    ver = await session.get(Version, str(version_id))
+    if ver is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+    if ver.withdrawn_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Version is not withdrawn",
+        )
+    ver.restore()
+    await session.commit()
+    await session.refresh(ver)
+    return api_response(
+        data={
+            "id": ver.id,
+            "version_name": ver.version_name,
+            "is_formal_source": ver.is_formal_source,
+        },
+        message="Version restored",
+    )

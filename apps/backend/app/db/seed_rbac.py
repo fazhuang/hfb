@@ -113,6 +113,7 @@ _VISITOR_READS = [
     "person.read",
     "book.read",
     "version.read",
+    "chapter.read",
     "passage.read",
     "paper.read",
     "document.read",

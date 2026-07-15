@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
+from app.models.academic_evidence import SourceRef
 from app.repositories.document import DocumentRepository
 from app.services.chunking import chunk_text
 
@@ -315,6 +316,18 @@ class IngestionService:
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
+        # P0: Create SourceRef if document has source_url (Codex requirement)
+        source_url = doc_data.get("source_url") or (meta.get("source_url") if metadata else None)
+        if source_url:
+            await self._ensure_source_ref(
+                self.session,
+                title=title.strip(),
+                url=source_url,
+                author=doc_data.get("source_name") or (meta.get("source_name") if metadata else None),
+                page_location=f"document:{doc.id}",
+                edition_info=meta.get("edition") if metadata else None,
+            )
+
         try:
             # 2. Chunk with paragraph indices
             chunks_with_indices = chunk_text(
@@ -439,6 +452,213 @@ class IngestionService:
         )
 
     # ------------------------------------------------------------------
+    # Ingest from PDF with per-page tracking
+    # ------------------------------------------------------------------
+
+    async def ingest_pdf_with_pages(
+        self,
+        title: str,
+        file: BinaryIO,
+        metadata: dict | None = None,
+        store_raw_pdf: bool = True,
+        passage_id: str | None = None,
+        ocr_confidence: float | None = None,
+        max_chunk_chars: int = 1000,
+        ocr_lang: str = "chi_sim",
+        ocr_dpi: int = 300,
+    ) -> IngestionResult:
+        """Ingest a PDF with per-chunk page number tracking.
+
+        Unlike ingest_pdf which applies a single page_number to all chunks,
+        this method extracts text page-by-page and assigns each chunk the
+        page number it came from. Critical for "PDF page X → chunk Y →
+        citation Z" auditability.
+
+        Falls back to OCR (tesseract) when pypdf cannot extract text from
+        a page (e.g. scanned image PDFs). The pdf2image + pytesseract
+        toolchain is used for OCR fallback.
+
+        The copyright gate is enforced BEFORE document creation.
+        """
+        raw_bytes = file.read()
+
+        # First try pypdf for text extraction
+        reader = PdfReader(BytesIO(raw_bytes))
+        if reader.is_encrypted:
+            try:
+                reader.decrypt("")
+            except Exception:
+                raise PDFExtractionError(
+                    "PDF is encrypted and cannot be decrypted with empty password"
+                )
+
+        page_data: list[tuple[int, str]] = []
+        ocr_pages: list[int] = []
+
+        for i, page in enumerate(reader.pages, start=1):
+            try:
+                t = page.extract_text()
+            except Exception:
+                t = None
+            if t and t.strip():
+                page_data.append((i, t.strip()))
+            else:
+                ocr_pages.append(i)
+
+        # OCR fallback for pages without embedded text
+        if ocr_pages:
+            ocr_texts = self._ocr_pdf_pages(
+                raw_bytes, ocr_pages, lang=ocr_lang, dpi=ocr_dpi
+            )
+            for pg_num, text in ocr_texts.items():
+                if text and text.strip():
+                    page_data.append((pg_num, text.strip()))
+
+            # Sort by page number after merging OCR results
+            page_data.sort(key=lambda x: x[0])
+
+        if not page_data:
+            raise PDFExtractionError(
+                f"No extractable text found in any page of PDF ({len(raw_bytes)} bytes)"
+            )
+
+        # Set ocr_confidence from OCR mix if not explicitly provided
+        if ocr_confidence is None and ocr_pages:
+            text_pages = len(reader.pages) - len(ocr_pages)
+            ocr_ratio = len(ocr_pages) / max(len(reader.pages), 1)
+            if ocr_ratio > 0.8:
+                ocr_confidence = 0.65  # mostly OCR
+            elif ocr_ratio > 0.3:
+                ocr_confidence = 0.75  # mixed
+            else:
+                ocr_confidence = 0.85  # mostly text
+
+        # Copyright gate — enforce BEFORE document creation
+        meta = metadata or {}
+        if store_raw_pdf:
+            meta = dict(meta)
+            meta["raw_pdf_blob"] = raw_bytes
+            meta["source_url"] = meta.get("source_url") or f"pdf:{len(raw_bytes)}bytes"
+
+        allowed, reason = self._is_fulltext_allowed(meta)
+        if not allowed:
+            raise FulltextRejectedError(f"Full-text storage rejected: {reason}")
+
+        # Compute checksum over concatenated page text
+        full_text = "\n\n".join(t for _, t in page_data)
+        checksum = self._compute_checksum(full_text)
+
+        # 1. Create document
+        copyright_status = (meta.get("copyright_status") or "").strip()
+        authorization_basis = (
+            meta.get("authorization_basis")
+            or meta.get("license_type")
+            or ""
+        ).strip()
+        doc_data: dict = {
+            "title": title.strip(),
+            "content_text": full_text,
+            "copyright_status": copyright_status,
+            "authorization_basis": authorization_basis,
+            "license_type": meta.get("license_type"),
+            "content_checksum": checksum,
+            "source_name": meta.get("source_name"),
+            "source_url": meta.get("source_url"),
+        }
+        if meta:
+            for k, v in meta.items():
+                if k in _ALLOWED_METADATA_KEYS:
+                    doc_data.setdefault(k, v)
+        doc = await self.doc_repo.create(**doc_data)
+        await self.session.flush()
+
+        # P0: Create SourceRef on ingest (Codex requirement)
+        source_url = doc_data.get("source_url")
+        if source_url:
+            await self._ensure_source_ref(
+                self.session,
+                title=title.strip(),
+                url=source_url,
+                author=doc_data.get("source_name"),
+                page_location=f"document:{doc.id}",
+                edition_info=meta.get("edition"),
+            )
+
+        try:
+            # 2. Chunk each page independently, tracking page_number
+            all_chunk_data: list[tuple[str, int]] = []
+            all_page_numbers: list[int | None] = []
+
+            for page_num, page_text in page_data:
+                page_chunks = chunk_text(
+                    page_text, max_chars=max_chunk_chars, return_indices=True
+                )
+                if page_chunks and isinstance(page_chunks[0], str):
+                    page_chunk_pairs: list[tuple[str, int]] = [
+                        (t, -1) for t in page_chunks  # type: ignore[arg-type]
+                    ]
+                else:
+                    page_chunk_pairs = page_chunks  # type: ignore[assignment]
+
+                for chunk_text_str, para_idx in page_chunk_pairs:
+                    all_chunk_data.append((chunk_text_str, para_idx))
+                    all_page_numbers.append(page_num)
+
+            # 3. Store chunks with per-chunk page numbers
+            await self._store_chunks(
+                doc.id,
+                all_chunk_data,
+                passage_id=passage_id,
+                ocr_confidence=ocr_confidence,
+                page_numbers=all_page_numbers,
+            )
+
+            # 4. Audit
+            await self._write_audit(
+                action="fulltext_ingest",
+                status="success",
+                source_url=doc.source_url,
+                source_name=doc.source_name,
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                checksum=checksum,
+                result_entity_type="document",
+                result_entity_id=doc.id,
+                details={
+                    "title": title.strip(),
+                    "chunk_count": len(all_chunk_data),
+                    "page_count": len(page_data),
+                },
+            )
+
+            return IngestionResult(
+                document_id=doc.id,
+                title=title.strip(),
+                chunk_count=len(all_chunk_data),
+                total_chars=sum(len(t) for t, _ in all_chunk_data),
+                checksum=checksum,
+            )
+        except Exception:
+            # Roll back: remove the parent document
+            await self._write_audit(
+                action="skip",
+                status="skipped",
+                source_url=meta.get("source_url"),
+                source_name=meta.get("source_name"),
+                copyright_status=copyright_status,
+                authorization_basis=authorization_basis,
+                license_type=meta.get("license_type"),
+                skipped_reason="chunking/storage failure, document rolled back",
+                result_entity_type="document",
+                result_entity_id=doc.id,
+                details={"title": title.strip()},
+            )
+            await self.doc_repo.hard_delete(doc.id)
+            await self.session.flush()
+            raise
+
+    # ------------------------------------------------------------------
     # Withdraw
     # ------------------------------------------------------------------
 
@@ -512,8 +732,14 @@ class IngestionService:
         passage_id: str | None = None,
         page_number: int | None = None,
         ocr_confidence: float | None = None,
+        page_numbers: list[int | None] | None = None,
     ) -> None:
-        """Store chunks with optional paragraph_index, page_number, ocr_confidence."""
+        """Store chunks with optional paragraph_index, page_number, ocr_confidence.
+
+        page_numbers, when provided, assigns per-chunk page numbers (by index).
+        Falls back to the single page_number parameter when page_numbers is None
+        or doesn't have a value at the chunk's index.
+        """
         for idx, item in enumerate(chunks):
             if isinstance(item, str):
                 text = item
@@ -526,6 +752,13 @@ class IngestionService:
             if ocr is not None and ocr < 0.7:
                 evidence_weight = "reference"
 
+            # Per-chunk page number: prefer page_numbers[idx] if available
+            pn: int | None = None
+            if page_numbers is not None and idx < len(page_numbers):
+                pn = page_numbers[idx]
+            if pn is None:
+                pn = page_number
+
             chunk = DocumentChunk(
                 id=str(uuid4()),
                 document_id=document_id,
@@ -533,13 +766,56 @@ class IngestionService:
                 content=text,
                 token_count=len(text),
                 passage_id=passage_id.strip() if passage_id and passage_id.strip() else None,
-                page_number=page_number,
+                page_number=pn,
                 paragraph_index=para_idx if para_idx >= 0 else idx,  # fallback to chunk_index
                 ocr_confidence=ocr,
                 evidence_weight=evidence_weight,
             )
             self.session.add(chunk)
         await self.session.flush()
+
+    # ------------------------------------------------------------------
+    # SourceRef helpers (P0: Codex requirement — persist source_refs during ingestion)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    async def _ensure_source_ref(
+        session: AsyncSession,
+        title: str,
+        url: str,
+        author: str | None = None,
+        page_location: str | None = None,
+        edition_info: str | None = None,
+    ) -> str | None:
+        """Create a source_refs row if one doesn't already exist for this URL.
+
+        Idempotent: skips if a non-deleted source_ref with the same URL already exists.
+        Returns the source_ref ID if created or found, None if skipped.
+        """
+        if not url or not url.strip():
+            return None
+
+        from sqlalchemy import select as _select
+
+        stmt = _select(SourceRef.id).where(
+            SourceRef.url == url.strip(),
+            SourceRef.is_deleted.is_(False),
+        )
+        result = await session.execute(stmt)
+        existing = result.scalar_one_or_none()
+        if existing:
+            return existing
+
+        ref = SourceRef(
+            title=title or "untitled",
+            author=author or "",
+            edition_info=edition_info or "",
+            page_location=page_location or "",
+            url=url.strip(),
+        )
+        session.add(ref)
+        await session.flush()
+        return ref.id
 
     # ------------------------------------------------------------------
     # PDF text extraction (real pypdf, no fallback to placeholder)
@@ -577,3 +853,50 @@ class IngestionService:
                 parts.append(t)
 
         return "\n\n".join(parts)
+
+    @staticmethod
+    def _ocr_pdf_pages(
+        raw_bytes: bytes,
+        page_numbers: list[int],
+        lang: str = "chi_sim",
+        dpi: int = 300,
+    ) -> dict[int, str]:
+        """OCR specific pages of a scanned PDF using tesseract.
+
+        Uses pdf2image to render pages to PNG, then pytesseract to OCR.
+        Returns a dict mapping page number (1-based) to OCR text.
+        Empty pages are omitted from the result.
+        """
+        try:
+            from pdf2image import convert_from_bytes
+            import pytesseract
+        except ImportError as e:
+            raise PDFExtractionError(
+                f"OCR requires pdf2image and pytesseract: {e}"
+            ) from e
+
+        result: dict[int, str] = {}
+
+        # Convert only the requested pages
+        images = convert_from_bytes(
+            raw_bytes,
+            dpi=dpi,
+            first_page=min(page_numbers),
+            last_page=max(page_numbers),
+            fmt="png",
+            thread_count=2,
+        )
+
+        # Map back: images list is [first_page..last_page] in order
+        for i, img in enumerate(images):
+            pg = min(page_numbers) + i
+            if pg not in page_numbers:
+                continue
+            try:
+                text = pytesseract.image_to_string(img, lang=lang, config="--psm 6")
+            except Exception:
+                text = ""
+            if text and text.strip():
+                result[pg] = text
+
+        return result

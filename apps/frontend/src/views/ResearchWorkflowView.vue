@@ -14,7 +14,7 @@
       </button>
     </header>
 
-    <div class="validation-banner" role="status">
+    <div v-if="showValidationBanner" class="validation-banner" role="status">
       <strong>{{ t('research.validationTitle') }}</strong>
       <span>{{ t('research.validationMessage') }}</span>
     </div>
@@ -331,6 +331,14 @@ const currentStep = computed(() => {
   if (comparison.value) return 3;
   if (sourcePassage.value && targetPassage.value) return 2;
   return 1;
+});
+
+const showValidationBanner = computed(() => {
+  // Hide the banner only when a comparison exists AND corpus_status is 'approved'
+  if (comparison.value && comparison.value.corpus_status === 'approved') {
+    return false;
+  }
+  return true;
 });
 
 async function searchPassages() {

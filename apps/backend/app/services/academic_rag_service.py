@@ -673,21 +673,25 @@ class AcademicRAGService:
                     break
 
                 from sqlalchemy import text
+                # P2T1: edge.relation_id is "er:{uuid}" — strip "er:" prefix for DB lookup
+                raw_rid = edge.relation_id
+                if raw_rid.startswith("er:"):
+                    raw_rid = raw_rid[3:]
                 # Query-time deep physical verification of the evidence path
                 r_check = await self.session.execute(text("""
-                    SELECT er.id 
+                    SELECT er.id
                     FROM entity_relations er
                     JOIN document_chunks dc ON dc.id = er.evidence_chunk_id
                     JOIN documents d ON d.id = dc.document_id
                     LEFT JOIN passages p ON p.id = dc.passage_id
                     LEFT JOIN versions v ON v.id = p.version_id
-                    WHERE er.id = :rid 
-                      AND er.is_deleted = false 
+                    WHERE er.id = :rid
+                      AND er.is_deleted = false
                       AND er.evidence_status = 'verified'
                       AND dc.is_deleted = false
                       AND d.is_deleted = false
-                      AND (v.id IS NULL OR v.is_deleted = false)
-                """), {"rid": edge.relation_id})
+                      AND (v.id IS NULL OR (v.is_deleted = false AND v.withdrawn_at IS NULL))
+                """), {"rid": raw_rid})
                 if not r_check.fetchone():
                     all_valid = False
                     break

@@ -80,6 +80,9 @@ _ALLOWED_SOURCE_HOSTS: set[str] = {
     "worldcat.org",
     "doi.org",
     "jstor.org",
+    "wikimedia.org",
+    "upload.wikimedia.org",
+    "commons.wikimedia.org",
 }
 
 # Markers for compilation/authorship relationship evidence

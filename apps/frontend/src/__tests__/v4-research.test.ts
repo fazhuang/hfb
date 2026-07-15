@@ -80,6 +80,7 @@ describe('V4ResearchView', () => {
     expect(api.post).toHaveBeenCalledWith(
       '/api/v4/research/workflow',
       expect.objectContaining({ topic: '经络', workflow_type: 'full_research_flow' }),
+      expect.objectContaining({ timeout: 120000 }),
     );
     expect(api.get).toHaveBeenCalledWith('/api/v4/research/session/sess-1/runs');
 

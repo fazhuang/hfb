@@ -38,6 +38,10 @@ from app.services.generation_proof import (
 )
 from app.services.generation_service import _normalize_whitespace
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 # ======================================================================
 # P0-2: Unified error codes
@@ -663,6 +667,15 @@ class AcademicService:
         all_citations = self._claims_to_citations(all_claims)
         doc_ids = list(dict.fromkeys(vc.document_id for vc in all_claims))
 
+        # P0: Persist citations to the citations database table (Codex requirement)
+        try:
+            from app.services.citation_persistence import CitationPersistenceService
+            await CitationPersistenceService(self.session).persist_academic_citations(
+                all_citations, query=query
+            )
+        except Exception:
+            logger.exception("Failed to persist academic report citations")
+
         return finalize_academic_response(
             AcademicResponse(
                 query=query,
@@ -737,6 +750,15 @@ class AcademicService:
 
         traces = self._claims_to_traces(claims)
         citations = self._claims_to_citations(claims)
+
+        # P0: Persist synthesis citations
+        try:
+            from app.services.citation_persistence import CitationPersistenceService
+            await CitationPersistenceService(self.session).persist_academic_citations(
+                citations, query=query
+            )
+        except Exception:
+            logger.exception("Failed to persist synthesis citations")
 
         # Cluster by concept
         themes = self._cluster_claims_by_concept(claims)
@@ -1036,6 +1058,15 @@ class AcademicService:
             all_citations = _merge_citation(all_citations, ht)
         doc_ids = list(dict.fromkeys(vc.document_id for vc in all_claims))
 
+        # P0: Persist research citations
+        try:
+            from app.services.citation_persistence import CitationPersistenceService
+            await CitationPersistenceService(self.session).persist_academic_citations(
+                all_citations, query=query
+            )
+        except Exception:
+            logger.exception("Failed to persist research citations")
+
         # Determine gate verdict for response
         gate_verdict = (
             original_verdict if not original_verdict.is_supported else original_verdict
@@ -1151,6 +1182,15 @@ class AcademicService:
         all_traces = self._claims_to_traces(claims)
         all_citations = self._claims_to_citations(claims)
         doc_ids = list(dict.fromkeys(vc.document_id for vc in claims))
+
+        # P0: Persist education citations
+        try:
+            from app.services.citation_persistence import CitationPersistenceService
+            await CitationPersistenceService(self.session).persist_academic_citations(
+                all_citations, query=query
+            )
+        except Exception:
+            logger.exception("Failed to persist education citations")
 
         return finalize_academic_response(
             AcademicResponse(

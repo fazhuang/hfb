@@ -75,8 +75,8 @@ uv run python ../../scripts/init_dev_baseline.py
 ```
 
 The baseline script creates:
-- RBAC roles, permissions, and an admin user (`admin@huangfumi.org` / `admin123`)
-- A researcher user (`researcher@huangfumi.org` / `researcher123`)
+- RBAC roles, permissions, and an admin user (username `admin` / password `admin123`)
+- A researcher user (username `researcher` / password `researcher123`)
 - 《针灸甲乙经》book, version (明代刻本), chapters, and passages
 - Full-text document with chunks linked to passages
 - Evidence + Citation chain: citations → evidences → passages → versions
@@ -171,8 +171,8 @@ Docker service names (`postgres`, `redis`, `elasticsearch`, `minio`).
 | Redis          | —           | —             | No password in dev             |
 | Elasticsearch  | —           | —             | Security disabled in dev       |
 | MinIO          | `minioadmin`| `minioadmin`  | Console on :9001               |
-| Admin Web UI   | `admin@huangfumi.org` | `admin123`     | Created by `init_dev_baseline.py` |
-| Researcher     | `researcher@huangfumi.org` | `researcher123` | Created by `init_dev_baseline.py` |
+| Admin Web UI   | `admin` | `admin123`     | Created by `init_dev_baseline.py` |
+| Researcher     | `researcher` | `researcher123` | Created by `init_dev_baseline.py` |
 
 ## Docker Image Availability
 

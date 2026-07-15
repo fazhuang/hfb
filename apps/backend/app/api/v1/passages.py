@@ -6,16 +6,18 @@ Per academic_implementation_manual.md Step 3.1.
 from __future__ import annotations
 
 from typing import Annotated
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.database import get_session
 from app.middleware.auth import require_permission
 from app.models.passage import Passage
+from app.utils.response import api_response
 
 router = APIRouter(tags=["Passages"])
 
@@ -112,3 +114,52 @@ async def get_passage_detail(
 
     detail = PassageDetailResponse.model_validate(passage)
     return api_response(data=detail.model_dump(mode="json"))
+
+
+# ---------------------------------------------------------------------------
+# Version-scoped passage list — public read, no auth required
+# ---------------------------------------------------------------------------
+
+
+class _PassageBrief(BaseModel):
+    """Minimal passage representation for version detail views."""
+
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    chapter_id: str
+    version_id: str | None = None
+    content_text: str
+    translation: str | None = None
+    order: int
+    created_at: datetime | None = None
+
+
+@router.get(
+    "/versions/{version_id}/passages",
+    response_model=dict,
+)
+async def list_version_passages(
+    version_id: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=500, ge=1, le=500),
+) -> dict:
+    """List passages for a specific version — public read."""
+    count_q = (
+        select(func.count())
+        .select_from(Passage)
+        .where(Passage.version_id == version_id, Passage.is_deleted.is_(False))
+    )
+    total = (await session.execute(count_q)).scalar() or 0
+
+    stmt = (
+        select(Passage)
+        .where(Passage.version_id == version_id, Passage.is_deleted.is_(False))
+        .order_by(Passage.order)
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    items = (await session.execute(stmt)).scalars().all()
+
+    results = [_PassageBrief.model_validate(p).model_dump(mode="json") for p in items]
+    return api_response(data={"items": results, "total": total})

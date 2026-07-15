@@ -5,6 +5,9 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 
 MVP approach:
   - Keyword retrieval: SearchService (ILIKE across entities)
+  - Query expansion: build_academic_retrieval_query strips question markers,
+    segments around known keywords, and fallback to bigram/trigram extraction
+    so natural-language questions actually hit passage content.
   - Context assembly: combines passages, versions, book metadata
   - Citation attachment: auto-tags retrieved sources
   - Vector retrieval: reserved for pgvector integration
@@ -16,6 +19,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.search_service import SearchService, SearchParams, ENTITY_CONFIG
+from app.services.academic_service import build_academic_retrieval_query
 from app.models.book import Book
 from app.models.person import Person
 from app.models.version import Version
@@ -45,17 +49,30 @@ class RAGService:
         """Retrieve relevant documents/passages for a query.
 
         Returns ranked list of context chunks with citation metadata.
+
+        The raw query is first expanded via build_academic_retrieval_query to
+        extract searchable keywords (segment around known domain terms, strip
+        question markers, fallback to bigram/trigram extraction).  If the
+        expanded query yields no results, we retry with the original query so
+        that short exact-match queries (e.g. "针灸") still work.
         """
         if entity_types is None:
             entity_types = ["passage", "book", "version", "person"]
 
-        params = SearchParams(
-            q=query,
-            entity_types=entity_types,
-            limit=top_k * 2,  # fetch more then trim to top-k
-        )
+        # Expand the natural-language query into searchable keywords
+        expanded_q = build_academic_retrieval_query(query)
 
-        results = await self.search_svc.search(params)
+        for attempt_q in (expanded_q, query):
+            if not attempt_q.strip():
+                continue
+            params = SearchParams(
+                q=attempt_q,
+                entity_types=entity_types,
+                limit=top_k * 2,  # fetch more then trim to top-k
+            )
+            results = await self.search_svc.search(params)
+            if results.items:
+                break
 
         # Build rich context chunks
         chunks: list[dict[str, Any]] = []

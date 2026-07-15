@@ -36,8 +36,8 @@ async def main():
         jiayi_doc_id = r.scalar_one()
         print(f'针灸甲乙经 (document): {jiayi_doc_id}')
 
-        r = await session.execute(text("SELECT id FROM versions WHERE is_deleted=false"))
-        version_id = r.scalar_one()
+        r = await session.execute(text("SELECT id FROM versions WHERE is_deleted=false LIMIT 1"))
+        version_id = r.scalar()
         print(f'明代刻本 (version): {version_id}')
 
         # Get chunk + passage for each evidence quote
