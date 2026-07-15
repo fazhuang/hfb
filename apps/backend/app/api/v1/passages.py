@@ -144,17 +144,31 @@ async def list_version_passages(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=500, ge=1, le=500),
 ) -> dict:
-    """List passages for a specific version — public read."""
+    """List passages for a specific version — public read with withdrawal check."""
+    from app.models.version import Version as _Version
+
     count_q = (
         select(func.count())
         .select_from(Passage)
-        .where(Passage.version_id == version_id, Passage.is_deleted.is_(False))
+        .join(_Version, Passage.version_id == _Version.id, isouter=True)
+        .where(
+            Passage.version_id == version_id,
+            Passage.is_deleted.is_(False),
+            _Version.is_deleted.is_(False),
+            _Version.withdrawn_at.is_(None),
+        )
     )
     total = (await session.execute(count_q)).scalar() or 0
 
     stmt = (
         select(Passage)
-        .where(Passage.version_id == version_id, Passage.is_deleted.is_(False))
+        .join(_Version, Passage.version_id == _Version.id, isouter=True)
+        .where(
+            Passage.version_id == version_id,
+            Passage.is_deleted.is_(False),
+            _Version.is_deleted.is_(False),
+            _Version.withdrawn_at.is_(None),
+        )
         .order_by(Passage.order)
         .offset((page - 1) * limit)
         .limit(limit)

@@ -319,9 +319,25 @@ async def withdraw_version(
 ) -> dict:
     """Withdraw a version — marks it as non-academic-citable."""
     from app.models.version import Version
+    from sqlalchemy import select as _sel
+
     ver = await session.get(Version, str(version_id))
     if ver is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+
+    # Ownership check: admin-only action via RBAC; verify version → book is reachable
+    if not ver.book_id:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Version has no associated book — cannot verify ownership",
+        )
+    # The admin guard (document_update_guard) already requires admin RBAC;
+    # explicit check that the version record is accessible and undeleted.
+    if ver.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Version not found",
+        )
     if ver.withdrawn_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
