@@ -66,8 +66,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-
-  }
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
@@ -92,8 +91,15 @@ onMounted(() => {
   }
 });
 
+interface NavItem {
+  path: string;
+  icon: string;
+  labelKey: string;
+  pulse?: boolean;
+}
+
 const navItems = computed<NavItem[]>(() => {
-  const base = [
+  const base: NavItem[] = [
     { path: '/', icon: '🏠', labelKey: 'nav.home' },
   ];
 
