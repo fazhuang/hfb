@@ -1,6 +1,6 @@
 # Context 28: 研究全流程贯通行
 
-> 状态：分析完成 | 日期：2026-07-16
+> 状态：**实施完成** | 日期：2026-07-16 | 提交：36c9bac, 659e48f
 
 ---
 
@@ -225,21 +225,39 @@
 
 ---
 
-## 四、实施优先级
+## 四、实施状态
 
-| 优先级 | 连接点 | 理由 |
-|--------|--------|------|
-| **P0** | ③ 阅读→AI问答 | 核心价值：读文献时直接提问是最自然的用户行为 |
-| **P0** | ④ AI问答→Citation | 引用是学术研究的硬需求，问答结果必须可保存 |
-| **P1** | ⑥ 笔记→报告 | 用户笔记是报告的个性化输入，当前缺失 |
-| **P1** | ① 搜索→课题 | 搜索是研究的入口，需要能沉淀到课题 |
-| **P2** | ⑤ Citation→笔记 | 锦上添花：从引用生成笔记 |
-| **P2** | ② 课题→阅读 | 基本已存在，只需添加上下文指示 |
-| **P3** | ⑦ 报告→搜索 | 闭环优化，非阻塞 |
+| 优先级 | 连接点 | 状态 | 提交 | 说明 |
+|--------|--------|------|------|------|
+| **P0** | ③ 阅读→AI问答 | ✅ 完成 | 36c9bac | LiteratureDetailView "🤖 就此文献提问" → ResearchWorkspace Assistant tab `?ask=` 自动发送 |
+| **P0** | ④ AI问答→Citation | ✅ 完成 | 36c9bac | CitationCollection CRUD API (GET/POST/DELETE) + 证据面板 💾 保存按钮 + IDOR 防护 |
+| **P1** | ⑥ 笔记→报告 | ✅ 完成 | 36c9bac | V4ResearchView exportRecord 导出前 fetch 会话笔记并拼接 "## 研究笔记" 章节 |
+| **P1** | ① 搜索→课题 | ✅ 完成 | 36c9bac | SearchView 搜索结果条目 "📌 加入课题" 按钮，setTopic + 跳转 research-home |
+| **P1** | ⑦ 报告→搜索 | ✅ 完成 | 36c9bac | V4ResearchView "🔍 基于报告重新搜索" 按钮 → SearchView `?q=` 自动搜索 |
+| **P2** | ⑤ Citation→笔记 | ✅ 完成 | 659e48f | 报告引用列表每条 "📝 从引用记笔记" → 创建 ResearchNote (entity_type=citation) |
+| **P2** | ② 课题→阅读 | ✅ 完成 | 659e48f | LiteratureDetailView 顶部课题上下文 banner "🔬 当前研究: [课题名]" |
 
 ---
 
-## 五、不变更原则（红线）
+## 五、实施统计
+
+| 指标 | 数值 |
+|------|------|
+| 改动文件 | 9 个 |
+| 新增代码行 | ~720 行 |
+| 前端视图修改 | 4 个 (SearchView, LiteratureDetailView, ResearchWorkspaceView, V4ResearchView) |
+| 后端 API 新增 | 3 个端点 (GET/POST/DELETE /workspace/sessions/{id}/citations) |
+| 后端服务新增方法 | 1 个 (WorkspaceService.get_citation) |
+| i18n 新增键 | 6 个 (addToTopic, askAI, saveCitation, citationSaved, reSearch, noteFromCitation) |
+| 破坏性变更 | 0 |
+| 新增依赖 | 0 |
+| ruff | ✓ All checks passed |
+| vue-tsc | ✓ 0 errors |
+| mypy | 14 errors — 全部为预存错误，新增代码无新问题 |
+
+---
+
+## 六、不变更原则（红线）
 
 1. **不新增数据库表** — 课题仍为客户端概念，不创建 Topic 表
 2. **不新增 AI 能力** — 不增加新的 LLM 调用类型或 RAG 模式
@@ -249,7 +267,7 @@
 
 ---
 
-## 六、关键文件索引
+## 七、关键文件索引
 
 ### 前端页面（按流程顺序）
 
@@ -298,7 +316,7 @@
 
 ---
 
-## 七、验证方案
+## 八、验证方案
 
 贯通行实现后，以下端到端场景应可在一个浏览器会话中完成（无需手动切换 URL）：
 
