@@ -2,6 +2,27 @@
   <div class="dashboard">
     <h1 class="dashboard-title">{{ t('dashboard.title') }}</h1>
 
+    <!-- Step-guide bar for new users -->
+    <div v-if="auth.isAuthenticated && !researchStore.hasActiveResearch && allStatsZero" class="step-guide">
+      <span class="sg-title">{{ t('onboarding.stepGuideTitle') }}</span>
+      <div class="sg-steps">
+        <router-link :to="{ name: 'research-new' }" class="sg-step sg-step--active">
+          <span class="sg-num">1</span>
+          <span class="sg-label">{{ t('onboarding.stepGuideCreateTopic') }}</span>
+        </router-link>
+        <span class="sg-sep">→</span>
+        <span class="sg-step">
+          <span class="sg-num">2</span>
+          <span class="sg-label">{{ t('onboarding.stepGuideExploreTools') }}</span>
+        </span>
+        <span class="sg-sep">→</span>
+        <span class="sg-step">
+          <span class="sg-num">3</span>
+          <span class="sg-label">{{ t('onboarding.stepGuideRecordNotes') }}</span>
+        </span>
+      </div>
+    </div>
+
     <!-- Research Entry Card -->
     <div class="research-entry-card">
       <div class="rec-content">
@@ -124,10 +145,12 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 import { useResearchStore } from '@/stores/research';
+import { useAuthStore } from '@/stores/auth';
 
 const { t } = useI18n();
 
 const researchStore = useResearchStore();
+const auth = useAuthStore();
 
 interface StatCard {
   key: string;
@@ -220,6 +243,86 @@ onMounted(loadDashboard);
   font-weight: 700;
   color: var(--color-text-primary, #1a365d);
   margin: 0 0 18px;
+}
+
+/* --- Step Guide Bar --- */
+.step-guide {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, #ebf8ff, #f0fff4);
+  border: 1px solid rgba(43, 108, 176, 0.15);
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.sg-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1a365d);
+  white-space: nowrap;
+}
+
+.sg-steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sg-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.sg-step--active {
+  color: var(--color-accent, #2b6cb0);
+  font-weight: 600;
+}
+
+.sg-step--active .sg-num {
+  background: var(--color-accent, #2b6cb0);
+}
+
+.sg-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-text-muted, #a0aec0);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sg-step--active .sg-num {
+  background: var(--color-accent, #2b6cb0);
+}
+
+.sg-label {
+  font-size: 13px;
+  color: var(--color-text-secondary, #718096);
+}
+
+.sg-step--active .sg-label {
+  color: var(--color-accent, #2b6cb0);
+  cursor: pointer;
+}
+
+.sg-step--active:hover .sg-label {
+  text-decoration: underline;
+}
+
+.sg-sep {
+  color: var(--color-text-muted, #a0aec0);
+  font-size: 14px;
 }
 
 /* --- Research Entry Card --- */
