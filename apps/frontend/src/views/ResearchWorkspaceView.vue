@@ -57,7 +57,10 @@
 
       <div v-if="materialsLoading" class="rw-loading">{{ t('common.loading') }}</div>
       <div v-else-if="materialsError" class="rw-error">{{ materialsError }}</div>
-      <div v-else-if="materials.length === 0" class="rw-empty">{{ t('common.noData') }}</div>
+      <div v-else-if="materials.length === 0" class="rw-empty">
+        <p>{{ t('common.noData') }}</p>
+        <p class="rw-empty-hint">{{ t('onboarding.materialsEmptyHint') }}</p>
+      </div>
       <ul v-else class="rw-list">
         <li v-for="item in materials" :key="item.id" class="rw-list-item">
           <router-link :to="`/literature/${item.id}`" class="rw-item-link">
@@ -107,7 +110,10 @@
 
       <div v-if="versionsLoading" class="rw-loading">{{ t('common.loading') }}</div>
       <div v-else-if="versionsError" class="rw-error">{{ versionsError }}</div>
-      <div v-else-if="versions.length === 0" class="rw-empty">{{ t('common.noData') }}</div>
+      <div v-else-if="versions.length === 0" class="rw-empty">
+        <p>{{ t('common.noData') }}</p>
+        <p class="rw-empty-hint">{{ t('onboarding.versionsEmptyHint') }}</p>
+      </div>
       <ul v-else class="rw-list">
         <li v-for="item in versions" :key="item.id" class="rw-list-item">
           <router-link :to="`/versions/${item.id}`" class="rw-item-link">
@@ -168,7 +174,10 @@
       </div>
 
       <div v-if="notesLoading" class="rw-loading">{{ t('common.loading') }}</div>
-      <div v-else-if="notes.length === 0" class="rw-empty">{{ t('workspace.noNotes') }}</div>
+      <div v-else-if="notes.length === 0" class="rw-empty">
+        <p>{{ t('workspace.noNotes') }}</p>
+        <p class="rw-empty-hint">{{ t('onboarding.notesEmptyHint') }}</p>
+      </div>
       <div v-else class="rw-notes-grid">
         <article v-for="note in notes" :key="note.id" class="rw-note-card">
           <div class="rw-note-meta">
@@ -197,6 +206,7 @@
       <div v-else-if="reportsError" class="rw-error">{{ reportsError }}</div>
       <div v-else-if="reports.length === 0" class="rw-empty">
         <p>{{ t('researchWorkspace.noReports') }}</p>
+        <p class="rw-empty-hint">{{ t('onboarding.reportsEmptyHint') }}</p>
         <button class="rw-btn rw-btn--primary" @click="activeTab = 'v4-research'">
           {{ t('researchWorkspace.runFirstResearch') }}
         </button>
@@ -1365,6 +1375,11 @@ watch(sessions, () => {
   color: var(--color-text-muted, #a0aec0);
 }
 .rw-error { color: var(--color-error-text, #c53030); }
+.rw-empty-hint {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--color-text-muted, #a0aec0);
+}
 
 /* ---- Pagination ---- */
 .rw-pagination {

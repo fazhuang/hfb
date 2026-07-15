@@ -387,5 +387,11 @@ export default {
     searchNoResultHint: 'Try shorter or more general keywords',
     searchNoResultBrowseBooks: 'Browse the books library',
     searchNoResultBrowsePersons: 'Browse persons',
+    materialsEmptyHint: 'Or import from literature management',
+    versionsEmptyHint: 'Or browse the classical versions library',
+    notesEmptyHint: 'Use quick notes during research — they will appear here',
+    reportsEmptyHint: 'Reports are auto-generated after running a research workflow',
+    noPassagesHint: 'Try a different keyword, or browse version texts from the books library',
+    noSessionsHint: 'Click + to create a research session and organize your materials',
   },
 };

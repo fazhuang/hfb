@@ -33,6 +33,7 @@
             </li>
           </ul>
           <p v-else class="muted">{{ t('workspace.noSessions') }}</p>
+          <p v-if="sessions.length === 0" class="muted muted--hint">{{ t('onboarding.noSessionsHint') }}</p>
         </div>
 
         <!-- Entity browser -->
@@ -721,6 +722,11 @@ loadSessions();
   font-size: 13px;
   text-align: center;
   padding: 20px 0;
+}
+.muted--hint {
+  padding-top: 0;
+  font-size: 12px;
+  opacity: 0.75;
 }
 
 .entity-actions {

@@ -389,5 +389,11 @@ export default {
     searchNoResultHint: '试试更短或更通用的关键词',
     searchNoResultBrowseBooks: '浏览古籍库查看完整书目',
     searchNoResultBrowsePersons: '浏览人物列表',
+    materialsEmptyHint: '或从文献管理导入',
+    versionsEmptyHint: '或浏览古籍版本库',
+    notesEmptyHint: '在研究过程中使用速记功能，笔记将自动汇聚于此',
+    reportsEmptyHint: '完成研究工作流后将自动生成报告',
+    noPassagesHint: '试试换一个关键词，或从古籍库浏览版本全文',
+    noSessionsHint: '点击 + 创建研究会话，在画布中组织你的研究资料',
   },
 };

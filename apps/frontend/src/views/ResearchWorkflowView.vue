@@ -99,7 +99,8 @@
           </article>
         </div>
         <div v-else-if="searched && !searching" class="empty-state">
-          {{ t('research.noPassages') }}
+          <p>{{ t('research.noPassages') }}</p>
+          <p class="empty-hint">{{ t('onboarding.noPassagesHint') }}</p>
         </div>
       </section>
 
@@ -797,6 +798,12 @@ textarea {
 .slot-empty,
 .empty-state {
   color: var(--color-text-muted, #7b8794);
+}
+
+.empty-hint {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.75;
 }
 
 .text-button {
