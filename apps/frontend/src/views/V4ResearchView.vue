@@ -284,13 +284,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 import { useResearchStore } from '@/stores/research';
 
 import api from '@/api/client';
 
 const { t } = useI18n();
+const route = useRoute();
 const researchStore = useResearchStore();
 
 // =========================================================================
@@ -363,6 +365,46 @@ function stopElapsedTimer() {
 }
 
 onBeforeUnmount(stopElapsedTimer);
+
+// Load a specific run when navigated with ?run=xxx
+onMounted(async () => {
+  const runId = route.query.run as string | undefined;
+  if (!runId) return;
+
+  // Derive session_id from run_id: runs are keyed as {session_id}/{run_id_node}
+  // We must search across the user's workspace sessions
+  try {
+    const sessionsResp = await api.get('/api/v1/workspace/sessions');
+    const sessionsList = (sessionsResp.data.data ?? []) as Array<{ id: string; title: string }>;
+
+    for (const s of sessionsList) {
+      try {
+        const runsResp = await api.get(`/api/v4/research/session/${s.id}/runs`);
+        const runList = (runsResp.data.data?.runs ?? []) as Array<Record<string, unknown>>;
+        const found = runList.find((r: Record<string, unknown>) => r.run_id === runId);
+        if (found) {
+          sessionId.value = s.id;
+          workflowRunId.value = found.run_id as string;
+          topic.value = (found.topic as string) || '';
+          workflowSuccess.value = true;
+          steps.value = (found.step_execution_trace || []) as Array<{ name: string; status: string; result?: Record<string, unknown> }>;
+          runs.value = runList as Array<{ run_id?: string; completed_at?: string; output_artifacts?: Record<string, unknown>; replay_manifest?: Record<string, unknown>; step_execution_trace?: Array<{ trace_ids?: string[] }> }>;
+
+          // Populate reportContent and citations
+          const artifacts = found.output_artifacts as Record<string, unknown> | undefined;
+          reportContent.value = (artifacts?.markdown as string) || '';
+          citations.value = extractCitationsFromRuns(runs.value);
+          workflowMessage.value = t('v4.workflowCompleted');
+          break;
+        }
+      } catch { /* skip session */ }
+    }
+
+    if (!workflowRunId.value) {
+      workflowMessage.value = `未找到运行记录: ${runId}`;
+    }
+  } catch { /* ignore */ }
+});
 
 function stepName(name: string): string {
   const map: Record<string, string> = {

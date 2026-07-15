@@ -349,5 +349,11 @@ export default {
     noSession: 'No session',
     newSession: 'New session',
     newSessionDefault: 'AI assistant session',
+    openFullPage: 'Open full page',
+    openVersionComparison: 'Open version comparison workflow',
+    researchInlineHint: 'Version comparison requires the full workflow page.',
+    viewInGraph: 'View in graph',
+    linkedEvidence: 'Linked evidence',
+    evidenceGraph: 'Evidence graph',
   },
 };

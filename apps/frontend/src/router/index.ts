@@ -74,9 +74,7 @@ const router = createRouter({
         },
         {
           path: 'workspace',
-          name: 'workspace',
-          component: () => import('@/views/WorkspaceView.vue'),
-          meta: { requiresAuth: true },
+          redirect: '/research/workspace',
         },
         {
           path: 'research/new',
@@ -104,13 +102,18 @@ const router = createRouter({
         },
         {
           path: 'v4/research',
-          name: 'v4-research',
-          component: () => import('@/views/V4ResearchView.vue'),
-          meta: { requiresAuth: true },
+          redirect: '/research/workspace?tab=reports',
         },
         {
           path: 'v4',
-          redirect: '/v4/research',
+          redirect: '/research/workspace?tab=reports',
+        },
+        // Keep V4ResearchView as an internal route (workspace renders it inline)
+        {
+          path: 'v4/research-internal',
+          name: 'v4-research',
+          component: () => import('@/views/V4ResearchView.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'dashboard',

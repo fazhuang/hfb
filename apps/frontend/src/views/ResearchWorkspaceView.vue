@@ -35,7 +35,6 @@
         <span v-if="tab.badge" class="rw-tab-badge">{{ tab.badge }}</span>
       </button>
     </nav>
-
     <!-- ============================================================ -->
     <!-- Tab: 资料 (Materials / Literature) -->
     <!-- ============================================================ -->
@@ -243,6 +242,161 @@
     </section>
 
     <!-- ============================================================ -->
+    <!-- Tab: 版本研究 (Version Comparison Research) -->
+    <!-- ============================================================ -->
+    <section v-if="activeTab === 'research'" class="rw-panel">
+      <div class="rw-panel-header">
+        <h2>{{ t('nav.research') }} — {{ t('research.title') }}</h2>
+        <router-link :to="{ name: 'research-workflow' }" class="rw-action-link">
+          {{ t('researchWorkspace.openFullPage') }} →
+        </router-link>
+      </div>
+
+      <div v-if="!store.hasActiveResearch" class="rw-empty">
+        <p>{{ t('researchEntry.noActiveResearch') }}</p>
+        <router-link :to="{ name: 'research-new' }" class="rw-btn rw-btn--primary">
+          {{ t('researchEntry.startNew') }}
+        </router-link>
+      </div>
+      <div v-else class="rw-placeholder-panel">
+        <p>{{ t('researchWorkspace.researchInlineHint') }}</p>
+        <router-link :to="{ name: 'research-workflow' }" class="rw-btn rw-btn--primary">
+          校 {{ t('researchWorkspace.openVersionComparison') }}
+        </router-link>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: V4 研究 (V4 Research) — inline workflow + run loading -->
+    <!-- ============================================================ -->
+    <section v-if="activeTab === 'v4-research'" class="rw-panel">
+      <div class="rw-panel-header">
+        <h2>{{ t('nav.v4Research') }} — {{ t('v4.researchTitle') }}</h2>
+      </div>
+
+      <!-- If a specific report is selected -->
+      <div v-if="selectedReport" class="rw-report-detail">
+        <button class="rw-btn rw-btn--sm rw-back-btn" @click="selectedReport = null">
+          ← {{ t('common.back') }}
+        </button>
+
+        <div class="rw-report-header">
+          <h3>{{ selectedReport.topic || t('researchWorkspace.untitledReport') }}</h3>
+          <span class="rw-report-date">{{ formatDate(selectedReport.completed_at) }}</span>
+        </div>
+
+        <!-- Steps -->
+        <div v-if="selectedReport.step_execution_trace" class="rw-report-steps">
+          <span
+            v-for="step in selectedReport.step_execution_trace"
+            :key="step.name"
+            class="rw-step-badge"
+            :class="`rw-step--${step.status || 'pending'}`"
+          >
+            {{ stepIcon(step.status) }} {{ stepName(step.name) }}
+          </span>
+        </div>
+
+        <!-- Full report content -->
+        <div v-if="selectedReport.output_artifacts?.report_sections" class="rw-report-full">
+          <div
+            v-for="(section, si) in selectedReport.output_artifacts.report_sections"
+            :key="si"
+            class="rw-report-section-full"
+          >
+            <h4>{{ section.title || section.heading || `§${si + 1}` }}</h4>
+            <div class="rw-report-body" v-text="section.content || section.body"></div>
+            <!-- Evidence badges for this section -->
+            <div v-if="section.evidence_ids?.length" class="rw-section-evidence">
+              <span class="rw-evidence-label">📎 {{ t('researchWorkspace.linkedEvidence') }}:</span>
+              <span
+                v-for="(evId, ei) in section.evidence_ids.slice(0, 5)"
+                :key="ei"
+                class="rw-evidence-pill"
+                @click="openEvidenceInGraph(evId)"
+              >
+                {{ evId.slice(0, 8) }}...
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full markdown fallback -->
+        <pre v-else-if="selectedReport.output_artifacts?.markdown" class="rw-report-markdown">{{
+          selectedReport.output_artifacts.markdown
+        }}</pre>
+
+        <!-- Citations -->
+        <div v-if="reportCitations.length" class="rw-citations">
+          <h4>{{ t('v4.citations') }} ({{ reportCitations.length }})</h4>
+          <div v-for="(cit, ci) in reportCitations" :key="ci" class="rw-citation-item">
+            <span class="cit-index">#{{ ci + 1 }}</span>
+            <span class="cit-text">{{ cit.claim_text || cit.quote || cit.citation_text || '—' }}</span>
+            <button
+              v-if="cit.trace_id"
+              class="rw-evidence-pill rw-evidence-pill--link"
+              @click="openEvidenceInGraph(cit.trace_id)"
+            >
+              🔗 {{ t('researchWorkspace.viewInGraph') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report list (when no specific report is selected) -->
+      <div v-else>
+        <!-- Quick workflow runner -->
+        <div class="rw-v4-quick">
+          <input
+            v-model="v4Topic"
+            type="text"
+            class="rw-search-input"
+            :placeholder="t('v4.topicPlaceholder')"
+            :disabled="v4Loading"
+            style="flex:1"
+            @keyup.enter="runV4WorkflowInline"
+          />
+          <button
+            class="rw-btn rw-btn--primary"
+            :disabled="v4Loading || !v4Topic.trim()"
+            @click="runV4WorkflowInline"
+          >
+            {{ v4Loading ? t('common.loading') + '...' : t('v4.runWorkflow') }}
+          </button>
+        </div>
+        <p v-if="v4Error" class="rw-error">{{ v4Error }}</p>
+
+        <div v-if="reportsLoading" class="rw-loading">{{ t('common.loading') }}</div>
+        <div v-else-if="reports.length === 0" class="rw-empty">
+          <p>{{ t('researchWorkspace.noReports') }}</p>
+        </div>
+        <div v-else class="rw-reports-list">
+          <div v-for="run in reports" :key="run.run_id" class="rw-report-card">
+            <div class="rw-report-header">
+              <h3>{{ run.topic || t('researchWorkspace.untitledReport') }}</h3>
+              <span class="rw-report-date">{{ formatDate(run.completed_at) }}</span>
+            </div>
+            <div v-if="run.step_execution_trace" class="rw-report-steps">
+              <span
+                v-for="step in run.step_execution_trace"
+                :key="step.name"
+                class="rw-step-badge"
+                :class="`rw-step--${step.status || 'pending'}`"
+              >
+                {{ stepIcon(step.status) }} {{ stepName(step.name) }}
+              </span>
+            </div>
+            <div class="rw-report-actions">
+              <button class="rw-btn rw-btn--sm" @click="openReportDetail(run)">
+                {{ t('researchWorkspace.viewReport') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
     <!-- Tab: 研究助手 (Research Assistant) -->
     <!-- ============================================================ -->
     <section v-if="activeTab === 'assistant'" class="rw-panel rw-panel--assistant">
@@ -323,6 +477,28 @@
             <div v-for="(ev, idx) in evidence" :key="idx" class="rw-evidence-item">
               <span class="rw-evidence-type">{{ ev.entity_type }}</span>
               <span class="rw-evidence-text">{{ (ev.content || '').substring(0, 120) }}</span>
+              <button
+                v-if="ev.entity_type && ev.id"
+                class="rw-evidence-graph-link"
+                @click="openEntityInGraph(ev.entity_type, ev.id)"
+                :title="t('researchWorkspace.viewInGraph')"
+              >
+                🔗
+              </button>
+            </div>
+
+            <!-- Graph quick-preview if available -->
+            <div v-if="evidenceGraphData" class="rw-evidence-graph-preview">
+              <label class="rw-sidebar-label">📊 {{ t('researchWorkspace.evidenceGraph') }}</label>
+              <div class="rw-mini-graph">
+                <div v-for="n in evidenceGraphData.nodes?.slice(0, 5)" :key="n.id" class="rw-mini-node">
+                  <span class="rw-mini-node-type">{{ n.type }}</span>
+                  {{ (n.label || n.id || '').substring(0, 20) }}
+                </div>
+                <p v-if="(evidenceGraphData.edges?.length || 0) > 0" class="rw-mini-edge-count">
+                  {{ evidenceGraphData.edges?.length }} evidence links
+                </p>
+              </div>
             </div>
           </div>
         </aside>
@@ -332,8 +508,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, watch, nextTick, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
@@ -341,10 +517,12 @@ import { useResearchStore } from '@/stores/research';
 
 const { t } = useI18n();
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 const store = useResearchStore();
 
 // ---- Tab state ----
+// Support ?tab=materials|versions|notes|reports|assistant|research|v4-research
 const activeTab = ref('materials');
 
 interface TabDef {
@@ -359,6 +537,8 @@ const tabs = computed<TabDef[]>(() => [
   { key: 'versions', icon: '🏛️', label: t('researchWorkspace.versions') },
   { key: 'notes', icon: '📝', label: t('researchWorkspace.notes'), badge: String(notesCount.value) },
   { key: 'reports', icon: '📊', label: t('researchWorkspace.reports') },
+  { key: 'research', icon: '校', label: t('nav.research') },
+  { key: 'v4-research', icon: '🧬', label: t('nav.v4Research') },
   { key: 'assistant', icon: '🤖', label: t('researchWorkspace.assistant') },
 ]);
 
@@ -381,7 +561,18 @@ interface ReportRun {
   step_execution_trace?: Array<{ name: string; status: string }>;
   output_artifacts?: Record<string, any>;
 }
-interface EvidenceItem { entity_type: string; content?: string; }
+interface EvidenceItem { entity_type: string; content?: string; id?: string; }
+
+// ---- V4 inline state ----
+const v4Topic = ref('');
+const v4Loading = ref(false);
+const v4Error = ref('');
+const selectedReport = ref<ReportRun | null>(null);
+const reportCitations = ref<Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }>>([]);
+
+// ---- Evidence graph state ----
+interface GraphPreview { nodes: Array<{ id: string; type: string; label?: string }>; edges: Array<{ source: string; target: string; evidence_ids?: string[] }>; }
+const evidenceGraphData = ref<GraphPreview | null>(null);
 
 // ---- Materials state ----
 const materials = ref<MaterialItem[]>([]);
@@ -562,7 +753,83 @@ async function fetchReports() {
 }
 
 function viewReport(run: ReportRun) {
-  router.push({ name: 'v4-research', query: { run: run.run_id } });
+  // Open inline in workspace instead of navigating
+  selectedReport.value = run;
+  activeTab.value = 'v4-research';
+}
+
+// ================================================================
+// Reports — detail helpers
+// ================================================================
+function openReportDetail(run: ReportRun) {
+  selectedReport.value = run;
+  // Extract citations from run artifacts
+  const citations: Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }> = [];
+  const artifacts = run.output_artifacts;
+  if (artifacts?.citations) {
+    for (const c of (artifacts.citations as Array<Record<string, unknown>>)) {
+      citations.push({
+        trace_id: (c.trace_id as string) || '',
+        claim_text: (c.claim_text as string) || '',
+        quote: (c.quote as string) || '',
+        citation_text: (c.citation_text as string) || '',
+        document_id: (c.document_id as string) || '',
+      });
+    }
+  }
+  // Also try from step_execution_trace trace_ids
+  if (citations.length === 0 && run.step_execution_trace) {
+    for (const step of run.step_execution_trace) {
+      if ((step as any).trace_ids && Array.isArray((step as any).trace_ids)) {
+        for (const tid of (step as any).trace_ids) {
+          citations.push({ trace_id: tid, claim_text: '', quote: '', citation_text: '', document_id: '' });
+        }
+      }
+    }
+  }
+  reportCitations.value = citations;
+}
+
+async function runV4WorkflowInline() {
+  if (!v4Topic.value.trim()) return;
+  v4Loading.value = true;
+  v4Error.value = '';
+  try {
+    const sResp = await api.post('/api/v4/research/session', {
+      title: `V4 研究 - ${v4Topic.value}`,
+    });
+    const sid = sResp.data.data.session_id as string;
+
+    const wfResp = await api.post('/api/v4/research/workflow', {
+      session_id: sid,
+      topic: v4Topic.value.trim(),
+      workflow_type: 'full_research_flow',
+    }, { timeout: 120000 });
+
+    if (wfResp.data.success) {
+      await loadSessions();
+      await fetchReports();
+      const latest = reports.value[0];
+      if (latest) openReportDetail(latest);
+    } else {
+      v4Error.value = wfResp.data.message || t('v4.workflowFailed');
+    }
+  } catch (e: any) {
+    v4Error.value = e?.message || t('v4.workflowFailed');
+  } finally {
+    v4Loading.value = false;
+  }
+}
+
+// ================================================================
+// Evidence → Graph linking
+// ================================================================
+function openEntityInGraph(entityType: string, entityId: string) {
+  router.push({ name: 'graph', query: { type: entityType, id: entityId } });
+}
+
+function openEvidenceInGraph(traceId: string) {
+  router.push({ name: 'graph', query: { trace: traceId } });
 }
 
 // ================================================================
@@ -640,8 +907,27 @@ async function sendMessage() {
     // Fetch evidence
     if (assistantMsg.content) {
       try {
-        const { data } = await api.get('/api/v1/search', { params: { q: msg, limit: 3 } });
-        evidence.value = ((data.data?.items ?? []) as EvidenceItem[]).slice(0, 3);
+        const { data } = await api.get('/api/v1/search', { params: { q: msg, limit: 5 } });
+        const items = (data.data?.items ?? []) as Array<EvidenceItem & { id?: string }>;
+        evidence.value = items.slice(0, 5);
+
+        // Try to generate evidence graph preview
+        if (items.length > 0) {
+          const entityItems = items.filter(i => i.entity_type && i.id);
+          if (entityItems.length >= 1) {
+            try {
+              const firstEntity = entityItems[0]!;
+              const gResp = await api.get(`/api/v1/graph/neighbors/${firstEntity.entity_type}/${firstEntity.id}`);
+              const gData = gResp.data?.data;
+              if (gData) {
+                evidenceGraphData.value = {
+                  nodes: [gData.center, ...(gData.neighbors || [])].filter(Boolean),
+                  edges: gData.edges || [],
+                };
+              }
+            } catch { evidenceGraphData.value = null; }
+          }
+        }
       } catch { evidence.value = []; }
     }
   } catch {
@@ -688,11 +974,35 @@ function stepIcon(status?: string): string {
 // ================================================================
 // Init
 // ================================================================
+// Init
+onMounted(() => {
+  // Honor ?tab= query param
+  const tabParam = route.query.tab as string | undefined;
+  if (tabParam && ['materials', 'versions', 'notes', 'reports', 'research', 'v4-research', 'assistant'].includes(tabParam)) {
+    activeTab.value = tabParam;
+  }
+  // Honor ?run= query param (deep-link to a specific report)
+  const runParam = route.query.run as string | undefined;
+  if (runParam) {
+    activeTab.value = 'v4-research';
+    // The run will be opened after reports load
+    (window as any).__pendingRunId = runParam;
+  }
+});
+
 loadSessions().then(() => {
   fetchMaterials(1);
   fetchVersions(1);
   fetchNotesForSession();
-  fetchReports();
+  fetchReports().then(() => {
+    // If a run was requested via ?run=, open it inline
+    const pendingRunId = (window as any).__pendingRunId as string | undefined;
+    if (pendingRunId) {
+      delete (window as any).__pendingRunId;
+      const found = reports.value.find(r => r.run_id === pendingRunId);
+      if (found) openReportDetail(found);
+    }
+  });
 });
 
 // Refresh notes count when sessions load

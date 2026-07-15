@@ -351,6 +351,12 @@ export default {
     noSession: '无会话',
     newSession: '新建会话',
     newSessionDefault: '研究助手会话',
+    openFullPage: '打开完整页面',
+    openVersionComparison: '打开版本比较工作流',
+    researchInlineHint: '版本比较需要打开完整工作流页面进行操作。',
+    viewInGraph: '图谱中查看',
+    linkedEvidence: '关联证据',
+    evidenceGraph: '证据图谱',
   },
   literature: {
     fulltext: '全文内容',
