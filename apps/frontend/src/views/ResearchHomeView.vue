@@ -40,6 +40,14 @@
           </div>
         </router-link>
 
+        <router-link :to="{ name: 'research-workspace' }" class="rh-tool-card rh-tool-card--featured">
+          <span class="rh-tool-icon">📋</span>
+          <div>
+            <span class="rh-tool-name">{{ t('researchEntry.researchWorkspace') }}</span>
+            <span class="rh-tool-desc">{{ t('researchEntry.toolResearchWorkspaceDesc') }}</span>
+          </div>
+        </router-link>
+
         <router-link :to="{ name: 'search' }" class="rh-tool-card">
           <span class="rh-tool-icon">🔍</span>
           <div>

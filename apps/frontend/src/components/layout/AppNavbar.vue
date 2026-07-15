@@ -102,7 +102,7 @@ const navItems = computed(() => {
     { path: '/research', icon: '校', labelKey: 'nav.research' },
     { path: '/v4/research', icon: '🧬', labelKey: 'nav.v4Research' },
     { path: '/graph', icon: '🔗', labelKey: 'nav.graph' },
-    { path: '/workspace', icon: '🧪', labelKey: 'nav.workspace' },
+    { path: '/research/workspace', icon: '🧪', labelKey: 'nav.workspace' },
     { path: '/search', icon: '🔍', labelKey: 'nav.search' },
     { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
   );
