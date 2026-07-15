@@ -115,6 +115,37 @@ service-account.json
 *.tfstate.backup
 terraform.tfvars
 
+# --- Playwright / E2E ---
+.playwright-cli/
+apps/frontend/.playwright-cli/
+output/playwright/
+apps/backend/output/playwright/
+apps/backend/output/p0_*.json
+
+# --- OCR / PDF / Image artifacts ---
+output/ocr_tmp/
+output/*.pdf
+output/*.png
+output/p0_page_images/
+output/p0_ocr_page_images/
+output/hfb_pdf_ocr_pages.json
+output/p0_page_image_artifact.json
+output/p0_*_preprocessed.png
+output/p0_page_*_v2.png
+
+# --- Runtime evidence (not for release) ---
+output/batch4/
+output/p0_codex_commands_evidence.txt
+output/p0_e2e_evidence.json
+output/p0_withdraw_test.json
+output/p1_delete_withdraw_evidence.txt
+output/p1_isolated_db_evidence.txt
+output/v4-graph-lineage-scan.json
+scripts/p0_e2e_verify.js
+
+# --- Stale duplicate directory (root-level only) ---
+/backend/
+
 # --- Misc ---
 *.bak
 *.orig
