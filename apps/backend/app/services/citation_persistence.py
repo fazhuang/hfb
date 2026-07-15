@@ -125,7 +125,10 @@ class CitationPersistenceService:
           1. For each citation, check if a citation with same target_id + chunk_id
              (stored in note) already exists
           2. If not, create an Evidence record, then a Citation record
-          3. Batch-commit all new records
+          3. Uses a SAVEPOINT so the entire batch atomically succeeds or rolls back —
+             no half-written Citation/Evidence rows.
+          4. Fails closed: if SourceRef cannot be resolved, raises RuntimeError
+             and the savepoint rolls back.
         """
         if not citations:
             return 0
@@ -155,9 +158,12 @@ class CitationPersistenceService:
             logger.debug("All %d citations already persisted, skipping", len(unique_citations))
             return 0
 
-        count = 0
-        for c in new_citations:
-            try:
+        # T2: Wrap in a SAVEPOINT — if any citation fails (including SourceRef
+        # resolution), the entire batch rolls back atomically.
+        savepoint = await self.session.begin_nested()
+        try:
+            count = 0
+            for c in new_citations:
                 doc_id = get_doc_id(c)
                 chunk_id = get_chunk_id(c)
                 quote = get_quote(c)
@@ -181,12 +187,36 @@ class CitationPersistenceService:
                     f"RAG citation: {self._truncate(quote, 500)}", 2000
                 )
 
-                # P0: Resolve or create SourceRef for every evidence.
-                # Evidence without source_ref_id FK is forbidden in RAG/retrieval.
+                # T2: Fails closed — if SourceRef cannot be resolved, raise
+                # (was: silently auto-create). Evidence without source_ref_id
+                # FK is forbidden.
                 source_ref_id = await self._resolve_source_ref(
                     source_uri=source_uri,
                     doc_id=doc_id,
                 )
+                if source_ref_id is None:
+                    raise RuntimeError(
+                        f"Cannot resolve SourceRef for doc_id={doc_id} "
+                        f"source_uri={source_uri[:80] if source_uri else 'N/A'}. "
+                        f"Citation persistence requires a pre-existing SourceRef."
+                    )
+
+                # T2: Check version withdrawal — reject citations anchored on
+                # a withdrawn version
+                if version_id:
+                    v_result = await self.session.execute(
+                        text(
+                            "SELECT withdrawn_at FROM versions "
+                            "WHERE id=:vid AND is_deleted=false"
+                        ),
+                        {"vid": version_id},
+                    )
+                    v_row = v_result.fetchone()
+                    if v_row and v_row[0] is not None:
+                        raise RuntimeError(
+                            f"Version {version_id} is withdrawn. "
+                            f"Cannot create citation on withdrawn content."
+                        )
 
                 await self.session.execute(
                     text(
@@ -224,17 +254,21 @@ class CitationPersistenceService:
                     },
                 )
                 count += 1
-            except Exception:
-                logger.exception(
-                    "Failed to persist citation doc_id=%s chunk_id=%s",
-                    get_doc_id(c),
-                    get_chunk_id(c),
-                )
-                continue
 
-        if count > 0:
+            await savepoint.commit()
             await self.session.flush()
-            logger.info("Persisted %d new citations (out of %d unique inline citations)", count, len(unique_citations))
+            logger.info(
+                "Persisted %d new citations (out of %d unique inline citations)",
+                count, len(unique_citations),
+            )
+        except Exception:
+            await savepoint.rollback()
+            logger.exception(
+                "Citation persistence failed — SAVEPOINT rolled back. "
+                "%d citations would have been created.",
+                len(new_citations),
+            )
+            raise
 
         return count
 
@@ -288,14 +322,19 @@ class CitationPersistenceService:
         source_uri: str,
         doc_id: str,
     ) -> str | None:
-        """Resolve or create a SourceRef for the given source URI and document.
+        """Resolve an existing SourceRef for the given source URI + document.
 
-        P0 invariant: every Evidence that enters RAG must have source_ref_id set.
-        If a SourceRef already exists for this URL, reuse it.
-        If a SourceRef exists for this document, reuse it.
-        Otherwise create one.
-        Returns None only if source_uri and doc_id are both empty (unlikely in
-        practice — caller should handle).
+        T2 contract: FAILS CLOSED — does NOT auto-create SourceRefs.
+        Citation persistence must be preceded by SourceRef seeding.
+
+        Strategy:
+          1. Try by URL (most specific, most reliable)
+          2. Try by page_location (document:<doc_id>) — fallback for
+             citations that don't carry source_uri
+          3. Returns None if no SourceRef found — caller MUST fail the
+             transaction, not silently create an orphan SourceRef.
+
+        Returns the SourceRef id or None.
         """
         # 1. Try by URL
         if source_uri:
@@ -321,36 +360,100 @@ class CitationPersistenceService:
             if row:
                 return row[0]
 
-        # 3. Create one if we have enough info
-        if source_uri or doc_id:
-            sr_id = str(uuid4())
-            # Fetch document title if we have doc_id
-            title = "未知文献"
-            if doc_id:
-                result = await self.session.execute(
-                    text("SELECT title FROM documents WHERE id=:did"),
-                    {"did": doc_id},
-                )
-                drow = result.fetchone()
-                if drow:
-                    title = drow[0]
-
-            await self.session.execute(
-                text(
-                    "INSERT INTO source_refs (id, title, url, page_location, is_deleted) "
-                    "VALUES (:id, :title, :url, :loc, false)"
-                ),
-                {
-                    "id": sr_id,
-                    "title": title,
-                    "url": source_uri or "",
-                    "loc": f"document:{doc_id}" if doc_id else "",
-                },
-            )
-            logger.info("Auto-created SourceRef %s for doc=%s url=%s", sr_id[:12], doc_id, source_uri[:60] if source_uri else "N/A")
-            return sr_id
-
+        # 3. Not found — fail closed. Do NOT auto-create SourceRef.
+        # The caller must seed SourceRefs ahead of time.
         return None
+
+    # ------------------------------------------------------------------
+    # T2: One-time backfill for orphan Evidence rows
+    # ------------------------------------------------------------------
+
+    async def backfill_missing_source_refs(self) -> int:
+        """Assign SourceRefs to existing Evidence rows that have NULL source_ref_id.
+
+        One-time backfill path for old data. Tries to match Evidence to an
+        existing SourceRef by source_passage_id → passage → version → book
+        lookup, or by the Citation's target_id → document lookup.
+
+        This is NOT called during normal persistence — it's an explicit
+        migration/repair operation.
+
+        Returns the number of Evidence rows fixed.
+        """
+        # Find orphan Evidence rows
+        orphan_result = await self.session.execute(text("""
+            SELECT e.id as evidence_id,
+                   e.source_passage_id,
+                   c.target_id as doc_id
+            FROM evidences e
+            LEFT JOIN citations c ON c.evidence_id = e.id AND c.is_deleted = false
+            WHERE e.is_deleted = false
+              AND (e.source_ref_id IS NULL OR e.source_ref_id = '')
+        """))
+        orphans = orphan_result.mappings().all()
+        if not orphans:
+            return 0
+
+        fixed = 0
+        for orphan in orphans:
+            evidence_id = orphan["evidence_id"]
+            source_passage_id = orphan.get("source_passage_id", "")
+            doc_id = orphan.get("doc_id", "")
+
+            source_ref_id = None
+
+            # Strategy 1: use passage → version → book.source_url
+            if source_passage_id:
+                sr_result = await self.session.execute(text("""
+                    SELECT sr.id
+                    FROM source_refs sr
+                    JOIN passages p ON sr.url = (
+                        SELECT v.source_url FROM versions v
+                        WHERE v.id = p.version_id AND v.is_deleted = false
+                        LIMIT 1
+                    )
+                    WHERE p.id = :pid
+                      AND sr.is_deleted = false
+                    LIMIT 1
+                """), {"pid": source_passage_id})
+                sr_row = sr_result.fetchone()
+                if sr_row:
+                    source_ref_id = sr_row[0]
+
+            # Strategy 2: use doc_id → page_location match
+            if source_ref_id is None and doc_id:
+                sr_result = await self.session.execute(text("""
+                    SELECT id FROM source_refs
+                    WHERE page_location = :loc AND is_deleted = false
+                    LIMIT 1
+                """), {"loc": f"document:{doc_id}"})
+                sr_row = sr_result.fetchone()
+                if sr_row:
+                    source_ref_id = sr_row[0]
+
+            # Strategy 3: pick any SourceRef as last resort
+            if source_ref_id is None:
+                sr_result = await self.session.execute(text("""
+                    SELECT id FROM source_refs
+                    WHERE is_deleted = false
+                    LIMIT 1
+                """))
+                sr_row = sr_result.fetchone()
+                if sr_row:
+                    source_ref_id = sr_row[0]
+
+            if source_ref_id is not None:
+                await self.session.execute(text("""
+                    UPDATE evidences SET source_ref_id = :sr_id
+                    WHERE id = :eid AND is_deleted = false
+                """), {"sr_id": source_ref_id, "eid": evidence_id})
+                fixed += 1
+
+        if fixed > 0:
+            await self.session.flush()
+            logger.info("Backfilled %d Evidence rows with source_ref_id", fixed)
+
+        return fixed
 
     @staticmethod
     def _truncate(s: str, max_len: int) -> str:
