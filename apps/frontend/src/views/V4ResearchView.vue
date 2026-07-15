@@ -38,14 +38,18 @@
           :disabled="loading || !topic.trim()"
           data-testid="v4-run-workflow"
         >
-          {{ loading ? t('common.loading') : t('v4.runWorkflow') }}
+          {{ loading ? t('v4.workflowRunning') : t('v4.runWorkflow') }}
         </button>
+        <p v-if="loading" class="elapsed-hint" aria-live="polite">
+          {{ t('v4.elapsed', { seconds: elapsedSeconds }) }}
+        </p>
       </form>
 
       <div v-else class="workflow-result">
         <h3>
-          {{ t('v4.runComplete') }}
+          {{ workflowSuccess ? t('v4.runComplete') : t('v4.runPartial') }}
           <span v-if="loading" class="loading-hint">{{ t('common.loading') }}...</span>
+          <span v-if="!loading" class="elapsed-hint">{{ t('v4.completedIn', { seconds: elapsedSeconds }) }}</span>
         </h3>
 
         <!-- Five-step status -->
@@ -57,15 +61,84 @@
             data-testid="workflow-step"
           >
             <span class="step-name">{{ stepName(step.name) }}</span>
-            <span class="step-status">{{ step.status }}</span>
+            <span class="step-status">{{ stepStatusLabel(step) }}</span>
+            <template v-if="step.status === 'failed' && step.result?.error">
+              <p class="step-error-detail">{{ step.result.error }}</p>
+              <p v-if="step.result.error_code" class="step-error-code">{{ step.result.error_code }}</p>
+            </template>
           </li>
         </ol>
 
         <!-- Report content -->
         <div v-if="reportContent" class="report-body">
           <h4>{{ t('v4.reportPreview') }}</h4>
-          <pre class="report-text">{{ reportPreview }}</pre>
+          <pre class="report-text">{{ reportContent }}</pre>
         </div>
+
+        <!-- Citations -->
+        <div v-if="citations.length" class="citations-section" data-testid="citations-section">
+          <h4>{{ t('v4.citations') }} ({{ citations.length }})</h4>
+          <details v-for="(cit, i) in citations" :key="cit.trace_id || i" class="citation-detail">
+            <summary>
+              <span class="cit-index">#{{ i + 1 }}</span>
+              <span class="cit-text">{{ cit.claim_text?.slice(0, 120) || cit.citation_text?.slice(0, 120) || cit.quote?.slice(0, 120) || t('v4.untitledCitation') }}</span>
+            </summary>
+            <div class="citation-body">
+              <p v-if="cit.claim_text"><strong>{{ t('v4.claimText') }}:</strong> {{ cit.claim_text }}</p>
+              <p v-if="cit.quote"><strong>{{ t('v4.quote') }}:</strong> {{ cit.quote }}</p>
+              <p v-if="cit.citation_text"><strong>{{ t('v4.citationText') }}:</strong> <code>{{ cit.citation_text }}</code></p>
+              <p><strong>Trace ID:</strong> <code>{{ cit.trace_id }}</code></p>
+              <p v-if="cit.document_id"><strong>Document ID:</strong> <code>{{ cit.document_id }}</code></p>
+              <p v-if="cit.source_ref_id"><strong>SourceRef ID:</strong> <code>{{ cit.source_ref_id }}</code></p>
+            </div>
+          </details>
+        </div>
+
+        <!-- Actions row: export + notes -->
+        <div v-if="!loading" class="actions-row">
+          <button
+            class="button button--secondary"
+            :disabled="!reportContent || exporting"
+            data-testid="v4-export"
+            @click="exportRecord"
+          >
+            {{ exporting ? t('v4.exporting') : t('v4.export') }}
+          </button>
+
+          <button
+            class="button button--secondary"
+            :disabled="!canSaveNote"
+            data-testid="v4-toggle-note"
+            @click="showNoteEditor = !showNoteEditor"
+          >
+            {{ t('v4.saveNote') }}
+          </button>
+        </div>
+
+        <!-- Note editor -->
+        <div v-if="showNoteEditor" class="note-editor" data-testid="note-editor">
+          <label for="v4-note">{{ t('v4.noteLabel') }}</label>
+          <textarea
+            id="v4-note"
+            v-model="noteContent"
+            rows="5"
+            :placeholder="t('v4.notePlaceholder')"
+          ></textarea>
+          <div class="note-actions">
+            <button
+              class="button button--primary"
+              :disabled="!noteContent.trim() || savingNote"
+              data-testid="v4-save-note"
+              @click="saveNote"
+            >
+              {{ savingNote ? t('v4.saving') : t('v4.save') }}
+            </button>
+            <span v-if="noteMessage" class="note-feedback" aria-live="polite" data-testid="note-feedback">{{ noteMessage }}</span>
+          </div>
+        </div>
+
+        <!-- Note feedback (persists after editor closes) -->
+        <p v-if="noteMessage && !showNoteEditor" class="note-feedback note-feedback--standalone" aria-live="polite" data-testid="note-feedback-standalone">{{ noteMessage }}</p>
 
         <!-- Replay -->
         <div v-if="workflowRunId" class="replay-section">
@@ -88,10 +161,10 @@
         </div>
 
         <!-- Runs list -->
-        <div class="runs-list">
+        <div v-if="runs.length" class="runs-list">
           <h4>{{ t('v4.runs') }}</h4>
           <div v-for="run in runs" :key="run.run_id" class="run-entry">
-            <p><strong>Run:</strong> {{ run.run_id?.slice(0, 8) }}...</p>
+            <p><strong>Run:</strong> <code>{{ run.run_id?.slice(0, 8) }}...</code></p>
             <p><small>{{ run.completed_at }}</small></p>
           </div>
         </div>
@@ -102,6 +175,7 @@
       </div>
 
       <p v-if="error" class="message message--error" role="alert">{{ error }}</p>
+      <p v-if="workflowMessage" class="message message--info" aria-live="polite">{{ workflowMessage }}</p>
     </section>
 
     <!-- Education Mode -->
@@ -202,7 +276,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import api from '@/api/client';
@@ -227,17 +301,32 @@ const tabs = [
 const topic = ref('');
 const loading = ref(false);
 const error = ref('');
+const workflowMessage = ref('');
 const sessionId = ref('');
 const workflowRunId = ref('');
-const steps = ref<Array<{ name: string; status: string }>>([]);
+const workflowSuccess = ref(false);
+const steps = ref<Array<{ name: string; status: string; result?: Record<string, unknown> }>>([]);
 const reportContent = ref('');
+const citations = ref<Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string; source_ref_id?: string }>>([]);
+const elapsedSeconds = ref(0);
+let elapsedTimer: ReturnType<typeof setInterval> | null = null;
+
+// Export
+const exporting = ref(false);
+
+// Notes
+const showNoteEditor = ref(false);
+const noteContent = ref('');
+const savingNote = ref(false);
+const noteMessage = ref('');
+
 const replaying = ref(false);
 const replayResult = ref<{
   matched: boolean;
   original_output_sha256: string;
   replay_output_sha256: string;
 } | null>(null);
-const runs = ref<Array<{ run_id?: string; completed_at?: string; output_artifacts?: Record<string, unknown> }>>([]);
+const runs = ref<Array<{ run_id?: string; completed_at?: string; output_artifacts?: Record<string, unknown>; replay_manifest?: Record<string, unknown>; step_execution_trace?: Array<{ trace_ids?: string[] }> }>>([]);
 
 const reportPreview = computed(() => {
   if (!reportContent.value) return '';
@@ -245,6 +334,25 @@ const reportPreview = computed(() => {
     ? reportContent.value.slice(0, 2000) + '...'
     : reportContent.value;
 });
+
+const canSaveNote = computed(() => Boolean(sessionId.value && reportContent.value));
+
+function startElapsedTimer() {
+  elapsedSeconds.value = 0;
+  stopElapsedTimer();
+  elapsedTimer = setInterval(() => {
+    elapsedSeconds.value += 1;
+  }, 1000);
+}
+
+function stopElapsedTimer() {
+  if (elapsedTimer !== null) {
+    clearInterval(elapsedTimer);
+    elapsedTimer = null;
+  }
+}
+
+onBeforeUnmount(stopElapsedTimer);
 
 function stepName(name: string): string {
   const map: Record<string, string> = {
@@ -255,6 +363,100 @@ function stepName(name: string): string {
     citation_export: t('v4.stepCitation'),
   };
   return map[name] || name;
+}
+
+function stepStatusLabel(step: { name: string; status: string; result?: Record<string, unknown> }): string {
+  if (step.status === 'completed') {
+    const result = step.result;
+    if (result) {
+      if (step.name === 'topic_selection' && result.sub_questions !== undefined) {
+        return `${t('v4.completed')} (${result.sub_questions} sub-questions)`;
+      }
+      if (step.name === 'literature_retrieval' && result.records !== undefined) {
+        return `${t('v4.completed')} (${result.themes} themes, ${result.records} records)`;
+      }
+      if (step.name === 'evidence_synthesis' && result.claims !== undefined) {
+        return `${t('v4.completed')} (${result.sections} sections, ${result.claims} claims)`;
+      }
+      if (step.name === 'report_generation' && result.sections !== undefined) {
+        return `${t('v4.completed')} (${result.sections} sections)`;
+      }
+      if (step.name === 'citation_export' && result.total_citations !== undefined) {
+        return `${t('v4.completed')} (${result.total_citations} citations)`;
+      }
+    }
+    return t('v4.completed');
+  }
+  if (step.status === 'failed') return t('v4.failed');
+  return step.status;
+}
+
+function extractCitationsFromRuns(runList: typeof runs.value): Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string; source_ref_id?: string }> {
+  const result: Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string; source_ref_id?: string }> = [];
+  const seen = new Set<string>();
+
+  for (const run of runList) {
+    // Build a trace_id → snapshot entry map from retrieval_snapshot
+    const snapshotMap = new Map<string, Record<string, unknown>>();
+    const manifest = run.replay_manifest;
+    if (manifest?.retrieval_snapshot && Array.isArray(manifest.retrieval_snapshot)) {
+      for (const rec of manifest.retrieval_snapshot as Array<Record<string, unknown>>) {
+        const tid = rec.trace_id as string;
+        if (tid) snapshotMap.set(tid, rec);
+      }
+    }
+
+    // Try replay_manifest.traces first, cross-referencing with snapshot
+    if (manifest?.traces && Array.isArray(manifest.traces)) {
+      for (const tr of manifest.traces as Array<Record<string, unknown>>) {
+        const tid = tr.trace_id as string;
+        if (!tid || seen.has(tid)) continue;
+        seen.add(tid);
+        const snap = snapshotMap.get(tid) || {};
+        result.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || '',
+          citation_text: (snap.citation_text as string) || (tr.citation_text as string) || '',
+          quote: (snap.quote as string) || (tr.quote as string) || '',
+          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+          source_ref_id: (snap.source_ref_id as string) || (tr.source_ref_id as string) || undefined,
+        });
+      }
+    }
+
+    // Fallback: build from snapshot entries if no traces array
+    if (result.length === 0 && snapshotMap.size > 0) {
+      for (const [tid, snap] of snapshotMap) {
+        if (seen.has(tid)) continue;
+        seen.add(tid);
+        result.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || '',
+          citation_text: (snap.citation_text as string) || '',
+          quote: (snap.quote as string) || '',
+          document_id: (snap.document_id as string) || '',
+          source_ref_id: (snap.source_ref_id as string) || undefined,
+        });
+      }
+    }
+
+    // Last fallback: step_execution_trace trace_ids
+    if (result.length === 0) {
+      const stepTrace = run.step_execution_trace;
+      if (stepTrace) {
+        for (const step of stepTrace) {
+          if (step.trace_ids && Array.isArray(step.trace_ids)) {
+            for (const tid of step.trace_ids) {
+              if (!tid || seen.has(tid)) continue;
+              seen.add(tid);
+              result.push({ trace_id: tid, claim_text: '', citation_text: '', quote: '', document_id: '' });
+            }
+          }
+        }
+      }
+    }
+  }
+  return result;
 }
 
 async function ensureSession(): Promise<string> {
@@ -269,20 +471,30 @@ async function ensureSession(): Promise<string> {
 async function runWorkflow() {
   loading.value = true;
   error.value = '';
+  workflowMessage.value = t('v4.workflowRunning');
+  startElapsedTimer();
   try {
     const sid = await ensureSession();
+
+    // Use per-call timeout override: 120s for the long-running workflow
     const { data } = await api.post('/api/v4/research/workflow', {
       session_id: sid,
       topic: topic.value.trim(),
       workflow_type: 'full_research_flow',
+    }, {
+      timeout: 120000, // 2 minutes — backend takes ~14s for this flow
     });
 
-    if (data.success) {
-      workflowRunId.value = data.data.run_id as string;
-      steps.value = (data.data.steps as Array<{ name: string; status: string }>) || [];
-      reportContent.value = ''; // Markdown artifact is in runs
-    } else {
+    workflowSuccess.value = data.success === true;
+    workflowRunId.value = data.data.run_id as string;
+    steps.value = (data.data.steps as Array<{ name: string; status: string; result?: Record<string, unknown> }>) || [];
+    reportContent.value = '';
+
+    if (!data.success) {
+      workflowMessage.value = '';
       error.value = data.message || t('v4.workflowFailed');
+    } else {
+      workflowMessage.value = t('v4.workflowCompleted');
     }
 
     // Fetch runs for the session
@@ -293,10 +505,35 @@ async function runWorkflow() {
       const artifacts = lastRun.output_artifacts as Record<string, unknown>;
       reportContent.value = (artifacts.markdown as string) || '';
     }
+
+    // Extract citations
+    citations.value = extractCitationsFromRuns(runs.value);
   } catch (err: unknown) {
+    workflowMessage.value = '';
     error.value = getErrorMessage(err, t('v4.workflowFailed'));
+    // Still try to show partial results if session was created
+    if (sessionId.value) {
+      try {
+        const runsResp = await api.get(`/api/v4/research/session/${sessionId.value}/runs`);
+        runs.value = (runsResp.data.data.runs as Array<Record<string, unknown>>) || [];
+        const lastRun = runs.value[runs.value.length - 1];
+        if (lastRun?.output_artifacts) {
+          const artifacts = lastRun.output_artifacts as Record<string, unknown>;
+          reportContent.value = (artifacts.markdown as string) || '';
+          citations.value = extractCitationsFromRuns(runs.value);
+          // If we have data despite the error, show a partial state
+          if (reportContent.value || citations.value.length) {
+            workflowRunId.value = (lastRun.run_id as string) || '';
+            workflowMessage.value = t('v4.partialResults');
+          }
+        }
+      } catch {
+        // Ignore secondary failures
+      }
+    }
   } finally {
     loading.value = false;
+    stopElapsedTimer();
   }
 }
 
@@ -318,14 +555,68 @@ async function replayRun() {
   }
 }
 
+async function exportRecord() {
+  if (!reportContent.value) return;
+  exporting.value = true;
+  error.value = '';
+  try {
+    const blob = new Blob([reportContent.value], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hfb-research-report-${workflowRunId.value?.slice(0, 8) || 'report'}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    workflowMessage.value = t('v4.exported');
+  } catch (err: unknown) {
+    error.value = getErrorMessage(err, t('v4.exportFailed'));
+  } finally {
+    exporting.value = false;
+  }
+}
+
+async function saveNote() {
+  if (!sessionId.value || !noteContent.value.trim()) return;
+  savingNote.value = true;
+  noteMessage.value = '';
+  error.value = '';
+  try {
+    const resp = await api.post(`/api/v1/workspace/sessions/${sessionId.value}/notes`, {
+      content: noteContent.value.trim(),
+      entity_type: 'v4_research_workflow',
+      entity_id: workflowRunId.value || sessionId.value,
+      tags: 'V4研究',
+    });
+    if (resp.data?.success !== false) {
+      noteMessage.value = t('v4.noteSaved');
+      noteContent.value = '';
+      showNoteEditor.value = false;
+    } else {
+      noteMessage.value = resp.data?.message || t('v4.noteFailed');
+    }
+  } catch (err: unknown) {
+    noteMessage.value = getErrorMessage(err, t('v4.noteFailed'));
+  } finally {
+    savingNote.value = false;
+  }
+}
+
 function resetWorkflow() {
   workflowRunId.value = '';
+  workflowSuccess.value = false;
   steps.value = [];
   reportContent.value = '';
+  citations.value = [];
   replayResult.value = null;
   runs.value = [];
   sessionId.value = '';
   topic.value = '';
+  error.value = '';
+  workflowMessage.value = '';
+  elapsedSeconds.value = 0;
+  showNoteEditor.value = false;
+  noteContent.value = '';
+  noteMessage.value = '';
 }
 
 // =========================================================================
@@ -410,9 +701,24 @@ async function runViz() {
 // =========================================================================
 
 function getErrorMessage(err: unknown, fallback: string): string {
-  if (typeof err === 'object' && err !== null && 'response' in err) {
-    const resp = (err as { response?: { data?: { detail?: string } } }).response;
-    return resp?.data?.detail || fallback;
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    // Axios timeout
+    if (e.code === 'ECONNABORTED' || e.code === 'ETIMEDOUT') {
+      return t('v4.timeoutError');
+    }
+    // Axios network error
+    if (e.code === 'ERR_NETWORK' || e.message === 'Network Error') {
+      return t('v4.networkError');
+    }
+    // Axios response error
+    if ('response' in e) {
+      const resp = (e as { response?: { status?: number; data?: { detail?: string; message?: string } } }).response;
+      if (resp?.data?.detail) return resp.data.detail;
+      if (resp?.data?.message) return resp.data.message;
+      if (resp?.status) return `${t('v4.httpError')} ${resp.status}`;
+    }
+    if (e.message && typeof e.message === 'string') return e.message;
   }
   return err instanceof Error ? err.message : fallback;
 }
@@ -478,12 +784,18 @@ h4 { font-size: 14px; margin: 8px 0 4px; }
   margin-bottom: -6px;
 }
 
-input, select {
+input, select, textarea {
   min-height: 40px;
   padding: 8px 10px;
   border: 1px solid var(--color-border, #cfd6de);
   border-radius: 4px;
   font: inherit;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+  line-height: 1.6;
 }
 
 .button {
@@ -503,6 +815,12 @@ input, select {
 .button:disabled { opacity: 0.45; cursor: not-allowed; }
 .text-button { border: none; background: none; color: #8a3b2f; padding: 4px 0; cursor: pointer; }
 
+.elapsed-hint {
+  color: var(--color-text-muted, #687482);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
 .step-list {
   padding: 0;
   list-style: none;
@@ -513,15 +831,33 @@ input, select {
 
 .step-item {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  padding: 6px 10px;
+  align-items: flex-start;
+  padding: 8px 10px;
   border-radius: 4px;
   font-size: 13px;
+  gap: 4px 12px;
 }
 
 .step-item.completed { background: #e8f4ef; color: #1f5f55; }
 .step-item.failed { background: #fff0ef; color: #8f2f25; }
 .step-item.pending { background: #f5f5f5; color: #7b8794; }
+
+.step-error-detail {
+  width: 100%;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8f2f25;
+}
+
+.step-error-code {
+  width: 100%;
+  margin: 2px 0 0;
+  font-size: 11px;
+  font-family: monospace;
+  color: #a04036;
+}
 
 .replay-section {
   margin: 16px 0;
@@ -553,14 +889,118 @@ input, select {
 .report-text {
   white-space: pre-wrap;
   font-size: 12px;
-  max-height: 300px;
+  max-height: 400px;
   overflow-y: auto;
   background: #fafafa;
   padding: 8px;
+  line-height: 1.7;
+}
+
+/* Citations */
+.citations-section {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--color-border, #d8dee6);
+  border-radius: 4px;
+}
+
+.citation-detail {
+  margin: 6px 0;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border, #e8ecf0);
+}
+
+.citation-detail summary {
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.cit-index {
+  flex-shrink: 0;
+  color: #8a3b2f;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.cit-text {
+  color: var(--color-text-primary, #17202a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.citation-body {
+  padding: 8px 12px;
+  margin-top: 4px;
+  background: #fafafa;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.citation-body code {
+  font-size: 11px;
+  background: #eee;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+/* Actions & Notes */
+.actions-row {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.note-editor {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--color-border, #d8dee6);
+  border-radius: 4px;
+}
+
+.note-editor label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.note-feedback {
+  font-size: 12px;
+  color: #1f5f55;
+}
+
+.note-feedback--standalone {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #e8f4ef;
+  border-radius: 4px;
 }
 
 .runs-list { margin-top: 16px; }
-.run-entry { padding: 6px 0; border-bottom: 1px solid var(--color-border, #e8ecf0); }
+.run-entry {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border, #e8ecf0);
+  font-size: 13px;
+}
+.run-entry code {
+  font-size: 12px;
+  background: #f5f5f5;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
 
 .concept-card {
   padding: 12px;
@@ -613,5 +1053,15 @@ input, select {
   padding: 9px 11px;
   background: #fff0ef;
   color: #8f2f25;
+  border-radius: 4px;
+  margin: 8px 0;
+}
+
+.message--info {
+  padding: 9px 11px;
+  background: #e8f4ef;
+  color: #1f5f55;
+  border-radius: 4px;
+  margin: 8px 0;
 }
 </style>
