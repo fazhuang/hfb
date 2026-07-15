@@ -1,0 +1,72 @@
+{
+  "p2t1_acceptance": {
+    "version": "1.0.0",
+    "commit_sha": "31d49fa",
+    "full_sha": "31d49faeabaf84d7e33a5697f5fe471a5e3fd23c",
+    "timestamp": "2026-07-15T09:00:00Z",
+    "runtime_versions": {
+      "python": "3.13.7",
+      "node": "v26.3.0",
+      "uv": "0.11.24",
+      "playwright": "1.61.1"
+    },
+    "tasks": {
+      "T0": {
+        "status": "PASS",
+        "description": "Delivery boundary cleanup",
+        "verification": "git archive contains p2t1_formal_source.py; .playwright-cli output/playwright/ *.pdf *.png excluded"
+      },
+      "T1": {
+        "status": "PASS",
+        "description": "V4 graph SQLite/PostgreSQL dual-compatible lineage query",
+        "test_command": "uv run --extra dev pytest tests/unit/test_sprint4_v4.py::test_graph_mode_saves_query_history -q",
+        "exit_code": 0,
+        "new_tests": [
+          "test_graph_mode_sqlite_lineage_with_expanding_bind",
+          "test_graph_mode_evidence_lineage_nonempty_on_sqlite"
+        ]
+      },
+      "T2": {
+        "status": "PASS",
+        "description": "Citation → Evidence → SourceRef FK chain contract",
+        "tests": 4,
+        "assertions": [
+          "Citations JOIN evidences JOIN source_refs returns non-null rows",
+          "Missing SourceRef → transaction rolls back (no half-written rows)",
+          "Withdrawn Version → no usable Citation via FK chain",
+          "Backfill repairs orphan Evidence rows with source_ref_id"
+        ]
+      },
+      "T3": {
+        "status": "PASS",
+        "description": "Deterministic, repeatable P2T1 acceptance verifier",
+        "verification": "A=True B=True C=True on production PostgreSQL",
+        "output": "Machine-readable assertions (9 checks) with pass/fail/value/failure per item"
+      },
+      "T4": {
+        "status": "PASS",
+        "description": "Real browser E2E — V4 research workflow",
+        "steps": 7,
+        "result": "7/7 passed",
+        "evidence": "output/playwright/t4-e2e-evidence.json",
+        "citation_verification": "Backend FK JOIN confirmed: Citation → Evidence → SourceRef with valid URLs"
+      },
+      "T5": {
+        "status": "PASS",
+        "description": "Integration and release gate",
+        "checks": {
+          "git_archive_clean": true,
+          "alembic_upgrade_head": "PASS — all migrations applied including p2t1_formal_source",
+          "T1_tests_archive": "PASS — 3/3 test_graph_mode_* tests",
+          "T2_tests_archive": "PASS — 7/7 citation_persistence_fk tests",
+          "v4_integration_tests": "PASS — 61/61 test_sprint4_v4 tests",
+          "live_service_backend": "PASS — /health 200, /ready 200 (4 services healthy)",
+          "live_v4_query_endpoint": "PASS — report mode returns 5 citations with document_id+chunk_id",
+          "FK_chain_live_postgresql": "PASS — Citation → Evidence → SourceRef JOIN confirmed"
+        }
+      }
+    },
+    "overall_result": "PASS",
+    "block_release": false
+  }
+}
