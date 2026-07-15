@@ -487,6 +487,7 @@
                   🔗
               </button>
             </div>
+          </div>
 
             <!-- Graph quick-preview if available -->
             <div v-if="evidenceGraphData" class="rw-evidence-graph-preview">
