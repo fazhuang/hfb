@@ -3,6 +3,7 @@
 **日期**: 2026-07-16
 **范围**: `apps/frontend/src/**` 全量页面与交互
 **目标**: 建立首次使用引导体系：欢迎、下一步、空页面、操作提示
+**实施**: P0 全部完成 + P1 搜索无结果（commit `5a6e953`）。剩余 P1 研究工具空态、P2 脉动动画/tooltip、P3 登录页价值卡片待后续。
 
 ---
 
@@ -21,42 +22,19 @@
 
 ## 二、欢迎（Welcome）
 
-### 2.1 首页欢迎区（当前状态）
+### 2.1 首页欢迎区 ✅ 已实施
 
 **文件**: `apps/frontend/src/views/HomeView.vue`
 
-当前首页为纯系统状态页：标题 + 副标题 + 系统健康卡片 + 研究入口 CTA。
-
-**现状问题**:
-- 无平台介绍——匿名访客看到满屏技术状态卡片（后端、数据库、Redis 等），无法理解这个平台「做什么」。
-- "系统就绪" 徽章对非技术人员无意义。
-- 唯一有价值的元素是蓝紫色渐变 CTA 按钮，但未登录时显示「开始新的研究」，点击后跳转登录页——信息层级倒置。
-
-**建议改造**:
+**实施方案**:
 
 新增 **WelcomeHero** 区块（在系统状态卡片之前），根据用户状态显示不同内容：
 
-**匿名访客**:
-```
-┌──────────────────────────────────────────────┐
-│  📜 皇甫谧数字人文平台                          │
-│  古籍版本比较 · 知识图谱 · AI 辅助研究             │
-│                                              │
-│  [开始探索]  [了解更多]                         │
-└──────────────────────────────────────────────┘
-```
-- 「开始探索」→ 跳转 `/register`
-- 「了解更多」→ 跳转 `/about`
+**匿名访客**: 显示「皇甫谧数字人文平台 — 古籍版本比较 · 知识图谱 · AI 辅助研究」，按钮：「开始探索」（→ `/register`）+「了解更多」（→ `/about`）。
 
-**新注册用户**（首次登录）:
-```
-┌──────────────────────────────────────────────┐
-│  👋 欢迎，[显示名称]                            │
-│  开始你的第一次研究——只需创建一个课题即可使用全部工具  │
-│                                              │
-│  [创建研究课题]                                │
-└──────────────────────────────────────────────┘
-```
+**已登录用户**: 显示「欢迎，[显示名称] — 开始你的第一次研究」，按钮根据有无活跃课题切换：无课题→「创建研究课题」（→ `/research/new`），有课题→「返回当前研究」（→ `/research/home`）。
+
+原 `status-header`（系统标题 + 副标题）改为小号分区标签，避免与 WelcomeHero 重复。旧研究入口 CTA 按钮保留在系统状态卡片区域上方。
 
 ### 2.2 关于页面（AboutView.vue）
 
@@ -122,18 +100,17 @@
 
 **建议**: 首次登录后，在导航栏「开始研究」旁增加短暂脉动动画（3 次循环后消失），引导注意力。
 
-### 3.4 Dashboard 统计卡片
+### 3.4 Dashboard 统计卡片 ✅ 已实施
 
 **文件**: `apps/frontend/src/views/DashboardView.vue`
 
-Dashboard 包含六个统计卡片（人物、古籍、版本、条文、论文、用户），新用户看到的全是 0。
-
-**建议**: 当所有统计值均为 0 时，替换统计卡片区为引导文案：
+**实施方案**: 当所有统计值均为 0 且用户无活跃研究课题时，在统计网格下方插播引导区：
 ```
 📊 这里还没有数据
 完成首次研究后，你的统计面板将显示平台内容概览。
-[开始研究 →]
+[开始探索 →]
 ```
+统计卡片本身仍显示（值为 0）供参考，引导区为追加区块。
 
 ---
 
@@ -141,31 +118,22 @@ Dashboard 包含六个统计卡片（人物、古籍、版本、条文、论文�
 
 系统中的空状态可分为三类，每类需要不同的处理方式。
 
-### 4.1 功能未实现页（占位页）
+### 4.1 功能未实现页（占位页） ✅ 已实施
 
-| 页面 | 路由 | 当前状态 |
-|------|------|---------|
-| DocumentsView | `/documents` | `PlaceholderPage`：「文献库 — 暂无数据」 |
+| 页面 | 路由 | 实施 |
+|------|------|------|
+| DocumentsView | `/documents` | 改为 `type="coming-soon"`，描述「此功能正在建设中，敬请期待」 |
 
-**问题**: 「暂无数据」不准确——是功能未上线，不是用户没有数据。
+PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分两种占位语义，当前仅 DocumentsView 使用 `coming-soon`。
 
-**建议**: 区分两种占位语义，为 PlaceholderPage 增加 `type` prop：
-- `type="coming-soon"` — 功能开发中：「此功能正在建设中，敬请期待」
-- `type="empty"` — 数据为空：「暂无数据」
-
-DocumentsView 应使用 `coming-soon`。
-
-### 4.2 搜索无结果
+### 4.2 搜索无结果 ✅ 已实施（P1）
 
 **文件**: `apps/frontend/src/views/SearchView.vue`
 
-当前搜索初始态：「在上方输入关键词开始搜索」
-当前搜索无结果：「未找到相关结果」
-
-**建议**: 无结果时增加操作建议：
+**实施方案**: 无结果时追加操作建议：
 - 「尝试更短或更通用的关键词」
-- 「浏览[古籍库](/books)查看完整书目」
-- 「浏览[人物](/persons)查看已知人物」
+- 「浏览古籍库查看完整书目」（router-link → `/books`）
+- 「浏览人物列表」（router-link → `/persons`）
 
 ### 4.3 研究工具空态
 
@@ -265,46 +233,43 @@ DocumentsView 应使用 `coming-soon`。
 
 ## 七、实施优先级
 
-| 优先级 | 改动 | 影响范围 | 复杂度 |
-|--------|------|---------|--------|
-| P0 | HomeView 增加 WelcomeHero 区块 | HomeView.vue | 中 |
-| P0 | Dashboard 零统计引导文案 | DashboardView.vue | 低 |
-| P0 | DocumentsView 改为「功能开发中」 | DocumentsView.vue + PlaceholderPage.vue | 低 |
-| P1 | 搜索无结果增加操作建议 | SearchView.vue | 低 |
-| P1 | 研究工具空态增加上下文提示 | ResearchView, WorkspaceView, ResearchWorkspaceView | 低 |
-| P1 | 新用户 Dashboard 引导条 | DashboardView.vue | 中 |
-| P2 | 导航栏「开始研究」脉动动画 | AppNavbar.vue | 低 |
-| P2 | 关键元素 tooltip | 多个组件 | 中 |
-| P3 | 登录/注册页价值主张卡片 | LoginView.vue, RegisterView.vue | 中 |
+| 优先级 | 改动 | 状态 | 影响范围 |
+|--------|------|------|---------|
+| P0 | HomeView 增加 WelcomeHero 区块 | ✅ 完成 | HomeView.vue |
+| P0 | Dashboard 零统计引导文案 | ✅ 完成 | DashboardView.vue |
+| P0 | DocumentsView 改为「功能开发中」 | ✅ 完成 | DocumentsView.vue + PlaceholderPage.vue |
+| P1 | 搜索无结果增加操作建议 | ✅ 完成 | SearchView.vue |
+| P1 | 研究工具空态增加上下文提示 | ⬜ 待实施 | ResearchView, WorkspaceView, ResearchWorkspaceView |
+| P1 | 新用户 Dashboard 引导条 | ⬜ 待实施 | DashboardView.vue |
+| P2 | 导航栏「开始研究」脉动动画 | ⬜ 待实施 | AppNavbar.vue |
+| P2 | 关键元素 tooltip | ⬜ 待实施 | 多个组件 |
+| P3 | 登录/注册页价值主张卡片 | ⬜ 待实施 | LoginView.vue, RegisterView.vue |
 
 ---
 
 ## 八、与 i18n 的关系
 
-所有新增引导文字需同步添加到 `zh-CN.ts` 和 `en.ts`。建议新增顶级 key `onboarding`：
+已新增顶级 key `onboarding`，实际写入 `zh-CN.ts` 和 `en.ts` 的字段：
 
 ```typescript
-// zh-CN.ts
 onboarding: {
-  welcomeTitle: '欢迎来到皇甫谧数字人文平台',
-  welcomeAnonymous: '古籍版本比较 · 知识图谱 · AI 辅助研究',
-  welcomeNewUser: '欢迎，{name}',
+  welcomeTitle: '皇甫谧数字人文平台',           // 匿名访客欢迎标题
+  welcomeAnonymous: '古籍版本比较 · 知识图谱 · AI 辅助研究',  // 匿名访客副标题
+  welcomeNewUser: '欢迎，{name}',              // 已登录用户欢迎（支持插值）
   welcomeNewUserHint: '开始你的第一次研究——只需创建一个课题即可使用全部工具',
-  startExplore: '开始探索',
-  learnMore: '了解更多',
-  createFirstTopic: '创建研究课题',
-  dashboardAllZero: '这里还没有数据',
+  startExplore: '开始探索',                     // CTA 主按钮
+  learnMore: '了解更多',                        // CTA 次按钮
+  createFirstTopic: '创建研究课题',              // 无课题用户的 CTA
+  dashboardAllZero: '这里还没有数据',           // Dashboard 零统计标题
   dashboardAllZeroHint: '完成首次研究后，你的统计面板将显示平台内容概览',
-  stepGuide: '{step}/{total} 创建研究课题',
-  comingSoon: '此功能正在建设中，敬请期待',
-  searchNoResultHint: '试试更短或更通用的关键词',
-  searchNoResultBrowse: '浏览古籍库查看完整书目',
-  materialsEmptyHint: '或从文献管理导入',
-  versionsEmptyHint: '或浏览古籍版本库',
-  notesEmptyHint: '在研究过程中使用速记功能，笔记将自动汇聚于此',
-  reportsEmptyHint: '完成研究工作流后将自动生成报告',
+  comingSoon: '此功能正在建设中，敬请期待',       // PlaceholderPage type="coming-soon"
+  searchNoResultHint: '试试更短或更通用的关键词',  // 搜索无结果提示
+  searchNoResultBrowseBooks: '浏览古籍库查看完整书目',   // 搜索无结果操作链接
+  searchNoResultBrowsePersons: '浏览人物列表',          // 搜索无结果操作链接
 }
 ```
+
+已实际使用但未在 i18n 中定义 `onboarding` key 的字符串沿用现有 `common.*`、`researchEntry.*` 等（如 Dashboard 引导区的「开始探索 →」复用 `onboarding.startExplore`）。
 
 ---
 
