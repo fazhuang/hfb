@@ -398,5 +398,13 @@ export default {
     reportsEmptyHint: '完成研究工作流后将自动生成报告',
     noPassagesHint: '试试换一个关键词，或从古籍库浏览版本全文',
     noSessionsHint: '点击 + 创建研究会话，在画布中组织你的研究资料',
+    pulseStartResearch: '点击这里开始你的第一次研究',
+    localeTooltip: '切换界面语言：中文 / English',
+    themeTooltip: '切换主题：浅色 / 深色 / 跟随系统',
+    createTopicHint: '课题名称建议简洁明确，例如"针灸甲乙经版本考证"',
+    loginValueTitle: '为什么注册？',
+    loginValue1: '古籍版本比较 — 对比不同版本的针灸甲乙经条文',
+    loginValue2: '知识图谱 — 探索人物、古籍、版本之间的关系',
+    loginValue3: 'AI 辅助研究 — 智能文献检索与研究报告生成',
   },
 };

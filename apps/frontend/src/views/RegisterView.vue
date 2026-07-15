@@ -1,6 +1,7 @@
 <template>
   <div class="register-page">
-    <div class="register-card">
+    <div class="register-layout">
+      <div class="register-card">
       <h1>{{ t('auth.registerTitle') }}</h1>
       <p class="register-subtitle">{{ t('auth.registerSubtitle') }}</p>
 
@@ -67,6 +68,16 @@
         <router-link :to="{ name: 'login' }">{{ t('auth.login') }}</router-link>
       </p>
     </div>
+
+    <aside class="login-value-card">
+      <h3>{{ t('onboarding.loginValueTitle') }}</h3>
+      <ul>
+        <li>{{ t('onboarding.loginValue1') }}</li>
+        <li>{{ t('onboarding.loginValue2') }}</li>
+        <li>{{ t('onboarding.loginValue3') }}</li>
+      </ul>
+    </aside>
+  </div>
   </div>
 </template>
 
@@ -116,8 +127,16 @@ async function handleRegister(): Promise<void> {
   padding: 24px;
 }
 
-.register-card {
+.register-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  max-width: 820px;
   width: 100%;
+}
+
+.register-card {
+  flex: 1;
   max-width: 400px;
   padding: 40px 32px;
   background: var(--color-navbar-bg, #fff);
@@ -249,5 +268,59 @@ async function handleRegister(): Promise<void> {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* --- Value card (shared with LoginView) --- */
+.login-value-card {
+  flex: 0 0 260px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #f0f4ff, #faf5ff);
+  border: 1px solid rgba(43, 108, 176, 0.12);
+  border-radius: 12px;
+}
+
+.login-value-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 14px;
+}
+
+.login-value-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-value-card li {
+  font-size: 13px;
+  color: var(--color-text-secondary, #4a5568);
+  line-height: 1.5;
+  padding-left: 16px;
+  position: relative;
+}
+
+.login-value-card li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--color-accent, #2b6cb0);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .register-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .login-value-card {
+    flex: none;
+    order: -1;
+  }
 }
 </style>

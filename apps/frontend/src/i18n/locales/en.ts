@@ -396,5 +396,13 @@ export default {
     reportsEmptyHint: 'Reports are auto-generated after running a research workflow',
     noPassagesHint: 'Try a different keyword, or browse version texts from the books library',
     noSessionsHint: 'Click + to create a research session and organize your materials',
+    pulseStartResearch: 'Click here to start your first research',
+    localeTooltip: 'Switch language: 中文 / English',
+    themeTooltip: 'Switch theme: Light / Dark / Auto',
+    createTopicHint: 'Keep the topic concise and clear, e.g. "Acupuncture Classic Study"',
+    loginValueTitle: 'Why register?',
+    loginValue1: 'Version comparison — compare passages across classical text editions',
+    loginValue2: 'Knowledge graph — explore relationships between people, texts, and versions',
+    loginValue3: 'AI-assisted research — intelligent literature search and report generation',
   },
 };

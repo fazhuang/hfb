@@ -21,8 +21,10 @@
         <router-link
           :to="item.path"
           class="nav-link"
+          :class="{ 'nav-link--active': false, 'nav-link--pulse': item.pulse }"
           active-class="nav-link--active"
-          @click="menuOpen = false"
+          :title="item.pulse ? t('onboarding.pulseStartResearch') : undefined"
+          @click="menuOpen = false; showResearchPulse = false"
         >
           <span class="nav-icon">{{ item.icon }}</span>
           {{ t(item.labelKey) }}
@@ -41,7 +43,7 @@
       </template>
 
       <!-- Locale Switcher -->
-      <div class="locale-switcher">
+      <div class="locale-switcher" :title="t('onboarding.localeTooltip')">
         <button
           v-for="loc in locales"
           :key="loc"
@@ -54,7 +56,7 @@
       </div>
 
       <!-- Theme Toggle -->
-      <button class="theme-toggle" :aria-label="t('theme.dark')" @click="cycleTheme">
+      <button class="theme-toggle" :aria-label="t('theme.dark')" :title="t('onboarding.themeTooltip')" @click="cycleTheme">
         <span v-if="resolvedTheme === 'light'">☀️</span>
         <span v-else>🌙</span>
       </button>
@@ -63,7 +65,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+
+interface NavItem {
+  path: string;
+  icon: string;
+  labelKey: string;
+  pulse?: boolean;
+}
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
@@ -80,7 +89,16 @@ const router = useRouter();
 
 const menuOpen = ref(false);
 
-const navItems = computed(() => {
+// P2: Pulse animation on "Start Research" nav link — runs 5 cycles then stops
+const showResearchPulse = ref(auth.isAuthenticated && !researchStore.hasActiveResearch);
+
+onMounted(() => {
+  if (showResearchPulse.value) {
+    setTimeout(() => { showResearchPulse.value = false; }, 5000); // 5 cycles ≈ 5s
+  }
+});
+
+const navItems = computed<NavItem[]>(() => {
   const base = [
     { path: '/', icon: '🏠', labelKey: 'nav.home' },
   ];
@@ -90,7 +108,7 @@ const navItems = computed(() => {
     if (researchStore.hasActiveResearch) {
       base.push({ path: '/research/home', icon: '🔬', labelKey: 'nav.currentResearch' });
     } else {
-      base.push({ path: '/research/new', icon: '🔬', labelKey: 'nav.startResearch' });
+      base.push({ path: '/research/new', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value });
     }
   }
 
@@ -217,6 +235,32 @@ function cycleTheme() {
   background: var(--color-active, #ebf8ff);
   color: var(--color-accent, #2b6cb0);
   font-weight: 600;
+}
+
+.nav-link--pulse {
+  animation: navPulse 1s ease-in-out 5;
+  position: relative;
+}
+
+.nav-link--pulse::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  border: 2px solid var(--color-accent, #2b6cb0);
+  animation: navPulseRing 1s ease-in-out 5;
+  opacity: 0;
+}
+
+@keyframes navPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes navPulseRing {
+  0% { opacity: 0; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.08); }
+  100% { opacity: 0; transform: scale(1.15); }
 }
 
 .nav-icon {

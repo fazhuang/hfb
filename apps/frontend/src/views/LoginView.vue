@@ -1,46 +1,57 @@
 <template>
   <div class="login-page">
-    <div class="login-card">
-      <h1>{{ t('auth.loginTitle') }}</h1>
-      <p class="login-subtitle">{{ t('auth.loginSubtitle') }}</p>
+    <div class="login-layout">
+      <div class="login-card">
+        <h1>{{ t('auth.loginTitle') }}</h1>
+        <p class="login-subtitle">{{ t('auth.loginSubtitle') }}</p>
 
-      <form @submit.prevent="handleLogin" class="login-form">
-        <div class="form-group">
-          <label for="username">{{ t('auth.username') }}</label>
-          <input
-            id="username"
-            v-model="username"
-            type="text"
-            autocomplete="username"
-            :disabled="auth.loading"
-            :placeholder="t('auth.usernamePlaceholder')"
-          />
-        </div>
+        <form @submit.prevent="handleLogin" class="login-form">
+          <div class="form-group">
+            <label for="username">{{ t('auth.username') }}</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              autocomplete="username"
+              :disabled="auth.loading"
+              :placeholder="t('auth.usernamePlaceholder')"
+            />
+          </div>
 
-        <div class="form-group">
-          <label for="password">{{ t('auth.password') }}</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
-            :disabled="auth.loading"
-            :placeholder="t('auth.passwordPlaceholder')"
-          />
-        </div>
+          <div class="form-group">
+            <label for="password">{{ t('auth.password') }}</label>
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              :disabled="auth.loading"
+              :placeholder="t('auth.passwordPlaceholder')"
+            />
+          </div>
 
-        <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
+          <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
 
-        <button type="submit" class="login-btn" :disabled="auth.loading || !username || !password">
-          <span v-if="auth.loading" class="spinner"></span>
-          {{ auth.loading ? t('auth.loggingIn') : t('auth.login') }}
-        </button>
-      </form>
+          <button type="submit" class="login-btn" :disabled="auth.loading || !username || !password">
+            <span v-if="auth.loading" class="spinner"></span>
+            {{ auth.loading ? t('auth.loggingIn') : t('auth.login') }}
+          </button>
+        </form>
 
-      <p class="register-link">
-        {{ t('auth.noAccount') }}
-        <router-link :to="{ name: 'register' }">{{ t('auth.register') }}</router-link>
-      </p>
+        <p class="register-link">
+          {{ t('auth.noAccount') }}
+          <router-link :to="{ name: 'register' }">{{ t('auth.register') }}</router-link>
+        </p>
+      </div>
+
+      <aside class="login-value-card">
+        <h3>{{ t('onboarding.loginValueTitle') }}</h3>
+        <ul>
+          <li>{{ t('onboarding.loginValue1') }}</li>
+          <li>{{ t('onboarding.loginValue2') }}</li>
+          <li>{{ t('onboarding.loginValue3') }}</li>
+        </ul>
+      </aside>
     </div>
   </div>
 </template>
@@ -79,8 +90,16 @@ async function handleLogin(): Promise<void> {
   padding: 24px;
 }
 
-.login-card {
+.login-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+  max-width: 820px;
   width: 100%;
+}
+
+.login-card {
+  flex: 1;
   max-width: 400px;
   padding: 40px 32px;
   background: var(--color-navbar-bg, #fff);
@@ -190,6 +209,48 @@ async function handleLogin(): Promise<void> {
   text-decoration: underline;
 }
 
+/* --- Value card --- */
+.login-value-card {
+  flex: 0 0 260px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #f0f4ff, #faf5ff);
+  border: 1px solid rgba(43, 108, 176, 0.12);
+  border-radius: 12px;
+}
+
+.login-value-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 14px;
+}
+
+.login-value-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login-value-card li {
+  font-size: 13px;
+  color: var(--color-text-secondary, #4a5568);
+  line-height: 1.5;
+  padding-left: 16px;
+  position: relative;
+}
+
+.login-value-card li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--color-accent, #2b6cb0);
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .spinner {
   display: inline-block;
   width: 16px;
@@ -202,5 +263,17 @@ async function handleLogin(): Promise<void> {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .login-layout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .login-value-card {
+    flex: none;
+    order: -1;
+  }
 }
 </style>
