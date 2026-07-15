@@ -2,6 +2,33 @@
   <div class="dashboard">
     <h1 class="dashboard-title">{{ t('dashboard.title') }}</h1>
 
+    <!-- Research Entry Card -->
+    <div class="research-entry-card">
+      <div class="rec-content">
+        <span class="rec-icon">🔬</span>
+        <div class="rec-text">
+          <span class="rec-label" v-if="researchStore.hasActiveResearch">{{ t('nav.currentResearch') }}</span>
+          <span class="rec-label" v-else>{{ t('researchEntry.startNew') }}</span>
+          <span class="rec-desc" v-if="researchStore.hasActiveResearch">{{ researchStore.currentTopic?.name }}</span>
+          <span class="rec-desc" v-else>{{ t('researchEntry.startNewDesc') }}</span>
+        </div>
+      </div>
+      <router-link
+        v-if="researchStore.hasActiveResearch"
+        :to="{ name: 'research-home' }"
+        class="rec-action"
+      >
+        {{ t('dashboard.goToResearch') }}
+      </router-link>
+      <router-link
+        v-else
+        :to="{ name: 'research-new' }"
+        class="rec-action rec-action--primary"
+      >
+        {{ t('researchEntry.create') }}
+      </router-link>
+    </div>
+
     <!-- Stats Grid -->
     <div class="stats-grid">
       <div v-for="card in statCards" :key="card.key" class="stat-card">
@@ -88,8 +115,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
+import { useResearchStore } from '@/stores/research';
 
 const { t } = useI18n();
+
+const researchStore = useResearchStore();
 
 interface StatCard {
   key: string;
@@ -179,7 +209,74 @@ onMounted(loadDashboard);
   font-size: 22px;
   font-weight: 700;
   color: var(--color-text-primary, #1a365d);
-  margin: 0 0 24px;
+  margin: 0 0 18px;
+}
+
+/* --- Research Entry Card --- */
+.research-entry-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border: 1px solid var(--color-accent, #4299e1);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ebf8ff, #f0fff4);
+  margin-bottom: 24px;
+}
+
+.rec-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rec-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.rec-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.rec-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+}
+
+.rec-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary, #4a5568);
+  margin-top: 2px;
+}
+
+.rec-action {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary, #4a5568);
+  background: var(--color-navbar-bg, #fff);
+  transition: all 0.15s;
+}
+
+.rec-action:hover {
+  background: var(--color-hover, #edf2f7);
+}
+
+.rec-action--primary {
+  background: var(--color-accent, #4299e1);
+  color: #fff;
+  border-color: transparent;
+}
+
+.rec-action--primary:hover {
+  background: var(--color-accent-hover, #3182ce);
 }
 
 /* --- Stats Grid --- */

@@ -1,5 +1,13 @@
 <template>
   <div class="research-workflow">
+    <!-- Back to current research -->
+    <div v-if="researchStore.hasActiveResearch" class="back-to-research">
+      <router-link :to="{ name: 'research-home' }" class="back-link">
+        {{ t('researchEntry.backToResearch') }}
+      </router-link>
+      <span class="back-context">{{ researchStore.currentTopic?.name }}</span>
+    </div>
+
     <header class="workflow-header">
       <div>
         <p class="eyebrow">{{ t('research.eyebrow') }}</p>
@@ -250,8 +258,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useResearchStore } from '@/stores/research';
 
 import api from '@/api/client';
+
+const { t } = useI18n();
+const researchStore = useResearchStore();
 
 interface PassageSearchResult {
   id: string;
@@ -299,8 +311,6 @@ interface ResearchSession {
   id: string;
   title: string;
 }
-
-const { t } = useI18n();
 
 const query = ref('');
 const searchResults = ref<PassageSearchResult[]>([]);
@@ -452,11 +462,17 @@ async function restoreLatestWorkflow() {
         const response = await api.get(
           `/api/v1/research/sessions/${researchSession.id}/version-comparison`,
         );
-        comparison.value = response.data.data as ComparisonState;
+        const comparisonData = response.data?.data;
+        // null / undefined means no comparison has been configured for this
+        // session — skip it silently (backend returns 200 with data: null).
+        if (!comparisonData) {
+          continue;
+        }
+        comparison.value = comparisonData as ComparisonState;
         sessionId.value = researchSession.id;
         return;
       } catch {
-        // The session may belong to another workflow.
+        // The session may belong to another workflow or not exist.
       }
     }
   } catch {
@@ -492,6 +508,34 @@ onMounted(restoreLatestWorkflow);
 </script>
 
 <style scoped>
+/* --- Back to research --- */
+.back-to-research {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: var(--color-page-bg, #fafafa);
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  margin-bottom: 0;
+}
+
+.back-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent, #4299e1);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.back-context {
+  font-size: 12px;
+  color: var(--color-text-muted, #a0aec0);
+}
+
+/* --- existing styles unchanged --- */
 .research-workflow {
   width: min(1440px, 100%);
   margin: 0 auto;

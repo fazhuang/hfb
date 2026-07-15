@@ -79,6 +79,18 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         {
+          path: 'research/new',
+          name: 'research-new',
+          component: () => import('@/views/ResearchNewView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'research/home',
+          name: 'research-home',
+          component: () => import('@/views/ResearchHomeView.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
           path: 'research',
           name: 'research-workflow',
           component: () => import('@/views/ResearchWorkflowView.vue'),

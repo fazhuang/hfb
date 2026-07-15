@@ -1,7 +1,16 @@
 <template>
   <div class="workspace-layout">
-    <!-- Left Panel: Knowledge Navigator -->
-    <aside class="panel panel--left">
+    <!-- Back to current research -->
+    <div v-if="researchStore.hasActiveResearch" class="workspace-back-bar">
+      <router-link :to="{ name: 'research-home' }" class="back-link">
+        {{ t('researchEntry.backToResearch') }}
+      </router-link>
+      <span class="back-context">{{ researchStore.currentTopic?.name }}</span>
+    </div>
+
+    <div class="workspace-body">
+      <!-- Left Panel: Knowledge Navigator -->
+      <aside class="panel panel--left">
       <div class="panel-header">
         <h3>{{ t('workspace.knowledgeNav') }}</h3>
       </div>
@@ -144,6 +153,7 @@
         </div>
       </div>
     </aside>
+    </div> <!-- /workspace-body -->
   </div>
 </template>
 
@@ -153,10 +163,12 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
+import { useResearchStore } from '@/stores/research';
 
 const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
+const researchStore = useResearchStore();
 
 // --- State ---
 interface Session {
@@ -328,10 +340,44 @@ loadSessions();
 </script>
 
 <style scoped>
+/* --- Back to research bar --- */
+.workspace-back-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 20px;
+  background: var(--color-page-bg, #fafafa);
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  grid-column: 1 / -1;
+}
+
+.back-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent, #4299e1);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.back-context {
+  font-size: 12px;
+  color: var(--color-text-muted, #a0aec0);
+}
+
 .workspace-layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+.workspace-body {
   display: grid;
   grid-template-columns: 240px 1fr 320px;
-  height: calc(100vh - 56px);
+  flex: 1;
   overflow: hidden;
 }
 
@@ -693,7 +739,7 @@ loadSessions();
 }
 
 @media (max-width: 1024px) {
-  .workspace-layout {
+  .workspace-body {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
   }

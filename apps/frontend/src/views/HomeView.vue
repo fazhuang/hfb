@@ -5,6 +5,33 @@
       <p class="subtitle">{{ t('system.subtitle') }}</p>
     </div>
 
+    <!-- Primary Research Entry -->
+    <div class="research-entry">
+      <router-link
+        v-if="auth.isAuthenticated"
+        :to="{ name: store.hasActiveResearch ? 'research-home' : 'research-new' }"
+        class="research-entry-btn"
+      >
+        <span class="entry-icon">🔬</span>
+        <span class="entry-text">
+          <span class="entry-label">{{ store.hasActiveResearch ? t('researchEntry.backToResearch') : t('researchEntry.startNew') }}</span>
+          <span class="entry-desc" v-if="!store.hasActiveResearch">{{ t('researchEntry.startNewDesc') }}</span>
+          <span class="entry-desc" v-else>{{ store.currentTopic?.name }}</span>
+        </span>
+      </router-link>
+      <router-link
+        v-else
+        :to="{ name: 'login' }"
+        class="research-entry-btn"
+      >
+        <span class="entry-icon">🔬</span>
+        <span class="entry-text">
+          <span class="entry-label">{{ t('researchEntry.startNew') }}</span>
+          <span class="entry-desc">{{ t('auth.loginSubtitle') }}</span>
+        </span>
+      </router-link>
+    </div>
+
     <div v-if="system.checking" class="status-checking">
       <span class="spinner"></span> {{ t('system.checking') }}
     </div>
@@ -55,10 +82,14 @@
 import { computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSystemStore } from '@/stores/system';
+import { useAuthStore } from '@/stores/auth';
+import { useResearchStore } from '@/stores/research';
 import StatusCard from '@/components/common/StatusCard.vue';
 
 const { t } = useI18n();
 const system = useSystemStore();
+const auth = useAuthStore();
+const store = useResearchStore();
 
 const allConnected = computed(
   () =>
@@ -97,7 +128,57 @@ onMounted(() => {
 .subtitle {
   color: var(--color-text-muted, #718096);
   font-size: 14px;
-  margin: 0 0 40px;
+  margin: 0 0 32px;
+}
+
+/* --- Research Entry CTA --- */
+.research-entry {
+  margin-bottom: 32px;
+}
+
+.research-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 28px;
+  background: linear-gradient(135deg, #2b6cb0, #4299e1);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(43, 108, 176, 0.3);
+}
+
+.research-entry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(43, 108, 176, 0.4);
+}
+
+.entry-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.entry-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.entry-label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.entry-desc {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-top: 2px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-checking {

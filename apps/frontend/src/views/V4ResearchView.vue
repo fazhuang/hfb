@@ -1,5 +1,13 @@
 <template>
   <div class="v4-research">
+    <!-- Back to current research -->
+    <div v-if="researchStore.hasActiveResearch" class="back-to-research">
+      <router-link :to="{ name: 'research-home' }" class="back-link">
+        {{ t('researchEntry.backToResearch') }}
+      </router-link>
+      <span class="back-context">{{ researchStore.currentTopic?.name }}</span>
+    </div>
+
     <header class="v4-header">
       <div>
         <p class="eyebrow">{{ t('v4.eyebrow') }}</p>
@@ -72,7 +80,7 @@
         <!-- Report content -->
         <div v-if="reportContent" class="report-body">
           <h4>{{ t('v4.reportPreview') }}</h4>
-          <pre class="report-text">{{ reportContent }}</pre>
+          <pre class="report-text">{{ reportPreview }}</pre>
         </div>
 
         <!-- Citations -->
@@ -278,10 +286,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useResearchStore } from '@/stores/research';
 
 import api from '@/api/client';
 
 const { t } = useI18n();
+const researchStore = useResearchStore();
 
 // =========================================================================
 // Tab state
@@ -725,6 +735,31 @@ function getErrorMessage(err: unknown, fallback: string): string {
 </script>
 
 <style scoped>
+/* --- Back to research --- */
+.back-to-research {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  margin-bottom: 4px;
+}
+
+.back-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent, #4299e1);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.back-context {
+  font-size: 12px;
+  color: var(--color-text-muted, #a0aec0);
+}
+
 .v4-research {
   width: min(1200px, 100%);
   margin: 0 auto;

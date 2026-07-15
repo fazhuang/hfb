@@ -65,11 +65,8 @@ async def get_version_comparison(
 ) -> dict:
     await _require_owned_session(session, session_id, current_user)
     result = await ResearchWorkflowService(session).get_version_comparison(session_id)
-    if result is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Version comparison workflow not found",
-        )
+    # Return null data instead of 404 — the session exists and belongs
+    # to the caller; "no comparison yet" is a valid state, not an error.
     return api_response(data=result)
 
 

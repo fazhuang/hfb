@@ -70,10 +70,12 @@ import { useTheme } from '@/composables/useTheme';
 import { setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
 import type { Theme } from '@/composables/useTheme';
 import { useAuthStore } from '@/stores/auth';
+import { useResearchStore } from '@/stores/research';
 
 const { t, locale } = useI18n();
 const { theme, setTheme } = useTheme();
 const auth = useAuthStore();
+const researchStore = useResearchStore();
 const router = useRouter();
 
 const menuOpen = ref(false);
@@ -81,6 +83,18 @@ const menuOpen = ref(false);
 const navItems = computed(() => {
   const base = [
     { path: '/', icon: '🏠', labelKey: 'nav.home' },
+  ];
+
+  // Research entry: shown as primary action right after Home
+  if (auth.isAuthenticated) {
+    if (researchStore.hasActiveResearch) {
+      base.push({ path: '/research/home', icon: '🔬', labelKey: 'nav.currentResearch' });
+    } else {
+      base.push({ path: '/research/new', icon: '🔬', labelKey: 'nav.startResearch' });
+    }
+  }
+
+  base.push(
     { path: '/books', icon: '📚', labelKey: 'nav.books' },
     { path: '/literature', icon: '📄', labelKey: 'nav.literature' },
     { path: '/classical-versions', icon: '🏛️', labelKey: 'nav.classicalVersions' },
@@ -91,7 +105,7 @@ const navItems = computed(() => {
     { path: '/workspace', icon: '🧪', labelKey: 'nav.workspace' },
     { path: '/search', icon: '🔍', labelKey: 'nav.search' },
     { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
-  ];
+  );
   if (auth.canReviewDocuments) {
     base.push(
       { path: '/admin/literature-review', icon: '✅', labelKey: 'nav.adminReview' },
@@ -124,6 +138,7 @@ function switchLocale(loc: SupportedLocale) {
 
 function logout() {
   auth.logout();
+  researchStore.clearTopic();
   router.push({ name: 'home' });
 }
 
@@ -137,7 +152,6 @@ function cycleTheme() {
 </script>
 
 <style scoped>
-/* (existing styles unchanged) */
 .app-navbar {
   display: flex;
   align-items: center;
