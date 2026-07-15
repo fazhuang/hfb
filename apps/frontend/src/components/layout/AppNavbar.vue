@@ -21,7 +21,7 @@
         <router-link
           :to="item.path"
           class="nav-link"
-          :class="{ 'nav-link--active': false, 'nav-link--pulse': item.pulse }"
+          :class="{ 'nav-link--pulse': item.pulse }"
           active-class="nav-link--active"
           :title="item.pulse ? t('onboarding.pulseStartResearch') : undefined"
           @click="menuOpen = false; showResearchPulse = false"
@@ -67,13 +67,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 
-interface NavItem {
-  path: string;
-  icon: string;
-  labelKey: string;
-  pulse?: boolean;
-}
-import { useI18n } from 'vue-i18n';
+  }
 import { useRouter } from 'vue-router';
 import { useTheme } from '@/composables/useTheme';
 import { setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
