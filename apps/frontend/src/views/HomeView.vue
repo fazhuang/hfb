@@ -1,8 +1,33 @@
 <template>
   <div class="system-status">
+    <!-- Welcome Hero -->
+    <div class="welcome-hero">
+      <template v-if="auth.isAuthenticated && auth.user">
+        <h1>{{ t('onboarding.welcomeNewUser', { name: auth.user.display_name || auth.user.username }) }}</h1>
+        <p class="hero-subtitle">{{ t('onboarding.welcomeNewUserHint') }}</p>
+        <router-link
+          v-if="!store.hasActiveResearch"
+          :to="{ name: 'research-new' }"
+          class="hero-cta"
+        >{{ t('onboarding.createFirstTopic') }}</router-link>
+        <router-link
+          v-else
+          :to="{ name: 'research-home' }"
+          class="hero-cta"
+        >{{ t('researchEntry.backToResearch') }}</router-link>
+      </template>
+      <template v-else>
+        <h1>{{ t('onboarding.welcomeTitle') }}</h1>
+        <p class="hero-subtitle">{{ t('onboarding.welcomeAnonymous') }}</p>
+        <div class="hero-actions">
+          <router-link :to="{ name: 'register' }" class="hero-cta">{{ t('onboarding.startExplore') }}</router-link>
+          <router-link :to="{ name: 'about' }" class="hero-link">{{ t('onboarding.learnMore') }}</router-link>
+        </div>
+      </template>
+    </div>
+
     <div class="status-header">
-      <h1>{{ t('system.title') }}</h1>
-      <p class="subtitle">{{ t('system.subtitle') }}</p>
+      <h2 class="section-label">{{ t('system.title') }}</h2>
     </div>
 
     <!-- Primary Research Entry -->
@@ -118,17 +143,80 @@ onMounted(() => {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
-.status-header h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 4px;
+/* --- Welcome Hero --- */
+.welcome-hero {
+  margin-bottom: 40px;
+  padding: 36px 28px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(43, 108, 176, 0.12);
 }
 
-.subtitle {
-  color: var(--color-text-muted, #718096);
-  font-size: 14px;
-  margin: 0 0 32px;
+.welcome-hero h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 8px;
+}
+
+.hero-subtitle {
+  color: var(--color-text-secondary, #4a5568);
+  font-size: 15px;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.hero-cta {
+  display: inline-block;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #2b6cb0, #4299e1);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(43, 108, 176, 0.3);
+}
+
+.hero-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(43, 108, 176, 0.4);
+}
+
+.hero-link {
+  display: inline-block;
+  padding: 10px 24px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 10px;
+  color: var(--color-text-secondary, #4a5568);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.15s;
+  background: var(--color-navbar-bg, #fff);
+}
+
+.hero-link:hover {
+  border-color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent, #2b6cb0);
+}
+
+.status-header h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted, #a0aec0);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 16px;
 }
 
 /* --- Research Entry CTA --- */

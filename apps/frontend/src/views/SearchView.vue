@@ -128,6 +128,11 @@
       <div v-else-if="hasSearched && !loading" class="empty-state">
         <span class="empty-icon">📭</span>
         <p>{{ t('search.noResults') }}</p>
+        <p class="empty-hint">{{ t('onboarding.searchNoResultHint') }}</p>
+        <div class="empty-actions">
+          <router-link :to="{ name: 'books' }" class="empty-link">{{ t('onboarding.searchNoResultBrowseBooks') }}</router-link>
+          <router-link :to="{ name: 'persons' }" class="empty-link">{{ t('onboarding.searchNoResultBrowsePersons') }}</router-link>
+        </div>
       </div>
 
       <!-- Initial State -->
@@ -651,6 +656,35 @@ onMounted(() => {
 .empty-state p {
   margin: 0;
   font-size: 15px;
+}
+
+.empty-hint {
+  margin-top: 6px !important;
+  font-size: 13px !important;
+  color: var(--color-text-muted, #a0aec0);
+}
+
+.empty-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.empty-link {
+  padding: 6px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary, #718096);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.empty-link:hover {
+  border-color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent, #2b6cb0);
 }
 
 /* --- Pagination --- */

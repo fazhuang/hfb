@@ -40,6 +40,14 @@
       </div>
     </div>
 
+    <!-- Zero-data onboarding hint -->
+    <div v-if="allStatsZero && !researchStore.hasActiveResearch" class="onboarding-hint">
+      <span class="onboarding-icon">📊</span>
+      <p class="onboarding-text">{{ t('onboarding.dashboardAllZero') }}</p>
+      <p class="onboarding-sub">{{ t('onboarding.dashboardAllZeroHint') }}</p>
+      <router-link :to="{ name: 'research-new' }" class="onboarding-link">{{ t('onboarding.startExplore') }} →</router-link>
+    </div>
+
     <!-- Charts Row -->
     <div class="charts-row">
       <!-- Dynasty Chart -->
@@ -142,6 +150,8 @@ const systemInfo = ref<Record<string, unknown>>({});
 
 const maxDynasty = computed(() => Math.max(...dynastyData.value.map(d => d.count), 1));
 const maxCategory = computed(() => Math.max(...categoryData.value.map(c => c.count), 1));
+
+const allStatsZero = computed(() => statCards.value.length > 0 && statCards.value.every(c => c.value === 0));
 
 function barWidth(count: number, max: number): string {
   return `${Math.round((count / max) * 100)}%`;
@@ -472,6 +482,52 @@ onMounted(loadDashboard);
   color: var(--color-text-muted, #a0aec0);
   font-size: 13px;
   padding: 12px 0;
+}
+
+/* --- Onboarding hint (zero data) --- */
+.onboarding-hint {
+  text-align: center;
+  padding: 28px 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #f0f4ff, #faf5ff);
+  border: 1px solid rgba(43, 108, 176, 0.12);
+  border-radius: 12px;
+}
+
+.onboarding-icon {
+  font-size: 36px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.onboarding-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 4px;
+}
+
+.onboarding-sub {
+  font-size: 13px;
+  color: var(--color-text-muted, #718096);
+  margin: 0 0 14px;
+}
+
+.onboarding-link {
+  display: inline-block;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #2b6cb0, #4299e1);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+
+.onboarding-link:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

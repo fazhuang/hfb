@@ -11,6 +11,7 @@ defineProps<{
   icon: string;
   title: string;
   description: string;
+  type?: 'empty' | 'coming-soon';
 }>();
 </script>
 
