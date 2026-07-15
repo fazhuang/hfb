@@ -32,6 +32,7 @@ const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   messages: {
     'zh-CN': zhCN,
+    zh: zhCN,
     en,
   },
 });
