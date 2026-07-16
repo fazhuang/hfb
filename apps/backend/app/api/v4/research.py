@@ -379,7 +379,7 @@ async def execute_research_workflow(
                                "records": len(retrieval_snapshot)}
 
             elif step_name == "evidence_synthesis":
-                if not retrieval_snapshot:
+                if retrieval_snapshot is None:
                     raise ValueError("No retrieval snapshot")
                 step_output = rwf.execute_evidence_synthesis_from_snapshot(
                     body.topic, retrieval_snapshot, internal_traces=immutable_traces,

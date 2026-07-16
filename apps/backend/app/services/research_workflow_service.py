@@ -71,8 +71,21 @@ class ResearchWorkflowService:
         self, topic: str, snapshot: list[dict],
         internal_traces: list[InternalTraceRecord] | None = None,
     ) -> dict[str, Any]:
+        """Build evidence synthesis from a retrieval snapshot.
+
+        Returns an empty synthesis (0 sections / 0 claims) when the snapshot is
+        empty, so the workflow can complete a no-evidence report instead of
+        aborting the entire workflow with WORKFLOW_STEP_FAILED.
+        """
         if not snapshot:
-            raise ValueError("Empty retrieval snapshot — cannot synthesize")
+            return {
+                "result": {"sections": 0, "claims": 0},
+                "sections": [],
+                "evidence": [],
+                "trace_ids": [],
+                "source_documents": [],
+                "internal_traces": internal_traces or [],
+            }
         sections = _group_snapshot_into_sections(snapshot)
         evidence = _snapshot_to_evidence_list(snapshot)
         # Pass traces through unchanged — no reconstruction
@@ -97,7 +110,14 @@ class ResearchWorkflowService:
         sections = synthesis_output.get("sections", [])
         traces = synthesis_output.get("internal_traces", [])
         if not evidence and not sections:
-            raise ValueError("Empty synthesis evidence — cannot generate report")
+            return {
+                "result": {"sections": 0, "title": f"研究报告：{topic} (无可用证据)"},
+                "sections": [],
+                "evidence": [],
+                "trace_ids": [],
+                "source_documents": [],
+                "internal_traces": traces,
+            }
         report_sections = _build_report_sections(topic, evidence, sections)
         return {
             "result": {"sections": len(report_sections), "title": f"研究报告：{topic}"},
@@ -117,7 +137,12 @@ class ResearchWorkflowService:
         internal_traces: list[InternalTraceRecord] | None = None,
     ) -> dict[str, Any]:
         if not evidence:
-            raise ValueError("No evidence to export citations from")
+            return {
+                "result": {"total_citations": 0, "citations": []},
+                "trace_ids": [],
+                "source_documents": [],
+                "internal_traces": internal_traces or [],
+            }
         traces = internal_traces or []
         seen: set[str] = set()
         citations: list[dict] = []
