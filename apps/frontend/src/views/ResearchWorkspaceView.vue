@@ -1229,6 +1229,25 @@ async function sendMessage() {
           try {
             const json = JSON.parse(line.slice(6));
             if (json.content) assistantMsg.content += json.content;
+            // P2-⑤: Extract evidence + citations from structured SSE envelope
+            if (json.structured) {
+              const se = json.structured;
+              if (se.evidence && Array.isArray(se.evidence)) {
+                evidence.value = se.evidence.map((e: Record<string, unknown>) => ({
+                  entity_type: (e.entity_type as string) || '',
+                  id: (e.entity_id as string) || '',
+                  content: (e.excerpt as string) || '',
+                  title: (e.title as string) || '',
+                  score: (e.score as number) || 0,
+                }));
+              }
+              if (se.graph_context && Array.isArray(se.graph_context) && se.graph_context.length > 0) {
+                evidenceGraphData.value = {
+                  nodes: se.graph_context.flatMap((g: Record<string, unknown>) => [g.center, ...((g.neighbors as Array<unknown>) || [])]).filter(Boolean) as Array<{ id: string; type: string; label?: string }>,
+                  edges: se.graph_context.flatMap((g: Record<string, unknown>) => (g.edges as Array<unknown>) || []) as Array<{ source: string; target: string; evidence_ids?: string[] }>,
+                };
+              }
+            }
             if (json.done) break;
           } catch {
             /* partial JSON */
@@ -1237,8 +1256,8 @@ async function sendMessage() {
       }
     }
 
-    // Fetch evidence
-    if (assistantMsg.content) {
+    // Fetch evidence from structured response (primary) or fallback search
+    if (assistantMsg.content && evidence.value.length === 0) {
       try {
         const { data } = await api.get('/api/v1/search', { params: { q: msg, limit: 5 } });
         const items = (data.data?.items ?? []) as Array<EvidenceItem & { id?: string }>;
