@@ -77,6 +77,15 @@
           </li>
         </ol>
 
+        <!-- No-evidence state: workflow returned success=false with zero retrieval records -->
+        <div
+          v-if="!workflowSuccess && steps.find(s => s.name === 'literature_retrieval' && s.result?.records === 0)"
+          class="no-evidence-state"
+          data-testid="no-evidence-state"
+        >
+          <p class="no-evidence-message">{{ error }}</p>
+        </div>
+
         <!-- Report content -->
         <div v-if="reportContent" class="report-body">
           <h4>{{ t('v4.reportPreview') }}</h4>
@@ -98,8 +107,9 @@
               <p><strong>Trace ID:</strong> <code>{{ cit.trace_id }}</code></p>
               <p v-if="cit.document_id"><strong>Document ID:</strong> <code>{{ cit.document_id }}</code></p>
               <p v-if="cit.source_ref_id"><strong>SourceRef ID:</strong> <code>{{ cit.source_ref_id }}</code></p>
-              <!-- P2-⑤: Create note from citation -->
+              <!-- P2-⑤: Create note from citation — only for real citations -->
               <button
+                v-if="cit.claim_text || cit.citation_text || cit.document_id"
                 class="button button--secondary button--sm"
                 @click="noteFromCitation(cit)"
               >
@@ -495,7 +505,7 @@ function extractCitationsFromRuns(runList: typeof runs.value): Array<{ trace_id:
       }
     }
 
-    // Fallback: build from snapshot entries if no traces array
+    // Build directly from snapshot entries if no traces array present
     if (result.length === 0 && snapshotMap.size > 0) {
       for (const [tid, snap] of snapshotMap) {
         if (seen.has(tid)) continue;
@@ -508,22 +518,6 @@ function extractCitationsFromRuns(runList: typeof runs.value): Array<{ trace_id:
           document_id: (snap.document_id as string) || '',
           source_ref_id: (snap.source_ref_id as string) || undefined,
         });
-      }
-    }
-
-    // Last fallback: step_execution_trace trace_ids
-    if (result.length === 0) {
-      const stepTrace = run.step_execution_trace;
-      if (stepTrace) {
-        for (const step of stepTrace) {
-          if (step.trace_ids && Array.isArray(step.trace_ids)) {
-            for (const tid of step.trace_ids) {
-              if (!tid || seen.has(tid)) continue;
-              seen.add(tid);
-              result.push({ trace_id: tid, claim_text: '', citation_text: '', quote: '', document_id: '' });
-            }
-          }
-        }
       }
     }
   }
@@ -699,6 +693,8 @@ function reSearchFromReport() {
 
 // P2-⑤: Create a note from a citation in V4ResearchView
 async function noteFromCitation(cit: { trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }) {
+  // Reject citations with no real content
+  if (!cit.trace_id || (!cit.claim_text && !cit.citation_text && !cit.quote && !cit.document_id)) return;
   if (!sessionId.value) {
     try {
       const { data } = await api.post('/api/v1/workspace/sessions', { title: `研究 - ${topic.value || '未命名'}` });

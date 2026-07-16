@@ -379,7 +379,7 @@ async def execute_research_workflow(
                                "records": len(retrieval_snapshot)}
 
             elif step_name == "evidence_synthesis":
-                if retrieval_snapshot is None:
+                if not retrieval_snapshot:
                     raise ValueError("No retrieval snapshot")
                 step_output = rwf.execute_evidence_synthesis_from_snapshot(
                     body.topic, retrieval_snapshot, internal_traces=immutable_traces,
@@ -439,6 +439,13 @@ async def execute_research_workflow(
                 trace_ids=step_trace_ids,
             ))
 
+            # P2T1: If literature retrieval produced zero records, fail the
+            # workflow with NO_EVIDENCE instead of continuing through steps
+            # 3-5 with empty data and returning a misleading "success".
+            if step_name == "literature_retrieval" and not retrieval_snapshot:
+                workflow_failed = True
+                error_code = "NO_EVIDENCE"
+
         except Exception as exc:
             logger.exception("Workflow step %s failed for session %s — %s: %s",
                            step_name, body.session_id, type(exc).__name__, str(exc))
@@ -451,11 +458,15 @@ async def execute_research_workflow(
                           trace_ids=[]))
 
     if workflow_failed:
+        if error_code == "NO_EVIDENCE":
+            msg = f"未找到与「{body.topic}」相关的文献证据，无法生成研究报告。请尝试更换研究主题或调整检索词。"
+        else:
+            msg = f"Workflow failed: {error_code}"
         return V4ApiEnvelope(
             success=False,
             data=V4WorkflowResponse(run_id=run_id, session_id=body.session_id,
                                      steps=steps, traceability=None).model_dump(),
-            message=f"Workflow failed: {error_code}",
+            message=msg,
             traceability=None,
         )
 

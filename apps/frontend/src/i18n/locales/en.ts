@@ -306,6 +306,9 @@ export default {
     saving: 'Saving...',
     reSearch: 'Re-search from report',
     noteFromCitation: 'Note from citation',
+    noEvidenceFound: 'No literature evidence found for "{topic}". Unable to generate a research report. Please try a different topic or adjust search terms.',
+    noEvidenceTitle: 'No Evidence',
+    stepRetrievalNoEvidence: 'Completed (0 records — no evidence available)',
   },
   researchEntry: {
     startNew: 'Start New Research',

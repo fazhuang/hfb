@@ -300,4 +300,178 @@ describe('V4ResearchView', () => {
 
     expect(wrapper.find('[data-testid="viz-empty"]').exists()).toBe(true);
   });
+
+  // =========================================================================
+  // P2T1: No-evidence handling + citation integrity tests
+  // =========================================================================
+
+  it('shows no-evidence state when workflow returns success=false with zero retrieval records', async () => {
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        data: { success: true, data: { session_id: 'sess-1' }, message: 'ok' },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: false,
+          data: {
+            run_id: 'run-1',
+            session_id: 'sess-1',
+            steps: [
+              { name: 'topic_selection', status: 'completed',
+                result: { topic: 'xyz', sub_questions: 4 } },
+              { name: 'literature_retrieval', status: 'completed',
+                result: { themes: 0, records: 0 } },
+              { name: 'evidence_synthesis', status: 'pending' },
+              { name: 'report_generation', status: 'pending' },
+              { name: 'citation_export', status: 'pending' },
+            ],
+          },
+          message: '未找到与「xyz」相关的文献证据',
+        },
+      });
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { data: { runs: [] } },
+    });
+
+    const wrapper = mount(V4ResearchView, {
+      global: { plugins: [router, createPinia(), i18n] },
+    });
+
+    await wrapper.find('#v4-topic').setValue('xyz');
+    await wrapper.find('form.v4-form').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="no-evidence-state"]').exists()).toBe(true);
+    // report should NOT be shown
+    expect(wrapper.find('.report-body').exists()).toBe(false);
+    // citations section should NOT be shown
+    expect(wrapper.find('[data-testid="citations-section"]').exists()).toBe(false);
+    // export button should be disabled
+    const exportBtn = wrapper.find('[data-testid="v4-export"]');
+    expect(exportBtn.exists()).toBe(true);
+    expect((exportBtn.element as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('hides save-citation button when citation fields are all empty', async () => {
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        data: { success: true, data: { session_id: 'sess-2' }, message: 'ok' },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            run_id: 'run-2',
+            steps: [
+              { name: 'topic_selection', status: 'completed' },
+              { name: 'literature_retrieval', status: 'completed' },
+              { name: 'evidence_synthesis', status: 'completed' },
+              { name: 'report_generation', status: 'completed' },
+              { name: 'citation_export', status: 'completed' },
+            ],
+          },
+          message: 'ok',
+        },
+      });
+    // Return a run with step_execution_trace trace_ids but no retrieval_snapshot
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: {
+        data: {
+          runs: [{
+            run_id: 'run-2',
+            output_artifacts: { markdown: '# Test\n\n检索快照记录数: 0' },
+            step_execution_trace: [
+              { name: 'citation_export', status: 'completed', trace_ids: ['tid-1', 'tid-2'] },
+            ],
+            replay_manifest: null,
+          }],
+        },
+      },
+    });
+
+    const wrapper = mount(V4ResearchView, {
+      global: { plugins: [router, createPinia(), i18n] },
+    });
+
+    await wrapper.find('#v4-topic').setValue('test');
+    await wrapper.find('form.v4-form').trigger('submit');
+    await flushPromises();
+
+    // With no replay_manifest, extractCitationsFromRuns returns [] — no fake citations
+    expect(wrapper.find('[data-testid="citations-section"]').exists()).toBe(false);
+  });
+
+  it('shows save-citation button when citation has real content from snapshot', async () => {
+    (api.post as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        data: { success: true, data: { session_id: 'sess-3' }, message: 'ok' },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: true,
+          data: {
+            run_id: 'run-3',
+            steps: [
+              { name: 'topic_selection', status: 'completed' },
+              { name: 'literature_retrieval', status: 'completed' },
+              { name: 'evidence_synthesis', status: 'completed' },
+              { name: 'report_generation', status: 'completed' },
+              { name: 'citation_export', status: 'completed' },
+            ],
+          },
+          message: 'ok',
+        },
+      });
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: {
+        data: {
+          runs: [{
+            run_id: 'run-3',
+            output_artifacts: { markdown: '# 研究报告：经络' },
+            replay_manifest: {
+              retrieval_snapshot: [
+                {
+                  trace_id: 'real-trace-001',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-01',
+                  claim_text: '经络是人体运行气血的通道',
+                  quote: '经络者，所以行血气而营阴阳。',
+                  citation_text: '[doc-01:chk-01]',
+                  source_ref_id: null,
+                },
+              ],
+              traces: [{
+                trace_id: 'real-trace-001',
+                document_id: 'doc-01',
+                chunk_id: 'chk-01',
+                passage_id: 'passage-01',
+                provenance_kind: 'retrieval',
+                retrieval_score: 0.95,
+                retrieval_method: 'ili_keyword_search',
+              }],
+            },
+          }],
+        },
+      },
+    });
+
+    const wrapper = mount(V4ResearchView, {
+      global: { plugins: [router, createPinia(), i18n] },
+    });
+
+    await wrapper.find('#v4-topic').setValue('经络');
+    await wrapper.find('form.v4-form').trigger('submit');
+    await flushPromises();
+
+    // Citations section should be visible with real citations
+    expect(wrapper.find('[data-testid="citations-section"]').exists()).toBe(true);
+    // Save-citation button should be present (citation has real content)
+    const citationBody = wrapper.find('.citation-body');
+    expect(citationBody.exists()).toBe(true);
+
+    // Export button should be enabled (we have reportContent)
+    const exportBtn = wrapper.find('[data-testid="v4-export"]');
+    expect(exportBtn.exists()).toBe(true);
+    expect((exportBtn.element as HTMLButtonElement).disabled).toBe(false);
+  });
 });

@@ -790,16 +790,6 @@ function openReportDetail(run: ReportRun) {
       });
     }
   }
-  // Also try from step_execution_trace trace_ids
-  if (citations.length === 0 && run.step_execution_trace) {
-    for (const step of run.step_execution_trace) {
-      if ((step as any).trace_ids && Array.isArray((step as any).trace_ids)) {
-        for (const tid of (step as any).trace_ids) {
-          citations.push({ trace_id: tid, claim_text: '', quote: '', citation_text: '', document_id: '' });
-        }
-      }
-    }
-  }
   reportCitations.value = citations;
 }
 
@@ -836,6 +826,8 @@ async function runV4WorkflowInline() {
 
 // P2-⑤: Create a note from a citation
 async function noteFromCitation(cit: { trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }) {
+  // Reject citations with no real content
+  if (!cit.trace_id || (!cit.claim_text && !cit.citation_text && !cit.quote && !cit.document_id)) return;
   if (!quickNoteSession.value && sessions.value.length === 0) return;
   const sessionId = quickNoteSession.value || sessions.value[0]?.id;
   if (!sessionId) return;
