@@ -62,6 +62,7 @@ def _compliance_clauses(
 _SIMPLIFIED_TO_TRAD = {
     "针": ["針", "鍼", "鐵"],
     "经": ["經"],
+    "络": ["絡"],
     "黄": ["黃"],
     "书": ["書"],
     "论": ["論"],
@@ -356,6 +357,11 @@ class RetrievalService:
             terms = list(dict.fromkeys(
                 kw for kw in query.strip().split() if kw and len(kw) >= 2
             ))
+            # P2T1: Apply variant expansion even for pre-tokenized queries.
+            # build_academic_retrieval_query inserts spaces between keyword
+            # segments, which would otherwise bypass simplified→traditional
+            # expansion and cause ILIKE misses on classical OCR text.
+            return _expand_variants(terms)
         else:
             # Strip question markers
             clean = re.sub(r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)", " ", query)
