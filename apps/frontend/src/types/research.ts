@@ -25,3 +25,41 @@ export interface ResearchProjectSummary {
   /** ISO timestamp from ResearchSession.updated_at */
   updated_at: string | null;
 }
+
+/**
+ * ResearchProjectDetail — 研究课题详情
+ *
+ * Mapped from GET /api/v1/workspace/sessions/{session_id} response
+ * (_session_dict). Contains all fields the backend returns for a
+ * single-session lookup beyond the list-summary fields.
+ *
+ * No independent Project entity exists. This is the ResearchSession
+ * aggregate root viewed through the product-layer "研究课题" lens.
+ */
+export interface ResearchProjectDetail {
+  /** ResearchSession.id — UUID */
+  id: string;
+  /** ResearchSession.title */
+  title: string;
+  /** ResearchSession.context_notes — Markdown research notes */
+  context_notes?: string | null;
+  /** ResearchSession.created_at ISO timestamp */
+  created_at: string | null;
+  /** ResearchSession.updated_at ISO timestamp */
+  updated_at: string | null;
+}
+
+/**
+ * Map a raw _session_dict API response object to ResearchProjectDetail.
+ *
+ * Centralised mapping — never duplicated across components.
+ */
+export function toProjectDetail(raw: Record<string, unknown>): ResearchProjectDetail {
+  return {
+    id: String(raw.id || ''),
+    title: String(raw.title || ''),
+    context_notes: typeof raw.context_notes === 'string' ? raw.context_notes : null,
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : null,
+    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : null,
+  };
+}

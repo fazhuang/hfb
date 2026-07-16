@@ -343,14 +343,17 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **当前 Vue 文件** | `views/ResearchHomeView.vue` |
 | **当前模块** | Research |
 | **处置结论** | REBUILD |
+| **迁移状态** | 已迁移到新版 ProjectDetailPage (2026-07-17) |
 | **目标页面名称** | Project Detail |
 | **目标路由** | `/research/:projectId` |
+| **目标 Vue 文件** | `pages/research/ProjectDetailPage.vue` |
 | **合并目标** | — |
 | **保留的核心能力** | Current topic header (name + description), tools grid linking to workspace/reports/books/graph/assistant, end-research action, auto-redirect guard (no active research → home). |
 | **删除或隐藏的内容** | Direct links to Books and Graph (replaced by Library Search and Knowledge Explorer in global nav). Dashboard link (dashboard becomes redirect). Tools grid restructured to match new target pages: Workspace, Workflow, Reports, Notes, Library Search. |
 | **处置理由** | Research Home is the project hub. Renamed to Project Detail for clarity. Tools grid must reflect the new page architecture. The auto-redirect guard is preserved but scoped to `:projectId`. |
 | **前置依赖** | All linked target pages must exist (Research Workspace, Research Workflow, Report List, Notes and Evidence). Research store must support `:projectId` parameter. |
 | **风险说明** | Medium. Hard-coded router links in the tools grid must all be updated. `watch` on `store.hasActiveResearch` guarding redirect must be adapted to project-scoped state. |
+| **迁移备注** | 详情页已实现：课题概览、研究活动、报告、笔记四区块，含编辑/删除功能。数据源：`GET/PATCH/DELETE /api/v1/workspace/sessions/{id}` + `/api/v4/research/session/{id}/history` + `/api/v4/research/session/{id}/runs` + `/api/v1/workspace/sessions/{id}/notes`。无 status 字段，context_notes 作为课题说明。详见 `docs/20-product/2012-project-detail-migration.md`。 |
 
 ### 15. Research — Workspace
 
