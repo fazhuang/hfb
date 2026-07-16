@@ -16,8 +16,9 @@
 | `views/ResearchNewView.vue` | Topic creation form (name + description) | `CreateProjectDialog.vue` — modal dialog replacing the standalone page |
 | `views/ResearchWorkspaceView.vue` | `GET /api/v1/workspace/sessions` call pattern, pagination pattern, formatDate helper | Direct API call in `ProjectListPage.vue`, same pagination controls |
 | `api/client.ts` | Axios `api` instance | Reused directly — no new API wrapper |
+| - | API response from `GET /api/v1/workspace/sessions` | Mapped via `toProjectSummary()` to `ResearchProjectSummary` — a view-model, not a separate entity |
 | `composables/useApi.ts` | `useEntityList` pattern | NOT reused — sessions endpoint does not support `page`/`q` params, so custom loading/pagination logic is needed |
-| `stores/research.ts` | `ResearchTopic` interface shape (name, description, createdAt) | NOT reused — new page uses `ProjectSummary` type from `types/research.ts` backed by server API |
+| `stores/research.ts` | `ResearchTopic` interface shape (name, description, createdAt) | NOT reused — new page uses `ResearchProjectSummary` type from `types/research.ts` backed by server API |
 
 ### Shared Components Reused
 
@@ -41,24 +42,37 @@
 
 ## API Endpoints Used
 
-| Method | Endpoint | Purpose | Supported Params |
+| Method | Endpoint | Purpose | Real Backend Capabilities |
 |---|---|---|---|
-| `GET` | `/api/v1/workspace/sessions` | List user's research sessions (projects) | `limit` only (backend default: 20, page sends 100) |
-| `POST` | `/api/v1/workspace/sessions` | Create new research session (project) | `{ title: string }` |
+| `GET` | `/api/v1/workspace/sessions` | List user's research sessions | No query params accepted; hardcoded `limit=20` default; no search/pagination/status support; no `total` in response |
+| `POST` | `/api/v1/workspace/sessions` | Create new research session | Only accepts `{ title: string }` (title defaults to "未命名研究"); no description or status fields |
+
+> **Important:** The backend route handler does not accept `limit` as a query parameter. The `limit=100` sent by the frontend is silently ignored by the server — `WorkspaceService.list_sessions()` always uses the default of 20.
 
 ---
 
 ## Data Model
 
-### `ProjectSummary` (`types/research.ts`)
+### `ResearchProjectSummary` (`types/research.ts`)
 
 ```typescript
-interface ProjectSummary {
-  id: string;          // UUID from ResearchSession.id
-  title: string;       // from ResearchSession.title
-  description: null;   // workspace sessions have no description field
-  created_at: string;  // ISO timestamp
-  updated_at: string;  // ISO timestamp
+/**
+ * ResearchProjectSummary — 研究课题列表项
+ *
+ * 产品层名称：研究课题
+ * 后端实体名称：ResearchSession
+ * 当前路由参数 projectId 实际承载 ResearchSession.id
+ *
+ * This is NOT a separate database entity. It is a view-model mapped from
+ * the ResearchSession aggregate root — the only research-scoping entity
+ * in the current system.
+ */
+interface ResearchProjectSummary {
+  id: string;                    // UUID from ResearchSession.id — the sole identifier
+  title: string;                 // from ResearchSession.title
+  description?: string | null;   // NOT provided by backend; optional, not added by mapping
+  created_at: string | null;     // ISO timestamp from ResearchSession.created_at
+  updated_at: string | null;     // ISO timestamp from ResearchSession.updated_at
 }
 ```
 

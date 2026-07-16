@@ -142,7 +142,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
-import type { ProjectSummary } from '@/types/research';
+import type { ResearchProjectSummary } from '@/types/research';
 
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
@@ -155,7 +155,7 @@ import CreateProjectDialog from '@/components/research/CreateProjectDialog.vue';
 const { t } = useI18n();
 
 // ---- Single source of truth: all projects from API ----
-const allProjects = ref<ProjectSummary[]>([]);
+const allProjects = ref<ResearchProjectSummary[]>([]);
 
 // ---- UI state ----
 const loading = ref(false);
@@ -177,7 +177,7 @@ const loadingMessage = computed(() => {
 });
 
 // ---- Derived: filtered projects ----
-const filteredProjects = computed<ProjectSummary[]>(() => {
+const filteredProjects = computed<ResearchProjectSummary[]>(() => {
   const q = searchQuery.value.trim().toLowerCase();
   if (!q) return allProjects.value;
   return allProjects.value.filter((p) => {
@@ -192,7 +192,7 @@ const totalPages = computed(() =>
   Math.max(1, Math.ceil(filteredProjects.value.length / limit.value)),
 );
 
-const paginatedProjects = computed<ProjectSummary[]>(() => {
+const paginatedProjects = computed<ResearchProjectSummary[]>(() => {
   const start = (page.value - 1) * limit.value;
   return filteredProjects.value.slice(start, start + limit.value);
 });
@@ -226,14 +226,13 @@ async function loadProjects() {
   }
 }
 
-// ---- Map API response to ProjectSummary ----
-function toProjectSummary(raw: Record<string, unknown>): ProjectSummary {
+// ---- Map API response to ResearchProjectSummary ----
+function toProjectSummary(raw: Record<string, unknown>): ResearchProjectSummary {
   return {
     id: String(raw.id || ''),
     title: String(raw.title || ''),
-    description: null, // workspace sessions do not have a description field
-    created_at: String(raw.created_at || ''),
-    updated_at: String(raw.updated_at || ''),
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : null,
+    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : null,
   };
 }
 

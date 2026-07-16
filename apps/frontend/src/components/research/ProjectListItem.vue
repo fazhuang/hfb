@@ -35,12 +35,12 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import type { ProjectSummary } from '@/types/research';
+import type { ResearchProjectSummary } from '@/types/research';
 
 const { t } = useI18n();
 
 defineProps<{
-  project: ProjectSummary;
+  project: ResearchProjectSummary;
 }>();
 
 function formatDate(iso?: string | null): string {
