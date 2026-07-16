@@ -153,7 +153,11 @@
             <option value="">{{ t('researchWorkspace.allSessions') }}</option>
             <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.title }}</option>
           </select>
-          <button class="rw-btn rw-btn--sm" @click="createQuickNote" :disabled="!quickNoteText.trim()">
+          <button
+            class="rw-btn rw-btn--sm"
+            @click="createQuickNote"
+            :disabled="!quickNoteText.trim()"
+          >
             + {{ t('researchWorkspace.quickNote') }}
           </button>
         </div>
@@ -181,12 +185,20 @@
       <div v-else class="rw-notes-grid">
         <article v-for="note in notes" :key="note.id" class="rw-note-card">
           <div class="rw-note-meta">
-            <span v-if="note.entity_type" class="rw-tag rw-tag--accent">{{ note.entity_type }}</span>
+            <span v-if="note.entity_type" class="rw-tag rw-tag--accent">{{
+              note.entity_type
+            }}</span>
             <span class="rw-note-session">{{ note.session_title || '—' }}</span>
             <span class="rw-note-date">{{ formatDate(note.created_at) }}</span>
           </div>
           <p class="rw-note-content">{{ note.content }}</p>
-          <button class="rw-note-delete" @click="deleteNoteById(note.id)" :title="t('common.delete')">×</button>
+          <button
+            class="rw-note-delete"
+            @click="deleteNoteById(note.id)"
+            :title="t('common.delete')"
+          >
+            ×
+          </button>
         </article>
       </div>
     </section>
@@ -235,15 +247,14 @@
               class="rw-report-section"
             >
               <strong>{{ section.title || section.heading }}</strong>
-              <p>{{ (section.content || section.body || '').substring(0, 200) }}{{ (section.content || section.body || '').length > 200 ? '...' : '' }}</p>
+              <p>
+                {{ (section.content || section.body || '').substring(0, 200)
+                }}{{ (section.content || section.body || '').length > 200 ? '...' : '' }}
+              </p>
             </div>
           </div>
           <div class="rw-report-actions">
-            <a
-              v-if="run.run_id"
-              class="rw-btn rw-btn--sm"
-              @click="viewReport(run)"
-            >
+            <a v-if="run.run_id" class="rw-btn rw-btn--sm" @click="viewReport(run)">
               {{ t('researchWorkspace.viewReport') }}
             </a>
           </div>
@@ -323,7 +334,9 @@
           <h4>{{ t('v4.citations') }} ({{ reportCitations.length }})</h4>
           <div v-for="(cit, ci) in reportCitations" :key="ci" class="rw-citation-item">
             <span class="cit-index">#{{ ci + 1 }}</span>
-            <span class="cit-text">{{ cit.claim_text || cit.quote || cit.citation_text || '—' }}</span>
+            <span class="cit-text">{{
+              cit.claim_text || cit.quote || cit.citation_text || '—'
+            }}</span>
             <button
               v-if="cit.trace_id"
               class="rw-evidence-pill rw-evidence-pill--link"
@@ -339,6 +352,57 @@
             >
               📝 {{ t('v4.noteFromCitation') }}
             </button>
+            <!-- Save citation to collection -->
+            <button
+              class="rw-evidence-pill rw-evidence-pill--save"
+              @click="saveReportCitation(cit)"
+              :title="t('v4.saveCitation')"
+            >
+              💾 {{ t('v4.saveCitation') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions row: Export + Save Note + Citations (matches V4ResearchView) -->
+        <div class="rw-report-actions-row">
+          <button
+            class="rw-btn rw-btn--sm"
+            :disabled="!selectedReport?.output_artifacts?.markdown || v4Exporting"
+            @click="exportInlineReport"
+          >
+            {{ v4Exporting ? t('v4.exporting') : t('v4.export') }}
+          </button>
+          <button
+            class="rw-btn rw-btn--sm"
+            :disabled="v4SavingNote"
+            @click="v4ShowNoteEditor = !v4ShowNoteEditor"
+          >
+            {{ t('v4.saveNote') }}
+          </button>
+          <span v-if="v4NoteMessage" class="rw-note-feedback">{{ v4NoteMessage }}</span>
+        </div>
+
+        <!-- Note editor -->
+        <div v-if="v4ShowNoteEditor" class="rw-note-editor" style="margin-top: 8px">
+          <textarea
+            v-model="v4NoteContent"
+            rows="4"
+            :placeholder="t('v4.notePlaceholder')"
+            style="
+              width: 100%;
+              padding: 8px;
+              border: 1px solid var(--rw-border);
+              border-radius: 4px;
+            "
+          ></textarea>
+          <div style="margin-top: 6px">
+            <button
+              class="rw-btn rw-btn--sm rw-btn--primary"
+              :disabled="!v4NoteContent.trim() || v4SavingNote"
+              @click="saveInlineNote"
+            >
+              {{ v4SavingNote ? t('v4.saving') : t('v4.save') }}
+            </button>
           </div>
         </div>
       </div>
@@ -353,7 +417,7 @@
             class="rw-search-input"
             :placeholder="t('v4.topicPlaceholder')"
             :disabled="v4Loading"
-            style="flex:1"
+            style="flex: 1"
             @keyup.enter="runV4WorkflowInline"
           />
           <button
@@ -461,11 +525,19 @@
           <!-- Session picker -->
           <div class="rw-sidebar-section">
             <label class="rw-sidebar-label">{{ t('workspace.sessions') }}</label>
-            <select v-model="chatSessionId" class="rw-select rw-select--full" @change="onChatSessionChange">
+            <select
+              v-model="chatSessionId"
+              class="rw-select rw-select--full"
+              @change="onChatSessionChange"
+            >
               <option value="">{{ t('researchWorkspace.noSession') }}</option>
               <option v-for="s in sessions" :key="s.id" :value="s.id">{{ s.title }}</option>
             </select>
-            <button class="rw-btn rw-btn--sm rw-btn--full" @click="createChatSession" style="margin-top:6px">
+            <button
+              class="rw-btn rw-btn--sm rw-btn--full"
+              @click="createChatSession"
+              style="margin-top: 6px"
+            >
               + {{ t('researchWorkspace.newSession') }}
             </button>
           </div>
@@ -473,7 +545,9 @@
           <!-- Evidence -->
           <div class="rw-sidebar-section">
             <label class="rw-sidebar-label">{{ t('workspace.evidence') }}</label>
-            <div v-if="evidence.length === 0" class="rw-sidebar-empty">{{ t('workspace.evidenceHint') }}</div>
+            <div v-if="evidence.length === 0" class="rw-sidebar-empty">
+              {{ t('workspace.evidenceHint') }}
+            </div>
             <div v-for="(ev, idx) in evidence" :key="idx" class="rw-evidence-item">
               <span class="rw-evidence-type">{{ ev.entity_type }}</span>
               <span class="rw-evidence-text">{{ (ev.content || '').substring(0, 120) }}</span>
@@ -495,15 +569,19 @@
                   :title="t('researchWorkspace.viewInGraph')"
                 >
                   🔗
-              </button>
+                </button>
+              </div>
             </div>
-          </div>
 
             <!-- Graph quick-preview if available -->
             <div v-if="evidenceGraphData" class="rw-evidence-graph-preview">
               <label class="rw-sidebar-label">📊 {{ t('researchWorkspace.evidenceGraph') }}</label>
               <div class="rw-mini-graph">
-                <div v-for="n in evidenceGraphData.nodes?.slice(0, 5)" :key="n.id" class="rw-mini-node">
+                <div
+                  v-for="n in evidenceGraphData.nodes?.slice(0, 5)"
+                  :key="n.id"
+                  class="rw-mini-node"
+                >
                   <span class="rw-mini-node-type">{{ n.type }}</span>
                   {{ (n.label || n.id || '').substring(0, 20) }}
                 </div>
@@ -548,7 +626,12 @@ interface TabDef {
 const tabs = computed<TabDef[]>(() => [
   { key: 'materials', icon: '📄', label: t('researchWorkspace.materials') },
   { key: 'versions', icon: '🏛️', label: t('researchWorkspace.versions') },
-  { key: 'notes', icon: '📝', label: t('researchWorkspace.notes'), badge: String(notesCount.value) },
+  {
+    key: 'notes',
+    icon: '📝',
+    label: t('researchWorkspace.notes'),
+    badge: String(notesCount.value),
+  },
   { key: 'reports', icon: '📊', label: t('researchWorkspace.reports') },
   { key: 'research', icon: '校', label: t('nav.research') },
   { key: 'v4-research', icon: '🧬', label: t('nav.v4Research') },
@@ -557,34 +640,73 @@ const tabs = computed<TabDef[]>(() => [
 
 // ---- Types ----
 interface MaterialItem {
-  id: string; title: string; dynasty: string | null;
-  category: string | null; source_name: string | null;
+  id: string;
+  title: string;
+  dynasty: string | null;
+  category: string | null;
+  source_name: string | null;
 }
 interface VersionItem {
-  id: string; work_title: string; version_name: string;
-  dynasty: string | null; edition_type: string | null; repository: string | null;
+  id: string;
+  work_title: string;
+  version_name: string;
+  dynasty: string | null;
+  edition_type: string | null;
+  repository: string | null;
 }
-interface SessionItem { id: string; title: string; }
+interface SessionItem {
+  id: string;
+  title: string;
+}
 interface NoteItem {
-  id: string; content: string; entity_type: string | null;
-  session_title?: string; created_at?: string;
+  id: string;
+  content: string;
+  entity_type: string | null;
+  session_title?: string;
+  created_at?: string;
 }
 interface ReportRun {
-  run_id: string; topic: string; completed_at: string;
+  run_id: string;
+  topic: string;
+  completed_at: string;
   step_execution_trace?: Array<{ name: string; status: string }>;
   output_artifacts?: Record<string, any>;
+  replay_manifest?: Record<string, any>;
 }
-interface EvidenceItem { entity_type: string; content?: string; id?: string; saved?: boolean; saving?: boolean; }
+interface EvidenceItem {
+  entity_type: string;
+  content?: string;
+  id?: string;
+  saved?: boolean;
+  saving?: boolean;
+}
 
 // ---- V4 inline state ----
 const v4Topic = ref('');
 const v4Loading = ref(false);
 const v4Error = ref('');
+const v4SessionId = ref('');
 const selectedReport = ref<ReportRun | null>(null);
-const reportCitations = ref<Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }>>([]);
+const reportCitations = ref<
+  Array<{
+    trace_id: string;
+    claim_text: string;
+    quote: string;
+    citation_text: string;
+    document_id: string;
+  }>
+>([]);
+const v4Exporting = ref(false);
+const v4ShowNoteEditor = ref(false);
+const v4NoteContent = ref('');
+const v4SavingNote = ref(false);
+const v4NoteMessage = ref('');
 
 // ---- Evidence graph state ----
-interface GraphPreview { nodes: Array<{ id: string; type: string; label?: string }>; edges: Array<{ source: string; target: string; evidence_ids?: string[] }>; }
+interface GraphPreview {
+  nodes: Array<{ id: string; type: string; label?: string }>;
+  edges: Array<{ source: string; target: string; evidence_ids?: string[] }>;
+}
 const evidenceGraphData = ref<GraphPreview | null>(null);
 
 // ---- Materials state ----
@@ -684,7 +806,9 @@ async function loadSessions() {
   try {
     const { data } = await api.get('/api/v1/workspace/sessions');
     sessions.value = (data.data ?? []) as SessionItem[];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 // ================================================================
@@ -694,9 +818,14 @@ async function fetchNotesForSession() {
   notesLoading.value = true;
   try {
     if (notesSessionFilter.value) {
-      const { data } = await api.get(`/api/v1/workspace/sessions/${notesSessionFilter.value}/notes`);
+      const { data } = await api.get(
+        `/api/v1/workspace/sessions/${notesSessionFilter.value}/notes`,
+      );
       const raw = (data.data ?? []) as NoteItem[];
-      notes.value = raw.map(n => ({ ...n, session_title: sessions.value.find(s => s.id === notesSessionFilter.value)?.title }));
+      notes.value = raw.map((n) => ({
+        ...n,
+        session_title: sessions.value.find((s) => s.id === notesSessionFilter.value)?.title,
+      }));
     } else if (sessions.value.length > 0) {
       // Fetch notes from all sessions
       const allNotes: NoteItem[] = [];
@@ -704,12 +833,12 @@ async function fetchNotesForSession() {
         try {
           const { data } = await api.get(`/api/v1/workspace/sessions/${s.id}/notes`);
           const raw = (data.data ?? []) as NoteItem[];
-          allNotes.push(...raw.map(n => ({ ...n, session_title: s.title })));
-        } catch { /* skip */ }
+          allNotes.push(...raw.map((n) => ({ ...n, session_title: s.title })));
+        } catch {
+          /* skip */
+        }
       }
-      notes.value = allNotes.sort((a, b) =>
-        (b.created_at || '').localeCompare(a.created_at || '')
-      );
+      notes.value = allNotes.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     } else {
       notes.value = [];
     }
@@ -729,14 +858,18 @@ async function createQuickNote() {
     });
     quickNoteText.value = '';
     await fetchNotesForSession();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function deleteNoteById(noteId: string) {
   try {
     await api.delete(`/api/v1/workspace/notes/${noteId}`);
-    notes.value = notes.value.filter(n => n.id !== noteId);
-  } catch { /* ignore */ }
+    notes.value = notes.value.filter((n) => n.id !== noteId);
+  } catch {
+    /* ignore */
+  }
 }
 
 // ================================================================
@@ -753,10 +886,12 @@ async function fetchReports() {
         const { data } = await api.get(`/api/v4/research/session/${s.id}/runs`);
         const runs = (data.data?.runs ?? []) as ReportRun[];
         allRuns.push(...runs);
-      } catch { /* skip session */ }
+      } catch {
+        /* skip session */
+      }
     }
     reports.value = allRuns.sort((a, b) =>
-      (b.completed_at || '').localeCompare(a.completed_at || '')
+      (b.completed_at || '').localeCompare(a.completed_at || ''),
     );
   } catch (e: any) {
     reportsError.value = e?.message || t('common.error');
@@ -768,6 +903,8 @@ async function fetchReports() {
 function viewReport(run: ReportRun) {
   // Open inline in workspace instead of navigating
   selectedReport.value = run;
+  // Also extract citations so the detail view has them
+  openReportDetail(run);
   activeTab.value = 'v4-research';
 }
 
@@ -776,13 +913,25 @@ function viewReport(run: ReportRun) {
 // ================================================================
 function openReportDetail(run: ReportRun) {
   selectedReport.value = run;
-  // Extract citations from run artifacts
-  const citations: Array<{ trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }> = [];
+  // Extract citations from run — try output_artifacts.citations, then replay_manifest
+  const citations: Array<{
+    trace_id: string;
+    claim_text: string;
+    quote: string;
+    citation_text: string;
+    document_id: string;
+  }> = [];
+  const seen = new Set<string>();
+
+  // Path 1: output_artifacts.citations (populated by backend for V4 reports)
   const artifacts = run.output_artifacts;
   if (artifacts?.citations) {
-    for (const c of (artifacts.citations as Array<Record<string, unknown>>)) {
+    for (const c of artifacts.citations as Array<Record<string, unknown>>) {
+      const tid = (c.trace_id as string) || '';
+      if (!tid || seen.has(tid)) continue;
+      seen.add(tid);
       citations.push({
-        trace_id: (c.trace_id as string) || '',
+        trace_id: tid,
         claim_text: (c.claim_text as string) || '',
         quote: (c.quote as string) || '',
         citation_text: (c.citation_text as string) || '',
@@ -790,6 +939,48 @@ function openReportDetail(run: ReportRun) {
       });
     }
   }
+
+  // Path 2: replay_manifest.traces + retrieval_snapshot (cross-reference for richer metadata)
+  const manifest = run.replay_manifest;
+  if (manifest) {
+    const snapshotMap = new Map<string, Record<string, unknown>>();
+    if (manifest.retrieval_snapshot && Array.isArray(manifest.retrieval_snapshot)) {
+      for (const rec of manifest.retrieval_snapshot as Array<Record<string, unknown>>) {
+        const tid = rec.trace_id as string;
+        if (tid) snapshotMap.set(tid, rec);
+      }
+    }
+    if (manifest.traces && Array.isArray(manifest.traces)) {
+      for (const tr of manifest.traces as Array<Record<string, unknown>>) {
+        const tid = tr.trace_id as string;
+        if (!tid || seen.has(tid)) continue;
+        seen.add(tid);
+        const snap = snapshotMap.get(tid) || {};
+        citations.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || (tr.claim_text as string) || '',
+          quote: (snap.quote as string) || (tr.quote as string) || '',
+          citation_text: (snap.citation_text as string) || (tr.citation_text as string) || '',
+          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+        });
+      }
+    }
+    // Fallback: snapshot only
+    if (citations.length === 0 && snapshotMap.size > 0) {
+      for (const [tid, snap] of snapshotMap) {
+        if (seen.has(tid)) continue;
+        seen.add(tid);
+        citations.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || '',
+          quote: (snap.quote as string) || '',
+          citation_text: (snap.citation_text as string) || '',
+          document_id: (snap.document_id as string) || '',
+        });
+      }
+    }
+  }
+
   reportCitations.value = citations;
 }
 
@@ -802,12 +993,17 @@ async function runV4WorkflowInline() {
       title: `V4 研究 - ${v4Topic.value}`,
     });
     const sid = sResp.data.data.session_id as string;
+    v4SessionId.value = sid;
 
-    const wfResp = await api.post('/api/v4/research/workflow', {
-      session_id: sid,
-      topic: v4Topic.value.trim(),
-      workflow_type: 'full_research_flow',
-    }, { timeout: 120000 });
+    const wfResp = await api.post(
+      '/api/v4/research/workflow',
+      {
+        session_id: sid,
+        topic: v4Topic.value.trim(),
+        workflow_type: 'full_research_flow',
+      },
+      { timeout: 120000 },
+    );
 
     if (wfResp.data.success) {
       await loadSessions();
@@ -825,9 +1021,16 @@ async function runV4WorkflowInline() {
 }
 
 // P2-⑤: Create a note from a citation
-async function noteFromCitation(cit: { trace_id: string; claim_text: string; quote: string; citation_text: string; document_id: string }) {
+async function noteFromCitation(cit: {
+  trace_id: string;
+  claim_text: string;
+  quote: string;
+  citation_text: string;
+  document_id: string;
+}) {
   // Reject citations with no real content
-  if (!cit.trace_id || (!cit.claim_text && !cit.citation_text && !cit.quote && !cit.document_id)) return;
+  if (!cit.trace_id || (!cit.claim_text && !cit.citation_text && !cit.quote && !cit.document_id))
+    return;
   if (!quickNoteSession.value && sessions.value.length === 0) return;
   const sessionId = quickNoteSession.value || sessions.value[0]?.id;
   if (!sessionId) return;
@@ -841,7 +1044,103 @@ async function noteFromCitation(cit: { trace_id: string; claim_text: string; quo
     quickNoteText.value = '';
     await fetchNotesForSession();
     activeTab.value = 'notes';
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
+}
+
+// ================================================================
+// Report detail — Save Citation (to citation_collections)
+// ================================================================
+async function saveReportCitation(cit: {
+  trace_id: string;
+  claim_text: string;
+  quote: string;
+  citation_text: string;
+  document_id: string;
+}) {
+  if (!cit.trace_id || !v4SessionId.value) return;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${v4SessionId.value}/citations`, {
+      trace_json: JSON.stringify({
+        trace_id: cit.trace_id,
+        claim_text: cit.claim_text,
+        quote: cit.quote,
+        citation_text: cit.citation_text,
+        document_id: cit.document_id,
+      }),
+      citation_text: cit.citation_text || cit.claim_text || cit.quote || '—',
+      source_document: cit.document_id || 'unknown',
+    });
+    v4NoteMessage.value = t('v4.citationSaved');
+  } catch {
+    v4NoteMessage.value = t('v4.exportFailed');
+  }
+}
+
+// ================================================================
+// Report detail — Export Markdown
+// ================================================================
+async function exportInlineReport() {
+  if (!selectedReport.value) return;
+  v4Exporting.value = true;
+  try {
+    let content = selectedReport.value.output_artifacts?.markdown || '';
+    // Try to append notes
+    if (v4SessionId.value && content) {
+      try {
+        const notesResp = await api.get(`/api/v1/workspace/sessions/${v4SessionId.value}/notes`);
+        const notesList = (notesResp.data.data ?? []) as Array<{
+          content: string;
+          created_at: string;
+        }>;
+        if (notesList.length > 0) {
+          content += '\n\n---\n\n## 研究笔记\n\n';
+          for (const note of notesList) {
+            const date = note.created_at ? new Date(note.created_at).toLocaleString('zh-CN') : '';
+            content += `> ${date}\n\n${note.content}\n\n---\n\n`;
+          }
+        }
+      } catch {
+        /* no notes */
+      }
+    }
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hfb-research-report-${(selectedReport.value.run_id || 'report').slice(0, 8)}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    v4NoteMessage.value = t('v4.exported');
+  } catch {
+    v4NoteMessage.value = t('v4.exportFailed');
+  } finally {
+    v4Exporting.value = false;
+  }
+}
+
+// ================================================================
+// Report detail — Save Note
+// ================================================================
+async function saveInlineNote() {
+  if (!v4SessionId.value || !v4NoteContent.value.trim()) return;
+  v4SavingNote.value = true;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${v4SessionId.value}/notes`, {
+      content: v4NoteContent.value.trim(),
+      entity_type: 'v4_research_workflow',
+      entity_id: selectedReport.value?.run_id || v4SessionId.value,
+      tags: 'V4研究',
+    });
+    v4NoteMessage.value = t('v4.noteSaved');
+    v4NoteContent.value = '';
+    v4ShowNoteEditor.value = false;
+  } catch {
+    v4NoteMessage.value = t('v4.noteFailed');
+  } finally {
+    v4SavingNote.value = false;
+  }
 }
 
 // ================================================================
@@ -864,7 +1163,7 @@ async function onChatSessionChange() {
     chatSessionTitle.value = '';
     return;
   }
-  const s = sessions.value.find(x => x.id === chatSessionId.value);
+  const s = sessions.value.find((x) => x.id === chatSessionId.value);
   chatSessionTitle.value = s?.title || '';
   try {
     const { data } = await api.get(`/api/v1/workspace/sessions/${chatSessionId.value}`);
@@ -872,18 +1171,24 @@ async function onChatSessionChange() {
     if (full?.chat_history) {
       chatMessages.value = full.chat_history;
     }
-  } catch { chatMessages.value = []; }
+  } catch {
+    chatMessages.value = [];
+  }
 }
 
 async function createChatSession() {
   try {
-    const { data } = await api.post('/api/v1/workspace/sessions', { title: t('researchWorkspace.newSessionDefault') });
+    const { data } = await api.post('/api/v1/workspace/sessions', {
+      title: t('researchWorkspace.newSessionDefault'),
+    });
     const s = data.data as SessionItem;
     sessions.value.unshift(s);
     chatSessionId.value = s.id;
     chatSessionTitle.value = s.title;
     chatMessages.value = [];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function sendMessage() {
@@ -906,7 +1211,10 @@ async function sendMessage() {
     });
 
     const reader = response.body?.getReader();
-    if (!reader) { chatLoading.value = false; return; }
+    if (!reader) {
+      chatLoading.value = false;
+      return;
+    }
 
     const assistantMsg = { role: 'assistant', content: '' };
     chatMessages.value.push(assistantMsg);
@@ -922,7 +1230,9 @@ async function sendMessage() {
             const json = JSON.parse(line.slice(6));
             if (json.content) assistantMsg.content += json.content;
             if (json.done) break;
-          } catch { /* partial JSON */ }
+          } catch {
+            /* partial JSON */
+          }
         }
       }
     }
@@ -936,11 +1246,13 @@ async function sendMessage() {
 
         // Try to generate evidence graph preview
         if (items.length > 0) {
-          const entityItems = items.filter(i => i.entity_type && i.id);
+          const entityItems = items.filter((i) => i.entity_type && i.id);
           if (entityItems.length >= 1) {
             try {
               const firstEntity = entityItems[0]!;
-              const gResp = await api.get(`/api/v1/graph/neighbors/${firstEntity.entity_type}/${firstEntity.id}`);
+              const gResp = await api.get(
+                `/api/v1/graph/neighbors/${firstEntity.entity_type}/${firstEntity.id}`,
+              );
               const gData = gResp.data?.data;
               if (gData) {
                 evidenceGraphData.value = {
@@ -948,13 +1260,20 @@ async function sendMessage() {
                   edges: gData.edges || [],
                 };
               }
-            } catch { evidenceGraphData.value = null; }
+            } catch {
+              evidenceGraphData.value = null;
+            }
           }
         }
-      } catch { evidence.value = []; }
+      } catch {
+        evidence.value = [];
+      }
     }
   } catch {
-    chatMessages.value.push({ role: 'assistant', content: '⚠️ ' + t('researchWorkspace.chatError') });
+    chatMessages.value.push({
+      role: 'assistant',
+      content: '⚠️ ' + t('researchWorkspace.chatError'),
+    });
   } finally {
     chatLoading.value = false;
     nextTick(() => {
@@ -998,7 +1317,11 @@ async function saveCitation(ev: EvidenceItem, _idx: number) {
 // ================================================================
 function formatDate(iso?: string): string {
   if (!iso) return '—';
-  try { return new Date(iso).toLocaleDateString('zh-CN'); } catch { return iso; }
+  try {
+    return new Date(iso).toLocaleDateString('zh-CN');
+  } catch {
+    return iso;
+  }
 }
 
 function stepName(name: string): string {
@@ -1014,7 +1337,10 @@ function stepName(name: string): string {
 
 function stepIcon(status?: string): string {
   const map: Record<string, string> = {
-    completed: '✓', failed: '✗', running: '⋯', pending: '○',
+    completed: '✓',
+    failed: '✗',
+    running: '⋯',
+    pending: '○',
   };
   return map[status || 'pending'] || '○';
 }
@@ -1026,7 +1352,12 @@ function stepIcon(status?: string): string {
 onMounted(() => {
   // Honor ?tab= query param
   const tabParam = route.query.tab as string | undefined;
-  if (tabParam && ['materials', 'versions', 'notes', 'reports', 'research', 'v4-research', 'assistant'].includes(tabParam)) {
+  if (
+    tabParam &&
+    ['materials', 'versions', 'notes', 'reports', 'research', 'v4-research', 'assistant'].includes(
+      tabParam,
+    )
+  ) {
     activeTab.value = tabParam;
   }
   // Honor ?run= query param (deep-link to a specific report)
@@ -1053,7 +1384,7 @@ loadSessions().then(async () => {
     const pendingRunId = (window as any).__pendingRunId as string | undefined;
     if (pendingRunId) {
       delete (window as any).__pendingRunId;
-      const found = reports.value.find(r => r.run_id === pendingRunId);
+      const found = reports.value.find((r) => r.run_id === pendingRunId);
       if (found) openReportDetail(found);
     }
   });
@@ -1112,7 +1443,9 @@ watch(sessions, () => {
   color: var(--color-accent, #4299e1);
   text-decoration: none;
 }
-.back-link:hover { text-decoration: underline; }
+.back-link:hover {
+  text-decoration: underline;
+}
 
 .back-context {
   font-size: 12px;
@@ -1184,7 +1517,9 @@ watch(sessions, () => {
   font-weight: 600;
 }
 
-.rw-tab-icon { font-size: 16px; }
+.rw-tab-icon {
+  font-size: 16px;
+}
 
 .rw-tab-badge {
   font-size: 10px;
@@ -1203,8 +1538,14 @@ watch(sessions, () => {
 }
 
 @keyframes rwFadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .rw-panel-header {
@@ -1254,8 +1595,12 @@ watch(sessions, () => {
   border: none;
   cursor: pointer;
 }
-.rw-action-link:hover { text-decoration: underline; }
-.rw-action-link--btn { font-family: inherit; }
+.rw-action-link:hover {
+  text-decoration: underline;
+}
+.rw-action-link--btn {
+  font-family: inherit;
+}
 
 /* ---- List ---- */
 .rw-list {
@@ -1270,7 +1615,9 @@ watch(sessions, () => {
 .rw-list-item {
   border-bottom: 1px solid var(--color-border, #e2e8f0);
 }
-.rw-list-item:last-child { border-bottom: none; }
+.rw-list-item:last-child {
+  border-bottom: none;
+}
 
 .rw-item-link {
   display: flex;
@@ -1281,7 +1628,9 @@ watch(sessions, () => {
   transition: background 0.1s;
   flex-wrap: wrap;
 }
-.rw-item-link:hover { background: var(--color-hover, #edf2f7); }
+.rw-item-link:hover {
+  background: var(--color-hover, #edf2f7);
+}
 
 .rw-item-title {
   font-size: 14px;
@@ -1312,7 +1661,9 @@ watch(sessions, () => {
   white-space: nowrap;
 }
 
-.rw-tag--dim { opacity: 0.7; }
+.rw-tag--dim {
+  opacity: 0.7;
+}
 .rw-tag--accent {
   color: var(--color-accent, #2b6cb0);
   border-color: var(--color-accent, #2b6cb0);
@@ -1335,17 +1686,29 @@ watch(sessions, () => {
   transition: all 0.15s;
   white-space: nowrap;
 }
-.rw-btn:hover:not(:disabled) { background: var(--color-hover, #edf2f7); }
-.rw-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.rw-btn:hover:not(:disabled) {
+  background: var(--color-hover, #edf2f7);
+}
+.rw-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-.rw-btn--sm { padding: 5px 12px; font-size: 12px; }
+.rw-btn--sm {
+  padding: 5px 12px;
+  font-size: 12px;
+}
 .rw-btn--primary {
   background: var(--color-accent, #4299e1);
   color: #fff;
   border-color: var(--color-accent, #4299e1);
 }
-.rw-btn--primary:hover { background: var(--color-accent-hover, #3182ce); }
-.rw-btn--full { width: 100%; }
+.rw-btn--primary:hover {
+  background: var(--color-accent-hover, #3182ce);
+}
+.rw-btn--full {
+  width: 100%;
+}
 
 /* ---- Select ---- */
 .rw-select {
@@ -1356,17 +1719,25 @@ watch(sessions, () => {
   background: var(--color-page-bg, #fafafa);
   color: var(--color-text-primary, #1a365d);
 }
-.rw-select--full { width: 100%; }
-.rw-select--inline { margin-top: 8px; }
+.rw-select--full {
+  width: 100%;
+}
+.rw-select--inline {
+  margin-top: 8px;
+}
 
 /* ---- Loading / Error / Empty ---- */
-.rw-loading, .rw-error, .rw-empty {
+.rw-loading,
+.rw-error,
+.rw-empty {
   text-align: center;
   padding: 40px 20px;
   font-size: 14px;
   color: var(--color-text-muted, #a0aec0);
 }
-.rw-error { color: var(--color-error-text, #c53030); }
+.rw-error {
+  color: var(--color-error-text, #c53030);
+}
 .rw-empty-hint {
   margin-top: 4px;
   font-size: 13px;
@@ -1390,8 +1761,13 @@ watch(sessions, () => {
   cursor: pointer;
   font-size: 13px;
 }
-.rw-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
-.rw-pagination button:hover:not(:disabled) { background: var(--color-hover, #edf2f7); }
+.rw-pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.rw-pagination button:hover:not(:disabled) {
+  background: var(--color-hover, #edf2f7);
+}
 
 /* ---- Notes ---- */
 .rw-quick-note {
@@ -1434,7 +1810,9 @@ watch(sessions, () => {
   background: var(--color-navbar-bg, #fff);
   transition: box-shadow 0.15s;
 }
-.rw-note-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.rw-note-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
 
 .rw-note-meta {
   display: flex;
@@ -1472,8 +1850,13 @@ watch(sessions, () => {
   padding: 2px 6px;
   border-radius: 4px;
 }
-.rw-note-card:hover .rw-note-delete { opacity: 1; }
-.rw-note-delete:hover { background: rgba(197, 48, 48, 0.1); color: var(--color-error-text, #c53030); }
+.rw-note-card:hover .rw-note-delete {
+  opacity: 1;
+}
+.rw-note-delete:hover {
+  background: rgba(197, 48, 48, 0.1);
+  color: var(--color-error-text, #c53030);
+}
 
 /* ---- Reports ---- */
 .rw-reports-list {
@@ -1559,6 +1942,26 @@ watch(sessions, () => {
   gap: 8px;
 }
 
+.rw-report-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+}
+
+.rw-note-feedback {
+  font-size: 13px;
+  color: var(--color-text-muted, #718096);
+  margin-left: 8px;
+}
+
+.rw-evidence-pill--save {
+  background: var(--color-bg, #f7fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+
 /* ---- Assistant ---- */
 .rw-panel--assistant {
   height: calc(100vh - 280px);
@@ -1637,10 +2040,24 @@ watch(sessions, () => {
   border-radius: 8px 8px 8px 0;
   padding: 8px 12px;
 }
-.rw-chat-role { font-size: 12px; margin-bottom: 2px; display: block; }
+.rw-chat-role {
+  font-size: 12px;
+  margin-bottom: 2px;
+  display: block;
+}
 
-.rw-typing { animation: rwBlink 1s infinite; }
-@keyframes rwBlink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.rw-typing {
+  animation: rwBlink 1s infinite;
+}
+@keyframes rwBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 
 .rw-chat-input-row {
   display: flex;
@@ -1659,7 +2076,9 @@ watch(sessions, () => {
   background: var(--color-page-bg, #fafafa);
   color: var(--color-text-primary, #1a365d);
 }
-.rw-chat-input:focus { border-color: var(--color-accent, #4299e1); }
+.rw-chat-input:focus {
+  border-color: var(--color-accent, #4299e1);
+}
 
 .rw-chat-send {
   width: 36px;
@@ -1673,7 +2092,10 @@ watch(sessions, () => {
   flex-shrink: 0;
   transition: opacity 0.15s;
 }
-.rw-chat-send:disabled { opacity: 0.4; cursor: not-allowed; }
+.rw-chat-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ---- Assistant Sidebar ---- */
 .rw-assistant-sidebar {
@@ -1684,7 +2106,9 @@ watch(sessions, () => {
   overflow-y: auto;
 }
 
-.rw-sidebar-section { /* no extra styles needed */ }
+.rw-sidebar-section {
+  /* no extra styles needed */
+}
 
 .rw-sidebar-label {
   font-size: 11px;
@@ -1733,7 +2157,9 @@ watch(sessions, () => {
   padding: 2px 4px;
   border-radius: 4px;
   opacity: 0.5;
-  transition: opacity 0.15s, background 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
 }
 .rw-evidence-action-btn:hover {
   opacity: 1;

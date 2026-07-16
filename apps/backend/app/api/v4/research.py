@@ -487,7 +487,16 @@ async def execute_research_workflow(
         workflow_type=body.workflow_type,
         steps=steps,
         output_artifacts={"markdown": markdown, "artifact_id": artifact_id,
-                          "created_at": run_completed_at},
+                          "created_at": run_completed_at,
+                          "citations": [
+                              {
+                                  "trace_id": c.get("trace_id", ""),
+                                  "citation_text": c.get("citation_text", ""),
+                                  "document_id": c.get("document_id", ""),
+                                  "quote": c.get("quote", ""),
+                              }
+                              for c in (synthesis_output or {}).get("evidence", [])[:200]
+                          ]},
         query_history_ids=query_history_ids,
         started_at=run_started_at,
         completed_at=run_completed_at,
