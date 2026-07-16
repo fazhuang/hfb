@@ -232,8 +232,9 @@ interface ChapterNavItem {
 const chapterNav = ref<ChapterNavItem[]>([]);
 
 function parseChapterNav(contentText: string): ChapterNavItem[] {
-  // Match 卷X·章节名  pattern in 四庫全書 format
-  const re = /(?:^|\n)\s*鍼?灸?甲?乙?經?\s*(卷[一二三四五六七八九十百]+)(?:·([^\n]{2,30}))?/g;
+  // Match 卷X·章节名  pattern in 四庫全書 format.
+  // Generic approach that works for any canonical text with 卷 markers.
+  const re = /(?:^|\n)\s*[鍼灸甲乙經]*\s*(卷[一二三四五六七八九十百]+)(?:·([^\n]{2,40}))?/g;
   const items: ChapterNavItem[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(contentText)) !== null) {

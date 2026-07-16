@@ -357,8 +357,9 @@ function navigateToItem(item: SearchResultItem) {
   } else if (item.entity_type === 'document') {
     router.push(`/literature/${item.id}`);
   } else if (item.entity_type === 'passage') {
-    // Navigate to the parent version with passage highlight
-    const vid = (item.metadata as Record<string, unknown>)?.version_id as string | undefined;
+    // Passage results link to parent version detail with anchor
+    const meta = item.metadata as Record<string, unknown> | undefined;
+    const vid = meta?.version_id as string | undefined;
     if (vid) {
       router.push(`/versions/${vid}?passage=${item.id}`);
     }

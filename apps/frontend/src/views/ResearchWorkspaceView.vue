@@ -1229,7 +1229,8 @@ async function sendMessage() {
           try {
             const json = JSON.parse(line.slice(6));
             if (json.content) assistantMsg.content += json.content;
-            // P2-⑤: Extract evidence + citations from structured SSE envelope
+            // P2-⑤: Extract evidence + citations from structured SSE envelope.
+            // SSE final frame carries structured.envelope before `done`.
             if (json.structured) {
               const se = json.structured;
               if (se.evidence && Array.isArray(se.evidence)) {
