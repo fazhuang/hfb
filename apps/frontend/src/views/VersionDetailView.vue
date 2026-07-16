@@ -61,7 +61,7 @@
         </div>
 
         <div v-else class="passages-list">
-          <div v-for="(p, idx) in passages" :key="p.id" class="passage-item">
+          <div v-for="(p, idx) in passages" :key="p.id" :id="`passage-${p.id}`" class="passage-item">
             <div class="passage-order">{{ p.order ?? idx + 1 }}</div>
             <div class="passage-text">{{ p.content_text }}</div>
             <div v-if="p.translation" class="passage-translation">{{ p.translation }}</div>
@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import api from '@/api/client';
@@ -148,7 +148,16 @@ async function fetchPassages() {
 
 onMounted(() => {
   fetchVersion();
-  fetchPassages();
+  fetchPassages().then(() => {
+    // If navigated from search with ?passage=xxx, scroll to that passage
+    const pid = route.query.passage as string | undefined;
+    if (pid) {
+      nextTick(() => {
+        const el = document.getElementById(`passage-${pid}`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+  });
 });
 </script>
 

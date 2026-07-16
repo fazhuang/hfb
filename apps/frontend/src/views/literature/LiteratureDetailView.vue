@@ -250,21 +250,13 @@ function parseChapterNav(contentText: string): ChapterNavItem[] {
 // P1-⑥: Jump to chapter offset in content text
 function jumpToChapter(ch: ChapterNavItem) {
   contentExpanded.value = true;
-  // Scroll to the chapter anchor in the fulltext div
-  const el = document.querySelector('.content-text');
-  if (el) {
-    // Find the chapter marker position roughly within the text node
-    const text = el.textContent || '';
-    const pos = text.indexOf(ch.label);
-    if (pos >= 0 && pos < text.length * 0.5) {
-      // Create a range at roughly the right position
-      el.scrollTop = 0;
-    } else if (pos >= 0) {
-      // Estimate scroll position: each char ~1 line's worth of height
-      const estimatedScroll = (pos / text.length) * el.scrollHeight;
-      el.scrollTop = estimatedScroll;
-    }
-  }
+  const el = document.querySelector<HTMLElement>('.content-text');
+  if (!el) return;
+  // Use offset directly — it's the byte index from the raw content_text string.
+  // The <div> textContent matches the raw string closely enough for scroll estimation.
+  const total = (el.textContent || '').length || el.scrollHeight;
+  const ratio = Math.min(ch.offset / total, 1);
+  el.scrollTop = ratio * el.scrollHeight;
 }
 
 const reviewStatus = ref('pending_review');

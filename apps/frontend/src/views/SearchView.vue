@@ -356,8 +356,14 @@ function navigateToItem(item: SearchResultItem) {
     router.push(`/versions/${item.id}`);
   } else if (item.entity_type === 'document') {
     router.push(`/literature/${item.id}`);
+  } else if (item.entity_type === 'passage') {
+    // Navigate to the parent version with passage highlight
+    const vid = (item.metadata as Record<string, unknown>)?.version_id as string | undefined;
+    if (vid) {
+      router.push(`/versions/${vid}?passage=${item.id}`);
+    }
   }
-  // passage and paper have no dedicated detail page yet — clicking shows nothing
+  // paper has no dedicated detail page yet — clicking shows nothing
 }
 
 // P1-①: Add search result as research topic
