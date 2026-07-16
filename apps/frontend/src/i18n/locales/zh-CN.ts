@@ -326,6 +326,8 @@ export default {
     toolSearchDesc: '跨古籍、人物、版本的全文检索',
     toolGraphDesc: '实体关系网络交互探索',
     toolBooksDesc: '古籍书目浏览与版本查阅',
+    toolReportsDesc: '查看和管理研究报告',
+    toolAssistantDesc: 'AI 智能问答与引用保存',
     endResearch: '结束本次研究',
     backToResearch: '← 返回当前研究',
     noActiveResearch: '尚未创建研究课题',

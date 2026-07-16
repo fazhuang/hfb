@@ -324,6 +324,8 @@ export default {
     toolSearchDesc: 'Full-text search across books, persons, and versions',
     toolGraphDesc: 'Interactive entity relationship exploration',
     toolBooksDesc: 'Browse ancient texts and their versions',
+    toolReportsDesc: 'View and manage research reports',
+    toolAssistantDesc: 'AI-powered Q&A with citation saving',
     endResearch: 'End This Research',
     backToResearch: '← Back to Current Research',
     noActiveResearch: 'No active research topic',

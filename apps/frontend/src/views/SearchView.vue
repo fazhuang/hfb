@@ -352,12 +352,22 @@ function navigateToItem(item: SearchResultItem) {
     router.push(`/books/${item.id}`);
   } else if (item.entity_type === 'person') {
     router.push(`/persons/${item.id}`);
+  } else if (item.entity_type === 'version') {
+    router.push(`/versions/${item.id}`);
+  } else if (item.entity_type === 'document') {
+    router.push(`/literature/${item.id}`);
   }
-  // Other types have no dedicated detail page yet
+  // passage and paper have no dedicated detail page yet — clicking shows nothing
 }
 
 // P1-①: Add search result as research topic
 function addToTopic(item: SearchResultItem) {
+  if (researchStore.hasActiveResearch) {
+    const confirmed = window.confirm(
+      `当前已有研究课题"${researchStore.currentTopic?.name}"，是否覆盖？`
+    );
+    if (!confirmed) return;
+  }
   researchStore.setTopic(item.title, item.snippet || item.subtitle || '');
   router.push({ name: 'research-home' });
 }

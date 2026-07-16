@@ -12,31 +12,15 @@
       </button>
     </header>
 
-    <!-- Research tools grid -->
+    <!-- Research tools grid — minimum flow: Search → Workspace → Report -->
     <section class="rh-section">
       <h2 class="rh-section-title">{{ t('researchEntry.toolsTitle') }}</h2>
       <div class="rh-tools-grid">
-        <router-link :to="{ name: 'research-workspace', query: { tab: 'research' } }" class="rh-tool-card">
-          <span class="rh-tool-icon">校</span>
+        <router-link :to="{ name: 'search' }" class="rh-tool-card rh-tool-card--featured">
+          <span class="rh-tool-icon">🔍</span>
           <div>
-            <span class="rh-tool-name">{{ t('nav.research') }}</span>
-            <span class="rh-tool-desc">{{ t('researchEntry.toolResearchDesc') }}</span>
-          </div>
-        </router-link>
-
-        <router-link :to="{ name: 'research-workspace', query: { tab: 'v4-research' } }" class="rh-tool-card">
-          <span class="rh-tool-icon">🧬</span>
-          <div>
-            <span class="rh-tool-name">{{ t('nav.v4Research') }}</span>
-            <span class="rh-tool-desc">{{ t('researchEntry.toolV4Desc') }}</span>
-          </div>
-        </router-link>
-
-        <router-link :to="{ name: 'research-workspace' }" class="rh-tool-card">
-          <span class="rh-tool-icon">🧪</span>
-          <div>
-            <span class="rh-tool-name">{{ t('nav.workspace') }}</span>
-            <span class="rh-tool-desc">{{ t('researchEntry.toolWorkspaceDesc') }}</span>
+            <span class="rh-tool-name">{{ t('nav.search') }}</span>
+            <span class="rh-tool-desc">{{ t('researchEntry.toolSearchDesc') }}</span>
           </div>
         </router-link>
 
@@ -48,11 +32,19 @@
           </div>
         </router-link>
 
-        <router-link :to="{ name: 'search' }" class="rh-tool-card">
-          <span class="rh-tool-icon">🔍</span>
+        <router-link :to="{ name: 'research-workspace', query: { tab: 'reports' } }" class="rh-tool-card">
+          <span class="rh-tool-icon">📊</span>
           <div>
-            <span class="rh-tool-name">{{ t('nav.search') }}</span>
-            <span class="rh-tool-desc">{{ t('researchEntry.toolSearchDesc') }}</span>
+            <span class="rh-tool-name">{{ t('researchWorkspace.reports') }}</span>
+            <span class="rh-tool-desc">{{ t('researchEntry.toolReportsDesc') }}</span>
+          </div>
+        </router-link>
+
+        <router-link :to="{ name: 'books' }" class="rh-tool-card">
+          <span class="rh-tool-icon">📚</span>
+          <div>
+            <span class="rh-tool-name">{{ t('nav.books') }}</span>
+            <span class="rh-tool-desc">{{ t('researchEntry.toolBooksDesc') }}</span>
           </div>
         </router-link>
 
@@ -64,11 +56,11 @@
           </div>
         </router-link>
 
-        <router-link :to="{ name: 'books' }" class="rh-tool-card">
-          <span class="rh-tool-icon">📚</span>
+        <router-link :to="{ name: 'research-workspace', query: { tab: 'assistant' } }" class="rh-tool-card">
+          <span class="rh-tool-icon">🤖</span>
           <div>
-            <span class="rh-tool-name">{{ t('nav.books') }}</span>
-            <span class="rh-tool-desc">{{ t('researchEntry.toolBooksDesc') }}</span>
+            <span class="rh-tool-name">{{ t('researchWorkspace.assistant') }}</span>
+            <span class="rh-tool-desc">{{ t('researchEntry.toolAssistantDesc') }}</span>
           </div>
         </router-link>
       </div>
