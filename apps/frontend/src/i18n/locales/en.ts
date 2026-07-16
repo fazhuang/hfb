@@ -370,6 +370,9 @@ export default {
   },
   literature: {
     fulltext: 'Full Text',
+    expandFulltext: 'Expand ▼',
+    collapseFulltext: 'Collapse ▲',
+    bookChapterHint: 'Chapter navigation parsed from fulltext volume markers. For per-chapter reading, visit the Classical Versions library.',
     metadata: 'Metadata',
     adminActions: 'Admin Actions',
     review: 'Review',

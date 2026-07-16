@@ -71,7 +71,35 @@
       <!-- Content -->
       <section v-if="doc.content_text" class="panel">
         <h3>{{ t('literature.fulltext') }}</h3>
-        <div class="content-text">{{ doc.content_text }}</div>
+        <button
+          class="expand-fulltext-btn"
+          @click="contentExpanded = !contentExpanded"
+        >
+          {{ contentExpanded ? t('literature.collapseFulltext') : t('literature.expandFulltext') }}
+        </button>
+        <div :class="['content-text', { expanded: contentExpanded }]">{{ doc.content_text }}</div>
+      </section>
+
+      <!-- P2-①: Quick chapter jump — parse chapter markers from fulltext -->
+      <section v-if="chapterNav.length && doc.content_text" class="panel">
+        <h3>{{ t('book.chapters') }}</h3>
+        <div class="chapter-nav-list">
+          <div
+            v-for="(ch, idx) in chapterNav"
+            :key="idx"
+            class="chapter-nav-item"
+            @click="jumpToChapter(ch)"
+          >
+            <span class="chapter-nav-label">{{ ch.label }}</span>
+            <span class="chapter-nav-preview">{{ ch.preview }}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- P1-⑥: Linked Book → full chapter reading view -->
+      <section class="panel">
+        <h3>{{ t('book.versions') }} &amp; {{ t('book.chapters') }}</h3>
+        <p class="panel-hint">{{ t('literature.bookChapterHint') }}</p>
       </section>
 
       <!-- Metadata -->
@@ -193,6 +221,51 @@ const REVIEW_LABELS: Record<string, string> = {
 const doc = ref<DocumentDetail | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const contentExpanded = ref(false);
+
+// P2-①: Quick chapter nav parsed from content_text
+interface ChapterNavItem {
+  label: string;
+  preview: string;
+  offset: number;
+}
+const chapterNav = ref<ChapterNavItem[]>([]);
+
+function parseChapterNav(contentText: string): ChapterNavItem[] {
+  // Match 卷X·章节名  pattern in 四庫全書 format
+  const re = /(?:^|\n)\s*鍼?灸?甲?乙?經?\s*(卷[一二三四五六七八九十百]+)(?:·([^\n]{2,30}))?/g;
+  const items: ChapterNavItem[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(contentText)) !== null) {
+    const label = m[1] + (m[2] ? `·${m[2]}` : '');
+    const start = Math.max(0, m.index + m[0].length);
+    const preview = contentText.substring(start, start + 40).replace(/\s+/g, '');
+    if (!items.find(it => it.label === label)) {
+      items.push({ label, preview, offset: m.index });
+    }
+  }
+  return items.slice(0, 30);
+}
+
+// P1-⑥: Jump to chapter offset in content text
+function jumpToChapter(ch: ChapterNavItem) {
+  contentExpanded.value = true;
+  // Scroll to the chapter anchor in the fulltext div
+  const el = document.querySelector('.content-text');
+  if (el) {
+    // Find the chapter marker position roughly within the text node
+    const text = el.textContent || '';
+    const pos = text.indexOf(ch.label);
+    if (pos >= 0 && pos < text.length * 0.5) {
+      // Create a range at roughly the right position
+      el.scrollTop = 0;
+    } else if (pos >= 0) {
+      // Estimate scroll position: each char ~1 line's worth of height
+      const estimatedScroll = (pos / text.length) * el.scrollHeight;
+      el.scrollTop = estimatedScroll;
+    }
+  }
+}
 
 const reviewStatus = ref('pending_review');
 const reviewLoading = ref(false);
@@ -217,6 +290,11 @@ async function fetchDoc() {
     const d = (data.data ?? data) as DocumentDetail;
     doc.value = d;
     reviewStatus.value = d.review_status;
+
+    // P2-①: Parse chapter navigation from content_text
+    if (d.content_text) {
+      chapterNav.value = parseChapterNav(d.content_text);
+    }
   } catch (e: unknown) {
     error.value = (e as Error).message ?? 'Failed to fetch';
   } finally {
@@ -341,7 +419,37 @@ async function askAIAboutDoc() {
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
 .mono { font-family: var(--font-mono); font-size: 12px; }
 
-.content-text { font-size: 14px; line-height: 1.9; color: var(--color-text-primary, #1a365d); white-space: pre-wrap; max-height: 600px; overflow-y: auto; }
+.content-text { font-size: 14px; line-height: 1.9; color: var(--color-text-primary, #1a365d); white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+.content-text.expanded { max-height: none; overflow-y: visible; }
+
+.expand-fulltext-btn {
+  margin: 8px 0 0;
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid var(--color-accent, #2b6cb0);
+  color: var(--color-accent, #2b6cb0);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.expand-fulltext-btn:hover { background: var(--color-active, #ebf8ff); }
+
+/* P2-①: Chapter nav from parsed content */
+.chapter-nav-list { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.chapter-nav-item {
+  display: flex; gap: 12px; padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: 13px;
+  cursor: pointer;
+}
+.chapter-nav-item:hover { background: var(--color-hover, #edf2f7); }
+.chapter-nav-label {
+  font-weight: 600; color: var(--color-accent, #2b6cb0);
+  min-width: 80px; white-space: nowrap;
+}
+.chapter-nav-preview { color: var(--color-text-muted, #718096); font-size: 12px; }
+
+.panel-hint { font-size: 13px; color: var(--color-text-muted, #718096); margin: 4px 0; }
 .abstract-text { font-size: 14px; line-height: 1.8; color: var(--color-text-secondary, #4a5568); }
 .external-link { color: var(--color-accent, #2b6cb0); text-decoration: underline; }
 

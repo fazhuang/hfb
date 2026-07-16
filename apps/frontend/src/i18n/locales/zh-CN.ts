@@ -372,6 +372,9 @@ export default {
   },
   literature: {
     fulltext: '全文内容',
+    expandFulltext: '展开全文 ▼',
+    collapseFulltext: '折叠全文 ▲',
+    bookChapterHint: '章节导航解析自全文卷标。如需按章节逐篇阅读，请前往古籍版本库。',
     metadata: '基本信息',
     adminActions: '管理操作',
     review: '审核',
