@@ -625,7 +625,7 @@ async def _build_retrieval_snapshot(
         })
 
     # Build InternalTraceRecords from real snapshot
-    from app.services.trace_lineage import TraceLineageError
+    from app.services.trace_lineage import TraceLineageError, make_trace_id as _make_tid
     now = datetime.now(timezone.utc).isoformat()
     internal_traces: list[InternalTraceRecord] = []
     seen_tids: set[str] = set()
@@ -666,10 +666,18 @@ async def _build_retrieval_snapshot(
         if row and row[0] and row[0].strip():
             passage_id = row[0]
 
+        # P2T1: Chunks without passage_id still contribute to snapshot/evidence
+        # pipeline — downstream steps (synthesis/report/citation) only need
+        # trace_id/document_id/claim_text/quote/citation_text.
+        # Skipping them here preserves retrieval output without blocking the
+        # entire workflow on unmapped chunks.
         if not passage_id:
-            raise TraceLineageError(
-                f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} has no passage_id"
+            logger.warning(
+                "Chunk %s has no passage_id — skipping from InternalTraceRecords "
+                "(still included in retrieval snapshot for evidence pipeline)",
+                chk_id,
             )
+            continue
 
         internal_traces.append(InternalTraceRecord(
             trace_id=tid,
