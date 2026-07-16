@@ -1,0 +1,137 @@
+<template>
+  <div class="plt-toolbar">
+    <div class="plt-search">
+      <label for="plt-search-input" class="sr-only">{{ t('common.search') }}</label>
+      <input
+        id="plt-search-input"
+        v-model="query"
+        type="search"
+        :placeholder="t('researchWorkspace.searchMaterials')"
+        class="plt-search-input"
+        @input="onSearch"
+      />
+    </div>
+    <div class="plt-clear">
+      <button
+        v-if="hasFilters"
+        class="plt-clear-btn"
+        @click="onClear"
+      >
+        {{ t('researchWorkspace.clearFilters') || '清除筛选' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+/**
+ * ProjectListToolbar — search and filter bar for the project list.
+ *
+ * NOTE: The backend GET /api/v1/workspace/sessions does NOT support
+ * server-side search or status filtering. Search is applied client-side
+ * by filtering the current page of results. The status filter is also
+ * applied client-side. This is documented in the migration doc.
+ */
+import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
+const props = withDefaults(defineProps<{
+  modelValue?: string;
+}>(), {
+  modelValue: '',
+});
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+  search: [query: string];
+  clear: [];
+}>();
+
+const query = ref(props.modelValue);
+
+const hasFilters = computed(() => query.value.trim().length > 0);
+
+// Debounce search to avoid excessive filtering
+let timer: ReturnType<typeof setTimeout> | null = null;
+
+function onSearch() {
+  emit('update:modelValue', query.value);
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(() => {
+    emit('search', query.value.trim());
+  }, 300);
+}
+
+function onClear() {
+  query.value = '';
+  emit('update:modelValue', '');
+  emit('search', '');
+  emit('clear');
+}
+</script>
+
+<style scoped>
+.plt-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.plt-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 480px;
+}
+
+.plt-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--color-page-bg, #fafafa);
+  color: var(--color-text-primary, #1a365d);
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.plt-search-input:focus {
+  outline: none;
+  border-color: var(--color-accent, #4299e1);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.plt-clear-btn {
+  padding: 10px 16px;
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--color-navbar-bg, #fff);
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--color-text-secondary, #4a5568);
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.plt-clear-btn:hover {
+  background: var(--color-hover, #edf2f7);
+  border-color: var(--color-accent, #2b6cb0);
+}
+
+/* Screen-reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>
