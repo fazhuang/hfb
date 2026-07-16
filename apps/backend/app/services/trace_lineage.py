@@ -9,6 +9,7 @@ No per-file _make_trace_id copies.
 from __future__ import annotations
 
 import json
+import logging
 import math
 import uuid
 from dataclasses import dataclass
@@ -25,6 +26,8 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.passage import Passage
 from app.models.version import Version
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Trace ID generation — 128-bit stable identifier (UUIDv5)
@@ -223,11 +226,17 @@ async def build_internal_traces(
         # Get real passage_id from DB
         passage_id = passage_map.get(chk_id, "")
 
+        # P2T1: Gracefully skip chunks without passage_id.
+        # Classical Chinese documents (e.g. 四庫全書本) have chunks that cannot
+        # be matched to modernized Passage text. Their evidence is still valid
+        # for the snapshot/evidence pipeline — only InternalTraceRecord is skipped.
         if not passage_id:
-            raise TraceLineageError(
-                f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} has no passage_id — "
-                f"cannot construct InternalTraceRecord for trace {tid}"
+            logger.warning(
+                "build_internal_traces: chunk %s has no passage_id — "
+                "skipping from InternalTraceRecords (still valid for evidence)",
+                chk_id,
             )
+            continue
 
         # P2T1: Reject chunks whose passage version is withdrawn
         if passage_id not in checked_withdrawn:

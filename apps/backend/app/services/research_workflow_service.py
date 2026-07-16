@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -22,6 +23,8 @@ from app.services.trace_lineage import (
     make_trace_id,
 )
 from app.services.workspace_service import WorkspaceService
+
+logger = logging.getLogger(__name__)
 
 
 class ResearchWorkflowService:
