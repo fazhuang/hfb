@@ -157,6 +157,43 @@ const router = createRouter({
           component: () => import('@/views/admin/SourcePolicyView.vue'),
           meta: { requiresAuth: true, requiresSuperAdmin: true },
         },
+
+        // ============================================================
+        // NEW Research Workflow pages (UI Sprint 1 scaffold)
+        // ============================================================
+
+        // Project List (note: /research currently occupied by a legacy redirect above;
+        // this route becomes active once the redirect is retired per page disposition)
+        {
+          path: 'research',
+          name: 'research-project-list',
+          component: () => import('@/pages/research/ProjectListPage.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'research/:projectId',
+          name: 'research-project-detail',
+          component: () => import('@/pages/research/ProjectDetailPage.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'research/:projectId/workspace',
+          name: 'research-project-workspace',
+          component: () => import('@/pages/research/ResearchWorkspacePage.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'research/:projectId/workflow',
+          name: 'research-project-workflow',
+          component: () => import('@/pages/research/ResearchWorkflowPage.vue'),
+          meta: { requiresAuth: true },
+        },
+        {
+          path: 'research/:projectId/result/:runId',
+          name: 'research-project-result',
+          component: () => import('@/pages/research/ResearchResultPage.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
   ],
