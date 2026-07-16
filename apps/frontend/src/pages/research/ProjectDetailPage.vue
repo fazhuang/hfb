@@ -1,46 +1,45 @@
 <template>
-  <div class="project-detail-page">
-    <header class="pdp-header">
-      <h1>Project Header</h1>
-    </header>
+  <div class="research-page">
+    <ResearchPageHeader
+      title="项目详情"
+      description="研究项目概览与工具入口"
+      :breadcrumbs="[
+        { label: 'Research', to: '/research' },
+        { label: '项目详情' },
+      ]"
+    />
 
-    <section class="pdp-section">
-      <h2>Project Metadata</h2>
-      <p>Placeholder</p>
-    </section>
+    <div class="pdp-body">
+      <section class="pdp-section">
+        <h2>项目元数据</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="pdp-section">
-      <h2>Research Sessions</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="pdp-section">
+        <h2>研究会话</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="pdp-section">
-      <h2>Reports</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="pdp-section">
+        <h2>报告</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="pdp-section">
-      <h2>Notes</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="pdp-section">
+        <h2>笔记</h2>
+        <p>占位</p>
+      </section>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Scaffold — no business logic, no API, no store
+import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 </script>
 
 <style scoped>
-.project-detail-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px 20px;
-}
-
-.pdp-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+.pdp-body {
+  padding: 24px 32px;
 }
 
 .pdp-section {
@@ -48,5 +47,11 @@
   padding: 16px;
   border: 1px dashed var(--color-border, #e2e8f0);
   border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .pdp-body {
+    padding: 16px 20px;
+  }
 }
 </style>

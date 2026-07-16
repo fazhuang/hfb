@@ -1,61 +1,63 @@
 <template>
-  <div class="research-workflow-page">
-    <h1>Research Workflow</h1>
+  <div class="research-page">
+    <ResearchPageHeader
+      title="研究流程"
+      description="五步研究工作流"
+      :breadcrumbs="[
+        { label: 'Research', to: '/research' },
+        { label: '项目名称', to: '/research/1' },
+        { label: '工作流' },
+      ]"
+    />
 
-    <div class="rwf-steps">
-      <div class="rwf-step">
-        <div class="rwf-step-number">1</div>
-        <div class="rwf-step-content">
-          <h2>Research Question</h2>
-          <p>Placeholder</p>
+    <div class="rwf-body">
+      <div class="rwf-steps">
+        <div class="rwf-step">
+          <div class="rwf-step-number">1</div>
+          <div class="rwf-step-content">
+            <h2>研究问题</h2>
+            <p>占位</p>
+          </div>
         </div>
-      </div>
 
-      <div class="rwf-step-connector">
-        <span>&darr;</span>
-      </div>
+        <div class="rwf-step-connector"><span>&darr;</span></div>
 
-      <div class="rwf-step">
-        <div class="rwf-step-number">2</div>
-        <div class="rwf-step-content">
-          <h2>Document Selection</h2>
-          <p>Placeholder</p>
+        <div class="rwf-step">
+          <div class="rwf-step-number">2</div>
+          <div class="rwf-step-content">
+            <h2>文献选择</h2>
+            <p>占位</p>
+          </div>
         </div>
-      </div>
 
-      <div class="rwf-step-connector">
-        <span>&darr;</span>
-      </div>
+        <div class="rwf-step-connector"><span>&darr;</span></div>
 
-      <div class="rwf-step">
-        <div class="rwf-step-number">3</div>
-        <div class="rwf-step-content">
-          <h2>AI Analysis</h2>
-          <p>Placeholder</p>
+        <div class="rwf-step">
+          <div class="rwf-step-number">3</div>
+          <div class="rwf-step-content">
+            <h2>AI 分析</h2>
+            <p>占位</p>
+          </div>
         </div>
-      </div>
 
-      <div class="rwf-step-connector">
-        <span>&darr;</span>
-      </div>
+        <div class="rwf-step-connector"><span>&darr;</span></div>
 
-      <div class="rwf-step">
-        <div class="rwf-step-number">4</div>
-        <div class="rwf-step-content">
-          <h2>Evidence Review</h2>
-          <p>Placeholder</p>
+        <div class="rwf-step">
+          <div class="rwf-step-number">4</div>
+          <div class="rwf-step-content">
+            <h2>证据审查</h2>
+            <p>占位</p>
+          </div>
         </div>
-      </div>
 
-      <div class="rwf-step-connector">
-        <span>&darr;</span>
-      </div>
+        <div class="rwf-step-connector"><span>&darr;</span></div>
 
-      <div class="rwf-step">
-        <div class="rwf-step-number">5</div>
-        <div class="rwf-step-content">
-          <h2>Research Report</h2>
-          <p>Placeholder</p>
+        <div class="rwf-step">
+          <div class="rwf-step-number">5</div>
+          <div class="rwf-step-content">
+            <h2>研究报告</h2>
+            <p>占位</p>
+          </div>
         </div>
       </div>
     </div>
@@ -63,18 +65,16 @@
 </template>
 
 <script setup lang="ts">
-// Scaffold — no business logic, no API, no store
+import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 </script>
 
 <style scoped>
-.research-workflow-page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 24px 20px;
+.rwf-body {
+  padding: 24px 32px;
 }
 
 .rwf-steps {
-  margin-top: 24px;
+  max-width: 720px;
 }
 
 .rwf-step {
@@ -119,5 +119,11 @@
   padding: 8px 0;
   color: var(--color-text-muted, #a0aec0);
   font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .rwf-body {
+    padding: 16px 20px;
+  }
 }
 </style>

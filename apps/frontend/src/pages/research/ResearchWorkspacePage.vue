@@ -1,58 +1,53 @@
 <template>
-  <div class="research-workspace-page">
-    <header class="rwp-header">
-      <h1>Research Header</h1>
-    </header>
+  <div class="research-page">
+    <ResearchPageHeader
+      title="研究工作台"
+      description="AI 辅助研究空间"
+      :breadcrumbs="[
+        { label: 'Research', to: '/research' },
+        { label: '项目名称', to: '/research/1' },
+        { label: '工作台' },
+      ]"
+    />
 
     <div class="rwp-body">
       <main class="rwp-main">
         <section class="rwp-section">
-          <h2>Continue Research</h2>
-          <p>Placeholder</p>
+          <h2>继续研究</h2>
+          <p>占位</p>
         </section>
 
         <section class="rwp-section">
-          <h2>Recent Projects</h2>
-          <p>Placeholder</p>
+          <h2>最近项目</h2>
+          <p>占位</p>
         </section>
 
         <section class="rwp-section">
-          <h2>Recent Reports</h2>
-          <p>Placeholder</p>
+          <h2>最近报告</h2>
+          <p>占位</p>
         </section>
 
         <section class="rwp-section">
-          <h2>Recent Notes</h2>
-          <p>Placeholder</p>
+          <h2>最近笔记</h2>
+          <p>占位</p>
         </section>
       </main>
 
       <aside class="rwp-sidebar">
-        <h2>AI Research Assistant</h2>
-        <p>Placeholder</p>
+        <h2>AI 研究助手</h2>
+        <p>占位</p>
       </aside>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Scaffold — no business logic, no API, no store
+import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 </script>
 
 <style scoped>
-.research-workspace-page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 20px;
-}
-
-.rwp-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-}
-
 .rwp-body {
+  padding: 24px 32px;
   display: flex;
   gap: 24px;
 }
@@ -73,5 +68,20 @@
   padding: 16px;
   border: 1px dashed var(--color-border, #e2e8f0);
   border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .rwp-body {
+    flex-direction: column;
+    padding: 16px 20px;
+  }
+
+  .rwp-sidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--color-border, #e2e8f0);
+    padding-left: 0;
+    padding-top: 16px;
+  }
 }
 </style>

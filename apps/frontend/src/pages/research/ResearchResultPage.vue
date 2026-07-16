@@ -1,46 +1,46 @@
 <template>
-  <div class="research-result-page">
-    <header class="rrp-header">
-      <h1>Report Header</h1>
-    </header>
+  <div class="research-page">
+    <ResearchPageHeader
+      title="研究结果"
+      description="研究报告与证据审查"
+      :breadcrumbs="[
+        { label: 'Research', to: '/research' },
+        { label: '项目名称', to: '/research/1' },
+        { label: '结果' },
+      ]"
+    />
 
-    <section class="rrp-section">
-      <h2>Summary</h2>
-      <p>Placeholder</p>
-    </section>
+    <div class="rrp-body">
+      <section class="rrp-section">
+        <h2>摘要</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="rrp-section">
-      <h2>Evidence</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="rrp-section">
+        <h2>证据</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="rrp-section">
-      <h2>Citation</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="rrp-section">
+        <h2>引用</h2>
+        <p>占位</p>
+      </section>
 
-    <section class="rrp-section">
-      <h2>Export</h2>
-      <p>Placeholder</p>
-    </section>
+      <section class="rrp-section">
+        <h2>导出</h2>
+        <p>占位</p>
+      </section>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Scaffold — no business logic, no API, no store
+import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 </script>
 
 <style scoped>
-.research-result-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px 20px;
-}
-
-.rrp-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+.rrp-body {
+  padding: 24px 32px;
 }
 
 .rrp-section {
@@ -48,5 +48,11 @@
   padding: 16px;
   border: 1px dashed var(--color-border, #e2e8f0);
   border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+  .rrp-body {
+    padding: 16px 20px;
+  }
 }
 </style>

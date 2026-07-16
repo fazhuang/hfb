@@ -6,6 +6,9 @@ import { useAuthStore } from '@/stores/auth';
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    // ============================================================
+    // Legacy routes — all preserved, no modifications
+    // ============================================================
     {
       path: '/',
       component: DefaultLayout,
@@ -88,6 +91,92 @@ const router = createRouter({
           component: () => import('@/views/ResearchHomeView.vue'),
           meta: { requiresAuth: true },
         },
+
+        // ============================================================
+        // NEW Research App Shell routes (UI Sprint 2)
+        // Placed BEFORE legacy /research redirect so they take precedence.
+        // All legacy routes below remain for backward compatibility.
+        // ============================================================
+
+        // Research module
+        {
+          path: 'research',
+          component: () => import('@/layouts/ResearchAppLayout.vue'),
+          meta: { section: 'research', requiresAuth: true },
+          children: [
+            {
+              path: '',
+              name: 'research-project-list',
+              component: () => import('@/pages/research/ProjectListPage.vue'),
+            },
+            {
+              path: ':projectId',
+              name: 'research-project-detail',
+              component: () => import('@/pages/research/ProjectDetailPage.vue'),
+            },
+            {
+              path: ':projectId/workspace',
+              name: 'research-project-workspace',
+              component: () => import('@/pages/research/ResearchWorkspacePage.vue'),
+            },
+            {
+              path: ':projectId/workflow',
+              name: 'research-project-workflow',
+              component: () => import('@/pages/research/ResearchWorkflowPage.vue'),
+            },
+            {
+              path: ':projectId/result/:runId',
+              name: 'research-project-result',
+              component: () => import('@/pages/research/ResearchResultPage.vue'),
+            },
+          ],
+        },
+
+        // Library module (placeholder)
+        {
+          path: 'library',
+          component: () => import('@/layouts/ResearchAppLayout.vue'),
+          meta: { section: 'library', requiresAuth: true },
+          children: [
+            {
+              path: '',
+              name: 'library-search',
+              component: () => import('@/pages/library/LibrarySearchPage.vue'),
+            },
+          ],
+        },
+
+        // Knowledge module (placeholder)
+        {
+          path: 'knowledge',
+          component: () => import('@/layouts/ResearchAppLayout.vue'),
+          meta: { section: 'knowledge', requiresAuth: true },
+          children: [
+            {
+              path: '',
+              name: 'knowledge-explorer',
+              component: () => import('@/pages/knowledge/KnowledgeExplorerPage.vue'),
+            },
+          ],
+        },
+
+        // Reports module (placeholder)
+        {
+          path: 'reports',
+          component: () => import('@/layouts/ResearchAppLayout.vue'),
+          meta: { section: 'reports', requiresAuth: true },
+          children: [
+            {
+              path: '',
+              name: 'report-list',
+              component: () => import('@/pages/reports/ReportListPage.vue'),
+            },
+          ],
+        },
+
+        // Legacy redirect — now only catches paths NOT matched by the new routes above.
+        // `/research` still hits the new ProjectListPage above.
+        // Individual `/research/workspace` w/o :projectId falls through to here.
         {
           path: 'research',
           redirect: '/research/workspace?tab=research',
@@ -156,43 +245,6 @@ const router = createRouter({
           name: 'admin-source-policy',
           component: () => import('@/views/admin/SourcePolicyView.vue'),
           meta: { requiresAuth: true, requiresSuperAdmin: true },
-        },
-
-        // ============================================================
-        // NEW Research Workflow pages (UI Sprint 1 scaffold)
-        // ============================================================
-
-        // Project List (note: /research currently occupied by a legacy redirect above;
-        // this route becomes active once the redirect is retired per page disposition)
-        {
-          path: 'research',
-          name: 'research-project-list',
-          component: () => import('@/pages/research/ProjectListPage.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: 'research/:projectId',
-          name: 'research-project-detail',
-          component: () => import('@/pages/research/ProjectDetailPage.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: 'research/:projectId/workspace',
-          name: 'research-project-workspace',
-          component: () => import('@/pages/research/ResearchWorkspacePage.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: 'research/:projectId/workflow',
-          name: 'research-project-workflow',
-          component: () => import('@/pages/research/ResearchWorkflowPage.vue'),
-          meta: { requiresAuth: true },
-        },
-        {
-          path: 'research/:projectId/result/:runId',
-          name: 'research-project-result',
-          component: () => import('@/pages/research/ResearchResultPage.vue'),
-          meta: { requiresAuth: true },
         },
       ],
     },
