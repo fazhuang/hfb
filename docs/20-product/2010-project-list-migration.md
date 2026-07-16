@@ -1,7 +1,7 @@
 # Project List Migration
 
 > **Date**: 2026-07-17
-> **Commit**: TBD
+> **Commit**: `904a42a`
 > **Status**: Complete
 > **Source**: Task — migrate old research project list to new ProjectListPage
 

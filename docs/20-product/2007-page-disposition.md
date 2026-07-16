@@ -324,7 +324,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **当前 Vue 文件** | `views/ResearchNewView.vue` |
 | **当前模块** | Research |
 | **处置结论** | MERGE |
-| **迁移状态** | 已迁移到新版 ProjectListPage (2026-07-17, commit TBD) |
+| **迁移状态** | 已迁移到新版 ProjectListPage (2026-07-17, commit 904a42a) |
 | **目标页面名称** | Project List |
 | **目标路由** | `/research` |
 | **合并目标** | Project List ← Research New (inline creation) + Project list (new) |
