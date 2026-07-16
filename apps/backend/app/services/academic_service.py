@@ -289,6 +289,9 @@ def _check_same_sentence_support(
 # Question markers to strip for retrieval
 _QUESTION_MARKERS_RE = re.compile(r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)")
 
+# CJK book-title marks and common punctuation that should not become ILIKE terms
+_CJK_PUNCTUATION_RE = re.compile(r"[《》「」『』【】（）()\"\"\"]")
+
 # Segmentation keywords — keep these as separate terms
 _SEGMENT_KEYWORDS: list[str] = [
     "针灸甲乙经", "伤寒杂病论", "本草纲目", "黄帝内经", "神农本草经", "难经", "脉经",
@@ -313,22 +316,27 @@ def build_academic_retrieval_query(query: str) -> str:
     """P0-3: Build a retrieval query from an academic query.
 
     - Strips question markers (是否, 能否, 是不是, 有没有)
+    - Strips CJK book-title marks (《》) and common punctuation so they don't
+      pollute ILIKE search terms (e.g. "请分析《" → "请分析")
     - Segments around known keywords so each term is ≥2 chars
     - Never degrades to single-character search
     """
     # Strip question markers
     clean = _QUESTION_MARKERS_RE.sub(" ", query)
+    # Strip CJK book-title marks / punctuation before segmenting
+    clean = _CJK_PUNCTUATION_RE.sub(" ", clean)
     # Normalize whitespace
     clean = re.sub(r"\s+", " ", clean).strip()
 
-    # Segment: insert spaces around known keywords
-    for kw in _SEGMENT_KEYWORDS:
+    # Segment: insert spaces around known keywords (longest first
+    # so "针灸甲乙经" is matched before its substring "针灸")
+    for kw in sorted(_SEGMENT_KEYWORDS, key=len, reverse=True):
         clean = clean.replace(kw, f" {kw} ")
 
     # Normalize again
     clean = re.sub(r"\s+", " ", clean).strip()
 
-    # Filter: keep terms with ≥2 Chinese characters, or domain names
+    # Filter: keep terms with ≥2 Chinese characters
     terms = clean.split()
     result_terms: list[str] = []
     for t in terms:
