@@ -393,7 +393,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **处置理由** | V4 workflow is fully duplicated between V4ResearchView and ResearchWorkspaceView. Research workflow tab migrated to standalone ResearchWorkflowPage with composable architecture. Education and Visualization are knowledge exploration features — they belong in Knowledge Explorer. The standalone route is inaccessible via normal UI. |
 | **前置依赖** | Knowledge Explorer must support education concept display and graph visualization rendering. ~~Research Workspace must absorb the V4 workflow tab capabilities before V4ResearchView can be retired.~~ **DONE: Research workflow migrated to `ResearchWorkflowPage.vue` at `/research/:projectId/workflow`**. |
 | **风险说明** | Medium. Education and Visualization modes call `/api/v4/education/learn` and `/api/v4/visualization/graph` — these APIs are V4-specific. Knowledge Explorer currently uses `/api/v1/graph/*` endpoints. API alignment needed. Duplicate logic consolidated into `useResearchWorkflow` composable. |
-| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。 |
+| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。**VERIFIED at b277a65 (2026-07-18):** 前端 197/197 测试通过、typecheck 通过、build 通过、后端 workflow 12/12 通过、RBAC 隔离 24/24 通过、E2E TestCrossProjectIsolation 6/6 通过。 |
 
 ### 17. Research — Workflow (Embedded)
 
