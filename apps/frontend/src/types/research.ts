@@ -63,3 +63,40 @@ export function toProjectDetail(raw: Record<string, unknown>): ResearchProjectDe
     updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : null,
   };
 }
+
+// ============================================================================
+// Research Workspace — supplementary types
+// ============================================================================
+
+/**
+ * ResearchCitationSummary — 研究资源/引用摘要
+ *
+ * Mapped from GET /api/v1/workspace/sessions/{id}/citations response
+ * (_citation_dict). Used in ResearchWorkspacePage research-resources block.
+ */
+export interface ResearchCitationSummary {
+  id: string;
+  session_id: string;
+  citation_text: string;
+  source_document: string;
+  tags?: string | null;
+  notes?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+/**
+ * Map a raw _citation_dict API response object to ResearchCitationSummary.
+ */
+export function toCitationSummary(raw: Record<string, unknown>): ResearchCitationSummary {
+  return {
+    id: String(raw.id || ''),
+    session_id: String(raw.session_id || ''),
+    citation_text: String(raw.citation_text || ''),
+    source_document: String(raw.source_document || ''),
+    tags: typeof raw.tags === 'string' ? raw.tags : null,
+    notes: typeof raw.notes === 'string' ? raw.notes : null,
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : null,
+    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : null,
+  };
+}

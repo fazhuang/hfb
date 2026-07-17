@@ -364,14 +364,17 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **当前 Vue 文件** | `views/ResearchWorkspaceView.vue` |
 | **当前模块** | Research |
 | **处置结论** | REBUILD |
-| **目标页面名称** | Research Workspace (split into: Research Workspace + Report List + Notes and Evidence) |
+| **迁移状态** | 已迁移到新版 ResearchWorkspacePage (2026-07-17) |
+| **目标页面名称** | Research Workspace |
 | **目标路由** | `/research/:projectId/workspace` |
-| **合并目标** | Research Workspace ← current workspace (assistant tab) + V4ResearchView (research workflow) |
-| **保留的核心能力** | AI Assistant with SSE streaming chat, evidence sidebar with graph preview, citation saving, session management. V4 research workflow inline execution (topic input → run → report). |
-| **删除或隐藏的内容** | Materials tab → moved to Library Search. Versions tab → moved to Library Search. Notes tab → promoted to standalone Notes and Evidence page. Reports tab → promoted to standalone Report List page. Research tab (version comparison) → promoted to standalone Research Workflow page. 7-tab mega-component architecture → replaced with focused single-purpose pages. `?tab=` query param routing → replaced with actual routes. Inline report detail rendering → moved to Report Detail page. Inline note editor → moved to Notes and Evidence page. |
-| **处置理由** | The 7-tab workspace is a monolithic anti-pattern. Each tab is effectively a separate page crammed into one component (2200+ lines). Splitting into focused pages with proper routes improves: (a) code maintainability, (b) URL shareability, (c) performance (lazy-load per page instead of all tabs), (d) user mental model (clear navigation instead of hidden tabs). |
-| **前置依赖** | All split-out pages must exist (Library Search, Research Workflow, Report List, Report Detail, Notes and Evidence). V4ResearchView Education and Visualization tabs must be absorbed (Education → Research Result, Visualization → Knowledge Explorer). |
-| **风险说明** | **High.** This is the most complex disposition. The workspace is the most heavily used page and the most tightly coupled (11 API endpoints, 3 stores, 1 embedded component). Splitting requires: (a) extracting shared state (sessions, evidence) into a composable or store, (b) preserving `?run=` and `?ask=` deep-link behavior across multiple pages, (c) ensuring the V4 workflow inline execution still works when split across workspace + report detail. |
+| **目标 Vue 文件** | `pages/research/ResearchWorkspacePage.vue` |
+| **合并目标** | — |
+| **保留的核心能力** | AI Assistant entry (question → workflow), Continue Research card (resumable run detection), Recent Activity (query history), Recent Reports (workflow runs), Recent Notes (session-scoped), Research Resources (citation collection). |
+| **删除或隐藏的内容** | Materials tab → Library Search. Versions tab → Library Search. Notes tab → reduced to Recent Notes sidebar. Reports tab → reduced to Recent Reports block. Inline V4 workflow → promoted to standalone ResearchWorkflowPage. Inline version comparison → promoted to standalone ResearchWorkflowPage. 7-tab mega-component → replaced with focused single-purpose components. `?tab=` query param routing → replaced with actual routes. Inline AI chat (SSE) → deferred to future AI Assistant page. |
+| **处置理由** | The 7-tab workspace is a monolithic anti-pattern. Each tab is effectively a separate page. Splitting into focused pages with proper routes improves code maintainability, URL shareability, performance (lazy-load), and user mental model (clear navigation instead of hidden tabs). |
+| **前置依赖** | Continued by: AI Assistant page (chat), standalone Notes & Evidence page. |
+| **风险说明** | The current backend executes workflows synchronously — no resume API exists. ContinueResearchCard defaults to "开始新研究". AI chat (SSE streaming) is deferred. Education and Visualization modes from V4ResearchView are not yet absorbed. |
+| **迁移备注** | 工作区已实现：ContinueResearchCard、RecentResearchActivity (max 5 via `?limit=5`)、RecentReports (client-side sort by completed_at, max 5)、RecentNotes (max 5)、ResearchResources (citations, session_id filter, max 5)、ResearchAssistantEntry (sessionStorage → workflow)。无 AI 直接调用、无伪造数据、无跨课题泄露、无 project_id。数据源：`GET /api/v1/workspace/sessions/{id}` (page-level) + 4 独立区块 API。所有区块独立 loading/empty/error 状态，区块失败不阻断整页。详见 `docs/20-product/2013-research-workspace-migration.md`。 |
 
 ### 16. V4 Research (Standalone)
 
