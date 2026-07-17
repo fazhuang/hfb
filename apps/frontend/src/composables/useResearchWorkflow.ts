@@ -74,8 +74,19 @@ export interface ResearchSession {
 // Helpers
 // ============================================================================
 
+/** UUID v4 pattern — exact length and hex positions, no regex DOS surface. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function guardId(raw: string): string {
+  const trimmed = raw.trim();
+  if (!UUID_RE.test(trimmed)) {
+    throw new Error(`Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`);
+  }
+  return trimmed;
+}
+
 function makeStorageKey(projectId: string): string {
-  return `hfb.research.${projectId}.pending-question`;
+  return `hfb.research.${guardId(projectId)}.pending-question`;
 }
 
 function extractEvidenceFromRuns(
@@ -252,8 +263,15 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Session loading ----
   async function loadSession() {
-    const id = projectId();
-    if (!id || id === 'undefined' || id === 'null') {
+    const raw = projectId();
+    if (!raw || raw === 'undefined' || raw === 'null') {
+      notFound.value = true;
+      return;
+    }
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
       notFound.value = true;
       return;
     }
@@ -290,8 +308,14 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Pending question from sessionStorage ----
   function readPendingQuestion(): string | null {
-    const id = projectId();
-    if (!id) return null;
+    const raw = projectId();
+    if (!raw) return null;
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
+      return null;
+    }
     const key = makeStorageKey(id);
     try {
       const stored = sessionStorage.getItem(key);
@@ -314,9 +338,15 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Workflow submission ----
   async function submitWorkflow() {
-    const id = projectId();
+    const raw = projectId();
     const topic = question.value.trim();
-    if (!id || !topic) return;
+    if (!raw || !topic) return;
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
+      return;
+    }
 
     const token = ++submitToken;
     submitting.value = true;
@@ -398,8 +428,14 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Fetch runs ----
   async function fetchRuns() {
-    const id = projectId();
-    if (!id) return;
+    const raw = projectId();
+    if (!raw) return;
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
+      return;
+    }
 
     const { data } = await api.get(`/api/v4/research/session/${id}/runs`);
     const runs = (data.data?.runs ?? []) as Record<string, unknown>[];
@@ -476,8 +512,14 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Citation save ----
   async function saveCitation(ev: WorkflowEvidence) {
-    const id = projectId();
-    if (!id || !ev.trace_id) return;
+    const raw = projectId();
+    if (!raw || !ev.trace_id) return;
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
+      return;
+    }
 
     citationSaveState.value = { ...citationSaveState.value, [ev.trace_id]: 'saving' };
     try {
@@ -504,8 +546,14 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Note save ----
   async function saveNote(content: string, entityId?: string): Promise<boolean> {
-    const id = projectId();
-    if (!id || !content.trim()) return false;
+    const raw = projectId();
+    if (!raw || !content.trim()) return false;
+    let id: string;
+    try {
+      id = guardId(raw);
+    } catch {
+      return false;
+    }
 
     saving.value = true;
     savingMessage.value = '';
