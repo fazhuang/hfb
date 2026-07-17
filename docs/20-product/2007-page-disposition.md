@@ -385,14 +385,15 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **当前 Vue 文件** | `views/V4ResearchView.vue` |
 | **当前模块** | Research |
 | **处置结论** | MERGE |
-| **目标页面名称** | Research Workspace + Research Result + Knowledge Explorer |
-| **目标路由** | `/research/:projectId/workspace` + `/research/:projectId/result/:runId` + `/knowledge` |
-| **合并目标** | Research Workspace ← V4 Research tab. Research Result ← V4 report detail + citations + export + replay. Knowledge Explorer ← V4 Education + Visualization tabs. |
+| **目标页面名称** | Research Workspace + Research Workflow + Research Result + Knowledge Explorer |
+| **目标路由** | `/research/:projectId/workspace` + `/research/:projectId/workflow` + `/research/:projectId/result/:runId` + `/knowledge` |
+| **合并目标** | Research Workspace ← V4 Research tab. **Research Workflow ← V4 full research flow (MIGRATED → `pages/research/ResearchWorkflowPage.vue`)**. Research Result ← V4 report detail + citations + export + replay. Knowledge Explorer ← V4 Education + Visualization tabs. |
 | **保留的核心能力** | Full V4 workflow (topic → 5-step pipeline → report + citations + export + note + replay). Education mode (concept learning with levels). Visualization mode (concept/citation/timeline/document graphs). |
 | **删除或隐藏的内容** | Standalone `/v4/research-internal` route (unreachable by normal navigation). Duplicate workflow execution logic (already in ResearchWorkspaceView v4-research tab). Duplicate citation extraction, export, note-saving logic. `V4ResearchView.vue` file (merged, not deleted until all capabilities absorbed). |
-| **处置理由** | V4 workflow is fully duplicated between V4ResearchView and ResearchWorkspaceView. V4ResearchView has 3 extra tabs (Education, Visualization) not present in the workspace. Education and Visualization are knowledge exploration features, not research workflow features — they belong in Knowledge Explorer. The standalone route is inaccessible via normal UI. |
-| **前置依赖** | Knowledge Explorer must support education concept display and graph visualization rendering. Research Workspace must absorb the V4 workflow tab capabilities before V4ResearchView can be retired. |
-| **风险说明** | Medium. Education and Visualization modes call `/api/v4/education/learn` and `/api/v4/visualization/graph` — these APIs are V4-specific. Knowledge Explorer currently uses `/api/v1/graph/*` endpoints. API alignment needed. Duplicate logic (citation extraction, export, note saving) exists in both views — must consolidate into shared composables before merging. |
+| **处置理由** | V4 workflow is fully duplicated between V4ResearchView and ResearchWorkspaceView. Research workflow tab migrated to standalone ResearchWorkflowPage with composable architecture. Education and Visualization are knowledge exploration features — they belong in Knowledge Explorer. The standalone route is inaccessible via normal UI. |
+| **前置依赖** | Knowledge Explorer must support education concept display and graph visualization rendering. ~~Research Workspace must absorb the V4 workflow tab capabilities before V4ResearchView can be retired.~~ **DONE: Research workflow migrated to `ResearchWorkflowPage.vue` at `/research/:projectId/workflow`**. |
+| **风险说明** | Medium. Education and Visualization modes call `/api/v4/education/learn` and `/api/v4/visualization/graph` — these APIs are V4-specific. Knowledge Explorer currently uses `/api/v1/graph/*` endpoints. API alignment needed. Duplicate logic consolidated into `useResearchWorkflow` composable. |
+| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。 |
 
 ### 17. Research — Workflow (Embedded)
 
