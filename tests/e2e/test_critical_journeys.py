@@ -599,6 +599,11 @@ class TestCrossProjectIsolation:
         _auth_nav(page, frontend_url, a["token"])
         page.goto(f"{frontend_url}/research/{a['session_id']}/workspace")
         page.wait_for_selector("h1", timeout=10000)
+        # Wait for the title to settle from fallback "研究工作区"
+        page.wait_for_function(
+            f"""() => document.querySelector('h1')?.textContent === '{a['title']}'""",
+            timeout=10000,
+        )
         # Title should contain A's session title
         assert page.locator("h1").text_content() == a["title"], (
             f"Expected h1 to be '{a['title']}', got '{page.locator('h1').text_content()}'"
@@ -640,6 +645,11 @@ class TestCrossProjectIsolation:
         # Visit A1 workspace
         page.goto(f"{frontend_url}/research/{a['session_id']}/workspace")
         page.wait_for_selector("h1", timeout=10000)
+        # Wait for the title to settle from fallback "研究工作区"
+        page.wait_for_function(
+            f"""() => document.querySelector('h1')?.textContent === '{a['title']}'""",
+            timeout=10000,
+        )
         assert page.locator("h1").text_content() == a["title"]
 
         # Navigate to A2 workspace
