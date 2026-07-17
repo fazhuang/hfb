@@ -190,3 +190,8 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+[dependency-groups]
+dev = [
+    "pytest-playwright>=0.8.0",
+]

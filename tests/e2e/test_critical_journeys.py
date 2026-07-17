@@ -15,10 +15,12 @@ Run:
 from __future__ import annotations
 
 import os
+import json
 import socket
 import subprocess
 import sys
 import time
+import uuid as _uuid
 from pathlib import Path
 
 import pytest
@@ -492,3 +494,218 @@ class TestV4ResearchPortal:
         page.locator('nav a[href="/v4/research"]').click()
         page.wait_for_url("**/v4/research**", timeout=10000)
         assert page.locator('#v4-topic').is_visible()
+
+
+# ============================================================
+# Cross-project isolation fixtures
+# ============================================================
+
+
+@pytest.fixture(scope="module")
+def cross_users(live_servers):
+    """Create two independent users (A and B), each with a session + note + citation + query history + run.
+
+    Returns a dict with user_a / user_b entries, each containing:
+      token, session_id, session_title, note_content, citation_body
+    """
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+
+    def _api_post(user_tokens, path, json_payload):
+        r = httpx.post(
+            f"{base}{path}",
+            json=json_payload,
+            headers={"Authorization": f"Bearer {user_tokens['access_token']}"},
+            timeout=10,
+        )
+        if r.status_code not in (200, 201):
+            raise RuntimeError(
+                f"POST {path} failed with {r.status_code}: {r.text[:300]}"
+            )
+        return r.json().get("data", r.json())
+
+    # Create two users
+    token_a = _seed_user(backend_port, f"cross-a-{_uuid.uuid4().hex[:6]}", "CrossA_Pass123!")
+    token_b = _seed_user(backend_port, f"cross-b-{_uuid.uuid4().hex[:6]}", "CrossB_Pass123!")
+
+    # User A: session + note + citation + v4 query history
+    sess_a = _api_post(token_a, "/api/v1/workspace/sessions", {"title": "用户A的课题"})
+    sid_a = sess_a["id"]
+    title_a = sess_a["title"]
+    note_a = _api_post(token_a, f"/api/v1/workspace/sessions/{sid_a}/notes", {"content": "A的笔记内容"})
+    cit_a = _api_post(token_a, f"/api/v1/workspace/sessions/{sid_a}/citations", {
+        "trace_json": json.dumps({"document_id": "cross-doc", "chunk_id": "cross-chunk", "passage_id": str(_uuid.uuid4())}),
+        "citation_text": "A引用某条文",
+        "source_document": "cross-doc",
+    })
+    # v4 research session run (for history + runs endpoints)
+    try:
+        _api_post(token_a, "/api/v4/research/session", {"title": title_a, "query": "测试查询"})
+    except RuntimeError:
+        pass  # v4 session creation may fail without passages — we still have the session
+
+    # User B: session + note + citation + v4 query history
+    sess_b = _api_post(token_b, "/api/v1/workspace/sessions", {"title": "用户B的课题"})
+    sid_b = sess_b["id"]
+    title_b = sess_b["title"]
+    note_b = _api_post(token_b, f"/api/v1/workspace/sessions/{sid_b}/notes", {"content": "B的笔记内容"})
+    cit_b = _api_post(token_b, f"/api/v1/workspace/sessions/{sid_b}/citations", {
+        "trace_json": json.dumps({"document_id": "cross-doc", "chunk_id": "cross-chunk", "passage_id": str(_uuid.uuid4())}),
+        "citation_text": "B引用某条文",
+        "source_document": "cross-doc",
+    })
+    try:
+        _api_post(token_b, "/api/v4/research/session", {"title": title_b, "query": "测试查询"})
+    except RuntimeError:
+        pass
+
+    return {
+        "base": base,
+        "user_a": {"token": token_a, "session_id": sid_a, "title": title_a, "note": note_a, "citation": cit_a},
+        "user_b": {"token": token_b, "session_id": sid_b, "title": title_b, "note": note_b, "citation": cit_b},
+    }
+
+
+# ============================================================
+# CrossProjectIsolation — browser-level workspace isolation
+# ============================================================
+
+
+def _auth_nav(page, frontend_url, tokens):
+    """Inject auth tokens into localStorage and navigate to base."""
+    page.goto(f"{frontend_url}/")
+    page.evaluate(
+        """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+        [tokens["access_token"], tokens["refresh_token"]],
+    )
+
+
+class TestCrossProjectIsolation:
+    """Browser-level cross-project isolation probes.
+
+    Verifies:
+      - User A can see own workspace / project detail
+      - Switching between own projects clears stale data
+      - User A visiting B's session URLs sees  "课题不存在" and NOT B's content
+    """
+
+    def test_a_workspace_loads(self, live_servers, cross_users, page):
+        """User A's own workspace shows their title, no error state."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        _auth_nav(page, frontend_url, a["token"])
+        page.goto(f"{frontend_url}/research/{a['session_id']}/workspace")
+        page.wait_for_selector("h1", timeout=10000)
+        # Title should contain A's session title
+        assert page.locator("h1").text_content() == a["title"], (
+            f"Expected h1 to be '{a['title']}', got '{page.locator('h1').text_content()}'"
+        )
+        # Should NOT show "课题不存在" (404 state)
+        assert page.locator("text=课题不存在").count() == 0, (
+            "Own workspace should not show '课题不存在'"
+        )
+
+    def test_a_project_detail_loads(self, live_servers, cross_users, page):
+        """User A's own project detail shows '开始研究'."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        _auth_nav(page, frontend_url, a["token"])
+        page.goto(f"{frontend_url}/research/{a['session_id']}")
+        page.wait_for_selector("h1", timeout=10000)
+        assert page.locator("text=开始研究").is_visible(), (
+            "Own project detail should show '开始研究'"
+        )
+
+    def test_switch_own_projects_no_residue(self, live_servers, cross_users, page):
+        """Switching from project A1 to A2 clears A1's title from DOM."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+
+        # Create a SECOND session for user A
+        base = cross_users["base"]
+        sess_a2_data = httpx.post(
+            f"{base}/api/v1/workspace/sessions",
+            json={"title": "用户A的第二课题"},
+            headers={"Authorization": f"Bearer {a['token']['access_token']}"},
+            timeout=10,
+        ).json()["data"]
+        sid_a2 = sess_a2_data["id"]
+        title_a2 = sess_a2_data["title"]
+
+        _auth_nav(page, frontend_url, a["token"])
+
+        # Visit A1 workspace
+        page.goto(f"{frontend_url}/research/{a['session_id']}/workspace")
+        page.wait_for_selector("h1", timeout=10000)
+        assert page.locator("h1").text_content() == a["title"]
+
+        # Navigate to A2 workspace
+        page.goto(f"{frontend_url}/research/{sid_a2}/workspace")
+        page.wait_for_selector("h1", timeout=10000)
+        # Wait for the title to settle (fallback is "研究工作区" while loading)
+        page.wait_for_function(
+            f"""() => document.querySelector('h1')?.textContent === '{title_a2}'""",
+            timeout=10000,
+        )
+        assert page.locator("h1").text_content() == title_a2
+        # A1's title should NOT be in DOM
+        assert page.locator(f"h1:has-text('{a['title']}')").count() == 0, (
+            f"A1 title '{a['title']}' should not be visible after switching to A2"
+        )
+
+    def test_cross_user_workspace_blocked(self, live_servers, cross_users, page):
+        """User A visiting B's workspace URL → '课题不存在', B's title NOT leaked."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        b = cross_users["user_b"]
+        _auth_nav(page, frontend_url, a["token"])
+        page.goto(f"{frontend_url}/research/{b['session_id']}/workspace")
+        page.wait_for_timeout(3000)  # let the 404 state render
+        # Must show "课题不存在"
+        assert page.locator("text=课题不存在").is_visible(), (
+            "Cross-user workspace should show '课题不存在'"
+        )
+        # B's title must NOT appear
+        assert page.locator(f"h1:has-text('{b['title']}')").count() == 0, (
+            f"B's title '{b['title']}' should never appear in A's browser"
+        )
+
+    def test_cross_user_project_blocked(self, live_servers, cross_users, page):
+        """User A visiting B's project detail URL → access denied, no B content leaked."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        b = cross_users["user_b"]
+        _auth_nav(page, frontend_url, a["token"])
+        page.goto(f"{frontend_url}/research/{b['session_id']}")
+        page.wait_for_timeout(3000)
+        # Must show access-denied or not-found state
+        denied = page.locator("text=课题不存在")
+        no_permission = page.locator("text=没有访问权限")
+        assert denied.is_visible() or no_permission.is_visible(), (
+            "Cross-user project should show access-denied state"
+        )
+        # B's note content must NOT appear
+        note_text = b["note"].get("content", "")
+        if note_text:
+            assert page.locator(f"text={note_text}").count() == 0, (
+                "B's note content should NOT be visible to A"
+            )
+
+    def test_cross_user_workflow_blocked(self, live_servers, cross_users, page):
+        """User A visiting B's workflow URL → '课题不存在', no workflow session loaded."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        b = cross_users["user_b"]
+        _auth_nav(page, frontend_url, a["token"])
+        page.goto(f"{frontend_url}/research/{b['session_id']}/workflow")
+        page.wait_for_timeout(3000)
+        assert page.locator("text=课题不存在").is_visible(), (
+            "Cross-user workflow URL should show '课题不存在'"
+        )
+        # B's title should not appear anywhere
+        assert page.locator(f"h1:has-text('{b['title']}')").count() == 0, (
+            f"B's title '{b['title']}' should not be visible in A's workflow view"
+        )
