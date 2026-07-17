@@ -24,6 +24,18 @@ describe('ResearchPrimaryNav', () => {
             { path: 'reports', component: { template: '<div />' }, meta: { section: 'reports' } },
           ],
         },
+        // Routes referenced by ResearchPrimaryNav router-links
+        { path: '/books', component: { template: '<div />' } },
+        { path: '/literature', component: { template: '<div />' } },
+        { path: '/classical-versions', component: { template: '<div />' } },
+        { path: '/persons', component: { template: '<div />' } },
+        { path: '/graph', component: { template: '<div />' } },
+        { path: '/search', component: { template: '<div />' } },
+        { path: '/about', component: { template: '<div />' } },
+        { path: '/research/workspace', component: { template: '<div />' } },
+        { path: '/admin/literature-review', component: { template: '<div />' } },
+        { path: '/admin/ingestion-tasks', component: { template: '<div />' } },
+        { path: '/admin/source-policy', component: { template: '<div />' } },
       ],
     });
     await router.push('/' + section).catch(() => {});
@@ -140,8 +152,20 @@ describe('ResearchPrimaryNav', () => {
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 
 describe('ResearchPageHeader', () => {
+  function mountWithRouter(component: any, options: Record<string, unknown> = {}) {
+    const router = createRouter({
+      history: createWebHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' } },
+        { path: '/research', component: { template: '<div />' } },
+        { path: '/research/:id', component: { template: '<div />' } },
+      ],
+    });
+    return mount(component, { ...options, global: { ...(options.global as object || {}), plugins: [router] } });
+  }
+
   it('renders the title prop correctly', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: { title: '研究工作台' },
     });
 
@@ -149,7 +173,7 @@ describe('ResearchPageHeader', () => {
   });
 
   it('renders the description prop when provided', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: { title: 'Test', description: 'A description of this page' },
     });
 
@@ -157,7 +181,7 @@ describe('ResearchPageHeader', () => {
   });
 
   it('does not render description paragraph when description is omitted', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: { title: 'Test' },
     });
 
@@ -165,7 +189,7 @@ describe('ResearchPageHeader', () => {
   });
 
   it('renders breadcrumbs when provided', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: {
         title: 'Test',
         breadcrumbs: [
@@ -183,7 +207,7 @@ describe('ResearchPageHeader', () => {
   });
 
   it('renders actions slot content', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: { title: 'Test' },
       slots: {
         actions: '<button class="test-action-btn">New Project</button>',
@@ -193,18 +217,14 @@ describe('ResearchPageHeader', () => {
     const slotContent = wrapper.find('.test-action-btn');
     expect(slotContent.exists()).toBe(true);
     expect(slotContent.text()).toBe('New Project');
-    // The slot should be inside the actions container
     expect(wrapper.find('.rph-actions').exists()).toBe(true);
   });
 
   it('does not render actions container when slot is empty', () => {
-    const wrapper = mount(ResearchPageHeader, {
+    const wrapper = mountWithRouter(ResearchPageHeader, {
       props: { title: 'Test' },
     });
 
-    // The actions div only renders when the slot has content
-    // Since we didn't provide the actions slot, the div may still exist
-    // but should be empty
     const actionsEl = wrapper.find('.rph-actions');
     if (actionsEl.exists()) {
       expect(actionsEl.html()).not.toContain('test-action-btn');
@@ -238,6 +258,21 @@ describe('Research App Shell Routing', () => {
             { path: 'research/:projectId/result/:runId', name: 'research-project-result', component: ResearchResultPage, meta: { section: 'research' } },
           ],
         },
+        // Routes referenced by ResearchPrimaryNav router-links in the last test
+        { path: '/library', component: { template: '<div />' } },
+        { path: '/knowledge', component: { template: '<div />' } },
+        { path: '/reports', component: { template: '<div />' } },
+        { path: '/books', component: { template: '<div />' } },
+        { path: '/literature', component: { template: '<div />' } },
+        { path: '/classical-versions', component: { template: '<div />' } },
+        { path: '/persons', component: { template: '<div />' } },
+        { path: '/graph', component: { template: '<div />' } },
+        { path: '/search', component: { template: '<div />' } },
+        { path: '/about', component: { template: '<div />' } },
+        { path: '/research/workspace', component: { template: '<div />' } },
+        { path: '/admin/literature-review', component: { template: '<div />' } },
+        { path: '/admin/ingestion-tasks', component: { template: '<div />' } },
+        { path: '/admin/source-policy', component: { template: '<div />' } },
       ],
     });
   }
