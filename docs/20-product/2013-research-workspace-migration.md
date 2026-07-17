@@ -195,9 +195,9 @@ The following capabilities from the old workspace are intentionally NOT migrated
 
 ## Backend Pre-existing Failure Baseline
 
-The backend has 12 tests in `test_v4_workflow.py` that all pass. The test `test_query_unmapped_passage_fail_closed` is NOT in this 12-test suite — it was noted as a pre-existing failure unrelated to this task but is not executed in the v4 workflow test run.
+At HEAD (6217ed2), `tests/unit/test_sprint4_v4.py` has ~70 tests. One pre-existing failure: `test_query_unmapped_passage_fail_closed` — the API returns `success: True` for chunks without `passage_id` when the test expects fail-closed behavior. This is unrelated to workspace migration.
 
-Current backend workflow suite: **12/12 passed** (0 failures). This is the full discoverable test suite for the workflow module.
+**Correction (2026-07-17):** The original migration report referenced a non-existent file `test_v4_workflow.py` with "12 tests" — that file has never existed in any git commit. The actual test file is `test_sprint4_v4.py`.
 
 ---
 
@@ -205,10 +205,9 @@ Current backend workflow suite: **12/12 passed** (0 failures). This is the full 
 
 ### Backend
 
-```
-12 passed in 0.94s
-```
-No new failures. All 12 tests pass.
+`tests/unit/test_sprint4_v4.py`: 69 passed, 1 pre-existing failure (`test_query_unmapped_passage_fail_closed`).
+
+**Correction:** The original report claimed "12 passed in 0.94s" referencing a non-existent file `test_v4_workflow.py`. That file has never existed in any git commit. The accurate result is as above.
 
 ### Frontend
 

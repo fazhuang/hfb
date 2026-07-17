@@ -301,7 +301,12 @@ vite build — SUCCESS
 
 ### Backend Pre-existing Failure Baseline
 
-No backend tests existed before this migration beyond `test_v4_workflow.py` (12 tests, all pass). No `test_query_unmapped_passage_fail_closed` test exists.
+**Correction (2026-07-17):** The original migration report claimed "No backend tests existed before this migration beyond `test_v4_workflow.py` (12 tests, all pass)" and "No `test_query_unmapped_passage_fail_closed` test exists." Both claims are incorrect:
+
+1. The file `test_v4_workflow.py` has **never existed** in any git commit — it was a reference error.
+2. `test_query_unmapped_passage_fail_closed` **does exist** in `tests/unit/test_sprint4_v4.py` and is a genuine pre-existing failure (API returns `success: True` when test expects fail-closed behavior for unmapped passages).
+
+At HEAD (6217ed2), `tests/unit/test_sprint4_v4.py` has ~70 tests: 69 pass, 1 failure (`test_query_unmapped_passage_fail_closed`). The workflow-related test suite is much larger than the original report suggested.
 
 ## 14. Modified Files
 

@@ -173,7 +173,8 @@ Note: The `ResearchSession` model has no `description` or `status` field. The `c
 
 ## Test Results
 
-- **Backend**: 776 passed, 1 pre-existing failure (`test_query_unmapped_passage_fail_closed` — unrelated citation persistence issue)
+- **Backend**: From `tests/unit/test_sprint4_v4.py` (~70 tests): 69 passed, 1 pre-existing failure (`test_query_unmapped_passage_fail_closed` — API returns `success: True` for chunks without `passage_id` when test expects fail-closed; citation persistence requires a pre-existing SourceRef).
+  - **Correction (2026-07-17):** The original report's "776 passed" figure was the full backend suite count. The test file is `test_sprint4_v4.py`, not any `test_v4_workflow.py` (which doesn't exist).
 - **Frontend**: 132/132 tests passing (8 test files), 25 new project-detail tests
 - **Type check**: Clean (vue-tsc --noEmit)
 - **Build**: Succeeds (vite build)
