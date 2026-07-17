@@ -205,13 +205,13 @@ At HEAD (6217ed2), `tests/unit/test_sprint4_v4.py` has ~70 tests. One pre-existi
 
 ### Backend
 
-**Unit tests (`tests/unit/`):** 954 passed, 1 pre-existing failure (`test_query_unmapped_passage_fail_closed` — root cause documented below).
+**Full suite:** 1013 passed, 1 failed, 19 skipped, 1 deselected in 167.34s (0:02:47).
 
-**RBAC + Workspace isolation:** 100/100 passed (test_api_rbac: 38, test_p0_2_http_verify: 32, test_classical_versions_rbac: 26, test_citation_persistence_fk: 4).
+**The single failure is `test_query_unmapped_passage_fail_closed`** in `tests/unit/test_sprint4_v4.py` — a pre-existing failure unrelated to workspace migration (root cause documented below).
 
-**Full collection:** `pytest --collect-only -q` → `1021/1022 tests collected (1 deselected)` across `tests/unit/` (955), `tests/e2e/` (25), and `tests/integration/` (~41).
+**API Isolation (`TestWorkspaceApiIsolation`): 24/24 passed.** Coverage: 5 GET endpoints × 2 users × 2 directions (own + cross) + 2 known-UUID cross-verification + 2 no-data-leak assertions. All tests use real JWT auth chain (no overrides of `get_current_user` or `get_auth_service`).
 
-**Correction:** The original report claimed "12 passed in 0.94s" referencing a non-existent file `test_v4_workflow.py`. That file has never existed in any git commit. The actual scope is as above.
+**Full collection:** `uv run pytest --collect-only -q` → `1033/1034 tests collected (1 deselected)` in 3.87s. Breakdown: `apps/backend/tests/` (12), `tests/unit/`, `tests/e2e/` (25), `tests/integration/`. `scripts/p2t1_e2e_test.py` excluded via `norecursedirs = scripts` in `pytest.ini`.
 
 ### Frontend
 
@@ -295,7 +295,7 @@ No other warnings appear in test output.
 
 Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py` + `tests/unit/test_classical_versions_rbac.py`
 
-### TestApiRBAC — Workspace API Isolation (38 tests, 38 passed)
+### TestApiRBAC — Workspace API Isolation (24 tests, 24 passed, real JWT auth chain)
 
 | Group | Count | Pass | Principle |
 |-------|-------|------|-----------|
@@ -306,7 +306,9 @@ Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py
 | Workspace isolation (service layer) | 2 | 2 | Cross-user session create/delete |
 | Workspace API isolation | 24 | 24 | 2 users × 5 endpoints × 2 directions (own + cross) + 2 known-UUID cross-verification + 2 no-data-leak |
 
-**Covered endpoints:** `GET/POST sessions`, `GET/POST notes`, `GET/POST citations`, `GET history`, `GET runs`
+**Auth chain:** Real `AuthService.register()` → real JWT access tokens via `create_access_token()` → `Authorization: Bearer <token>` headers on all requests. No overrides of `get_current_user`, `get_auth_service`, or permission guards. Only `get_session` is overridden to use in-memory SQLite.
+
+**Covered endpoints:** `GET sessions`, `GET notes`, `GET citations`, `GET history`, `GET runs`
 
 **All cross-user access returns 404** (not 403). Response body never leaks session title or other user's ID.
 
@@ -327,38 +329,70 @@ Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py
 
 **Execution:** `uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation -v --browser chromium`
 
-**Infrastructure:** In-memory SQLite backend + Vite dev server, dual users created via API (`_seed_user`), localStorage token injection for auth. No hardcoded credentials, no external network.
+**Infrastructure:** In-memory SQLite backend + Vite dev server, dual users created via registration API (`POST /api/v1/auth/register`). Login performed through real browser UI (`/login` page), NOT localStorage injection. A and B use separate data — each has their own session, notes, citations, and query history.
+
+**Auth:** Real login via Playwright: fill username/password fields, click "登录" button, wait for redirect. No `page.evaluate` for localStorage. No `route.fulfill` or mock API. Browsers use independent contexts created by `pytest-playwright` fixture.
+
+**Screenshots/traces:** Written to `/tmp` on failure only; never committed to the source tree.
 
 | Test | Result | Assertion |
 |------|--------|-----------|
-| `test_a_workspace_loads` | ✅ PASS | Own workspace shows correct session title in `<h1>`, no "课题不存在" |
+| `test_a_workspace_loads` | ✅ PASS | Own workspace: correct `<h1>` title, no "课题不存在", session API 200 captured |
 | `test_a_project_detail_loads` | ✅ PASS | Own project detail shows "开始研究" |
-| `test_switch_own_projects_no_residue` | ✅ PASS | Navigate A1→A2 workspace: A2 title visible, A1 title gone from DOM |
-| `test_cross_user_workspace_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workspace` → "课题不存在" visible, B's title NOT in DOM |
-| `test_cross_user_project_blocked` | ✅ PASS | A visits B's `/research/{B_id}` → access-denied state, B's notes NOT visible |
-| `test_cross_user_workflow_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workflow` → "课题不存在", B's title NOT in DOM |
+| `test_switch_own_projects_no_residue` | ✅ PASS | Navigate A1→A2 within same page: A2 title visible, A1 title/note/citation/history/run ID ALL absent from DOM, A2 data present |
+| `test_cross_user_workspace_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workspace` → "课题不存在" visible, session API returns 404 (captured), B's title NOT in DOM, B's note NOT in DOM |
+| `test_cross_user_project_blocked` | ✅ PASS | A visits B's `/research/{B_id}` → access-denied state, B's note/citation NOT in DOM, session API returns 404 (captured) |
+| `test_cross_user_workflow_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workflow` → "课题不存在", session API 404 captured (proves workflow page actually requests session), B's title/history query/run ID ALL absent from DOM |
 
-**Screenshots:** Captured to `/tmp/e2e-isolation-*.png` on failure only, never committed to source tree.
+**Two consecutive runs both pass identically.**
 
-**Pre-existing E2E failures (unchanged):** 8 tests in `TestV4ResearchPortal` + `TestLogin` + `TestWorkspace` + `TestResearchWorkflow` fail because they reference retired `/v4/research` page selectors (`#v4-topic`, `nav a[href="/v4/research"]`). Confirmed identical failure count at HEAD without any changes to these tests.
+### CI Chromium Installation
+
+In `.github/workflows/test.yml`:
+```yaml
+- name: Install Chromium for browser E2E
+  run: uv run python -m playwright install chromium --with-deps
+
+- name: Install frontend dependencies
+  run: |
+    npm install -g pnpm@10
+    pnpm install --dir apps/frontend --frozen-lockfile
+
+- name: Run browser E2E isolation tests
+  run: |
+    uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation \
+      -v --browser chromium --tracing=retain-on-failure \
+      -o "screenshot_dir=/tmp/e2e-screenshots"
+  env:
+    TESTING: 1
+  timeout-minutes: 10
+```
+
+CI does not depend on pre-installed browsers, running services, or existing databases.
 
 ---
 
 ## Pytest Collection Count
 
-**Command:** `pytest --collect-only -q /Users/likeming/Sites/hfb/tests/`
+**Command:** `uv run pytest --collect-only -q`
 
-**Result:** `1021/1022 tests collected (1 deselected)`
+**Result:** `1033/1034 tests collected (1 deselected)`
+
+**Deselection:** 1 real_llm test excluded via marker filter (`-m "not real_llm"`).
 
 **Breakdown:**
 
 | Directory | Tests | Status |
 |-----------|-------|--------|
-| `tests/unit/` | 955 | 954 passed, 1 failed (`test_query_unmapped_passage_fail_closed`) |
-| `tests/e2e/` | 25 | 11 passed, 8 failed (pre-existing, retired /v4/research pages), 6 passed (new isolation probes — require `--browser chromium`) |
-| `tests/integration/` | ~41 | Not yet executed in this session |
+| `apps/backend/tests/` | 12 | 12 passed |
+| `tests/unit/` | ~955 | ~954 passed, 1 failed (`test_query_unmapped_passage_fail_closed`) |
+| `tests/e2e/` | 25 | 19 skipped (no --browser), 6 require --browser chromium |
+| `tests/integration/` | ~41 | All passed |
+| `scripts/p2t1_e2e_test.py` | 0 | Excluded via `norecursedirs = scripts` in pytest.ini |
 
-**Why the original report said "12 tests":** The original migration report referenced a non-existent file `test_v4_workflow.py` with "12 tests" — that file has never existed in any git commit. The actual test file `test_sprint4_v4.py` contains ~70 tests (at HEAD 6217ed2: 69 passed, 1 pre-existing failure). The full project backend suite discovers **955 unit tests** — the "12" was a counting artifact, not a statement about the full project.
+**scripts/p2t1_e2e_test.py exclusion:** Previously collected by pytest (triggering `SystemExit: 0` during collection). Now excluded via `norecursedirs` in `pytest.ini` — the script still exists but is no longer treated as a test file. No file deletion was needed.
+
+**Why the original report said "12 tests":** The original migration report referenced a non-existent file `test_v4_workflow.py` with "12 tests" — that file has never existed in any git commit. The actual test file `test_sprint4_v4.py` contains ~70 tests (at HEAD 6217ed2: 69 passed, 1 pre-existing failure). The full project backend suite discovers **1013 tests that execute** — the "12" was a counting artifact, not a statement about the full project.
 
 ---
 

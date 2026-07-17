@@ -122,6 +122,9 @@ output/playwright/
 apps/backend/output/playwright/
 apps/backend/output/p0_*.json
 
+# E2E trace/screenshot artifacts (root — prevent accidental commit)
+/reaudit*.png
+
 # --- OCR / PDF / Image artifacts ---
 output/ocr_tmp/
 output/*.pdf
