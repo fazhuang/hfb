@@ -1,34 +1,34 @@
 <template>
   <section class="rr-section" aria-labelledby="rr-heading">
-    <h2 id="rr-heading" class="rr-heading">最近报告</h2>
+    <h2 id="rr-heading" class="rr-heading">最近研究运行</h2>
 
     <!-- Loading -->
-    <LoadingState v-if="loading" message="正在加载报告..." />
+    <LoadingState v-if="loading" message="正在加载..." />
 
     <!-- Error -->
     <ErrorState
       v-else-if="error"
       :message="error"
-      title="报告加载失败"
-      @retry="fetchReports"
+      title="加载失败"
+      @retry="$emit('retry')"
     />
 
     <!-- Empty -->
     <EmptyState
-      v-else-if="reports.length === 0"
-      title="暂无报告"
-      description="在此课题中运行研究工作流后，生成的报告将显示在这里。"
+      v-else-if="displayRuns.length === 0"
+      title="暂无研究运行记录"
+      description="在此课题中运行研究工作流后，运行记录将显示在这里。"
       icon="📄"
     />
 
-    <!-- Report list — max 5 items -->
+    <!-- Run list — max 5 items -->
     <ul v-else class="rr-list" role="list">
-      <li v-for="report in reports" :key="report.run_id" class="rr-item">
+      <li v-for="run in displayRuns" :key="run.run_id" class="rr-item">
         <div class="rr-item-main">
-          <h3 class="rr-title">{{ report.topic || '未命名报告' }}</h3>
+          <h3 class="rr-title">{{ run.topic || '未命名研究' }}</h3>
           <div class="rr-steps">
             <span
-              v-for="step in (report.step_execution_trace || [])"
+              v-for="step in (run.step_execution_trace || [])"
               :key="step.name"
               class="rr-step-badge"
               :class="'rr-step--' + step.status"
@@ -38,11 +38,12 @@
           </div>
         </div>
         <div class="rr-item-meta">
-          <time :datetime="report.completed_at ?? undefined" class="rr-time">
-            {{ formatDate(report.completed_at || report.started_at) }}
+          <time v-if="run.completed_at" :datetime="run.completed_at" class="rr-time">
+            {{ formatDate(run.completed_at) }}
           </time>
           <router-link
-            :to="`/research/${projectId}/result/${report.run_id}`"
+            v-if="run.run_id && hasResultRoute(run)"
+            :to="`/research/${projectId}/result/${run.run_id}`"
             class="rr-view-link"
           >
             查看
@@ -55,25 +56,22 @@
 
 <script setup lang="ts">
 /**
- * RecentReports — 最近报告列表
+ * RecentReports — 最近研究运行列表
  *
- * Data source: GET /api/v4/research/session/{projectId}/runs
- * Backend does NOT support limit — returns all runs.
- * We sort by completed_at DESC client-side and take the first 5.
+ * Receives shared runs data from parent page (single-source-of-truth).
+ * Does NOT make its own API call.
+ *
+ * Only displays completed runs with report artifacts.
+ * View link only shown when run_id is real and steps include report_generation completed.
  *
  * ref: docs/20-product/2013-research-workspace-migration.md
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import api from '@/api/client';
+import { computed } from 'vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 
-const props = defineProps<{
-  projectId: string;
-}>();
-
-interface ReportItem {
+interface RunItem {
   run_id: string;
   topic?: string;
   started_at?: string | null;
@@ -81,9 +79,16 @@ interface ReportItem {
   step_execution_trace?: Array<{ name: string; status: string }>;
 }
 
-const reports = ref<ReportItem[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
+const props = defineProps<{
+  projectId: string;
+  loading?: boolean;
+  error?: string | null;
+  runs?: RunItem[];
+}>();
+
+defineEmits<{
+  retry: [];
+}>();
 
 const MAX_ITEMS = 5;
 
@@ -113,47 +118,33 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-let reqId = 0;
-
-async function fetchReports() {
-  const myReqId = ++reqId;
-  loading.value = true;
-  error.value = null;
-  try {
-    const { data } = await api.get(
-      `/api/v4/research/session/${props.projectId}/runs`,
-    );
-    if (myReqId !== reqId) return;
-    const body = data.data ?? data;
-    const all = (body.runs ?? []) as ReportItem[];
-
-    // Backend does not support limit; sort client-side by completed_at DESC
-    const sorted = [...all].sort((a, b) => {
-      const da = a.completed_at ?? a.started_at ?? '';
-      const db = b.completed_at ?? b.started_at ?? '';
-      return db.localeCompare(da);
-    });
-    reports.value = sorted.slice(0, MAX_ITEMS);
-  } catch (e: unknown) {
-    if (myReqId !== reqId) return;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载报告失败';
-    error.value = msg;
-  } finally {
-    if (myReqId === reqId) {
-      loading.value = false;
-    }
-  }
+/** Only runs with completed report_generation step have real report artifacts. */
+function hasReportArtifact(run: RunItem): boolean {
+  const trace = run.step_execution_trace ?? [];
+  return trace.some(
+    (s) => s.name === 'report_generation' && s.status === 'completed',
+  );
 }
 
-onMounted(() => {
-  fetchReports();
-});
+/** Result route exists when run_id is truthy and report_generation completed. */
+function hasResultRoute(run: RunItem): boolean {
+  return !!run.run_id && hasReportArtifact(run);
+}
 
-onBeforeUnmount(() => {
-  reqId = -1;
+const displayRuns = computed(() => {
+  const raw = props.runs ?? [];
+  // Only completed runs with report artifacts
+  const completed = raw.filter(hasReportArtifact);
+  // Sort by completed_at DESC; missing completed_at goes last
+  const sorted = [...completed].sort((a, b) => {
+    const da = a.completed_at ?? '';
+    const db = b.completed_at ?? '';
+    if (!da && !db) return 0;
+    if (!da && db) return 1;  // a has no time → a after b
+    if (da && !db) return -1; // b has no time → b after a
+    return db.localeCompare(da); // DESC
+  });
+  return sorted.slice(0, MAX_ITEMS);
 });
 </script>
 

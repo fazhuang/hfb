@@ -49,16 +49,11 @@ The old ResearchWorkspaceView (`apps/frontend/src/views/ResearchWorkspaceView.vu
 
 **API**: `GET /api/v1/workspace/sessions/{session_id}` — single source of truth, called once
 
-### 2. Continue Research (ContinueResearchCard)
+### 2. Start Research (ContinueResearchCard)
 
-Checks `GET /api/v4/research/session/{projectId}/runs` for incomplete runs.
+Always shows "开始新研究". Receives shared runs data from the parent page — does NOT make its own API call.
 
-**Resume conclusion**: The current backend executes the 5-step workflow synchronously within a single HTTP request. Runs are either fully completed or failed — there is no partial execution state on the server. There is **no resume API**. The component defaults to showing "开始新研究" and only shows "继续研究" when a run with pending/running steps exists (future-proofing).
-
-**API**: `GET /api/v4/research/session/{session_id}/runs`
-- No limit support — returns all runs
-- Sorted by storage order (not time-sorted by backend)
-- Filtered by `session_id` via ownership check
+**Resume conclusion**: The current backend executes the 5-step workflow synchronously within a single HTTP request. Runs are either fully completed or failed — there is no partial execution state on the server. There is **no resume API**. The component ALWAYS shows "开始新研究" and NEVER shows "继续研究".
 
 ### 3. Recent Activity (RecentResearchActivity)
 
@@ -68,13 +63,19 @@ Checks `GET /api/v4/research/session/{projectId}/runs` for incomplete runs.
 - Returns `PublicHistoryEntry[]` — never exposes internal trace data
 - Scoped to `session_id` via ownership check
 
-### 4. Recent Reports (RecentReports)
+### 4. Recent Runs (RecentReports)
 
-**API**: `GET /api/v4/research/session/{session_id}/runs`
+Receives shared runs data from the parent page — does NOT make its own API call.
+
+**Label**: "最近研究运行" (not "最近报告"). Runs are not always reports; only completed runs with `report_generation` completed are displayed. Only runs with real `run_id` and `report_generation: completed` get a "查看" link.
+
+**API**: `GET /api/v4/research/session/{session_id}/runs` — called ONCE by the parent page, shared via props.
 - Does NOT support limit — returns all runs
-- Client-side sort by `completed_at DESC`
+- Client-side filter: only runs with `report_generation` step completed
+- Client-side sort by `completed_at DESC`; missing `completed_at` placed last
 - Client-side truncation to 5
 - Scoped to `session_id` via ownership check
+- Never uses `started_at` as a substitute for `completed_at`
 
 ### 5. Recent Notes (RecentNotes)
 
@@ -96,9 +97,12 @@ Checks `GET /api/v4/research/session/{projectId}/runs` for incomplete runs.
 
 - Input field for research question
 - Does NOT call any AI API
-- Stores question in `sessionStorage` (`hfb.research.pending-question`)
+- Stores question in `sessionStorage` with key format: `hfb.research.{projectId}.pending-question`
+- Key is scoped to the current ResearchSession id — isolated per topic
 - Navigates to `/research/:projectId/workflow`
+- The workflow consumable (`useResearchWorkflow.initPendingQuestion()`) reads and clears only the key for its own `projectId`
 - Falls back to navigation without question if sessionStorage unavailable
+- Research question never enters URL or console
 
 ---
 
@@ -107,20 +111,21 @@ Checks `GET /api/v4/research/session/{projectId}/runs` for incomplete runs.
 | Section | Backend Sort | Backend Limit? | Client Action |
 |---------|-------------|----------------|---------------|
 | Recent Activity | `created_at DESC` | Yes (`?limit=5`) | Safety `.slice(0,5)` |
-| Recent Reports | None (storage order) | No | Sort by `completed_at DESC`, take 5 |
+| Recent Runs | None (storage order) | No | Filter to `report_generation:completed`, sort by `completed_at DESC` (missing last), take 5 |
 | Recent Notes | `created_at DESC` | Hard 50 | Take first 5 |
 | Research Resources | `created_at DESC` | Hard 100 | Filter by session_id, take 5 |
 
----
+### Shared Runs Strategy
 
+The Workspace page calls `GET /api/v4/research/session/{id}/runs` exactly once and passes the result to both `ContinueResearchCard` (for error display + retry) and `RecentReports` (for display). The two child components do NOT make independent API calls. Retry from either component triggers the page-level `loadRuns()` once.
 ## Session Isolation
 
 All data sources are strictly scoped to `ResearchSession.id`:
 
 - All listing endpoints check `session.user_id == current_user` → 404 if mismatch
-- No cross-session data leakage is possible
-- The only cross-session endpoint (`POST /api/v4/research/runs/{run_id}/replay`) searches all user sessions but still scoped to `current_user`
+- Backend endpoints scope by `session_id` ownership; each data component watches `props.projectId` and clears stale data + cancels in-flight requests on route switch
 - No `project_id` field exists anywhere
+- sessionStorage key format: `hfb.research.{projectId}.pending-question` — scoped per ResearchSession id
 
 ---
 
@@ -181,18 +186,18 @@ The following capabilities from the old workspace are intentionally NOT migrated
 
 ## Blocking Issues
 
-1. **No resume API**: Workflow runs synchronously — no partial state or resume endpoint exists.
-2. **No limit on runs endpoint**: `GET /api/v4/research/session/{id}/runs` returns all runs with no pagination.
+1. **No resume API**: Workflow runs synchronously — no partial state or resume endpoint exists. ContinueResearchCard always shows "开始新研究".
+2. **No limit on runs endpoint**: `GET /api/v4/research/session/{id}/runs` returns all runs with no pagination. Solved by shared page-level loading + client-side truncation.
 3. **No status field on session**: Sessions have no status (active/completed/archived) — all sessions appear equally.
+4. **Runs ≠ reports**: Not all runs have report artifacts. Only runs with `report_generation: completed` step are displayed in RecentReports.
 
 ---
 
 ## Backend Pre-existing Failure Baseline
 
-The backend had 1 pre-existing test failure unrelated to this task:
-- `test_query_unmapped_passage_fail_closed` — not in the 12 test suite run.
+The backend has 12 tests in `test_v4_workflow.py` that all pass. The test `test_query_unmapped_passage_fail_closed` is NOT in this 12-test suite — it was noted as a pre-existing failure unrelated to this task but is not executed in the v4 workflow test run.
 
-Current backend full suite: **12/12 passed** (0 failures).
+Current backend workflow suite: **12/12 passed** (0 failures). This is the full discoverable test suite for the workflow module.
 
 ---
 

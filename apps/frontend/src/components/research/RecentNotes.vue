@@ -48,7 +48,7 @@
  *
  * ref: docs/20-product/2013-research-workspace-migration.md
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import api from '@/api/client';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
@@ -120,12 +120,25 @@ async function fetchNotes() {
   }
 }
 
-onMounted(() => {
-  fetchNotes();
-});
+// Watch projectId to reload on route change. Clear stale data immediately.
+watch(
+  () => props.projectId,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      notes.value = [];
+      error.value = null;
+      loading.value = true;
+      // Bump reqId so in-flight request for old projectId is discarded
+      reqId++;
+    }
+    fetchNotes();
+  },
+  { immediate: true },
+);
 
 onBeforeUnmount(() => {
-  reqId = -1;
+  // Invalidate all pending requests
+  reqId += 1000000;
 });
 </script>
 

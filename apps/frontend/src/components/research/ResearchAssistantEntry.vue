@@ -56,7 +56,7 @@ const router = useRouter();
 const question = ref('');
 const submitting = ref(false);
 
-const STORAGE_KEY = 'hfb.research.pending-question';
+const STORAGE_KEY = `hfb.research.${props.projectId}.pending-question`;
 
 function onSubmit() {
   const q = question.value;

@@ -49,7 +49,7 @@
  *
  * ref: docs/20-product/2013-research-workspace-migration.md
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import api from '@/api/client';
 import { toCitationSummary } from '@/types/research';
 import type { ResearchCitationSummary } from '@/types/research';
@@ -116,12 +116,25 @@ async function fetchResources() {
   }
 }
 
-onMounted(() => {
-  fetchResources();
-});
+// Watch projectId to reload on route change. Clear stale data immediately.
+watch(
+  () => props.projectId,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      citations.value = [];
+      error.value = null;
+      loading.value = true;
+      // Bump reqId so in-flight request for old projectId is discarded
+      reqId++;
+    }
+    fetchResources();
+  },
+  { immediate: true },
+);
 
 onBeforeUnmount(() => {
-  reqId = -1;
+  // Invalidate all pending requests
+  reqId += 1000000;
 });
 </script>
 

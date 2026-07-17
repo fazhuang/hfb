@@ -369,7 +369,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **目标路由** | `/research/:projectId/workspace` |
 | **目标 Vue 文件** | `pages/research/ResearchWorkspacePage.vue` |
 | **合并目标** | — |
-| **保留的核心能力** | AI Assistant entry (question → workflow), Continue Research card (resumable run detection), Recent Activity (query history), Recent Reports (workflow runs), Recent Notes (session-scoped), Research Resources (citation collection). |
+| **保留的核心能力** | AI Assistant entry (question → workflow, key: `hfb.research.{projectId}.pending-question`), Start Research card ("开始新研究", no resume API), Recent Activity (query history), Recent Runs (completed workflow runs with report artifacts, not all runs), Recent Notes (session-scoped), Research Resources (citation collection). Runs data loaded once by page and shared to child components via props. |
 | **删除或隐藏的内容** | Materials tab → Library Search. Versions tab → Library Search. Notes tab → reduced to Recent Notes sidebar. Reports tab → reduced to Recent Reports block. Inline V4 workflow → promoted to standalone ResearchWorkflowPage. Inline version comparison → promoted to standalone ResearchWorkflowPage. 7-tab mega-component → replaced with focused single-purpose components. `?tab=` query param routing → replaced with actual routes. Inline AI chat (SSE) → deferred to future AI Assistant page. |
 | **处置理由** | The 7-tab workspace is a monolithic anti-pattern. Each tab is effectively a separate page. Splitting into focused pages with proper routes improves code maintainability, URL shareability, performance (lazy-load), and user mental model (clear navigation instead of hidden tabs). |
 | **前置依赖** | Continued by: AI Assistant page (chat), standalone Notes & Evidence page. |

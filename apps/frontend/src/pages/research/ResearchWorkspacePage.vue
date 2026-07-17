@@ -57,23 +57,34 @@
       <!-- Main content -->
       <template v-else-if="project">
         <main class="rwp-main">
-          <!-- 1. Continue Research -->
-          <ContinueResearchCard :project-id="project.id" />
+          <!-- 1. Start Research -->
+          <ContinueResearchCard
+            :project-id="project.id"
+            :loading="runsLoading"
+            :error="runsError"
+            @retry="loadRuns"
+          />
 
-          <!-- 3. Recent Activity -->
+          <!-- 2. Recent Activity -->
           <RecentResearchActivity :project-id="project.id" />
 
-          <!-- 4. Recent Reports -->
-          <RecentReports :project-id="project.id" />
+          <!-- 3. Recent Runs -->
+          <RecentReports
+            :project-id="project.id"
+            :loading="runsLoading"
+            :error="runsError"
+            :runs="runs"
+            @retry="loadRuns"
+          />
 
-          <!-- 5. Recent Notes -->
+          <!-- 4. Recent Notes -->
           <RecentNotes :project-id="project.id" />
 
-          <!-- 6. Research Resources -->
+          <!-- 5. Research Resources -->
           <ResearchResources :project-id="project.id" />
         </main>
 
-        <!-- 7. AI Research Assistant sidebar -->
+        <!-- 6. AI Research Assistant sidebar -->
         <ResearchAssistantEntry :project-id="project.id" />
       </template>
     </div>
@@ -86,24 +97,24 @@
  *
  * Page sections:
  *   1. ResearchPageHeader — title, context_notes, breadcrumbs, actions
- *   2. ContinueResearchCard — resumable run or "Start New Research"
+ *   2. ContinueResearchCard — "开始新研究" (no resume API exists)
  *   3. RecentResearchActivity — GET /api/v4/research/session/{id}/history
- *   4. RecentReports — GET /api/v4/research/session/{id}/runs
+ *   4. RecentReports — shared runs from page (single GET /api/v4/research/session/{id}/runs)
  *   5. RecentNotes — GET /api/v1/workspace/sessions/{id}/notes
  *   6. ResearchResources — GET /api/v1/workspace/sessions/{id}/citations
  *   7. ResearchAssistantEntry — question input → navigates to workflow
  *
  * The page owns the single ResearchSession detail (GET .../sessions/{id})
- * and passes projectId to all child components. Each child manages its
- * own loading/error/empty states independently — a block failure never
- * takes down the whole page.
+ * AND the single runs request (GET .../runs). Runs data is shared via props
+ * to ContinueResearchCard and RecentReports — those components do NOT make
+ * their own runs API calls.
  *
  * Route param :projectId === ResearchSession.id
  * There is no independent Project entity.
  *
  * ref: docs/20-product/2013-research-workspace-migration.md
  */
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/api/client';
 import { toProjectDetail } from '@/types/research';
@@ -128,6 +139,18 @@ const pageLoading = ref(false);
 const pageError = ref(false);
 const pageErrorMessage = ref('');
 const notFound = ref(false);
+
+// ---- Shared runs state (single source of truth for runs data) ----
+interface RunItem {
+  run_id: string;
+  topic?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  step_execution_trace?: Array<{ name: string; status: string }>;
+}
+const runs = ref<RunItem[]>([]);
+const runsLoading = ref(false);
+const runsError = ref<string | null>(null);
 
 // ---- Derived ----
 const projectId = computed(() => String(route.params.projectId || ''));
@@ -184,21 +207,53 @@ async function loadSession() {
   }
 }
 
+// ---- Load runs (single shared call) ----
+let runsReqId = 0;
+
+async function loadRuns() {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+
+  const myReqId = ++runsReqId;
+  runsLoading.value = true;
+  runsError.value = null;
+  runs.value = [];
+
+  try {
+    const { data } = await api.get(`/api/v4/research/session/${id}/runs`);
+    if (myReqId !== runsReqId) return;
+    const body = data.data ?? data;
+    runs.value = (body.runs ?? []) as RunItem[];
+  } catch (e: unknown) {
+    if (myReqId !== runsReqId) return;
+    const msg =
+      (e as any)?.response?.data?.message ||
+      (e as any)?.message ||
+      '加载研究运行记录失败';
+    runsError.value = msg;
+  } finally {
+    if (myReqId === runsReqId) {
+      runsLoading.value = false;
+    }
+  }
+}
+
 // ---- Watch route param changes ----
 watch(
   () => route.params.projectId,
   () => {
     loadSession();
+    loadRuns();
   },
 );
 
 // ---- Lifecycle ----
-onMounted(() => {
-  loadSession();
-});
+loadSession();
+loadRuns();
 
 onBeforeUnmount(() => {
   reqId = -1;
+  runsReqId = -1;
 });
 </script>
 
