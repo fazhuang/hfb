@@ -935,3 +935,146 @@ class TestWorkspaceApiIsolation:
             assert r.status_code == 404
             body = r.json()
             self._assert_not_leaked(body, [isolation_app["user_b"].id])
+
+    # ==================================================================
+    # GET /api/v4/research/session/{session_id}/runs/{run_id}/export
+    # ==================================================================
+
+    async def test_export_own_session_own_run_succeeds(self, isolation_app):
+        """Own session + own run: Markdown export succeeds with correct headers."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/run-a-001/export?format=markdown"
+            )
+            assert r.status_code == 200, (
+                f"Expected 200, got {r.status_code}: {r.text[:200]}"
+            )
+            assert r.headers["content-type"].startswith("text/markdown"), (
+                f"Expected text/markdown MIME, got {r.headers.get('content-type')}"
+            )
+            cd = r.headers.get("content-disposition", "")
+            assert 'attachment' in cd, (
+                f"Expected Content-Disposition attachment, got {cd!r}"
+            )
+            assert 'hfb-research-report-run-a-00.md' in cd, (
+                f"Expected safe filename, got {cd!r}"
+            )
+            assert "# Report A" in r.text, (
+                f"Expected report content, got {r.text[:200]}"
+            )
+
+    async def test_user_a_accesses_user_b_session_export_rejected(self, isolation_app):
+        """User A accessing user B's session/run export → 404 (not leaked)."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_b'].id}"
+                f"/runs/run-b-001/export?format=markdown"
+            )
+            assert r.status_code == 404, (
+                f"Expected 404, got {r.status_code}: {r.text[:200]}"
+            )
+            body = r.json()
+            self._assert_not_leaked(body, ["Researcher B", "Report B", "user_b"])
+
+    async def test_own_session_other_users_run_rejected(self, isolation_app):
+        """User A's session + User B's run_id → 404 (run not in session)."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/run-b-001/export?format=markdown"
+            )
+            assert r.status_code == 404, (
+                f"Expected 404, got {r.status_code}: {r.text[:200]}"
+            )
+
+    async def test_export_nonexistent_run_rejected(self, isolation_app):
+        """Valid session but nonexistent run → 404."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/nonexistent-run/export?format=markdown"
+            )
+            assert r.status_code == 404, (
+                f"Expected 404, got {r.status_code}: {r.text[:200]}"
+            )
+
+    async def test_export_unsupported_format_rejected(self, isolation_app):
+        """Unsupported format → 400 with safe error message."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/run-a-001/export?format=pdf"
+            )
+            assert r.status_code == 400, (
+                f"Expected 400, got {r.status_code}: {r.text[:200]}"
+            )
+            body = r.json()
+            assert "Unsupported" in body.get("detail", ""), (
+                f"Expected 'Unsupported' in detail, got {body}"
+            )
+
+    async def test_export_empty_run_report_rejected(self, isolation_app, db_session_persistent):
+        """Run with empty markdown → 409 conflict."""
+        import json as _json
+
+        transport = ASGITransport(app=isolation_app["app"])
+
+        from app.services.workspace_service import WorkspaceService
+        ws = WorkspaceService(db_session_persistent)
+
+        s = await ws.get_session(isolation_app["session_a"].id)
+        import json as _json2
+        existing = _json2.loads(s.workflow_state or "{}")
+        runs = existing.get("runs", [])
+        runs.append({
+            "run_id": "empty-run",
+            "session_id": str(isolation_app["session_a"].id),
+            "workflow_type": "full_research_flow",
+            "topic": "Empty Run",
+            "started_at": "2026-07-17T10:00:00+00:00",
+            "completed_at": "2026-07-17T10:05:00+00:00",
+            "step_execution_trace": [
+                {"name": "topic_selection", "status": "completed"},
+                {"name": "report_generation", "status": "completed"},
+            ],
+            "output_artifacts": {"markdown": ""},
+            "replay_manifest": {"retrieval_snapshot": [], "traces": []},
+        })
+        s.workflow_state = _json2.dumps(existing, ensure_ascii=False)
+        await db_session_persistent.flush()
+
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/empty-run/export?format=markdown"
+            )
+            assert r.status_code == 409, (
+                f"Expected 409, got {r.status_code}: {r.text[:200]}"
+            )
+
+    async def test_export_response_does_not_leak_other_user_data(self, isolation_app):
+        """Export response content must not contain another user's data."""
+        transport = ASGITransport(app=isolation_app["app"])
+        async with AsyncClient(transport=transport, base_url="http://test",
+                               headers=self._headers(isolation_app, "a")) as client:
+            r = await client.get(
+                f"/api/v4/research/session/{isolation_app['session_a'].id}"
+                f"/runs/run-a-001/export?format=markdown"
+            )
+            assert r.status_code == 200
+            # Should contain own data, not other user's
+            assert "Report A" in r.text
+            assert "Report B" not in r.text
+            assert "Researcher B" not in r.text

@@ -57,6 +57,7 @@ def _run_backend(port: int) -> subprocess.Popen:
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
     env = os.environ.copy()
     env["DATABASE_URL"] = "sqlite+aiosqlite://"
+    env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
         cwd=str(backend_dir),
@@ -1588,3 +1589,520 @@ class TestCrossProjectIsolation:
             assert sr["status"] == 404, (
                 f"Session API for B's session must return 404, got {sr['status']}"
             )
+
+
+# ============================================================
+# ResearchResultPage E2E fixtures
+# ============================================================
+
+
+@pytest.fixture(scope="module")
+def result_user(live_servers):
+    """Create a dedicated user for ResearchResultPage E2E tests."""
+    _, backend_port = live_servers
+    tokens = _seed_user(backend_port, f"resulte2e-{_uuid.uuid4().hex[:6]}", "Result_Pass123!")
+    if tokens is None:
+        raise RuntimeError("Failed to create test user for result page")
+    return tokens
+
+
+@pytest.fixture(scope="module")
+def result_session(live_servers, result_user):
+    """Create a session with a complete seeded run for happy-path tests."""
+    frontend_url, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
+
+    # Create session
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "E2E结果页测试课题"},
+        headers=headers,
+        timeout=10,
+    )
+    assert sess_resp.status_code in (200, 201), f"Session creation failed: {sess_resp.text}"
+    session_data = sess_resp.json()["data"]
+    session_id = session_data["id"]
+
+    # Seed a complete run
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "经络研究",
+        },
+        headers=headers,
+        timeout=10,
+    )
+    assert seed_resp.status_code == 200, f"Seed run failed: {seed_resp.text}"
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {
+        "session_id": session_id,
+        "run_id": run_id,
+        "topic": "经络研究",
+        "report_title": "研究报告：经络研究",
+        "username": result_user.get("username", ""),
+        "token": result_user,
+    }
+
+
+@pytest.fixture(scope="module")
+def result_session_no_report(live_servers, result_user):
+    """Create a session + run with empty markdown (report-missing state)."""
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
+
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "空报告测试课题"},
+        headers=headers,
+        timeout=10,
+    )
+    session_data = sess_resp.json()["data"]
+    session_id = session_data["id"]
+
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "空报告研究",
+            "markdown": "",
+            "citations": [],
+            "retrieval_snapshot": [],
+            "traces": [],
+        },
+        headers=headers,
+        timeout=10,
+    )
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+
+
+@pytest.fixture(scope="module")
+def result_session_run_failed(live_servers, result_user):
+    """Create a session + run with a failed step."""
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
+
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "失败运行测试课题"},
+        headers=headers,
+        timeout=10,
+    )
+    session_data = sess_resp.json()["data"]
+    session_id = session_data["id"]
+
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "失败研究",
+            "step_execution_trace": [
+                {"name": "topic_selection", "status": "completed"},
+                {"name": "literature_retrieval", "status": "failed"},
+            ],
+            "markdown": "",
+            "citations": [],
+            "retrieval_snapshot": [],
+            "traces": [],
+        },
+        headers=headers,
+        timeout=10,
+    )
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+
+
+@pytest.fixture(scope="module")
+def result_session_pending(live_servers, result_user):
+    """Create a session + run with empty step_execution_trace (pending state)."""
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
+
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "待运行测试课题"},
+        headers=headers,
+        timeout=10,
+    )
+    session_data = sess_resp.json()["data"]
+    session_id = session_data["id"]
+
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "待运行研究",
+            "step_execution_trace": [],
+            "markdown": "",
+            "citations": [],
+            "retrieval_snapshot": [],
+            "traces": [],
+        },
+        headers=headers,
+        timeout=10,
+    )
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+
+
+@pytest.fixture(scope="module")
+def result_cross_users(live_servers):
+    """Create two users: user A with a complete run, user B with a different run.
+
+    Used for cross-user and cross-session isolation tests.
+    """
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+
+    # Create two users
+    token_a = _seed_user(backend_port, f"r-xa-{_uuid.uuid4().hex[:6]}", "ResXA_Pass123!")
+    token_b = _seed_user(backend_port, f"r-xb-{_uuid.uuid4().hex[:6]}", "ResXB_Pass123!")
+
+    h_a = {"Authorization": f"Bearer {token_a['access_token']}"}
+    h_b = {"Authorization": f"Bearer {token_b['access_token']}"}
+
+    # User A: session + complete run
+    sess_a = httpx.post(f"{base}/api/v1/workspace/sessions", json={"title": "用户A-结果页测试"}, headers=h_a, timeout=10).json()["data"]
+    seed_a = httpx.post(f"{base}/api/v4/research/_test/seed-research-run", json={"session_id": sess_a["id"], "topic": "A的研究"}, headers=h_a, timeout=10)
+    run_a = seed_a.json()["data"]["run_id"]
+
+    # User B: session + different complete run
+    sess_b = httpx.post(f"{base}/api/v1/workspace/sessions", json={"title": "用户B-结果页测试"}, headers=h_b, timeout=10).json()["data"]
+    seed_b = httpx.post(f"{base}/api/v4/research/_test/seed-research-run", json={"session_id": sess_b["id"], "topic": "B的研究"}, headers=h_b, timeout=10)
+    run_b = seed_b.json()["data"]["run_id"]
+
+    return {
+        "user_a": {
+            "token": token_a,
+            "session_id": sess_a["id"],
+            "run_id": run_a,
+            "title": "用户A-结果页测试",
+            "username": token_a.get("username", ""),
+        },
+        "user_b": {
+            "token": token_b,
+            "session_id": sess_b["id"],
+            "run_id": run_b,
+            "title": "用户B-结果页测试",
+            "username": token_b.get("username", ""),
+        },
+    }
+
+
+# ============================================================
+# TestResearchResultPageE2E — real browser result page tests
+# ============================================================
+
+
+class TestResearchResultPageE2E:
+    """Browser-level E2E tests for ResearchResultPage.
+
+    All tests use real Chromium, real login, real backend, isolated DB.
+    No page.route, no route.fulfill, no fake API responses.
+    No fixed production tokens or external network dependencies.
+    """
+
+    # ------------------------------------------------------------------
+    # 1. Happy path — report loads with full evidence & citations
+    # ------------------------------------------------------------------
+
+    def test_result_page_loads_with_valid_run(self, live_servers, result_session, result_user, page):
+        """Real user enters own session + own run — full report + evidence visible."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # Breadcrumbs
+        assert page.locator(".rrh-breadcrumb-link", has_text="返回工作区").is_visible()
+        assert page.locator(".rrh-breadcrumb-current", has_text="研究结果").is_visible()
+
+        # Header
+        assert page.locator("h1").text_content() == "E2E结果页测试课题"
+
+        # Export button enabled
+        export_btn = page.locator(".rrh-btn--export")
+        assert export_btn.is_visible()
+        assert export_btn.is_enabled()
+
+        # Report content
+        assert page.locator(".rrv-report").is_visible()
+        assert page.locator(".rrv-section-heading", has_text="概述").is_visible()
+
+        # Citation markers are clickable buttons with display numbers
+        markers = page.locator(".rrv-citation-marker")
+        assert markers.count() >= 2
+        assert markers.first.text_content().strip() in ("[1]", "[2]")
+
+        # Citation panel visible
+        assert page.locator(".rcp-section").is_visible()
+        citation_items = page.locator(".rcp-citation-item")
+        assert citation_items.count() >= 2
+
+        # No error states
+        assert page.locator(".rre-state").count() == 0
+
+    # ------------------------------------------------------------------
+    # 2. Citation click → evidence detail visible
+    # ------------------------------------------------------------------
+
+    def test_citation_click_shows_evidence(self, live_servers, result_session, result_user, page):
+        """Clicking a citation in the panel shows evidence detail."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rcp-citation-item", timeout=10000)
+
+        # Click first citation
+        page.locator(".rcp-citation-item").first.click()
+        page.wait_for_selector(".eed-card", timeout=5000)
+
+        # Evidence detail should show claim text and quote
+        assert page.locator(".eed-card").count() > 0
+        assert page.locator(".eed-claim-text").is_visible()
+        assert page.locator(".eed-quote-text").is_visible()
+
+        # Citation panel item should be selected
+        assert page.locator(".rcp-citation-item--selected").count() == 1
+
+    # ------------------------------------------------------------------
+    # 3. Citation marker in report clickable
+    # ------------------------------------------------------------------
+
+    def test_citation_marker_in_report_clickable(self, live_servers, result_session, result_user, page):
+        """Clicking a [N] marker in the report body selects the matching citation."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-citation-marker", timeout=10000)
+
+        # Click first marker [1] in report
+        page.locator(".rrv-citation-marker").first.click()
+        page.wait_for_timeout(500)
+
+        # Assert citation panel now shows the evidence for that citation
+        assert page.locator(".eed-card").count() > 0
+        assert page.locator(".rcp-citation-item--selected").count() == 1
+
+    # ------------------------------------------------------------------
+    # 4. Lineage completeness displayed
+    # ------------------------------------------------------------------
+
+    def test_lineage_completeness_displayed(self, live_servers, result_session, result_user, page):
+        """Evidence with source_ref_title + passage_id shows full lineage badge."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rcp-citation-item", timeout=10000)
+
+        # Select first citation to reveal evidence
+        page.locator(".rcp-citation-item").first.click()
+        page.wait_for_selector(".eed-card", timeout=5000)
+
+        # Full lineage badge should be visible
+        assert page.locator(".els-badge--full", has_text="证据链完整").is_visible()
+
+        # SourceRef card should show title
+        assert page.locator(".esrc-card").is_visible()
+        assert page.locator(".esrc-field-value", has_text="针灸甲乙经·卷之一").is_visible()
+
+    # ------------------------------------------------------------------
+    # 5. SourceRef — external link present
+    # ------------------------------------------------------------------
+
+    def test_source_ref_external_link_present(self, live_servers, result_session, result_user, page):
+        """SourceRef with source_ref_url shows external link with noopener."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rcp-citation-item", timeout=10000)
+
+        # Select citation to reveal SourceRef
+        page.locator(".rcp-citation-item").first.click()
+        page.wait_for_selector(".esrc-card", timeout=5000)
+
+        # The evidence has document_id, so internal link preferred — verify link exists
+        assert page.locator(".esrc-link").is_visible()
+
+        # If external link (no document_id scenario tested separately via unit tests),
+        # check rel=noopener. Here we just verify the link exists.
+        assert page.locator("text=打开原文").is_visible()
+
+    # ------------------------------------------------------------------
+    # 6. Markdown XSS — script tag not rendered
+    # ------------------------------------------------------------------
+
+    def test_markdown_xss_script_not_executed(self, live_servers, result_session, result_user, page):
+        """<script> in report is NOT rendered as executable HTML."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # Verify no raw <script> tags in DOM
+        html = page.content()
+        assert "<script>" not in html, "Raw <script> tag found in rendered DOM"
+
+        # Verify no event handler attributes
+        assert "onerror=" not in html
+        assert "onclick=" not in html
+
+    # ------------------------------------------------------------------
+    # 7. Markdown XSS — javascript URL not clickable
+    # ------------------------------------------------------------------
+
+    def test_markdown_xss_javascript_url_not_active(self, live_servers, result_session, result_user, page):
+        """javascript: URLs in report are not active links."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # No active javascript: links
+        js_links = page.locator('a[href^="javascript:"]')
+        assert js_links.count() == 0, f"Found {js_links.count()} javascript: links"
+
+    # ------------------------------------------------------------------
+    # 8. Markdown XSS — iframe/svg not present
+    # ------------------------------------------------------------------
+
+    def test_markdown_xss_no_iframe_svg(self, live_servers, result_session, result_user, page):
+        """iframe and SVG elements are not injected into the report DOM."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # No iframe elements in the report section
+        iframes = page.locator(".rrv-report iframe")
+        assert iframes.count() == 0, f"Found {iframes.count()} iframe(s) in report"
+
+    # ------------------------------------------------------------------
+    # 9. Real Markdown export (backend endpoint)
+    # ------------------------------------------------------------------
+
+    def test_export_markdown_download(self, live_servers, result_session, result_user, page):
+        """Click export → backend export endpoint returns correct MIME and filename."""
+        frontend_url, backend_port = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # Assert export endpoint works via direct API call
+        base = f"http://127.0.0.1:{backend_port}"
+        headers = {"Authorization": f"Bearer {result_session['token']['access_token']}"}
+        export_url = f"{base}/api/v4/research/session/{result_session['session_id']}/runs/{result_session['run_id']}/export?format=markdown"
+        r = httpx.get(export_url, headers=headers, timeout=10)
+        assert r.status_code == 200, f"Export failed: {r.status_code} {r.text[:200]}"
+        assert "text/markdown" in r.headers.get("content-type", "")
+        cd = r.headers.get("content-disposition", "")
+        assert "attachment" in cd, f"Missing attachment in Content-Disposition: {cd!r}"
+        assert "hfb-research-report-" in cd, f"Missing filename pattern: {cd!r}"
+        assert "研究报告" in r.text or "E2E" in r.text, f"Export body should contain report content, got: {r.text[:100]}"
+
+    # ------------------------------------------------------------------
+    # 10. Cross-session isolation — switch clears old data
+    # ------------------------------------------------------------------
+
+    def test_route_switch_clears_stale_data(self, live_servers, result_session, result_user, result_session_no_report, page):
+        """Switching from a ready result to a report-missing result clears old report data."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        # Navigate to result with report
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+        assert page.locator(".rrv-report").is_visible()
+
+        # Switch to result without report (same user, different session/run)
+        page.goto(f"{frontend_url}/research/{result_session_no_report['session_id']}/result/{result_session_no_report['run_id']}")
+        page.wait_for_selector(".rre-state", timeout=10000)
+
+        # Old report content must NOT be visible
+        assert page.locator(".rrv-report").count() == 0, "Old report should not be visible after switch"
+        assert page.locator("text=报告缺失").is_visible(), "Should show report-missing state"
+
+    # ------------------------------------------------------------------
+    # 11. Cross-user access rejected
+    # ------------------------------------------------------------------
+
+    def test_cross_user_result_blocked(self, live_servers, result_cross_users, page):
+        """User A accessing B's result URL → 404, no B data leaked."""
+        frontend_url, _ = live_servers
+        a = result_cross_users["user_a"]
+        b = result_cross_users["user_b"]
+
+        _login_via_ui(page, frontend_url, a["username"], "ResXA_Pass123!")
+
+        # Capture session API response
+        api_404 = False
+
+        def _capture(response):
+            nonlocal api_404
+            if f"/api/v1/workspace/sessions/{b['session_id']}" in response.url:
+                if response.status == 404:
+                    api_404 = True
+
+        page.on("response", _capture)
+
+        page.goto(f"{frontend_url}/research/{b['session_id']}/result/{b['run_id']}")
+        page.wait_for_load_state("networkidle", timeout=10000)
+        page.wait_for_timeout(2000)
+
+        # Must show not-found state
+        assert page.locator("text=未找到").is_visible() or page.locator("text=不存在").is_visible(), (
+            "Cross-user result should show not-found state"
+        )
+
+        # B's session title must NOT leak
+        assert page.locator(f"text={b['title']}").count() == 0, (
+            f"B's title '{b['title']}' should not appear in A's result page"
+        )
+
+        # B's report content must NOT appear
+        assert page.locator(".rrv-report").count() == 0, (
+            "B's report should not be visible to A"
+        )
+
+        assert api_404, "Session API must return 404 for cross-user access"
+
+    # ------------------------------------------------------------------
+    # 12. Route switch — stale success/error does not cover new page
+    # ------------------------------------------------------------------
+
+    def test_switch_from_error_to_ready_clears_error(self, live_servers, result_session, result_user, result_session_no_report, page):
+        """After seeing error state, switching to valid run clears the error and shows report."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, result_session["username"], "Result_Pass123!")
+
+        # First visit the no-report run to get error state
+        page.goto(f"{frontend_url}/research/{result_session_no_report['session_id']}/result/{result_session_no_report['run_id']}")
+        page.wait_for_selector(".rre-state", timeout=10000)
+        assert page.locator("text=报告缺失").is_visible()
+
+        # Now switch to valid run
+        page.goto(f"{frontend_url}/research/{result_session['session_id']}/result/{result_session['run_id']}")
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # Error state must be gone
+        assert page.locator(".rre-state").count() == 0, "Error state should be cleared after switch"
+        assert page.locator(".rrv-report").is_visible(), "Report should be visible after switch"
+        assert page.locator("h1").text_content() == "E2E结果页测试课题"

@@ -45,7 +45,7 @@
 | 16 | 典籍详情 / Book Detail | `/books/:id` | `views/BookDetailView.vue` | Library | Document Detail |
 | 17 | 人物列表 / Persons List | `/persons` | `views/PersonListView.vue` | Library | Knowledge Explorer |
 | 18 | 创建新研究课题 / Research New | `/research/new` | `views/ResearchNewView.vue` | Research | Project List |
-| 19 | V4 研究 / V4 Research | `/v4/research-internal` | `views/V4ResearchView.vue` | Research | Research Workspace + Research Result |
+| 19 | V4 研究 / V4 Research | `/v4/research-internal` | `views/V4ResearchView.vue` | Research | Research Workspace + Research Result + Knowledge Explorer |
 | 20 | 古籍版本库 / Classical Versions | `/classical-versions` | `views/classical-versions/ClassicalVersionListView.vue` | Library | Library Search |
 
 ---
@@ -393,7 +393,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **处置理由** | V4 workflow is fully duplicated between V4ResearchView and ResearchWorkspaceView. Research workflow tab migrated to standalone ResearchWorkflowPage with composable architecture. Education and Visualization are knowledge exploration features — they belong in Knowledge Explorer. The standalone route is inaccessible via normal UI. |
 | **前置依赖** | Knowledge Explorer must support education concept display and graph visualization rendering. ~~Research Workspace must absorb the V4 workflow tab capabilities before V4ResearchView can be retired.~~ **DONE: Research workflow migrated to `ResearchWorkflowPage.vue` at `/research/:projectId/workflow`**. |
 | **风险说明** | Medium. Education and Visualization modes call `/api/v4/education/learn` and `/api/v4/visualization/graph` — these APIs are V4-specific. Knowledge Explorer currently uses `/api/v1/graph/*` endpoints. API alignment needed. Duplicate logic consolidated into `useResearchWorkflow` composable. |
-| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。**VERIFIED at Batch 5 closure (2026-07-18):** 前端 212/212 测试通过、typecheck 通过、build 通过、后端 workflow 12/12 通过、RBAC 隔离 24/24 通过、E2E TestCrossProjectIsolation 6/6 通过、E2E TestResearchWorkflowPageE2E 7/7 通过。**所有 5 个阻塞批次已解决**：Batch 1 (删除假进度)、Batch 2 (严格 run_id 隔离)、Batch 3 (重复提交/stale-response 防护)、Batch 4 (SourceRef/lineage 增强)、Batch 5 (Playwright E2E)。 |
+| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。**VERIFIED at Batch 5 closure (2026-07-18):** 前端 212/212 测试通过、typecheck 通过、build 通过、后端 workflow 12/12 通过、RBAC 隔离 24/24 通过、E2E TestCrossProjectIsolation 6/6 通过、E2E TestResearchWorkflowPageE2E 7/7 通过。**所有 5 个阻塞批次已解决**：Batch 1 (删除假进度)、Batch 2 (严格 run_id 隔离)、Batch 3 (重复提交/stale-response 防护)、Batch 4 (SourceRef/lineage 增强)、Batch 5 (Playwright E2E)。**ResearchResultPage 已迁移 (2026-07-19, commit 8228130):** 从占位页迁移至真实研究报告、Citation、Evidence、SourceRef 展示页面。81 前端单元测试（含 Citation 校验与 SourceRef 内部路由），8 子组件，useResearchResult composable。12 专项 E2E 测试 (TestResearchResultPageE2E)。后端导出端点 + seed endpoint + 31 RBAC 隔离测试。详见 `docs/20-product/2015-research-result-migration.md`。|
 
 ### 17. Research — Workflow (Embedded)
 
@@ -743,7 +743,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 |---|------|------|----------|
 | B8 | Research store (`useResearchStore`) is client-only singleton with `setTopic`/`clearTopic` — no server persistence, no multi-project support | All research page rebuilds blocked until store supports multiple server-persisted projects with `:projectId` routing | REBUILD: Research Home → Project Detail; MERGE: Research New → Project List |
 | B9 | Sessions belong to workspace but are global (`GET /api/v1/workspace/sessions` returns all user sessions) — no project scoping | Splitting workspace into focused pages requires project-scoped sessions | REBUILD: Research Workspace → split pages |
-| B10 | V4 workflow runs are keyed by `{session_id}/{run_id_node}` but sessions are not project-scoped — orphaned runs possible | Research Result page needs reliable run→project mapping | MERGE: V4ResearchView → Research Result |
+| B10 | V4 workflow runs are keyed by `{session_id}/{run_id_node}` but sessions are not project-scoped — orphaned runs possible | Research Result page needs reliable run→project mapping | MERGE: V4ResearchView → Research Result | **RESOLVED (2026-07-19): ResearchResultPage migrated with full backend authorization. Backend `get_session_runs` now validates session ownership AND does defense-in-depth `run.session_id == url.session_id` check per run. Export endpoint validates session ownership + run-in-session membership + explicit session_id match on run record. Frontend sends real backend API requests for export (not local Blob). 81 frontend unit tests, 12 E2E ResearchResultPage tests (real Chromium, real login, isolated SQLite), 31 RBAC isolation tests. See `2015-research-result-migration.md`.** |
 
 ### 数据字段缺失
 

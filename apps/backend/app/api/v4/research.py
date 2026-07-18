@@ -7,11 +7,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +44,7 @@ router = APIRouter(prefix="/research", tags=["Research V4"])
 
 guard_research_read = require_permission("research", "read")
 guard_research_update = require_permission("research", "update")
+guard_research_export = require_permission("research", "export")
 
 
 # ======================================================================
@@ -619,14 +621,28 @@ async def get_session_runs(
     db: Annotated[AsyncSession, Depends(get_session)],
     current_user: str = Depends(get_current_user),
 ) -> V4ApiEnvelope:
-    """Replay persisted ResearchRuns. Immutable snapshots."""
+    """List all runs belonging to this session.
+
+    Authorization: session ownership validated via user_id check.
+    Each run's session_id field is verified against the URL session_id
+    before inclusion in the response (defense-in-depth).
+    """
     ws = WorkspaceService(db)
     research_session = await ws.get_session(session_id)
     if research_session is None or research_session.user_id != current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
     rwf = ResearchWorkflowService(db)
-    runs = await rwf.get_research_runs(session_id)
+    raw_runs = await rwf.get_research_runs(session_id)
+
+    # Defense-in-depth: validate every run's session_id matches the URL.
+    # Runs are JSON blobs inside workflow_state; a malformed or cross-session
+    # run must never leak to a different session's response.
+    runs: list[dict] = []
+    for run in raw_runs:
+        run_sid = str(run.get("session_id", ""))
+        if run_sid == str(session_id):
+            runs.append(run)
 
     # Aggregate trace data from run manifests
     all_trace_ids: list[str] = []
@@ -657,6 +673,93 @@ async def get_session_runs(
             source_documents=sorted(all_source_docs),
             session_id=session_id,
         ),
+    )
+
+
+# ======================================================================
+# GET /api/v4/research/session/{session_id}/runs/{run_id}/export
+# ======================================================================
+
+EXPORTABLE_FORMATS = frozenset({"markdown"})
+
+
+@router.get(
+    "/session/{session_id}/runs/{run_id}/export",
+    dependencies=[Depends(guard_research_export)],
+)
+async def export_run_markdown(
+    session_id: str,
+    run_id: str,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
+    format: str = "markdown",
+) -> Response:
+    """Export a single run's report as Markdown.
+
+    Authorization:
+     - Current user MUST own the session
+     - Run MUST belong to the session
+     - Run MUST have a non-empty report markdown
+     - Unsupported format returns 400
+     - Fail-closed: no data leaks across users, sessions, or runs
+    """
+    # Validate format early
+    if format not in EXPORTABLE_FORMATS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported export format: {format}. Supported: {', '.join(sorted(EXPORTABLE_FORMATS))}",
+        )
+
+    # Validate session ownership
+    ws = WorkspaceService(db)
+    research_session = await ws.get_session(session_id)
+    if research_session is None or research_session.user_id != current_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    # Validate run exists and belongs to this session
+    rwf = ResearchWorkflowService(db)
+    runs = await rwf.get_research_runs(session_id)
+    target_run = None
+    for run in runs:
+        if run.get("run_id") == run_id:
+            target_run = run
+            break
+
+    if target_run is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Run not found",
+        )
+
+    # Validate run's session_id matches URL session_id (defense-in-depth)
+    run_session_id = target_run.get("session_id", "")
+    if str(run_session_id) != str(session_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Run not found",
+        )
+
+    # Extract report markdown
+    artifacts = target_run.get("output_artifacts") or {}
+    markdown = (artifacts.get("markdown") or "").strip()
+    if not markdown:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Report is empty — nothing to export",
+        )
+
+    safe_run_id = run_id[:8]
+    safe_filename = f"hfb-research-report-{safe_run_id}.md"
+
+    return Response(
+        content=markdown,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+        },
     )
 
 
@@ -978,4 +1081,151 @@ async def replay_research_run(
             source_documents=replay_source_docs,
             session_id=run_data.get("session_id"),
         ),
+    )
+
+
+# ======================================================================
+# Test-only: seed a research run for E2E testing
+# ======================================================================
+
+
+class SeedRunRequest(BaseModel):
+    session_id: str
+    topic: str = "E2E 测试研究"
+    markdown: str | None = None
+    step_execution_trace: list[dict] | None = None
+    citations: list[dict] | None = None
+    retrieval_snapshot: list[dict] | None = None
+    traces: list[dict] | None = None
+
+
+@router.post(
+    "/_test/seed-research-run",
+    response_model=V4ApiEnvelope,
+    dependencies=[Depends(guard_research_update)],
+)
+async def seed_research_run(
+    body: SeedRunRequest,
+    db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
+) -> V4ApiEnvelope:
+    """Seed a complete ResearchRun into a session's workflow_state.
+
+    STRICT: Only active when SEED_TEST_DATA=1 env var is set.
+    Used by E2E tests to create runs without executing the full
+    LLM workflow pipeline. Never enabled in production.
+    """
+    if os.environ.get("SEED_TEST_DATA") != "1":
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Test-only endpoint disabled",
+        )
+
+    # Validate session ownership
+    ws = WorkspaceService(db)
+    research_session = await ws.get_session(body.session_id)
+    if research_session is None or research_session.user_id != current_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Session not found",
+        )
+
+    run_id = str(uuid4())
+
+    now = datetime.now(timezone.utc).isoformat()
+    default_steps = [
+        {"name": "topic_selection", "status": "completed", "result": {}, "trace_ids": []},
+        {"name": "literature_retrieval", "status": "completed", "result": {}, "trace_ids": []},
+        {"name": "evidence_synthesis", "status": "completed", "result": {}, "trace_ids": []},
+        {"name": "report_generation", "status": "completed", "result": {}, "trace_ids": []},
+        {"name": "citation_export", "status": "completed", "result": {}, "trace_ids": []},
+    ]
+
+    default_markdown = (
+        "# 研究报告：" + body.topic + "\n\n"
+        "## 概述\n\n"
+        "这是E2E测试生成的研究报告文本。参考 [doc-01:chk-01]。\n\n"
+        "## 结论\n\n"
+        "研究结论部分内容 [doc-02:chk-02]。\n\n"
+        "**这是粗体文字示例。**"
+    )
+
+    default_citations = [
+        {"trace_id": "doc-01:chk-01", "citation_text": "甲乙经·经脉篇", "document_id": "doc-01", "quote": "经络者，所以行血气而营阴阳。"},
+        {"trace_id": "doc-02:chk-02", "citation_text": "灵枢·刺节真邪", "document_id": "doc-02", "quote": "刺之要，气至而有效。"},
+    ]
+
+    default_snapshot = [
+        {
+            "trace_id": "doc-01:chk-01",
+            "document_id": "doc-01",
+            "chunk_id": "chk-01",
+            "claim_text": "经络是人体运行气血的通道，负责营养全身。",
+            "quote": "经络者，所以行血气而营阴阳，濡筋骨，利关节者也。",
+            "citation_text": "甲乙经·经脉篇",
+            "source_ref_title": "针灸甲乙经·卷之一",
+            "source_ref_url": "https://example.com/jia-yi-jing/1",
+            "source_ref_id": "src-ref-001",
+        },
+        {
+            "trace_id": "doc-02:chk-02",
+            "document_id": "doc-02",
+            "chunk_id": "chk-02",
+            "claim_text": "针灸对经络系统有显著调节效果。",
+            "quote": "刺之要，气至而有效，效之信，若风之吹云。",
+            "citation_text": "灵枢·刺节真邪",
+            "source_ref_title": "黄帝内经·灵枢",
+            "source_ref_url": "https://example.com/ling-shu/1",
+            "source_ref_id": "src-ref-002",
+        },
+    ]
+
+    default_traces = [
+        {"trace_id": "doc-01:chk-01", "document_id": "doc-01", "chunk_id": "chk-01", "passage_id": "passage-001", "provenance_kind": "retrieval", "retrieval_score": 0.95, "retrieval_method": "semantic_search", "timestamp": now},
+        {"trace_id": "doc-02:chk-02", "document_id": "doc-02", "chunk_id": "chk-02", "passage_id": "passage-002", "provenance_kind": "retrieval", "retrieval_score": 0.92, "retrieval_method": "semantic_search", "timestamp": now},
+    ]
+
+    steps = body.step_execution_trace or default_steps
+    run_entry = {
+        "run_id": run_id,
+        "session_id": str(body.session_id),
+        "workflow_type": "full_research_flow",
+        "topic": body.topic,
+        "query_history_binding": [],
+        "started_at": now,
+        "completed_at": now,
+        "step_execution_trace": steps,
+        "output_artifacts": {
+            "markdown": body.markdown if body.markdown is not None else default_markdown,
+            "title": "研究报告：" + body.topic,
+            "artifact_id": str(uuid4()),
+            "created_at": now,
+            "citations": body.citations if body.citations is not None else default_citations,
+        },
+        "replay_manifest": {
+            "retrieval_snapshot": body.retrieval_snapshot if body.retrieval_snapshot is not None else default_snapshot,
+            "traces": body.traces if body.traces is not None else default_traces,
+        },
+    }
+
+    # Persist into session workflow_state
+    rwf = ResearchWorkflowService(db)
+    session_model = await ws.get_session(body.session_id)
+    existing_state: dict[str, Any] = {}
+    if session_model and session_model.workflow_state:
+        try:
+            existing_state = json.loads(session_model.workflow_state)
+        except (json.JSONDecodeError, TypeError):
+            existing_state = {}
+    runs: list[dict] = existing_state.get("runs", [])
+    runs.append(run_entry)
+    session_model.workflow_state = json.dumps({"runs": runs}, ensure_ascii=False)
+    # Persist via WorkspaceService.update_session — keeps ORM calls inside
+    # the service layer (V4 route files must stay ORM-free).
+    await ws.update_session(body.session_id, title=session_model.title)
+
+    return V4ApiEnvelope(
+        success=True,
+        data={"run_id": run_id, "session_id": str(body.session_id)},
+        message="Seeded run for test purposes",
     )
