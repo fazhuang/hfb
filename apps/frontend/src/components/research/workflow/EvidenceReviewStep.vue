@@ -50,9 +50,18 @@
 
         <!-- Locator info -->
         <div class="ers-locator">
-          <span class="ers-locator-hint">
-            {{ ev.chunk_id ? `Chunk: ${ev.chunk_id.slice(0, 12)}...` : '暂无精确定位' }}
+          <span v-if="getLocatorText(ev)" class="ers-locator-hint">
+            {{ getLocatorText(ev) }}
           </span>
+          <span v-else class="ers-locator-hint ers-locator-hint--incomplete">
+            来源定位不完整
+          </span>
+        </div>
+
+        <!-- Lineage completeness indicator -->
+        <div v-if="!hasFullLineage(ev)" class="ers-lineage-warning">
+          <span class="ers-lineage-warning-icon" aria-hidden="true">⚠️</span>
+          该条目的证据链不完整，缺少部分来源追溯信息。
         </div>
 
         <!-- Actions -->
@@ -85,6 +94,53 @@ defineEmits<{
   'save-citation': [evidence: WorkflowEvidence];
   'go-to-report': [];
 }>();
+
+/**
+ * Build a human-readable locator string from available evidence fields.
+ *
+ * Key invariants:
+ *   - source_ref_title is a REAL source title from the backend (not document_id).
+ *   - passage_id is a REAL passage UUID from traces (not chunk_id).
+ *   - If source_ref_title is missing, we show "来源定位不完整" — we CANNOT
+ *     fabricate it from document_id or any other field.
+ *   - chunk_id is a chunk identifier, not a passage — it goes in the
+ *     locator only when passage_id is missing.
+ */
+function getLocatorText(ev: WorkflowEvidence): string {
+  const parts: string[] = [];
+  // source_ref_title comes from retrieval_snapshot.source_ref_title — only present
+  // when the backend has a real SourceRef record for this evidence.
+  if ('source_ref_title' in ev && ev.source_ref_title) {
+    parts.push(`来源: ${ev.source_ref_title}`);
+  }
+  // passage_id comes from manifests.traces[].passage_id (real passage UUID).
+  // chunk_id is a fallback. Neither is a source title.
+  if ('passage_id' in ev && ev.passage_id) {
+    parts.push(`Passage: ${ev.passage_id.slice(0, 12)}...`);
+  } else if (ev.chunk_id) {
+    parts.push(`Chunk: ${ev.chunk_id.slice(0, 12)}...`);
+  }
+  // P2T2: When we only have a chunk_id (no source_ref_title or passage_id),
+  // return empty string so the template renders "来源定位不完整" instead.
+  if (parts.length === 1 && parts[0]?.startsWith('Chunk:')) return '';
+  return parts.join(' · ');
+}
+
+/**
+ * An evidence entry has full lineage when it has at least:
+ *   trace_id + document_id + chunk_id + (claim_text OR quote)
+ * No confidence score — just structural completeness.
+ * Missing source_ref_title or passage_id means incomplete lineage.
+ */
+function hasFullLineage(ev: WorkflowEvidence): boolean {
+  // Basic structural requirement
+  if (!ev.trace_id || !ev.document_id || !ev.chunk_id) return false;
+  if (!ev.claim_text && !ev.quote) return false;
+  // SourceRef or passage locator is required for full lineage
+  if (!('source_ref_title' in ev) || !ev.source_ref_title) return false;
+  if (!('passage_id' in ev) || !ev.passage_id) return false;
+  return true;
+}
 </script>
 
 <style scoped>
@@ -282,6 +338,29 @@ defineEmits<{
 .ers-locator-hint {
   font-size: 12px;
   color: var(--color-text-muted, #a0aec0);
+}
+
+.ers-locator-hint--incomplete {
+  color: #d69e2e;
+  font-style: italic;
+}
+
+/* Lineage warning */
+.ers-lineage-warning {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #d69e2e;
+  border-radius: 4px;
+  background: #fffff0;
+  font-size: 12px;
+  color: #975a16;
+  margin-bottom: 10px;
+}
+
+.ers-lineage-warning-icon {
+  flex-shrink: 0;
+  font-size: 13px;
 }
 
 /* Actions */

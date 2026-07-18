@@ -7,7 +7,7 @@
  *   - pending question read + clear from sessionStorage
  *   - workflow submission (POST /api/v4/research/workflow)
  *   - run fetching (GET /api/v4/research/session/{id}/runs)
- *   - evidence/citation extraction from run artifacts
+ *   - evidence/citation extraction from the CURRENT run only
  *   - citation save (POST /api/v1/workspace/sessions/{id}/citations)
  *   - note save (POST /api/v1/workspace/sessions/{id}/notes)
  *   - step state machine: question → selection → submitting → evidence → report
@@ -19,6 +19,8 @@
  *   - Backend workflow is synchronous — no polling, no pause/resume
  *   - Document selection is not supported by backend — system auto-retrieves
  *   - AI results are 100% from backend response — nothing client-generated
+ *   - Evidence/report/citations are STRICTLY scoped to the current run_id
+ *   - Historical runs are NEVER aggregated or used as fallback
  */
 
 import { ref, computed, onBeforeUnmount } from 'vue';
@@ -42,6 +44,10 @@ export interface WorkflowEvidence {
   claim_text: string;
   quote: string;
   citation_text: string;
+  /** SourceRef title from retrieval_snapshot (if available) — NOT document_id */
+  source_ref_title?: string;
+  /** Passage ID from traces (if available) — NOT chunk_id */
+  passage_id?: string;
 }
 
 export interface WorkflowCitation {
@@ -89,79 +95,99 @@ function makeStorageKey(projectId: string): string {
   return `hfb.research.${guardId(projectId)}.pending-question`;
 }
 
-function extractEvidenceFromRuns(
-  runs: Record<string, unknown>[],
+/**
+ * Extract evidence and citations from a SINGLE run only.
+ * Does NOT aggregate across runs — strict run-scoped isolation.
+ */
+function extractEvidenceFromSingleRun(
+  run: Record<string, unknown>,
 ): { evidence: WorkflowEvidence[]; citations: WorkflowCitation[] } {
   const evidenceList: WorkflowEvidence[] = [];
   const citationList: WorkflowCitation[] = [];
-  const seen = new Set<string>();
+  const evidenceSeen = new Set<string>();
+  const citationSeen = new Set<string>();
 
-  for (const run of runs) {
-    const manifest = run.replay_manifest as Record<string, unknown> | undefined;
+  const manifest = run.replay_manifest as Record<string, unknown> | undefined;
 
-    // Build trace_id → snapshot entry map
-    const snapshotMap = new Map<string, Record<string, unknown>>();
-    if (manifest?.retrieval_snapshot && Array.isArray(manifest.retrieval_snapshot)) {
-      for (const rec of manifest.retrieval_snapshot as Array<Record<string, unknown>>) {
-        const tid = rec.trace_id as string;
-        if (tid) snapshotMap.set(tid, rec);
-      }
+  // Build trace_id → snapshot entry map AND trace map for cross-referencing
+  const snapshotMap = new Map<string, Record<string, unknown>>();
+  const traceMap = new Map<string, Record<string, unknown>>();
+  if (manifest?.retrieval_snapshot && Array.isArray(manifest.retrieval_snapshot)) {
+    for (const rec of manifest.retrieval_snapshot as Array<Record<string, unknown>>) {
+      const tid = rec.trace_id as string;
+      if (tid) snapshotMap.set(tid, rec);
     }
-
-    // Path 1: output_artifacts.citations
-    const artifacts = run.output_artifacts as Record<string, unknown> | undefined;
-    if (artifacts?.citations && Array.isArray(artifacts.citations)) {
-      for (const c of artifacts.citations as Array<Record<string, unknown>>) {
-        const tid = (c.trace_id as string) || '';
-        if (!tid || seen.has(tid)) continue;
-        seen.add(tid);
-        citationList.push({
-          trace_id: tid,
-          citation_text: (c.citation_text as string) || '',
-          document_id: (c.document_id as string) || '',
-          quote: (c.quote as string) || '',
-        });
-      }
+  }
+  if (manifest?.traces && Array.isArray(manifest.traces)) {
+    for (const tr of manifest.traces as Array<Record<string, unknown>>) {
+      const tid = tr.trace_id as string;
+      if (tid) traceMap.set(tid, tr);
     }
+  }
 
-    // Path 2: replay_manifest.traces + snapshot cross-reference
-    if (manifest?.traces && Array.isArray(manifest.traces)) {
-      for (const tr of manifest.traces as Array<Record<string, unknown>>) {
-        const tid = tr.trace_id as string;
-        if (!tid || seen.has(tid)) continue;
-        const snap = snapshotMap.get(tid) || {};
-        // Only add if we have real content
-        const claimText = (snap.claim_text as string) || '';
-        const citText = (snap.citation_text as string) || '';
-        const quoteText = (snap.quote as string) || '';
-        if (!claimText && !citText && !quoteText) continue;
-
-        seen.add(tid);
-        evidenceList.push({
-          trace_id: tid,
-          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
-          chunk_id: (snap.chunk_id as string) || (tr.chunk_id as string) || '',
-          claim_text: claimText,
-          quote: quoteText,
-          citation_text: citText,
-        });
-      }
+  // Path 1: output_artifacts.citations
+  const artifacts = run.output_artifacts as Record<string, unknown> | undefined;
+  if (artifacts?.citations && Array.isArray(artifacts.citations)) {
+    for (const c of artifacts.citations as Array<Record<string, unknown>>) {
+      const tid = (c.trace_id as string) || '';
+      if (!tid || citationSeen.has(tid)) continue;
+      citationSeen.add(tid);
+      citationList.push({
+        trace_id: tid,
+        citation_text: (c.citation_text as string) || '',
+        document_id: (c.document_id as string) || '',
+        quote: (c.quote as string) || '',
+      });
     }
+  }
 
-    // Fallback: snapshot-only
-    if (evidenceList.length === 0 && citationList.length === 0 && snapshotMap.size > 0) {
-      for (const [tid, snap] of snapshotMap) {
-        if (seen.has(tid)) continue;
-        seen.add(tid);
-        evidenceList.push({
-          trace_id: tid,
-          document_id: (snap.document_id as string) || '',
-          chunk_id: (snap.chunk_id as string) || '',
-          claim_text: (snap.claim_text as string) || '',
-          quote: (snap.quote as string) || '',
-          citation_text: (snap.citation_text as string) || '',
-        });
-      }
+  // Path 2: replay_manifest.traces + snapshot cross-reference
+  if (manifest?.traces && Array.isArray(manifest.traces)) {
+    for (const tr of manifest.traces as Array<Record<string, unknown>>) {
+      const tid = tr.trace_id as string;
+      if (!tid || evidenceSeen.has(tid)) continue;
+      const snap = snapshotMap.get(tid) || {};
+      // Only add if we have real content
+      const claimText = (snap.claim_text as string) || '';
+      const citText = (snap.citation_text as string) || '';
+      const quoteText = (snap.quote as string) || '';
+      if (!claimText && !citText && !quoteText) continue;
+
+      evidenceSeen.add(tid);
+      evidenceList.push({
+        trace_id: tid,
+        document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+        chunk_id: (snap.chunk_id as string) || (tr.chunk_id as string) || '',
+        claim_text: claimText,
+        quote: quoteText,
+        citation_text: citText,
+        // Real source_ref_title from snapshot (NOT document_id)
+        source_ref_title: (snap.source_ref_title as string) || undefined,
+        // Real passage_id from traces (NOT chunk_id)
+        passage_id: (tr.passage_id as string) || undefined,
+      });
+    }
+  }
+
+  // Fallback: snapshot-only (with source_ref_title)
+  // P2T2: Fires when manifest.traces is empty but retrieval_snapshot
+  // has entries (ingested docs without passage_id produce empty trace lists).
+  // Don't gate on citationList — output_artifacts.citations (Path 1) can be
+  // populated independently of evidence extraction.
+  if (evidenceList.length === 0 && snapshotMap.size > 0) {
+    for (const [tid, snap] of snapshotMap) {
+      if (evidenceSeen.has(tid)) continue;
+      evidenceSeen.add(tid);
+      evidenceList.push({
+        trace_id: tid,
+        document_id: (snap.document_id as string) || '',
+        chunk_id: (snap.chunk_id as string) || '',
+        claim_text: (snap.claim_text as string) || '',
+        quote: (snap.quote as string) || '',
+        citation_text: (snap.citation_text as string) || '',
+        source_ref_title: (snap.source_ref_title as string) || undefined,
+        passage_id: undefined,
+      });
     }
   }
 
@@ -252,13 +278,14 @@ export function useResearchWorkflow(projectId: () => string) {
   const savingMessage = ref('');
   const citationSaveState = ref<Record<string, 'idle' | 'saving' | 'saved'>>({});
 
-  // ---- Dedup ----
+  // ---- Dedup & stale-response protection ----
   let reqId = 0;
   let submitToken = 0;
+  let pendingAbortController: AbortController | null = null;
 
   // ---- Derived ----
   const hasEvidence = computed(() => evidenceList.value.length > 0);
-  const hasReport = computed(() => report.value !== null);
+  const hasReport = computed(() => report.value !== null && report.value.markdown.length > 0);
   const canSubmit = computed(() => question.value.trim().length > 0 && !submitting.value);
 
   // ---- Session loading ----
@@ -338,6 +365,9 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Workflow submission ----
   async function submitWorkflow() {
+    // Function-level guard: prevent duplicate submissions
+    if (submitting.value) return;
+
     const raw = projectId();
     const topic = question.value.trim();
     if (!raw || !topic) return;
@@ -379,10 +409,17 @@ export function useResearchWorkflow(projectId: () => string) {
       }
 
       workflowResult.value = data.data as Record<string, unknown>;
+      // Accept ONLY the server-generated run_id from the POST response
       runId.value = (data.data?.run_id as string) || '';
       steps.value = (data.data?.steps as WorkflowStep[]) || [];
 
-      // Fetch runs for evidence/report
+      if (!runId.value) {
+        submitError.value = '工作流已完成，但未返回运行标识。';
+        stepState.value = 'error';
+        return;
+      }
+
+      // Fetch runs for evidence/report (scoped to current run_id)
       await fetchRuns();
 
       if (token !== submitToken) return;
@@ -391,7 +428,7 @@ export function useResearchWorkflow(projectId: () => string) {
         stepState.value = 'evidence';
         currentStepIndex.value = 3;
       } else {
-        // Workflow succeeded but no evidence found
+        // Workflow succeeded but no evidence found in this run
         submitError.value = '工作流已完成，但未找到相关文献证据。';
         stepState.value = 'evidence'; // still let user review (with warning)
         currentStepIndex.value = 3;
@@ -407,7 +444,8 @@ export function useResearchWorkflow(projectId: () => string) {
         // Try to fetch runs in case the server completed
         try {
           await fetchRuns();
-          if (runId.value) {
+          if (token !== submitToken) return;
+          if (runId.value && (hasEvidence.value || hasReport.value)) {
             stepState.value = 'evidence';
             currentStepIndex.value = 3;
             return;
@@ -426,7 +464,7 @@ export function useResearchWorkflow(projectId: () => string) {
     }
   }
 
-  // ---- Fetch runs ----
+  // ---- Fetch runs (strict: only current run_id) ----
   async function fetchRuns() {
     const raw = projectId();
     if (!raw) return;
@@ -437,40 +475,64 @@ export function useResearchWorkflow(projectId: () => string) {
       return;
     }
 
-    const { data } = await api.get(`/api/v4/research/session/${id}/runs`);
-    const runs = (data.data?.runs ?? []) as Record<string, unknown>[];
+    // Cancel any pending runs request
+    if (pendingAbortController) {
+      pendingAbortController.abort();
+    }
+    pendingAbortController = new AbortController();
+    const currentAbortController = pendingAbortController;
 
-    // Find the latest run
-    const sorted = [...runs].sort((a, b) =>
-      (b.completed_at as string || '').localeCompare(a.completed_at as string || ''),
-    );
-    const lastRun = sorted[0];
+    const myReqId = ++reqId;
 
-    if (lastRun) {
-      if (!runId.value) {
-        runId.value = (lastRun.run_id as string) || '';
+    try {
+      const { data } = await api.get(`/api/v4/research/session/${id}/runs`, {
+        signal: currentAbortController.signal,
+      });
+
+      // Stale response protection
+      if (myReqId !== reqId) return;
+      if (currentAbortController.signal.aborted) return;
+
+      const runs = (data.data?.runs ?? []) as Record<string, unknown>[];
+
+      // Strict: find ONLY the run matching the current runId
+      const currentRun = runs.find((r) => (r.run_id as string) === runId.value);
+
+      if (!currentRun) {
+        // Current run not yet available — clear data, don't fall back to history
+        evidenceList.value = [];
+        citationList.value = [];
+        report.value = null;
+        return;
       }
 
-      const artifacts = lastRun.output_artifacts as Record<string, unknown> | undefined;
-      const markdown = (artifacts?.markdown as string) || '';
-      const completedAt = (lastRun.completed_at as string) || null;
-      const topic = (lastRun.topic as string) || question.value;
-
-      // Count evidence and citations
-      const { evidence, citations } = extractEvidenceFromRuns(runs);
+      // Extract evidence and citations ONLY from the current run
+      const { evidence, citations } = extractEvidenceFromSingleRun(currentRun);
       evidenceList.value = evidence;
       citationList.value = citations;
+
+      const artifacts = currentRun.output_artifacts as Record<string, unknown> | undefined;
+      const markdown = (artifacts?.markdown as string) || '';
+      const completedAt = (currentRun.completed_at as string) || null;
+      const topic = (currentRun.topic as string) || question.value;
 
       report.value = {
         run_id: runId.value,
         topic,
-        title: artifacts?.title as string || `研究报告：${topic}`,
+        title: (artifacts?.title as string) || `研究报告：${topic}`,
         markdown,
         completed_at: completedAt,
         artifact_id: (artifacts?.artifact_id as string) || '',
         evidence_count: evidence.length,
         citation_count: citations.length,
       };
+    } catch (e: unknown) {
+      // Aborted requests are intentional — don't treat as errors
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      // Stale response — ignore
+      if (myReqId !== reqId) return;
+      // Otherwise, let caller handle
+      throw e;
     }
   }
 
@@ -506,6 +568,8 @@ export function useResearchWorkflow(projectId: () => string) {
 
   function goToReport() {
     if (submitting.value) return;
+    // Require real report artifact with non-empty markdown from current run
+    if (!report.value || !report.value.markdown || !report.value.run_id) return;
     stepState.value = 'report';
     currentStepIndex.value = 4;
   }
@@ -577,6 +641,11 @@ export function useResearchWorkflow(projectId: () => string) {
   // ---- Reset (start new workflow) ----
   function reset() {
     submitToken++;
+    // Cancel any pending requests
+    if (pendingAbortController) {
+      pendingAbortController.abort();
+      pendingAbortController = null;
+    }
     question.value = '';
     stepState.value = 'question';
     currentStepIndex.value = 0;
@@ -598,6 +667,10 @@ export function useResearchWorkflow(projectId: () => string) {
   onBeforeUnmount(() => {
     reqId = -1;
     submitToken = -1;
+    if (pendingAbortController) {
+      pendingAbortController.abort();
+      pendingAbortController = null;
+    }
   });
 
   return {

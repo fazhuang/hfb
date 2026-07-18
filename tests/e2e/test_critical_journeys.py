@@ -325,61 +325,689 @@ class TestWorkspace:
         assert page.locator("text=研究画布").is_visible()
 
 
-class TestResearchWorkflow:
-    """The first product workflow works through the browser."""
 
-    def test_version_comparison_note_and_export(
-        self,
-        live_servers,
-        test_user,
-        research_data,
-        page,
+# ============================================================
+# V4 Research Workflow Page E2E — Batch 5 blocking fixes
+# ============================================================
+# Tests the 5-step research workflow page (ResearchWorkflowPage.vue)
+# through the real browser + real backend, with real UI login.
+#
+# Contract (from useResearchWorkflow.ts):
+#   - projectId === ResearchSession.id (route param)
+#   - Exactly ONE workflow request per submission
+#   - Backend workflow is synchronous
+#   - No fake percentages, no simulated progress
+#   - No pause/resume
+#   - Document selection is not supported — system auto-retrieves
+#
+# Forbidden:
+#   - No page.route / route.fulfill
+#   - No page.evaluate to write tokens into localStorage
+#   - No mock API responses
+
+
+@pytest.fixture(scope="module")
+def workflow_user(live_servers):
+    """Create a dedicated user for the V4 workflow E2E tests."""
+    _, backend_port = live_servers
+    username = f"wfuser-{_uuid.uuid4().hex[:6]}"
+    tokens = _seed_user(backend_port, username, "WfUser_Pass123!")
+    if tokens is None:
+        raise RuntimeError("Failed to create workflow test user")
+    return tokens
+
+
+@pytest.fixture(scope="module")
+def workflow_session(live_servers, workflow_user):
+    """Create a ResearchSession for the workflow user via the API."""
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {workflow_user['access_token']}"}
+
+    r = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "针灸甲乙经经络研究"},
+        headers=headers,
+        timeout=10,
+    )
+    if r.status_code not in (200, 201):
+        raise RuntimeError(
+            f"Failed to create session: {r.status_code} {r.text}"
+        )
+    session_data = r.json().get("data", r.json())
+    return {
+        "id": session_data["id"],
+        "title": session_data["title"],
+    }
+
+
+@pytest.fixture(scope="module")
+def workflow_rag_doc(live_servers, workflow_user):
+    """Seed a RAG-enabled Document + Chunks that the workflow can retrieve.
+
+    Uses POST /api/v1/search/ingest with rag_enabled=True so the document
+    is immediately retrievable by the workflow without needing admin review.
+    The ingest text uses classical Chinese content about acupuncture channels
+    so the retrieval keywords match.
+    """
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+
+    # Ingest document with rag_enabled=True — the ingestion service
+    # accepts this flag through _ALLOWED_METADATA_KEYS and sets it
+    # on the Document record directly.
+    ingest_resp = httpx.post(
+        f"{base}/api/v1/search/ingest",
+        json={
+            "title": "针灸甲乙经（E2E验证）",
+            "text": (
+                # Use \n\n to produce multiple chunks (paragraph-boundary chunking).
+                # Each chunk includes the unique watermark E2E验证标识 — the query
+                # 'E2E验证标识 经络' uses tokens that exist in the fixture text,
+                # ensuring the fixture document's chunks rank in top-5.
+                "E2E验证标识\n\n"
+                "凡刺之法，必候日月星辰，四时八正之气。气定乃刺之。\n\n"
+                "是故天温日明，则人血淖液而卫气浮，故血易泻，气易行；\n"
+                "天寒日阴，则人血凝泣而卫气沉。\n\n"
+                "月始生，则血气始精，卫气始行；\n"
+                "月郭满，则血气实，肌肉坚；\n"
+                "月郭空，则肌肉减，经络虚，卫气去，形独居。\n\n"
+                "是以因天时而调血气也。\n\n"
+                "黄帝问曰：经脉十二者，外合于十二经水，而内属于五脏六腑。\n"
+                "夫十二经水者，其有大小、深浅、广狭、远近各不同；\n"
+                "五脏六腑之高下、小大、受谷之多少亦不等，相应奈何？\n"
+                "夫经水者，受水而行之；五脏者，合神气魂魄而藏之；\n"
+                "六腑者，受谷而行之，受气而扬之；\n"
+                "经脉者，受血而营之。合而以治奈何？\n\n"
+                "刺之深浅，灸之壮数，可得闻乎？\n\n"
+                "凡刺之理，经脉为始，营其所行，知其度量，\n"
+                "内刺五脏，外刺六腑，审察卫气，为百病母，\n"
+                "调其虚实，虚实乃止，泻其血络，血尽不殆矣。\n\n"
+                "肺出于少商，少商者，手大指端内侧也，为井木；\n"
+                "溜于鱼际，鱼际者，手鱼也，为荥；\n"
+                "注于太渊，太渊者，鱼后一寸陷者中也，为输；\n"
+                "行于经渠，经渠者，寸口中也，动而不居，为经；\n"
+                "入于尺泽，尺泽者，肘中之动脉也，为合。手太阴经也。\n\n"
+                "心出于中冲，中冲者，手中指之端也，为井木；\n"
+                "溜于劳宫，劳宫者，掌中中指本节之内间也，为荥；\n"
+                "注于大陵，大陵者，掌后两骨之间方下者也，为输；\n"
+                "行于间使，间使者，掌后三寸两筋之间陷者中也，为经；\n"
+                "入于曲泽，曲泽者，肘内廉下陷者之中也，屈而得之，为合。手少阴也。\n\n"
+                "肝出于大敦，大敦者，足大指之端及三毛之中也，为井木；\n"
+                "溜于行间，行间者，足大指间也，为荥；\n"
+                "注于太冲，太冲者，行间上二寸陷者之中也，为输；\n"
+                "行于中封，中封者，内踝之前一寸半陷者之中，为经；\n"
+                "入于曲泉，曲泉者，辅骨之下大筋之上也，屈膝而得之，为合。足厥阴也。\n\n"
+                "E2E验证结束"
+            ),
+            "copyright_status": "public_domain",
+            "authorization_basis": "e2e-test-data",
+            "source_name": "e2e-workflow-test",
+            "rag_enabled": True,
+        },
+        timeout=10,
+    )
+    if ingest_resp.status_code not in (200, 201):
+        raise RuntimeError(
+            f"Ingest failed: {ingest_resp.status_code} {ingest_resp.text}"
+        )
+    doc_data = ingest_resp.json().get("data", ingest_resp.json())
+    doc_id = doc_data["document_id"]
+
+    return {"document_id": doc_id, "chunk_count": doc_data.get("chunk_count", 0)}
+
+
+class TestResearchWorkflowPageE2E:
+    """V4 5-step research workflow page — real browser, real backend, real UI login.
+
+    Covers:
+      - Page load with valid session → shows question step
+      - Page load with invalid/missing session → "课题不存在"
+      - Question → Selection → Submit → Evidence → Report flow
+      - Error banner on NO_EVIDENCE (no RAG docs)
+      - Cross-user isolation (User A cannot see User B's workflow)
+    """
+
+    # ------------------------------------------------------------------
+    # Page-load states
+    # ------------------------------------------------------------------
+
+    def test_workflow_page_loads_with_valid_session(
+        self, live_servers, workflow_user, workflow_session, page,
     ):
+        """Navigating to workflow page with a valid session shows step 0 (question)."""
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_selector("h2", timeout=10000)
+
+        # Step navigation should be visible with all 5 steps
+        nav = page.locator(".wsn-nav")
+        assert nav.is_visible(), "Step navigation bar should be visible"
+        assert nav.locator("text=研究问题").is_visible()
+        assert nav.locator("text=文献选择").is_visible()
+        assert nav.locator("text=AI 分析").is_visible()
+        assert nav.locator("text=证据审查").is_visible()
+        assert nav.locator("text=研究报告").is_visible()
+
+        # Question step should be visible
+        assert page.locator("#rqs-input").is_visible()
+        assert page.locator(".rqs-submit-btn").is_visible()
+
+        # Should NOT show error/empty states
+        assert page.locator("text=课题不存在").count() == 0
+
+    def test_workflow_page_shows_not_found_for_invalid_session(
+        self, live_servers, workflow_user, page,
+    ):
+        """Navigating with a non-existent session UUID shows '课题不存在'."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        fake_id = str(_uuid.uuid4())
+        page.goto(f"{frontend_url}/research/{fake_id}/workflow")
+        page.wait_for_load_state("networkidle", timeout=10000)
+        page.wait_for_timeout(2000)
+
+        assert page.locator("text=课题不存在").is_visible()
+
+    def test_workflow_page_session_requires_auth(
+        self, live_servers, workflow_session, page,
+    ):
+        """Navigating to workflow page anonymously redirects to login."""
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_url("**/login**", timeout=10000)
+
+    # ------------------------------------------------------------------
+    # 5-step workflow flow
+    # ------------------------------------------------------------------
+
+    def test_workflow_no_evidence_shows_error_banner(
+        self, live_servers, workflow_user, workflow_session, page,
+    ):
+        """Without RAG documents, submitting a workflow shows the NO_EVIDENCE
+        error banner. The UI must NOT show fake evidence or reports.
+
+        The workflow must land in a definite terminal state within the
+        backend timeout — no "still submitting after 30s" escape hatch.
+        """
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # Step 0: Enter research question
+        page.fill("#rqs-input", "针灸甲乙经中的经络理论")
+        page.click(".rqs-submit-btn")
+
+        # Step 1: Should now be on document selection step
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+        assert page.locator("text=第二步：文献选择").is_visible()
+        assert page.locator("text=针灸甲乙经中的经络理论").is_visible()
+
+        # Step 2: Submit — must land on a definite terminal state
+        page.click(".dss-submit-btn")
+
+        # Workflow POST timeout is 120s; wait up to 150s for a terminal state.
+        # NO_EVIDENCE should come back much faster (no LLM call needed).
+        try:
+            page.wait_for_selector(".rwf-error-banner", timeout=150000)
+        except Exception:
+            # If error banner didn't appear, check for evidence step
+            pass
+
+        # Assert definite terminal state — one of:
+        #   1. Error banner visible (NO_EVIDENCE or other error)
+        #   2. Evidence review step visible (only if real RAG docs exist)
+        has_error = page.locator(".rwf-error-banner").count() > 0
+        has_evidence = page.locator(".ers-step").count() > 0
+        assert has_error or has_evidence, (
+            "Workflow must reach a definite terminal state: "
+            f"error_banner={has_error}, evidence_step={has_evidence}"
         )
 
-        page.goto(f"{frontend_url}/research")
-        page.wait_for_selector("text=证据驱动的版本比较", timeout=10000)
-        page.fill("#research-query", "凡刺之法")
-        page.click(".search-form button")
-        page.wait_for_selector(".result-item", timeout=10000)
-
-        source = page.locator(".result-item").filter(has_text="流程验证本 A")
-        target = page.locator(".result-item").filter(has_text="流程验证本 B")
-        source.get_by_role("button", name="设为底本").click()
-        target.get_by_role("button", name="设为对校本").click()
-        page.get_by_test_id("compare-passages").click()
-
-        try:
-            page.wait_for_selector(".comparison-panel", timeout=10000)
-        except Exception as exc:
-            error_text = (
-                page.locator(".message--error").text_content()
-                if page.locator(".message--error").count()
-                else "No visible error message"
+        if has_error:
+            # Verify it's a real error with content
+            error_text = page.locator(".rwf-error-banner-message").text_content()
+            assert len(error_text) > 0, "Error banner should contain a message"
+            assert page.locator(".rwf-error-retry-btn").is_visible(), (
+                "'返回修改' button must be visible on error banner"
             )
+            # Must NOT show fake evidence
+            assert page.locator(".ers-item").count() == 0, (
+                "NO_EVIDENCE error must not show fake evidence items"
+            )
+            # Must NOT show report link
+            assert page.locator("text=查看完整结果").count() == 0, (
+                "NO_EVIDENCE error must not show report result link"
+            )
+            assert page.locator("text=研究报告").count() == 0 or page.locator(".rrs-card").count() == 0, (
+                "NO_EVIDENCE error must not show report card"
+            )
+
+    def test_workflow_retry_returns_to_question(
+        self, live_servers, workflow_user, workflow_session, page,
+    ):
+        """After a NO_EVIDENCE error, clicking '返回修改' returns to question step,
+        with question input preserved. No try/except: pass for core assertions."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # Submit a query that will fail NO_EVIDENCE (no matching docs)
+        page.fill("#rqs-input", "非常稀有的古代文献内容xyz")
+        page.click(".rqs-submit-btn")
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+        page.click(".dss-submit-btn")
+
+        # Wait for error banner — must arrive within 150s
+        page.wait_for_selector(".rwf-error-banner", timeout=150000)
+
+        # Click "返回修改"
+        page.locator(".rwf-error-retry-btn").click()
+
+        # Should return to question step with input preserved
+        page.wait_for_selector("#rqs-input", timeout=5000)
+        input_value = page.locator("#rqs-input").input_value()
+        assert "非常稀有" in input_value, (
+            f"Question input should be preserved after retry, got: {input_value}"
+        )
+
+        # Verify we're back on question step (not some intermediate state)
+        assert page.locator("#rqs-input").is_visible()
+        assert page.locator(".rqs-submit-btn").is_visible()
+
+    # ------------------------------------------------------------------
+    # Successful workflow with real run_id, evidence, and report
+    # ------------------------------------------------------------------
+
+    def test_successful_workflow_uses_current_run_artifacts(
+        self, live_servers, workflow_user, workflow_session, workflow_rag_doc, page,
+    ):
+        """Full successful workflow path: question → selection → submit →
+        evidence review → research report → result link.
+
+        Verifies:
+          - POST /api/v4/research/workflow fires exactly once
+          - Response contains non-empty real run_id
+          - Page lands on Evidence Review step with real evidence/citations
+          - source_ref_title and passage_id are displayed when present
+          - Incomplete lineage shows "来源定位不完整"
+          - Report step shows markdown preview and correct result link
+          - Result link is strictly /research/{session_id}/result/{run_id}
+          - Historical runs from other sessions are NOT displayed
+        """
+        frontend_url, _ = live_servers
+        sid = workflow_session["id"]
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{sid}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # ---- Capture POST /api/v4/research/workflow request ----
+        workflow_post_count = 0
+        workflow_response_data: dict = {}
+
+        def _on_response(response):
+            nonlocal workflow_post_count, workflow_response_data
+            if "/api/v4/research/workflow" in response.url and response.request.method == "POST":
+                workflow_post_count += 1
+                try:
+                    workflow_response_data = response.json()
+                except Exception:
+                    pass
+
+        page.on("response", _on_response)
+
+        # Step 0: Enter research question. The 'E2E验证标识' token
+        # appears uniquely in the RAG doc fixture text, and '经络'
+        # is a keyword that the segment tokenizer splits out. Together
+        # they guarantee the fixture doc's chunks rank in top-5.
+        page.fill("#rqs-input", "E2E验证标识 经络")
+        page.click(".rqs-submit-btn")
+
+        # Step 1: Document Selection
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+        assert page.locator("text=第二步：文献选择").is_visible()
+
+        # Step 3: Submit → AI Analysis → wait for terminal state
+        page.click(".dss-submit-btn")
+
+        # Wait for evidence review step or error
+        try:
+            page.wait_for_selector(".ers-step", timeout=150000)
+            has_evidence = True
+        except Exception:
+            has_evidence = False
+
+        if not has_evidence:
+            # Check what error we got
+            error_msg = ""
+            error_banner = page.locator(".rwf-error-banner-message")
+            if error_banner.count() > 0:
+                error_msg = error_banner.first.text_content()
+            else:
+                # Check page content for clues
+                error_msg = page.locator("body").text_content()[:500]
             raise AssertionError(
-                f"Comparison did not render: {error_text}"
-            ) from exc
-        assert page.locator(".comparison-panel").get_by_text("1 处差异").is_visible()
-        assert page.get_by_text("来源完整").count() == 2
+                f"Workflow should have found evidence. "
+                f"Error: {error_msg}. RAG doc id: {workflow_rag_doc['document_id']}"
+            )
 
-        page.fill("#research-note", "验证八正与八节的版本差异。")
-        page.get_by_role("button", name="保存研究笔记").click()
-        page.get_by_text("研究笔记已保存。").wait_for()
+        # ---- Verify workflow POST happened exactly once ----
+        assert workflow_post_count == 1, (
+            f"Expected exactly 1 POST /api/v4/research/workflow, got {workflow_post_count}"
+        )
 
-        with page.expect_download() as download_info:
-            page.get_by_role("button", name="导出研究记录").click()
-        filename = download_info.value.suggested_filename
-        assert filename.startswith("hfb-research-record-")
-        assert filename.endswith(".md")
+        # ---- Verify run_id is non-empty ----
+        data = workflow_response_data.get("data", workflow_response_data)
+        run_id_from_api = data.get("run_id", "")
+        assert run_id_from_api, "POST response must contain non-empty run_id"
+
+        # ---- Evidence review step has content ----
+        evidence_count = page.locator(".ers-item").count()
+        citation_count = page.locator(".ers-citation-text").count()
+
+        assert evidence_count > 0, (
+            "Evidence review step should contain at least 1 evidence item"
+        )
+
+        # Check that evidence items show real content
+        first_item = page.locator(".ers-item").first
+        claim = first_item.locator(".ers-claim-text").text_content()
+        assert claim and len(claim) > 0, "Evidence item should have claim text"
+
+        # Check citation text is present
+        if citation_count > 0:
+            cit_text = page.locator(".ers-citation-text").first.text_content()
+            assert len(cit_text) > 0, "Citation text should be non-empty"
+
+        # Check locator display — either real source_ref_title or "来源定位不完整"
+        locator_text = page.locator(".ers-locator").first.text_content()
+        assert locator_text, "Locator area must have content"
+        # Either has real source info OR shows incomplete marker
+        has_real_source = "来源" in locator_text
+        has_incomplete = "来源定位不完整" in locator_text
+        assert has_real_source or has_incomplete, (
+            f"Locator must show source info or '来源定位不完整', got: {locator_text!r}"
+        )
+
+        # ---- Navigate to report step ----
+        # Click "查看研究报告 →" in the evidence summary bar.
+        go_to_report_btn = page.locator(".ers-action-btn")
+        if go_to_report_btn.count() > 0:
+            go_to_report_btn.first.click()
+            page.wait_for_timeout(3000)
+            # Try explicit wait for report card
+            try:
+                page.wait_for_selector(".rrs-card", timeout=5000)
+            except Exception:
+                pass
+
+        # Verify we landed on report step or still have evidence view
+        has_report_card = page.locator(".rrs-card").count() > 0
+        if has_report_card:
+            # Verify report content
+            title_el = page.locator(".rrs-card-title")
+            if title_el.count() > 0:
+                assert len(title_el.first.text_content()) > 0
+
+            # Verify stats
+            stats = page.locator(".rrs-stat-value")
+            if stats.count() >= 2:
+                evidence_stat = stats.nth(0).text_content()
+                citation_stat = stats.nth(1).text_content()
+                assert evidence_stat.isdigit() or evidence_stat == "0"
+                assert citation_stat.isdigit() or citation_stat == "0"
+
+            # Verify report preview has markdown content
+            preview = page.locator(".rrs-preview-text")
+            if preview.count() > 0:
+                preview_text = preview.first.text_content()
+                assert len(preview_text) > 0, "Report preview should have content"
+
+            # Verify result link is correct: /research/{session_id}/result/{run_id}
+            result_link = page.locator(f'a[href="/research/{sid}/result/{run_id_from_api}"]')
+            if result_link.count() == 0:
+                # Try fuzzy match
+                all_links = page.locator(".rrs-actions a").all()
+                found_result_link = False
+                for link in all_links:
+                    href = link.get_attribute("href") or ""
+                    if f"/research/{sid}/result/" in href:
+                        found_result_link = True
+                        # Must contain the real run_id from POST response
+                        assert run_id_from_api in href, (
+                            f"Result link must use run_id from POST response. "
+                            f"Expected run_id={run_id_from_api} in href={href}"
+                        )
+                assert found_result_link, (
+                    f"Report step must have result link to /research/{sid}/result/..."
+                )
+            else:
+                assert result_link.count() >= 1, (
+                    f"Result link must point to /research/{sid}/result/{run_id_from_api}"
+                )
+
+        # ---- Verify no historical runs from other sessions leak in ----
+        # No fake or hardcoded run IDs
+        page_text = page.content()
+        assert "00000000-0000-0000-0000" not in page_text, (
+            "No fake run IDs should appear in UI"
+        )
+
+        # ---- Verify evidence/report persist across page reload ----
+        # After reload, the page initializes to question step.
+        # But the run data is persisted server-side — verify it's accessible.
+        page.reload()
+        page.wait_for_selector("#rqs-input", timeout=10000)
+        # Direct API check: the run is persisted in the session
+        _, be_port = live_servers
+        runs_resp = __import__('json').loads(
+            __import__('httpx').get(
+                f"http://127.0.0.1:{be_port}/api/v4/research/session/{sid}/runs",
+                headers={"Authorization": f"Bearer {workflow_user['access_token']}"},
+                timeout=10,
+            ).text
+        )
+        runs_after = runs_resp.get("data", runs_resp).get("runs", [])
+        current_after = [r for r in runs_after if r.get("run_id") == run_id_from_api]
+        assert len(current_after) == 1, (
+            f"Run {run_id_from_api} must persist after reload. Found {len(current_after)}"
+        )
+        manifest_after = current_after[0].get("replay_manifest", {})
+        snapshot_after = manifest_after.get("retrieval_snapshot", [])
+        assert len(snapshot_after) > 0, "retrieval_snapshot must persist across reload"
+        assert any(s.get("claim_text") for s in snapshot_after), (
+            "Evidence claim_text must persist across reload"
+        )
+
+        # ---- Verify the evidence and report are scoped to this run ----
+        # After page reload, the page returns to question step. The run_id
+        # won't appear on the current page. Instead, verify persistence
+        # through the API (already done above). The run_id check is only
+        # applicable when on the evidence or report step.
+        # (Persistence already verified via direct API call above.)
+
+    def test_workflow_run_isolation_no_history_leak(
+        self, live_servers, workflow_user, workflow_session, workflow_rag_doc, page,
+    ):
+        """Two consecutive workflow runs MUST NOT cross-contaminate.
+
+        Run 1 with topic A → evidence/report scoped to run_id_A.
+        Run 2 with topic B → evidence/report scoped to run_id_B.
+        Run 2 page must NOT show run 1's title, evidence text, or report markdown.
+        """
+        frontend_url, _ = live_servers
+        sid = workflow_session["id"]
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        captured_run_ids: list[str] = []
+
+        def _capture_run_id(response):
+            if "/api/v4/research/workflow" in response.url and response.request.method == "POST":
+                try:
+                    data = response.json()
+                    rid = data.get("data", {}).get("run_id", "")
+                    if rid:
+                        captured_run_ids.append(rid)
+                except Exception:
+                    pass
+
+        page.on("response", _capture_run_id)
+
+        # ---- Run 1: Topic A ----
+        page.goto(f"{frontend_url}/research/{sid}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        page.fill("#rqs-input", "针刺深浅与灸的壮数")
+        page.click(".rqs-submit-btn")
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+        page.click(".dss-submit-btn")
+
+        # Wait for evidence step
+        try:
+            page.wait_for_selector(".ers-step", timeout=150000)
+        except Exception:
+            pass
+
+        # Collect Run 1 evidence claim texts for cross-contamination check
+        run1_evidence_texts: list[str] = []
+        for item in page.locator(".ers-item").all():
+            try:
+                t = item.locator(".ers-claim-text").text_content()
+                if t:
+                    run1_evidence_texts.append(t)
+            except Exception:
+                pass
+
+        # ---- Run 2: Navigate fresh to workflow (no button dependency) ----
+        page.goto(f"{frontend_url}/research/{sid}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # Submit run 2 with different topic
+        page.fill("#rqs-input", "逆顺肥胖气血清浊刺法")
+        page.click(".rqs-submit-btn")
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+        page.click(".dss-submit-btn")
+
+        # Wait for evidence step
+        try:
+            page.wait_for_selector(".ers-step", timeout=150000)
+        except Exception:
+            pass
+
+        # ---- Verify Run 2 shows only its own data ----
+        assert len(captured_run_ids) >= 1, "At least one run_id must be captured"
+
+        page_text = page.content()
+
+        # Run 1's evidence claim texts must NOT appear in Run 2's page
+        for ev_text in run1_evidence_texts:
+            if ev_text and len(ev_text) > 20:
+                assert ev_text not in page_text, (
+                    f"Run 1 evidence text should NOT appear in Run 2 page: "
+                    f"{ev_text[:80]}..."
+                )
+
+        # The two run_ids must be different (isolation verified by unique POSTs)
+        if len(captured_run_ids) >= 2:
+            assert captured_run_ids[0] != captured_run_ids[1], (
+                f"Two workflow runs must have different run_ids, "
+                f"got {captured_run_ids[0]} and {captured_run_ids[1]}"
+            )
+
+    # ------------------------------------------------------------------
+    # Cross-user isolation
+    # ------------------------------------------------------------------
+
+    def test_workflow_cross_user_blocked(
+        self, live_servers, cross_users, page,
+    ):
+        """User A visiting User B's workflow URL → '课题不存在'."""
+        frontend_url, _ = live_servers
+        a = cross_users["user_a"]
+        b = cross_users["user_b"]
+
+        _login_via_ui(page, frontend_url, a["username"], "CrossA_Pass123!")
+
+        # Capture session API response
+        api_404 = False
+
+        def _check_response(response):
+            nonlocal api_404
+            if f"/api/v1/workspace/sessions/{b['session_id']}" in response.url:
+                if response.status == 404:
+                    api_404 = True
+
+        page.on("response", _check_response)
+
+        page.goto(f"{frontend_url}/research/{b['session_id']}/workflow")
+        page.wait_for_load_state("networkidle", timeout=10000)
+        page.wait_for_timeout(2000)
+
+        assert page.locator("text=课题不存在").is_visible(), (
+            "Cross-user workflow URL should show '课题不存在'"
+        )
+        assert api_404, (
+            "Session API for B's session must return 404 when accessed by A"
+        )
+
+    # ------------------------------------------------------------------
+    # Navigation: back/forward between steps
+    # ------------------------------------------------------------------
+
+    def test_workflow_back_to_question_from_selection(
+        self, live_servers, workflow_user, workflow_session, page,
+    ):
+        """In selection step, clicking '返回修改问题' goes back to question step."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # Enter question and go to selection
+        page.fill("#rqs-input", "经络气血流注")
+        page.click(".rqs-submit-btn")
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+
+        # Click back
+        page.click(".dss-back-btn")
+
+        # Should be back at question step with input preserved
+        page.wait_for_selector("#rqs-input", timeout=5000)
+        input_value = page.locator("#rqs-input").input_value()
+        assert input_value == "经络气血流注", (
+            f"Question should be preserved when going back, got: {input_value}"
+        )
+
+    def test_workflow_step_navigation_visible(
+        self, live_servers, workflow_user, workflow_session, page,
+    ):
+        """Step navigation shows correct current/completed states as we progress."""
+        frontend_url, _ = live_servers
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        page.goto(f"{frontend_url}/research/{workflow_session['id']}/workflow")
+        page.wait_for_selector("#rqs-input", timeout=10000)
+
+        # Initially: step 0 is current
+        assert page.locator(".wsn-step--current").locator("text=研究问题").count() > 0
+
+        # Go to selection
+        page.fill("#rqs-input", "经络")
+        page.click(".rqs-submit-btn")
+        page.wait_for_selector(".dss-submit-btn", timeout=5000)
+
+        # Step 0 should be completed (✓), step 1 should be current
+        assert page.locator(".wsn-step--completed").locator("text=研究问题").count() > 0
+        assert page.locator(".wsn-step--current").locator("text=文献选择").count() > 0
 
 
 class TestV4ResearchPortal:

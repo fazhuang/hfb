@@ -288,7 +288,9 @@ class ResearchWorkflowService:
         }
 
         # Build replay manifest — frozen snapshot for deterministic replay
-        if retrieval_snapshot and immutable_traces:
+        # P2T2: Build manifest whenever retrieval_snapshot has data, even if
+        # immutable_traces is empty (e.g. all chunks lack passage_id on ingest).
+        if retrieval_snapshot:
             trace_dicts = []
             for tr in immutable_traces:
                 if hasattr(tr, 'to_dict'):
