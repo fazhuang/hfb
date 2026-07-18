@@ -75,7 +75,6 @@ class IngestTextRequest(BaseModel):
     category: str | None = None
     max_chunk_chars: int = Field(default=1000, ge=100, le=5000)
     passage_id: str | None = Field(default=None, description="Optional Passage ID for V4 lineage")
-    rag_enabled: bool = Field(default=False, description="Enable RAG retrieval for this document (requires compliant copyright)")
 
     # Context 21: full-text compliance fields
     copyright_status: str = Field(

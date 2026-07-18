@@ -385,66 +385,63 @@ def workflow_session(live_servers, workflow_user):
 def workflow_rag_doc(live_servers, workflow_user):
     """Seed a RAG-enabled Document + Chunks that the workflow can retrieve.
 
-    Uses POST /api/v1/search/ingest with rag_enabled=True so the document
-    is immediately retrievable by the workflow without needing admin review.
-    The ingest text uses classical Chinese content about acupuncture channels
-    so the retrieval keywords match.
+    Uses the standard ingest API (no unauthorised scope expansion) followed
+    by the admin review endpoint to set rag_enabled=True — the approved
+    production path for enabling RAG retrieval.
     """
     _, backend_port = live_servers
     base = f"http://127.0.0.1:{backend_port}"
 
-    # Ingest document with rag_enabled=True — the ingestion service
-    # accepts this flag through _ALLOWED_METADATA_KEYS and sets it
-    # on the Document record directly.
+    # ---- Step 1: Ingest via approved endpoint (no rag_enabled in body) ----
+    ingest_body = {
+        "title": "针灸甲乙经（E2E验证）",
+        "text": (
+            # Use \n\n to produce multiple chunks (paragraph-boundary chunking).
+            # Each chunk includes the unique watermark E2E验证标识 — the query
+            # 'E2E验证标识 经络' uses tokens that exist in the fixture text,
+            # ensuring the fixture document's chunks rank in top-5.
+            "E2E验证标识\n\n"
+            "凡刺之法，必候日月星辰，四时八正之气。气定乃刺之。\n\n"
+            "是故天温日明，则人血淖液而卫气浮，故血易泻，气易行；\n"
+            "天寒日阴，则人血凝泣而卫气沉。\n\n"
+            "月始生，则血气始精，卫气始行；\n"
+            "月郭满，则血气实，肌肉坚；\n"
+            "月郭空，则肌肉减，经络虚，卫气去，形独居。\n\n"
+            "是以因天时而调血气也。\n\n"
+            "黄帝问曰：经脉十二者，外合于十二经水，而内属于五脏六腑。\n"
+            "夫十二经水者，其有大小、深浅、广狭、远近各不同；\n"
+            "五脏六腑之高下、小大、受谷之多少亦不等，相应奈何？\n"
+            "夫经水者，受水而行之；五脏者，合神气魂魄而藏之；\n"
+            "六腑者，受谷而行之，受气而扬之；\n"
+            "经脉者，受血而营之。合而以治奈何？\n\n"
+            "刺之深浅，灸之壮数，可得闻乎？\n\n"
+            "凡刺之理，经脉为始，营其所行，知其度量，\n"
+            "内刺五脏，外刺六腑，审察卫气，为百病母，\n"
+            "调其虚实，虚实乃止，泻其血络，血尽不殆矣。\n\n"
+            "肺出于少商，少商者，手大指端内侧也，为井木；\n"
+            "溜于鱼际，鱼际者，手鱼也，为荥；\n"
+            "注于太渊，太渊者，鱼后一寸陷者中也，为输；\n"
+            "行于经渠，经渠者，寸口中也，动而不居，为经；\n"
+            "入于尺泽，尺泽者，肘中之动脉也，为合。手太阴经也。\n\n"
+            "心出于中冲，中冲者，手中指之端也，为井木；\n"
+            "溜于劳宫，劳宫者，掌中中指本节之内间也，为荥；\n"
+            "注于大陵，大陵者，掌后两骨之间方下者也，为输；\n"
+            "行于间使，间使者，掌后三寸两筋之间陷者中也，为经；\n"
+            "入于曲泽，曲泽者，肘内廉下陷者之中也，屈而得之，为合。手少阴也。\n\n"
+            "肝出于大敦，大敦者，足大指之端及三毛之中也，为井木；\n"
+            "溜于行间，行间者，足大指间也，为荥；\n"
+            "注于太冲，太冲者，行间上二寸陷者之中也，为输；\n"
+            "行于中封，中封者，内踝之前一寸半陷者之中，为经；\n"
+            "入于曲泉，曲泉者，辅骨之下大筋之上也，屈膝而得之，为合。足厥阴也。\n\n"
+            "E2E验证结束"
+        ),
+        "copyright_status": "public_domain",
+        "authorization_basis": "e2e-test-data",
+        "source_name": "e2e-workflow-test",
+    }
     ingest_resp = httpx.post(
         f"{base}/api/v1/search/ingest",
-        json={
-            "title": "针灸甲乙经（E2E验证）",
-            "text": (
-                # Use \n\n to produce multiple chunks (paragraph-boundary chunking).
-                # Each chunk includes the unique watermark E2E验证标识 — the query
-                # 'E2E验证标识 经络' uses tokens that exist in the fixture text,
-                # ensuring the fixture document's chunks rank in top-5.
-                "E2E验证标识\n\n"
-                "凡刺之法，必候日月星辰，四时八正之气。气定乃刺之。\n\n"
-                "是故天温日明，则人血淖液而卫气浮，故血易泻，气易行；\n"
-                "天寒日阴，则人血凝泣而卫气沉。\n\n"
-                "月始生，则血气始精，卫气始行；\n"
-                "月郭满，则血气实，肌肉坚；\n"
-                "月郭空，则肌肉减，经络虚，卫气去，形独居。\n\n"
-                "是以因天时而调血气也。\n\n"
-                "黄帝问曰：经脉十二者，外合于十二经水，而内属于五脏六腑。\n"
-                "夫十二经水者，其有大小、深浅、广狭、远近各不同；\n"
-                "五脏六腑之高下、小大、受谷之多少亦不等，相应奈何？\n"
-                "夫经水者，受水而行之；五脏者，合神气魂魄而藏之；\n"
-                "六腑者，受谷而行之，受气而扬之；\n"
-                "经脉者，受血而营之。合而以治奈何？\n\n"
-                "刺之深浅，灸之壮数，可得闻乎？\n\n"
-                "凡刺之理，经脉为始，营其所行，知其度量，\n"
-                "内刺五脏，外刺六腑，审察卫气，为百病母，\n"
-                "调其虚实，虚实乃止，泻其血络，血尽不殆矣。\n\n"
-                "肺出于少商，少商者，手大指端内侧也，为井木；\n"
-                "溜于鱼际，鱼际者，手鱼也，为荥；\n"
-                "注于太渊，太渊者，鱼后一寸陷者中也，为输；\n"
-                "行于经渠，经渠者，寸口中也，动而不居，为经；\n"
-                "入于尺泽，尺泽者，肘中之动脉也，为合。手太阴经也。\n\n"
-                "心出于中冲，中冲者，手中指之端也，为井木；\n"
-                "溜于劳宫，劳宫者，掌中中指本节之内间也，为荥；\n"
-                "注于大陵，大陵者，掌后两骨之间方下者也，为输；\n"
-                "行于间使，间使者，掌后三寸两筋之间陷者中也，为经；\n"
-                "入于曲泽，曲泽者，肘内廉下陷者之中也，屈而得之，为合。手少阴也。\n\n"
-                "肝出于大敦，大敦者，足大指之端及三毛之中也，为井木；\n"
-                "溜于行间，行间者，足大指间也，为荥；\n"
-                "注于太冲，太冲者，行间上二寸陷者之中也，为输；\n"
-                "行于中封，中封者，内踝之前一寸半陷者之中，为经；\n"
-                "入于曲泉，曲泉者，辅骨之下大筋之上也，屈膝而得之，为合。足厥阴也。\n\n"
-                "E2E验证结束"
-            ),
-            "copyright_status": "public_domain",
-            "authorization_basis": "e2e-test-data",
-            "source_name": "e2e-workflow-test",
-            "rag_enabled": True,
-        },
+        json=ingest_body,
         timeout=10,
     )
     if ingest_resp.status_code not in (200, 201):
@@ -453,6 +450,46 @@ def workflow_rag_doc(live_servers, workflow_user):
         )
     doc_data = ingest_resp.json().get("data", ingest_resp.json())
     doc_id = doc_data["document_id"]
+
+    # ---- Step 2: Enable RAG via approved admin review endpoint ----
+    # Admin user (admin/admin123) is auto-created by seed_rbac on first
+    # auth-triggered registration. Login as admin, then review the document.
+    admin_login = httpx.post(
+        f"{base}/api/v1/auth/login",
+        json={"username": "admin", "password": "admin123"},
+        timeout=5,
+    )
+    admin_token = None
+    if admin_login.status_code == 200:
+        admin_token = admin_login.json()["data"]["access_token"]
+    else:
+        # Admin may not exist yet — register first (idempotent), then login
+        httpx.post(
+            f"{base}/api/v1/auth/register",
+            json={"username": "admin", "email": "admin@e2e.test", "password": "admin123"},
+            timeout=5,
+        )
+        admin_login2 = httpx.post(
+            f"{base}/api/v1/auth/login",
+            json={"username": "admin", "password": "admin123"},
+            timeout=5,
+        )
+        if admin_login2.status_code == 200:
+            admin_token = admin_login2.json()["data"]["access_token"]
+
+    if admin_token is None:
+        raise RuntimeError("Cannot obtain admin token for review endpoint")
+
+    review_resp = httpx.patch(
+        f"{base}/api/v1/documents/{doc_id}/review",
+        json={"review_status": "approved", "rag_enabled": True},
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=10,
+    )
+    if review_resp.status_code != 200:
+        raise RuntimeError(
+            f"Admin review failed: {review_resp.status_code} {review_resp.text}"
+        )
 
     return {"document_id": doc_id, "chunk_count": doc_data.get("chunk_count", 0)}
 

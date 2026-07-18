@@ -147,28 +147,6 @@ async def ingest_text(
             metadata["copyright_status"] = "metadata_only"
         if body.forbidden_fulltext:
             metadata["forbidden_fulltext"] = True
-        # Guard rag_enabled at ingest time:
-        #   - Only when copyright_status is compliant
-        #   - Only when authorization_basis or license_type is present
-        # This is a defense-in-depth check on the API boundary; the
-        # IngestionService compliance gate runs independently.
-        if body.rag_enabled:
-            from app.core.logging import get_logger
-            _log = get_logger(__name__)
-            compliant_copyright = body.copyright_status in {
-                "public_domain", "open_access", "licensed", "user_uploaded_with_permission",
-            }
-            if not compliant_copyright:
-                _log.warning(
-                    "rag_enabled=True rejected: non-compliant copyright_status=%s",
-                    body.copyright_status,
-                )
-            elif not body.authorization_basis and not body.license_type:
-                _log.warning(
-                    "rag_enabled=True rejected: missing authorization_basis and license_type",
-                )
-            else:
-                metadata["rag_enabled"] = True
 
         svc = IngestionService(session)
         result = await svc.ingest_text(
