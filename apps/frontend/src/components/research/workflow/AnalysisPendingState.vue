@@ -5,7 +5,7 @@
     <LoadingState :message="statusMessage" />
 
     <p class="aps-hint">
-      系统正在检索文献、综合证据并生成研究报告。此过程可能需要一些时间，请耐心等待。
+      研究工作流正在执行中，包含文献检索、证据综合和报告生成等步骤。此过程可能需要一些时间，请耐心等待。
     </p>
 
     <div v-if="elapsed > 0" class="aps-elapsed">
@@ -22,12 +22,12 @@
  * Does NOT:
  *   - Display fake percentages
  *   - Simulate step-by-step progress
- *   - Use setTimeout to create artificial delays
- *   - Claim individual backend steps have completed
+ *   - Use setInterval to infer backend step completion
+ *   - Claim individual backend steps have completed based on elapsed time
  *
  * Shows:
  *   - A spinner via LoadingState
- *   - Generic status message ("正在检索文献并生成研究报告...")
+ *   - Unified status message (no per-step inference)
  *   - Real elapsed wall-clock time
  */
 import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
@@ -43,11 +43,8 @@ const props = withDefaults(defineProps<{
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 
-const statusMessage = computed(() => {
-  if (elapsed.value < 10) return '正在检索文献...';
-  if (elapsed.value < 30) return '正在综合证据...';
-  return '正在生成研究报告...';
-});
+/** Single unified status message — backend is synchronous, no step-by-step progress. */
+const statusMessage = '正在执行研究工作流，请稍候。';
 
 const formatElapsed = computed(() => {
   const m = Math.floor(elapsed.value / 60);

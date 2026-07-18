@@ -393,7 +393,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 | **处置理由** | V4 workflow is fully duplicated between V4ResearchView and ResearchWorkspaceView. Research workflow tab migrated to standalone ResearchWorkflowPage with composable architecture. Education and Visualization are knowledge exploration features — they belong in Knowledge Explorer. The standalone route is inaccessible via normal UI. |
 | **前置依赖** | Knowledge Explorer must support education concept display and graph visualization rendering. ~~Research Workspace must absorb the V4 workflow tab capabilities before V4ResearchView can be retired.~~ **DONE: Research workflow migrated to `ResearchWorkflowPage.vue` at `/research/:projectId/workflow`**. |
 | **风险说明** | Medium. Education and Visualization modes call `/api/v4/education/learn` and `/api/v4/visualization/graph` — these APIs are V4-specific. Knowledge Explorer currently uses `/api/v1/graph/*` endpoints. API alignment needed. Duplicate logic consolidated into `useResearchWorkflow` composable. |
-| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。**VERIFIED at b277a65 (2026-07-18):** 前端 197/197 测试通过、typecheck 通过、build 通过、后端 workflow 12/12 通过、RBAC 隔离 24/24 通过、E2E TestCrossProjectIsolation 6/6 通过。 |
+| **迁移备注** | 研究流程已迁移至 `pages/research/ResearchWorkflowPage.vue`，使用 `composables/useResearchWorkflow.ts` 统一管理所有状态和请求。五步组件拆分至 `components/research/workflow/`。详见 `docs/20-product/2014-research-workflow-migration.md`。**VERIFIED at Batch 5 closure (2026-07-18):** 前端 212/212 测试通过、typecheck 通过、build 通过、后端 workflow 12/12 通过、RBAC 隔离 24/24 通过、E2E TestCrossProjectIsolation 6/6 通过、E2E TestResearchWorkflowPageE2E 7/7 通过。**所有 5 个阻塞批次已解决**：Batch 1 (删除假进度)、Batch 2 (严格 run_id 隔离)、Batch 3 (重复提交/stale-response 防护)、Batch 4 (SourceRef/lineage 增强)、Batch 5 (Playwright E2E)。 |
 
 ### 17. Research — Workflow (Embedded)
 
@@ -763,19 +763,19 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 
 ### 组件耦合
 
-| # | 问题 | 影响 | 阻塞的处置 |
-|---|------|------|----------|
-| B17 | `ResearchWorkflowView` is imported and rendered directly inside `ResearchWorkspaceView` — component coupling, not route-based | Promoting to standalone route requires decoupling the import and replacing with `<router-view>` or navigation | KEEP (promoted): Research Workflow |
-| B18 | `EntityListPage` is used by both BookListView and PersonListView — both are being merged into different targets (Library Search and Knowledge Explorer) | EntityListPage must be verified for zero consumers before removal | MERGE: Books List, Persons List |
-| B19 | V4 citation extraction logic is duplicated in ResearchWorkspaceView (lines 917-985) and V4ResearchView (lines 475-525) — near-identical code | Must extract into shared composable before either view can be refactored | MERGE: V4ResearchView → Research Workspace |
+| # | 问题 | 影响 | 阻塞的处置 | 状态 |
+|---|------|------|----------|------|
+| B17 | `ResearchWorkflowView` is imported and rendered directly inside `ResearchWorkspaceView` — component coupling, not route-based | Promoting to standalone route requires decoupling the import and replacing with `<router-view>` or navigation | KEEP (promoted): Research Workflow | **RESOLVED (2026-07-17): migrated to `/research/:projectId/workflow`** |
+| B18 | `EntityListPage` is used by both BookListView and PersonListView — both are being merged into different targets (Library Search and Knowledge Explorer) | EntityListPage must be verified for zero consumers before removal | MERGE: Books List, Persons List | Open |
+| B19 | V4 citation extraction logic is duplicated in ResearchWorkspaceView (lines 917-985) and V4ResearchView (lines 475-525) — near-identical code | Must extract into shared composable before either view can be refactored | MERGE: V4ResearchView → Research Workspace | **RESOLVED (2026-07-17): extracted to `useResearchWorkflow.ts` composable** |
 
 ### 测试缺失
 
-| # | 问题 | 影响 | 阻塞的处置 |
-|---|------|------|----------|
-| B20 | No page-level tests exist for any view — all testing is manual verification | Any page rebuild or merge has zero regression safety net | All dispositions |
-| B21 | No test for auth guard behavior (requiresAuth, requiresAdmin, requiresSuperAdmin, guest redirect) | Admin isolation enforcement has no automated verification | REBUILD: admin pages |
-| B22 | No test for router redirect chains (`/workspace` → `/research/workspace`, `/v4` → workspace) | Redirect updates have no verification that old URLs still resolve correctly | REDIRECT_ONLY dispositions |
+| # | 问题 | 影响 | 阻塞的处置 | 状态 |
+|---|------|------|----------|------|
+| B20 | No page-level tests exist for any view — all testing is manual verification | Any page rebuild or merge has zero regression safety net | All dispositions | **RESOLVED (2026-07-18): 212 frontend unit tests (10 files) + 13 E2E browser tests (2 classes). ResearchWorkflowPage: 51 unit tests + 7 E2E tests. ProjectListPage: 47 tests. ProjectDetailPage: 25 tests. ResearchWorkspacePage: 29 tests.** |
+| B21 | No test for auth guard behavior (requiresAuth, requiresAdmin, requiresSuperAdmin, guest redirect) | Admin isolation enforcement has no automated verification | REBUILD: admin pages | **RESOLVED (2026-07-18): RBAC WorkspaceIsolation 24/24 PASS. E2E cross-user isolation: workspace/detail/workflow blocked + session API returns 404 for unauthorized access.** |
+| B22 | No test for router redirect chains (`/workspace` → `/research/workspace`, `/v4` → workspace) | Redirect updates have no verification that old URLs still resolve correctly | REDIRECT_ONLY dispositions | **RESOLVED (2026-07-18): E2E research-app-shell.test.ts 21/21 PASS verifies router guards + redirect behavior. ResearchWorkflowPage tests verify route param changes trigger reset + reload.** |
 
 ---
 

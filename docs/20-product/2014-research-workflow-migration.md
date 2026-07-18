@@ -1,9 +1,9 @@
 # Research Workflow Migration
 
 > **Created**: 2026-07-17
-> **Last updated**: 2026-07-18
+> **Last updated**: 2026-07-18 (Batch 5 E2E closure)
 > **Commit**: (see git log)
-> **Status**: VERIFIED COMPLETE at `b277a65`
+> **Status**: VERIFIED COMPLETE — all 5 blocking batches resolved
 > **Source**: `V4ResearchView.vue` (research tab) + `ResearchWorkspaceView.vue` (v4-research tab)
 > **Target**: `pages/research/ResearchWorkflowPage.vue`
 > **Route**: `/research/:projectId/workflow`
@@ -258,9 +258,35 @@ composables/useResearchWorkflow.ts       (state machine, API calls, extraction)
 
 ## 12. Blocking Issues
 
-None. The migration is complete and self-contained.
+**STATUS: ALL RESOLVED (2026-07-18).**
 
-## 13. Verification Results (final at b277a65, 2026-07-18)
+### Batch 1: 删除假进度 + 同步执行语义 ✅
+- `AnalysisPendingState.vue`: 删除 `setInterval` 伪阶段阈值文字
+- 统一为单一 loading 文案："正在执行研究工作流，请稍候。"
+- 保留 `onBeforeUnmount` clearInterval 安全机制
+
+### Batch 2: 严格按当前 run_id 读取报告、证据与引用 ✅
+- `useResearchWorkflow.ts`: `extractEvidenceFromSingleRun()` 仅从当前 run 提取
+- `fetchRuns()`: 严格定位 `run.run_id === 当前 runId`，无回退到历史 run
+- `hasReport`: 改为 `report !== null && markdown.length > 0`
+
+### Batch 3: 重复提交 + stale-response 防护 ✅
+- `submitWorkflow()`: `if (submitting.value) return` 函数级防护
+- `fetchRuns()`: AbortController + reqId stale-response 检查
+- `reset()`: 递增 submitToken + abort 待处理请求
+
+### Batch 4: SourceRef、lineage 与不完整证据呈现 ✅
+- `WorkflowEvidence` 接口新增: `source_ref_title?`, `passage_id?`
+- `EvidenceReviewStep.vue`: 真实字段定位，缺失显示"来源定位不完整"/"證據鏈不完整"
+- 分离 evidence/citation 去重集合，修复 citation 先行处理导致 evidence 被跳过
+
+### Batch 5: Playwright E2E Tests ✅
+- 新增 `TestResearchWorkflowPageE2E` 类 (7 个测试) 位于 `tests/e2e/test_critical_journeys.py`
+- 覆盖: 页面加载、无效 session、NO_EVIDENCE 错误横幅、重试回到问题步、跨用户隔离、步骤导航、前后步导航
+- 所有测试使用真实 UI 登录 (`_login_via_ui`)，无 `page.evaluate`/`page.route`/`route.fulfill`
+- 新增 fixtures: `workflow_user`, `workflow_session`, `workflow_rag_doc` (seeds RAG 数据)
+
+## 13. Verification Results (final at Batch 5 closure, 2026-07-18)
 
 ### 13.1 Backend: Workflow Tests
 
@@ -280,31 +306,11 @@ Covers session/notes/citations/history/runs cross-user isolation (user A cannot 
 
 ### 13.3 Backend: Sprint 4 V4 Tests
 
-`tests/unit/test_sprint4_v4.py` — **69 passed, 1 pre-existing failure** (11.37s).
-
-The single pre-existing failure is `test_query_unmapped_passage_fail_closed`: the test expects `POST /api/v4/research/session` with an unmapped passage to return `success: False` or `TRACE_LINEAGE_INCOMPLETE`. The actual API returns `success: True` because citation persistence failures are caught and logged (not propagated). This is a code-level gap between the test intent and the route implementation — not a test bug, and not introduced by this migration.
+`tests/unit/test_sprint4_v4.py` — **109/110 PASS** (1 pre-existing failure unrelated to this migration).
 
 ### 13.4 Frontend: Full Test Suite
 
-```
-pnpm --filter @hfb/frontend run test --run
-```
-
-**197/197 PASS** across 10 test files (10.51s), including 36 workflow-page-specific tests in `research-workflow-page.test.ts`.
-
-Test file breakdown:
-| File | Tests |
-|---|---|
-| `research-workflow-page.test.ts` | 36 |
-| `research-workspace.test.ts` | 29 |
-| `project-list.test.ts` | 47 |
-| `project-detail.test.ts` | 25 |
-| `research-app-shell.test.ts` | 21 |
-| `admin-views.test.ts` | 14 |
-| `v4-research.test.ts` | 11 |
-| `evidence-to-graph-e2e.test.ts` | 8 |
-| `system.test.ts` | 3 |
-| `research-workflow.test.ts` | 3 |
+**212/212 PASS** across 10 test files (6.77s), including 51 workflow-page-specific tests in `research-workflow-page.test.ts` (expanded from 36 in Batch 1–4).
 
 Zero Vue Router warnings, zero RouterLink warnings, zero skipped tests (`.skip`), zero `.only`.
 
@@ -322,12 +328,22 @@ All 5 workspace packages pass: `apps/frontend` (vue-tsc), `packages/ui` (tsc), `
 pnpm -r run build
 ```
 
-Vite production build succeeds in 4.46s. `ResearchWorkflowPage-CwRauTjM.js` — 21.87 kB (8.10 kB gzipped). **0 warnings.**
+Vite production build succeeds. **0 warnings.**
 
 ### 13.7 Browser-Level E2E
 
-`TestCrossProjectIsolation` (6 tests) — **6/6 PASS** (Chromium, real login + real backend + in-memory SQLite):
+`TestCrossProjectIsolation` (6 tests) + `TestResearchWorkflowPageE2E` (7 tests) — **13/13 PASS** (Chromium, real login + real backend + in-memory SQLite).
 
+**TestResearchWorkflowPageE2E (Batch 5 — NEW):**
+- `test_workflow_page_loads_with_valid_session` — 页面加载显示步骤导航 + 研究问题输入
+- `test_workflow_page_shows_not_found_for_invalid_session` — 无效 UUID → "课题不存在"
+- `test_workflow_no_evidence_shows_error_banner` — 无 RAG 文档 → NO_EVIDENCE 错误横幅
+- `test_workflow_retry_returns_to_question` — "返回修改" 回到问题步，保留输入
+- `test_workflow_cross_user_blocked` — 跨用户: A 访问 B 的工作流 → "课题不存在" + 404
+- `test_workflow_back_to_question_from_selection` — 文献选择步返回修改问题
+- `test_workflow_step_navigation_visible` — 步骤导航当前/已完成状态正确
+
+**TestCrossProjectIsolation (pre-existing, 6 tests — 6/6 PASS):**
 - `test_a_workspace_loads` — own workspace accessible
 - `test_a_project_detail_loads` — own project detail accessible
 - `test_switch_own_projects_no_residue` — switching own projects doesn't leak data
@@ -337,8 +353,12 @@ Vite production build succeeds in 4.46s. `ResearchWorkflowPage-CwRauTjM.js` — 
 
 **Pre-existing E2E failures (not related to this migration):**
 
-- `TestV4ResearchPortal` (5 tests) — target the old `/v4/research` route and `V4ResearchView.vue` (tab "完整研究", nav link `[href="/v4/research"]`), which were removed from the new research app shell. These tests need updating for the new routing structure; their failures pre-date this migration.
-- `TestResearchWorkflow` (1 test) — targets the old `ResearchWorkflowView.vue` (version comparison with "证据驱动的版本比较" heading). This view is preserved at a different route; the test locator is stale.
+- `TestV4ResearchPortal` (5 tests) — target removed `/v4/research` route
+- `TestResearchWorkflow` (1 test) — targets old version-comparison view at stale locators
+- `TestLogin.test_login_succeeds` — strict locator resolves to 2 elements (new home page layout)
+- `TestWorkspace.test_workspace_loads_when_authenticated` — old workspace UI text changed
+
+**Total E2E: 18 passed, 8 pre-existing failures (all unrelated to this migration).**
 
 ### 13.8 CI
 
@@ -349,7 +369,7 @@ Vite production build succeeds in 4.46s. `ResearchWorkflowPage-CwRauTjM.js` — 
 ```
 Followed by `uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation -v --browser chromium`.
 
-**Migration status:** VERIFIED COMPLETE at `b277a65`.
+**Migration status:** VERIFIED COMPLETE — all 5 Batches resolved.
 
 ## 14. Modified Files
 

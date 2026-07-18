@@ -120,8 +120,8 @@
         <!-- Step 5: Research Report -->
         <!-- ============================================================ -->
         <ResearchReportStep
-          v-else-if="stepState === 'report'"
-          :report="reportOrDefault"
+          v-else-if="stepState === 'report' && report !== null"
+          :report="report"
           :project-id="projectId"
           @back-to-evidence="goToEvidence"
           @new-workflow="reset"
@@ -175,7 +175,6 @@ import AnalysisPendingState from '@/components/research/workflow/AnalysisPending
 import EvidenceReviewStep from '@/components/research/workflow/EvidenceReviewStep.vue';
 import ResearchReportStep from '@/components/research/workflow/ResearchReportStep.vue';
 import { useResearchWorkflow } from '@/composables/useResearchWorkflow';
-import type { WorkflowReport } from '@/composables/useResearchWorkflow';
 
 const route = useRoute();
 const projectId = computed(() => String(route.params.projectId || ''));
@@ -223,20 +222,6 @@ const navSteps = [
 const pageTitle = computed(() => {
   if (session.value?.title) return `${session.value.title} · 研究工作流`;
   return '研究工作流';
-});
-
-// ---- Default report for when report is null ----
-const reportOrDefault = computed<WorkflowReport>(() => {
-  if (report.value) return report.value;
-  return {
-    run_id: '',
-    topic: '',
-    title: '',
-    markdown: '',
-    completed_at: null,
-    evidence_count: 0,
-    citation_count: 0,
-  };
 });
 
 // ---- Error title helper ----
