@@ -28,7 +28,7 @@ from app.services.chunking import chunk_text
 _ALLOWED_METADATA_KEYS = frozenset({
     "dynasty", "category", "source_url", "raw_pdf_blob",
     "copyright_status", "license_type", "authorization_basis",
-    "source_name",
+    "source_name", "rag_enabled",
 })
 
 # Copyright statuses that permit full-text storage and chunking.
