@@ -88,6 +88,22 @@ const stateView = computed((): StateView => {
         showRetry: false,
         retryAction: false,
       };
+    case 'report-pending':
+      return {
+        title: '报告生成中',
+        icon: '📝',
+        variantClass: 'rre-state--pending',
+        showRetry: true,
+        retryAction: true,
+      };
+    case 'report-failed':
+      return {
+        title: '报告生成失败',
+        icon: '📄',
+        variantClass: 'rre-state--failed',
+        showRetry: false,
+        retryAction: false,
+      };
     case 'report-missing':
       return {
         title: '报告缺失',

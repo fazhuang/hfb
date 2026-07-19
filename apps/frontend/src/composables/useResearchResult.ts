@@ -71,6 +71,8 @@ export type ResultPageStatus =
   | 'ready'
   | 'run-pending'
   | 'run-failed'
+  | 'report-pending'
+  | 'report-failed'
   | 'report-missing'
   | 'forbidden'
   | 'not-found'
@@ -384,19 +386,54 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
         citation_count: citations.length,
       };
 
-      // Determine status
+      // Determine status based on step_execution_trace
       const steps = targetRun.step_execution_trace as Array<Record<string, unknown>> | undefined;
+
+      // Helper to find a specific step by name
+      const findStep = (name: string) =>
+        steps?.find((s) => (s.name as string) === name);
+
       if (!steps || steps.length === 0) {
+        // Rule 1: no run / no step trace
         status.value = 'run-pending';
         statusMessage.value = '此运行记录尚未开始执行。';
-      } else if (steps.some((s) => s.status === 'failed')) {
-        status.value = 'run-failed';
-        statusMessage.value = '研究流程执行失败。';
-      } else if (!markdown) {
-        status.value = 'report-missing';
-        statusMessage.value = '报告尚未生成。';
       } else {
-        status.value = 'ready';
+        const reportStep = findStep('report_generation');
+        const hasFailedStep = steps.some((s) => s.status === 'failed');
+        const hasPendingStep = steps.some((s) => s.status === 'pending');
+        const allCompleted = steps.every((s) => s.status === 'completed');
+
+        if (reportStep && reportStep.status === 'failed') {
+          // Rule 3: report_generation explicitly failed
+          status.value = 'report-failed';
+          statusMessage.value = '报告生成失败，请检查研究流程后重试。';
+        } else if (hasFailedStep) {
+          // Rule 4: non-report_generation critical step failed
+          status.value = 'run-failed';
+          statusMessage.value = '研究流程执行失败。';
+        } else if (reportStep && (reportStep.status === 'pending' || reportStep.status === 'running')) {
+          // Rule 2: report_generation step not yet completed
+          status.value = 'report-pending';
+          statusMessage.value = '报告正在生成中，请稍后刷新查看。';
+        } else if (!allCompleted && !reportStep) {
+          // Workflow in progress but no report_generation step yet
+          status.value = 'report-pending';
+          statusMessage.value = '报告生成步骤尚未开始，请等待流程继续。';
+        } else if (!allCompleted && hasPendingStep) {
+          // Other steps pending — still report-pending if report step hasn't completed
+          status.value = 'report-pending';
+          statusMessage.value = '报告生成步骤尚未完成，请稍后刷新。';
+        } else if (reportStep && reportStep.status === 'completed' && !markdown) {
+          // Rule 5: report_generation completed but markdown empty
+          status.value = 'report-missing';
+          statusMessage.value = '报告尚未生成。';
+        } else if (!markdown) {
+          status.value = 'report-missing';
+          statusMessage.value = '报告尚未生成。';
+        } else {
+          // Rule 6: report_generation completed + markdown non-empty
+          status.value = 'ready';
+        }
       }
     } catch (e: unknown) {
       if (mySeq !== reqSeq || abortSignal.aborted) return;

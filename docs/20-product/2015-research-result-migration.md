@@ -56,8 +56,11 @@ Sprint 2 · Task 006 — migrated `ResearchResultPage` from hardcoded placeholde
 - No PDF/DOCX buttons (not supported)
 
 ## Error States
-- `loading`, `ready`, `run-pending`, `run-failed`, `report-missing`, `forbidden`, `not-found`, `error`
+- `loading`, `ready`, `run-pending`, `run-failed`, `report-pending`, `report-failed`, `report-missing`, `forbidden`, `not-found`, `error`
 - Each state has distinct UI with appropriate actions (retry, back to workspace/workflow)
+- `report-pending`: report_generation step status is 'pending' or 'running' — distinct from run-pending (no steps yet)
+- `report-failed`: report_generation step status is 'failed' — distinct from run-failed (non-report step failed)
+- All states determined from real `step_execution_trace`, never from frontend timers or guessing
 
 ## Lineage Rules
 - **Full**: `trace_id` + `document_id` + content + `source_ref_title` + `passage_id`
@@ -80,12 +83,12 @@ Sprint 2 · Task 006 — migrated `ResearchResultPage` from hardcoded placeholde
 | `useResearchResult.ts` | Composable: session/run loading, evidence extraction, export, stale-call protection | ~440 |
 
 ## Tests
-- **Frontend unit**: 81 tests in `research-result-page.test.ts` covering routes, reports, XSS, citations (including Batch 1 validation fixes), evidence, SourceRef (including internal route priority), export, isolation, error handling, cross-user security
-- **Total frontend**: 282+ tests, 11 files, all passing
+- **Frontend unit**: 91 tests in `research-result-page.test.ts` covering routes, reports, XSS, citations (including Batch 1 validation fixes), evidence, SourceRef (including internal route priority), export, isolation, error handling, cross-user security; includes 8 new report-pending/report-failed state tests (18a-18h)
+- **Total frontend**: 303 tests, 11 files, all passing
 - **Backend RBAC**: 31 tests passing (`TestWorkspaceApiIsolation`), including 7 export-specific tests covering own-run, cross-user, cross-session mismatch, unsupported format, empty report, and data-leak checks
 - **Backend V4/Workflow**: 86 passing, 1 known failure (`test_query_unmapped_passage_fail_closed`)
 - **E2E CrossProjectIsolation**: 6 passing
-- **E2E ResearchResultPage**: 22 passing (real Chromium, real login, real backend, isolated in-memory SQLite) — `TestResearchResultPageE2E` in `test_critical_journeys.py`, **powered by real POST /api/v4/research/workflow executions** (Batch 1-3, git commit pending)
+- **E2E ResearchResultPage**: 22 passing (real Chromium, real login, real backend, isolated in-memory SQLite) — `TestResearchResultPageE2E` in `test_critical_journeys.py`, **powered by real POST /api/v4/research/workflow executions** (Batch 1-4, committed as 940d830 → 9847aa9 → fd81294)
 - **Type check**: PASS
 - **Build**: PASS
 - **Test seed endpoint**: `POST /api/v4/research/_test/seed-research-run` (gated by `SEED_TEST_DATA=1`) used ONLY for state-only fixtures (pending/failed/missing states); **no longer used** for report/Citation/Evidence/SourceRef authenticity E2E

@@ -15,7 +15,7 @@
  *     10. Stale runs response does not overwrite new
  *     11. Invalid UUID projectId → not-found status
  *
- *   BATCH 2 — Report states (12-18):
+ *   BATCH 2 — Report states (12-18h):
  *     12. Completed run with markdown report → ready status
  *     13. Run with pending steps → run-pending status
  *     14. Run with failed step → run-failed status
@@ -23,6 +23,14 @@
  *     16. Markdown rendered into sections
  *     17. Report title shown
  *     18. Does not show "loaded" when markdown is empty
+ *     18a. report_generation pending → report-pending status
+ *     18b. report_generation failed → report-failed status
+ *     18c. non-report_generation failed → run-failed status
+ *     18d. completed report_generation + empty markdown → report-missing
+ *     18e. report-pending does not show old report
+ *     18f. report-failed does not show old report
+ *     18g. route switch from report-failed to ready clears error
+ *     18h. route switch from ready to report-pending clears old report
 
  *   BATCH 3 — XSS / Markdown safety (19-23):
  *     19. <script> tag in report is NOT rendered as HTML
@@ -280,8 +288,12 @@ function setupBlobMock() {
     return new OrigBlob(contentParts, options);
   }));
 
+  // Return a hash-only URL from createObjectURL so jsdom does not trigger
+  // "Error: Not implemented: navigation (except hash changes)" when the
+  // export flow creates an <a> element, sets its href, and clicks it.
+  // jsdom exempts hash-only URL changes from the navigation error.
   vi.stubGlobal('URL', {
-    createObjectURL: vi.fn(() => 'blob:mock-url'),
+    createObjectURL: vi.fn(() => '#blob-download-stub'),
     revokeObjectURL: vi.fn(),
   });
 }
@@ -567,6 +579,228 @@ describe('ResearchResultPage', () => {
       });
       const wrapper = await setupAndMount(makeSession(), [emptyMarkdownRun]);
       expect(wrapper.html()).toContain('报告缺失');
+    });
+
+    // ---- New Batch 1: report-pending / report-fixed status tests ----
+
+    it('18a. report_generation pending → report-pending status', async () => {
+      const pendingReportRun = makeRun({
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'literature_retrieval', status: 'completed' },
+          { name: 'evidence_synthesis', status: 'completed' },
+          { name: 'report_generation', status: 'pending' },
+        ],
+        output_artifacts: {},
+      });
+      const wrapper = await setupAndMount(makeSession(), [pendingReportRun]);
+      // Must show report-pending, NOT general run-pending and NOT report-missing
+      expect(wrapper.html()).toContain('报告生成中');
+      expect(wrapper.html()).not.toContain('运行进行中');
+      expect(wrapper.html()).not.toContain('报告缺失');
+    });
+
+    it('18b. report_generation failed → report-failed status', async () => {
+      const failedReportRun = makeRun({
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'literature_retrieval', status: 'completed' },
+          { name: 'evidence_synthesis', status: 'completed' },
+          { name: 'report_generation', status: 'failed' },
+        ],
+        output_artifacts: {},
+      });
+      const wrapper = await setupAndMount(makeSession(), [failedReportRun]);
+      // Must show report-failed, NOT general run-failed
+      expect(wrapper.html()).toContain('报告生成失败');
+      expect(wrapper.html()).not.toContain('流程执行失败');
+    });
+
+    it('18c. non-report_generation failed → run-failed status', async () => {
+      const failedLitRun = makeRun({
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'literature_retrieval', status: 'failed' },
+          { name: 'report_generation', status: 'pending' },
+        ],
+        output_artifacts: {},
+      });
+      const wrapper = await setupAndMount(makeSession(), [failedLitRun]);
+      // Must show run-failed, NOT report-failed (report_generation didn't fail — a different step did)
+      expect(wrapper.html()).toContain('流程执行失败');
+      expect(wrapper.html()).not.toContain('报告生成失败');
+    });
+
+    it('18d. completed report_generation + empty markdown → report-missing', async () => {
+      const noMarkdownRun = makeRun({
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'report_generation', status: 'completed' },
+        ],
+        output_artifacts: {}, // no markdown
+      });
+      const wrapper = await setupAndMount(makeSession(), [noMarkdownRun]);
+      // report_generation completed but output_artifacts.markdown absent/empty
+      expect(wrapper.html()).toContain('报告缺失');
+      expect(wrapper.html()).not.toContain('报告生成失败');
+      expect(wrapper.html()).not.toContain('报告生成中');
+    });
+
+    it('18e. report-pending does not show old report', async () => {
+      // First load a ready report
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      expect(wrapper.html()).toContain('研究报告：经络');
+
+      // Now switch to a report-pending state
+      const pendingReportRun = makeRun({
+        run_id: RUN_B,
+        session_id: PROJ_B,
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'report_generation', status: 'pending' },
+        ],
+        output_artifacts: {},
+      });
+      const sessionB = makeSession({ id: PROJ_B, title: 'Session B' });
+      mockApiGet.mockReset();
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/workspace/sessions/')) {
+          return { data: { data: sessionB } };
+        }
+        if (url.includes('/api/v4/research/session/')) {
+          return { data: { data: { runs: [pendingReportRun] } } };
+        }
+        throw new Error('unexpected');
+      });
+
+      await router.push(`/research/${PROJ_B}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // Must NOT show old report content
+      expect(wrapper.html()).not.toContain('研究报告：经络');
+      expect(wrapper.html()).not.toContain('概述');
+      // Must show report-pending UI
+      expect(wrapper.html()).toContain('报告生成中');
+    });
+
+    it('18f. report-failed does not show old report', async () => {
+      // First load a ready report
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      expect(wrapper.html()).toContain('研究报告：经络');
+
+      // Now switch to a report-failed state
+      const failedReportRun = makeRun({
+        run_id: RUN_B,
+        session_id: PROJ_B,
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'report_generation', status: 'failed' },
+        ],
+        output_artifacts: {},
+      });
+      const sessionB = makeSession({ id: PROJ_B, title: 'Session B' });
+      mockApiGet.mockReset();
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/workspace/sessions/')) {
+          return { data: { data: sessionB } };
+        }
+        if (url.includes('/api/v4/research/session/')) {
+          return { data: { data: { runs: [failedReportRun] } } };
+        }
+        throw new Error('unexpected');
+      });
+
+      await router.push(`/research/${PROJ_B}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // Must NOT show old report content
+      expect(wrapper.html()).not.toContain('研究报告：经络');
+      expect(wrapper.html()).not.toContain('概述');
+      // Must show report-failed UI
+      expect(wrapper.html()).toContain('报告生成失败');
+    });
+
+    it('18g. route switch from report-failed to ready clears error', async () => {
+      // First load a report-failed run
+      const failedReportRun = makeRun({
+        run_id: RUN_A,
+        session_id: PROJ_A,
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'report_generation', status: 'failed' },
+        ],
+        output_artifacts: {},
+      });
+      const wrapper = await setupAndMount(makeSession(), [failedReportRun]);
+      expect(wrapper.html()).toContain('报告生成失败');
+
+      // Switch to ready run
+      const readyRun = makeRun({
+        run_id: RUN_B,
+        session_id: PROJ_B,
+      });
+      const sessionB = makeSession({ id: PROJ_B, title: 'Session B' });
+      mockApiGet.mockReset();
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/workspace/sessions/')) {
+          return { data: { data: sessionB } };
+        }
+        if (url.includes('/api/v4/research/session/')) {
+          return { data: { data: { runs: [readyRun] } } };
+        }
+        throw new Error('unexpected');
+      });
+
+      await router.push(`/research/${PROJ_B}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // Error state must be cleared
+      expect(wrapper.html()).not.toContain('报告生成失败');
+      // Ready content must show
+      expect(wrapper.html()).toContain('研究报告正文');
+    });
+
+    it('18h. route switch from ready to report-pending clears old report', async () => {
+      // First load a ready report
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      expect(wrapper.html()).toContain('研究报告：经络');
+      expect(wrapper.html()).toContain('研究报告正文');
+
+      // Switch to report-pending
+      const pendingRun = makeRun({
+        run_id: RUN_B,
+        session_id: PROJ_B,
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'report_generation', status: 'pending' },
+        ],
+        output_artifacts: {},
+      });
+      const sessionB = makeSession({ id: PROJ_B, title: 'Session B' });
+      mockApiGet.mockReset();
+      mockApiGet.mockImplementation(async (url: string) => {
+        if (url.includes('/api/v1/workspace/sessions/')) {
+          return { data: { data: sessionB } };
+        }
+        if (url.includes('/api/v4/research/session/')) {
+          return { data: { data: { runs: [pendingRun] } } };
+        }
+        throw new Error('unexpected');
+      });
+
+      await router.push(`/research/${PROJ_B}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // Old report content must be cleared
+      expect(wrapper.html()).not.toContain('研究报告：经络');
+      expect(wrapper.html()).not.toContain('概述');
+      expect(wrapper.html()).not.toContain('研究报告正文');
+      // New pending state must show
+      expect(wrapper.html()).toContain('报告生成中');
     });
   });
 
