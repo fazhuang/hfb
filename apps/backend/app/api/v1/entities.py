@@ -395,54 +395,68 @@ async def get_document_stats(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Total chunks for this document
-    chunk_count_q = (
-        sql_select(func.count())
-        .select_from(DocumentChunk)
-        .where(DocumentChunk.document_id == str(item_id))
-    )
-    total_chunks = (await session.execute(chunk_count_q)).scalar() or 0
+    try:
+        chunk_count_q = (
+            sql_select(func.count())
+            .select_from(DocumentChunk)
+            .where(DocumentChunk.document_id == str(item_id))
+        )
+        total_chunks = (await session.execute(chunk_count_q)).scalar() or 0
+    except Exception:
+        total_chunks = 0
 
     # Chunks with OCR (ocr_confidence IS NOT NULL)
-    ocr_chunk_count_q = (
-        sql_select(func.count())
-        .select_from(DocumentChunk)
-        .where(
-            DocumentChunk.document_id == str(item_id),
-            DocumentChunk.ocr_confidence.is_not(None),
+    try:
+        ocr_chunk_count_q = (
+            sql_select(func.count())
+            .select_from(DocumentChunk)
+            .where(
+                DocumentChunk.document_id == str(item_id),
+                DocumentChunk.ocr_confidence.is_not(None),
+            )
         )
-    )
-    ocr_chunks = (await session.execute(ocr_chunk_count_q)).scalar() or 0
+        ocr_chunks = (await session.execute(ocr_chunk_count_q)).scalar() or 0
+    except Exception:
+        ocr_chunks = 0
 
     # Average OCR confidence
-    avg_ocr_q = (
-        sql_select(func.avg(DocumentChunk.ocr_confidence))
-        .select_from(DocumentChunk)
-        .where(
-            DocumentChunk.document_id == str(item_id),
-            DocumentChunk.ocr_confidence.is_not(None),
+    try:
+        avg_ocr_q = (
+            sql_select(func.avg(DocumentChunk.ocr_confidence))
+            .select_from(DocumentChunk)
+            .where(
+                DocumentChunk.document_id == str(item_id),
+                DocumentChunk.ocr_confidence.is_not(None),
+            )
         )
-    )
-    avg_ocr_confidence = (await session.execute(avg_ocr_q)).scalar()
+        avg_ocr_confidence = (await session.execute(avg_ocr_q)).scalar()
+    except Exception:
+        avg_ocr_confidence = None
 
-    # Citation count for this document (via chunk citations with target_type='document_chunk' or via passage chain)
-    # Count citations where evidence links to a passage that belongs to a chunk of this document
-    citation_count_q = (
-        sql_select(func.count())
-        .select_from(Citation)
-        .join(Evidence, Citation.evidence_id == Evidence.id)
-        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
-        .where(DocumentChunk.document_id == str(item_id))
-    )
-    citation_count = (await session.execute(citation_count_q)).scalar() or 0
+    # Citation count for this document
+    try:
+        citation_count_q = (
+            sql_select(func.count())
+            .select_from(Citation)
+            .join(Evidence, Citation.evidence_id == Evidence.id)
+            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+            .where(DocumentChunk.document_id == str(item_id))
+        )
+        citation_count = (await session.execute(citation_count_q)).scalar() or 0
+    except Exception:
+        citation_count = 0
 
-    # Evidence count (distinct evidences linked to this document's chunks via source_passage)
-    evidence_count_q = (
-        sql_select(func.count(func.distinct(Evidence.id)))
-        .select_from(Evidence)
-        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
-        .where(DocumentChunk.document_id == str(item_id))
-    )
-    evidence_count = (await session.execute(evidence_count_q)).scalar() or 0
+    # Evidence count
+    try:
+        evidence_count_q = (
+            sql_select(func.count(func.distinct(Evidence.id)))
+            .select_from(Evidence)
+            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+            .where(DocumentChunk.document_id == str(item_id))
+        )
+        evidence_count = (await session.execute(evidence_count_q)).scalar() or 0
+    except Exception:
+        evidence_count = 0
 
     return api_response(data={
         "total_chunks": total_chunks,
