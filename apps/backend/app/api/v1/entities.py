@@ -466,3 +466,152 @@ async def get_document_stats(
         "citation_count": citation_count,
         "evidence_count": evidence_count,
     })
+
+
+# ============================================================
+# /documents/{id}/reader — aggregated reader data
+# ============================================================
+
+@router.get(
+    "/documents/{item_id}/reader",
+    response_model=dict,
+    dependencies=_document_get_deps,
+)
+async def get_document_reader(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    """Aggregated endpoint for the Reader page.
+
+    Returns document detail + OCR chunks + linked passages (with translation)
+    + citations + evidence in a single response, avoiding N+1 round-trips.
+    """
+    svc = DocumentService(session)
+    doc = await svc.get_by_id(item_id)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Ownership check
+    if doc.uploaded_by is not None and doc.uploaded_by != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Cross-project isolation
+    if doc.session_id is not None:
+        owner_session = await session.get(ResearchSession, doc.session_id)
+        if owner_session is None or owner_session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    # Document detail
+    doc_data = DocumentResponse.model_validate(doc).model_dump(mode="json")
+
+    # OCR chunks
+    try:
+        chunks_q = (
+            sql_select(DocumentChunk)
+            .where(
+                DocumentChunk.document_id == str(item_id),
+                DocumentChunk.ocr_confidence.is_not(None),
+            )
+            .order_by(DocumentChunk.chunk_index)
+        )
+        chunk_objs = (await session.execute(chunks_q)).scalars().all()
+        ocr_chunks = [
+            {
+                "chunk_index": c.chunk_index,
+                "content": c.content,
+                "page_number": c.page_number,
+                "paragraph_index": c.paragraph_index,
+                "ocr_confidence": c.ocr_confidence,
+            }
+            for c in chunk_objs
+        ]
+    except Exception:
+        ocr_chunks = []
+
+    # Linked passages (with translation) via DocumentChunk.passage_id
+    try:
+        from app.models.passage import Passage  # noqa: E402
+
+        passage_ids_q = (
+            sql_select(DocumentChunk.passage_id)
+            .where(
+                DocumentChunk.document_id == str(item_id),
+                DocumentChunk.passage_id.is_not(None),
+            )
+            .distinct()
+        )
+        pids = (await session.execute(passage_ids_q)).scalars().all()
+        passages = []
+        if pids:
+            passages_q = (
+                sql_select(Passage)
+                .where(Passage.id.in_(pids))
+                .order_by(Passage.order)
+            )
+            passage_objs = (await session.execute(passages_q)).scalars().all()
+            passages = [
+                {
+                    "id": p.id,
+                    "content_text": p.content_text,
+                    "translation": p.translation,
+                    "notes": p.notes,
+                    "order": p.order,
+                    "tags": p.tags,
+                }
+                for p in passage_objs
+            ]
+    except Exception:
+        passages = []
+
+    # Citations for this document
+    try:
+        citation_q = (
+            sql_select(Citation)
+            .join(Evidence, Citation.evidence_id == Evidence.id)
+            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+            .where(DocumentChunk.document_id == str(item_id))
+            .distinct()
+        )
+        citation_objs = (await session.execute(citation_q)).scalars().all()
+        citations = [
+            {
+                "id": c.id,
+                "quote_text": c.quote_text,
+                "note": c.note,
+                "target_type": c.target_type,
+                "target_id": c.target_id,
+                "evidence_id": c.evidence_id,
+            }
+            for c in citation_objs
+        ]
+    except Exception:
+        citations = []
+
+    # Evidence for this document
+    try:
+        evidence_q = (
+            sql_select(Evidence)
+            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+            .where(DocumentChunk.document_id == str(item_id))
+            .distinct()
+        )
+        evidence_objs = (await session.execute(evidence_q)).scalars().all()
+        evidences = [
+            {
+                "id": e.id,
+                "description": e.description,
+                "evidence_level": int(e.evidence_level.value) if hasattr(e.evidence_level, 'value') else e.evidence_level,
+                "source_passage_id": e.source_passage_id,
+                "source_ref_id": e.source_ref_id,
+            }
+            for e in evidence_objs
+        ]
+    except Exception:
+        evidences = []
+
+    return api_response(data={
+        "document": doc_data,
+        "ocr_chunks": ocr_chunks,
+        "passages": passages,
+        "citations": citations,
+        "evidences": evidences,
+    })

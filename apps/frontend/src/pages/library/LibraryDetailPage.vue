@@ -121,8 +121,7 @@
  *
  * Route: /library/:id
  *
- * Full text reading → redirects to /literature/:id (existing LiteratureDetailView)
- * which has the full reader experience (content_text, chapters, etc.)
+ * Full text reading → navigates to /library/:id/reader (ReaderPage)
  *
  * ref: docs/20-product/2010-task008-library-migration.md
  */
@@ -163,8 +162,8 @@ const safeSourceUrl = computed(() => {
 
 function openReader() {
   if (!doc.value) return;
-  // Redirect to the existing LiteratureDetailView for full-text reading
-  router.push(`/literature/${doc.value.id}`);
+  // Navigate to the new ReaderPage
+  router.push({ name: 'library-reader', params: { id: doc.value.id } });
 }
 
 onMounted(() => fetch());
