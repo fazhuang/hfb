@@ -100,18 +100,62 @@ tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_response_doe
 ### 2.5 E2E CrossProjectIsolation
 
 ```bash
-uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation -q --browser chromium
+uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation -v --browser chromium
 ```
 
 **结果: 6 collected / 6 passed / 0 failed** (真实 Chromium, 真实登录, 真实后端)
 
+完整 pytest 汇总行:
+
+```
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_a_workspace_loads[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_a_project_detail_loads[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_switch_own_projects_no_residue[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_cross_user_workspace_blocked[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_cross_user_project_blocked[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation::test_cross_user_workflow_blocked[chromium] PASSED
+```
+
+- 登录方式: `_login_via_ui()` — 通过 `/login` 页面填写用户名密码，点击「登录」按钮，等待重定向。非 localStorage 注入。
+- 无 `page.route` / `route.fulfill`。唯一的 `page.route` 命中在注释行 (line 345: `#   - No page.route / route.fulfill`)。
+
 ### 2.6 E2E ResearchResultPage
 
 ```bash
-uv run pytest tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E -q --browser chromium
+uv run pytest tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E -v --browser chromium
 ```
 
 **结果: 22 collected / 22 passed / 0 failed** (真实 Chromium, 真实登录, 真实后端)
+
+完整 pytest 汇总行:
+
+```
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_report_loads[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_citation_shows_evidence[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_citation_marker_clickable[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_lineage_displayed[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_sourceref_link_routes[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_real_workflow_lineage_complete_or_partial[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_export_markdown_real_browser_download[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_export_disabled_when_no_report[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_export_no_double_click[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_export_stale_after_route_switch[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_cross_user_result_blocked[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_run_not_belonging_to_session_rejected[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_xss_script_no_executable_node[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_xss_no_dangerous_href[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_xss_no_navigation_or_script_execution[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_withdrawn_source_no_internal_link[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_withdrawn_source_no_malicious_sourceref_url[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_markdown_xss_script_not_executed[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_markdown_xss_javascript_url_not_active[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_markdown_xss_no_iframe_svg[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_route_switch_clears_stale_data[chromium] PASSED
+tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E::test_switch_from_error_to_ready_clears_error[chromium] PASSED
+```
+
+- 登录方式: 同上 `_login_via_ui()` — 真实 `/login` 页面交互。
+- 无 `page.route` / `route.fulfill` (grep 确认: 0 命中在 `test_critical_journeys.py`)。
 
 ### 2.7 综合运行
 
@@ -120,10 +164,16 @@ uv run pytest \
   tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation \
   tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation \
   tests/e2e/test_critical_journeys.py::TestResearchResultPageE2E \
-  -q --browser chromium
+  -v --browser chromium
 ```
 
 **结果: 59 collected / 59 passed / 0 failed**
+
+完整 pytest 汇总:
+
+```
+============================== 59 passed in 127.49s (0:02:07) ==============================
+```
 
 ### 2.8 前端 warnings 过滤
 
