@@ -86,7 +86,7 @@
             <div class="lib-field"><span class="lib-field-label">拼音</span><span>{{ doc.title_pinyin || '—' }}</span></div>
             <div class="lib-field"><span class="lib-field-label">英文</span><span>{{ doc.title_english || '—' }}</span></div>
             <div class="lib-field"><span class="lib-field-label">页数</span><span>{{ doc.page_count || '—' }}</span></div>
-            <div class="lib-field"><span class="lib-field-label">Checksum</span><span class="lib-mono">{{ doc.content_checksum || '—' }}</span></div>
+            <div class="lib-field"><span class="lib-field-label">版本</span><span class="lib-mono">{{ doc.content_checksum ? `checksum:${doc.content_checksum.slice(0, 8)}` : '不可用' }}</span></div>
             <div class="lib-field">
               <span class="lib-field-label">来源链接</span>
               <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="lib-external-link">查看来源</a>

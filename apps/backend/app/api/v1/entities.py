@@ -21,7 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import require_permission
+from app.middleware.auth import require_permission, get_current_user
 from app.schemas.entities import (
     BookCreate, BookUpdate, BookBrief, BookResponse,
     VersionCreate, VersionUpdate, VersionBrief, VersionResponse,
@@ -213,8 +213,6 @@ document_guard_update = require_permission("document", "update")
 document_guard_delete = require_permission("document", "delete")
 
 
-document_public_read = True
-
 _document_list_deps: list = [Depends(document_guard_read)]
 _document_get_deps: list = [Depends(document_guard_read)]
 
@@ -226,6 +224,7 @@ _document_get_deps: list = [Depends(document_guard_read)]
 )
 async def list_documents(
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     q: str = Query(default="", description="Search query"),
@@ -233,6 +232,8 @@ async def list_documents(
     review_status: str | None = Query(default=None),
     rag_enabled: bool | None = Query(default=None),
     source_name: str | None = Query(default=None),
+    dynasty: str | None = Query(default=None),
+    category: str | None = Query(default=None),
 ) -> dict:
     svc = DocumentService(session)
     items, total = await svc.search(
@@ -243,6 +244,9 @@ async def list_documents(
         review_status=review_status,
         rag_enabled=rag_enabled,
         source_name=source_name,
+        dynasty=dynasty,
+        category=category,
+        user_id=user_id,
     )
 
     results = [DocumentBrief.model_validate(i).model_dump(mode="json") for i in items]
@@ -259,10 +263,14 @@ async def list_documents(
 async def create_document(
     body: DocumentCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     svc = DocumentService(session)
     try:
-        obj = await svc.create(body)
+        create_data = body.model_dump(exclude_unset=False)
+        create_data["uploaded_by"] = user_id
+        await svc._validate_create(create_data)
+        obj = await svc.repo.create(**create_data)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
     return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"), message="Created")
@@ -276,10 +284,14 @@ async def create_document(
 async def get_document(
     item_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     svc = DocumentService(session)
     obj = await svc.get_by_id(item_id)
     if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Ownership check: user can only read docs they own or system/public docs
+    if obj.uploaded_by is not None and obj.uploaded_by != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"))
 
@@ -326,10 +338,14 @@ async def delete_document(
 async def get_document_stats(
     item_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     """Get citation, evidence, chunk, and OCR stats for a document."""
     doc = await session.get(Document, item_id)
     if doc is None or doc.is_deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Ownership check: user can only read docs they own or system/public docs
+    if doc.uploaded_by is not None and doc.uploaded_by != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Total chunks for this document

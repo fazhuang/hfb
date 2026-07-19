@@ -136,6 +136,7 @@ _RESEARCHER_PERMS = _STUDENT_PERMS + [
     "chapter.create", "chapter.update",
     "passage.create", "passage.update",
     "paper.create", "paper.update",
+    "document.create", "document.update",
     "evidence.create", "evidence.read", "evidence.update",
     "citation.create", "citation.read", "citation.update",
     "research.create", "research.read", "research.update", "research.delete", "research.export",

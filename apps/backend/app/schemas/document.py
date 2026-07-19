@@ -85,6 +85,7 @@ class DocumentBrief(BaseModel):
     review_status: str
     rag_enabled: bool
     source_name: str | None
+    uploaded_by: str | None = None
     withdrawn_at: datetime | None = None
     created_at: datetime | None = None
 
@@ -106,6 +107,7 @@ class DocumentResponse(DocumentBase):
     rag_enabled: bool
     content_checksum: str | None
     source_name: str | None
+    uploaded_by: str | None = None
     withdrawn_at: datetime | None
     withdraw_reason: str | None
 

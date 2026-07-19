@@ -212,16 +212,18 @@ const router = createRouter({
           name: 'dashboard',
           component: () => import('@/views/DashboardView.vue'),
         },
-        // Literature metadata
+        // Literature metadata (same permission boundary as Library)
         {
           path: 'literature',
           name: 'literature',
           component: () => import('@/views/literature/LiteratureListView.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'literature/:id',
           name: 'literature-detail',
           component: () => import('@/views/literature/LiteratureDetailView.vue'),
+          meta: { requiresAuth: true },
         },
         // Classical version catalogue
         {

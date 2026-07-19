@@ -14,7 +14,7 @@ class DocumentRepository(BaseRepository[Document]):
 
     model = Document
 
-    def search_query(
+    async def search_query(
         self,
         query: str,
         page: int = 1,
@@ -23,13 +23,32 @@ class DocumentRepository(BaseRepository[Document]):
         review_status: str | None = None,
         rag_enabled: bool | None = None,
         source_name: str | None = None,
+        dynasty: str | None = None,
+        category: str | None = None,
+        user_id: str | None = None,
     ):
         """Search documents by text query AND optional metadata filters.
 
         All filters compose with the text search — q and filters are
         combined in a single WHERE clause so total is always accurate.
+
+        When user_id is None, only system/public documents (uploaded_by IS NULL)
+        are returned. When user_id is set, documents owned by that user AND
+        system/public documents are both included.
         """
         conditions = [self.model.is_deleted.is_(False)]
+
+        if user_id is not None:
+            # User scope: show user's own docs + public/system docs (NULL owner)
+            conditions.append(
+                or_(
+                    self.model.uploaded_by == user_id,
+                    self.model.uploaded_by.is_(None),
+                )
+            )
+        else:
+            # No user context (anonymous): only public/system docs
+            conditions.append(self.model.uploaded_by.is_(None))
 
         if query.strip():
             search_fields = ["title", "title_pinyin", "title_english", "abstract", "content_text"]
@@ -47,6 +66,10 @@ class DocumentRepository(BaseRepository[Document]):
             conditions.append(self.model.rag_enabled == rag_enabled)
         if source_name:
             conditions.append(self.model.source_name == source_name)
+        if dynasty:
+            conditions.append(self.model.dynasty == dynasty)
+        if category:
+            conditions.append(self.model.category == category)
 
         where_clause = and_(*conditions)
 
@@ -58,8 +81,8 @@ class DocumentRepository(BaseRepository[Document]):
         offset = (page - 1) * limit
         stmt = stmt.order_by(Document.created_at.desc()).offset(offset).limit(limit)
 
-        items_result = self.session.execute(stmt)
-        count_result = self.session.execute(count_stmt)
+        items_result = await self.session.execute(stmt)
+        count_result = await self.session.execute(count_stmt)
 
         return list(items_result.scalars().all()), count_result.scalar_one()
 
