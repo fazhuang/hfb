@@ -2659,6 +2659,14 @@ class TestResearchResultPageE2E:
         item_count = citation_items.count()
         assert item_count > 0, "No citation items found on page"
 
+        # Collect all rendered citation trace IDs for audit
+        rendered_ids = []
+        for i in range(item_count):
+            item = citation_items.nth(i)
+            code_el = item.locator(".rcp-citation-id")
+            if code_el.count() > 0:
+                rendered_ids.append(code_el.first.text_content().strip())
+
         # Click the citation whose displayed trace_id matches target_trace_id
         clicked = False
         for i in range(item_count):
@@ -2666,25 +2674,56 @@ class TestResearchResultPageE2E:
             code_el = item.locator(".rcp-citation-id")
             if code_el.count() > 0:
                 displayed_id = code_el.first.text_content().strip()
-                # The display shows trace_id.slice(0,16)...
+                # The display shows trace_id.slice(0,16) + "..."
+                # Exact prefix match: target_trace_id must start with
+                # the displayed 16-char prefix
                 if target_trace_id.startswith(displayed_id.rstrip(".")):
                     item.click()
                     clicked = True
                     break
 
-        # Fallback: if trace_id matching fails, click first citation and
-        # verify the evidence panel loads (the manifest trace may map to
-        # any citation — the real workflow decides which evidence is
-        # associated with which citation)
-        if not clicked:
-            citation_items.first.click()
+        # Fail-closed: NO fallback to first citation.
+        # If the manifest's target trace is not rendered as a citation,
+        # the test MUST fail — manifest-to-citation binding is the
+        # core assertion being verified.
+        assert clicked, (
+            "No rendered citation matches target manifest trace. "
+            f"target_trace_id={target_trace_id!r}; "
+            f"rendered_citation_ids={rendered_ids!r}"
+        )
 
+        # =========================================================
+        # Step 7 — Verify the selected citation state
+        # =========================================================
+        page.wait_for_selector(".rcp-citation-item--selected", timeout=5000)
+
+        # =========================================================
+        # Step 8 — Verify Evidence detail belongs to the same trace
+        # =========================================================
         page.wait_for_selector(".eed-card", timeout=5000)
 
+        # Read the displayed evidence trace ID from the evidence detail
+        # card.  The "证据 ID" meta row shows trace_id.slice(0,16) + "..."
+        evidence_id_el = (
+            page.locator('.eed-meta-row:has-text("证据 ID")')
+            .locator(".eed-meta-value")
+        )
+        assert evidence_id_el.count() > 0, (
+            "Evidence detail card missing 证据 ID display. "
+            f"target_trace_id={target_trace_id!r}"
+        )
+        displayed_evidence_id = evidence_id_el.first.text_content().strip()
+        assert target_trace_id.startswith(displayed_evidence_id.rstrip(".")), (
+            f"Evidence detail trace ID mismatch: "
+            f"target_trace_id={target_trace_id!r}, "
+            f"displayed_evidence_id={displayed_evidence_id!r}"
+        )
+
         # =========================================================
-        # Step 7 — Assert no javascript:/data: links
+        # Step 9 — Assert no javascript:/data: links (scoped to
+        #          evidence detail card — not page-global)
         # =========================================================
-        all_links = page.locator(".esrc-card a, .eed-card a")
+        all_links = page.locator(".eed-card a")
         for i in range(all_links.count()):
             href = (all_links.nth(i).get_attribute("href") or "").lower()
             assert not href.startswith("javascript:"), (
@@ -2695,17 +2734,19 @@ class TestResearchResultPageE2E:
             )
 
         # =========================================================
-        # Step 8 — Exact internal SourceRef link assertions
+        # Step 10 — Exact internal SourceRef link assertions
+        #           (scoped to evidence detail card)
         # =========================================================
-        internal_links = page.locator(".esrc-link--internal")
-        assert internal_links.count() > 0, (
-            f"No internal SourceRef link found (.esrc-link--internal). "
-            f"The real manifest has document_id={document_id!r}, "
-            f"passage_id={passage_id!r}, trace_id={target_trace_id!r}. "
-            f"SourceRef card text: {page.locator('.esrc-card').first.text_content()}"
+        internal_link = page.locator(".eed-card .esrc-link--internal")
+        assert internal_link.count() > 0, (
+            f"No internal SourceRef link found "
+            f"(.eed-card .esrc-link--internal). "
+            f"document_id={document_id!r}, passage_id={passage_id!r}, "
+            f"trace_id={target_trace_id!r}. "
+            f"Evidence card text: {page.locator('.eed-card').first.text_content()[:500]}"
         )
 
-        href = internal_links.first.get_attribute("href") or ""
+        href = internal_link.first.get_attribute("href") or ""
 
         # Parse the href to compare path and query precisely (URL-encoding safe)
         expected_path = f"/versions/{document_id}"
@@ -2737,9 +2778,9 @@ class TestResearchResultPageE2E:
         )
 
         # =========================================================
-        # Step 9 — Click link and verify browser URL
+        # Step 11 — Click scoped link and verify browser URL
         # =========================================================
-        internal_links.first.click()
+        internal_link.first.click()
         page.wait_for_load_state("networkidle", timeout=10000)
         page.wait_for_timeout(1500)
 
