@@ -85,7 +85,7 @@ Sprint 2 · Task 006 — migrated `ResearchResultPage` from hardcoded placeholde
 ## Tests
 - **Frontend unit**: 91 tests in `research-result-page.test.ts` covering routes, reports, XSS, citations (including Batch 1 validation fixes), evidence, SourceRef (including internal route priority), export, isolation, error handling, cross-user security; includes 8 new report-pending/report-failed state tests (18a-18h)
 - **Total frontend**: 303 tests, 11 files, all passing
-- **Backend RBAC**: 31 tests passing (`TestWorkspaceApiIsolation`), including 7 export-specific tests covering own-run, cross-user, cross-session mismatch, unsupported format, empty report, and data-leak checks
+- **Backend RBAC**: 31 tests passing (`TestWorkspaceApiIsolation`), complete pytest verbose output archived in Codex acceptance doc (2016).
 - **Backend V4/Workflow**: 86 passing, 1 known failure (`test_query_unmapped_passage_fail_closed`)
 - **E2E CrossProjectIsolation**: 6 passing
 - **E2E ResearchResultPage**: 22 passing (real Chromium, real login, real backend, isolated in-memory SQLite) — `TestResearchResultPageE2E` in `test_critical_journeys.py`, **powered by real POST /api/v4/research/workflow executions** (Batch 1-4, committed as 940d830 → 9847aa9 → fd81294)

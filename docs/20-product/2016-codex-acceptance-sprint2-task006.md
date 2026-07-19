@@ -54,12 +54,48 @@ npm run build        # PASS
 ### 2.4 后端 RBAC 隔离测试
 
 ```bash
-uv run pytest tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation -q
+uv run pytest tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation -v
 ```
 
 **结果: 31 collected / 31 passed / 0 failed**
 
-含 7 个导出端点测试。
+完整 pytest 汇总行:
+
+```
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_can_read_own_session[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_can_read_own_session[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_read_b_session[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_read_a_session[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_can_read_own_notes[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_can_read_own_notes[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_read_b_notes[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_read_a_notes[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_can_read_own_citations[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_can_read_own_citations[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_read_b_citations[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_read_a_citations[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_can_read_own_history[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_can_read_own_history[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_read_b_history[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_read_a_history[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_can_read_own_runs[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_can_read_own_runs[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_read_b_runs[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_read_a_runs[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_a_cannot_get_b_notes_via_known_uuid[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_b_cannot_get_a_citations_via_known_uuid[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_404_does_not_leak_session_title[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_404_does_not_leak_other_user_id[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_own_session_own_run_succeeds[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_user_a_accesses_user_b_session_export_rejected[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_own_session_other_users_run_rejected[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_nonexistent_run_rejected[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_unsupported_format_rejected[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_empty_run_report_rejected[asyncio] PASSED
+tests/unit/test_api_rbac.py::TestWorkspaceApiIsolation::test_export_response_does_not_leak_other_user_data[asyncio] PASSED
+
+============================= 31 passed in 36.67s ==============================
+```
 
 ### 2.5 E2E CrossProjectIsolation
 
