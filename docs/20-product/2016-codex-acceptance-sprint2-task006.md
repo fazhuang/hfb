@@ -1,8 +1,8 @@
 # Sprint 2 · Task 006 — Codex 验收文档
 
 > **基线**: cea0802
-> **HEAD**: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
-> **origin/master**: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
+> **HEAD**: 923cc04583ecc9ac4961741d46fcc37ab515d821
+> **origin/master**: 923cc04583ecc9ac4961741d46fcc37ab515d821
 > **验收日期**: 2026-07-19
 > **范围**: ResearchResultPage Migration — 真实 workflow 驱动 E2E、Citation 真实性、浏览器导出、Session/Run 归属、SourceRef 精确 document_id+passage_id 路由、XSS 受控载荷、withdrawn/no-permission SourceRef、report-pending/report-failed 状态模型、jsdom navigation stderr 修复、文档收口
 
@@ -265,11 +265,11 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 ## 7. Git 状态
 
 ```
-HEAD:      e95cf6faeca0e702b8acbc54caeda8bf5ce90838
-origin/master: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
+HEAD:      923cc04583ecc9ac4961741d46fcc37ab515d821
+origin/master: 923cc04583ecc9ac4961741d46fcc37ab515d821
 分支:      master (与 origin/master 同步)
-工作树:    2 文件已修改 (Batch 1-3 修复)
-           - tests/e2e/test_critical_journeys.py  (Batch 1: SourceRef 精确路由 + Passage lineage fixture)
+工作树:    1 文件已修改 (Batch 1-3 修复)
+           - tests/e2e/test_critical_journeys.py  (Batch 1: SourceRef 精确路由 — 精确 document_id+passage_id URL 验证 + fixture source_url 修复)
            - docs/20-product/2016-codex-acceptance-sprint2-task006.md  (Batch 3: 文档收口)
            - docs/20-product/2015-research-result-migration.md  (Batch 3: 参考更新)
 git diff --check: clean (无空白问题)

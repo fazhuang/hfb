@@ -25,6 +25,7 @@ from pathlib import Path
 
 import pytest
 import httpx
+from urllib.parse import urlparse, parse_qs
 
 
 # ============================================================
@@ -1747,6 +1748,7 @@ def result_workflow_rag_doc(live_servers, result_user):
         "copyright_status": "public_domain",
         "authorization_basis": "e2e-test-data",
         "source_name": "e2e-result-test",
+        "source_url": "https://example.invalid/result-e2e",
         "passage_id": passage_id,
     }
     ingest_resp = httpx.post(
@@ -2541,29 +2543,147 @@ class TestResearchResultPageE2E:
     def test_real_workflow_sourceref_link_routes(
         self, live_servers, result_workflow_session, page,
     ):
-        """Real workflow evidence internal/external link routing.
+        """Real workflow SourceRef link MUST route to exact document_id + passage_id.
 
-        When document_id is present on an evidence entry, the SourceRef
-        card renders a router-link (class esrc-link--internal) to
-        /versions/:id with ?passage= if passage_id exists.
+        This test proves that the internal /versions/... link on the SourceRef
+        card is derived from the same document_id and passage_id stored in
+        the current real ResearchRun's replay_manifest.
 
-        When document_id is absent (legitimate real-workflow output),
-        the external fallback is correct — no false internal link.
-
-        Regardless, no javascript:/data: payloads ever appear."""
-        frontend_url, _ = live_servers
+        Fail-closed: if the real workflow fixture did not produce usable
+        document_id + passage_id, this test MUST fail — no downgrade to
+        "any link is fine", no fallback to external link or missing-source
+        empty state.
+        """
+        frontend_url, backend_port = live_servers
         ws = result_workflow_session
+
+        # =========================================================
+        # Step 1 — Real /login UI login
+        # =========================================================
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
+        # =========================================================
+        # Step 2 — Navigate to result page
+        # =========================================================
         page.goto(
             f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
         )
         page.wait_for_selector(".rcp-citation-item", timeout=10000)
 
-        page.locator(".rcp-citation-item").first.click()
+        # =========================================================
+        # Step 3 — Hit authenticated runs API to get the real manifest
+        # =========================================================
+        base = f"http://127.0.0.1:{backend_port}"
+        bearer = ws["token"]["access_token"]
+        runs_resp = httpx.get(
+            f"{base}/api/v4/research/session/{ws['session_id']}/runs",
+            headers={"Authorization": f"Bearer {bearer}"},
+            timeout=15,
+        )
+        assert runs_resp.status_code == 200, (
+            f"GET runs failed: {runs_resp.status_code} {runs_resp.text[:500]}"
+        )
+        runs_data = runs_resp.json()["data"]
+        runs_list = runs_data["runs"]
+
+        # =========================================================
+        # Step 4 — Locate the target run by run_id
+        # =========================================================
+        target_run = None
+        for r in runs_list:
+            if r.get("run_id") == ws["run_id"]:
+                target_run = r
+                break
+        assert target_run is not None, (
+            f"Target run {ws['run_id']} not found in {len(runs_list)} runs "
+            f"for session {ws['session_id']}. Run IDs: "
+            f"{[r.get('run_id') for r in runs_list]}"
+        )
+
+        manifest = target_run.get("replay_manifest")
+        assert manifest is not None, (
+            f"Target run {ws['run_id']} has no replay_manifest. "
+            f"Run keys: {list(target_run.keys())}"
+        )
+
+        # =========================================================
+        # Step 5 — Extract document_id and passage_id from manifest traces
+        # =========================================================
+        traces = manifest.get("traces", [])
+        assert len(traces) > 0, (
+            f"replay_manifest has no traces. Manifest keys: {list(manifest.keys())}. "
+            f"Full manifest: {json.dumps(manifest, ensure_ascii=False, default=str)[:2000]}"
+        )
+
+        # Find the first trace with both document_id and passage_id.
+        # We match the citation to this trace via trace_id.
+        target_trace = None
+        for t in traces:
+            did = t.get("document_id", "")
+            pid = t.get("passage_id", "")
+            tid = t.get("trace_id", "")
+            if did and pid and tid:
+                target_trace = t
+                break
+        assert target_trace is not None, (
+            f"No trace with both document_id and passage_id found in "
+            f"{len(traces)} traces. Trace keys sample: "
+            f"{[{k: v for k, v in t.items() if k in ('trace_id','document_id','passage_id')} for t in traces[:5]]}"
+        )
+
+        document_id = target_trace["document_id"]
+        passage_id = target_trace["passage_id"]
+        target_trace_id = target_trace["trace_id"]
+
+        assert document_id, "document_id is empty"
+        assert passage_id, "passage_id is empty"
+        assert target_trace_id, "trace_id is empty"
+
+        # Capture exact IDs for audit log (printed to stderr so CI logs
+        # capture them; harmless in normal test flow)
+        import sys
+        print(
+            f"\n--- SOURCEREF_E2E_IDS: "
+            f"document_id={document_id} "
+            f"passage_id={passage_id} "
+            f"trace_id={target_trace_id}",
+            file=sys.stderr,
+        )
+
+        # =========================================================
+        # Step 6 — Select the citation that matches target_trace_id
+        # =========================================================
+        # Each citation item's key is trace_id.  We click the one whose
+        # trace_id matches the evidence we extracted from the manifest.
+        citation_items = page.locator(".rcp-citation-item")
+        item_count = citation_items.count()
+        assert item_count > 0, "No citation items found on page"
+
+        # Click the citation whose displayed trace_id matches target_trace_id
+        clicked = False
+        for i in range(item_count):
+            item = citation_items.nth(i)
+            code_el = item.locator(".rcp-citation-id")
+            if code_el.count() > 0:
+                displayed_id = code_el.first.text_content().strip()
+                # The display shows trace_id.slice(0,16)...
+                if target_trace_id.startswith(displayed_id.rstrip(".")):
+                    item.click()
+                    clicked = True
+                    break
+
+        # Fallback: if trace_id matching fails, click first citation and
+        # verify the evidence panel loads (the manifest trace may map to
+        # any citation — the real workflow decides which evidence is
+        # associated with which citation)
+        if not clicked:
+            citation_items.first.click()
+
         page.wait_for_selector(".eed-card", timeout=5000)
 
-        # ---- No javascript:/data: links anywhere in the card ----
+        # =========================================================
+        # Step 7 — Assert no javascript:/data: links
+        # =========================================================
         all_links = page.locator(".esrc-card a, .eed-card a")
         for i in range(all_links.count()):
             href = (all_links.nth(i).get_attribute("href") or "").lower()
@@ -2574,36 +2694,73 @@ class TestResearchResultPageE2E:
                 f"Link must not be data: — got {href!r}"
             )
 
+        # =========================================================
+        # Step 8 — Exact internal SourceRef link assertions
+        # =========================================================
         internal_links = page.locator(".esrc-link--internal")
+        assert internal_links.count() > 0, (
+            f"No internal SourceRef link found (.esrc-link--internal). "
+            f"The real manifest has document_id={document_id!r}, "
+            f"passage_id={passage_id!r}, trace_id={target_trace_id!r}. "
+            f"SourceRef card text: {page.locator('.esrc-card').first.text_content()}"
+        )
 
-        # ---- Verify internal link IS correct when present ----
-        if internal_links.count() > 0:
-            href = internal_links.first.get_attribute("href") or ""
-            assert href.startswith("/versions/"), (
-                f"Internal link must start with /versions/, got {href!r}"
-            )
+        href = internal_links.first.get_attribute("href") or ""
 
-            # Click and verify navigation to /versions/... path
-            internal_links.first.click()
-            page.wait_for_load_state("networkidle", timeout=10000)
-            page.wait_for_timeout(1500)
-
-            current_url = page.url
-            assert "/versions/" in current_url, (
-                f"After click, URL must contain /versions/, got {current_url}"
-            )
-
-            # Go back to result page
-            page.go_back()
-            page.wait_for_selector(".rrv-report", timeout=10000)
+        # Parse the href to compare path and query precisely (URL-encoding safe)
+        expected_path = f"/versions/{document_id}"
+        # href may be a full URL or a path. Parse accordingly.
+        if href.startswith("http"):
+            parsed = urlparse(href)
+            actual_path = parsed.path
+            actual_query = parsed.query
         else:
-            # No internal link → verify the external fallback is present
-            # and does NOT incorrectly show an internal link
-            ext_links = page.locator(".esrc-link--external, .esrc-field a[target='_blank']")
-            # Either external link or "missing source" message is shown
-            assert ext_links.count() > 0 or page.locator("text=缺少文献来源信息").count() > 0, (
-                "When no internal link, external link or missing-source notice must be shown"
-            )
+            # Router-link href: "/versions/{doc_id}?passage={pid}"
+            if "?" in href:
+                actual_path, qs = href.split("?", 1)
+                actual_query = qs
+            else:
+                actual_path = href
+                actual_query = ""
+
+        assert actual_path == expected_path, (
+            f"SourceRef link path mismatch: expected {expected_path!r}, "
+            f"got {actual_path!r} (full href={href!r})"
+        )
+
+        # Parse query string for passage parameter (URL-encoding safe)
+        parsed_qs = parse_qs(actual_query) if actual_query else {}
+        actual_passage = parsed_qs.get("passage", [None])[0]
+        assert actual_passage == passage_id, (
+            f"SourceRef link passage query mismatch: expected passage={passage_id!r}, "
+            f"got passage={actual_passage!r} (full href={href!r}, query={actual_query!r})"
+        )
+
+        # =========================================================
+        # Step 9 — Click link and verify browser URL
+        # =========================================================
+        internal_links.first.click()
+        page.wait_for_load_state("networkidle", timeout=10000)
+        page.wait_for_timeout(1500)
+
+        current_url = page.url
+        parsed_current = urlparse(current_url)
+        current_path = parsed_current.path
+        current_qs = parse_qs(parsed_current.query) if parsed_current.query else {}
+        current_passage = current_qs.get("passage", [None])[0]
+
+        assert current_path == expected_path, (
+            f"After click, URL path mismatch: expected {expected_path!r}, "
+            f"got {current_path!r} (full URL: {current_url})"
+        )
+        assert current_passage == passage_id, (
+            f"After click, URL passage mismatch: expected passage={passage_id!r}, "
+            f"got passage={current_passage!r} (full URL: {current_url})"
+        )
+
+        # Navigate back to result page
+        page.go_back()
+        page.wait_for_selector(".rrv-report", timeout=10000)
 
     def test_real_workflow_lineage_complete_or_partial(
         self, live_servers, result_workflow_session, page,
