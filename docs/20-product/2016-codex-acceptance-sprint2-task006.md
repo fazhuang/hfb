@@ -1,8 +1,8 @@
 # Sprint 2 · Task 006 — Codex 验收文档
 
 > **基线**: cea0802
-> **HEAD**: 923cc04583ecc9ac4961741d46fcc37ab515d821
-> **origin/master**: 923cc04583ecc9ac4961741d46fcc37ab515d821
+> **HEAD**: 84968a0b03869267d9af06a1ae9264d50aab4eed
+> **origin/master**: 84968a0b03869267d9af06a1ae9264d50aab4eed
 > **验收日期**: 2026-07-19
 > **范围**: ResearchResultPage Migration — 真实 workflow 驱动 E2E、Citation 真实性、浏览器导出、Session/Run 归属、SourceRef 精确 document_id+passage_id 路由、XSS 受控载荷、withdrawn/no-permission SourceRef、report-pending/report-failed 状态模型、jsdom navigation stderr 修复、文档收口
 
@@ -191,7 +191,7 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 | 2 | `test_real_workflow_citation_shows_evidence` | 真实 Citation 点击 → 真实 claim + quote | 真实 |
 | 3 | `test_real_workflow_citation_marker_clickable` | 真实 [N] marker 可点击 → 匹配 Citation 选中 | 真实 |
 | 4 | `test_real_workflow_lineage_displayed` | 真实 lineage badge + SourceRef card | 真实 |
-| 5 | `test_real_workflow_sourceref_link_routes` | **精确定位**: 从真实 runs API 提取 replay_manifest.traces 中的 document_id + passage_id，验证 SourceRef 内部链接 href 精确匹配 `/versions/{document_id}?passage={passage_id}`（URL 编码等价），点击后 URL 同时包含 `/versions/{document_id}` 和 `passage={passage_id}`，无 javascript:/data: payloads | 真实 |
+| 5 | `test_real_workflow_sourceref_link_routes` | **fail-closed 同一 trace 绑定**: manifest target trace → 精确 Citation 匹配(无 fallback) → Evidence detail trace_id 验证 → scoped SourceRef link(.eed-card .esrc-link--internal) → href path==/versions/{document_id} + query passage=={passage_id} → click 后 URL 精确匹配 → 无 javascript:/data: 链接 | 真实 |
 | 6 | `test_real_workflow_lineage_complete_or_partial` | 每个真实 Citation 均有 lineage badge | 真实 |
 | 7 | `test_export_markdown_real_browser_download` | Playwright `expect_download()` → filename (.md) + content + Content-Type + Content-Disposition | 真实 |
 | 8 | `test_export_disabled_when_no_report` | report-missing 状态 → 导出按钮 disabled | 状态 |
@@ -216,7 +216,52 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 
 ---
 
-## 3. report-pending / report-failed 判定规则
+## 3. SourceRef 同一 trace 绑定 (B1 Fail-Closed Fix — a1796e6)
+
+### 旧逻辑缺陷
+
+```
+manifest target trace A
+≠
+页面第一条 Citation 的 trace B (fallback)
+≠
+实际 SourceRef link 的 Evidence B
+```
+
+当 manifest 中的 target trace 无法在页面上匹配到 Citation 时，旧代码退回到 `citation_items.first.click()`，导致验证的是任意一条 Citation 的 Evidence，而非 manifest 指定的那条。测试误报"通过"实则绑定链断裂。
+
+### 修复内容
+
+**1. 删除 fallback** — 不再有 `citation_items.first.click()` 退路
+
+**2. fail-closed 失败** — 找不到匹配 Citation 时 assert 失败，携带 target_trace_id 和所有 rendered_citation_ids
+
+**3. Evidence detail 同 trace 验证** — 点击 Citation 后，读取 `.eed-meta-row:has-text("证据 ID") .eed-meta-value`，验证其 16 位前缀与 target_trace_id 精确匹配
+
+**4. scoped SourceRef 定位** — 使用 `.eed-card .esrc-link--internal` 而非页面级 `.esrc-link--internal`，确保 SourceRef card 属于当前 selected Evidence detail
+
+**5. 保留所有精确断言**:
+- `href path == /versions/{document_id}`（非 startsWith）
+- `href query passage == {passage_id}`（精确匹配）
+- click 后 `pathname == /versions/{document_id}`
+- click 后 `query passage == {passage_id}`
+- 无 `javascript:` / `data:` href
+
+### 审计 trace
+
+```
+target_trace_id:  be6bca03-e706-5034-af40-7dff9c3b3293
+document_id:      a5a97b67-cec2-4d6a-b123-6498fcfc69e8
+passage_id:       1486e64c-27dd-4202-829e-f812eced1604
+rendered citation IDs: [be6bca03-e706...]  ← 精确匹配, 无 fallback
+displayed evidence ID: be6bca03-e706...     ← 同一 trace 确认
+href:             /versions/a5a97b67-...?passage=1486e64c-...
+click URL path:   /versions/a5a97b67-...    ← 精确匹配
+click URL passage: 1486e64c-...             ← 精确匹配
+```
+
+---
+## 4. report-pending / report-failed 判定规则
 
 基于真实 `step_execution_trace` 中的 `report_generation` 步骤状态:
 
@@ -234,13 +279,13 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 
 ---
 
-## 4. `test_query_unmapped_passage_fail_closed` 状态
+## 5. `test_query_unmapped_passage_fail_closed` 状态
 
 **仍为独立已知失败**。未跳过（not skipped）、未 xfailed、未弱化断言。其生产逻辑、断言、skip/xfail 状态均未被本 Task 修改。文件位置: `tests/unit/test_sprint4_v4.py:290`。
 
 ---
 
-## 5. 冻结页面命中结果
+## 6. 冻结页面命中结果
 
 `git diff cea0802..HEAD --name-only` 未命中以下任何文件:
 
@@ -253,7 +298,7 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 
 ---
 
-## 6. 已知限制
+## 7. 已知限制
 
 1. 无单 Run 详情 API — 前端通过 runs 列表过滤
 2. 无 PDF/DOCX 导出 — 仅 Markdown
@@ -262,22 +307,18 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 
 ---
 
-## 7. Git 状态
+## 8. Git 状态
 
 ```
-HEAD:      923cc04583ecc9ac4961741d46fcc37ab515d821
-origin/master: 923cc04583ecc9ac4961741d46fcc37ab515d821
+HEAD:      84968a0b03869267d9af06a1ae9264d50aab4eed
+origin/master: 84968a0b03869267d9af06a1ae9264d50aab4eed
 分支:      master (与 origin/master 同步)
-工作树:    1 文件已修改 (Batch 1-3 修复)
-           - tests/e2e/test_critical_journeys.py  (Batch 1: SourceRef 精确路由 — 精确 document_id+passage_id URL 验证 + fixture source_url 修复)
-           - docs/20-product/2016-codex-acceptance-sprint2-task006.md  (Batch 3: 文档收口)
-           - docs/20-product/2015-research-result-migration.md  (Batch 3: 参考更新)
-git diff --check: clean (无空白问题)
+工作树:    clean (已提交并 push)
 ```
 
 ---
 
-## 8. 未修改的冻结页面
+## 9. 未修改的冻结页面
 
 - `ProjectListPage`
 - `ProjectDetailPage`
