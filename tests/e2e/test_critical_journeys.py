@@ -3899,36 +3899,53 @@ class TestLibraryE2E:
     def test_library_detail_page_shows_document_info(
         self, live_servers, library_test_users, page,
     ):
-        """Detail page at /library/:id shows real title, no error, content present."""
+        """Detail page at /library/:id shows real title, no error, stats panel visible."""
         frontend_url, _ = live_servers
         a = library_test_users["user_a"]
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
 
-        # Use the doc that A created in the fixture
         doc_title = a.get("doc", {}).get("title", "")
         doc_id = a.get("doc", {}).get("id")
-        if not doc_id:
-            pytest.skip("User A has no private document")
+        assert doc_id, "User A must have a private document"
+        assert doc_title, "Document must have a title"
+
+        # Capture stats response status
+        stats_status = None
+
+        def _on_response(response):
+            nonlocal stats_status
+            if f"/api/v1/documents/{doc_id}/stats" in response.url:
+                stats_status = response.status
+
+        page.on("response", _on_response)
 
         page.goto(f"{frontend_url}/library/{doc_id}")
         # Wait for the detail page to load — API returns doc + stats
         page.wait_for_timeout(8000)
 
         body = page.locator('body').first.text_content() or ""
-        # Must show the document title or not show an error — at minimum the page must render
-        if "Request failed" in body or "出错了" in body:
-            # Stats endpoint may transiently fail on fresh SQLite without all tables
-            # The key verification: the page rendered and the error is a 500 not a 403
-            assert "403" not in body, f"Got 403 isolation failure: {body[:300]}"
-        else:
-            if doc_title:
-                assert doc_title in body, (
-                    f"Document title '{doc_title}' not visible. Body: {body[:300]}"
-                )
-        # Must not be stuck in loading state
-        assert "加载中" not in body, f"Page stuck loading. Body: {body[:300]}"
-        # Must render the page layout with library-related content
-        assert len(body) > 100, f"Page body too short: {body[:200]}"
+
+        # Must show the real document title
+        assert doc_title in body, (
+            f"Document title '{doc_title}' not visible. Body: {body[:300]}"
+        )
+
+        # Must NOT show loading or error state
+        assert page.locator('.error-state, .lib-error').count() == 0, (
+            f"Page should not show error state. Body: {body[:300]}"
+        )
+        assert "加载中" not in body, f"Page should not be loading. Body: {body[:300]}"
+
+        # Stats panel must be visible — "文献统计" heading or stat fields
+        assert page.locator('text=文献统计').is_visible() or \
+               page.locator('text=分块数量').is_visible(), (
+            f"Stats panel not visible. Body: {body[:300]}"
+        )
+
+        # Stats request must have returned 200
+        assert stats_status == 200, (
+            f"Stats endpoint must return 200, got {stats_status}"
+        )
 
     def test_library_reader_jump(
         self, live_servers, library_test_users, page,
@@ -3938,51 +3955,33 @@ class TestLibraryE2E:
         a = library_test_users["user_a"]
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
 
-        # Find a document with content_text via API
-        _, backend_port = live_servers
-        base = f"http://127.0.0.1:{backend_port}"
-        headers = {"Authorization": f"Bearer {a['access_token']}"}
-        r = httpx.get(f"{base}/api/v1/documents?limit=50", headers=headers, timeout=10)
-        docs = r.json().get("data", {}).get("items", [])
-        reader_doc_id = None
-        for d in docs:
-            dr = httpx.get(f"{base}/api/v1/documents/{d['id']}", headers=headers, timeout=10)
-            detail = dr.json().get("data", {})
-            if detail.get("content_text"):
-                reader_doc_id = d["id"]
-                break
+        doc_id = a.get("doc", {}).get("id")
+        doc_title = a.get("doc", {}).get("title", "")
+        assert doc_id, "User A must have a private document"
+        assert doc_title, "Document must have a title"
 
-        if reader_doc_id is None:
-            pytest.skip("No document with content_text (reader) available")
-
-        page.goto(f"{frontend_url}/library/{reader_doc_id}")
+        page.goto(f"{frontend_url}/library/{doc_id}")
         page.wait_for_timeout(8000)
 
-        # Check page loaded — either reader button appears or page has content
+        # Must find the '全文阅读' button
+        page.wait_for_selector('button:has-text("全文阅读")', timeout=10000)
         reader_btn = page.locator('button:has-text("全文阅读")').first
-        if reader_btn.count() == 0:
-            # Reader button may not appear if doc lacks content_text loaded in detail
-            # But the detail page should still render something useful
-            body = page.locator('body').first.text_content() or ""
-            # Verify we're on a non-error, non-loading page
-            assert "加载中" not in body, f"Reader page stuck loading: {body[:200]}"
-            assert len(body) > 50, f"Reader page body empty: {body[:200]}"
-            # Fallback: navigate directly to /literature/:id and verify it works
-            page.goto(f"{frontend_url}/literature/{reader_doc_id}")
-            page.wait_for_timeout(5000)
-            lit_body = page.locator('body').first.text_content() or ""
-            assert len(lit_body) > 100, f"Literature page too short: {lit_body[:200]}"
-            return
+        assert reader_btn.is_visible(), (
+            f"'全文阅读' button must be visible on detail page for doc {doc_id}"
+        )
 
         # Click the reader button
         reader_btn.click()
-        # Must navigate to /literature/{reader_doc_id}
-        page.wait_for_url(f"{frontend_url}/literature/{reader_doc_id}**", timeout=10000)
-        # Verify the reader page loaded with content
+        # Must navigate to /literature/{doc_id}
+        page.wait_for_url(f"{frontend_url}/literature/{doc_id}**", timeout=10000)
+
+        # Verify the reader page loaded with real content
         page.wait_for_timeout(3000)
         reader_body = page.locator('body').first.text_content() or ""
-        assert len(reader_body) > 100, (
-            f"Reader page body too short for doc {reader_doc_id}: {reader_body[:200]}"
+        # The reader must show the document title or its content text
+        assert doc_title in reader_body or "这是A的私有文献内容" in reader_body, (
+            f"Reader page must show doc title or content for doc {doc_id}. "
+            f"Body: {reader_body[:300]}"
         )
 
     def test_literature_page_requires_auth(
@@ -4106,10 +4105,8 @@ class TestLibraryCrossUserIsolation:
         headers = {"Authorization": f"Bearer {b['access_token']}"}
         r = httpx.get(f"{base}/api/v1/documents/{a_doc_id}/stats", headers=headers, timeout=10)
 
-        # Must return non-200 — B should not know whether A's doc exists.
-        # 404: ownership check before stats queries
-        # 403: RBAC permission denied (document.read without ownership)
-        # 500: stats query fails on missing tables in SQLite (still not 200)
-        assert r.status_code != 200, (
-            f"Expected non-200 (isolation), got {r.status_code}: {r.text[:300]}"
+        # Must return 403 (RBAC permission denied) or 404 (ownership check).
+        # 200 or 500 is a leak — B must not know whether A's doc exists.
+        assert r.status_code in (403, 404), (
+            f"Expected 403 or 404 (isolation), got {r.status_code}: {r.text[:300]}"
         )

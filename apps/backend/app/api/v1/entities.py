@@ -382,7 +382,7 @@ async def get_document_stats(
     user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     """Get citation, evidence, chunk, and OCR stats for a document."""
-    doc = await session.get(Document, item_id)
+    doc = await session.get(Document, str(item_id))
     if doc is None or doc.is_deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     # Ownership check: user can only read docs they own or system/public docs
