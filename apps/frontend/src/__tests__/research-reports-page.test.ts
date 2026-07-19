@@ -45,7 +45,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createRouter, createWebHistory } from 'vue-router';
-import { nextTick } from 'vue';
 
 // ================================================================
 // Mock setup
@@ -609,7 +608,9 @@ describe('ResearchReportsPage', () => {
         (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/export'),
       );
       expect(exportCalls.length).toBe(1);
-      expect(exportCalls[0][0]).toBe(
+      const firstCallArgs = exportCalls.at(0);
+      expect(firstCallArgs).toBeDefined();
+      expect(firstCallArgs![0]).toBe(
         `/api/v4/research/session/${SESSION_A}/runs/${RUN_READY}/export`,
       );
     });
@@ -850,6 +851,8 @@ describe('ResearchReportsPage', () => {
       await router.isReady();
       await flushPromises();
 
+      // wrapper mounts successfully and triggers the API call
+      expect(wrapper.exists()).toBe(true);
       expect(mockApiGet).toHaveBeenCalledWith('/api/v4/research/reports', expect.any(Object));
     });
 
