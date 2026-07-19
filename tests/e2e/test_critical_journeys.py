@@ -3871,44 +3871,71 @@ class TestLibraryE2E:
         search_input = page.locator('input[type="text"]').first
         search_input.fill("针灸")
 
+        # Intercept the API request to verify q param
+        api_requests = []
+        page.on("request", lambda req: api_requests.append(req.url) if "/api/v1/documents" in req.url else None)
+
         # Click search button
         page.locator(".lib-search-btn").first.click()
 
-        # Should show matching results (seed data has '针灸甲乙经')
-        page.wait_for_timeout(2000)
-        # Check that the search button clicked (page content exists)
+        # Wait for results to load
+        page.wait_for_timeout(3000)
+
+        # Verify an API call was made with q=针灸
+        search_requests = [u for u in api_requests if "q=" in u]
+        assert len(search_requests) >= 1, (
+            f"No search API call with q= param detected. Got: {api_requests}"
+        )
+        assert any("q=%E9%92%88%E7%81%B8" in u or "q=针灸" in u or "q=%E9%87%9D%E7%81%B8" in u
+                   or "q=%E9%8F%BD%E7%81%B8" in u for u in search_requests), (
+            f"Search query '针灸' not found in API requests: {search_requests}"
+        )
+
+        # Must show matching document cards (seed data has '针灸甲乙经')
         assert page.locator("text=Library").count() > 0
+        body = page.locator('body').first.text_content() or ""
+        assert "针灸" in body, f"Search results should contain '针灸'. Body: {body[:500]}"
 
     def test_library_detail_page_shows_document_info(
         self, live_servers, library_test_users, page,
     ):
-        """Detail page at /library/:id loads without error state."""
+        """Detail page at /library/:id shows real title, stats, no error."""
         frontend_url, _ = live_servers
         a = library_test_users["user_a"]
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
 
         # Use the doc that A created in the fixture
+        doc_title = a.get("doc", {}).get("title", "")
         doc_id = a.get("doc", {}).get("id")
         if not doc_id:
             pytest.skip("User A has no private document")
 
         page.goto(f"{frontend_url}/library/{doc_id}")
-        # Wait for the detail page to load (either content or error)
-        # The SPA fires GET /api/v1/documents/{id} + GET .../stats
+        # Wait for the detail page to load — API returns doc + stats
         page.wait_for_timeout(8000)
 
         # Must NOT show error state
-        error_text = page.locator('.error-state, .lib-error').count()
-        # Must show the Library layout (page header with breadcrumbs)
+        error_el = page.locator('.error-state, .lib-error')
+        assert error_el.count() == 0, (
+            f"Error state visible: {error_el.first.text_content() if error_el.count() > 0 else ''}"
+        )
+        # Must show the document title
+        if doc_title:
+            assert page.locator(f"text={doc_title}").count() > 0, (
+                f"Document title '{doc_title}' not visible on page"
+            )
+        # Must show the stats panel with real numbers
         body = page.locator('body').first.text_content() or ""
-        assert "加载中" not in body or page.locator('text=全文阅读').count() > 0, (
-            f"Page stuck loading or in error state. Body snippet: {body[:300]}"
+        assert "加载中" not in body, f"Page stuck loading. Body: {body[:300]}"
+        # Stats panel should appear (has '分块数量' or '文献统计')
+        assert "分块数量" in body or "文献统计" in body, (
+            f"Stats panel not visible. Body: {body[:500]}"
         )
 
     def test_library_reader_jump(
         self, live_servers, library_test_users, page,
     ):
-        """Clicking '全文阅读' button navigates to /literature/:id."""
+        """Clicking '全文阅读' navigates to /literature/:id with correct doc ID."""
         frontend_url, _ = live_servers
         a = library_test_users["user_a"]
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
@@ -3917,35 +3944,43 @@ class TestLibraryE2E:
         if not doc_id:
             pytest.skip("User A has no private document")
 
-        page.goto(f"{frontend_url}/library/{doc_id}")
+        # Find a document with content_text via API
+        _, backend_port = live_servers
+        base = f"http://127.0.0.1:{backend_port}"
+        headers = {"Authorization": f"Bearer {a['access_token']}"}
+        r = httpx.get(f"{base}/api/v1/documents?limit=20", headers=headers, timeout=10)
+        docs = r.json().get("data", {}).get("items", [])
+        reader_doc_id = None
+        for d in docs:
+            dr = httpx.get(f"{base}/api/v1/documents/{d['id']}", headers=headers, timeout=10)
+            detail = dr.json().get("data", {})
+            if detail.get("content_text"):
+                reader_doc_id = d["id"]
+                break
+
+        if reader_doc_id is None:
+            pytest.skip("No document with content_text (reader) available")
+
+        page.goto(f"{frontend_url}/library/{reader_doc_id}")
         page.wait_for_timeout(8000)
 
-        # Check if reader button appeared
-        reader_count = page.locator('button:has-text("全文阅读")').count()
-        if reader_count == 0:
-            # Try again with a seed doc that is guaranteed to have content_text
-            _, backend_port = live_servers
-            base = f"http://127.0.0.1:{backend_port}"
-            headers = {"Authorization": f"Bearer {a['access_token']}"}
-            r = httpx.get(f"{base}/api/v1/documents?limit=5", headers=headers, timeout=10)
-            docs = r.json().get("data", {}).get("items", [])
-            for d in docs:
-                dr = httpx.get(f"{base}/api/v1/documents/{d['id']}", headers=headers, timeout=10)
-                detail = dr.json().get("data", {})
-                if detail.get("content_text"):
-                    doc_id = d["id"]
-                    page.goto(f"{frontend_url}/library/{doc_id}")
-                    page.wait_for_timeout(8000)
-                    reader_count = page.locator('button:has-text("全文阅读")').count()
-                    break
-
-        if reader_count == 0:
-            pytest.skip("No document with reader button available")
+        # Verify reader button exists
+        reader_btn = page.locator('button:has-text("全文阅读")').first
+        assert reader_btn.count() > 0, (
+            f"No reader button on detail page for doc {reader_doc_id}"
+        )
 
         # Click the reader button
-        page.locator('button:has-text("全文阅读")').first.click()
-        # Should navigate to /literature/:id
-        page.wait_for_url(f"{frontend_url}/literature/{doc_id}**", timeout=10000)
+        reader_btn.click()
+        # Must navigate to /literature/{reader_doc_id}
+        page.wait_for_url(f"{frontend_url}/literature/{reader_doc_id}**", timeout=10000)
+        # Verify the reader page loaded with the correct content
+        page.wait_for_timeout(3000)
+        reader_body = page.locator('body').first.text_content() or ""
+        # The reader should show content (not an empty page or error)
+        assert len(reader_body) > 100, (
+            f"Reader page body too short for doc {reader_doc_id}: {reader_body[:200]}"
+        )
 
     def test_literature_page_requires_auth(
         self, live_servers, page,
@@ -3997,7 +4032,7 @@ class TestLibraryCrossUserIsolation:
     def test_user_a_cannot_access_user_b_private_doc_detail(
         self, live_servers, library_test_users, page,
     ):
-        """User A gets 404 (or no content) when accessing User B's private document detail."""
+        """User A must NOT see User B's private document detail — title, body, stats."""
         frontend_url, _ = live_servers
         a = library_test_users["user_a"]
         b = library_test_users["user_b"]
@@ -4007,14 +4042,26 @@ class TestLibraryCrossUserIsolation:
         if not b_doc_id:
             pytest.skip("User B has no private document")
 
+        # Try direct URL access
         page.goto(f"{frontend_url}/library/{b_doc_id}")
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(5000)
 
-        # A should either get an error state, redirect, or see "not found"
-        # The key: A must NOT see B's document content
+        # A must NOT see B's document title anywhere on page
         b_title = b.get("doc", {}).get("title", "")
         if b_title:
-            assert page.locator(f"text={b_title}").count() == 0
+            assert page.locator(f"text={b_title}").count() == 0, (
+                f"User A should NOT see B's doc title '{b_title}'"
+            )
+        # A must NOT see B's content or stats either
+        b_abstract = b.get("doc", {}).get("abstract", "")
+        if b_abstract:
+            assert page.locator(f"text={b_abstract}").count() == 0, (
+                f"User A should NOT see B's doc abstract"
+            )
+        body = (page.locator('body').first.text_content() or "")
+        assert "统计" not in body or "分块数量" not in body, (
+            f"User A must not see stats for B's doc. Body: {body[:300]}"
+        )
 
     def test_user_a_cannot_read_user_b_private_doc_via_literature(
         self, live_servers, library_test_users, page,

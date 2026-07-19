@@ -326,9 +326,29 @@ async def update_document(
     item_id: UUID,
     body: DocumentUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     svc = DocumentService(session)
+    # Fetch existing doc to check ownership
+    existing = await svc.get_by_id(item_id)
+    if existing is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Ownership check
+    if existing.uploaded_by is not None and existing.uploaded_by != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     updates = body.model_dump(exclude_unset=True)
+    # Cross-project isolation: verify user owns session before reassigning
+    if updates.get("session_id") is not None:
+        if len(updates["session_id"]) > 0:
+            owner_session = await session.get(ResearchSession, updates["session_id"])
+            if owner_session is None or owner_session.user_id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot assign document to another user's project",
+                )
+        else:
+            # Empty string or explicitly null — allow clearing session_id back to public
+            updates["session_id"] = None
     obj = await svc.update(item_id, **updates)
     if obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
