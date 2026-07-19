@@ -132,7 +132,7 @@ const router = createRouter({
           ],
         },
 
-        // Library module (placeholder)
+        // Library module
         {
           path: 'library',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
@@ -142,6 +142,11 @@ const router = createRouter({
               path: '',
               name: 'library-search',
               component: () => import('@/pages/library/LibrarySearchPage.vue'),
+            },
+            {
+              path: ':id',
+              name: 'library-detail',
+              component: () => import('@/pages/library/LibraryDetailPage.vue'),
             },
           ],
         },

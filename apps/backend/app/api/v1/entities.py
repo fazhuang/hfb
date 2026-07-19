@@ -204,6 +204,8 @@ _make_crud("person", PersonService, _PersonCreateOverride, _PersonCreateOverride
 
 from sqlalchemy import select as sql_select, func  # noqa: E402
 from app.models.document import Document  # noqa: E402
+from app.models.document_chunk import DocumentChunk  # noqa: E402
+from app.models.academic_evidence import Citation, Evidence  # noqa: E402
 
 document_guard_read = require_permission("document", "read")
 document_guard_create = require_permission("document", "create")
@@ -325,3 +327,77 @@ async def delete_document(
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return api_response(data=None, message="Deleted")
+
+
+@router.get(
+    "/documents/{item_id}/stats",
+    response_model=dict,
+    dependencies=_document_get_deps,
+)
+async def get_document_stats(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Get citation, evidence, chunk, and OCR stats for a document."""
+    doc = await session.get(Document, item_id)
+    if doc is None or doc.is_deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    # Total chunks for this document
+    chunk_count_q = (
+        sql_select(func.count())
+        .select_from(DocumentChunk)
+        .where(DocumentChunk.document_id == str(item_id))
+    )
+    total_chunks = (await session.execute(chunk_count_q)).scalar() or 0
+
+    # Chunks with OCR (ocr_confidence IS NOT NULL)
+    ocr_chunk_count_q = (
+        sql_select(func.count())
+        .select_from(DocumentChunk)
+        .where(
+            DocumentChunk.document_id == str(item_id),
+            DocumentChunk.ocr_confidence.is_not(None),
+        )
+    )
+    ocr_chunks = (await session.execute(ocr_chunk_count_q)).scalar() or 0
+
+    # Average OCR confidence
+    avg_ocr_q = (
+        sql_select(func.avg(DocumentChunk.ocr_confidence))
+        .select_from(DocumentChunk)
+        .where(
+            DocumentChunk.document_id == str(item_id),
+            DocumentChunk.ocr_confidence.is_not(None),
+        )
+    )
+    avg_ocr_confidence = (await session.execute(avg_ocr_q)).scalar()
+
+    # Citation count for this document (via chunk citations with target_type='document_chunk' or via passage chain)
+    # Count citations where evidence links to a passage that belongs to a chunk of this document
+    citation_count_q = (
+        sql_select(func.count())
+        .select_from(Citation)
+        .join(Evidence, Citation.evidence_id == Evidence.id)
+        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+        .where(DocumentChunk.document_id == str(item_id))
+    )
+    citation_count = (await session.execute(citation_count_q)).scalar() or 0
+
+    # Evidence count (distinct evidences linked to this document's chunks via source_passage)
+    evidence_count_q = (
+        sql_select(func.count(func.distinct(Evidence.id)))
+        .select_from(Evidence)
+        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+        .where(DocumentChunk.document_id == str(item_id))
+    )
+    evidence_count = (await session.execute(evidence_count_q)).scalar() or 0
+
+    return api_response(data={
+        "total_chunks": total_chunks,
+        "ocr_chunks": ocr_chunks,
+        "ocr_text_available": ocr_chunks > 0,
+        "avg_ocr_confidence": float(avg_ocr_confidence) if avg_ocr_confidence is not None else None,
+        "citation_count": citation_count,
+        "evidence_count": evidence_count,
+    })
