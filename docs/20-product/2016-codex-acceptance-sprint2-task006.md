@@ -1,10 +1,10 @@
 # Sprint 2 · Task 006 — Codex 验收文档
 
 > **基线**: cea0802
-> **最近提交**: fd81294 (Merge pull request #1 — Sprint 2 Task 006 Batch 1-4 final)
-> **迁移提交**: 940d830 → 9847aa9 → fd81294
+> **HEAD**: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
+> **origin/master**: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
 > **验收日期**: 2026-07-19
-> **范围**: ResearchResultPage Migration — 真实 workflow 驱动 E2E、Citation 真实性、浏览器导出、Session/Run 归属、SourceRef 路由、XSS 受控载荷、withdrawn/no-permission SourceRef、report-pending/report-failed 状态模型、jsdom navigation stderr 修复、文档收口
+> **范围**: ResearchResultPage Migration — 真实 workflow 驱动 E2E、Citation 真实性、浏览器导出、Session/Run 归属、SourceRef 精确 document_id+passage_id 路由、XSS 受控载荷、withdrawn/no-permission SourceRef、report-pending/report-failed 状态模型、jsdom navigation stderr 修复、文档收口
 
 ---
 
@@ -191,7 +191,7 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 | 2 | `test_real_workflow_citation_shows_evidence` | 真实 Citation 点击 → 真实 claim + quote | 真实 |
 | 3 | `test_real_workflow_citation_marker_clickable` | 真实 [N] marker 可点击 → 匹配 Citation 选中 | 真实 |
 | 4 | `test_real_workflow_lineage_displayed` | 真实 lineage badge + SourceRef card | 真实 |
-| 5 | `test_real_workflow_sourceref_link_routes` | internal/external link routing, 无 javascript:/data: payloads | 真实 |
+| 5 | `test_real_workflow_sourceref_link_routes` | **精确定位**: 从真实 runs API 提取 replay_manifest.traces 中的 document_id + passage_id，验证 SourceRef 内部链接 href 精确匹配 `/versions/{document_id}?passage={passage_id}`（URL 编码等价），点击后 URL 同时包含 `/versions/{document_id}` 和 `passage={passage_id}`，无 javascript:/data: payloads | 真实 |
 | 6 | `test_real_workflow_lineage_complete_or_partial` | 每个真实 Citation 均有 lineage badge | 真实 |
 | 7 | `test_export_markdown_real_browser_download` | Playwright `expect_download()` → filename (.md) + content + Content-Type + Content-Disposition | 真实 |
 | 8 | `test_export_disabled_when_no_report` | report-missing 状态 → 导出按钮 disabled | 状态 |
@@ -265,14 +265,13 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 ## 7. Git 状态
 
 ```
-HEAD:      fd81294314b5e83f6fbe8119ccb4eb91f43353e4
-origin/master: fd81294314b5e83f6fbe8119ccb4eb91f43353e4
+HEAD:      e95cf6faeca0e702b8acbc54caeda8bf5ce90838
+origin/master: e95cf6faeca0e702b8acbc54caeda8bf5ce90838
 分支:      master (与 origin/master 同步)
-工作树:    4 文件已修改 (均为本次 Task 修复)
-           - apps/frontend/src/__tests__/research-result-page.test.ts
-           - apps/frontend/src/components/research/result/ResearchResultErrorState.vue
-           - apps/frontend/src/composables/useResearchResult.ts
-           - tests/e2e/test_critical_journeys.py
+工作树:    2 文件已修改 (Batch 1-3 修复)
+           - tests/e2e/test_critical_journeys.py  (Batch 1: SourceRef 精确路由 + Passage lineage fixture)
+           - docs/20-product/2016-codex-acceptance-sprint2-task006.md  (Batch 3: 文档收口)
+           - docs/20-product/2015-research-result-migration.md  (Batch 3: 参考更新)
 git diff --check: clean (无空白问题)
 ```
 

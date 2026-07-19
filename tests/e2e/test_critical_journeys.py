@@ -1648,6 +1648,69 @@ def result_workflow_rag_doc(live_servers, result_user):
     """
     _, backend_port = live_servers
     base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
+
+    # ---- Step 0: Create Book → Version → Chapter → Passage chain ----
+    # Produces a real passage_id so ingested chunks have DB lineage,
+    # which flows through build_internal_traces → replay_manifest.traces
+    # → document_id + passage_id available for precise E2E assertions.
+    person_resp = httpx.post(
+        f"{base}/api/v1/persons",
+        json={"name": "皇甫谧（E2E结果页）", "dynasty": "西晋"},
+        headers=headers,
+        timeout=10,
+    )
+    assert person_resp.status_code in (200, 201), f"Person creation failed: {person_resp.text[:200]}"
+    person_id = person_resp.json()["data"]["id"]
+
+    book_resp = httpx.post(
+        f"{base}/api/v1/books",
+        json={"title": "针灸甲乙经（E2E结果验证）", "dynasty": "西晋", "author_id": person_id},
+        headers=headers,
+        timeout=10,
+    )
+    assert book_resp.status_code in (200, 201), f"Book creation failed: {book_resp.text[:200]}"
+    book_id = book_resp.json()["data"]["id"]
+
+    version_resp = httpx.post(
+        f"{base}/api/v1/versions",
+        json={
+            "book_id": book_id,
+            "version_name": "E2E结果验证本",
+            "era": "验证数据",
+            "repository": "E2E验证资料库",
+            "shelf_mark": "E2E-RESULT-001",
+            "source_url": "https://example.invalid/result-e2e",
+        },
+        headers=headers,
+        timeout=10,
+    )
+    assert version_resp.status_code in (200, 201), f"Version creation failed: {version_resp.text[:200]}"
+    version_id = version_resp.json()["data"]["id"]
+
+    chapter_resp = httpx.post(
+        f"{base}/api/v1/chapters",
+        json={"book_id": book_id, "title": "E2E结果验证章节", "order": 1},
+        headers=headers,
+        timeout=10,
+    )
+    assert chapter_resp.status_code in (200, 201), f"Chapter creation failed: {chapter_resp.text[:200]}"
+    chapter_id = chapter_resp.json()["data"]["id"]
+
+    passage_resp = httpx.post(
+        f"{base}/api/v1/passages",
+        json={
+            "chapter_id": chapter_id,
+            "version_id": version_id,
+            "content_text": "ResultE2E验证标识 黄帝问曰：余闻九针于夫子，众多博大，不可胜数。",
+            "order": 1,
+            "tags": "E2E验证",
+        },
+        headers=headers,
+        timeout=10,
+    )
+    assert passage_resp.status_code in (200, 201), f"Passage creation failed: {passage_resp.text[:200]}"
+    passage_id = passage_resp.json()["data"]["id"]
 
     # ---- Step 1: Ingest via approved endpoint (as result_user) ----
     ingest_body = {
@@ -1684,8 +1747,8 @@ def result_workflow_rag_doc(live_servers, result_user):
         "copyright_status": "public_domain",
         "authorization_basis": "e2e-test-data",
         "source_name": "e2e-result-test",
+        "passage_id": passage_id,
     }
-    headers = {"Authorization": f"Bearer {result_user['access_token']}"}
     ingest_resp = httpx.post(
         f"{base}/api/v1/search/ingest",
         json=ingest_body,
@@ -1725,7 +1788,12 @@ def result_workflow_rag_doc(live_servers, result_user):
             f"Admin review failed: {review_resp.status_code} {review_resp.text}"
         )
 
-    return {"document_id": doc_id, "chunk_count": doc_data.get("chunk_count", 0)}
+    return {
+        "document_id": doc_id,
+        "chunk_count": doc_data.get("chunk_count", 0),
+        "passage_id": passage_id,
+        "version_id": version_id,
+    }
 
 
 # -- Primary real-workflow fixture (replaces seed-based result_session) --

@@ -88,7 +88,7 @@ Sprint 2 · Task 006 — migrated `ResearchResultPage` from hardcoded placeholde
 - **Backend RBAC**: 31 tests passing (`TestWorkspaceApiIsolation`), complete pytest verbose output archived in Codex acceptance doc (2016).
 - **Backend V4/Workflow**: 86 passing, 1 known failure (`test_query_unmapped_passage_fail_closed`)
 - **E2E CrossProjectIsolation**: 6 passing
-- **E2E ResearchResultPage**: 22 passing (real Chromium, real login, real backend, isolated in-memory SQLite) — `TestResearchResultPageE2E` in `test_critical_journeys.py`, **powered by real POST /api/v4/research/workflow executions** (Batch 1-4, committed as 940d830 → 9847aa9 → fd81294)
+- **E2E ResearchResultPage**: 22 passing (real Chromium, real login, real backend, isolated in-memory SQLite) — `TestResearchResultPageE2E` in `test_critical_journeys.py`, **powered by real POST /api/v4/research/workflow executions** with **exact document_id + passage_id SourceRef routing** verified via authenticated runs API (Batch 1-3, committed as 940d830 → 9847aa9 → fd81294 → 67131d2 → e95cf6f)
 - **Type check**: PASS
 - **Build**: PASS
 - **Test seed endpoint**: `POST /api/v4/research/_test/seed-research-run` (gated by `SEED_TEST_DATA=1`) used ONLY for state-only fixtures (pending/failed/missing states); **no longer used** for report/Citation/Evidence/SourceRef authenticity E2E
