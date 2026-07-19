@@ -1,8 +1,6 @@
 # Sprint 2 · Task 006 — Codex 验收文档
 
 > **基线**: cea0802
-> **HEAD**: 84968a0b03869267d9af06a1ae9264d50aab4eed
-> **origin/master**: 84968a0b03869267d9af06a1ae9264d50aab4eed
 > **验收日期**: 2026-07-19
 > **范围**: ResearchResultPage Migration — 真实 workflow 驱动 E2E、Citation 真实性、浏览器导出、Session/Run 归属、SourceRef 精确 document_id+passage_id 路由、XSS 受控载荷、withdrawn/no-permission SourceRef、report-pending/report-failed 状态模型、jsdom navigation stderr 修复、文档收口
 
@@ -307,14 +305,29 @@ click URL passage: 1486e64c-...             ← 精确匹配
 
 ---
 
-## 8. Git 状态
+## 8. Git 发布基线
+
+Git 发布基线不由文档内固定 SHA 定义。最终验收时必须实时执行：
+
+```bash
+git fetch origin
+git rev-parse HEAD
+git rev-parse origin/master
+git status --short
+git status -sb
+```
+
+只有当 `HEAD == origin/master` 且工作树干净（`git status --short` 空输出）时，才构成已推送发布基线。
+
+### 历史实现/修复提交（迁移链）
+
+以下为历史实现/修复提交，不是"当前 HEAD"：
 
 ```
-HEAD:      84968a0b03869267d9af06a1ae9264d50aab4eed
-origin/master: 84968a0b03869267d9af06a1ae9264d50aab4eed
-分支:      master (与 origin/master 同步)
-工作树:    clean (已提交并 push)
+940d830 → 9847aa9 → fd81294 → 67131d2 → a1796e6
 ```
+
+实际 Git 状态以验收命令实时输出为准。
 
 ---
 
