@@ -399,6 +399,40 @@ describe('LibraryDetailPage', () => {
     expect(text).toContain('已启用');
   });
 
+  it('13b. checksum is never rendered as version', async () => {
+    // content_checksum must not appear in a "版本" row.
+    // The detail page shows "版本信息不可用" for version and
+    // a separate "内容校验" row for the content checksum.
+    // Verify that version label and checksum hex are separated by the 内容校验 label.
+    mockGetMulti({
+      '/api/v1/documents/d1/stats': mockStats,
+      '/api/v1/documents/d1': { ...mockDoc, content_checksum: 'abc123def456' },
+    });
+    const router = makeRouter();
+    await router.push('/library/d1');
+    await router.isReady();
+
+    const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
+    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    const text = wrapper.text();
+    // Version value must be "版本信息不可用", not a checksum prefix
+    expect(text).toContain('版本信息不可用');
+    // "内容校验" row shows checksum; "版本" row shows "版本信息不可用"
+    const versionFieldIdx = text.indexOf('版本信息不可用');
+    expect(versionFieldIdx).toBeGreaterThan(-1);
+    // Verify the checksum appears under "内容校验", not next to version
+    expect(text).toContain('内容校验');
+    const verifyIdx = text.indexOf('内容校验');
+    const checksumIdx = text.indexOf('abc123def456');
+    // "内容校验" label must appear between "版本信息不可用" and the checksum hex
+    expect(verifyIdx).toBeGreaterThan(versionFieldIdx);
+    expect(verifyIdx).toBeLessThan(checksumIdx);
+  });
+
   it('14. shows abstract when present', async () => {
     mockGetMulti({
       '/api/v1/documents/d1/stats': mockStats,

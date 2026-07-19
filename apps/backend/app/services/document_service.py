@@ -31,6 +31,7 @@ class DocumentService(BaseService[DocumentRepository, DocumentCreate, DocumentRe
         dynasty: str | None = None,
         category: str | None = None,
         user_id: str | None = None,
+        session_id: str | None = None,
     ):
         """Search documents by text query AND optional metadata filters."""
         return await self.repo.search_query(
@@ -44,4 +45,5 @@ class DocumentService(BaseService[DocumentRepository, DocumentCreate, DocumentRe
             dynasty=dynasty,
             category=category,
             user_id=user_id,
+            session_id=session_id,
         )

@@ -44,6 +44,7 @@ class DocumentBase(BaseModel):
     source_url: str | None = Field(default=None, max_length=2000)
     page_count: int | None = Field(default=None)
     language: str = Field(default="zh", max_length=20)
+    session_id: str | None = Field(default=None, max_length=36)
 
 
 class DocumentCreate(DocumentBase):
@@ -67,6 +68,7 @@ class DocumentUpdate(BaseModel):
     source_url: str | None = Field(default=None, max_length=2000)
     page_count: int | None = Field(default=None)
     language: str | None = Field(default=None, max_length=20)
+    session_id: str | None = Field(default=None, max_length=36)
     copyright_status: str | None = Field(default=None, max_length=50)
     license_type: str | None = Field(default=None, max_length=100)
     authorization_basis: str | None = Field(default=None, max_length=200)
@@ -85,6 +87,7 @@ class DocumentBrief(BaseModel):
     review_status: str
     rag_enabled: bool
     source_name: str | None
+    session_id: str | None = None
     uploaded_by: str | None = None
     withdrawn_at: datetime | None = None
     created_at: datetime | None = None
@@ -107,6 +110,7 @@ class DocumentResponse(DocumentBase):
     rag_enabled: bool
     content_checksum: str | None
     source_name: str | None
+    session_id: str | None = None
     uploaded_by: str | None = None
     withdrawn_at: datetime | None
     withdraw_reason: str | None

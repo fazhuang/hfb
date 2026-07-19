@@ -13,6 +13,8 @@ export interface LibraryDocument {
     review_status: string;
     rag_enabled: boolean;
     source_name?: string | null;
+    /** Session/project ID this document is scoped to (null = public/system) */
+    session_id?: string | null;
     uploaded_by?: string | null;
     withdrawn_at?: string | null;
     created_at?: string | null;
@@ -45,6 +47,8 @@ export interface LibraryDocumentDetail {
     withdraw_reason?: string | null;
     created_at?: string | null;
     updated_at?: string | null;
+    /** Session/project ID this document is scoped to (null = public/system) */
+    session_id?: string | null;
     /** Author ID of the person who uploaded this document (system seed docs have null) */
     uploaded_by?: string | null;
 }

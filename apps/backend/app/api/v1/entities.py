@@ -206,6 +206,7 @@ from sqlalchemy import select as sql_select, func  # noqa: E402
 from app.models.document import Document  # noqa: E402
 from app.models.document_chunk import DocumentChunk  # noqa: E402
 from app.models.academic_evidence import Citation, Evidence  # noqa: E402
+from app.models.workspace import ResearchSession  # noqa: E402
 
 document_guard_read = require_permission("document", "read")
 document_guard_create = require_permission("document", "create")
@@ -234,7 +235,13 @@ async def list_documents(
     source_name: str | None = Query(default=None),
     dynasty: str | None = Query(default=None),
     category: str | None = Query(default=None),
+    session_id: str | None = Query(default=None),
 ) -> dict:
+    # Cross-project isolation: verify user owns the requested session
+    if session_id is not None:
+        owner_session = await session.get(ResearchSession, session_id)
+        if owner_session is None or owner_session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     svc = DocumentService(session)
     items, total = await svc.search(
         q,
@@ -247,6 +254,7 @@ async def list_documents(
         dynasty=dynasty,
         category=category,
         user_id=user_id,
+        session_id=session_id,
     )
 
     results = [DocumentBrief.model_validate(i).model_dump(mode="json") for i in items]
@@ -269,6 +277,14 @@ async def create_document(
     try:
         create_data = body.model_dump(exclude_unset=False)
         create_data["uploaded_by"] = user_id
+        # Cross-project isolation: verify user owns the session before scoping doc to it
+        if create_data.get("session_id"):
+            owner_session = await session.get(ResearchSession, create_data["session_id"])
+            if owner_session is None or owner_session.user_id != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Cannot create document in another user's project",
+                )
         await svc._validate_create(create_data)
         obj = await svc.repo.create(**create_data)
     except ValueError as exc:
@@ -293,6 +309,11 @@ async def get_document(
     # Ownership check: user can only read docs they own or system/public docs
     if obj.uploaded_by is not None and obj.uploaded_by != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Cross-project isolation: session-scoped docs require the owning session
+    if obj.session_id is not None:
+        owner_session = await session.get(ResearchSession, obj.session_id)
+        if owner_session is None or owner_session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
     return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"))
 
 
@@ -347,6 +368,11 @@ async def get_document_stats(
     # Ownership check: user can only read docs they own or system/public docs
     if doc.uploaded_by is not None and doc.uploaded_by != user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    # Cross-project isolation: session-scoped docs require the owning session
+    if doc.session_id is not None:
+        owner_session = await session.get(ResearchSession, doc.session_id)
+        if owner_session is None or owner_session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
     # Total chunks for this document
     chunk_count_q = (

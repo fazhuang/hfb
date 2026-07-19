@@ -85,6 +85,10 @@ class Document(BaseModel):
     source_name: Mapped[Optional[str]] = mapped_column(
         String(200), nullable=True, comment="摄入来源名称 (openalex/crossref/user_upload/等)"
     )
+    session_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True, index=True,
+        comment="所属研究项目/会话 ID — NULL = 公共/系统文献，不归属特定项目",
+    )
     uploaded_by: Mapped[Optional[str]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,

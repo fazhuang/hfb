@@ -26,6 +26,7 @@ class DocumentRepository(BaseRepository[Document]):
         dynasty: str | None = None,
         category: str | None = None,
         user_id: str | None = None,
+        session_id: str | None = None,
     ):
         """Search documents by text query AND optional metadata filters.
 
@@ -35,10 +36,16 @@ class DocumentRepository(BaseRepository[Document]):
         When user_id is None, only system/public documents (uploaded_by IS NULL)
         are returned. When user_id is set, documents owned by that user AND
         system/public documents are both included.
+
+        When session_id is set, results are scoped to documents belonging
+        to that session/project. session_id IS NULL = public/system docs.
         """
         conditions = [self.model.is_deleted.is_(False)]
 
-        if user_id is not None:
+        if session_id is not None:
+            # Session scope: only docs belonging to the specified session
+            conditions.append(self.model.session_id == session_id)
+        elif user_id is not None:
             # User scope: show user's own docs + public/system docs (NULL owner)
             conditions.append(
                 or_(
