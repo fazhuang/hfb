@@ -589,7 +589,7 @@ Note: `IngestionTasksView` and `LiteratureReviewQueue` are listed under REBUILD 
 /research/:projectId/result/:runId          → Research Result (Research)
 
 # Reports (authenticated)
-/reports                                    → Report List (Reports)
+/reports                                    → Report List (Reports)          [MIGRATED — Task 007, 2026-07-20]
 /reports/:runId                             → Report Detail (Reports)
 /notes                                      → Notes and Evidence (Reports)
 

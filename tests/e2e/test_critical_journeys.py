@@ -3508,3 +3508,249 @@ class TestResearchResultPageE2E:
             "Report should be visible after switch"
         )
         assert page.locator("h1").text_content() == "结果页真实工作流验证"
+
+
+# ====================================================================
+# ResearchReportsPage E2E (Task 007)
+# ====================================================================
+
+
+@pytest.fixture(scope="module")
+def reports_user_a(live_servers):
+    """Create user A with a real-workflow session + run (report ready)."""
+    _, backend_port = live_servers
+    tokens = _seed_user(backend_port, f"rpts-a-{_uuid.uuid4().hex[:6]}", "ReportsA_Pass123!")
+    if tokens is None:
+        raise RuntimeError("Failed to create reports user A")
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "用户A研究报告"},
+        headers=headers, timeout=10,
+    )
+    session_id = sess_resp.json()["data"]["id"]
+
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "A的哮喘研究",
+            "markdown": "# 用户A的研究报告\n\n报告内容",
+            "citations": [{"text": "test citation", "source": "甲乙经"}],
+            "retrieval_snapshot": [],
+            "traces": [],
+        },
+        headers=headers, timeout=10,
+    )
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {
+        "username": tokens["username"],
+        "password": "ReportsA_Pass123!",
+        "token": tokens,
+        "session_id": session_id,
+        "run_id": run_id,
+    }
+
+
+@pytest.fixture(scope="module")
+def reports_user_b(live_servers):
+    """Create user B with own session + run - must be isolated from A."""
+    _, backend_port = live_servers
+    tokens = _seed_user(backend_port, f"rpts-b-{_uuid.uuid4().hex[:6]}", "ReportsB_Pass123!")
+    if tokens is None:
+        raise RuntimeError("Failed to create reports user B")
+    base = f"http://127.0.0.1:{backend_port}"
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    sess_resp = httpx.post(
+        f"{base}/api/v1/workspace/sessions",
+        json={"title": "用户B研究报告"},
+        headers=headers, timeout=10,
+    )
+    session_id = sess_resp.json()["data"]["id"]
+
+    seed_resp = httpx.post(
+        f"{base}/api/v4/research/_test/seed-research-run",
+        json={
+            "session_id": session_id,
+            "topic": "B的经络研究",
+            "markdown": "# 用户B的研究报告\n\nB报告内容",
+            "citations": [{"text": "B citation", "source": "灵枢"}],
+            "retrieval_snapshot": [],
+            "traces": [],
+        },
+        headers=headers, timeout=10,
+    )
+    run_id = seed_resp.json()["data"]["run_id"]
+
+    return {
+        "username": tokens["username"],
+        "password": "ReportsB_Pass123!",
+        "token": tokens,
+        "session_id": session_id,
+        "run_id": run_id,
+    }
+
+
+class TestResearchReportsPageE2E:
+    """ResearchReportsPage E2E — real browser, real login, real data.
+
+    Verifies:
+      - User sees own reports in the list
+      - Report list shows correct statuses
+      - "View Report" links use real session_id/run_id
+      - Clicking "View Report" opens frozen ResearchResultPage
+      - URL uses real IDs
+      - Real Markdown export from reports page
+      - User A cannot see User B's reports
+    """
+
+    def test_report_list_loads_with_own_reports(
+        self, live_servers, reports_user_a, page,
+    ):
+        """Real login → open /reports → see own reports."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        _login_via_ui(page, frontend_url, ua["username"], ua["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        # Wait for at least one list item to render with content
+        page.wait_for_selector(".rrli-root", timeout=10000)
+        page.wait_for_selector(".rrli-session-title", timeout=10000)
+
+        assert page.locator("text=用户A研究报告").is_visible(), (
+            "Reports page must show user A's session title"
+        )
+        assert page.locator("text=A的哮喘研究").is_visible(), (
+            "Reports page must show user A's research topic"
+        )
+
+        # Check badge inside a list item (NOT the toolbar dropdown option)
+        badge = page.locator(".rrli-root .rsb-report-ready")
+        assert badge.count() >= 1, (
+            "Report with markdown must show ready badge"
+        )
+
+    def test_view_report_link_uses_real_ids(
+        self, live_servers, reports_user_a, page,
+    ):
+        """The '查看报告' link must use real session_id and run_id."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        _login_via_ui(page, frontend_url, ua["username"], ua["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".rrli-root", timeout=10000)
+        page.wait_for_selector(".rrli-view-link", timeout=10000)
+
+        view_link = page.locator(".rrli-view-link")
+        assert view_link.is_visible()
+
+        href = view_link.get_attribute("href")
+        assert href is not None
+        assert ua["session_id"] in href, f"URL missing session_id: {href}"
+        assert ua["run_id"] in href, f"URL missing run_id: {href}"
+        assert href.startswith("/research/"), f"Bad URL prefix: {href}"
+        assert "/result/" in href, f"URL missing /result/: {href}"
+
+    def test_click_view_opens_result_page(
+        self, live_servers, reports_user_a, page,
+    ):
+        """Click '查看报告' → navigate to frozen ResearchResultPage."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        _login_via_ui(page, frontend_url, ua["username"], ua["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".rrli-view-link", timeout=10000)
+
+        # SPA navigation — click and wait for result page to appear
+        page.locator(".rrli-view-link").click()
+
+        # Wait for the URL to change to contain the run ID
+        page.wait_for_url(f"**/result/{ua['run_id']}", timeout=10000)
+        assert ua["session_id"] in page.url
+        page.wait_for_selector(".rrh-page-title, .rrv-report, h1", timeout=10000)
+
+    def test_export_from_reports_page(
+        self, live_servers, reports_user_a, page,
+    ):
+        """Export button on reports page triggers real download."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        _login_via_ui(page, frontend_url, ua["username"], ua["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".rrli-export-btn", timeout=10000)
+
+        export_btn = page.locator(".rrli-export-btn")
+        assert export_btn.is_visible()
+
+        with page.expect_download(timeout=10000) as download_info:
+            export_btn.click()
+
+        download = download_info.value
+        assert download is not None
+        filename = download.suggested_filename
+        assert "hfb-research-report-" in filename, f"Bad filename: {filename}"
+        assert filename.endswith(".md"), f"Not .md: {filename}"
+
+    def test_user_a_cannot_see_user_b_reports(
+        self, live_servers, reports_user_a, reports_user_b, page,
+    ):
+        """User A must not see User B's reports."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        ub = reports_user_b
+        _login_via_ui(page, frontend_url, ua["username"], ua["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".rrli-root", timeout=10000)
+
+        assert page.locator("text=用户B研究报告").count() == 0
+        assert page.locator("text=B的经络研究").count() == 0
+
+        # Try direct URL access to B's report
+        page.goto(
+            f"{frontend_url}/research/{ub['session_id']}/result/{ub['run_id']}"
+        )
+
+        try:
+            page.wait_for_selector(".rre-state", timeout=5000)
+        except Exception:
+            pass
+
+        assert page.locator("text=用户B研究报告").count() == 0
+
+    def test_b_cannot_see_a_reports(
+        self, live_servers, reports_user_a, reports_user_b, page,
+    ):
+        """User B must not see User A's reports."""
+        frontend_url, _ = live_servers
+        ua = reports_user_a
+        ub = reports_user_b
+        _login_via_ui(page, frontend_url, ub["username"], ub["password"])
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".rrli-root", timeout=10000)
+
+        assert page.locator("text=用户A研究报告").count() == 0
+        assert page.locator("text=A的哮喘研究").count() == 0
+
+    def test_empty_reports_page(
+        self, live_servers, page,
+    ):
+        """New user with no sessions sees empty state."""
+        frontend_url, backend_port = live_servers
+        username = f"empty-rpts-{_uuid.uuid4().hex[:6]}"
+        # Register first via API (the UI login page doesn't auto-register)
+        _seed_user(backend_port, username, "Empty_Pass123!")
+        _login_via_ui(page, frontend_url, username, "Empty_Pass123!")
+
+        page.goto(f"{frontend_url}/reports")
+        page.wait_for_selector(".empty-state", timeout=10000)
+
+        assert page.locator("text=暂无报告").is_visible()

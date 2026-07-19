@@ -607,6 +607,133 @@ async def get_session_query_history(
 
 
 # ======================================================================
+# GET /api/v4/research/reports
+# ======================================================================
+
+
+def _derive_run_status(trace: list[dict]) -> str:
+    """Derive run_status from step_execution_trace.
+
+    - any step status 'failed' -> 'failed'
+    - any step status 'running' or 'pending' -> 'running'
+    - all steps 'completed' -> 'completed'
+    - no steps -> 'pending'
+    """
+    if not trace:
+        return "pending"
+    _statuses = [step.get("status", "") for step in trace]
+    if any(st == "failed" for st in _statuses):
+        return "failed"
+    if any(st in ("running", "pending") for st in _statuses):
+        return "running"
+    if all(st == "completed" for st in _statuses):
+        return "completed"
+    return "pending"
+
+
+def _derive_report_status(trace: list[dict], artifacts: dict) -> str:
+    """Derive report_status from step_execution_trace + output_artifacts.
+
+    - report_generation step status == 'failed' -> 'failed'
+    - report_generation step not found or status in ('pending','running') -> 'pending'
+    - report_generation step completed but output_artifacts.markdown empty -> 'missing'
+    - output_artifacts.markdown non-empty -> 'ready'
+    """
+    report_step = next(
+        (step for step in trace if step.get("step_name") == "report_generation" or step.get("name") == "report_generation"),
+        None,
+    )
+    if report_step is not None and report_step.get("status") == "failed":
+        return "failed"
+    if report_step is None or report_step.get("status") in ("pending", "running"):
+        return "pending"
+    # report_step is completed — check for markdown
+    markdown = (artifacts.get("markdown") or "").strip()
+    if not markdown:
+        return "missing"
+    return "ready"
+
+
+@router.get(
+    "/reports",
+    response_model=V4ApiEnvelope,
+    dependencies=[Depends(guard_research_read)],
+)
+async def get_research_reports(
+    db: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
+    page: int = 1,
+    limit: int = 20,
+    status: str | None = None,
+) -> V4ApiEnvelope:
+    """Aggregate research runs across all of the current user's sessions.
+
+    Collects runs from every session, derives run_status from the
+    step_execution_trace and report_status from output_artifacts plus
+    the report_generation step, then returns a paginated, sorted
+    (DESC by started_at) list filtered by report_status when provided.
+
+    Authorization: only sessions belonging to current_user are collected
+    (WorkspaceService.list_sessions filters by user_id).
+    """
+    ws = WorkspaceService(db)
+    rwf = ResearchWorkflowService(db)
+
+    # Collect all sessions for this user (generous limit for aggregation)
+    sessions = await ws.list_sessions(current_user, limit=500)
+
+    # Aggregate runs from all sessions
+    all_items: list[dict] = []
+    for s in sessions:
+        runs = await rwf.get_research_runs(s.id)
+        for run in runs:
+            trace: list[dict] = run.get("step_execution_trace") or []
+            artifacts: dict = run.get("output_artifacts") or {}
+
+            run_status = _derive_run_status(trace)
+            report_status_val = _derive_report_status(trace, artifacts)
+
+            completed_at = run.get("completed_at")
+            all_items.append({
+                "session_id": str(run.get("session_id", "")),
+                "session_title": s.title or "",
+                "run_id": str(run.get("run_id", "")),
+                "topic": str(run.get("topic", "")),
+                "run_status": run_status,
+                "report_status": report_status_val,
+                "created_at": str(run.get("started_at", "")),
+                "completed_at": completed_at if completed_at else None,
+                "workflow_type": str(run.get("workflow_type", "")),
+            })
+
+    # Sort by created_at DESC (newest first)
+    all_items.sort(key=lambda x: x["created_at"], reverse=True)
+
+    # Apply status filter
+    if status:
+        all_items = [item for item in all_items if item["report_status"] == status]
+
+    total = len(all_items)
+
+    # Apply pagination
+    start = (page - 1) * limit
+    end = start + limit
+    paginated = all_items[start:end]
+
+    return V4ApiEnvelope(
+        success=True,
+        data={
+            "items": paginated,
+            "total": total,
+            "page": page,
+            "limit": limit,
+        },
+        message="ok",
+        traceability=None,
+    )
+
+
+# ======================================================================
 # GET /api/v4/research/session/{session_id}/runs
 # ======================================================================
 
