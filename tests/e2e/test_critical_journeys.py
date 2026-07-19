@@ -243,9 +243,17 @@ def research_data(live_servers, test_user):
 # ============================================================
 
 
+def _pytest_playwright_present() -> bool:
+    """True when pytest-playwright plugin is installed and active."""
+    try:
+        import pytest_playwright  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
 pytestmark = pytest.mark.skipif(
-    "not config.getoption('--browser')",
-    reason="Run with --browser chromium (Playwright)",
+    not _pytest_playwright_present(),
+    reason="pytest-playwright not installed; E2E requires real Chromium browser",
 )
 
 
