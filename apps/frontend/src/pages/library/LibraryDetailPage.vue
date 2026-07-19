@@ -89,7 +89,7 @@
             <div class="lib-field"><span class="lib-field-label">Checksum</span><span class="lib-mono">{{ doc.content_checksum || '—' }}</span></div>
             <div class="lib-field">
               <span class="lib-field-label">来源链接</span>
-              <a v-if="doc.source_url" :href="doc.source_url" target="_blank" rel="noopener noreferrer" class="lib-external-link">查看来源</a>
+              <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="lib-external-link">查看来源</a>
               <span v-else>—</span>
             </div>
             <div class="lib-field"><span class="lib-field-label">创建时间</span><span>{{ doc.created_at ? new Date(doc.created_at).toLocaleString('zh-CN') : '—' }}</span></div>
@@ -147,6 +147,18 @@ const breadcrumbs = computed<Breadcrumb[]>(() => [
   { label: 'Library', to: { name: 'library-search' } },
   { label: doc.value?.title || '文献详情' },
 ]);
+
+const safeSourceUrl = computed(() => {
+  const url = doc.value?.source_url;
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    if (['http:', 'https:'].includes(parsed.protocol)) return url;
+  } catch {
+    // invalid URL — reject
+  }
+  return null;
+});
 
 function openReader() {
   if (!doc.value) return;

@@ -232,8 +232,9 @@ describe('LibrarySearchPage', () => {
     await searchBtn.trigger('click');
     await wrapper.vm.$nextTick();
 
-    const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls;
-    const lastCall = calls[calls.length - 1];
+    const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls as Array<[string, { params: Record<string, string> }]>;
+    expect(calls.length).toBeGreaterThan(0);
+    const lastCall = calls[calls.length - 1]!;
     expect(lastCall[1].params.q).toBe('针灸');
   });
 });

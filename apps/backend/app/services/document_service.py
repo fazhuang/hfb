@@ -19,5 +19,23 @@ class DocumentService(BaseService[DocumentRepository, DocumentCreate, DocumentRe
         if not data.get("title", "").strip():
             raise ValueError("Document title is required")
 
-    async def search(self, query: str, page: int = 1, limit: int = 20):
-        return await self.repo.search_query(query, page=page, limit=limit)
+    async def search(
+        self,
+        query: str,
+        page: int = 1,
+        limit: int = 20,
+        copyright_status: str | None = None,
+        review_status: str | None = None,
+        rag_enabled: bool | None = None,
+        source_name: str | None = None,
+    ):
+        """Search documents by text query AND optional metadata filters."""
+        return await self.repo.search_query(
+            query,
+            page=page,
+            limit=limit,
+            copyright_status=copyright_status,
+            review_status=review_status,
+            rag_enabled=rag_enabled,
+            source_name=source_name,
+        )

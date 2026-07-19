@@ -215,8 +215,8 @@ document_guard_delete = require_permission("document", "delete")
 
 document_public_read = True
 
-_document_list_deps: list = []
-_document_get_deps: list = []
+_document_list_deps: list = [Depends(document_guard_read)]
+_document_get_deps: list = [Depends(document_guard_read)]
 
 
 @router.get(
@@ -235,26 +235,15 @@ async def list_documents(
     source_name: str | None = Query(default=None),
 ) -> dict:
     svc = DocumentService(session)
-    if q.strip():
-        items, total = await svc.search(q, page=page, limit=limit)
-    else:
-        # Build filtered query
-        stmt = sql_select(Document).where(Document.is_deleted == False)  # noqa: E712
-        if copyright_status:
-            stmt = stmt.where(Document.copyright_status == copyright_status)
-        if review_status:
-            stmt = stmt.where(Document.review_status == review_status)
-        if rag_enabled is not None:
-            stmt = stmt.where(Document.rag_enabled == rag_enabled)
-        if source_name:
-            stmt = stmt.where(Document.source_name == source_name)
-
-        count_q = sql_select(func.count()).select_from(stmt.subquery())
-        total = (await session.execute(count_q)).scalar() or 0
-
-        stmt = stmt.order_by(Document.created_at.desc())
-        stmt = stmt.offset((page - 1) * limit).limit(limit)
-        items = (await session.execute(stmt)).scalars().all()
+    items, total = await svc.search(
+        q,
+        page=page,
+        limit=limit,
+        copyright_status=copyright_status,
+        review_status=review_status,
+        rag_enabled=rag_enabled,
+        source_name=source_name,
+    )
 
     results = [DocumentBrief.model_validate(i).model_dump(mode="json") for i in items]
     return api_response(data={"items": results, "total": total})
