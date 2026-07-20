@@ -59,22 +59,22 @@ function formatDate(iso?: string | null): string {
 
 <style scoped>
 .po-section {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-7);
 }
 
 .po-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .po-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .po-field {
@@ -86,26 +86,26 @@ function formatDate(iso?: string | null): string {
 }
 
 .po-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .po-value {
-  font-size: 14px;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   word-break: break-word;
 }
 
 .po-value--notes {
   white-space: pre-wrap;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 600px) {

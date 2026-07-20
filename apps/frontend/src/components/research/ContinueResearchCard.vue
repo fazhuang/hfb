@@ -57,47 +57,47 @@ defineEmits<{
 
 <style scoped>
 .crc-section {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-7);
 }
 
 .crc-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 /* Empty — no resumable run */
 .crc-empty {
-  padding: 24px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-6) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   text-align: center;
 }
 
 .crc-empty-text {
-  font-size: 14px;
-  color: var(--color-text-muted, #718096);
-  margin: 0 0 16px;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-4);
 }
 
 .crc-start-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: var(--btn-padding-md);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
   text-decoration: none;
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   color: #fff;
-  transition: background 0.15s;
+  transition: background var(--transition-base);
 }
 
 .crc-start-btn:hover {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 </style>

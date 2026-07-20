@@ -60,22 +60,22 @@ defineEmits<{
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .data-table th {
   text-align: left;
-  padding: 10px 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
-  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  padding: 10px var(--space-3);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
 }
 
 .data-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-  color: var(--color-text-primary, #1a365d);
+  padding: 10px var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
   max-width: 320px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -84,21 +84,21 @@ defineEmits<{
 
 .data-table tbody tr.clickable {
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .data-table tbody tr.clickable:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .table-state {
   text-align: center;
-  padding: 40px 16px;
-  color: var(--color-text-muted, #a0aec0);
-  font-size: 14px;
+  padding: var(--space-10) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
 }
 
 .table-state--error {
-  color: var(--color-error-text, #c53030);
+  color: var(--color-error-text);
 }
 </style>

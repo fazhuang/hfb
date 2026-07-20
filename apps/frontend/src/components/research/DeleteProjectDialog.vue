@@ -116,72 +116,61 @@ function onCancel() {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.35);
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .dpd-dialog {
-  background: var(--color-navbar-bg, #fff);
-  border-radius: 12px;
-  padding: 32px;
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  animation: dpdFadeIn 0.15s ease;
-}
-
-@keyframes dpdFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  box-shadow: var(--shadow-lg);
+  animation: hfb-fade-in var(--transition-base) ease;
 }
 
 .dpd-header {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .dpd-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .dpd-message {
-  font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 24px;
-  line-height: 1.5;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-6);
+  line-height: var(--leading-normal);
 }
 
 .dpd-error {
-  font-size: 13px;
-  color: var(--color-error-text, #c53030);
-  padding: 8px 12px;
-  background: rgba(197, 48, 48, 0.08);
-  border-radius: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-error-text);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-md);
   line-height: 1.4;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .dpd-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .dpd-btn {
-  padding: 10px 22px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: var(--btn-padding-lg);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-lg);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   border: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .dpd-btn:disabled {
@@ -190,21 +179,21 @@ function onCancel() {
 }
 
 .dpd-btn--danger {
-  background: #c53030;
+  background: var(--color-error-text);
   color: #fff;
 }
 
 .dpd-btn--danger:hover:not(:disabled) {
-  background: #9b2c2c;
+  background: var(--color-error-light-text);
 }
 
 .dpd-btn--cancel {
   background: transparent;
-  color: var(--color-text-secondary, #4a5568);
-  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .dpd-btn--cancel:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 </style>

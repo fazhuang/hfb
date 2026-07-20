@@ -17,13 +17,13 @@ import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 
 <style scoped>
 .placeholder-body {
-  padding: 24px 32px;
-  color: var(--color-text-muted, #718096);
+  padding: var(--space-6) var(--space-8);
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 768px) {
   .placeholder-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 </style>

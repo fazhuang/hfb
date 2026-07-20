@@ -92,64 +92,64 @@ function onSubmit() {
 }
 
 .rae-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 12px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
 }
 
 .rae-description {
-  font-size: 13px;
-  color: var(--color-text-muted, #718096);
-  margin: 0 0 16px;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-4);
+  line-height: var(--leading-normal);
 }
 
 .rae-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rae-input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--color-text-primary, #1a365d);
-  background: var(--color-navbar-bg, #fff);
+  padding: 10px var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
   box-sizing: border-box;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-base);
 }
 
 .rae-input:focus {
   outline: none;
-  border-color: var(--color-accent, #4299e1);
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring-sm);
 }
 
 .rae-input::placeholder {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .rae-submit-btn {
-  padding: 10px 16px;
+  padding: 10px var(--space-4);
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   color: #fff;
-  transition: background 0.15s;
+  transition: background var(--transition-base);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .rae-submit-btn:hover:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 
 .rae-submit-btn:disabled {
@@ -158,9 +158,9 @@ function onSubmit() {
 }
 
 .rae-hint {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
-  margin: 12px 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: var(--space-3) 0 0;
   line-height: 1.4;
 }
 </style>

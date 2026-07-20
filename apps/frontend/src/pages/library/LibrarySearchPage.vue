@@ -133,23 +133,23 @@ onMounted(() => fetchPage(1));
 }
 
 .lib-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
 }
 
 .lib-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
 }
 
 .lib-clear-btn {
-  padding: 8px 20px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-accent, #2b6cb0);
-  font-size: 14px;
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--btn-radius);
+  background: var(--color-surface);
+  color: var(--color-accent);
+  font-size: var(--text-base);
   cursor: pointer;
 }
 
@@ -158,26 +158,26 @@ onMounted(() => fetchPage(1));
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 28px;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .lib-pagination button {
-  padding: 6px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--btn-padding-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   cursor: pointer;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .lib-pagination button:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 .lib-pagination button:disabled {
@@ -193,7 +193,7 @@ onMounted(() => fetchPage(1));
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .lib-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 </style>

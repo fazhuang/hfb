@@ -80,96 +80,96 @@ onMounted(() => fetch());
 .entity-list-page {
   max-width: 1000px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--space-8) var(--space-6);
 }
 
 .page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .page-header h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .search-box {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .search-box input {
-  padding: 8px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  font-size: 14px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
   min-width: 200px;
-  background: var(--color-page-bg, #f7fafc);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-page-bg);
+  color: var(--color-text-primary);
 }
 
 .search-btn {
-  padding: 8px 16px;
-  background: var(--color-accent, #2b6cb0);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .entity-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .entity-card {
-  padding: 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  background: var(--color-navbar-bg, #fff);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  background: var(--color-surface);
 }
 
 .entity-card:hover {
-  border-color: var(--color-accent, #2b6cb0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .card-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .meta-tag {
-  font-size: 12px;
+  font-size: var(--text-xs);
   padding: 2px 8px;
-  background: var(--color-tag-bg, #edf2f7);
-  border-radius: 4px;
-  color: var(--color-text-secondary, #4a5568);
+  background: var(--color-tag-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
 }
 
 .card-subtitle {
-  font-size: 13px;
-  color: var(--color-text-muted, #a0aec0);
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -178,28 +178,28 @@ onMounted(() => fetch());
 
 .loading-state, .error-state, .empty-state {
   text-align: center;
-  padding: 60px 20px;
-  color: var(--color-text-muted, #a0aec0);
-  font-size: 14px;
+  padding: var(--space-15) var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
 }
 
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 32px;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .pagination button {
-  padding: 6px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--btn-padding-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .pagination button:disabled {

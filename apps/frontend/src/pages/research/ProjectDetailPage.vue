@@ -280,45 +280,45 @@ onBeforeUnmount(() => {
 }
 
 .pdp-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
 }
 
 /* ---- Action buttons ---- */
 .pdp-action-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: var(--btn-padding-md);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   white-space: nowrap;
 }
 
 .pdp-action-btn--primary {
   border: none;
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   color: #fff;
 }
 
 .pdp-action-btn--primary:hover {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 
 .pdp-action-btn--secondary {
-  border: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-text-secondary, #4a5568);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   letter-spacing: 2px;
   padding: 8px 14px;
-  font-size: 16px;
+  font-size: var(--text-lg);
   line-height: 1;
 }
 
 .pdp-action-btn--secondary:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 /* ---- More menu ---- */
@@ -331,10 +331,10 @@ onBeforeUnmount(() => {
   top: calc(100% + 4px);
   right: 0;
   min-width: 140px;
-  background: var(--color-navbar-bg, #fff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: 100;
   overflow: hidden;
 }
@@ -342,51 +342,51 @@ onBeforeUnmount(() => {
 .pdp-more-item {
   display: block;
   width: 100%;
-  padding: 10px 16px;
+  padding: 10px var(--space-4);
   border: none;
   background: none;
-  font-size: 13px;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
   cursor: pointer;
   text-align: left;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .pdp-more-item:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .pdp-more-item--danger {
-  color: #c53030;
+  color: var(--color-error-text);
 }
 
 .pdp-more-item--danger:hover {
-  background: rgba(197, 48, 48, 0.06);
+  background: var(--color-error-bg);
 }
 
 /* ---- Back link ---- */
 .pdp-back-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .pdp-back-link:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .pdp-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 </style>

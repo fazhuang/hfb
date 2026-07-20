@@ -21,26 +21,22 @@ defineProps<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: var(--space-15) var(--space-5);
   text-align: center;
 }
 
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--color-border, #e2e8f0);
-  border-top-color: var(--color-accent, #2b6cb0);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  animation: hfb-spin 0.8s linear infinite;
 }
 
 .loading-text {
-  margin: 16px 0 0;
-  font-size: 14px;
-  color: var(--color-text-muted, #a0aec0);
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
 }
 </style>

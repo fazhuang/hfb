@@ -145,7 +145,7 @@ onMounted(() => {
 }
 
 .rp-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
 }
 
 .rp-content {
@@ -154,19 +154,19 @@ onMounted(() => {
 
 /* ---- Clear filter button ---- */
 .rp-clear-filter-btn {
-  padding: 8px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
-  font-size: 13px;
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
   cursor: pointer;
-  color: var(--color-accent, #2b6cb0);
-  transition: all 0.15s;
+  color: var(--color-accent);
+  transition: all var(--transition-base);
 }
 
 .rp-clear-filter-btn:hover {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 /* ---- Pagination ---- */
@@ -174,26 +174,26 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 28px;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .rp-pagination button {
-  padding: 6px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--btn-padding-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   cursor: pointer;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .rp-pagination button:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 .rp-pagination button:disabled {
@@ -209,7 +209,7 @@ onMounted(() => {
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .rp-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 </style>

@@ -38,44 +38,44 @@ defineEmits<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: var(--space-15) var(--space-5);
   text-align: center;
 }
 
 .error-icon {
   font-size: 36px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .error-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-error-text, #c53030);
-  margin: 0 0 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-error-text);
+  margin: 0 0 var(--space-2);
 }
 
 .error-message {
-  font-size: 13px;
-  color: var(--color-text-muted, #718096);
-  margin: 0 0 16px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-4);
   max-width: 420px;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   word-break: break-word;
 }
 
 .error-retry-btn {
-  padding: 8px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
-  font-size: 13px;
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
   cursor: pointer;
-  color: var(--color-accent, #2b6cb0);
-  transition: all 0.15s;
+  color: var(--color-accent);
+  transition: all var(--transition-base);
 }
 
 .error-retry-btn:hover {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 </style>

@@ -107,7 +107,7 @@ const adminNavItems = computed<NavItem[]>(() => [
 
 <style scoped>
 .research-primary-nav {
-  padding: 12px 8px;
+  padding: var(--space-3) var(--space-2);
   flex: 1;
 }
 
@@ -119,37 +119,37 @@ const adminNavItems = computed<NavItem[]>(() => [
 
 .rpn-separator {
   height: 1px;
-  background: var(--color-border, #e2e8f0);
-  margin: 8px 12px;
+  background: var(--color-border);
+  margin: var(--space-2) var(--space-3);
 }
 
 .rpn-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-lg);
   text-decoration: none;
-  font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: background 0.15s;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  transition: background var(--transition-base);
   margin-bottom: 2px;
 }
 
 .rpn-link:hover {
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-hover);
+  color: var(--color-text-primary);
 }
 
 .rpn-link--active {
-  background: var(--color-active, #ebf8ff);
-  color: var(--color-accent, #2b6cb0);
-  font-weight: 600;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: var(--font-semibold);
 }
 
 .rpn-link--admin {
-  font-size: 13px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .rpn-link-icon {

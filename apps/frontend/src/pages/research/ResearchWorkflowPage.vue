@@ -277,7 +277,7 @@ watch(
 }
 
 .rwf-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
   max-width: 880px;
 }
 
@@ -286,13 +286,13 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 14px 18px;
-  border: 1px solid #feb2b2;
-  border-left: 4px solid #c53030;
-  border-radius: 6px;
-  background: #fff5f5;
-  margin-bottom: 24px;
+  border: 1px solid var(--color-error);
+  border-left: 4px solid var(--color-error-text);
+  border-radius: var(--radius-md);
+  background: var(--color-error-bg);
+  margin-bottom: var(--space-6);
 }
 
 .rwf-error-banner-content {
@@ -302,16 +302,16 @@ watch(
 
 .rwf-error-banner-title {
   display: block;
-  font-size: 14px;
-  color: #c53030;
-  margin-bottom: 4px;
+  font-size: var(--text-base);
+  color: var(--color-error-text);
+  margin-bottom: var(--space-1);
 }
 
 .rwf-error-banner-message {
   margin: 0;
-  font-size: 13px;
-  color: #742a2a;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  color: var(--color-error-light-text);
+  line-height: var(--leading-normal);
 }
 
 .rwf-error-banner-actions {
@@ -319,19 +319,19 @@ watch(
 }
 
 .rwf-error-retry-btn {
-  padding: 8px 18px;
-  border: 1px solid #c53030;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: var(--space-2) 18px;
+  border: 1px solid var(--color-error-text);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   background: #fff;
-  color: #c53030;
-  transition: all 0.15s;
+  color: var(--color-error-text);
+  transition: all var(--transition-base);
 }
 
 .rwf-error-retry-btn:hover {
-  background: #c53030;
+  background: var(--color-error-text);
   color: #fff;
 }
 
@@ -339,25 +339,25 @@ watch(
 .rwf-back-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rwf-back-link:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .rwf-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 
   .rwf-error-banner {

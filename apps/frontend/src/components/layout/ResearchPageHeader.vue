@@ -43,16 +43,16 @@ defineProps<{
 
 <style scoped>
 .research-page-header {
-  padding: 20px 32px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-navbar-bg, #ffffff);
+  padding: var(--space-5) var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .rph-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .rph-title-group {
@@ -64,27 +64,27 @@ defineProps<{
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
-  font-size: 13px;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
   flex-wrap: wrap;
 }
 
 .rph-breadcrumb-link {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   text-decoration: none;
 }
 
 .rph-breadcrumb-link:hover {
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
 .rph-breadcrumb-current {
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .rph-breadcrumb-sep {
-  color: var(--color-border, #e2e8f0);
+  color: var(--color-border);
 }
 
 .rph-heading {
@@ -92,31 +92,31 @@ defineProps<{
 }
 
 .rph-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
-  line-height: 1.3;
+  line-height: var(--leading-tight);
 }
 
 .rph-description {
   margin: 6px 0 0;
-  font-size: 14px;
-  color: var(--color-text-muted, #718096);
-  line-height: 1.5;
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  line-height: var(--leading-normal);
 }
 
 .rph-actions {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .research-page-header {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 
   .rph-top {

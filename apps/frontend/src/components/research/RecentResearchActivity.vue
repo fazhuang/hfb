@@ -158,16 +158,16 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .rra-section {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-7);
 }
 
 .rra-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .rra-list {
@@ -176,25 +176,25 @@ onBeforeUnmount(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rra-item {
-  padding: 12px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
 .rra-item-main {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
 }
@@ -202,38 +202,38 @@ onBeforeUnmount(() => {
 .rra-type-badge {
   display: inline-block;
   padding: 1px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  font-weight: 600;
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-text-secondary, #4a5568);
+  font-weight: var(--font-semibold);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .rra-text {
-  font-size: 13px;
-  color: var(--color-text-primary, #1a365d);
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
   word-break: break-word;
 }
 
 .rra-item-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
 .rra-stat {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .rra-time {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 </style>

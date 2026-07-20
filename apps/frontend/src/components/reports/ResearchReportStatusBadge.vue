@@ -49,52 +49,52 @@ const badgeClass = computed(() => {
 .rsb-badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-normal);
   white-space: nowrap;
 }
 
 /* ---- Run status colors ---- */
 .rsb-run-completed {
   background: rgba(56, 161, 105, 0.12);
-  color: #276749;
+  color: var(--color-success-text);
 }
 
 .rsb-run-failed {
   background: rgba(197, 48, 48, 0.1);
-  color: #9b2c2c;
+  color: var(--color-error-light-text);
 }
 
 .rsb-run-running {
   background: rgba(49, 130, 206, 0.12);
-  color: #2c5282;
+  color: var(--color-info-text);
 }
 
 .rsb-run-pending {
   background: rgba(160, 174, 192, 0.12);
-  color: #718096;
+  color: var(--color-text-muted);
 }
 
 /* ---- Report status colors ---- */
 .rsb-report-ready {
   background: rgba(56, 161, 105, 0.12);
-  color: #276749;
+  color: var(--color-success-text);
 }
 
 .rsb-report-missing {
   background: rgba(237, 137, 54, 0.12);
-  color: #975a16;
+  color: var(--color-warning-text);
 }
 
 .rsb-report-failed {
   background: rgba(197, 48, 48, 0.1);
-  color: #9b2c2c;
+  color: var(--color-error-light-text);
 }
 
 .rsb-report-pending {
   background: rgba(160, 174, 192, 0.12);
-  color: #718096;
+  color: var(--color-text-muted);
 }
 </style>

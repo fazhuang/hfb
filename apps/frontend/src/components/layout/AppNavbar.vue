@@ -173,14 +173,14 @@ function cycleTheme() {
 .app-navbar {
   display: flex;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   height: 56px;
-  background: var(--color-navbar-bg, #ffffff);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-navbar-bg);
+  border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
   z-index: 100;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .navbar-brand {
@@ -190,25 +190,25 @@ function cycleTheme() {
 .brand-link {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   text-decoration: none;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .brand-icon {
-  font-size: 22px;
+  font-size: var(--text-2xl);
 }
 
 .brand-text {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
   white-space: nowrap;
 }
 
 .navbar-links {
   display: flex;
   list-style: none;
-  gap: 4px;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   flex: 1;
@@ -219,22 +219,22 @@ function cycleTheme() {
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   text-decoration: none;
-  font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .nav-link:hover {
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-hover);
+  color: var(--color-text-primary);
 }
 
 .nav-link--active {
-  background: var(--color-active, #ebf8ff);
-  color: var(--color-accent, #2b6cb0);
-  font-weight: 600;
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: var(--font-semibold);
 }
 
 .nav-link--pulse {
@@ -246,8 +246,8 @@ function cycleTheme() {
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 8px;
-  border: 2px solid var(--color-accent, #2b6cb0);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-accent);
   animation: navPulseRing 1s ease-in-out 5;
   opacity: 0;
 }
@@ -264,65 +264,65 @@ function cycleTheme() {
 }
 
 .nav-icon {
-  font-size: 16px;
+  font-size: var(--text-lg);
 }
 
 .navbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
 .user-greeting {
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .auth-link,
 .auth-btn {
-  font-size: 13px;
+  font-size: var(--text-sm);
   text-decoration: none;
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--color-accent, #2b6cb0);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent);
   background: transparent;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .auth-link:hover,
 .auth-btn:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: white;
 }
 
 .locale-switcher {
   display: flex;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid var(--color-border, #e2e8f0);
+  border: 1px solid var(--color-border);
 }
 
 .locale-btn {
   padding: 4px 10px;
   border: none;
   background: transparent;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .locale-btn.active {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 
 .locale-btn:not(.active):hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .theme-toggle {
@@ -331,12 +331,12 @@ function cycleTheme() {
   background: transparent;
   cursor: pointer;
   font-size: 18px;
-  border-radius: 6px;
-  transition: background 0.15s;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-base);
 }
 
 .theme-toggle:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .mobile-menu-toggle {
@@ -344,16 +344,16 @@ function cycleTheme() {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: var(--space-2);
 }
 
 .hamburger {
   display: block;
   width: 20px;
   height: 2px;
-  background: var(--color-text-primary, #1a365d);
+  background: var(--color-text-primary);
   position: relative;
-  transition: background 0.2s;
+  transition: background var(--transition-slow);
 }
 
 .hamburger::before,
@@ -362,9 +362,9 @@ function cycleTheme() {
   display: block;
   width: 20px;
   height: 2px;
-  background: var(--color-text-primary, #1a365d);
+  background: var(--color-text-primary);
   position: absolute;
-  transition: transform 0.2s;
+  transition: transform var(--transition-slow);
 }
 
 .hamburger::before {
@@ -391,7 +391,7 @@ function cycleTheme() {
 
 @media (max-width: 768px) {
   .app-navbar {
-    padding: 0 16px;
+    padding: 0 var(--space-4);
     height: 52px;
   }
 
@@ -407,10 +407,10 @@ function cycleTheme() {
     left: 0;
     right: 0;
     flex-direction: column;
-    background: var(--color-navbar-bg, #ffffff);
-    border-bottom: 1px solid var(--color-border, #e2e8f0);
-    padding: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background: var(--color-navbar-bg);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-2);
+    box-shadow: var(--shadow-md);
   }
 
   .navbar-links.open {

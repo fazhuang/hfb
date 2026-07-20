@@ -18,26 +18,26 @@ defineProps<{
 .status-card {
   display: flex;
   align-items: center;
-  padding: 14px 20px;
-  border-radius: 8px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  gap: 12px;
-  transition: all 0.2s;
+  padding: 14px var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  gap: var(--space-3);
+  transition: all var(--transition-slow);
 }
 
 .status-card.connected {
-  background: var(--color-success-bg, #f0fff4);
-  border-color: var(--color-success, #68d391);
+  background: var(--color-success-bg);
+  border-color: var(--color-success);
 }
 
 .status-card.disconnected {
-  background: var(--color-error-bg, #fff5f5);
-  border-color: var(--color-error, #fc8181);
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
 }
 
 .status-icon {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--font-bold);
   width: 28px;
   height: 28px;
   display: flex;
@@ -48,17 +48,17 @@ defineProps<{
 }
 
 .connected .status-icon {
-  color: #22543d;
-  background: var(--color-success-icon-bg, #c6f6d5);
+  color: var(--color-success-text);
+  background: var(--color-success-icon-bg);
 }
 
 .disconnected .status-icon {
-  color: #742a2a;
-  background: var(--color-error-icon-bg, #fed7d7);
+  color: var(--color-error-light-text);
+  background: var(--color-error-icon-bg);
 }
 
 .status-label {
   font-size: 15px;
-  color: var(--color-text-primary, #2d3748);
+  color: var(--color-text-primary);
 }
 </style>

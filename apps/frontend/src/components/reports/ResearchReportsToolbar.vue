@@ -39,40 +39,40 @@ function onChange(e: Event) {
 .rrt-root {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
 }
 
 .rrt-filter-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rrt-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-secondary, #4a5568);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 
 .rrt-select {
-  padding: 6px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
-  font-size: 13px;
-  color: var(--color-text-primary, #1a365d);
+  padding: 6px var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
   cursor: pointer;
   min-width: 120px;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-base);
 }
 
 .rrt-select:focus-visible {
-  outline: 2px solid var(--color-accent, #2b6cb0);
+  outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
 .rrt-select:hover {
-  border-color: var(--color-accent, #2b6cb0);
+  border-color: var(--color-accent);
 }
 </style>

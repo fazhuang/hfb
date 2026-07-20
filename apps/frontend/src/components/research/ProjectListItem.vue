@@ -58,17 +58,17 @@ function formatDate(iso?: string | null): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--color-navbar-bg, #fff);
-  transition: border-color 0.15s, box-shadow 0.15s;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 
 .pli-card:hover {
-  border-color: var(--color-accent, #2b6cb0);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .pli-body {
@@ -77,31 +77,31 @@ function formatDate(iso?: string | null): string {
 }
 
 .pli-main {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .pli-name {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
   margin: 0 0 6px;
 }
 
 .pli-name-link {
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   text-decoration: none;
-  transition: color 0.15s;
+  transition: color var(--transition-base);
 }
 
 .pli-name-link:hover {
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
 .pli-description {
-  font-size: 13px;
-  color: var(--color-text-muted, #718096);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
   margin: 0;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -110,13 +110,13 @@ function formatDate(iso?: string | null): string {
 
 .pli-meta {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .pli-date {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .pli-action {
@@ -126,21 +126,21 @@ function formatDate(iso?: string | null): string {
 .pli-enter-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 8px;
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--btn-radius);
   background: transparent;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   white-space: nowrap;
 }
 
 .pli-enter-btn:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 </style>

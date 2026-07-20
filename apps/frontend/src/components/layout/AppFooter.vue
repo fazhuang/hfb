@@ -15,9 +15,9 @@ const { t } = useI18n();
 
 <style scoped>
 .app-footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-footer-bg, #f8fafc);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-footer-bg);
   text-align: center;
   margin-top: auto;
 }
@@ -26,17 +26,17 @@ const { t } = useI18n();
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .footer-text {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .footer-divider {
-  color: var(--color-text-muted, #a0aec0);
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 </style>

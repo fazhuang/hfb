@@ -25,31 +25,31 @@ withDefaults(defineProps<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: var(--space-15) var(--space-5);
   text-align: center;
 }
 
 .empty-icon {
   font-size: 36px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .empty-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .empty-description {
-  font-size: 14px;
-  color: var(--color-text-muted, #718096);
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
   margin: 0;
   max-width: 360px;
-  line-height: 1.5;
+  line-height: var(--leading-normal);
 }
 
 .empty-action {
-  margin-top: 20px;
+  margin-top: var(--space-5);
 }
 </style>

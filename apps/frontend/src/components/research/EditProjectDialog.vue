@@ -147,38 +147,27 @@ function onCancel() {
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.35);
-  padding: 20px;
+  padding: var(--space-5);
 }
 
 .epd-dialog {
-  background: var(--color-navbar-bg, #fff);
-  border-radius: 12px;
-  padding: 32px;
+  background: var(--color-surface);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  animation: epdFadeIn 0.15s ease;
-}
-
-@keyframes epdFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  box-shadow: var(--shadow-lg);
+  animation: hfb-fade-in var(--transition-base) ease;
 }
 
 .epd-header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .epd-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -195,27 +184,27 @@ function onCancel() {
 }
 
 .epd-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
 }
 
 .epd-input {
   padding: 10px 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  font-size: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
   font-family: inherit;
-  color: var(--color-text-primary, #1a365d);
-  background: var(--color-page-bg, #fafafa);
-  transition: border-color 0.15s;
+  color: var(--color-text-primary);
+  background: var(--color-page-bg);
+  transition: border-color var(--transition-base);
   box-sizing: border-box;
 }
 
 .epd-input:focus {
   outline: none;
-  border-color: var(--color-accent, #4299e1);
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: var(--focus-ring);
 }
 
 .epd-input:disabled {
@@ -228,29 +217,29 @@ function onCancel() {
 }
 
 .epd-error {
-  font-size: 13px;
-  color: var(--color-error-text, #c53030);
-  padding: 8px 12px;
-  background: rgba(197, 48, 48, 0.08);
-  border-radius: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-error-text);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-error-bg);
+  border-radius: var(--radius-md);
   line-height: 1.4;
 }
 
 .epd-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: var(--space-3);
   padding-top: 6px;
 }
 
 .epd-btn {
-  padding: 10px 22px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: var(--btn-padding-lg);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-lg);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   border: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .epd-btn:disabled {
@@ -259,21 +248,21 @@ function onCancel() {
 }
 
 .epd-btn--primary {
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   color: #fff;
 }
 
 .epd-btn--primary:hover:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 
 .epd-btn--cancel {
   background: transparent;
-  color: var(--color-text-secondary, #4a5568);
-  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .epd-btn--cancel:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 </style>

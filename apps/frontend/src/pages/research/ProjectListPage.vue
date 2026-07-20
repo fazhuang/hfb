@@ -281,7 +281,7 @@ onBeforeUnmount(() => {
 }
 
 .rpp-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
 }
 
 .rpp-content {
@@ -291,25 +291,25 @@ onBeforeUnmount(() => {
 .rpp-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 /* ---- Create button ---- */
 .rpp-create-btn {
-  padding: 10px 24px;
+  padding: var(--btn-padding-lg);
   border: none;
-  border-radius: 8px;
-  background: var(--color-accent, #4299e1);
+  border-radius: var(--btn-radius);
+  background: var(--color-accent);
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--btn-font-lg);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: background var(--transition-base);
 }
 
 .rpp-create-btn:hover {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 
 .rpp-create-btn--inline {
@@ -322,26 +322,26 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 28px;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .rpp-pagination button {
-  padding: 6px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--btn-padding-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   cursor: pointer;
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .rpp-pagination button:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover);
+  border-color: var(--color-accent);
 }
 
 .rpp-pagination button:disabled {
@@ -357,29 +357,24 @@ onBeforeUnmount(() => {
 /* ---- Toast ---- */
 .rpp-toast {
   position: fixed;
-  bottom: 24px;
+  bottom: var(--space-6);
   left: 50%;
   transform: translateX(-50%);
-  padding: 10px 24px;
-  border-radius: 8px;
+  padding: var(--btn-padding-lg);
+  border-radius: var(--radius-lg);
   background: #38a169;
   color: #fff;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   z-index: 2000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: rppToastIn 0.2s ease;
-}
-
-@keyframes rppToastIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(8px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  box-shadow: var(--shadow-toast);
+  animation: hfb-toast-in 0.2s ease;
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .rpp-body {
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 }
 </style>

@@ -87,13 +87,13 @@ const exportButtonLabel = computed(() => {
 
 <style scoped>
 .rrli-root {
-  padding: 14px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: 14px var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
@@ -103,16 +103,16 @@ const exportButtonLabel = computed(() => {
 }
 
 .rrli-session-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 4px;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
   line-height: 1.4;
 }
 
 .rrli-topic {
-  font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   margin: 0 0 6px;
   line-height: 1.4;
   overflow: hidden;
@@ -123,12 +123,12 @@ const exportButtonLabel = computed(() => {
 .rrli-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rrli-time {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -142,7 +142,7 @@ const exportButtonLabel = computed(() => {
 .rrli-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -150,18 +150,18 @@ const exportButtonLabel = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 5px 14px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rrli-view-link:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 
@@ -169,20 +169,20 @@ const exportButtonLabel = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 5px 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
-  background: var(--color-navbar-bg, #fff);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rrli-export-btn:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
-  border-color: var(--color-text-muted, #a0aec0);
+  background: var(--color-hover);
+  border-color: var(--color-text-muted);
 }
 
 .rrli-export-btn:disabled {
@@ -193,14 +193,14 @@ const exportButtonLabel = computed(() => {
 .rrli-export-error {
   margin: 0;
   font-size: 11px;
-  color: var(--color-error-text, #c53030);
+  color: var(--color-error-text);
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .rrli-root {
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-3);
   }
 
   .rrli-actions {

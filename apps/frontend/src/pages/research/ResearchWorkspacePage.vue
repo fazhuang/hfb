@@ -263,9 +263,9 @@ onBeforeUnmount(() => {
 }
 
 .rwp-body {
-  padding: 24px 32px;
+  padding: var(--space-6) var(--space-8);
   display: flex;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .rwp-main {
@@ -278,60 +278,60 @@ onBeforeUnmount(() => {
 .rwp-body > :deep(.rae-sidebar) {
   width: 300px;
   flex-shrink: 0;
-  border-left: 1px solid var(--color-border, #e2e8f0);
-  padding-left: 24px;
+  border-left: 1px solid var(--color-border);
+  padding-left: var(--space-6);
 }
 
 /* ---- Action buttons ---- */
 .rwp-action-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  padding: var(--btn-padding-md);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   white-space: nowrap;
 }
 
 .rwp-action-btn--primary {
   border: none;
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   color: #fff;
 }
 
 .rwp-action-btn--primary:hover {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover);
 }
 
 .rwp-action-btn--secondary {
-  border: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-text-secondary, #4a5568);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
 }
 
 .rwp-action-btn--secondary:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 /* ---- Back link ---- */
 .rwp-back-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 20px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rwp-back-link:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 
@@ -339,16 +339,16 @@ onBeforeUnmount(() => {
 @media (max-width: 768px) {
   .rwp-body {
     flex-direction: column;
-    padding: 16px 20px;
+    padding: var(--space-4) var(--space-5);
   }
 
   .rwp-main + :deep(.rae-sidebar),
   .rwp-body > :deep(.rae-sidebar) {
     width: 100%;
     border-left: none;
-    border-top: 1px solid var(--color-border, #e2e8f0);
+    border-top: 1px solid var(--color-border);
     padding-left: 0;
-    padding-top: 16px;
+    padding-top: var(--space-4);
   }
 }
 </style>

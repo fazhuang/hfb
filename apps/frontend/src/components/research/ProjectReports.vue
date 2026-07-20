@@ -140,16 +140,16 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .pr-section {
-  margin-bottom: 28px;
+  margin-bottom: var(--space-7);
 }
 
 .pr-heading {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .pr-list {
@@ -158,18 +158,18 @@ onBeforeUnmount(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .pr-item {
-  padding: 12px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 
@@ -179,53 +179,53 @@ onBeforeUnmount(() => {
 }
 
 .pr-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
   margin: 0 0 6px;
 }
 
 .pr-steps {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .pr-step-badge {
   display: inline-block;
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  font-weight: 500;
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-text-muted, #a0aec0);
+  font-weight: var(--font-medium);
+  background: var(--color-hover);
+  color: var(--color-text-muted);
 }
 
 .pr-step--completed {
   background: rgba(56, 161, 105, 0.12);
-  color: #276749;
+  color: var(--color-success-text);
 }
 
 .pr-step--failed {
   background: rgba(197, 48, 48, 0.1);
-  color: #9b2c2c;
+  color: var(--color-error-light-text);
 }
 
 .pr-step--pending {
   background: rgba(160, 174, 192, 0.12);
-  color: #718096;
+  color: var(--color-text-muted);
 }
 
 .pr-item-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-shrink: 0;
 }
 
 .pr-time {
-  font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
   white-space: nowrap;
 }
 
@@ -233,18 +233,18 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   padding: 4px 14px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
   text-decoration: none;
   white-space: nowrap;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .pr-view-link:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: #fff;
 }
 </style>
