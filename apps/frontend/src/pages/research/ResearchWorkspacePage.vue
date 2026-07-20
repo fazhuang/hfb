@@ -4,7 +4,7 @@
       :title="pageTitle"
       :description="project?.context_notes ?? undefined"
       :breadcrumbs="[
-        { label: '研究课题', to: '/research' },
+        { label: 'Research', to: '/research' },
         { label: pageTitle, to: `/research/${projectId}` },
         { label: '研究工作区' },
       ]"

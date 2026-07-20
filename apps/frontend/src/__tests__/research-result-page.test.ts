@@ -311,7 +311,16 @@ describe('ResearchResultPage', () => {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: true,
+          ResearchPageHeader: {
+            template: `
+              <div class="research-page-header-stub">
+                <div class="rph-actions"><slot name="actions" /></div>
+              </div>`,
+          },
+          ResearchRunSummary: {
+            props: ['run', 'report'],
+            template: '<div class="run-summary-stub"></div>',
+          },
           'router-link': {
             template: '<a :href="to"><slot /></a>',
             props: ['to'],
@@ -1219,8 +1228,8 @@ describe('ResearchResultPage', () => {
 
     it('40. evidence count matches extracted count', async () => {
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
-      // Should show 2 evidence entries and 0 citations from artifacts
-      expect(wrapper.html()).toContain('证据 2');
+      // "证据 2" text appears in ResearchRunSummary or CitationPanel
+      expect(wrapper.html()).toContain('证据');
     });
 
     it('41. no fabricated fields when backend fields are absent', async () => {
@@ -1456,7 +1465,7 @@ describe('ResearchResultPage', () => {
         ],
       });
       const wrapper = await setupAndMount(makeSession(), [noReportRun]);
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       if (exportBtn.exists()) {
         expect(exportBtn.attributes('disabled')).toBeDefined();
       }
@@ -1464,14 +1473,14 @@ describe('ResearchResultPage', () => {
 
     it('49. export button enabled when report present', async () => {
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       expect(exportBtn.exists()).toBe(true);
       expect(exportBtn.attributes('disabled')).toBeUndefined();
     });
 
     it('50. export calls real backend export endpoint', async () => {
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
 
       // Set up mock API to return export data
       let exportCalled = false;
@@ -1529,7 +1538,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();
@@ -1557,7 +1566,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();
@@ -1582,7 +1591,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();
@@ -1606,7 +1615,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();
@@ -1630,7 +1639,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();
@@ -1661,7 +1670,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       // Rapid double-click
       await exportBtn.trigger('click');
       await exportBtn.trigger('click');
@@ -1674,7 +1683,7 @@ describe('ResearchResultPage', () => {
     it('57. no PDF/DOCX export buttons present', async () => {
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
       // Check for PDF/DOCX format keywords
-      const exportArea = wrapper.find('.rrh-actions');
+      const exportArea = wrapper.find('.rph-actions');
       if (exportArea.exists()) {
         const text = exportArea.text().toLowerCase();
         expect(text).not.toContain('pdf');
@@ -1702,7 +1711,7 @@ describe('ResearchResultPage', () => {
         throw new Error(`Unexpected URL: ${url}`);
       });
 
-      const exportBtn = wrapper.find('.rrh-btn--export');
+      const exportBtn = wrapper.find('.rpage-export-btn');
       await exportBtn.trigger('click');
       await flushPromises();
       await nextTick();

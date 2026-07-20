@@ -3,7 +3,7 @@
     <ResearchPageHeader
       :title="pageTitle"
       :breadcrumbs="[
-        { label: '研究课题', to: '/research' },
+        { label: 'Research', to: '/research' },
         { label: session?.title || '加载中...', to: `/research/${projectId}` },
         { label: '研究工作流' },
       ]"
