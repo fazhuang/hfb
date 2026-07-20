@@ -475,8 +475,8 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       const url = page.url();
       expect(url.includes('/reader') || url.includes('/literature')).toBeTruthy();
     } else {
-      // At minimum the detail page should be visible
-      await expect(page.locator('.lib-detail-body, .lib-detail-page, .research-page-header')).toBeVisible({ timeout: 10_000 });
+      // At minimum the detail page or page header should be visible
+      await expect(page.locator('.lib-detail-body, .lib-detail-page, .research-page-header').first()).toBeVisible({ timeout: 10_000 });
     }
   });
 
