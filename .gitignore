@@ -124,6 +124,8 @@ apps/backend/output/p0_*.json
 
 # E2E trace/screenshot artifacts (root — prevent accidental commit)
 /reaudit*.png
+/playwright-report/
+/test-results/
 
 # --- OCR / PDF / Image artifacts ---
 output/ocr_tmp/

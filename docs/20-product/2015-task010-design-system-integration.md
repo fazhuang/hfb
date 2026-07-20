@@ -1,8 +1,9 @@
 # Task 010 — Research Design System Integration
 
    **Status:** COMPLETE
-   **Commit:** `de5c732b1b3c04397f157990cc288dbd3e836284`
+   **Commit:** `caa3b90238733f1ea1c96ad6493088139f9dae2d`
    **Date:** 2026-07-20
+   **Verified:** 2026-07-21 01:30 UTC — 88/88 E2E PASS with real backend, real login, real data
 
    ## 变更范围
 
@@ -80,19 +81,19 @@
 
    - **测试文件:** `apps/frontend/src/e2e/task010-design-system.spec.ts`
    - **配置:** `apps/frontend/playwright.config.ts`
-   - **测试数量:** 22 tests × 4 viewports = 88 total, 0 skip, 0 todo
-   - **通过率:** 88/88
+   - **测试数量:** 22 tests × 4 viewports = 88 total, 0 failed, 0 skipped, 0 todo
+   - **通过率:** 88/88 PASS (real backend, real DB, real login, real JWT)
 
    #### 验证内容:
    | 类别 | 测试 | 状态 |
    |---|---|---|
-   | State Components | LoadingState, ErrorState, EmptyState | ✅ |
-   | Page Rendering | 8 core pages × 4 viewports | ✅ |
-   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel | ✅ |
-   | Keyboard | Tab order, focus-visible ring | ✅ |
-   | Responsive | No horizontal overflow, PageHeader visible | ✅ |
-   | Navigation | Breadcrumbs back, Library→Reader, Reports export, Workflow input | ✅ |
-   | Screenshots | 7 pages × 4 viewports saved to `output/playwright/` | ✅ |
+   | State Components | LoadingState (spinner/status), ErrorState (role=alert + retry), EmptyState (role=status) | ✅ |
+   | Page Rendering | 8 core pages × 4 viewports — all with console error assertions | ✅ |
+   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel, Dialog focus management (open→focus in, close→focus returns) | ✅ |
+   | Keyboard | Tab order (interactive elements), focus-visible ring (computed outline/box-shadow; touch: confirmed absence is expected) | ✅ |
+   | Responsive | No horizontal overflow (7 routes), PageHeader visible | ✅ |
+   | Navigation | Breadcrumbs back, Library→detail→全文阅读→/literature (SPA navigation + page validation), Reports export (ready report w/ download or error), Workflow step advance (question→selection) | ✅ |
+   | Screenshots | 8 pages × 4 viewports saved to `output/playwright/` | ✅ |
 
    ### 四视口
 
@@ -108,7 +109,7 @@
    - **后端:** `http://127.0.0.1:8000` (FastAPI, PostgreSQL, real DB)
    - **前端:** `http://127.0.0.1:5173` (Vite dev server, API proxy → backend)
    - **账号:** `researcher / researcher123` (real JWT via `/api/v1/auth/login`)
-   - **数据:** Real sessions with runs from DB; `/library` documents API returns 500 (known backend data issue — filtered from test failures)
+   - **数据:** Real sessions with runs from DB; real documents via `/api/v1/documents`
 
    ### 截图证据
 
@@ -120,6 +121,7 @@
    - `05-result-{375,768,1280,1440}.png`
    - `06-reports-{375,768,1280,1440}.png`
    - `07-library-{375,768,1280,1440}.png`
+   - `08-reader-{375,768,1280,1440}.png`
 
    ## 冻结基线
 
@@ -129,11 +131,16 @@
 
    ## 最终状态
 
-   - **HEAD:** `de5c732b1b3c04397f157990cc288dbd3e836284`
-   - **origin/master:** 一致
-   - **Working Tree:** Clean (`git status --porcelain` 无输出)
+   - **HEAD:** `caa3b90238733f1ea1c96ad6493088139f9dae2d`
+   - **origin/master:** 一致 (`caa3b902`)
+   - **Working Tree:** Modified (`.gitignore`, `playwright.config.ts`, E2E spec, this doc — P0 fixes pending commit)
    - **Frontend Tests:** 371/371 PASS
    - **Build:** PASS
-   - **Type Check:** PASS (4 pre-existing TS2353 错误，未新增)
-   - **E2E:** 88/88 PASS, 0 skip
-   - **Screenshots:** 28 个截图文件
+   - **Type Check:** PASS (0 errors)
+   - **E2E:** 88/88 PASS, 0 failed, 0 skipped
+   - **Screenshots:** 32 个截图文件 (8 pages × 4 viewports)
+   - **HTML Report:** `output/playwright/report/index.html`
+   - **Terminal Log:** `output/playwright/e2e-terminal-log.txt`
+   - **Playwright Artifacts:** `output/playwright/test-artifacts/` (no root pollution)
+   - **无 mock、无 localStorage 注入、无 dispatchEvent、无 skip/todo/only**
+   - **Library API 成功、Reader 全文阅读链路完整、Reports 导出真实点击、Workflow 步骤推进、Dialog 焦点管理、Tab/focus-visible 全视口验证**

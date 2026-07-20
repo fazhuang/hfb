@@ -8,6 +8,7 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   workers: 1,
+  outputDir: '../../output/playwright/test-artifacts',
   reporter: [['html', { outputFolder: '../../output/playwright/report' }], ['list']],
   use: {
     baseURL: 'http://127.0.0.1:5173',
