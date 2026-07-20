@@ -148,12 +148,15 @@ const router = createRouter({
               name: 'library-detail',
               component: () => import('@/pages/library/LibraryDetailPage.vue'),
             },
-            {
-              path: ':id/reader',
-              name: 'library-reader',
-              component: () => import('@/pages/reader/ReaderPage.vue'),
-            },
           ],
+        },
+
+        // Reader (standalone, not under Library module — Task 009)
+        {
+          path: 'reader/:id',
+          name: 'reader',
+          component: () => import('@/pages/reader/ReaderPage.vue'),
+          meta: { requiresAuth: true },
         },
 
         // Knowledge module (placeholder)

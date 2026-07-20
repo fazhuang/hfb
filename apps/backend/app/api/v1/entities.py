@@ -472,6 +472,31 @@ async def get_document_stats(
 # /documents/{id}/reader — aggregated reader data
 # ============================================================
 
+def _resolve_citation_anchor(citation, all_chunk_objs: list) -> list:
+    """Resolve a Citation to its anchor DocumentChunks.
+
+    Resolution chain:
+      Citation.target_id → if target_type == 'Passage' → find chunks with matching passage_id.
+
+    Returns empty anchor_chunk_ids when no stable anchor exists.
+    Fuzzy text matching is FORBIDDEN — only stable DB relations are used.
+    """
+    matched: list = []
+    # If the citation targets a Passage, find chunks linked to that passage
+    if citation.target_type == "Passage" and citation.target_id:
+        target_id = str(citation.target_id)
+        matched = [ch for ch in all_chunk_objs if ch.passage_id and str(ch.passage_id) == target_id]
+    return matched
+
+
+def _resolve_evidence_anchor(evidence, all_chunk_objs: list) -> list:
+    """Resolve Evidence to its anchor DocumentChunks via source_passage_id."""
+    if evidence.source_passage_id:
+        sid = str(evidence.source_passage_id)
+        return [ch for ch in all_chunk_objs if ch.passage_id and str(ch.passage_id) == sid]
+    return []
+
+
 @router.get(
     "/documents/{item_id}/reader",
     response_model=dict,
@@ -503,115 +528,311 @@ async def get_document_reader(
     # Document detail
     doc_data = DocumentResponse.model_validate(doc).model_dump(mode="json")
 
-    # OCR chunks
-    try:
-        chunks_q = (
-            sql_select(DocumentChunk)
-            .where(
-                DocumentChunk.document_id == str(item_id),
-                DocumentChunk.ocr_confidence.is_not(None),
-            )
-            .order_by(DocumentChunk.chunk_index)
+    # ---- OCR chunks ----
+    chunks_q = (
+        sql_select(DocumentChunk)
+        .where(
+            DocumentChunk.document_id == str(item_id),
+            DocumentChunk.ocr_confidence.is_not(None),
         )
-        chunk_objs = (await session.execute(chunks_q)).scalars().all()
-        ocr_chunks = [
+        .order_by(DocumentChunk.chunk_index)
+    )
+    chunk_objs = (await session.execute(chunks_q)).scalars().all()
+    ocr_chunks = [
+        {
+            "id": c.id,
+            "chunk_index": c.chunk_index,
+            "content": c.content,
+            "page_number": c.page_number,
+            "paragraph_index": c.paragraph_index,
+            "ocr_confidence": c.ocr_confidence,
+            "passage_id": c.passage_id,
+            "match_method": c.match_method,
+            "quote_bbox": c.quote_bbox,
+        }
+        for c in chunk_objs
+    ]
+
+    # ---- Linked passages (with translation) via DocumentChunk.passage_id ----
+    from app.models.passage import Passage  # noqa: E402
+
+    passage_ids_q = (
+        sql_select(DocumentChunk.passage_id)
+        .where(
+            DocumentChunk.document_id == str(item_id),
+            DocumentChunk.passage_id.is_not(None),
+        )
+        .distinct()
+    )
+    pids = (await session.execute(passage_ids_q)).scalars().all()
+    passages: list[dict] = []
+    if pids:
+        passages_q = (
+            sql_select(Passage)
+            .where(Passage.id.in_(pids))
+            .order_by(Passage.order)
+        )
+        passage_objs = (await session.execute(passages_q)).scalars().all()
+        passages = [
             {
-                "chunk_index": c.chunk_index,
-                "content": c.content,
-                "page_number": c.page_number,
-                "paragraph_index": c.paragraph_index,
-                "ocr_confidence": c.ocr_confidence,
+                "id": p.id,
+                "content_text": p.content_text,
+                "translation": p.translation,
+                "notes": p.notes,
+                "order": p.order,
+                "tags": p.tags,
             }
-            for c in chunk_objs
+            for p in passage_objs
         ]
-    except Exception:
-        ocr_chunks = []
 
-    # Linked passages (with translation) via DocumentChunk.passage_id
-    try:
-        from app.models.passage import Passage  # noqa: E402
+    # ---- All chunks for this document (needed for citation/evidence anchor resolution) ----
+    all_chunks_q = (
+        sql_select(DocumentChunk)
+        .where(DocumentChunk.document_id == str(item_id))
+        .order_by(DocumentChunk.chunk_index)
+    )
+    all_chunk_objs = (await session.execute(all_chunks_q)).scalars().all()
+    all_chunks = [
+        {
+            "id": c.id,
+            "chunk_index": c.chunk_index,
+            "content": c.content,
+            "page_number": c.page_number,
+            "paragraph_index": c.paragraph_index,
+            "passage_id": c.passage_id,
+        }
+        for c in all_chunk_objs
+    ]
 
-        passage_ids_q = (
-            sql_select(DocumentChunk.passage_id)
-            .where(
-                DocumentChunk.document_id == str(item_id),
-                DocumentChunk.passage_id.is_not(None),
-            )
-            .distinct()
-        )
-        pids = (await session.execute(passage_ids_q)).scalars().all()
-        passages = []
-        if pids:
-            passages_q = (
-                sql_select(Passage)
-                .where(Passage.id.in_(pids))
-                .order_by(Passage.order)
-            )
-            passage_objs = (await session.execute(passages_q)).scalars().all()
-            passages = [
-                {
-                    "id": p.id,
-                    "content_text": p.content_text,
-                    "translation": p.translation,
-                    "notes": p.notes,
-                    "order": p.order,
-                    "tags": p.tags,
-                }
-                for p in passage_objs
-            ]
-    except Exception:
-        passages = []
+    # ---- Citations for this document ----
+    citation_q = (
+        sql_select(Citation)
+        .join(Evidence, Citation.evidence_id == Evidence.id)
+        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+        .where(DocumentChunk.document_id == str(item_id))
+        .distinct()
+    )
+    citation_objs = (await session.execute(citation_q)).scalars().all()
+    # Resolve each citation to its anchor chunk(s)
+    citations = []
+    for c in citation_objs:
+        anchor_chunks = _resolve_citation_anchor(c, all_chunk_objs)
+        citations.append({
+            "id": c.id,
+            "quote_text": c.quote_text,
+            "note": c.note,
+            "target_type": c.target_type,
+            "target_id": c.target_id,
+            "evidence_id": c.evidence_id,
+            "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
+            "anchor_passage_ids": list({ch.passage_id for ch in anchor_chunks if ch.passage_id}),
+        })
 
-    # Citations for this document
-    try:
-        citation_q = (
-            sql_select(Citation)
-            .join(Evidence, Citation.evidence_id == Evidence.id)
-            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
-            .where(DocumentChunk.document_id == str(item_id))
-            .distinct()
-        )
-        citation_objs = (await session.execute(citation_q)).scalars().all()
-        citations = [
-            {
-                "id": c.id,
-                "quote_text": c.quote_text,
-                "note": c.note,
-                "target_type": c.target_type,
-                "target_id": c.target_id,
-                "evidence_id": c.evidence_id,
-            }
-            for c in citation_objs
-        ]
-    except Exception:
-        citations = []
-
-    # Evidence for this document
-    try:
-        evidence_q = (
-            sql_select(Evidence)
-            .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
-            .where(DocumentChunk.document_id == str(item_id))
-            .distinct()
-        )
-        evidence_objs = (await session.execute(evidence_q)).scalars().all()
-        evidences = [
-            {
-                "id": e.id,
-                "description": e.description,
-                "evidence_level": int(e.evidence_level.value) if hasattr(e.evidence_level, 'value') else e.evidence_level,
-                "source_passage_id": e.source_passage_id,
-                "source_ref_id": e.source_ref_id,
-            }
-            for e in evidence_objs
-        ]
-    except Exception:
-        evidences = []
+    # ---- Evidence for this document ----
+    evidence_q = (
+        sql_select(Evidence)
+        .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
+        .where(DocumentChunk.document_id == str(item_id))
+        .distinct()
+    )
+    evidence_objs = (await session.execute(evidence_q)).scalars().all()
+    evidences = []
+    for e in evidence_objs:
+        anchor_chunks = _resolve_evidence_anchor(e, all_chunk_objs)
+        evidences.append({
+            "id": e.id,
+            "description": e.description,
+            "evidence_level": int(e.evidence_level.value) if hasattr(e.evidence_level, 'value') else e.evidence_level,
+            "source_passage_id": e.source_passage_id,
+            "source_ref_id": e.source_ref_id,
+            "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
+        })
 
     return api_response(data={
         "document": doc_data,
         "ocr_chunks": ocr_chunks,
         "passages": passages,
+        "chunks": all_chunks,
         "citations": citations,
         "evidences": evidences,
+    })
+
+
+# ============================================================
+# Test-only: seed reader data (Citation + Evidence linked to chunks)
+# ============================================================
+
+import os  # noqa: E402
+
+from pydantic import BaseModel as PydanticBaseModel  # noqa: E402
+
+
+class _TestSeedReaderDataRequest(PydanticBaseModel):
+    username: str
+    password: str
+    document_title: str
+    document_text: str
+    passage_text: str | None = None
+    passage_translation: str | None = None
+    with_passage: bool = True
+
+
+@router.post(
+    "/_test/seed-reader-data",
+    response_model=dict,
+)
+async def _test_seed_reader_data(
+    body: _TestSeedReaderDataRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    """Test-only: create a full Reader test fixture.
+
+    Creates: user → document → chunks → Book→Version→Chapter→Passage →
+    Evidence → Citation. Returns full test data dict.
+
+    Guarded by SEED_TEST_DATA=1 env var.
+    """
+    if os.environ.get("SEED_TEST_DATA") != "1":
+        raise HTTPException(status_code=404, detail="Not found")
+
+    import uuid as _uuid_mod  # noqa: E402
+    from app.models.user import User  # noqa: E402
+    from app.models.passage import Passage  # noqa: E402
+    from app.models.academic_evidence import EvidenceLevel  # noqa: E402
+    from app.services.auth_service import hash_password  # noqa: E402
+
+    # ---- 1. Create or get user ----
+    user_stmt = sql_select(User).where(User.username == body.username)
+    user = (await session.execute(user_stmt)).scalar_one_or_none()
+    if user is None:
+        user = User(
+            id=str(_uuid_mod.uuid4()),
+            username=body.username,
+            email=f"{body.username}@e2e.test",
+            hashed_password=hash_password(body.password),
+            is_active=True,
+        )
+        session.add(user)
+        await session.flush()
+
+    # ---- 2. Create Document ----
+    doc = Document(
+        id=str(_uuid_mod.uuid4()),
+        title=body.document_title,
+        uploaded_by=user.id,
+        copyright_status="public_domain",
+        language="zh",
+    )
+    session.add(doc)
+    await session.flush()
+
+    # ---- 3. Create DocumentChunks (paragraph-boundary) ----
+    paragraphs = [p for p in body.document_text.split("\n\n") if p.strip()]
+    chunks = []
+    for idx, para in enumerate(paragraphs):
+        chunk = DocumentChunk(
+            id=str(_uuid_mod.uuid4()),
+            document_id=doc.id,
+            chunk_index=idx,
+            content=para.strip(),
+            paragraph_index=idx,
+        )
+        session.add(chunk)
+        chunks.append(chunk)
+    await session.flush()
+
+    passage_id = None
+    evidence_id = None
+    citation_id = None
+
+    if body.with_passage:
+        # ---- 4. Create Book → Version → Chapter → Passage ----
+        from app.models.book import Book  # noqa: E402
+        from app.models.version import Version  # noqa: E402
+        from app.models.chapter import Chapter  # noqa: E402
+
+        book = Book(id=str(_uuid_mod.uuid4()), title=f"E2E书-{_uuid_mod.uuid4().hex[:6]}", dynasty="汉")
+        session.add(book)
+        await session.flush()
+
+        version = Version(
+            id=str(_uuid_mod.uuid4()),
+            book_id=book.id,
+            version_name="E2E本",
+            era="E2E",
+            repository="E2E库",
+            shelf_mark="E2E-001",
+        )
+        session.add(version)
+        await session.flush()
+
+        chapter = Chapter(
+            id=str(_uuid_mod.uuid4()),
+            book_id=book.id,
+            title="E2E章",
+            order=1,
+        )
+        session.add(chapter)
+        await session.flush()
+
+        passage_text = body.passage_text or (paragraphs[0] if paragraphs else "E2E passage text")
+        passage = Passage(
+            id=str(_uuid_mod.uuid4()),
+            chapter_id=chapter.id,
+            version_id=version.id,
+            content_text=passage_text,
+            translation=body.passage_translation,
+            order=1,
+            tags="E2E",
+        )
+        session.add(passage)
+        await session.flush()
+        passage_id = passage.id
+
+        # Link the first chunk to the passage
+        if chunks:
+            chunks[0].passage_id = passage.id
+
+        # ---- 5. Create Evidence + Citation ----
+        evidence = Evidence(
+            id=str(_uuid_mod.uuid4()),
+            description=f"E2E evidence for {body.document_title}",
+            evidence_level=EvidenceLevel.LEVEL_2,
+            source_passage_id=passage.id,
+        )
+        session.add(evidence)
+        await session.flush()
+        evidence_id = evidence.id
+
+        citation = Citation(
+            id=str(_uuid_mod.uuid4()),
+            target_type="Passage",
+            target_id=passage.id,
+            evidence_id=evidence.id,
+            quote_text=passage.content_text[:200] if passage.content_text else "",
+            note="E2E test citation",
+        )
+        session.add(citation)
+        await session.flush()
+        citation_id = citation.id
+
+    # Return a complete dict matching what tests expect
+    return api_response(data={
+        "user_id": user.id,
+        "username": body.username,
+        "password": body.password,
+        "access_token": "PLACEHOLDER",  # tests will use _seed_user result instead
+        "doc": {
+            "id": doc.id,
+            "title": body.document_title,
+            "document_id": doc.id,
+        },
+        "chunks": [
+            {"id": c.id, "chunk_index": c.chunk_index, "content": c.content,
+             "paragraph_index": c.paragraph_index, "page_number": getattr(c, 'page_number', None)}
+            for c in chunks
+        ],
+        "passage_id": passage_id,
+        "evidence_id": evidence_id,
+        "citation_id": citation_id,
     })

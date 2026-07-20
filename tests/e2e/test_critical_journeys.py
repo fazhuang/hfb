@@ -3950,7 +3950,7 @@ class TestLibraryE2E:
     def test_library_reader_jump(
         self, live_servers, library_test_users, page,
     ):
-        """Clicking '全文阅读' button navigates to /library/:id/reader with correct doc ID."""
+        """Clicking '全文阅读' button navigates to /literature/:id with correct doc ID."""
         frontend_url, _ = live_servers
         a = library_test_users["user_a"]
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
@@ -3972,8 +3972,8 @@ class TestLibraryE2E:
 
         # Click the reader button
         reader_btn.click()
-        # Must navigate to /library/{doc_id}/reader
-        page.wait_for_url(f"{frontend_url}/library/{doc_id}/reader**", timeout=10000)
+        # Must navigate to /literature/{doc_id}
+        page.wait_for_url(f"{frontend_url}/literature/{doc_id}**", timeout=10000)
 
         # Verify the reader page loaded with real content
         page.wait_for_timeout(3000)

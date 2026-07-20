@@ -13,7 +13,7 @@
       @retry="fetchReaderData"
     />
 
-    <!-- Document not found / empty -->
+    <!-- Document not found -->
     <EmptyState
       v-else-if="!doc"
       title="文献未找到"
@@ -102,8 +102,8 @@
           <p class="reader-abstract-text">{{ doc.abstract }}</p>
         </section>
 
-        <!-- Section: Original Text -->
-        <section v-if="doc.content_text" class="reader-panel">
+        <!-- Section: Original Text (rendered from backend chunks) -->
+        <section v-if="chunks.length > 0" class="reader-panel">
           <h3>原文</h3>
           <div class="reader-text-controls">
             <button
@@ -116,22 +116,41 @@
           <div
             ref="textContainerRef"
             :class="['reader-content-text', { 'reader-content-text--expanded': textExpanded }]"
-          >{{ doc.content_text }}</div>
+          >
+            <div
+              v-for="chunk in chunks"
+              :key="chunk.id"
+              :id="`chunk-${chunk.id}`"
+              :ref="(el) => registerChunkEl(chunk.id, el)"
+              class="reader-chunk-paragraph"
+              :class="{ 'reader-highlight': highlightedChunkIds.has(chunk.id) }"
+              :data-chunk-index="chunk.chunk_index"
+              :data-paragraph-index="chunk.paragraph_index"
+              :data-page-number="chunk.page_number"
+            >
+              <span v-if="chunk.page_number" class="reader-chunk-page-marker">
+                [页{{ chunk.page_number }}]
+              </span>
+              {{ chunk.content }}
+            </div>
+          </div>
         </section>
 
-        <!-- Section: Paragraph Navigation (parsed from content_text) -->
-        <section v-if="paragraphs.length > 0" class="reader-panel">
+        <!-- Section: Paragraph navigation (from backend chunks, not regex) -->
+        <section v-if="chunks.length > 0" class="reader-panel">
           <h3>段落导航</h3>
           <div class="reader-paragraph-list">
             <div
-              v-for="(para, idx) in paragraphs"
-              :key="idx"
+              v-for="chunk in chunks"
+              :key="`nav-${chunk.id}`"
               class="reader-paragraph-item"
-              :class="{ 'reader-paragraph-item--active': activeParagraph === idx }"
-              @click="jumpToParagraph(idx)"
+              :class="{ 'reader-paragraph-item--active': highlightedChunkIds.has(chunk.id) }"
+              @click="scrollToChunk(chunk.id)"
             >
-              <span class="reader-paragraph-label">{{ para.label }}</span>
-              <span class="reader-paragraph-preview">{{ para.preview }}</span>
+              <span class="reader-paragraph-label">
+                段 {{ chunk.paragraph_index != null ? chunk.paragraph_index + 1 : chunk.chunk_index + 1 }}
+              </span>
+              <span class="reader-paragraph-preview">{{ chunkPreview(chunk.content) }}</span>
             </div>
           </div>
         </section>
@@ -145,10 +164,10 @@
           </p>
           <div
             v-for="chunk in ocrChunks"
-            :key="chunk.chunk_index"
-            :id="`ocr-chunk-${chunk.chunk_index}`"
+            :key="`ocr-${chunk.id}`"
+            :id="`ocr-chunk-${chunk.id}`"
             class="reader-ocr-chunk"
-            :class="{ 'reader-highlight': highlightedOcrChunk === chunk.chunk_index }"
+            :class="{ 'reader-highlight': highlightedChunkIds.has(chunk.id) }"
           >
             <div class="reader-ocr-chunk-header">
               <span class="reader-ocr-chunk-idx">#{{ chunk.chunk_index }}</span>
@@ -166,10 +185,10 @@
           <h3>现代汉语翻译</h3>
           <div
             v-for="passage in passagesWithTranslation"
-            :key="passage.id"
+            :key="`trans-${passage.id}`"
             :id="`passage-${passage.id}`"
             class="reader-translation-item"
-            :class="{ 'reader-highlight': highlightedPassageId === passage.id }"
+            :class="{ 'reader-highlight': highlightedPassageIds.has(passage.id) }"
           >
             <div class="reader-translation-header">
               <span class="reader-translation-order">#{{ passage.order }}</span>
@@ -178,13 +197,17 @@
             <div class="reader-translation-text">{{ passage.translation }}</div>
           </div>
         </section>
+        <section v-else-if="passages.length > 0" class="reader-panel">
+          <h3>现代汉语翻译</h3>
+          <p class="reader-section-hint">该文献的段落暂无现代汉语翻译。</p>
+        </section>
 
         <!-- Section: Citations -->
         <section v-if="citations.length > 0" class="reader-panel">
           <h3>引文定位</h3>
           <div
             v-for="citation in citations"
-            :key="citation.id"
+            :key="`cit-${citation.id}`"
             :id="`citation-${citation.id}`"
             class="reader-citation-item"
             :class="{ 'reader-highlight': highlightedCitationId === citation.id }"
@@ -197,6 +220,14 @@
             </div>
             <div class="reader-citation-meta">
               <span class="reader-citation-target">{{ citation.target_type }}</span>
+              <button
+                v-if="citation.anchor_chunk_ids && citation.anchor_chunk_ids.length > 0"
+                class="reader-anchor-btn"
+                @click.stop="scrollToCitationAnchor(citation)"
+              >
+                📍 定位到原文
+              </button>
+              <span v-else class="reader-no-anchor">无法定位到原文</span>
             </div>
           </div>
         </section>
@@ -212,7 +243,7 @@
           <h3>证据定位</h3>
           <div
             v-for="evidence in evidences"
-            :key="evidence.id"
+            :key="`ev-${evidence.id}`"
             :id="`evidence-${evidence.id}`"
             class="reader-evidence-item"
             :class="{ 'reader-highlight': highlightedEvidenceId === evidence.id }"
@@ -223,6 +254,16 @@
             <div class="reader-evidence-desc">{{ evidence.description }}</div>
             <div v-if="evidence.source_passage_id" class="reader-evidence-passage">
               关联段落: {{ evidence.source_passage_id }}
+            </div>
+            <div class="reader-evidence-actions">
+              <button
+                v-if="evidence.anchor_chunk_ids && evidence.anchor_chunk_ids.length > 0"
+                class="reader-anchor-btn"
+                @click.stop="scrollToEvidenceAnchor(evidence)"
+              >
+                📍 定位到原文
+              </button>
+              <span v-else class="reader-no-anchor">无法定位到原文</span>
             </div>
           </div>
         </section>
@@ -241,19 +282,19 @@
 /**
  * ReaderPage — 全文阅读页面
  *
- * Route: /library/:id/reader
+ * Route: /reader/:id  (standalone route, NOT under Library module)
  *
- * Aggregates all reader data from GET /api/v1/documents/{id}/reader:
+ * Data: GET /api/v1/documents/{id}/reader
  *   - Document metadata
- *   - Original text (content_text)
+ *   - Chunks (stable backend IDs for anchoring)
  *   - OCR chunks
  *   - Linked passages with translation
- *   - Citations
- *   - Evidence
+ *   - Citations with anchor_chunk_ids
+ *   - Evidence with anchor_chunk_ids
  *
- * ref: docs/20-product/2011-task009-reader-refactor.md
+ * ref: docs/20-product/2017-task009-reader-refactor.md
  */
-import { computed, ref, onMounted, nextTick } from 'vue';
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
@@ -284,12 +325,25 @@ interface ReaderDocument {
   source_name?: string | null;
 }
 
+interface ReaderChunk {
+  id: string;
+  chunk_index: number;
+  content: string;
+  page_number?: number | null;
+  paragraph_index?: number | null;
+  passage_id?: string | null;
+}
+
 interface OcrChunk {
+  id: string;
   chunk_index: number;
   content: string;
   page_number?: number | null;
   paragraph_index?: number | null;
   ocr_confidence?: number | null;
+  passage_id?: string | null;
+  match_method?: string | null;
+  quote_bbox?: Record<string, unknown> | null;
 }
 
 interface ReaderPassage {
@@ -308,6 +362,8 @@ interface ReaderCitation {
   target_type: string;
   target_id: string;
   evidence_id: string;
+  anchor_chunk_ids: string[];
+  anchor_passage_ids: string[];
 }
 
 interface ReaderEvidence {
@@ -316,22 +372,16 @@ interface ReaderEvidence {
   evidence_level: number;
   source_passage_id?: string | null;
   source_ref_id?: string | null;
+  anchor_chunk_ids: string[];
 }
 
 interface ReaderData {
   document: ReaderDocument;
   ocr_chunks: OcrChunk[];
   passages: ReaderPassage[];
+  chunks: ReaderChunk[];
   citations: ReaderCitation[];
   evidences: ReaderEvidence[];
-}
-
-// ---- Paragraph navigation ----
-
-interface ParagraphNavItem {
-  label: string;
-  preview: string;
-  offset: number;
 }
 
 // ---- State ----
@@ -341,16 +391,32 @@ const error = ref<string | null>(null);
 const doc = ref<ReaderDocument | null>(null);
 const ocrChunks = ref<OcrChunk[]>([]);
 const passages = ref<ReaderPassage[]>([]);
+const chunks = ref<ReaderChunk[]>([]);
 const citations = ref<ReaderCitation[]>([]);
 const evidences = ref<ReaderEvidence[]>([]);
 
 const textExpanded = ref(false);
 const textContainerRef = ref<HTMLElement | null>(null);
-const activeParagraph = ref(-1);
-const highlightedOcrChunk = ref(-1);
-const highlightedPassageId = ref<string | null>(null);
+
+// Map of chunk id -> DOM element for scroll anchoring
+const chunkElMap = ref<Map<string, HTMLElement>>(new Map());
+function registerChunkEl(id: string, el: unknown) {
+  const map = chunkElMap.value;
+  if (el instanceof HTMLElement) {
+    map.set(id, el);
+  } else {
+    map.delete(id);
+  }
+}
+
+const highlightedChunkIds = ref<Set<string>>(new Set());
+const highlightedPassageIds = ref<Set<string>>(new Set());
 const highlightedCitationId = ref<string | null>(null);
 const highlightedEvidenceId = ref<string | null>(null);
+
+// Request serial for race-condition protection
+let reqSerial = 0;
+let mounted = false;
 
 // ---- Computed ----
 
@@ -358,7 +424,6 @@ const docId = computed(() => route.params.id as string);
 
 const breadcrumbs = computed<Breadcrumb[]>(() => [
   { label: 'Library', to: { name: 'library-search' } },
-  { label: doc.value?.title || '文献详情', to: { name: 'library-detail', params: { id: docId.value } } },
   { label: '全文阅读' },
 ]);
 
@@ -393,126 +458,179 @@ const passagesWithTranslation = computed(() =>
   passages.value.filter((p) => p.translation),
 );
 
-const paragraphs = computed<ParagraphNavItem[]>(() => {
-  const text = doc.value?.content_text;
-  if (!text) return [];
-  return parseParagraphNav(text);
-});
-
 // ---- Data fetching ----
 
 async function fetchReaderData() {
+  const serial = ++reqSerial;
   loading.value = true;
   error.value = null;
   try {
     const { data } = await api.get(`/api/v1/documents/${docId.value}/reader`);
+    if (serial !== reqSerial || !mounted) return;
     const body: ReaderData = data.data ?? data;
     doc.value = body.document;
     ocrChunks.value = body.ocr_chunks ?? [];
     passages.value = body.passages ?? [];
+    chunks.value = body.chunks ?? [];
     citations.value = body.citations ?? [];
     evidences.value = body.evidences ?? [];
+
+    // Restore anchor from URL hash
+    nextTick(() => restoreAnchorFromUrl());
   } catch (e: unknown) {
-    const errMsg =
+    if (serial !== reqSerial || !mounted) return;
+    const status = (e as { response?: { status?: number } })?.response?.status;
+    const detail =
       (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
       (e as Error).message ??
       '加载失败';
-    error.value = errMsg;
+    if (status === 401 || status === 403) {
+      error.value = '您没有权限访问该文献。';
+    } else if (status === 404) {
+      error.value = '文献未找到，可能已被撤回或不存在。';
+    } else if (status === 422) {
+      error.value = `请求参数错误: ${detail}`;
+    } else {
+      error.value = `服务器错误 (${status || '未知'}): ${detail}`;
+    }
   } finally {
-    loading.value = false;
-  }
-}
-
-// ---- Paragraph navigation ----
-
-function parseParagraphNav(contentText: string): ParagraphNavItem[] {
-  // Match 卷 markers for classical Chinese texts
-  const re = /(?:^|\n)\s*[鍼灸甲乙經]*\s*(卷[一二三四五六七八九十百]+)(?:·([^\n]{2,40}))?/g;
-  const items: ParagraphNavItem[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(contentText)) !== null) {
-    const label = m[1] + (m[2] ? `·${m[2]}` : '');
-    const start = Math.max(0, m.index + m[0].length);
-    const preview = contentText.substring(start, start + 40).replace(/\s+/g, '');
-    if (!items.find((it) => it.label === label)) {
-      items.push({ label, preview, offset: m.index });
+    if (serial === reqSerial && mounted) {
+      loading.value = false;
     }
   }
-  return items.slice(0, 50);
 }
 
-function jumpToParagraph(idx: number) {
-  activeParagraph.value = idx;
+// ---- Chunk helpers ----
+
+function chunkPreview(content: string): string {
+  return content.replace(/\s+/g, '').substring(0, 40);
+}
+
+// ---- Anchor resolution ----
+
+function resolveAnchorChunkIds(citationOrEvidence: ReaderCitation | ReaderEvidence): string[] {
+  return (citationOrEvidence as { anchor_chunk_ids?: string[] }).anchor_chunk_ids ?? [];
+}
+
+// ---- Scroll & highlight ----
+
+function scrollToChunk(chunkId: string) {
   textExpanded.value = true;
-  const el = textContainerRef.value;
-  if (!el) return;
-  const para = paragraphs.value[idx];
-  if (!para) return;
-  // Use offset ratio for scroll position
-  const total = (el.textContent || '').length || el.scrollHeight;
-  const ratio = Math.min(para.offset / Math.max(total, 1), 1);
-  el.scrollTop = ratio * el.scrollHeight;
-}
-
-// ---- Citation/Evidence highlight ----
-
-function scrollToElement(elementId: string) {
+  highlightChunkIds([chunkId]);
   nextTick(() => {
-    const el = window.document.getElementById(elementId);
+    const el = chunkElMap.value.get(chunkId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
 }
 
-function highlightCitation(citationId: string) {
-  highlightedCitationId.value = citationId;
-  scrollToElement(`citation-${citationId}`);
-  // Clear highlight after 3s
+function highlightChunkIds(ids: string[]) {
+  const set = new Set(ids);
+  highlightedChunkIds.value = set;
+  if (ids.length > 0) {
+    setTimeout(() => { highlightedChunkIds.value = new Set(); }, 3000);
+  }
+}
+
+function scrollToCitationAnchor(citation: ReaderCitation) {
+  const anchorIds = resolveAnchorChunkIds(citation);
+  if (anchorIds.length === 0) return;
+  highlightedCitationId.value = citation.id;
+  highlightChunkIds(anchorIds);
+  // Scroll to first anchor chunk
+  const firstId = anchorIds[0]!;
+  nextTick(() => {
+    const el = chunkElMap.value.get(firstId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
   setTimeout(() => { highlightedCitationId.value = null; }, 3000);
 }
 
-function highlightEvidence(evidenceId: string) {
-  highlightedEvidenceId.value = evidenceId;
-  scrollToElement(`evidence-${evidenceId}`);
+function scrollToEvidenceAnchor(evidence: ReaderEvidence) {
+  const anchorIds = resolveAnchorChunkIds(evidence);
+  if (anchorIds.length === 0) return;
+  highlightedEvidenceId.value = evidence.id;
+  highlightChunkIds(anchorIds);
+  const firstId = anchorIds[0]!;
+  nextTick(() => {
+    const el = chunkElMap.value.get(firstId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
   setTimeout(() => { highlightedEvidenceId.value = null; }, 3000);
 }
 
-function highlightOcrChunk(chunkIndex: number) {
-  highlightedOcrChunk.value = chunkIndex;
-  scrollToElement(`ocr-chunk-${chunkIndex}`);
-  setTimeout(() => { highlightedOcrChunk.value = -1; }, 3000);
-}
+// ---- URL anchor restore ----
 
-function highlightPassage(passageId: string) {
-  highlightedPassageId.value = passageId;
-  scrollToElement(`passage-${passageId}`);
-  setTimeout(() => { highlightedPassageId.value = null; }, 3000);
+function restoreAnchorFromUrl() {
+  const hash = route.hash?.replace('#', '');
+  if (!hash) return;
+  if (hash.startsWith('citation-')) {
+    const citId = hash.replace('citation-', '');
+    const cit = citations.value.find((c) => c.id === citId);
+    if (cit) scrollToCitationAnchor(cit);
+  } else if (hash.startsWith('evidence-')) {
+    const evId = hash.replace('evidence-', '');
+    const ev = evidences.value.find((e) => e.id === evId);
+    if (ev) scrollToEvidenceAnchor(ev);
+  } else if (hash.startsWith('chunk-')) {
+    const chunkId = hash.replace('chunk-', '');
+    scrollToChunk(chunkId);
+  }
 }
 
 // ---- Navigation ----
 
 function backToLibrary() {
-  if (doc.value) {
-    router.push({ name: 'library-detail', params: { id: doc.value.id } });
-  } else {
-    router.push({ name: 'library-search' });
-  }
+  router.push({ name: 'library-search' });
 }
 
 // ---- Lifecycle ----
 
+mounted = true;
 onMounted(() => {
   fetchReaderData();
 });
 
-// Expose highlight functions for external use (e.g. from Library page)
-defineExpose({
-  highlightCitation,
-  highlightEvidence,
-  highlightOcrChunk,
-  highlightPassage,
+onUnmounted(() => {
+  mounted = false;
 });
+
+// Watch route param changes for same-component navigation
+watch(
+  () => route.params.id,
+  (newId, oldId) => {
+    if (newId !== oldId) {
+      // Clear all state before fetching new document
+      doc.value = null;
+      chunks.value = [];
+      ocrChunks.value = [];
+      passages.value = [];
+      citations.value = [];
+      evidences.value = [];
+      highlightedChunkIds.value = new Set();
+      highlightedPassageIds.value = new Set();
+      highlightedCitationId.value = null;
+      highlightedEvidenceId.value = null;
+      textExpanded.value = false;
+      error.value = null;
+      chunkElMap.value = new Map();
+      fetchReaderData();
+    }
+  },
+);
+
+// Watch URL hash changes for anchor restore
+watch(
+  () => route.hash,
+  () => {
+    if (!loading.value) restoreAnchorFromUrl();
+  },
+);
 </script>
 
 <style scoped>
@@ -620,10 +738,6 @@ defineExpose({
 }
 
 .reader-content-text {
-  font-size: 16px;
-  line-height: 2;
-  color: var(--color-text-primary, #1a365d);
-  white-space: pre-wrap;
   max-height: 400px;
   overflow-y: auto;
   border-top: 1px solid var(--color-border, #e2e8f0);
@@ -633,6 +747,29 @@ defineExpose({
 .reader-content-text--expanded {
   max-height: none;
   overflow-y: visible;
+}
+
+.reader-chunk-paragraph {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--color-border, #e2e8f0);
+  font-size: 16px;
+  line-height: 2;
+  color: var(--color-text-primary, #1a365d);
+  white-space: pre-wrap;
+  transition: background 0.3s, border-color 0.3s;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.reader-chunk-paragraph:last-child {
+  border-bottom: none;
+}
+
+.reader-chunk-page-marker {
+  font-size: 11px;
+  color: var(--color-text-muted, #a0aec0);
+  margin-right: 8px;
+  user-select: none;
 }
 
 /* Paragraph navigation */
@@ -780,6 +917,9 @@ defineExpose({
 }
 
 .reader-citation-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 11px;
   color: var(--color-text-muted, #a0aec0);
   text-transform: uppercase;
@@ -812,10 +952,43 @@ defineExpose({
   font-size: 11px;
   color: var(--color-text-muted, #a0aec0);
   font-family: monospace;
+  margin-bottom: 8px;
+}
+
+.reader-evidence-actions {
+  margin-top: 4px;
+}
+
+/* Anchor button */
+.reader-anchor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--color-accent, #2b6cb0);
+  border-radius: 4px;
+  background: var(--color-active, #ebf8ff);
+  color: var(--color-accent, #2b6cb0);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reader-anchor-btn:hover {
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+}
+
+.reader-no-anchor {
+  font-size: 12px;
+  color: var(--color-text-muted, #a0aec0);
+  font-style: italic;
 }
 
 /* Highlight */
 .reader-highlight {
+  background: rgba(43, 108, 176, 0.08) !important;
   border-color: var(--color-accent, #2b6cb0) !important;
   box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
 }
