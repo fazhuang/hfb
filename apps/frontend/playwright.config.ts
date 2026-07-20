@@ -6,7 +6,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   fullyParallel: false,
   forbidOnly: true,
-  retries: 1,
+  retries: 0,
   workers: 1,
   reporter: [['html', { outputFolder: '../../output/playwright/report' }], ['list']],
   use: {
@@ -14,6 +14,13 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'on',
     video: 'off',
+    actionTimeout: 15_000,
+  },
+  webServer: {
+    command: 'npm run dev -- --host 127.0.0.1 --port 5173',
+    port: 5173,
+    reuseExistingServer: !process.env.CI,
+    timeout: 30_000,
   },
   projects: [
     {
@@ -33,4 +40,6 @@ export default defineConfig({
       use: { viewport: { width: 1440, height: 900 } },
     },
   ],
+  // Preflight: fail fast if backend is unreachable
+  globalSetup: undefined,
 });

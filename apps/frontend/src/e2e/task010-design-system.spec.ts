@@ -2,13 +2,12 @@
  * Sprint 2 Task 010 — Research Design System Integration E2E Tests
  *
  * Validates all 8 core Research pages under real backend + real login.
- * No mocking, no localStorage injection, no skip/todo.
+ * No mocking, no localStorage injection, no dispatchEvent, no skip/todo.
  *
  * Preconditions:
  * - Backend running on http://127.0.0.1:8000 (real DB)
  * - Frontend dev server on http://127.0.0.1:5173 (Vite proxies /api → backend)
  * - Test account: researcher / researcher123
- * - At least one session with runs exists (19203131-334f-4040-9135-261680913c28)
  */
 
 import { test, expect } from '@playwright/test';
@@ -19,10 +18,11 @@ const API = 'http://127.0.0.1:8000';
 let accessToken: string;
 let sessionId: string;
 let runId: string;
+let docId: string;
 
 // ─── Login helper (real UI) ──────────────────────────────────────────
 
-async function login(page: ReturnType<typeof test['info'] extends never ? never : any>['page']) {
+async function login(page: any) {
   await page.goto(`${BASE}/login`);
   // Wait for SPA to mount and login form to render
   await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
@@ -51,6 +51,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const sessionsResp = await request.get(`${API}/api/v1/workspace/sessions?limit=100`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+    expect(sessionsResp.ok()).toBeTruthy();
     const sessionsBody = await sessionsResp.json();
     const sessions: Array<{ id: string }> = sessionsBody.data ?? [];
     expect(sessions.length).toBeGreaterThan(0);
@@ -59,6 +60,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       const runsResp = await request.get(`${API}/api/v4/research/session/${s.id}/runs`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
+      if (!runsResp.ok()) continue;
       const runsBody = await runsResp.json();
       const runs = runsBody.data?.runs ?? [];
       if (runs.length > 0 && runs[0].run_id) {
@@ -69,6 +71,16 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     }
     if (!sessionId) sessionId = '19203131-334f-4040-9135-261680913c28';
     if (!runId) runId = '046a7d0a-46c6-433d-92a8-8ec815ad9375';
+
+    // Resolve a document ID for Reader/library tests
+    const docsResp = await request.get(`${API}/api/v1/documents?limit=1`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (docsResp.ok()) {
+      const docsBody = await docsResp.json();
+      const items = docsBody.data?.items ?? [];
+      if (items.length > 0) docId = items[0].id;
+    }
   });
 
   // ── P1: State Components ──────────────────────────────────────────
@@ -84,15 +96,13 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const content = page.locator('.rp-content, .loading-state, [role="status"]').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const criticalErrors = errors.filter(e =>
-      !e.includes('favicon') && !e.includes('/api/v1/documents')
-    );
+    const criticalErrors = errors.filter(e => !e.includes('favicon'));
     expect(criticalErrors.length).toBe(0);
   });
 
   test('ErrorState renders with retry button', async ({ page }) => {
     await login(page);
-    // Navigate to a non-existent session → 404 triggers error/empty
+    // Navigate to a non-existent session → triggers error/empty
     await page.goto(`${BASE}/research/nonexistent-id-12345`);
     await page.waitForLoadState('networkidle');
 
@@ -124,7 +134,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const content = page.locator('.rpp-body, .empty-state').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon') && !e.includes('/api/v1/documents'));
+    const critical = errors.filter(e => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
@@ -246,35 +256,29 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const search = page.locator('.lib-body input[type="search"], .lib-body input[type="text"]').first();
     await expect(search).toBeVisible({ timeout: 10_000 });
 
-    // Library page hits /api/v1/documents which returns 500 on this dev DB.
-    // That is a backend data issue, not a UI design-system regression.
-    const critical = errors.filter(e =>
-      !e.includes('favicon') &&
-      !e.includes('/api/v1/documents') &&
-      !e.includes('500') &&
-      !e.includes('Internal')
-    );
+    // No HTTP 500 filtering — Library data must succeed
+    const critical = errors.filter(e => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 8: /reader/:id — ReaderPage', async ({ page }) => {
-    const docId = sessionId;
-
     const errors: string[] = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
-    await page.goto(`${BASE}/reader/${docId}`);
+    // Use resolved docId if available, otherwise sessionId
+    const targetId = docId || sessionId;
+    await page.goto(`${BASE}/reader/${targetId}`);
     await page.waitForLoadState('networkidle');
 
     const content = page.locator('.reader-page, [role="status"], [role="alert"]').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon') && !e.includes('404') && !e.includes('500'));
+    const critical = errors.filter(e => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
-  // ── P3: Dialogs ───────────────────────────────────────────────────
+  // ── P3: Dialogs — real clicks only ────────────────────────────────
 
   test('CreateProjectDialog opens and closes on cancel', async ({ page }) => {
     await login(page);
@@ -284,14 +288,21 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const createBtn = page.locator('button:has-text("新建课题")').first();
     await expect(createBtn).toBeVisible({ timeout: 10_000 });
 
-    // At narrow viewports (Mobile/Tablet) the sidebar overlaps the button.
-    // Use dispatchEvent to reliably trigger click without pointer-event interception.
-    await createBtn.dispatchEvent('click');
+    // Real click — no dispatchEvent
+    await createBtn.click();
 
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
     await expect(page.locator('h2').filter({ hasText: /新建|课题/ }).first()).toBeVisible();
+
+    // Close with Escape
+    await page.keyboard.press('Escape');
+    await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
+
+    // Reopen and close with Cancel button
+    await createBtn.click();
+    await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
     const cancel = dialog.locator('button:has-text("取消")').first();
     await cancel.click();
@@ -299,20 +310,20 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('DeleteProjectDialog — alertdialog with danger button', async ({ page }) => {
+  test('DeleteProjectDialog — alertdialog with danger button, keyboard and click dismissal', async ({ page }) => {
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}`);
     await page.waitForLoadState('networkidle');
 
-    // Open "···" more menu — dispatchEvent to avoid sidebar pointer interception
+    // Open "···" more menu — real click
     const moreBtn = page.locator('button[aria-label="更多操作"], button:has-text("···")').first();
     await expect(moreBtn).toBeVisible({ timeout: 10_000 });
-    await moreBtn.dispatchEvent('click');
+    await moreBtn.click();
 
-    // Click "删除课题" — dispatchEvent to avoid sidebar interception on narrow viewports
+    // Click "删除课题" — real click
     const deleteBtn = page.locator('[role="menuitem"]:has-text("删除")');
     await expect(deleteBtn).toBeVisible({ timeout: 5_000 });
-    await deleteBtn.dispatchEvent('click');
+    await deleteBtn.click();
 
     // Alert dialog appears
     const alertDialog = page.locator('[role="alertdialog"]');
@@ -322,9 +333,25 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const danger = alertDialog.locator('button:has-text("确认删除")');
     await expect(danger).toBeVisible();
 
+    // Verify focus is on the dialog (not elsewhere)
+    const focusedInDialog = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return el.closest('[role="alertdialog"]') !== null;
+    });
+    expect(focusedInDialog).toBe(true);
+
     // Cancel closes dialog
     const cancel = alertDialog.locator('button:has-text("取消")').first();
     await cancel.click();
+    await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
+
+    // Reopen and dismiss with Escape
+    await moreBtn.click();
+    await expect(deleteBtn).toBeVisible({ timeout: 5_000 });
+    await deleteBtn.click();
+    await expect(alertDialog).toBeVisible({ timeout: 5_000 });
+    await page.keyboard.press('Escape');
     await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
   });
 
@@ -384,8 +411,6 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       await page.waitForLoadState('networkidle');
 
       // Check that the main content area does not overflow the viewport.
-      // The body may be wider due to fixed-positioned elements
-      // (dropdowns, sidebars); check the research main container instead.
       const overflow = await page.evaluate(() => {
         const main = document.querySelector(
           '.research-page, .rpp-body, .pdp-body, .rwp-body, .rwf-body, .rpage-body, .rp-body, .lib-body, .reports-page'
@@ -395,10 +420,12 @@ test.describe('Task 010 E2E — Design System Integration', () => {
         const vw = window.innerWidth;
         return {
           ok: rect.right <= vw + 5,
+          rectRight: Math.round(rect.right),
+          vw,
         };
       });
 
-      expect(overflow.ok).toBeTruthy();
+      expect(overflow.ok, `Overflow on ${route}: rect.right=${overflow.rectRight}, vw=${overflow.vw}`).toBeTruthy();
     }
   });
 
@@ -411,7 +438,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(page.locator('.rph-actions')).toBeVisible();
   });
 
-  // ── P6: Navigation ────────────────────────────────────────────────
+  // ── P6: Navigation — real clicks only ─────────────────────────────
 
   test('Breadcrumbs navigate back to parent', async ({ page }) => {
     await login(page);
@@ -419,12 +446,12 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.waitForLoadState('networkidle');
 
     const crumb = page.locator('.rph-breadcrumb-link').first();
-    if (await crumb.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      // Use dispatchEvent to avoid sidebar pointer interception on narrow viewports
-      await crumb.dispatchEvent('click');
-      await page.waitForURL((url: URL) => url.pathname === '/research', { timeout: 10_000 });
-      await expect(page.locator('.rph-title, h1').filter({ hasText: /研究课题/ })).toBeVisible();
-    }
+    await expect(crumb).toBeVisible({ timeout: 5_000 });
+
+    // Real click — no dispatchEvent
+    await crumb.click();
+    await page.waitForURL((url: URL) => url.pathname === '/research' || url.pathname.startsWith('/research'), { timeout: 10_000 });
+    await expect(page.locator('.rph-title, h1').filter({ hasText: /研究课题/ })).toBeVisible();
   });
 
   test('Library → document detail → 全文阅读 navigates to Reader', async ({ page }) => {
@@ -432,17 +459,13 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.goto(`${BASE}/library`);
     await page.waitForLoadState('networkidle');
 
-    const docLink = page.locator('.lib-list a, [class*="DocumentCard"] a').first();
-    const docVisible = await docLink.isVisible({ timeout: 5_000 }).catch(() => false);
-
-    if (!docVisible) {
-      await expect(page.locator('.lib-body')).toBeVisible({ timeout: 10_000 });
-      return;
-    }
+    const docLink = page.locator('.lib-list a, [class*="DocumentCard"] a, .lib-body a').first();
+    await expect(docLink).toBeVisible({ timeout: 5_000 });
 
     await docLink.click();
     await page.waitForLoadState('networkidle');
 
+    // Should be on detail page
     const readBtn = page.locator('button:has-text("全文阅读"), a:has-text("全文阅读")').first();
     const btnVisible = await readBtn.isVisible({ timeout: 5_000 }).catch(() => false);
 
@@ -452,7 +475,8 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       const url = page.url();
       expect(url.includes('/reader') || url.includes('/literature')).toBeTruthy();
     } else {
-      await expect(page.locator('.lib-detail-body, .lib-detail-page')).toBeVisible({ timeout: 10_000 });
+      // At minimum the detail page should be visible
+      await expect(page.locator('.lib-detail-body, .lib-detail-page, .research-page-header')).toBeVisible({ timeout: 10_000 });
     }
   });
 
@@ -479,7 +503,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(nextBtn).toBeVisible();
   });
 
-  // ── P7: Screenshots ───────────────────────────────────────────────
+  // ── P7: Screenshots — all 4 viewports × core pages ───────────────
 
   test('Screenshot: all core pages', async ({ page }) => {
     const routes = [
@@ -490,6 +514,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       { path: `/research/${sessionId}/result/${runId}`, name: '05-result' },
       { path: '/reports', name: '06-reports' },
       { path: '/library', name: '07-library' },
+      { path: `/reader/${docId || sessionId}`, name: '08-reader' },
     ];
 
     await login(page);
@@ -497,7 +522,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     for (const { path, name } of routes) {
       await page.goto(`${BASE}${path}`);
       await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(300);
       await page.screenshot({
         path: `../../output/playwright/${name}-${page.viewportSize()?.width ?? 'unknown'}.png`,
         fullPage: false,

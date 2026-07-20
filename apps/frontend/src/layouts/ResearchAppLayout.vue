@@ -31,7 +31,7 @@
     </aside>
 
     <!-- Main content area -->
-    <div class="ral-main-wrapper">
+    <div class="ral-main-wrapper" :class="{ 'ral-main-wrapper--shifted': !sidebarCollapsed }">
       <!-- Page header slot — filled by router-view pages via ResearchPageHeader -->
       <div class="ral-content">
         <router-view />
@@ -200,6 +200,12 @@ const userName = auth.userName || '未登录';
 
   .ral-main-wrapper {
     margin-left: 0;
+    padding-left: 16px;
+  }
+
+  .ral-main-wrapper--shifted {
+    margin-left: 240px;
+    padding-left: 0;
   }
 }
 </style>
