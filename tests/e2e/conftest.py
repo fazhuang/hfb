@@ -221,6 +221,8 @@ def library_test_users(live_servers):
             "passage_id": seed_a.get("passage_id"),
             "evidence_id": seed_a.get("evidence_id"),
             "citation_id": seed_a.get("citation_id"),
+            "unanchored_citation_id": seed_a.get("unanchored_citation_id"),
+            "unanchored_evidence_id": seed_a.get("unanchored_evidence_id"),
         },
         "user_b": {
             **token_b,
@@ -229,5 +231,7 @@ def library_test_users(live_servers):
             "passage_id": seed_b.get("passage_id"),
             "evidence_id": seed_b.get("evidence_id"),
             "citation_id": seed_b.get("citation_id"),
+            "unanchored_citation_id": seed_b.get("unanchored_citation_id"),
+            "unanchored_evidence_id": seed_b.get("unanchored_evidence_id"),
         },
     }

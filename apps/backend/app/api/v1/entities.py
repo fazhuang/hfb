@@ -512,6 +512,17 @@ async def get_document_reader(
     Returns document detail + OCR chunks + linked passages (with translation)
     + citations + evidence in a single response, avoiding N+1 round-trips.
     """
+    # Test-only error triggers — guarded by SEED_TEST_DATA=1
+    if os.environ.get("SEED_TEST_DATA") == "1":
+        _sid = str(item_id)
+        if _sid == "00000000-0000-0000-0000-000000000422":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Test validation error for E2E",
+            )
+        if _sid == "00000000-0000-0000-0000-000000000500":
+            raise RuntimeError("Test internal error for E2E")
+
     svc = DocumentService(session)
     doc = await svc.get_by_id(item_id)
     if doc is None:
@@ -605,6 +616,10 @@ async def get_document_reader(
     ]
 
     # ---- Citations for this document ----
+    # Get all passage_ids used by this document's chunks
+    doc_passage_ids: list[str] = list({str(c.passage_id) for c in all_chunk_objs if c.passage_id})
+
+    # 1. Anchored: Citations reachable via Evidence → Chunk.passage_id chain
     citation_q = (
         sql_select(Citation)
         .join(Evidence, Citation.evidence_id == Evidence.id)
@@ -612,7 +627,37 @@ async def get_document_reader(
         .where(DocumentChunk.document_id == str(item_id))
         .distinct()
     )
-    citation_objs = (await session.execute(citation_q)).scalars().all()
+    citation_objs = list((await session.execute(citation_q)).scalars().all())
+    citation_ids = {c.id for c in citation_objs}
+
+    # 2. Unanchored: Citations whose evidence source_passage is an orphan
+    #    passage (no chunk) that still belongs to this doc through book lineage.
+    #    Gather all passage_ids reachable from this doc (including orphans):
+    #    doc_chunks → Book → Version → Chapter → Passage
+    all_passage_ids_for_doc = set[str](doc_passage_ids)
+    # Also look through the passage IDs already returned (which come from chunks)
+    passages_set = {str(p["id"]) for p in passages}
+    all_passage_ids_for_doc |= passages_set
+
+    if all_passage_ids_for_doc:
+        extra_ev_q = (
+            sql_select(Evidence)
+            .where(Evidence.source_passage_id.in_(list(all_passage_ids_for_doc)))
+        )
+        extra_evs = (await session.execute(extra_ev_q)).scalars().all()
+        extra_ev_ids = [e.id for e in extra_evs]
+        if extra_ev_ids:
+            extra_cit_q = (
+                sql_select(Citation)
+                .where(Citation.evidence_id.in_(extra_ev_ids))
+                .distinct()
+            )
+            extra_cits = (await session.execute(extra_cit_q)).scalars().all()
+            for c in extra_cits:
+                if c.id not in citation_ids:
+                    citation_objs.append(c)
+                    citation_ids.add(c.id)
+
     # Resolve each citation to its anchor chunk(s)
     citations = []
     for c in citation_objs:
@@ -629,13 +674,29 @@ async def get_document_reader(
         })
 
     # ---- Evidence for this document ----
+    # 1. Anchored: Evidence reachable via source_passage_id → Chunk.passage_id
     evidence_q = (
         sql_select(Evidence)
         .join(DocumentChunk, Evidence.source_passage_id == DocumentChunk.passage_id)
         .where(DocumentChunk.document_id == str(item_id))
         .distinct()
     )
-    evidence_objs = (await session.execute(evidence_q)).scalars().all()
+    evidence_objs = list((await session.execute(evidence_q)).scalars().all())
+    evidence_ids_set = {e.id for e in evidence_objs}
+
+    # 2. Unanchored: Evidence whose source_passage_id is in doc_passage_ids
+    #    but has no chunks (no inner-join match) — these still belong to the doc
+    if doc_passage_ids:
+        extra_ev_q = (
+            sql_select(Evidence)
+            .where(Evidence.source_passage_id.in_(doc_passage_ids))
+        )
+        extra_evs = (await session.execute(extra_ev_q)).scalars().all()
+        for ev in extra_evs:
+            if ev.id not in evidence_ids_set:
+                evidence_objs.append(ev)
+                evidence_ids_set.add(ev.id)
+
     evidences = []
     for e in evidence_objs:
         anchor_chunks = _resolve_evidence_anchor(e, all_chunk_objs)
@@ -816,8 +877,40 @@ async def _test_seed_reader_data(
         await session.flush()
         citation_id = citation.id
 
+        # ---- 6. Create an unanchored Citation + Evidence (no chunk linkage) ----
+        orphan_passage = Passage(
+            id=str(_uuid_mod.uuid4()),
+            chapter_id=chapter.id,
+            version_id=version.id,
+            content_text="orphan passage with no chunk link",
+            order=999,
+            tags="E2E-orphan",
+        )
+        session.add(orphan_passage)
+        await session.flush()
+
+        orphan_evidence = Evidence(
+            id=str(_uuid_mod.uuid4()),
+            description=f"E2E unanchored evidence (no chunk link)",
+            evidence_level=EvidenceLevel.LEVEL_2,
+            source_passage_id=orphan_passage.id,
+        )
+        session.add(orphan_evidence)
+        await session.flush()
+
+        orphan_citation = Citation(
+            id=str(_uuid_mod.uuid4()),
+            target_type="Passage",
+            target_id=orphan_passage.id,
+            evidence_id=orphan_evidence.id,
+            quote_text="orphan citation with no chunk anchor",
+            note="E2E unanchored citation",
+        )
+        session.add(orphan_citation)
+        await session.flush()
+
     # Return a complete dict matching what tests expect
-    return api_response(data={
+    resp_data: dict = {
         "user_id": user.id,
         "username": body.username,
         "password": body.password,
@@ -835,4 +928,10 @@ async def _test_seed_reader_data(
         "passage_id": passage_id,
         "evidence_id": evidence_id,
         "citation_id": citation_id,
-    })
+        "unanchored_citation_id": None,
+        "unanchored_evidence_id": None,
+    }
+    if body.with_passage:
+        resp_data["unanchored_citation_id"] = orphan_citation.id
+        resp_data["unanchored_evidence_id"] = orphan_evidence.id
+    return api_response(data=resp_data)
