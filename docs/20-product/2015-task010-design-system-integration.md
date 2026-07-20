@@ -1,10 +1,9 @@
 # Task 010 — Research Design System Integration
 
    **Status:** COMPLETE (P0 repairs applied)
-   **Commit:** `206edfad4a239120528942efc66bee6cbbed3ce8`
-   **Repair Commit:** (pending)
+   **Commit:** `95630d74e2e6b53f445a85ae19d30e7fb9d5860f`
    **Date:** 2026-07-21
-   **Verified:** 2026-07-21 02:44 UTC — 88/88 E2E PASS with real backend, real login, real data
+   **Verified:** 2026-07-21 03:17 UTC — 88/88 E2E PASS with real backend, real login, real data
 
    ## P0 修复 (2026-07-21)
 
@@ -24,12 +23,17 @@
    - 读取下载内容验证非空
    - 不做 error 文本存在 / 状态徽标存在的宽松替代
 
-   ### 3. Dialog 焦点返回
-   - CreateProjectDialog 和 DeleteProjectDialog 增加焦点保存/恢复逻辑：
-     - 打开时保存 `document.activeElement`（即触发按钮）
-     - 关闭时通过 `setTimeout(0)` 恢复焦点（确保 DOM 已重新挂载）
-   - E2E 断言：打开后焦点在 Dialog 内，关闭后焦点在 document body 有效元素上
-   - DeleteProjectDialog 测试中 `onDelete()` 先关闭菜单，故焦点恢复到 body 而非更多按钮是预期行为
+   ### 3. Dialog 精确焦点返回 (P0-2 最终修复)
+   - **CreateProjectDialog** 和 **DeleteProjectDialog** 改为接收 `triggerEl` prop：
+     - `ProjectListPage` 通过 `ref="createBtnRef"` 获取 "新建课题" 按钮引用，作为 `:trigger-el` 传入
+     - `ProjectDetailPage` 通过 `ref="moreBtnRef"` 获取 "更多操作" 按钮引用，作为 `:trigger-el` 传入
+     - Dialog 关闭时调用 `nextTick(() => props.triggerEl?.focus())` 精确恢复到触发按钮
+   - **不保存 menuitem 作为恢复目标**：DeleteProjectDialog 的 menuitem 在 `onDelete()` 中 `showMoreMenu = false` 后同步卸载，旧实现的 `document.activeElement` 捕获到已卸载元素
+   - **CreateProjectDialog 同样修复**：touch 视口（Mobile/Tablet）下按钮点击不转移焦点，旧实现的 `document.activeElement` 捕获不到按钮
+   - **E2E 断言改为精确相等**：`document.activeElement.getAttribute('aria-label') === '新建课题'` / `=== '更多操作'`
+   - 禁止 `document.body.contains(activeElement)` 宽松通过
+   - 禁止 `tagName` 仅检查
+   - 禁止 "body 也算通过" fallback
 
    ### 4. 工件清理
    - `output/playwright/` 由 `.gitignore` 忽略，无根目录残留
@@ -41,9 +45,11 @@
    ### 修改文件
    | 文件 | 变更 |
    |---|---|
-   | `apps/frontend/src/e2e/task010-design-system.spec.ts` | Loading/Export/Dialog 测试收紧 |
-   | `apps/frontend/src/components/research/CreateProjectDialog.vue` | 焦点保存/恢复（关闭时回到触发按钮） |
-   | `apps/frontend/src/components/research/DeleteProjectDialog.vue` | 焦点保存/恢复（关闭时回到触发按钮） |
+   | `apps/frontend/src/e2e/task010-design-system.spec.ts` | Loading/Export/Dialog 测试收紧；焦点精确断言 aria-label 相等 |
+   | `apps/frontend/src/components/research/CreateProjectDialog.vue` | 新增 `triggerEl` prop，关闭时精确恢复到触发按钮 |
+   | `apps/frontend/src/components/research/DeleteProjectDialog.vue` | 新增 `triggerEl` prop，关闭时精确恢复到触发按钮（避免捕获已卸载 menuitem） |
+   | `apps/frontend/src/pages/research/ProjectListPage.vue` | 新增 `createBtnRef` template ref 并传入 CreateProjectDialog |
+   | `apps/frontend/src/pages/research/ProjectDetailPage.vue` | 新增 `moreBtnRef` template ref 并传入 DeleteProjectDialog |
 
    ## Design Token 来源与接入路径
 
@@ -125,7 +131,8 @@
    |---|---|---|
    | State Components | LoadingState (spinner 必须出现 + role=status), ErrorState (role=alert + retry), EmptyState (role=status) | ✅ |
    | Page Rendering | 8 core pages × 4 viewports — all with console error assertions | ✅ |
-   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel, Dialog focus management (open→focus in dialog, close→focus on valid DOM element) | ✅ |
+   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel | ✅ |
+   | Dialog 精确焦点返回 (P0-2) | CreateProjectDialog: Escape→focus="新建课题" button, Cancel→focus="新建课题" button; DeleteProjectDialog: Escape→focus="更多操作" button, Cancel→focus="更多操作" button — 精确 aria-label 相等断言 | ✅ |
    | Keyboard | Tab order (interactive elements), focus-visible ring (computed outline/box-shadow; touch: confirmed absence is expected) | ✅ |
    | Responsive | No horizontal overflow (7 routes), PageHeader visible | ✅ |
    | Navigation | Breadcrumbs back, Library→detail→全文阅读→Reader (SPA navigation + page validation), Reports export (real download event, .md filename, non-empty content), Workflow step advance (question→selection) | ✅ |
@@ -167,7 +174,7 @@
 
    ## 最终状态
 
-   - **HEAD:** 当前修复提交
+   - **HEAD:** `95630d74e2e6b53f445a85ae19d30e7fb9d5860f`
    - **Frontend Tests:** 371/371 PASS
    - **Build:** PASS
    - **Type Check:** PASS (0 errors)
@@ -176,4 +183,5 @@
    - **HTML Report:** `output/playwright/report/index.html`
    - **Playwright Artifacts:** `output/playwright/test-artifacts/` (no root pollution)
    - **无 mock、无 localStorage 注入、无 dispatchEvent、无 skip/todo/only**
-   - **Loading 严格断言 spinner 实际出现、Reports 导出真实 download 事件及内容验证、Dialog 焦点管理（打开入 dialog、关闭回有效 DOM）**
+   - **Dialog 焦点精确返回验证：CreateProjectDialog → "新建课题" button, DeleteProjectDialog → "更多操作" button — 精确 aria-label 相等**
+   - **禁止保存已卸载 menuitem 作为恢复目标；由父页面通过 ref 显式传入稳定触发按钮引用**

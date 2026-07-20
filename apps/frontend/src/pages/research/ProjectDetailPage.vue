@@ -22,6 +22,7 @@
         <!-- More actions menu -->
         <div v-if="project" class="pdp-more-wrap">
           <button
+            ref="moreBtnRef"
             class="pdp-action-btn pdp-action-btn--secondary"
             aria-label="更多操作"
             :aria-expanded="showMoreMenu"
@@ -117,6 +118,7 @@
       :open="deleteDialogOpen"
       :project-id="project?.id ?? ''"
       :project-title="project?.title ?? ''"
+      :trigger-el="moreBtnRef"
       @update:open="deleteDialogOpen = $event"
       @deleted="onDeleted"
     />
@@ -169,6 +171,7 @@ const notFound = ref(false);
 
 // ---- More actions menu ----
 const showMoreMenu = ref(false);
+const moreBtnRef = ref<HTMLButtonElement | null>(null);
 const editDialogOpen = ref(false);
 const deleteDialogOpen = ref(false);
 

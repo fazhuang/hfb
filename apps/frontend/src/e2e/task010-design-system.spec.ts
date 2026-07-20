@@ -378,14 +378,13 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await cancel.click();
     await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
 
-    // P0-3: Focus must return to a valid visible element (trigger button or body)
-    // The menu was closed before dialog opened, so trigger may be the moreBtn or body
-    const focusValid = await page.evaluate(() => {
+    // P0-2: Focus must return to "更多操作" button after Cancel closes dialog
+    const focusIsMoreBtnAfterCancel = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
-      return document.body.contains(el) && el.tagName !== 'DIALOG';
+      return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
     });
-    expect(focusValid, 'Focus must be on a valid DOM element after dialog closes').toBe(true);
+    expect(focusIsMoreBtnAfterCancel, 'Focus must return to "更多操作" button after dialog closes').toBe(true);
 
     // Reopen menu, then reopen dialog
     await moreBtn.click();
@@ -395,13 +394,13 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.keyboard.press('Escape');
     await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
 
-    // Focus must be on a valid DOM element after Escape dismissal
-    const focusValid2 = await page.evaluate(() => {
+    // P0-2: Focus must return to "更多操作" button after Escape dismissal
+    const focusIsMoreBtnAfterEscape = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
-      return document.body.contains(el) && el.tagName !== 'DIALOG';
+      return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
     });
-    expect(focusValid2, 'Focus must be on a valid DOM element after Escape').toBe(true);
+    expect(focusIsMoreBtnAfterEscape, 'Focus must return to "更多操作" button after Escape').toBe(true);
   });
 
   test('Dialog focus management — open gives focus to dialog, close returns focus to trigger', async ({ page }) => {
@@ -409,7 +408,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.goto(`${BASE}/research`);
     await page.waitForLoadState('networkidle');
 
-    // Get the trigger button
+    // ── CreateProjectDialog: focus return ──────────────────────────
+
+    // Verify trigger button exists
     const createBtn = page.locator('button:has-text("新建课题")').first();
     await expect(createBtn).toBeVisible({ timeout: 10_000 });
 
@@ -419,7 +420,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
-    // P0-3: Focus must be inside the dialog after opening
+    // P0-2: Focus must be inside the dialog after opening
     const focusInDialog = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
@@ -431,31 +432,95 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.keyboard.press('Escape');
     await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
 
-    // P0-3: Focus must return to a valid visible element (trigger button)
-    // The browser/component may restore focus to the trigger or to body — both are valid
-    // as long as focus is not orphaned on a removed element
-    const focusValidAfterEscape = await page.evaluate(() => {
+    // P0-2: Focus must be EXACTLY the trigger button — document.activeElement === trigger button
+    const focusIsCreateBtnAfterEscape = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
-      return document.body.contains(el) && el.tagName !== 'DIALOG';
+      // The trigger button has aria-label="新建课题"
+      return el.getAttribute('aria-label') === '新建课题' && el.tagName === 'BUTTON';
     });
-    expect(focusValidAfterEscape, 'Focus must return to document body after Escape closes dialog').toBe(true);
+    expect(focusIsCreateBtnAfterEscape, 'Focus must return to "新建课题" button after Escape').toBe(true);
 
     // Reopen with click, close with Cancel button
-    await createBtn.click();
+    await page.locator('button:has-text("新建课题")').first().click();
     await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
     const cancelBtn = dialog.locator('button:has-text("取消")').first();
     await cancelBtn.click();
     await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
 
-    // Focus must be on a valid DOM element after Cancel closes dialog
-    const focusValidAfterCancel = await page.evaluate(() => {
+    // P0-2: Focus must be EXACTLY the trigger button after Cancel
+    const focusIsCreateBtnAfterCancel = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
-      return document.body.contains(el) && el.tagName !== 'DIALOG';
+      return el.getAttribute('aria-label') === '新建课题' && el.tagName === 'BUTTON';
     });
-    expect(focusValidAfterCancel, 'Focus must return to document body after Cancel closes dialog').toBe(true);
+    expect(focusIsCreateBtnAfterCancel, 'Focus must return to "新建课题" button after Cancel').toBe(true);
+
+    // ── DeleteProjectDialog: focus return ──────────────────────────
+
+    // Navigate to detail page
+    await page.goto(`${BASE}/research/${sessionId}`);
+    await page.waitForLoadState('networkidle');
+
+    const moreBtn = page.locator('button[aria-label="更多操作"]').first();
+    await expect(moreBtn).toBeVisible({ timeout: 10_000 });
+
+    // Open "···" menu
+    await moreBtn.click();
+
+    const deleteMenuitem = page.locator('[role="menuitem"]:has-text("删除")');
+    await expect(deleteMenuitem).toBeVisible({ timeout: 5_000 });
+
+    // Click delete menuitem (uses real click, matching user behavior)
+    await deleteMenuitem.click();
+
+    const alertDialog = page.locator('[role="alertdialog"]');
+    await expect(alertDialog).toBeVisible({ timeout: 5_000 });
+
+    // Focus must be inside the alertdialog
+    const focusInAlertDialog = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return el.closest('[role="alertdialog"]') !== null;
+    });
+    expect(focusInAlertDialog, 'Focus must be inside alertdialog when opened').toBe(true);
+
+    // Close with Escape
+    await page.keyboard.press('Escape');
+    await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
+
+    // P0-2: Focus must return to "更多操作" button — EXACT match
+    const focusIsMoreBtnAfterEscape = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
+    });
+    expect(
+      focusIsMoreBtnAfterEscape,
+      'Focus must return to "更多操作" button after Escape closes alertdialog'
+    ).toBe(true);
+
+    // Reopen menu → reopen dialog → close with Cancel
+    await moreBtn.click();
+    await expect(deleteMenuitem).toBeVisible({ timeout: 5_000 });
+    await deleteMenuitem.click();
+    await expect(alertDialog).toBeVisible({ timeout: 5_000 });
+
+    const alertCancel = alertDialog.locator('button:has-text("取消")').first();
+    await alertCancel.click();
+    await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
+
+    // P0-2: Focus must return to "更多操作" button after Cancel
+    const focusIsMoreBtnAfterCancel = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
+    });
+    expect(
+      focusIsMoreBtnAfterCancel,
+      'Focus must return to "更多操作" button after Cancel closes alertdialog'
+    ).toBe(true);
   });
 
   // ── P4: Keyboard Navigation ───────────────────────────────────────

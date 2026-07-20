@@ -95,6 +95,7 @@ const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;
+  triggerEl?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -110,14 +111,13 @@ const nameInputRef = ref<HTMLInputElement | null>(null);
 
 const canSubmit = computed(() => name.value.trim().length > 0 && !submitting.value);
 
-// Focus restoration: save trigger element before dialog opens
-let triggerElement: HTMLElement | null = null;
+// Focus restoration: use caller-supplied stable trigger element when available.
+// On touch viewports, clicking a button does not transfer focus to it, so
+// the parent page must pass the button reference explicitly via triggerEl.
 
 // Watch open to auto-focus and reset form
 watch(() => props.open, (val) => {
   if (val) {
-    // Save the element that triggered the dialog (the currently focused element)
-    triggerElement = document.activeElement as HTMLElement | null;
     name.value = '';
     description.value = '';
     errorMessage.value = '';
@@ -125,13 +125,10 @@ watch(() => props.open, (val) => {
       nameInputRef.value?.focus();
     });
   } else {
-    // Restore focus to trigger element when dialog closes.
-    // Use setTimeout to ensure Vue has finished unmounting the dialog DOM.
-    setTimeout(() => {
-      if (triggerElement && document.body.contains(triggerElement)) {
-        triggerElement.focus();
-      }
-    }, 0);
+    // Restore focus to the stable trigger button (passed by parent) when dialog closes
+    nextTick(() => {
+      props.triggerEl?.focus();
+    });
   }
 });
 

@@ -8,6 +8,7 @@
     >
       <template #actions>
         <button
+          ref="createBtnRef"
           class="rpp-create-btn"
           @click="showCreateDialog = true"
           aria-label="新建课题"
@@ -105,6 +106,7 @@
     <!-- Create Dialog -->
     <CreateProjectDialog
       :open="showCreateDialog"
+      :trigger-el="createBtnRef"
       @update:open="showCreateDialog = $event"
       @created="onProjectCreated"
     />
@@ -161,6 +163,7 @@ const allProjects = ref<ResearchProjectSummary[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const showCreateDialog = ref(false);
+const createBtnRef = ref<HTMLButtonElement | null>(null);
 const successMessage = ref('');
 
 // ---- Search (client-side) ----

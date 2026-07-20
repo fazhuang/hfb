@@ -60,6 +60,7 @@ const props = defineProps<{
   open: boolean;
   projectId: string;
   projectTitle: string;
+  triggerEl?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -71,23 +72,22 @@ const submitting = ref(false);
 const errorMessage = ref('');
 const cancelBtnRef = ref<HTMLButtonElement | null>(null);
 
-// Focus restoration: save trigger element before dialog opens
-let triggerElement: HTMLElement | null = null;
+// Focus restoration: use caller-supplied stable trigger element when available.
+// The menuitem that opens this dialog is unmounted before the watch fires,
+// so the parent page must pass the "更多操作" button via triggerEl.
 
 watch(
   () => props.open,
   (val) => {
     if (val) {
-      // Save the element that triggered the dialog (the currently focused element)
-      triggerElement = document.activeElement as HTMLElement | null;
       errorMessage.value = '';
       nextTick(() => {
         cancelBtnRef.value?.focus();
       });
     } else {
-      // Restore focus to trigger element when dialog closes
+      // Restore focus to the stable trigger button (passed by parent) when dialog closes
       nextTick(() => {
-        triggerElement?.focus();
+        props.triggerEl?.focus();
       });
     }
   },
