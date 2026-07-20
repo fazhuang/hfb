@@ -596,14 +596,17 @@ async def get_document_reader(
             for p in passage_objs
         ]
 
-    # ---- All chunks for this document (needed for citation/evidence anchor resolution) ----
+    # ---- All chunks for this document (internal — used for citation/evidence anchor resolution only) ----
     all_chunks_q = (
         sql_select(DocumentChunk)
         .where(DocumentChunk.document_id == str(item_id))
         .order_by(DocumentChunk.chunk_index)
     )
     all_chunk_objs = (await session.execute(all_chunks_q)).scalars().all()
-    all_chunks = [
+
+    # ---- Original (non-OCR) chunks — real source text only ----
+    # ocr_confidence IS NULL = non-OCR text (model semantic per DocumentChunk.ocr_confidence)
+    original_chunks = [
         {
             "id": c.id,
             "chunk_index": c.chunk_index,
@@ -613,6 +616,7 @@ async def get_document_reader(
             "passage_id": c.passage_id,
         }
         for c in all_chunk_objs
+        if c.ocr_confidence is None
     ]
 
     # ---- Citations for this document ----
@@ -713,7 +717,7 @@ async def get_document_reader(
         "document": doc_data,
         "ocr_chunks": ocr_chunks,
         "passages": passages,
-        "chunks": all_chunks,
+        "original_chunks": original_chunks,
         "citations": citations,
         "evidences": evidences,
     })
@@ -788,15 +792,21 @@ async def _test_seed_reader_data(
     await session.flush()
 
     # ---- 3. Create DocumentChunks (paragraph-boundary) ----
+    # Create a mix: some non-OCR (original text) + some OCR chunks
+    # to verify R3 separation in Reader
     paragraphs = [p for p in body.document_text.split("\n\n") if p.strip()]
     chunks = []
     for idx, para in enumerate(paragraphs):
+        # Even-indexed chunks: non-OCR (original text). Odd-indexed: OCR.
+        is_ocr = idx % 2 == 1
         chunk = DocumentChunk(
             id=str(_uuid_mod.uuid4()),
             document_id=doc.id,
             chunk_index=idx,
             content=para.strip(),
             paragraph_index=idx,
+            ocr_confidence=0.80 + (idx * 0.03) if is_ocr else None,
+            page_number=2 if is_ocr else 1,
         )
         session.add(chunk)
         chunks.append(chunk)

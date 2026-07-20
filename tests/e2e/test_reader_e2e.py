@@ -121,19 +121,25 @@ class TestReaderE2E:
         assert doc_id
 
         data = _get_reader_data(backend_port, a["access_token"], doc_id)
-        chunks = data.get("chunks", [])
-        assert len(chunks) >= 2, f"Fixture must create 2+ chunks, got {len(chunks)}"
-        assert "id" in chunks[0], "Each chunk must have a stable 'id'"
-        assert "chunk_index" in chunks[0], "Each chunk must have 'chunk_index'"
+        original_chunks = data.get("original_chunks", [])
+        assert len(original_chunks) >= 2, f"Fixture must create 2+ original chunks, got {len(original_chunks)}"
+        assert "id" in original_chunks[0], "Each chunk must have a stable 'id'"
+        assert "chunk_index" in original_chunks[0], "Each chunk must have 'chunk_index'"
 
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
         _goto_reader(page, frontend_url, doc_id)
 
         body = page.locator("body").first.text_content() or ""
-        assert "原文" in body, "Must show '原文' section when chunks exist"
+        assert "原文" in body, "Must show '原文' section when original chunks exist"
         ocr_chunks = data.get("ocr_chunks", [])
         if ocr_chunks:
             assert "OCR" in body, "Must show OCR section when OCR chunks exist"
+
+        # R3: original_chunks must NOT contain any OCR text
+        for c in original_chunks:
+            assert c.get("id") not in {oc.get("id") for oc in ocr_chunks}, (
+                f"Chunk {c.get('id')} must not appear in both original_chunks and ocr_chunks"
+            )
 
     def test_reader_translation_missing_display(
         self, live_servers, library_test_users, page,
@@ -165,11 +171,11 @@ class TestReaderE2E:
         assert doc_id
 
         data = _get_reader_data(backend_port, a["access_token"], doc_id)
-        chunks = data.get("chunks", [])
-        assert len(chunks) >= 2, f"Fixture must create 2+ chunks, got {len(chunks)}"
+        original_chunks = data.get("original_chunks", [])
+        assert len(original_chunks) >= 2, f"Fixture must create 2+ original chunks, got {len(original_chunks)}"
 
-        indices = [c["chunk_index"] for c in chunks]
-        assert indices == sorted(indices), f"Chunk indices must be sorted: {indices}"
+        indices = [c["chunk_index"] for c in original_chunks]
+        assert indices == sorted(indices), f"Original chunk indices must be sorted: {indices}"
 
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
         _goto_reader(page, frontend_url, doc_id)
@@ -508,6 +514,72 @@ class TestReaderE2E:
         assert highlighted.count() == 0, (
             f"Unanchored evidence must NOT produce any chunk highlight. Found {highlighted.count()}."
         )
+
+    # ----------------------------------------------------------------
+    # R3. Original / OCR boundary
+    # ----------------------------------------------------------------
+
+    def test_reader_r3_original_chunks_exclude_ocr(
+        self, live_servers, library_test_users, page,
+    ):
+        """R3. backend original_chunks must NOT contain any ocr_confidence IS NOT NULL chunks."""
+        frontend_url, backend_port = live_servers
+        a = library_test_users["user_a"]
+        doc_id = a["doc"].get("id")
+        assert doc_id
+
+        data = _get_reader_data(backend_port, a["access_token"], doc_id)
+        original_chunks = data.get("original_chunks", [])
+        ocr_chunks = data.get("ocr_chunks", [])
+
+        # Build set of OCR chunk IDs
+        ocr_ids = {oc["id"] for oc in ocr_chunks}
+        for c in original_chunks:
+            assert c["id"] not in ocr_ids, (
+                f"Chunk {c['id']} appears in both original_chunks and ocr_chunks — R3 violation"
+            )
+
+    def test_reader_r3_ocr_chunks_only_contain_ocr(
+        self, live_servers, library_test_users,
+    ):
+        """R3. backend ocr_chunks must only contain chunks with ocr_confidence."""
+        _, backend_port = live_servers
+        a = library_test_users["user_a"]
+        doc_id = a["doc"].get("id")
+        assert doc_id
+
+        data = _get_reader_data(backend_port, a["access_token"], doc_id)
+        ocr_chunks = data.get("ocr_chunks", [])
+        for c in ocr_chunks:
+            assert c.get("ocr_confidence") is not None, (
+                f"OCR chunk {c['id']} must have ocr_confidence set, got None"
+            )
+
+    def test_reader_r3_ui_separation_original_vs_ocr(
+        self, live_servers, library_test_users, page,
+    ):
+        """R3. Reader UI: original section does not display OCR content as original."""
+        frontend_url, backend_port = live_servers
+        a = library_test_users["user_a"]
+        doc_id = a["doc"].get("id")
+        assert doc_id
+
+        _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
+        _goto_reader(page, frontend_url, doc_id)
+
+        # Verify the "原文" section is present
+        body = page.locator("body").first.text_content() or ""
+        assert "原文" in body, "Original text section must be present"
+
+        # Verify that if there are OCR chunks, the "OCR 文本" section is separate
+        data = _get_reader_data(backend_port, a["access_token"], doc_id)
+        ocr_chunks = data.get("ocr_chunks", [])
+        if ocr_chunks:
+            # Verify OCR section appears separately, not mixed into original
+            loc = page.locator('h3:has-text("原文")').first
+            assert loc.count() > 0, "Must have '原文' h3"
+            ocr_loc = page.locator('h3:has-text("OCR 文本")').first
+            assert ocr_loc.count() > 0, "Must have 'OCR 文本' h3"
 
     # ----------------------------------------------------------------
     # h. Back button

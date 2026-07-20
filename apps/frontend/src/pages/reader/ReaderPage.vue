@@ -102,8 +102,8 @@
           <p class="reader-abstract-text">{{ doc.abstract }}</p>
         </section>
 
-        <!-- Section: Original Text (rendered from backend chunks) -->
-        <section v-if="chunks.length > 0" class="reader-panel">
+        <!-- Section: Original Text (rendered from backend original_chunks — non-OCR only) -->
+        <section v-if="originalChunks.length > 0" class="reader-panel">
           <h3>原文</h3>
           <div class="reader-text-controls">
             <button
@@ -118,7 +118,7 @@
             :class="['reader-content-text', { 'reader-content-text--expanded': textExpanded }]"
           >
             <div
-              v-for="chunk in chunks"
+              v-for="chunk in originalChunks"
               :key="chunk.id"
               :id="`chunk-${chunk.id}`"
               :ref="(el) => registerChunkEl(chunk.id, el)"
@@ -135,13 +135,17 @@
             </div>
           </div>
         </section>
+        <section v-else class="reader-panel">
+          <h3>原文</h3>
+          <p class="reader-section-hint">原文不可用 / 暂无原文</p>
+        </section>
 
-        <!-- Section: Paragraph navigation (from backend chunks, not regex) -->
-        <section v-if="chunks.length > 0" class="reader-panel">
+        <!-- Section: Paragraph navigation (from backend original_chunks, not regex) -->
+        <section v-if="originalChunks.length > 0" class="reader-panel">
           <h3>段落导航</h3>
           <div class="reader-paragraph-list">
             <div
-              v-for="chunk in chunks"
+              v-for="chunk in originalChunks"
               :key="`nav-${chunk.id}`"
               class="reader-paragraph-item"
               :class="{ 'reader-paragraph-item--active': highlightedChunkIds.has(chunk.id) }"
@@ -166,6 +170,7 @@
             v-for="chunk in ocrChunks"
             :key="`ocr-${chunk.id}`"
             :id="`ocr-chunk-${chunk.id}`"
+            :ref="(el) => registerChunkEl(chunk.id, el)"
             class="reader-ocr-chunk"
             :class="{ 'reader-highlight': highlightedChunkIds.has(chunk.id) }"
           >
@@ -379,7 +384,7 @@ interface ReaderData {
   document: ReaderDocument;
   ocr_chunks: OcrChunk[];
   passages: ReaderPassage[];
-  chunks: ReaderChunk[];
+  original_chunks: ReaderChunk[];
   citations: ReaderCitation[];
   evidences: ReaderEvidence[];
 }
@@ -391,7 +396,7 @@ const error = ref<string | null>(null);
 const doc = ref<ReaderDocument | null>(null);
 const ocrChunks = ref<OcrChunk[]>([]);
 const passages = ref<ReaderPassage[]>([]);
-const chunks = ref<ReaderChunk[]>([]);
+const originalChunks = ref<ReaderChunk[]>([]);
 const citations = ref<ReaderCitation[]>([]);
 const evidences = ref<ReaderEvidence[]>([]);
 
@@ -471,7 +476,7 @@ async function fetchReaderData() {
     doc.value = body.document;
     ocrChunks.value = body.ocr_chunks ?? [];
     passages.value = body.passages ?? [];
-    chunks.value = body.chunks ?? [];
+    originalChunks.value = body.original_chunks ?? [];
     citations.value = body.citations ?? [];
     evidences.value = body.evidences ?? [];
 
@@ -607,7 +612,7 @@ watch(
     if (newId !== oldId) {
       // Clear all state before fetching new document
       doc.value = null;
-      chunks.value = [];
+      originalChunks.value = [];
       ocrChunks.value = [];
       passages.value = [];
       citations.value = [];

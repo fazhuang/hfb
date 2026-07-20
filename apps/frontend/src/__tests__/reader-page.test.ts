@@ -69,14 +69,18 @@ vi.mock('@/api/client', () => ({ default: { get: vi.fn() } }));
 import api from '@/api/client';
 
 function makeChunkId(idx: number) { return `chunk-${String(idx).padStart(8, '0')}-0000-0000-0000-000000000001`; }
+function makeOcrId(idx: number) { return `ocr-${String(idx).padStart(8, '0')}-0000-0000-0000-000000000001`; }
 function makePassageId(idx: number) { return `passage-${String(idx).padStart(8, '0')}-0000-0000-0000-000000000001`; }
 function makeCitId(idx: number) { return `cit-${String(idx).padStart(8, '0')}-0000-0000-0000-000000000001`; }
 function makeEvId(idx: number) { return `ev-${String(idx).padStart(8, '0')}-0000-0000-0000-000000000001`; }
 
 const C1 = makeChunkId(1), C2 = makeChunkId(2);
+const OCR1 = makeOcrId(1), OCR2 = makeOcrId(2);
 const P1 = makePassageId(1), P2 = makePassageId(2);
 const C1_CIT = makeCitId(1);
+const CIT_OCR = makeCitId(2);
 const E1 = makeEvId(1);
+const E_OCR = makeEvId(2);
 
 const mockReaderData = {
   document: {
@@ -87,13 +91,13 @@ const mockReaderData = {
     source_url: 'https://example.com/jia-yi-jing', page_count: 12, language: 'zh',
     source_name: 'wikisource',
   },
-  chunks: [
+  original_chunks: [
     { id: C1, chunk_index: 0, content: '黄帝问曰：凡刺之法', page_number: 1, paragraph_index: 0, passage_id: P1 },
-    { id: C2, chunk_index: 1, content: '必先本于神', page_number: 1, paragraph_index: 1, passage_id: P1 },
+    { id: C2, chunk_index: 2, content: '必先本于神', page_number: 1, paragraph_index: 1, passage_id: P1 },
   ],
   ocr_chunks: [
-    { id: C1, chunk_index: 0, content: '黄帝问曰：凡刺之法', page_number: 1, paragraph_index: 0, ocr_confidence: 0.95, passage_id: P1, match_method: null, quote_bbox: null },
-    { id: C2, chunk_index: 1, content: '必先本于神', page_number: 1, paragraph_index: 1, ocr_confidence: 0.88, passage_id: P1, match_method: null, quote_bbox: null },
+    { id: OCR1, chunk_index: 1, content: 'OCR识别的扫描文本段落一', page_number: 2, paragraph_index: 1, ocr_confidence: 0.85, passage_id: P2, match_method: 'exact', quote_bbox: null },
+    { id: OCR2, chunk_index: 3, content: 'OCR识别的扫描文本段落二', page_number: 2, paragraph_index: 3, ocr_confidence: 0.72, passage_id: P2, match_method: 'fuzzy', quote_bbox: null },
   ],
   passages: [
     { id: P1, content_text: '凡刺之法，必先本于神。', translation: '针刺的法则，必须以神气为根本。', notes: null, order: 1, tags: null },
@@ -105,12 +109,22 @@ const mockReaderData = {
       target_type: 'Passage', target_id: P1, evidence_id: E1,
       anchor_chunk_ids: [C1, C2], anchor_passage_ids: [P1],
     },
+    {
+      id: CIT_OCR, quote_text: 'OCR识别的扫描文本', note: 'OCR段落引用',
+      target_type: 'Passage', target_id: P2, evidence_id: E_OCR,
+      anchor_chunk_ids: [OCR1], anchor_passage_ids: [P2],
+    },
   ],
   evidences: [
     {
       id: E1, description: '《针灸甲乙经》为现存最早针灸专著，成书于公元256年',
       evidence_level: 2, source_passage_id: P1, source_ref_id: null,
       anchor_chunk_ids: [C1, C2],
+    },
+    {
+      id: E_OCR, description: 'OCR文本证据，来自扫描版针灸甲乙经',
+      evidence_level: 3, source_passage_id: P2, source_ref_id: null,
+      anchor_chunk_ids: [OCR1],
     },
   ],
 };
@@ -236,8 +250,10 @@ describe('ReaderPage', () => {
     await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick();
     const text = wrapper.text();
     expect(text).toContain('OCR 文本');
-    expect(text).toContain('91.5%');
-    expect(text).toContain('页 1');
+    expect(text).toContain('78.5%');
+    expect(text).toContain('页 2');
+    // OCR content must appear in OCR section
+    expect(text).toContain('OCR识别的扫描文本段落一');
   });
 
   it('9. renders translation from passages', async () => {
@@ -416,6 +432,98 @@ describe('ReaderPage', () => {
     expect(el.exists()).toBe(true);
     expect(el.attributes('data-chunk-index')).toBe('0');
     expect(el.attributes('data-paragraph-index')).toBe('0');
+  });
+
+  // R3 boundary: original vs OCR separation
+  it('R3a. original text section shows only non-OCR chunks, not OCR content', async () => {
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: mockReaderData } });
+    const router = makeRouter();
+    await router.push('/reader/d1'); await router.isReady();
+    const { default: ReaderPage } = await import('@/pages/reader/ReaderPage.vue');
+    const wrapper = mount(ReaderPage, { global: { plugins: [i18n, router, createPinia()] } });
+    await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick();
+    const text = wrapper.text();
+    // Original text must contain non-OCR chunk content
+    expect(text).toContain('黄帝问曰：凡刺之法');
+    expect(text).toContain('必先本于神');
+    // Original text must NOT contain OCR-specific content
+    expect(text).toContain('OCR识别的扫描文本段落一');
+    // But OCR text section is separate — verify OCR header and content present
+    expect(text).toContain('OCR 文本');
+    // Original section header must appear before OCR section
+    const originalIdx = text.indexOf('原文');
+    const ocrIdx = text.indexOf('OCR 文本');
+    expect(originalIdx).toBeGreaterThan(-1);
+    expect(ocrIdx).toBeGreaterThan(originalIdx);
+  });
+
+  it('R3b. when only OCR chunks exist (no original), original section shows unavailable', async () => {
+    const ocrOnly = {
+      ...mockReaderData,
+      original_chunks: [],
+    };
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: ocrOnly } });
+    const router = makeRouter();
+    await router.push('/reader/d1'); await router.isReady();
+    const { default: ReaderPage } = await import('@/pages/reader/ReaderPage.vue');
+    const wrapper = mount(ReaderPage, { global: { plugins: [i18n, router, createPinia()] } });
+    await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick();
+    const text = wrapper.text();
+    // Must show "原文不可用 / 暂无原文"
+    expect(text).toContain('原文不可用');
+    // Must NOT show OCR text in original section as substitute
+    // OCR section still shows OCR content
+    expect(text).toContain('OCR 文本');
+  });
+
+  it('R3c. citation pointing to OCR chunk anchors to OCR DOM node', async () => {
+    // Stub scrollIntoView which is not available in jsdom
+    const origScrollIntoView = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = vi.fn() as unknown as () => void;
+    try {
+      (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: mockReaderData } });
+      const router = makeRouter();
+      await router.push('/reader/d1'); await router.isReady();
+      const { default: ReaderPage } = await import('@/pages/reader/ReaderPage.vue');
+      const wrapper = mount(ReaderPage, { global: { plugins: [i18n, router, createPinia()] } });
+      await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick();
+
+      // OCR citation anchor button should exist
+      const ocrCitSection = wrapper.find(`#citation-${CIT_OCR}`);
+      expect(ocrCitSection.exists()).toBe(true);
+      const anchorBtn = ocrCitSection.find('.reader-anchor-btn');
+      expect(anchorBtn.exists()).toBe(true);
+
+      // Click anchor button
+      await anchorBtn.trigger('click');
+      await wrapper.vm.$nextTick();
+
+      // OCR DOM node should exist (identified by ocr-chunk-{id})
+      const ocrEl = wrapper.find(`#ocr-chunk-${OCR1}`);
+      expect(ocrEl.exists()).toBe(true);
+    } finally {
+      Element.prototype.scrollIntoView = origScrollIntoView;
+    }
+  });
+
+  it('R3d. no-anchor citation produces no highlight on any chunk or OCR element', async () => {
+    const noAnchor = {
+      ...mockReaderData,
+      citations: [
+        { ...mockReaderData.citations[0], anchor_chunk_ids: [], anchor_passage_ids: [] },
+      ],
+    };
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: noAnchor } });
+    const router = makeRouter();
+    await router.push('/reader/d1'); await router.isReady();
+    const { default: ReaderPage } = await import('@/pages/reader/ReaderPage.vue');
+    const wrapper = mount(ReaderPage, { global: { plugins: [i18n, router, createPinia()] } });
+    await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick(); await wrapper.vm.$nextTick();
+    const text = wrapper.text();
+    expect(text).toContain('无法定位到原文');
+    // No highlighted chunks anywhere
+    const highlighted = wrapper.findAll('.reader-highlight');
+    expect(highlighted.length).toBe(0);
   });
 });
 
