@@ -110,15 +110,28 @@ const nameInputRef = ref<HTMLInputElement | null>(null);
 
 const canSubmit = computed(() => name.value.trim().length > 0 && !submitting.value);
 
+// Focus restoration: save trigger element before dialog opens
+let triggerElement: HTMLElement | null = null;
+
 // Watch open to auto-focus and reset form
 watch(() => props.open, (val) => {
   if (val) {
+    // Save the element that triggered the dialog (the currently focused element)
+    triggerElement = document.activeElement as HTMLElement | null;
     name.value = '';
     description.value = '';
     errorMessage.value = '';
     nextTick(() => {
       nameInputRef.value?.focus();
     });
+  } else {
+    // Restore focus to trigger element when dialog closes.
+    // Use setTimeout to ensure Vue has finished unmounting the dialog DOM.
+    setTimeout(() => {
+      if (triggerElement && document.body.contains(triggerElement)) {
+        triggerElement.focus();
+      }
+    }, 0);
   }
 });
 

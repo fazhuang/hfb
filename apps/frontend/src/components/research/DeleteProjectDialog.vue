@@ -71,13 +71,23 @@ const submitting = ref(false);
 const errorMessage = ref('');
 const cancelBtnRef = ref<HTMLButtonElement | null>(null);
 
+// Focus restoration: save trigger element before dialog opens
+let triggerElement: HTMLElement | null = null;
+
 watch(
   () => props.open,
   (val) => {
     if (val) {
+      // Save the element that triggered the dialog (the currently focused element)
+      triggerElement = document.activeElement as HTMLElement | null;
       errorMessage.value = '';
       nextTick(() => {
         cancelBtnRef.value?.focus();
+      });
+    } else {
+      // Restore focus to trigger element when dialog closes
+      nextTick(() => {
+        triggerElement?.focus();
       });
     }
   },

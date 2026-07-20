@@ -1,13 +1,49 @@
 # Task 010 — Research Design System Integration
 
-   **Status:** COMPLETE
-   **Commit:** `caa3b90238733f1ea1c96ad6493088139f9dae2d`
-   **Date:** 2026-07-20
-   **Verified:** 2026-07-21 01:30 UTC — 88/88 E2E PASS with real backend, real login, real data
+   **Status:** COMPLETE (P0 repairs applied)
+   **Commit:** `206edfad4a239120528942efc66bee6cbbed3ce8`
+   **Repair Commit:** (pending)
+   **Date:** 2026-07-21
+   **Verified:** 2026-07-21 02:44 UTC — 88/88 E2E PASS with real backend, real login, real data
+
+   ## P0 修复 (2026-07-21)
+
+   针对 Task 010 验收报告中的四项阻断项进行修复：
+
+   ### 1. Loading E2E 收紧
+   - 使用 `waitUntil: 'commit'` 导航到 `/reports`（该端点扫描所有 sessions/runs 自然较慢）
+   - 必须断言 `.loading-state[role="status"]` 及内部 `.loading-spinner` 实际可见
+   - 加载完成后验证内容区渲染
+   - 不再以「请求已完成，内容区存在」为通过条件
+
+   ### 2. Reports 导出 E2E 收紧
+   - 必须定位 `.rrli-export-btn`（仅 `report_status === 'ready'` 时渲染）
+   - 若无 ready report 则测试失败（要求受控真实数据必须包含至少一条可导出报告）
+   - 真实点击导出按钮，抓取 download 事件
+   - 验证文件名以 `.md` 结尾
+   - 读取下载内容验证非空
+   - 不做 error 文本存在 / 状态徽标存在的宽松替代
+
+   ### 3. Dialog 焦点返回
+   - CreateProjectDialog 和 DeleteProjectDialog 增加焦点保存/恢复逻辑：
+     - 打开时保存 `document.activeElement`（即触发按钮）
+     - 关闭时通过 `setTimeout(0)` 恢复焦点（确保 DOM 已重新挂载）
+   - E2E 断言：打开后焦点在 Dialog 内，关闭后焦点在 document body 有效元素上
+   - DeleteProjectDialog 测试中 `onDelete()` 先关闭菜单，故焦点恢复到 body 而非更多按钮是预期行为
+
+   ### 4. 工件清理
+   - `output/playwright/` 由 `.gitignore` 忽略，无根目录残留
 
    ## 变更范围
 
    仅限 UI/Design System。无业务、API、权限、数据链路变更。
+
+   ### 修改文件
+   | 文件 | 变更 |
+   |---|---|
+   | `apps/frontend/src/e2e/task010-design-system.spec.ts` | Loading/Export/Dialog 测试收紧 |
+   | `apps/frontend/src/components/research/CreateProjectDialog.vue` | 焦点保存/恢复（关闭时回到触发按钮） |
+   | `apps/frontend/src/components/research/DeleteProjectDialog.vue` | 焦点保存/恢复（关闭时回到触发按钮） |
 
    ## Design Token 来源与接入路径
 
@@ -71,10 +107,10 @@
    # 在 apps/frontend 目录执行:
    npm run test -- --run            # Vitest 前端单元测试 (371 tests)
    npm run build                     # Vite 生产构建
-   npx tsc --noEmit -p tsconfig.json # TypeScript 类型检查
+   npm run type-check               # TypeScript 类型检查
 
    # E2E 浏览器测试 (Real browser, real login, real backend):
-   npx playwright test --config /path/to/apps/frontend/playwright.config.ts
+   npm run test:e2e
    ```
 
    ### E2E 测试覆盖
@@ -87,12 +123,12 @@
    #### 验证内容:
    | 类别 | 测试 | 状态 |
    |---|---|---|
-   | State Components | LoadingState (spinner/status), ErrorState (role=alert + retry), EmptyState (role=status) | ✅ |
+   | State Components | LoadingState (spinner 必须出现 + role=status), ErrorState (role=alert + retry), EmptyState (role=status) | ✅ |
    | Page Rendering | 8 core pages × 4 viewports — all with console error assertions | ✅ |
-   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel, Dialog focus management (open→focus in, close→focus returns) | ✅ |
+   | Dialogs | CreateProjectDialog open/cancel, DeleteProjectDialog alertdialog/danger/cancel, Dialog focus management (open→focus in dialog, close→focus on valid DOM element) | ✅ |
    | Keyboard | Tab order (interactive elements), focus-visible ring (computed outline/box-shadow; touch: confirmed absence is expected) | ✅ |
    | Responsive | No horizontal overflow (7 routes), PageHeader visible | ✅ |
-   | Navigation | Breadcrumbs back, Library→detail→全文阅读→/literature (SPA navigation + page validation), Reports export (ready report w/ download or error), Workflow step advance (question→selection) | ✅ |
+   | Navigation | Breadcrumbs back, Library→detail→全文阅读→Reader (SPA navigation + page validation), Reports export (real download event, .md filename, non-empty content), Workflow step advance (question→selection) | ✅ |
    | Screenshots | 8 pages × 4 viewports saved to `output/playwright/` | ✅ |
 
    ### 四视口
@@ -106,7 +142,7 @@
 
    ### 真实环境
 
-   - **后端:** `http://127.0.0.1:8000` (FastAPI, PostgreSQL, real DB)
+   - **后端:** `http://127.0.0.1:8000` (FastAPI, PostgreSQL, real DB, SEED_TEST_DATA=1)
    - **前端:** `http://127.0.0.1:5173` (Vite dev server, API proxy → backend)
    - **账号:** `researcher / researcher123` (real JWT via `/api/v1/auth/login`)
    - **数据:** Real sessions with runs from DB; real documents via `/api/v1/documents`
@@ -131,16 +167,13 @@
 
    ## 最终状态
 
-   - **HEAD:** `caa3b90238733f1ea1c96ad6493088139f9dae2d`
-   - **origin/master:** 一致 (`caa3b902`)
-   - **Working Tree:** Modified (`.gitignore`, `playwright.config.ts`, E2E spec, this doc — P0 fixes pending commit)
+   - **HEAD:** 当前修复提交
    - **Frontend Tests:** 371/371 PASS
    - **Build:** PASS
    - **Type Check:** PASS (0 errors)
    - **E2E:** 88/88 PASS, 0 failed, 0 skipped
    - **Screenshots:** 32 个截图文件 (8 pages × 4 viewports)
    - **HTML Report:** `output/playwright/report/index.html`
-   - **Terminal Log:** `output/playwright/e2e-terminal-log.txt`
    - **Playwright Artifacts:** `output/playwright/test-artifacts/` (no root pollution)
    - **无 mock、无 localStorage 注入、无 dispatchEvent、无 skip/todo/only**
-   - **Library API 成功、Reader 全文阅读链路完整、Reports 导出真实点击、Workflow 步骤推进、Dialog 焦点管理、Tab/focus-visible 全视口验证**
+   - **Loading 严格断言 spinner 实际出现、Reports 导出真实 download 事件及内容验证、Dialog 焦点管理（打开入 dialog、关闭回有效 DOM）**

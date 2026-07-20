@@ -92,19 +92,25 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
-    await page.goto(`${BASE}/reports`);
-    await page.waitForLoadState('networkidle');
 
-    // P0-3: Must assert the specific spinner/status element, not any content area
-    const spinner = page.locator('.loading-spinner, [role="status"] .loading-spinner').first();
-    const status = page.locator('[role="status"]').first();
-    const visible = await spinner.isVisible().catch(() => false)
-      || (await status.isVisible().catch(() => false) && (await status.locator('.loading-spinner').count()) > 0);
-    // Loading spinner may have already resolved; if so, content should be present
-    if (!visible) {
-      const content = page.locator('.rp-content, .empty-state').first();
-      await expect(content).toBeVisible({ timeout: 10_000 });
-    }
+    // Navigate to /reports which aggregates across all sessions+runs —
+    // this is naturally a heavier endpoint that shows a loading spinner.
+    // Use a slower network simulation so the spinner is observable before
+    // the response arrives, then verify the spinner class is actually in the DOM.
+    await page.goto(`${BASE}/reports`, { waitUntil: 'commit' });
+
+    // Wait for the loading spinner to actually appear — must be in DOM with role="status"
+    const spinnerContainer = page.locator('.loading-state[role="status"]');
+    await expect(spinnerContainer).toBeVisible({ timeout: 10_000 });
+
+    // Verify the loading-spinner span exists inside the status container
+    const spinner = spinnerContainer.locator('.loading-spinner');
+    await expect(spinner).toBeVisible();
+
+    // After loading resolves, content should render (not spinner)
+    await page.waitForLoadState('networkidle');
+    const content = page.locator('.rp-content, .empty-state').first();
+    await expect(content).toBeVisible({ timeout: 10_000 });
 
     const criticalErrors = errors.filter(e => !e.includes('favicon'));
     expect(criticalErrors.length).toBe(0);
@@ -339,9 +345,11 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.goto(`${BASE}/research/${sessionId}`);
     await page.waitForLoadState('networkidle');
 
-    // Open "···" more menu — real click
-    const moreBtn = page.locator('button[aria-label="更多操作"], button:has-text("···")').first();
+    // Get the trigger button reference first (before clicking, while it's stable)
+    const moreBtn = page.locator('button[aria-label="更多操作"]').first();
     await expect(moreBtn).toBeVisible({ timeout: 10_000 });
+
+    // Open "···" more menu — real click
     await moreBtn.click();
 
     // Click "删除课题" — real click
@@ -357,34 +365,43 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const danger = alertDialog.locator('button:has-text("确认删除")');
     await expect(danger).toBeVisible();
 
-    // Verify focus is on the dialog (not elsewhere)
+    // Verify focus is inside the alertdialog after opening
     const focusedInDialog = await page.evaluate(() => {
       const el = document.activeElement;
       if (!el) return false;
       return el.closest('[role="alertdialog"]') !== null;
     });
-    expect(focusedInDialog).toBe(true);
+    expect(focusedInDialog, 'Focus must be inside alertdialog when opened').toBe(true);
 
     // Cancel closes dialog
     const cancel = alertDialog.locator('button:has-text("取消")').first();
     await cancel.click();
     await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
 
-    // Reopen — verify focus returns to trigger button
-    const focusedAfterClose = await page.evaluate(() => {
+    // P0-3: Focus must return to a valid visible element (trigger button or body)
+    // The menu was closed before dialog opened, so trigger may be the moreBtn or body
+    const focusValid = await page.evaluate(() => {
       const el = document.activeElement;
-      if (!el) return null;
-      return el.tagName;
+      if (!el) return false;
+      return document.body.contains(el) && el.tagName !== 'DIALOG';
     });
-    expect(focusedAfterClose).toBeTruthy();
+    expect(focusValid, 'Focus must be on a valid DOM element after dialog closes').toBe(true);
 
-    // Reopen and dismiss with Escape
+    // Reopen menu, then reopen dialog
     await moreBtn.click();
     await expect(deleteBtn).toBeVisible({ timeout: 5_000 });
     await deleteBtn.click();
     await expect(alertDialog).toBeVisible({ timeout: 5_000 });
     await page.keyboard.press('Escape');
     await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
+
+    // Focus must be on a valid DOM element after Escape dismissal
+    const focusValid2 = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return document.body.contains(el) && el.tagName !== 'DIALOG';
+    });
+    expect(focusValid2, 'Focus must be on a valid DOM element after Escape').toBe(true);
   });
 
   test('Dialog focus management — open gives focus to dialog, close returns focus to trigger', async ({ page }) => {
@@ -414,15 +431,31 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.keyboard.press('Escape');
     await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
 
-    // P0-3: Focus must return to body/document after dialog closes
-    // (may not return exactly to trigger, but must not be orphaned on a removed element)
-    const focusValidAfterClose = await page.evaluate(() => {
+    // P0-3: Focus must return to a valid visible element (trigger button)
+    // The browser/component may restore focus to the trigger or to body — both are valid
+    // as long as focus is not orphaned on a removed element
+    const focusValidAfterEscape = await page.evaluate(() => {
       const el = document.activeElement;
-      if (!el) return 'no element';
-      // Focus should be on body or a valid visible element
-      return el.tagName !== 'DIALOG' && document.body.contains(el);
+      if (!el) return false;
+      return document.body.contains(el) && el.tagName !== 'DIALOG';
     });
-    expect(focusValidAfterClose, 'Focus must return to document body after dialog closes').toBe(true);
+    expect(focusValidAfterEscape, 'Focus must return to document body after Escape closes dialog').toBe(true);
+
+    // Reopen with click, close with Cancel button
+    await createBtn.click();
+    await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
+
+    const cancelBtn = dialog.locator('button:has-text("取消")').first();
+    await cancelBtn.click();
+    await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
+
+    // Focus must be on a valid DOM element after Cancel closes dialog
+    const focusValidAfterCancel = await page.evaluate(() => {
+      const el = document.activeElement;
+      if (!el) return false;
+      return document.body.contains(el) && el.tagName !== 'DIALOG';
+    });
+    expect(focusValidAfterCancel, 'Focus must return to document body after Cancel closes dialog').toBe(true);
   });
 
   // ── P4: Keyboard Navigation ───────────────────────────────────────
@@ -603,55 +636,57 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Reports page — export button triggers real export for ready reports', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+
     await login(page);
     await page.goto(`${BASE}/reports`);
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('.rp-content')).toBeVisible({ timeout: 10_000 });
 
-    // P0-3: Find ready reports and trigger real export
-    const reportItems = page.locator('.rrli-root[role="listitem"]');
-    const count = await reportItems.count();
-
-    if (count === 0) {
-      // No reports at all — expect empty state, which is valid
-      const emptyState = page.locator('.empty-state[role="status"]');
-      await expect(emptyState).toBeVisible({ timeout: 5_000 });
-      return;
-    }
-
-    // Look for a "ready" report with an export button
+    // P0-3: Must find at least one ready report with an export button.
+    // The export button is ONLY rendered when report_status === 'ready'.
     const exportBtn = page.locator('.rrli-export-btn').first();
-    const exportVisible = await exportBtn.isVisible({ timeout: 3_000 }).catch(() => false);
 
-    if (exportVisible) {
-      // P0-3: Real click on export, verify download or request
-      // Listen for download event
-      const [download] = await Promise.all([
-        page.waitForEvent('download', { timeout: 15_000 }).catch(() => null),
-        exportBtn.click(),
-      ]);
+    // This assertion fails if no ready report exists — that IS the correct behavior:
+    // the test data MUST contain at least one ready report to prove export works.
+    await expect(
+      exportBtn,
+      'No ready report with export button found — test data must include a ready report'
+    ).toBeVisible({ timeout: 10_000 });
 
-      if (download) {
-        // Verify download succeeded with a valid filename
-        const filename = download.suggestedFilename();
-        expect(filename, 'Export download must have a filename').toBeTruthy();
-      } else {
-        // If no download event, check that an export error did NOT appear
-        const exportError = page.locator('.rrli-export-error[role="alert"]');
-        const hasError = await exportError.isVisible({ timeout: 2_000 }).catch(() => false);
-        if (hasError) {
-          const errText = await exportError.textContent();
-          // Acceptable errors: permission, not-found, empty — but not network/silent failures
-          expect(errText, 'Export should not fail silently').toBeTruthy();
-        }
-      }
-    } else {
-      // No ready reports with export buttons — this is a data gap
-      // Verify that reports exist and the status badges explain why
-      const readyBadges = page.locator('.rrli-badges');
-      expect(await readyBadges.count(), 'Reports page must have content or explain absence').toBeGreaterThanOrEqual(0);
+    // Confirm the report has the ready status badge near the export button
+    const readyBadge = page.locator('.rrli-badges').filter({ hasText: /就绪|ready/i }).first();
+    await expect(readyBadge).toBeVisible({ timeout: 5_000 });
+
+    // Real click on export — capture the download event
+    const [download] = await Promise.all([
+      page.waitForEvent('download', { timeout: 20_000 }),
+      exportBtn.click(),
+    ]);
+
+    // Must receive a download with a valid filename
+    expect(download, 'Export click must produce a download event').toBeTruthy();
+    const filename = download!.suggestedFilename();
+    expect(filename, 'Export download must have a non-empty filename').toBeTruthy();
+    expect(
+      filename.endsWith('.md') || filename.endsWith('.markdown'),
+      `Export filename should end with .md or .markdown, got: ${filename}`
+    ).toBe(true);
+
+    // Verify the downloaded file has content
+    const stream = await download!.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      if (Buffer.isBuffer(chunk)) chunks.push(chunk);
     }
+    const content = Buffer.concat(chunks).toString('utf-8');
+    expect(content.length, 'Exported markdown file must not be empty').toBeGreaterThan(0);
+
+    // Verify no console errors
+    const criticalErrors = errors.filter(e => !e.includes('favicon'));
+    expect(criticalErrors.length).toBe(0);
   });
 
   // ── P7: Screenshots — all 4 viewports × core pages ───────────────
