@@ -151,18 +151,12 @@ const router = createRouter({
           ],
         },
 
-        // Reader — uses ResearchAppLayout for nav consistency (Task 011)
+        // Reader (standalone, not under Library module — Task 009)
         {
           path: 'reader/:id',
-          component: () => import('@/layouts/ResearchAppLayout.vue'),
-          meta: { section: 'library', requiresAuth: true },
-          children: [
-            {
-              path: '',
-              name: 'reader',
-              component: () => import('@/pages/reader/ReaderPage.vue'),
-            },
-          ],
+          name: 'reader',
+          component: () => import('@/pages/reader/ReaderPage.vue'),
+          meta: { requiresAuth: true },
         },
 
         // Knowledge module (placeholder)

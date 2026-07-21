@@ -17,25 +17,17 @@
 
     <!-- Ready: full result display -->
     <template v-else>
-      <ResearchPageHeader
-        :title="pageTitle"
-        :description="pageDescription"
-        :breadcrumbs="resultBreadcrumbs"
-      >
-        <template #actions>
-          <button
-            type="button"
-            class="rpage-export-btn"
-            :disabled="exporting || !hasReport"
-            @click="handleExport"
-          >
-            {{ exporting ? '导出中...' : '导出 Markdown' }}
-          </button>
-        </template>
-      </ResearchPageHeader>
-
-      <!-- Run summary -->
-      <ResearchRunSummary v-if="rawRun" :run="rawRun" :report="report" />
+      <ResearchResultHeader
+        :project-id="currentProjectId"
+        :run-id="currentRunId"
+        :session="session"
+        :report="report"
+        :evidence="evidenceList"
+        :raw-run="rawRun"
+        :exporting="exporting"
+        :has-report="hasReport"
+        @export="handleExport"
+      />
 
       <!-- Quick stats bar for report-missing but ready -->
       <div v-if="!hasReport && hasEvidence" class="rpage-notice">
@@ -82,9 +74,7 @@
 import { computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResearchResult } from '@/composables/useResearchResult';
-import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
-import type { Breadcrumb } from '@/components/layout/ResearchPageHeader.vue';
-import ResearchRunSummary from '@/components/research/result/ResearchRunSummary.vue';
+import ResearchResultHeader from '@/components/research/result/ResearchResultHeader.vue';
 import ResearchReportViewer from '@/components/research/result/ResearchReportViewer.vue';
 import CitationPanel from '@/components/research/result/CitationPanel.vue';
 import ResearchResultErrorState from '@/components/research/result/ResearchResultErrorState.vue';
@@ -118,21 +108,6 @@ const {
   () => currentProjectId.value,
   () => currentRunId.value,
 );
-
-// ---- Derived: header ----
-const pageTitle = computed(() => session.value?.title || '研究结果');
-
-const pageDescription = computed(() => {
-  if (report.value?.topic) return `研究问题：${report.value.topic}`;
-  return '';
-});
-
-const resultBreadcrumbs = computed<Breadcrumb[]>(() => [
-  { label: 'Research', to: '/research' },
-  { label: session.value?.title || '研究课题', to: `/research/${currentProjectId.value}` },
-  { label: '研究工作流', to: `/research/${currentProjectId.value}/workflow` },
-  { label: '研究结果' },
-]);
 
 // Load on mount and on route change
 let lastProjectId = '';
@@ -171,43 +146,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .research-page {
-  min-height: 100%;
-}
-
-/* Export button */
-.rpage-export-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 18px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.rpage-export-btn:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-}
-
-.rpage-export-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.rpage-body {
+  max-width: 960px;
+  margin: 0 auto;
   padding: var(--space-6) var(--space-8);
-  margin-top: var(--space-7);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 }
 
 @media (max-width: 768px) {
-  .rpage-body {
+  .research-page {
     padding: var(--space-4) var(--space-5);
   }
 }
@@ -258,6 +203,14 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--color-warning-text);
+}
+
+/* Body */
+.rpage-body {
+  margin-top: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 
 /* Export error */
