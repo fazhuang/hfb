@@ -102,7 +102,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // BLOCK A: Sequential navigation — ProjectList → … → Result
+  // BLOCK A: Sequential navigation — ProjectList → … → Reports
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('A — Sequential navigation chain', () => {
@@ -153,53 +153,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
     });
 
-    test('A4. Workflow → Result — no real clickable entry in frozen baseline', async ({ page }) => {
-      await login(page);
-      // Load the frozen Workflow page (no past-runs section, no .rwf-result-link).
-      await page.goto(`${BASE}/research/${sessionIdA}/workflow`);
-      await page.waitForLoadState('networkidle');
-      await expect(page.locator('.rwf-body, .research-page').first()).toBeVisible({ timeout: 10_000 });
-
-      // ═══════════════════════════════════════════════════════════════════
-      // PRODUCT ACCEPTANCE FACT (Task 011 frozen baseline):
-      //   The Workflow page at /research/:projectId/workflow has NO clickable
-      //   entry that navigates to a Result page (/research/:id/result/:runId).
-      //
-      //   The "历史研究报告" past-runs section (with .rwf-result-link) was
-      //   scope creep committed in 00e693b and has been REVERTED — it added
-      //   an unapproved API call, UI, and data mapping outside Task 011 bounds.
-      //
-      //   The frozen baseline's ResearchReportStep component renders a
-      //   "查看完整结果" router-link to /research/:id/result/:runId ONLY
-      //   in Step 5 after a workflow run completes inline.  There is NO
-      //   persistent list of past runs with result links on the Workflow
-      //   page itself.
-      //
-      //   This test documents the gap: Workflow → Result requires the user
-      //   to first submit and complete a workflow, or navigate via the
-      //   ProjectDetail page's existing result links (.pr-view-link).
-      // ═══════════════════════════════════════════════════════════════════
-
-      // Confirm the scope-creep UI is absent.
-      await expect(
-        page.locator('.rwf-result-link'),
-        'Expected NO .rwf-result-link on frozen Workflow page — scope creep has been reverted'
-      ).toHaveCount(0);
-
-      // Confirm the "历史研究报告" heading is absent.
-      await expect(
-        page.locator('.rwf-past-heading'),
-        'Expected NO past-runs heading on frozen Workflow page'
-      ).toHaveCount(0);
-
-      // Confirm the past-runs list is absent.
-      await expect(
-        page.locator('.rwf-past-list'),
-        'Expected NO past-runs list on frozen Workflow page'
-      ).toHaveCount(0);
-    });
-
-    test('A5. Result → Reports via Primary Nav', async ({ page }) => {
+    test('A4. Result → Reports via Primary Nav', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
