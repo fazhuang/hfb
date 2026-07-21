@@ -1,9 +1,13 @@
 /**
  * Tests for ProjectListPage
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createRouter, createWebHistory } from 'vue-router';
+
+// Wrapper registry — every mount() in this file must register its wrapper
+// here so afterEach can unmount it and prevent cross-test timer/async leaks.
+let activeWrappers: ReturnType<typeof mount>[] = [];
 
 // ================================================================
 // Mock setup
@@ -88,6 +92,7 @@ async function mountPage(sessions: Record<string, unknown>[] = []) {
     },
   });
 
+  activeWrappers.push(wrapper);
   await flushPromises();
   return { wrapper, router };
 }
@@ -99,6 +104,19 @@ async function mountPage(sessions: Record<string, unknown>[] = []) {
 describe('ProjectListPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    // Unmount every wrapper registered by tests in this file.
+    // This prevents async callbacks (timers, pending promises, Vue scheduler
+    // ticks) from one test leaking into another, which can cause mock
+    // call-count drift — especially in C8 which asserts exact call counts.
+    for (const w of activeWrappers) {
+      try { w.unmount(); } catch { /* already unmounted */ }
+    }
+    activeWrappers = [];
+    vi.clearAllTimers();
   });
 
   // 1. Page loads and requests session list
@@ -489,6 +507,15 @@ describe('ProjectListPage', () => {
 describe('Domain mapping contract', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    for (const w of activeWrappers) {
+      try { w.unmount(); } catch { /* already unmounted */ }
+    }
+    activeWrappers = [];
+    vi.clearAllTimers();
   });
 
   // C1. ResearchSession.id is mapped to ResearchProjectSummary.id
@@ -649,6 +676,7 @@ describe('Domain mapping contract', () => {
 
   // C8. Create response enters unified data source
   it('C8. create response refreshes the single list data source', async () => {
+    // Phase 1 — Mount with initial data, establish call baseline.
     mockApiGet.mockResolvedValue({
       data: { data: [makeSession({ id: 'initial', title: 'Initial' })] },
     });
@@ -661,10 +689,19 @@ describe('Domain mapping contract', () => {
       makeSession({ id: 'initial', title: 'Initial' }),
     ]);
 
-    // Trigger create
+    // Baseline: exactly 1 GET from mount → loadProjects()
+    const baselineGetCalls = mockApiGet.mock.calls.length;
+    expect(baselineGetCalls, 'Mount must trigger exactly one GET').toBe(1);
+    expect(mockApiGet).toHaveBeenCalledWith(
+      '/api/v1/workspace/sessions',
+      expect.objectContaining({ params: { limit: 100 } }),
+    );
+
+    // Phase 2 — Open dialog and set up the next loadProjects response.
     await wrapper.find('.rpp-create-btn').trigger('click');
     await flushPromises();
 
+    // Prepare the refresh response (will be consumed by onProjectCreated's loadProjects)
     mockApiGet.mockResolvedValue({
       data: {
         data: [
@@ -674,12 +711,31 @@ describe('Domain mapping contract', () => {
       },
     });
 
+    // Phase 3 — Submit: create → onProjectCreated → loadProjects().
     await wrapper.find('#cpd-name').setValue('New Session');
     await wrapper.find('.cpd-form').trigger('submit.prevent');
     await flushPromises();
 
-    // loadProjects() is called again — no local-only project insertion
-    expect(mockApiGet).toHaveBeenCalledTimes(2);
+    // Phase 4 — Assert: exactly baseline + 1 more GET (the refresh), no local insertion.
+    const totalGetCalls = mockApiGet.mock.calls.length;
+    expect(
+      totalGetCalls,
+      'Create must trigger exactly one additional GET refresh (no local-only insertion)'
+    ).toBe(baselineGetCalls + 1);
+
+    // The refresh GET uses the same endpoint and params.
+    const refreshCall = mockApiGet.mock.calls[baselineGetCalls];
+    expect(refreshCall).toBeDefined();
+    expect(refreshCall![0]).toBe('/api/v1/workspace/sessions');
+    expect(refreshCall![1]).toEqual(
+      expect.objectContaining({ params: { limit: 100 } }),
+    );
+
+    // Verify the UI reflects the unified data source — both old and new are visible.
+    const text = wrapper.text();
+    expect(text).toContain('Initial');
+    expect(text).toContain('New Session');
+    expect(text).toContain('课题创建成功');
   });
 
   // C9. No server-side search parameter sent
