@@ -2,7 +2,7 @@
   <li class="rrli-root" role="listitem">
     <div class="rrli-main">
       <h3 class="rrli-session-title">{{ item.session_title || '未命名研究' }}</h3>
-      <p v-if="item.topic" class="rrli-topic">{{ item.topic }}</p>
+      <p v-if="item.topic" class="rrli-topic" :title="item.topic">{{ item.topic }}</p>
       <div class="rrli-meta">
         <time :datetime="item.created_at" class="rrli-time">
           {{ formattedDate }}

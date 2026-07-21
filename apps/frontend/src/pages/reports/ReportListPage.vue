@@ -73,7 +73,7 @@
         >
           上一页
         </button>
-        <span class="rp-page-info">{{ page }} / {{ totalPages }}</span>
+        <span class="rp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
         <button
           :disabled="page >= totalPages"
           @click="setPage(page + 1)"

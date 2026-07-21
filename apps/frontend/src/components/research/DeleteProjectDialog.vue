@@ -3,7 +3,7 @@
     v-if="open"
     class="dpd-backdrop"
     @click.self="onCancel"
-    @keydown.escape="onCancel"
+    @keydown="onKeyDown"
   >
     <div
       class="dpd-dialog"
@@ -114,6 +114,36 @@ async function onConfirm() {
 function onCancel() {
   if (submitting.value) return;
   emit('update:open', false);
+}
+
+/**
+ * Keep focus within the dialog when Tab or Shift+Tab is pressed.
+ */
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    onCancel();
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  const dialog = (e.currentTarget as HTMLElement).querySelector('.dpd-dialog');
+  if (!dialog) return;
+  const focusable = dialog.querySelectorAll<HTMLElement>(
+    'button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+  const first = focusable[0]!;
+  const last = focusable[focusable.length - 1]!;
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 }
 </script>
 

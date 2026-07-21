@@ -93,7 +93,7 @@
         >
           {{ t('common.back') }}
         </button>
-        <span class="rpp-page-info">{{ page }} / {{ totalPages }}</span>
+        <span class="rpp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
         <button
           :disabled="page >= totalPages"
           @click="goPage(page + 1)"

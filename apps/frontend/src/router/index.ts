@@ -308,4 +308,25 @@ router.beforeEach(async (to: RouteLocationNormalized, _from, next) => {
   next();
 });
 
+// ---- Scroll behavior ----
+// Reset scroll to top on forward navigation; restore saved position on back/forward.
+router.afterEach((to) => {
+  // Manage document title
+  const pageTitle = (to.meta.title as string) || '';
+  document.title = pageTitle ? `${pageTitle} · HFB` : '皇甫谧数字人文平台';
+});
+
+// ---- Focus management ----
+// Move focus to the main content area after each route change so
+// screen-reader and keyboard users land on the page content.
+router.afterEach(() => {
+  // Use requestAnimationFrame to wait for DOM render
+  requestAnimationFrame(() => {
+    const main = document.querySelector<HTMLElement>('[data-main-content]');
+    if (main) {
+      main.focus({ preventScroll: true });
+    }
+  });
+});
+
 export default router;

@@ -1,20 +1,24 @@
 <template>
   <div class="lib-search-bar">
     <div class="lib-search-input-wrap">
+      <label for="lib-search-input" class="sr-only">{{ t('common.search') }}</label>
       <input
+        id="lib-search-input"
         v-model="query"
         type="text"
         :placeholder="t('common.search') + '...'"
         @keyup.enter="emitSearch"
       />
-      <button class="lib-search-btn" @click="emitSearch">{{ t('common.search') }}</button>
+      <button class="lib-search-btn" @click="emitSearch" aria-label="搜索">{{ t('common.search') }}</button>
     </div>
     <div class="lib-filter-chips">
-      <select v-model="copyrightStatus" class="lib-filter-select" @change="emitSearch">
+      <label for="lib-copyright-filter" class="sr-only">版权筛选</label>
+      <select id="lib-copyright-filter" v-model="copyrightStatus" class="lib-filter-select" @change="emitSearch">
         <option value="">— 版权 —</option>
         <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">{{ COPYRIGHT_LABELS[cs] || cs }}</option>
       </select>
-      <select v-model="reviewStatus" class="lib-filter-select" @change="emitSearch">
+      <label for="lib-review-filter" class="sr-only">审核状态筛选</label>
+      <select id="lib-review-filter" v-model="reviewStatus" class="lib-filter-select" @change="emitSearch">
         <option value="">— 审核 —</option>
         <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">{{ REVIEW_LABELS[rs] || rs }}</option>
       </select>
@@ -57,6 +61,9 @@ function emitSearch() {
 .lib-search-input-wrap {
   display: flex;
   gap: 8px;
+  flex: 1;
+  min-width: 0;
+  max-width: 480px;
 }
 
 .lib-search-input-wrap input {
@@ -64,7 +71,9 @@ function emitSearch() {
   border: 1px solid var(--color-border, #e2e8f0);
   border-radius: 8px;
   font-size: 14px;
-  min-width: 220px;
+  min-width: 0;
+  width: 100%;
+  max-width: 320px;
   background: var(--color-page-bg, #f7fafc);
   color: var(--color-text-primary, #1a365d);
 }
@@ -77,6 +86,11 @@ function emitSearch() {
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
+  transition: background var(--transition-base);
+}
+
+.lib-search-btn:hover {
+  background: var(--color-accent-hover, #1a4f8a);
 }
 
 .lib-filter-select {
@@ -86,5 +100,7 @@ function emitSearch() {
   font-size: 13px;
   background: var(--color-navbar-bg, #fff);
   color: var(--color-text-primary, #1a365d);
+  min-width: 0;
+  max-width: 160px;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <main class="app-main">
+  <main class="app-main" data-main-content tabindex="-1">
     <slot />
   </main>
 </template>

@@ -4,7 +4,7 @@
     v-if="open"
     class="cpd-backdrop"
     @click.self="onCancel"
-    @keydown.escape="onCancel"
+    @keydown="onKeyDown"
   >
     <!-- Dialog -->
     <div
@@ -149,6 +149,38 @@ async function onSubmit() {
     errorMessage.value = msg;
   } finally {
     submitting.value = false;
+  }
+}
+
+/**
+ * Keep focus within the dialog when Tab or Shift+Tab is pressed.
+ * Only handles the backdrop layer — actual focusable elements are children of .cpd-dialog.
+ */
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    onCancel();
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  // Find all focusable elements within the dialog
+  const dialog = (e.currentTarget as HTMLElement).querySelector('.cpd-dialog');
+  if (!dialog) return;
+  const focusable = dialog.querySelectorAll<HTMLElement>(
+    'input:not(:disabled), textarea:not(:disabled), button:not(:disabled), [tabindex]:not([tabindex="-1"])',
+  );
+  if (focusable.length === 0) return;
+  const first = focusable[0]!;
+  const last = focusable[focusable.length - 1]!;
+  if (e.shiftKey) {
+    if (document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 }
 

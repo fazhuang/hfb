@@ -24,7 +24,7 @@
               type="button"
               class="rrv-citation-marker"
               :class="{ 'rrv-citation-marker--active': isSelectedCitation(token.citation!) }"
-              :title="`引用: ${token.citation!}`"
+              :aria-label="`引用 [${displayNumbers.get(token.citation!)}]`"
               @click="$emit('select-citation', token.citation!)"
             >
               [{{ displayNumbers.get(token.citation!) }}]

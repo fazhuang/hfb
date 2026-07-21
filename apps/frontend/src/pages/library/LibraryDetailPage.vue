@@ -65,7 +65,7 @@
               <span>{{ doc.rag_enabled ? '✅ 已启用' : '⛔ 未启用' }}</span>
             </div>
           </div>
-          <div v-if="doc.withdrawn_at" class="lib-withdrawn-alert">
+          <div v-if="doc.withdrawn_at" class="lib-withdrawn-alert" role="alert">
             ⚠️ 该文献已于 {{ new Date(doc.withdrawn_at).toLocaleString('zh-CN') }} 撤回 — {{ doc.withdraw_reason || '未提供原因' }}
           </div>
         </section>

@@ -144,18 +144,19 @@
         <section v-if="originalChunks.length > 0" class="reader-panel">
           <h3>段落导航</h3>
           <div class="reader-paragraph-list">
-            <div
+            <button
               v-for="chunk in originalChunks"
               :key="`nav-${chunk.id}`"
               class="reader-paragraph-item"
               :class="{ 'reader-paragraph-item--active': highlightedChunkIds.has(chunk.id) }"
+              :aria-label="`段落 ${chunk.paragraph_index != null ? chunk.paragraph_index + 1 : chunk.chunk_index + 1}: ${chunkPreview(chunk.content)}`"
               @click="scrollToChunk(chunk.id)"
             >
               <span class="reader-paragraph-label">
                 段 {{ chunk.paragraph_index != null ? chunk.paragraph_index + 1 : chunk.chunk_index + 1 }}
               </span>
               <span class="reader-paragraph-preview">{{ chunkPreview(chunk.content) }}</span>
-            </div>
+            </button>
           </div>
         </section>
 
@@ -755,15 +756,16 @@ watch(
 }
 
 .reader-chunk-paragraph {
-  padding: 8px 0;
+  padding: 8px;
   border-bottom: 1px dashed var(--color-border, #e2e8f0);
   font-size: 16px;
   line-height: 2;
   color: var(--color-text-primary, #1a365d);
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
   transition: background 0.3s, border-color 0.3s;
   border-radius: 4px;
-  padding: 8px;
 }
 
 .reader-chunk-paragraph:last-child {
@@ -790,11 +792,16 @@ watch(
   display: flex;
   gap: 12px;
   padding: 8px 12px;
+  border: none;
   border-bottom: 1px solid var(--color-border, #e2e8f0);
   font-size: 13px;
   cursor: pointer;
   border-radius: 4px;
   transition: background 0.15s;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  background: none;
 }
 
 .reader-paragraph-item:hover {
@@ -859,6 +866,8 @@ watch(
   line-height: 1.8;
   color: var(--color-text-secondary, #4a5568);
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* Translation */
@@ -890,6 +899,8 @@ watch(
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px dashed var(--color-border, #e2e8f0);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .reader-translation-text {
@@ -913,6 +924,8 @@ watch(
   color: var(--color-text-primary, #1a365d);
   margin-bottom: 6px;
   line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .reader-citation-note {
@@ -951,6 +964,8 @@ watch(
   line-height: 1.6;
   color: var(--color-text-primary, #1a365d);
   margin-bottom: 6px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .reader-evidence-passage {
@@ -993,8 +1008,8 @@ watch(
 
 /* Highlight */
 .reader-highlight {
-  background: rgba(43, 108, 176, 0.08) !important;
-  border-color: var(--color-accent, #2b6cb0) !important;
+  background: rgba(43, 108, 176, 0.08);
+  border-color: var(--color-accent, #2b6cb0);
   box-shadow: 0 0 0 2px rgba(43, 108, 176, 0.2);
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="empty-state" role="status">
+  <div class="empty-state" role="status" aria-live="polite">
     <span class="empty-icon" aria-hidden="true">{{ icon }}</span>
     <h3 class="empty-title">{{ title }}</h3>
     <p v-if="description" class="empty-description">{{ description }}</p>

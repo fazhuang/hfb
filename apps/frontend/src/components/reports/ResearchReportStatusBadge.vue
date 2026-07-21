@@ -1,6 +1,9 @@
 <template>
   <div class="rsb-root" role="status" :aria-label="`报告状态: ${label}`">
-    <span class="rsb-badge" :class="badgeClass">{{ label }}</span>
+    <span class="rsb-badge" :class="badgeClass">
+      <span class="rsb-icon" aria-hidden="true">{{ statusIcon }}</span>
+      {{ label }}
+    </span>
   </div>
 </template>
 
@@ -29,10 +32,21 @@ const REPORT_LABELS: Record<string, string> = {
   pending: '待生成',
 };
 
+const STATUS_ICONS: Record<string, string> = {
+  completed: '✓',
+  ready: '✓',
+  running: '↻',
+  failed: '✗',
+  missing: '—',
+  pending: '○',
+};
+
 const label = computed(() => {
   const map = props.type === 'run' ? RUN_LABELS : REPORT_LABELS;
   return map[props.status] || props.status;
 });
+
+const statusIcon = computed(() => STATUS_ICONS[props.status] || '');
 
 const badgeClass = computed(() => {
   const prefix = props.type === 'run' ? 'rsb-run-' : 'rsb-report-';
@@ -47,13 +61,20 @@ const badgeClass = computed(() => {
 }
 
 .rsb-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: var(--font-semibold);
   line-height: var(--leading-normal);
   white-space: nowrap;
+}
+
+.rsb-icon {
+  font-size: 10px;
+  font-weight: var(--font-bold);
 }
 
 /* ---- Run status colors ---- */

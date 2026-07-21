@@ -109,6 +109,7 @@
       :project-id="project?.id ?? ''"
       :current-title="project?.title ?? ''"
       :current-notes="project?.context_notes ?? ''"
+      :trigger-el="moreBtnRef"
       @update:open="editDialogOpen = $event"
       @saved="onEditSaved"
     />

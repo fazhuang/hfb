@@ -21,6 +21,7 @@
           role="button"
           tabindex="0"
           :aria-selected="citation.trace_id === selectedTraceId"
+          :aria-label="`引用 #[${idx + 1}]`"
           @click="$emit('select', citation.trace_id)"
           @keydown.enter="$emit('select', citation.trace_id)"
           @keydown.space.prevent="$emit('select', citation.trace_id)"

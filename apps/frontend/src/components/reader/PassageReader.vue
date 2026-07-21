@@ -1,7 +1,7 @@
 <template>
   <div class="passage-reader">
-    <div v-if="loading" class="loading-state">{{ t('common.loading') }}</div>
-    <div v-else-if="error" class="error-state">{{ error }}</div>
+    <div v-if="loading" class="loading-state" role="status" aria-live="polite">{{ t('common.loading') }}</div>
+    <div v-else-if="error" class="error-state" role="alert" aria-live="assertive">{{ error }}</div>
     <div v-else-if="passage" class="passage-content">
       <div class="passage-header">
         <span class="passage-order">#{{ passage.order }}</span>
@@ -108,6 +108,8 @@ onMounted(() => fetch(props.passageId));
   padding: 20px 0;
   border-top: 1px solid var(--color-border, #e2e8f0);
   border-bottom: 1px solid var(--color-border, #e2e8f0);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .passage-translation {

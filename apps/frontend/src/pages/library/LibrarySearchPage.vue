@@ -55,7 +55,7 @@
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="lib-pagination">
         <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
-        <span class="lib-page-info">{{ page }} / {{ totalPages }}</span>
+        <span class="lib-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
         <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">{{ t('common.next') }}</button>
       </div>
     </div>

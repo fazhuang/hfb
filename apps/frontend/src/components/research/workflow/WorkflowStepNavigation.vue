@@ -23,6 +23,7 @@
             <template v-else>{{ idx + 1 }}</template>
           </span>
           <span class="wsn-step-label">{{ step.label }}</span>
+          <span v-if="idx < currentIndex" class="wsn-step-sr-status">已完成</span>
         </button>
         <span
           v-else
@@ -34,6 +35,7 @@
             <template v-else>{{ idx + 1 }}</template>
           </span>
           <span class="wsn-step-label">{{ step.label }}</span>
+          <span v-if="idx < currentIndex" class="wsn-step-sr-status">已完成</span>
         </span>
       </li>
     </ol>
@@ -123,6 +125,19 @@ function isStepClickable(idx: number): boolean {
 .wsn-step--completed .wsn-step-text {
   color: #38a169;
   border-bottom-color: #38a169;
+}
+
+/* Visually hidden status text for screen readers */
+.wsn-step-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .wsn-step--disabled .wsn-step-text {

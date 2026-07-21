@@ -32,7 +32,7 @@
  * by filtering the current page of results. The status filter is also
  * applied client-side. This is documented in the migration doc.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -70,6 +70,14 @@ function onClear() {
   emit('search', '');
   emit('clear');
 }
+
+// Cleanup debounce timer on unmount
+onBeforeUnmount(() => {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+});
 </script>
 
 <style scoped>

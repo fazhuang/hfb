@@ -1,7 +1,7 @@
 <template>
   <div class="research-app-layout">
     <!-- Sidebar -->
-    <aside class="ral-sidebar" :class="{ 'ral-sidebar--collapsed': sidebarCollapsed }">
+    <aside class="ral-sidebar" :class="{ 'ral-sidebar--collapsed': sidebarCollapsed }" aria-label="主导航侧栏">
       <div class="ral-brand">
         <router-link to="/" class="ral-brand-link">
           <span class="ral-brand-icon">📜</span>
@@ -33,7 +33,7 @@
     <!-- Main content area -->
     <div class="ral-main-wrapper" :class="{ 'ral-main-wrapper--shifted': !sidebarCollapsed }">
       <!-- Page header slot — filled by router-view pages via ResearchPageHeader -->
-      <div class="ral-content">
+      <div class="ral-content" data-main-content tabindex="-1">
         <router-view />
       </div>
     </div>
