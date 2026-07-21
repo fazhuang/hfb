@@ -153,44 +153,50 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
     });
 
-    test('A4. Workflow → Result via real existing run link', async ({ page }) => {
+    test('A4. Workflow → Result — no real clickable entry in frozen baseline', async ({ page }) => {
       await login(page);
-      // Start from the Workflow page — the /research/:projectId/workflow route.
-      // The Workflow page now renders a "历史研究报告" section with past completed
-      // runs, each containing a .rwf-result-link router-link to the Result page.
+      // Load the frozen Workflow page (no past-runs section, no .rwf-result-link).
       await page.goto(`${BASE}/research/${sessionIdA}/workflow`);
       await page.waitForLoadState('networkidle');
-
-      // Wait for past runs section to load (rendered after session loads)
       await expect(page.locator('.rwf-body, .research-page').first()).toBeVisible({ timeout: 10_000 });
 
-      // Find the first past-run result link in the "历史研究报告" section.
-      const resultLink = page.locator('.rwf-result-link').first();
+      // ═══════════════════════════════════════════════════════════════════
+      // PRODUCT ACCEPTANCE FACT (Task 011 frozen baseline):
+      //   The Workflow page at /research/:projectId/workflow has NO clickable
+      //   entry that navigates to a Result page (/research/:id/result/:runId).
+      //
+      //   The "历史研究报告" past-runs section (with .rwf-result-link) was
+      //   scope creep committed in 00e693b and has been REVERTED — it added
+      //   an unapproved API call, UI, and data mapping outside Task 011 bounds.
+      //
+      //   The frozen baseline's ResearchReportStep component renders a
+      //   "查看完整结果" router-link to /research/:id/result/:runId ONLY
+      //   in Step 5 after a workflow run completes inline.  There is NO
+      //   persistent list of past runs with result links on the Workflow
+      //   page itself.
+      //
+      //   This test documents the gap: Workflow → Result requires the user
+      //   to first submit and complete a workflow, or navigate via the
+      //   ProjectDetail page's existing result links (.pr-view-link).
+      // ═══════════════════════════════════════════════════════════════════
 
-      // Must be visible — if no prior runs exist, the test fails cleanly.
+      // Confirm the scope-creep UI is absent.
       await expect(
-        resultLink,
-        'No real result entry (.rwf-result-link) found on Workflow page — need at least one completed run for this project'
-      ).toBeVisible({ timeout: 10_000 });
+        page.locator('.rwf-result-link'),
+        'Expected NO .rwf-result-link on frozen Workflow page — scope creep has been reverted'
+      ).toHaveCount(0);
 
-      // Verify the link targets a real result URL containing the current session ID.
-      const href = await resultLink.getAttribute('href');
-      expect(href, 'Result link must have an href attribute').toBeTruthy();
-      expect(href!, 'Result link href must contain current sessionIdA').toContain(sessionIdA);
-      expect(href!, 'Result link href must contain /result/').toContain('/result/');
+      // Confirm the "历史研究报告" heading is absent.
+      await expect(
+        page.locator('.rwf-past-heading'),
+        'Expected NO past-runs heading on frozen Workflow page'
+      ).toHaveCount(0);
 
-      // Extract the runId from the href for post-navigation assertion.
-      const hrefRunId = href!.split('/result/')[1];
-
-      await resultLink.click();
-      await page.waitForURL((url: URL) => url.pathname.includes('/result/'), { timeout: 10_000 });
-
-      // Strict assertions: URL must contain sessionIdA and the actual runId from the link.
-      const currentUrl = page.url();
-      expect(currentUrl, 'Final URL must contain sessionIdA').toContain(sessionIdA);
-      expect(currentUrl, 'Final URL must contain the runId from the clicked link').toContain(hrefRunId);
-
-      await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible();
+      // Confirm the past-runs list is absent.
+      await expect(
+        page.locator('.rwf-past-list'),
+        'Expected NO past-runs list on frozen Workflow page'
+      ).toHaveCount(0);
     });
 
     test('A5. Result → Reports via Primary Nav', async ({ page }) => {
