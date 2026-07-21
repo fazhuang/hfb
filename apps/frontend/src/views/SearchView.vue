@@ -459,6 +459,10 @@ onMounted(() => {
   opacity: 0.9;
 }
 
+.search-submit-btn:focus-visible {
+  opacity: 0.9;
+}
+
 .search-submit-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -552,6 +556,10 @@ onMounted(() => {
   border-color: var(--color-accent, #2b6cb0);
 }
 
+.filter-chip:focus-visible {
+  border-color: var(--color-accent, #2b6cb0);
+}
+
 .filter-chip--active {
   border-color: var(--color-accent, #2b6cb0);
   background: rgba(43, 108, 176, 0.1);
@@ -584,6 +592,11 @@ onMounted(() => {
 }
 
 .result-card:hover {
+  border-color: var(--color-accent, #2b6cb0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.result-card:focus-within {
   border-color: var(--color-accent, #2b6cb0);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -704,6 +717,11 @@ onMounted(() => {
   color: var(--color-accent, #2b6cb0);
 }
 
+.empty-link:focus-visible {
+  border-color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent, #2b6cb0);
+}
+
 /* --- Pagination --- */
 .pagination {
   display: flex;
@@ -727,6 +745,11 @@ onMounted(() => {
 }
 
 .page-btn:hover:not(:disabled) {
+  border-color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent, #2b6cb0);
+}
+
+.page-btn:focus-visible:not(:disabled) {
   border-color: var(--color-accent, #2b6cb0);
   color: var(--color-accent, #2b6cb0);
 }
@@ -759,6 +782,11 @@ onMounted(() => {
   transition: all 0.15s;
 }
 .result-action-btn:hover {
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+}
+
+.result-action-btn:focus-visible {
   background: var(--color-accent, #2b6cb0);
   color: white;
 }
