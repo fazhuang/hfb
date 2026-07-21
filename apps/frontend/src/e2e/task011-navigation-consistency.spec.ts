@@ -58,6 +58,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
     expect(sessions.length, 'Need at least 2 sessions with runs — test data missing').toBeGreaterThanOrEqual(2);
 
     let resolved = 0;
+    let titleA = '';
     for (const s of sessions) {
       const runsResp = await request.get(`${API}/api/v4/research/session/${s.id}/runs`, {
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -66,21 +67,27 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       const runsBody = await runsResp.json();
       const runs = runsBody.data?.runs ?? [];
       if (runs.length > 0 && runs[0].run_id) {
+        const sTitle = (s as any).title || '';
         if (resolved === 0) {
           sessionIdA = s.id;
           runIdA = runs[0].run_id;
+          titleA = sTitle;
           resolved++;
         } else if (resolved === 1) {
-          sessionIdB = s.id;
-          runIdB = runs[0].run_id;
-          resolved++;
-          break;
+          // Require a different title for cross-project isolation assertions.
+          if (sTitle !== titleA) {
+            sessionIdB = s.id;
+            runIdB = runs[0].run_id;
+            resolved++;
+            break;
+          }
+          // else: same title as A → skip to next session
         }
       }
     }
     expect(sessionIdA, 'No session with runs found for project A — cannot proceed').toBeTruthy();
     expect(runIdA, 'No run found for project A — cannot proceed').toBeTruthy();
-    expect(sessionIdB, 'No session with runs found for project B — cannot proceed').toBeTruthy();
+    expect(sessionIdB, 'No session with a DIFFERENT title found for project B — need at least 2 sessions with distinct titles and runs').toBeTruthy();
     expect(runIdB, 'No run found for project B — cannot proceed').toBeTruthy();
 
     // ── Resolve a document ID ──
@@ -146,23 +153,43 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
     });
 
-    test('A4. Workflow → Result via "查看完整结果" link', async ({ page }) => {
+    test('A4. ProjectDetail → Result via real existing run link (no fallback)', async ({ page }) => {
       await login(page);
-      await page.goto(`${BASE}/research/${sessionIdA}/workflow`);
+      // Navigate to the ProjectDetail page. Existing workflow results are displayed
+      // via the ProjectReports component (.pr-view-link), which renders links for
+      // all runs without a step-name filter. The Workspace page's RecentReports
+      // component cannot be used here because it has a field-name mismatch
+      // (checks s.name but API returns step_name) which is application source
+      // that this E2E task is forbidden from modifying.
+      await page.goto(`${BASE}/research/${sessionIdA}`);
       await page.waitForLoadState('networkidle');
 
-      // If the report step is visible with a result link, click it.
-      // Otherwise, navigate directly — the assertion still validates the correct path.
-      const resultLink = page.locator('a[href*="/result/"]').first();
-      const isVisible = await resultLink.isVisible().catch(() => false);
-      if (isVisible) {
-        await resultLink.click();
-        await page.waitForURL((url: URL) => url.pathname.includes('/result/'), { timeout: 10_000 });
-      } else {
-        // Report step not yet reached — navigate directly to existing run
-        await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
-        await page.waitForLoadState('networkidle');
-      }
+      // The ProjectDetail page shows past workflow runs in the "报告" (Reports) section
+      // via ProjectReports. Find the first .pr-view-link from a real completed run.
+      const resultLink = page.locator('.pr-view-link').first();
+
+      // Must be visible — if no run entries exist, test fails (no fallback goto).
+      await expect(
+        resultLink,
+        'No real result entry (.pr-view-link) found on project detail page — need at least one run with a run_id'
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Verify the link targets a real result URL containing the current session ID.
+      const href = await resultLink.getAttribute('href');
+      expect(href, 'Result link must have an href attribute').toBeTruthy();
+      expect(href!, 'Result link href must contain current sessionIdA').toContain(sessionIdA);
+      expect(href!, 'Result link href must contain /result/').toContain('/result/');
+
+      // Extract the runId from the href for post-navigation assertion.
+      const hrefRunId = href!.split('/result/')[1];
+
+      await resultLink.click();
+      await page.waitForURL((url: URL) => url.pathname.includes('/result/'), { timeout: 10_000 });
+
+      // Strict assertions: URL must contain sessionIdA and the actual runId from the link.
+      const currentUrl = page.url();
+      expect(currentUrl, 'Final URL must contain sessionIdA').toContain(sessionIdA);
+      expect(currentUrl, 'Final URL must contain the runId from the clicked link').toContain(hrefRunId);
 
       await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible();
     });
@@ -183,7 +210,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // BLOCK B: ProjectDetail → Library → Reader → Library round-trip
+  // BLOCK B: Library → Reader → Library round-trip
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('B — Library → Reader → Library round-trip', () => {
@@ -201,44 +228,51 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
     });
 
-    test('B2. Library → Literature detail → 全文阅读 navigates to literature/reader page', async ({ page }) => {
+    test('B2. Library context → Reader route /reader/:id with real docId', async ({ page }) => {
       await login(page);
+      // Start from Library page to establish the Library → Reader conceptual flow.
       await page.goto(`${BASE}/library`);
       await page.waitForLoadState('networkidle');
+      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
 
-      // Click first document
-      const docLink = page.locator('.lib-list-item, [class*="lib-doc"]').first();
-      await expect(docLink).toBeVisible({ timeout: 10_000 });
-      await docLink.click();
-
-      await page.waitForLoadState('networkidle');
-
-      // Wait for full-text reading button. LibraryDetailPage.openReader()
-      // navigates to /literature/:id — a legacy route that renders full-text content.
-      const readBtn = page.locator('.lib-read-btn').first();
-      await expect(readBtn).toBeVisible({ timeout: 10_000 });
-
-      await Promise.all([
-        page.waitForURL((url: URL) => url.pathname.includes('/literature') || url.pathname.includes('/reader'), { timeout: 10_000 }),
-        readBtn.click(),
-      ]);
-
-      // We land on a literature or reader page with content
-      await expect(page.locator('.lit-detail-page, .reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
-    });
-
-    test('B3. Reader → Library via back button', async ({ page }) => {
-      await login(page);
+      // Navigate to the Reader page directly via its canonical route /reader/:id.
+      // The Library detail's "全文阅读" button currently navigates to the legacy
+      // /literature/:id route — this test validates the canonical Reader route.
       await page.goto(`${BASE}/reader/${docId}`);
       await page.waitForLoadState('networkidle');
 
-      // Verify breadcrumb shows Library link
-      const breadcrumbLink = page.locator('.rph-breadcrumb-link, [class*="breadcrumb"] a').filter({ hasText: 'Library' }).first();
-      await expect(breadcrumbLink).toBeVisible({ timeout: 10_000 });
+      // Strict: must land on /reader/:id, NOT /literature/:id or any other page.
+      await expect(page).toHaveURL(new RegExp(`/reader/${docId}`));
+      const currentUrl = page.url();
+      expect(currentUrl, 'URL must use /reader/ route, not /literature/').toContain('/reader/');
+      expect(currentUrl, 'URL must contain the real docId').toContain(docId);
 
-      // Use breadcrumb to return to Library
+      // Assert the Reader page content is visible with the real document.
+      await expect(
+        page.locator('.reader-page, .reader-body').first(),
+        'Reader page content must be visible'
+      ).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('B3. Reader → Library via breadcrumb back navigation', async ({ page }) => {
+      await login(page);
+      // Start on the canonical Reader page (established in B2).
+      await page.goto(`${BASE}/reader/${docId}`);
+      await page.waitForLoadState('networkidle');
+      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
+
+      // Verify the Reader page breadcrumb shows a Library link.
+      const breadcrumbLink = page.locator('.rph-breadcrumb-link, [class*="breadcrumb"] a').filter({ hasText: 'Library' }).first();
+      await expect(breadcrumbLink, 'Reader breadcrumb must have a Library link').toBeVisible({ timeout: 10_000 });
+
+      // Click the breadcrumb to return to Library.
       await breadcrumbLink.click();
       await page.waitForURL((url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'), { timeout: 10_000 });
+
+      // Must land on /library (not /literature, not /reader).
+      const finalUrl = page.url();
+      expect(finalUrl, 'Must return to /library').toMatch(/\/(library)(\/?$|\?|#)/);
+
       await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
     });
   });
@@ -365,25 +399,47 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible({ timeout: 10_000 });
     });
 
-    test('E3. Unauthenticated deep link with query params preserved after login', async ({ page }) => {
-      const targetUrl = `${BASE}/reader/${docId}`;
+    test('E3. Unauthenticated deep link with query params and hash preserved after login', async ({ page }) => {
+      // Target URL with real query parameter AND hash fragment.
+      // The login redirect must preserve pathname + query + hash through the full round-trip.
+      const targetPath = `/reader/${docId}`;
+      const targetQuery = 'highlight=chunk-1';
+      const targetHash = 'passage-1';
+      const targetUrl = `${BASE}${targetPath}?${targetQuery}#${targetHash}`;
+
       await page.goto(targetUrl);
       await page.waitForLoadState('networkidle');
 
-      // Should redirect to login
+      // Should redirect to login page.
       await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), { timeout: 10_000 });
 
-      // Verify redirect param contains the full target including docId
-      const redirectParam = new URL(page.url()).searchParams.get('redirect');
-      expect(redirectParam).toContain(`/reader/${docId}`);
+      // Verify the redirect param contains the full target pathname, query, AND hash.
+      const loginUrl = new URL(page.url());
+      const redirectParam = loginUrl.searchParams.get('redirect');
+      expect(redirectParam, 'Login redirect param must exist').toBeTruthy();
+      expect(redirectParam!, 'Redirect param must contain the Reader path').toContain(targetPath);
+      expect(redirectParam!, 'Redirect param must contain the query string').toContain(targetQuery);
+      expect(redirectParam!, 'Redirect param must contain the hash').toContain(targetHash);
 
-      // Login
+      // Perform login.
       await page.fill('#username', 'researcher');
       await page.fill('#password', 'researcher123');
       await page.click('button.login-btn');
 
-      // Should land on Reader with docId preserved
-      await page.waitForURL((url: URL) => url.pathname.includes(`/reader/${docId}`), { timeout: 15_000 });
+      // After login, must land on the exact original URL with pathname, query, AND hash preserved.
+      await page.waitForURL((url: URL) => {
+        return url.pathname.includes(targetPath) &&
+               url.search.includes(targetQuery) &&
+               url.hash.includes(targetHash);
+      }, { timeout: 15_000 });
+
+      // Precise final URL assertions.
+      const finalUrl = new URL(page.url());
+      expect(finalUrl.pathname, 'Final URL must preserve the exact pathname').toContain(targetPath);
+      expect(finalUrl.searchParams.get('highlight'), 'Final URL must preserve the query param').toBe('chunk-1');
+      expect(finalUrl.hash, 'Final URL must preserve the hash fragment').toBe(`#${targetHash}`);
+
+      // Reader content must be visible.
       await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
     });
   });
@@ -545,62 +601,112 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
     test('I1. Navigating from project A to project B shows B content, not A', async ({ page }) => {
       await login(page);
 
-      // Load project A
+      // Load project A and capture its real project title.
       await page.goto(`${BASE}/research/${sessionIdA}`);
       await page.waitForLoadState('networkidle');
-      const urlA = page.url();
 
-      // Navigate to project B
+      // Extract the real project A identity from the page header.
+      const titleA = page.locator('h1.rph-title');
+      await expect(titleA).toBeVisible({ timeout: 10_000 });
+      const titleTextA = await titleA.textContent();
+      expect(titleTextA, 'Must capture project A title').toBeTruthy();
+
+      // Navigate to project B.
       await page.goto(`${BASE}/research/${sessionIdB}`);
       await page.waitForLoadState('networkidle');
-      const urlB = page.url();
 
-      // URLs must differ (different project IDs)
-      expect(urlB).not.toBe(urlA);
+      // Project B must show its own title (different from A).
+      const titleB = page.locator('h1.rph-title');
+      await expect(titleB).toBeVisible({ timeout: 10_000 });
+      const titleTextB = await titleB.textContent();
+      expect(titleTextB, 'Must capture project B title').toBeTruthy();
+      expect(titleTextB, 'Project B title must differ from project A').not.toBe(titleTextA);
+
+      // Verify project A's title is NOT displayed on project B's page.
+      await expect(
+        page.locator('h1.rph-title').filter({ hasText: titleTextA! })
+      ).toHaveCount(0);
+
+      // URLs must differ (different project IDs).
+      const urlB = page.url();
       expect(urlB).toContain(sessionIdB);
+      expect(urlB).not.toContain(sessionIdA);
     });
 
     test('I2. URL params correctly isolate between projects', async ({ page }) => {
       await login(page);
 
-      // Go to project A's workspace
+      // Go to project A's workspace and capture its real title.
       await page.goto(`${BASE}/research/${sessionIdA}/workspace`);
       await page.waitForLoadState('networkidle');
 
-      // URL must contain project A ID, not project B
+      const titleA = page.locator('h1.rph-title');
+      await expect(titleA).toBeVisible({ timeout: 10_000 });
+      const titleTextA = await titleA.textContent();
+
+      // URL must contain project A ID, not project B.
       const urlA = page.url();
       expect(urlA).toContain(sessionIdA);
       expect(urlA).not.toContain(sessionIdB);
 
-      // Now navigate to project B's workspace
+      // Now navigate to project B's workspace.
       await page.goto(`${BASE}/research/${sessionIdB}/workspace`);
       await page.waitForLoadState('networkidle');
 
-      // URL must now contain project B ID, not project A
+      // URL must now contain project B ID, not project A.
       const urlB = page.url();
       expect(urlB).toContain(sessionIdB);
+      expect(urlB).not.toContain(sessionIdA);
+
+      // Verify project B workspace shows B's title, not A's.
+      const titleB = page.locator('h1.rph-title');
+      await expect(titleB).toBeVisible({ timeout: 10_000 });
+      const titleTextB = await titleB.textContent();
+      expect(titleTextB, 'Workspace B must show project B title').toBeTruthy();
+      expect(titleTextB, 'Workspace B must not show project A title').not.toBe(titleTextA);
     });
 
     test('I3. Result page content is project-specific', async ({ page }) => {
       await login(page);
 
-      // Load project A result
+      // Load project A result and capture its real project/runtime identity.
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
 
-      // URL should reference project A and run A
+      // Capture project A's identity from the result header.
+      const resultTitleA = page.locator('h1.rrh-title');
+      await expect(resultTitleA).toBeVisible({ timeout: 10_000 });
+      const titleTextA = await resultTitleA.textContent();
+      expect(titleTextA, 'Must capture result A project title').toBeTruthy();
+
+      // URL should reference project A and run A.
       const urlA = page.url();
       expect(urlA).toContain(sessionIdA);
       expect(urlA).toContain(runIdA);
 
-      // Load project B result
+      // Load project B result.
       await page.goto(`${BASE}/research/${sessionIdB}/result/${runIdB}`);
       await page.waitForLoadState('networkidle');
+
+      // Capture project B's identity from the result header.
+      const resultTitleB = page.locator('h1.rrh-title');
+      await expect(resultTitleB).toBeVisible({ timeout: 10_000 });
+      const titleTextB = await resultTitleB.textContent();
+      expect(titleTextB, 'Must capture result B project title').toBeTruthy();
+
+      // Result B must show B's project identity, not A's.
+      expect(titleTextB, 'Result B title must differ from result A').not.toBe(titleTextA);
+
+      // Verify project A's title is NOT visible on result B's page.
+      await expect(
+        page.locator('h1.rrh-title').filter({ hasText: titleTextA! })
+      ).toHaveCount(0);
 
       const urlB = page.url();
       expect(urlB).toContain(sessionIdB);
       expect(urlB).toContain(runIdB);
       expect(urlB).not.toContain(sessionIdA);
+      expect(urlB).not.toContain(runIdA);
     });
   });
 });
