@@ -71,6 +71,11 @@ function formatDate(iso?: string | null): string {
   box-shadow: var(--shadow-sm);
 }
 
+.pli-card:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-sm);
+}
+
 .pli-body {
   flex: 1;
   min-width: 0;
@@ -93,6 +98,11 @@ function formatDate(iso?: string | null): string {
 }
 
 .pli-name-link:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.pli-name-link:focus-visible {
   color: var(--color-accent);
   text-decoration: underline;
 }
@@ -140,6 +150,11 @@ function formatDate(iso?: string | null): string {
 }
 
 .pli-enter-btn:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.pli-enter-btn:focus-visible {
   background: var(--color-accent);
   color: #fff;
 }

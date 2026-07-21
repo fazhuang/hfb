@@ -201,6 +201,10 @@ const safeSourceUrl = computed(() => {
   text-decoration: underline;
 }
 
+.esrc-link:focus-visible {
+  text-decoration: underline;
+}
+
 .esrc-link--internal {
   color: #2b6cb0;
 }

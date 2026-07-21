@@ -70,6 +70,7 @@ function onChange(e: Event) {
 .rrt-select:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+  border-color: var(--color-accent);
 }
 
 .rrt-select:hover {

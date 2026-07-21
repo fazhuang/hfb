@@ -315,6 +315,11 @@ onBeforeUnmount(() => {
   background: var(--color-accent-hover);
 }
 
+.rpp-create-btn:focus-visible {
+  outline-offset: 2px;
+  background: var(--color-accent-hover);
+}
+
 .rpp-create-btn--inline {
   display: inline-flex;
   align-items: center;
@@ -343,6 +348,11 @@ onBeforeUnmount(() => {
 }
 
 .rpp-pagination button:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
+
+.rpp-pagination button:focus-visible:not(:disabled) {
   background: var(--color-hover);
   border-color: var(--color-accent);
 }

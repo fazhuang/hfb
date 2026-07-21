@@ -218,6 +218,11 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   color: #fff;
 }
 
+.ers-action-btn:focus-visible {
+  background: var(--color-accent, #4299e1);
+  color: #fff;
+}
+
 /* Evidence list */
 .ers-list {
   list-style: none;
@@ -384,6 +389,12 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 }
 
 .ers-item-action-btn:hover:not(:disabled) {
+  background: var(--color-hover, #edf2f7);
+  border-color: var(--color-accent, #4299e1);
+  color: var(--color-accent, #2b6cb0);
+}
+
+.ers-item-action-btn:focus-visible:not(:disabled) {
   background: var(--color-hover, #edf2f7);
   border-color: var(--color-accent, #4299e1);
   color: var(--color-accent, #2b6cb0);

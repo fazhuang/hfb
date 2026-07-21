@@ -247,4 +247,9 @@ onBeforeUnmount(() => {
   background: var(--color-accent);
   color: #fff;
 }
+
+.pr-view-link:focus-visible {
+  background: var(--color-accent);
+  color: #fff;
+}
 </style>

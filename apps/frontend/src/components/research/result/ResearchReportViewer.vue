@@ -319,6 +319,11 @@ function isSelectedCitation(traceId: string): boolean {
   color: #fff;
 }
 
+.rrv-citation-marker:focus-visible {
+  background: var(--color-accent, #4299e1);
+  color: #fff;
+}
+
 .rrv-citation-marker--active {
   background: var(--color-accent, #4299e1);
   color: #fff;

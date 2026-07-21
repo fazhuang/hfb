@@ -141,6 +141,11 @@ const selectedEvidence = computed(() => {
   box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
 }
 
+.rcp-citation-item:focus-visible {
+  border-color: var(--color-accent, #4299e1);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
+
 .rcp-citation-item--selected {
   border-color: var(--color-accent, #4299e1);
   box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);

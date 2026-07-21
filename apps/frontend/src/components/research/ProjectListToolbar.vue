@@ -130,6 +130,11 @@ onBeforeUnmount(() => {
   border-color: var(--color-accent);
 }
 
+.plt-clear-btn:focus-visible {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
+
 /* Screen-reader only */
 .sr-only {
   position: absolute;

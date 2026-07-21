@@ -231,6 +231,11 @@ function cycleTheme() {
   color: var(--color-text-primary);
 }
 
+.nav-link:focus-visible {
+  background: var(--color-hover);
+  color: var(--color-text-primary);
+}
+
 .nav-link--active {
   background: var(--color-accent-light);
   color: var(--color-accent);
@@ -298,6 +303,12 @@ function cycleTheme() {
   color: white;
 }
 
+.auth-link:focus-visible,
+.auth-btn:focus-visible {
+  background: var(--color-accent);
+  color: white;
+}
+
 .locale-switcher {
   display: flex;
   border-radius: var(--radius-md);
@@ -325,6 +336,10 @@ function cycleTheme() {
   background: var(--color-hover);
 }
 
+.locale-btn:not(.active):focus-visible {
+  background: var(--color-hover);
+}
+
 .theme-toggle {
   padding: 6px 8px;
   border: none;
@@ -336,6 +351,10 @@ function cycleTheme() {
 }
 
 .theme-toggle:hover {
+  background: var(--color-hover);
+}
+
+.theme-toggle:focus-visible {
   background: var(--color-hover);
 }
 

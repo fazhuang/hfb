@@ -743,6 +743,10 @@ watch(
   background: var(--color-active, #ebf8ff);
 }
 
+.reader-expand-btn:focus-visible {
+  background: var(--color-active, #ebf8ff);
+}
+
 .reader-content-text {
   max-height: 400px;
   overflow-y: auto;
@@ -805,6 +809,10 @@ watch(
 }
 
 .reader-paragraph-item:hover {
+  background: var(--color-hover, #edf2f7);
+}
+
+.reader-paragraph-item:focus-visible {
   background: var(--color-hover, #edf2f7);
 }
 
@@ -1000,6 +1008,11 @@ watch(
   color: white;
 }
 
+.reader-anchor-btn:focus-visible {
+  background: var(--color-accent, #2b6cb0);
+  color: white;
+}
+
 .reader-no-anchor {
   font-size: 12px;
   color: var(--color-text-muted, #a0aec0);
@@ -1030,6 +1043,11 @@ watch(
 }
 
 .reader-back-btn:hover {
+  background: var(--color-hover, #edf2f7);
+  color: var(--color-accent, #2b6cb0);
+}
+
+.reader-back-btn:focus-visible {
   background: var(--color-hover, #edf2f7);
   color: var(--color-accent, #2b6cb0);
 }

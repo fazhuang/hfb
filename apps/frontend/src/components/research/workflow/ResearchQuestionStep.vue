@@ -139,6 +139,10 @@ defineEmits<{
   background: var(--color-accent-hover, #3182ce);
 }
 
+.rqs-submit-btn:focus-visible:not(:disabled) {
+  background: var(--color-accent-hover, #3182ce);
+}
+
 .rqs-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

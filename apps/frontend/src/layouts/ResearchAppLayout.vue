@@ -173,6 +173,10 @@ const userName = auth.userName || '未登录';
   background: var(--color-hover, #edf2f7);
 }
 
+.ral-collapse-btn:focus-visible {
+  background: var(--color-hover, #edf2f7);
+}
+
 /* ---- Main wrapper ---- */
 .ral-main-wrapper {
   flex: 1;

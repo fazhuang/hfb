@@ -110,6 +110,11 @@ function isStepClickable(idx: number): boolean {
   background: var(--color-hover, #edf2f7);
 }
 
+.wsn-step-btn:focus-visible {
+  color: var(--color-accent, #2b6cb0);
+  background: var(--color-hover, #edf2f7);
+}
+
 .wsn-step-text {
   color: var(--color-text-muted, #a0aec0);
 }

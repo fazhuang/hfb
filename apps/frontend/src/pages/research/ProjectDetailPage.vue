@@ -311,6 +311,10 @@ onBeforeUnmount(() => {
   background: var(--color-accent-hover);
 }
 
+.pdp-action-btn--primary:focus-visible {
+  background: var(--color-accent-hover);
+}
+
 .pdp-action-btn--secondary {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -322,6 +326,10 @@ onBeforeUnmount(() => {
 }
 
 .pdp-action-btn--secondary:hover {
+  background: var(--color-hover);
+}
+
+.pdp-action-btn--secondary:focus-visible {
   background: var(--color-hover);
 }
 
@@ -360,11 +368,19 @@ onBeforeUnmount(() => {
   background: var(--color-hover);
 }
 
+.pdp-more-item:focus-visible {
+  background: var(--color-hover);
+}
+
 .pdp-more-item--danger {
   color: var(--color-error-text);
 }
 
 .pdp-more-item--danger:hover {
+  background: var(--color-error-bg);
+}
+
+.pdp-more-item--danger:focus-visible {
   background: var(--color-error-bg);
 }
 
@@ -383,6 +399,11 @@ onBeforeUnmount(() => {
 }
 
 .pdp-back-link:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.pdp-back-link:focus-visible {
   background: var(--color-accent);
   color: #fff;
 }

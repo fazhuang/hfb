@@ -151,6 +151,15 @@ onMounted(() => fetchPage(1));
   color: var(--color-accent);
   font-size: var(--text-base);
   cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.lib-clear-btn:hover {
+  background: var(--color-hover);
+}
+
+.lib-clear-btn:focus-visible {
+  background: var(--color-hover);
 }
 
 /* ---- Pagination ---- */
@@ -176,6 +185,11 @@ onMounted(() => fetchPage(1));
 }
 
 .lib-pagination button:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
+
+.lib-pagination button:focus-visible:not(:disabled) {
   background: var(--color-hover);
   border-color: var(--color-accent);
 }

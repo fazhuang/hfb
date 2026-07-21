@@ -306,6 +306,10 @@ onBeforeUnmount(() => {
   background: var(--color-accent-hover);
 }
 
+.rwp-action-btn--primary:focus-visible {
+  background: var(--color-accent-hover);
+}
+
 .rwp-action-btn--secondary {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
@@ -313,6 +317,10 @@ onBeforeUnmount(() => {
 }
 
 .rwp-action-btn--secondary:hover {
+  background: var(--color-hover);
+}
+
+.rwp-action-btn--secondary:focus-visible {
   background: var(--color-hover);
 }
 
@@ -331,6 +339,11 @@ onBeforeUnmount(() => {
 }
 
 .rwp-back-link:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.rwp-back-link:focus-visible {
   background: var(--color-accent);
   color: #fff;
 }

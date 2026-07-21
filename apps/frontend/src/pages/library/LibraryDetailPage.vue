@@ -333,6 +333,11 @@ onMounted(() => fetch());
   color: white;
 }
 
+.lib-read-btn:focus-visible {
+  background: var(--color-accent);
+  color: white;
+}
+
 .lib-read-btn--block {
   display: flex;
   justify-content: center;

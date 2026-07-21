@@ -45,6 +45,11 @@ function formatDate(iso: string): string {
   box-shadow: 0 2px 8px rgba(43, 108, 176, 0.1);
 }
 
+.lib-list-item:focus-visible {
+  border-color: var(--color-accent, #2b6cb0);
+  box-shadow: 0 2px 8px rgba(43, 108, 176, 0.1);
+}
+
 .lib-item-title {
   font-size: 16px;
   font-weight: 600;

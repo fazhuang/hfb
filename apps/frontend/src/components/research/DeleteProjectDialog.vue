@@ -227,6 +227,10 @@ function onKeyDown(e: KeyboardEvent) {
   background: var(--color-error-light-text);
 }
 
+.dpd-btn--danger:focus-visible:not(:disabled) {
+  background: var(--color-error-light-text);
+}
+
 .dpd-btn--cancel {
   background: transparent;
   color: var(--color-text-secondary);
@@ -234,6 +238,10 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 .dpd-btn--cancel:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.dpd-btn--cancel:focus-visible:not(:disabled) {
   background: var(--color-hover);
 }
 </style>

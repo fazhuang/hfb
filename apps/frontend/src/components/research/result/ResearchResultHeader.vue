@@ -96,6 +96,10 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
   text-decoration: underline;
 }
 
+.rrh-breadcrumb-link:focus-visible {
+  text-decoration: underline;
+}
+
 .rrh-breadcrumb-sep {
   color: var(--color-border, #cbd5e0);
 }
@@ -126,6 +130,10 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
 }
 
 .rrh-btn--export:hover:not(:disabled) {
+  background: var(--color-accent-hover, #3182ce);
+}
+
+.rrh-btn--export:focus-visible:not(:disabled) {
   background: var(--color-accent-hover, #3182ce);
 }
 

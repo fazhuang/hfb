@@ -232,6 +232,10 @@ const workflowLink = computed(() => `/research/${props.projectId}/workflow`);
   background: var(--color-accent-hover, #3182ce);
 }
 
+.rre-btn--primary:focus-visible {
+  background: var(--color-accent-hover, #3182ce);
+}
+
 .rre-btn--secondary {
   border: 1px solid var(--color-border, #e2e8f0);
   background: var(--color-navbar-bg, #fff);
@@ -239,6 +243,10 @@ const workflowLink = computed(() => `/research/${props.projectId}/workflow`);
 }
 
 .rre-btn--secondary:hover {
+  background: var(--color-hover, #edf2f7);
+}
+
+.rre-btn--secondary:focus-visible {
   background: var(--color-hover, #edf2f7);
 }
 </style>

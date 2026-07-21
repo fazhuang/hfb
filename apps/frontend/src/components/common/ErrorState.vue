@@ -78,4 +78,9 @@ defineEmits<{
   background: var(--color-hover);
   border-color: var(--color-accent);
 }
+
+.error-retry-btn:focus-visible {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
 </style>

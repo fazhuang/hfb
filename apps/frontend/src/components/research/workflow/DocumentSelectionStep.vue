@@ -128,6 +128,10 @@ defineEmits<{
   background: var(--color-hover, #edf2f7);
 }
 
+.dss-back-btn:focus-visible:not(:disabled) {
+  background: var(--color-hover, #edf2f7);
+}
+
 .dss-back-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -146,6 +150,10 @@ defineEmits<{
 }
 
 .dss-submit-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover, #3182ce);
+}
+
+.dss-submit-btn:focus-visible:not(:disabled) {
   background: var(--color-accent-hover, #3182ce);
 }
 

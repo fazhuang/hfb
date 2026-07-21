@@ -279,6 +279,10 @@ function formatDate(iso?: string | null): string {
   background: var(--color-accent-hover, #3182ce);
 }
 
+.rrs-action-btn--primary:focus-visible {
+  background: var(--color-accent-hover, #3182ce);
+}
+
 .rrs-action-btn--secondary {
   border: 1px solid var(--color-border, #e2e8f0);
   background: var(--color-navbar-bg, #fff);
@@ -286,6 +290,12 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-action-btn--secondary:hover {
+  background: var(--color-hover, #edf2f7);
+  border-color: var(--color-accent, #4299e1);
+  color: var(--color-accent, #2b6cb0);
+}
+
+.rrs-action-btn--secondary:focus-visible {
   background: var(--color-hover, #edf2f7);
   border-color: var(--color-accent, #4299e1);
   color: var(--color-accent, #2b6cb0);

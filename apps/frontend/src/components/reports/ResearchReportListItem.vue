@@ -165,6 +165,11 @@ const exportButtonLabel = computed(() => {
   color: #fff;
 }
 
+.rrli-view-link:focus-visible {
+  background: var(--color-accent);
+  color: #fff;
+}
+
 .rrli-export-btn {
   display: inline-flex;
   align-items: center;
@@ -181,6 +186,11 @@ const exportButtonLabel = computed(() => {
 }
 
 .rrli-export-btn:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-text-muted);
+}
+
+.rrli-export-btn:focus-visible:not(:disabled) {
   background: var(--color-hover);
   border-color: var(--color-text-muted);
 }

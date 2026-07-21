@@ -79,6 +79,11 @@ defineProps<{
   text-decoration: underline;
 }
 
+.rph-breadcrumb-link:focus-visible {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .rph-breadcrumb-current {
   color: var(--color-text-secondary);
 }

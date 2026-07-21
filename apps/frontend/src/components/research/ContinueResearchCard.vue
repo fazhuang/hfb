@@ -100,4 +100,8 @@ defineEmits<{
 .crc-start-btn:hover {
   background: var(--color-accent-hover);
 }
+
+.crc-start-btn:focus-visible {
+  background: var(--color-accent-hover);
+}
 </style>

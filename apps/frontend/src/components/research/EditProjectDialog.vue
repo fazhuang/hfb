@@ -292,6 +292,10 @@ function onKeyDown(e: KeyboardEvent) {
   background: var(--color-accent-hover);
 }
 
+.epd-btn--primary:focus-visible:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
 .epd-btn--cancel {
   background: transparent;
   color: var(--color-text-secondary);
@@ -299,6 +303,10 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 .epd-btn--cancel:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.epd-btn--cancel:focus-visible:not(:disabled) {
   background: var(--color-hover);
 }
 </style>

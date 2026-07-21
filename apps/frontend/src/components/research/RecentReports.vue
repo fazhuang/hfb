@@ -257,4 +257,9 @@ const displayRuns = computed(() => {
   background: var(--color-accent);
   color: #fff;
 }
+
+.rr-view-link:focus-visible {
+  background: var(--color-accent);
+  color: #fff;
+}
 </style>

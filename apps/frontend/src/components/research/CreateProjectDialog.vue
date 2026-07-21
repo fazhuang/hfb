@@ -319,6 +319,10 @@ textarea.cpd-input {
   background: var(--color-accent-hover);
 }
 
+.cpd-btn--primary:focus-visible:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
 .cpd-btn--cancel {
   background: transparent;
   color: var(--color-text-secondary);
@@ -326,6 +330,10 @@ textarea.cpd-input {
 }
 
 .cpd-btn--cancel:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.cpd-btn--cancel:focus-visible:not(:disabled) {
   background: var(--color-hover);
 }
 </style>

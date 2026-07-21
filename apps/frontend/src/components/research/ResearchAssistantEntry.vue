@@ -152,6 +152,10 @@ function onSubmit() {
   background: var(--color-accent-hover);
 }
 
+.rae-submit-btn:focus-visible:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
 .rae-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;

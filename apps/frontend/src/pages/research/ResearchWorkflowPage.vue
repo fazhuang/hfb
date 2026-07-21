@@ -335,6 +335,11 @@ watch(
   color: #fff;
 }
 
+.rwf-error-retry-btn:focus-visible {
+  background: var(--color-error-text);
+  color: #fff;
+}
+
 /* ---- Back link ---- */
 .rwf-back-link {
   display: inline-flex;
@@ -350,6 +355,11 @@ watch(
 }
 
 .rwf-back-link:hover {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.rwf-back-link:focus-visible {
   background: var(--color-accent);
   color: #fff;
 }

@@ -169,6 +169,11 @@ onMounted(() => {
   border-color: var(--color-accent);
 }
 
+.rp-clear-filter-btn:focus-visible {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
+
 /* ---- Pagination ---- */
 .rp-pagination {
   display: flex;
@@ -192,6 +197,11 @@ onMounted(() => {
 }
 
 .rp-pagination button:hover:not(:disabled) {
+  background: var(--color-hover);
+  border-color: var(--color-accent);
+}
+
+.rp-pagination button:focus-visible:not(:disabled) {
   background: var(--color-hover);
   border-color: var(--color-accent);
 }

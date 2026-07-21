@@ -93,6 +93,10 @@ function emitSearch() {
   background: var(--color-accent-hover, #1a4f8a);
 }
 
+.lib-search-btn:focus-visible {
+  background: var(--color-accent-hover, #1a4f8a);
+}
+
 .lib-filter-select {
   padding: 8px 12px;
   border: 1px solid var(--color-border, #e2e8f0);

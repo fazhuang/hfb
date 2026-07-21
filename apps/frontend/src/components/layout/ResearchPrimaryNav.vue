@@ -141,6 +141,11 @@ const adminNavItems = computed<NavItem[]>(() => [
   color: var(--color-text-primary);
 }
 
+.rpn-link:focus-visible {
+  background: var(--color-hover);
+  color: var(--color-text-primary);
+}
+
 .rpn-link--active {
   background: var(--color-accent-light);
   color: var(--color-accent);
