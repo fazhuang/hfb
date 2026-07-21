@@ -163,8 +163,8 @@ const safeSourceUrl = computed(() => {
 
 function openReader() {
   if (!doc.value) return;
-  // Redirect to the existing LiteratureDetailView for full-text reading
-  router.push(`/literature/${doc.value.id}`);
+  // Navigate to the canonical Reader route (Task 009 standalone route)
+  router.push(`/reader/${doc.value.id}`);
 }
 
 onMounted(() => fetch());

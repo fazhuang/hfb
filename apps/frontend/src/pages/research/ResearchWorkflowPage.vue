@@ -127,6 +127,41 @@
           @new-workflow="reset"
         />
       </template>
+
+      <!-- ══════════════════════════════════════════════════════════ -->
+      <!-- Past Research Results (existing completed runs) -->
+      <!-- ══════════════════════════════════════════════════════════ -->
+      <template v-if="session && !sessionLoading">
+        <!-- Loading past runs -->
+        <LoadingState
+          v-if="pastRunsLoading"
+          message="正在加载历史报告..."
+        />
+
+        <!-- Past runs list -->
+        <div
+          v-else-if="pastRuns.length > 0"
+          class="rwf-past-runs"
+        >
+          <h2 class="rwf-past-heading">历史研究报告</h2>
+          <ul class="rwf-past-list" role="list">
+            <li v-for="run in pastRuns" :key="run.run_id" class="rwf-past-item">
+              <div class="rwf-past-main">
+                <h3 class="rwf-past-title">{{ run.topic || '未命名报告' }}</h3>
+                <time v-if="run.completed_at || run.started_at" class="rwf-past-time">
+                  {{ formatPastRunDate(run.completed_at || run.started_at) }}
+                </time>
+              </div>
+              <router-link
+                :to="`/research/${projectId}/result/${run.run_id}`"
+                class="rwf-result-link"
+              >
+                查看结果
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -162,8 +197,9 @@
  *
  * ref: docs/20-product/2014-research-workflow-migration.md
  */
-import { computed, ref, watch, onMounted, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
+import api from '@/api/client';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
@@ -178,6 +214,54 @@ import { useResearchWorkflow } from '@/composables/useResearchWorkflow';
 
 const route = useRoute();
 const projectId = computed(() => String(route.params.projectId || ''));
+
+// ---- Past runs (historical completed runs with result links) ----
+interface PastRunItem {
+  run_id: string;
+  topic?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+}
+const pastRuns = ref<PastRunItem[]>([]);
+const pastRunsLoading = ref(false);
+let pastRunsReqId = 0;
+
+async function loadPastRuns() {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+  const myReqId = ++pastRunsReqId;
+  pastRunsLoading.value = true;
+  try {
+    const { data } = await api.get(`/api/v4/research/session/${id}/runs`);
+    if (myReqId !== pastRunsReqId) return;
+    const body = data.data ?? data;
+    const allRuns = (body.runs ?? []) as PastRunItem[];
+    // Only show runs that have a run_id (all valid runs)
+    pastRuns.value = allRuns.filter((r) => r.run_id);
+  } catch {
+    if (myReqId !== pastRunsReqId) return;
+    // Silent failure — past runs are auxiliary, don't block workflow
+    pastRuns.value = [];
+  } finally {
+    if (myReqId === pastRunsReqId) {
+      pastRunsLoading.value = false;
+    }
+  }
+}
+
+function formatPastRunDate(iso?: string | null): string {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+}
 
 const {
   session,
@@ -255,6 +339,7 @@ onMounted(async () => {
   if (session.value) {
     initPendingQuestion();
   }
+  loadPastRuns();
 });
 
 // ---- Watch projectId changes ----
@@ -266,9 +351,14 @@ watch(
       if (session.value) {
         initPendingQuestion();
       }
+      loadPastRuns();
     });
   },
 );
+
+onBeforeUnmount(() => {
+  pastRunsReqId = -1;
+});
 </script>
 
 <style scoped>
@@ -363,5 +453,76 @@ watch(
   .rwf-error-banner {
     flex-direction: column;
   }
+}
+
+/* ---- Past runs section ---- */
+.rwf-past-runs {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 2px solid var(--color-border);
+}
+
+.rwf-past-heading {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
+}
+
+.rwf-past-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rwf-past-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.rwf-past-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.rwf-past-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+
+.rwf-past-time {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.rwf-result-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.rwf-result-link:hover {
+  background: var(--color-accent);
+  color: #fff;
 }
 </style>

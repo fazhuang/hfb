@@ -102,7 +102,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════════
-  // BLOCK A: Sequential navigation — ProjectList → … → Reports
+  // BLOCK A: Sequential navigation — ProjectList → … → Result
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('A — Sequential navigation chain', () => {
@@ -153,25 +153,24 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
     });
 
-    test('A4. ProjectDetail → Result via real existing run link (no fallback)', async ({ page }) => {
+    test('A4. Workflow → Result via real existing run link', async ({ page }) => {
       await login(page);
-      // Navigate to the ProjectDetail page. Existing workflow results are displayed
-      // via the ProjectReports component (.pr-view-link), which renders links for
-      // all runs without a step-name filter. The Workspace page's RecentReports
-      // component cannot be used here because it has a field-name mismatch
-      // (checks s.name but API returns step_name) which is application source
-      // that this E2E task is forbidden from modifying.
-      await page.goto(`${BASE}/research/${sessionIdA}`);
+      // Start from the Workflow page — the /research/:projectId/workflow route.
+      // The Workflow page now renders a "历史研究报告" section with past completed
+      // runs, each containing a .rwf-result-link router-link to the Result page.
+      await page.goto(`${BASE}/research/${sessionIdA}/workflow`);
       await page.waitForLoadState('networkidle');
 
-      // The ProjectDetail page shows past workflow runs in the "报告" (Reports) section
-      // via ProjectReports. Find the first .pr-view-link from a real completed run.
-      const resultLink = page.locator('.pr-view-link').first();
+      // Wait for past runs section to load (rendered after session loads)
+      await expect(page.locator('.rwf-body, .research-page').first()).toBeVisible({ timeout: 10_000 });
 
-      // Must be visible — if no run entries exist, test fails (no fallback goto).
+      // Find the first past-run result link in the "历史研究报告" section.
+      const resultLink = page.locator('.rwf-result-link').first();
+
+      // Must be visible — if no prior runs exist, the test fails cleanly.
       await expect(
         resultLink,
-        'No real result entry (.pr-view-link) found on project detail page — need at least one run with a run_id'
+        'No real result entry (.rwf-result-link) found on Workflow page — need at least one completed run for this project'
       ).toBeVisible({ timeout: 10_000 });
 
       // Verify the link targets a real result URL containing the current session ID.
@@ -228,26 +227,47 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
     });
 
-    test('B2. Library context → Reader route /reader/:id with real docId', async ({ page }) => {
+    test('B2. Library → LibraryDetail → Reader via real click chain', async ({ page }) => {
       await login(page);
-      // Start from Library page to establish the Library → Reader conceptual flow.
+      // Step 1: Start from the Library search page.
       await page.goto(`${BASE}/library`);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.locator('.lib-body, .lib-search-page, .library-page').first()
+      ).toBeVisible({ timeout: 10_000 });
 
-      // Navigate to the Reader page directly via its canonical route /reader/:id.
-      // The Library detail's "全文阅读" button currently navigates to the legacy
-      // /literature/:id route — this test validates the canonical Reader route.
-      await page.goto(`${BASE}/reader/${docId}`);
-      await page.waitForLoadState('networkidle');
+      // Step 2: Click the first document card to go to LibraryDetail (/library/:id).
+      // Each card is a <router-link class="lib-list-item">.
+      const docCard = page.locator('.lib-list-item').first();
+      await expect(docCard, 'Must have at least one document in Library list').toBeVisible({ timeout: 10_000 });
 
-      // Strict: must land on /reader/:id, NOT /literature/:id or any other page.
-      await expect(page).toHaveURL(new RegExp(`/reader/${docId}`));
-      const currentUrl = page.url();
-      expect(currentUrl, 'URL must use /reader/ route, not /literature/').toContain('/reader/');
-      expect(currentUrl, 'URL must contain the real docId').toContain(docId);
+      // Capture the doc ID from the card href for verification.
+      const cardHref = await docCard.getAttribute('href');
+      expect(cardHref, 'Document card must have href').toBeTruthy();
+      const cardDocId = cardHref!.split('/library/')[1];
+      expect(cardDocId, 'Card href must contain a document ID').toBeTruthy();
 
-      // Assert the Reader page content is visible with the real document.
+      await docCard.click();
+      await page.waitForURL((url: URL) => url.pathname.startsWith('/library/') && url.pathname.split('/').length >= 3, { timeout: 10_000 });
+      await expect(page.locator('.lib-detail-page, .lib-detail-body').first()).toBeVisible({ timeout: 10_000 });
+
+      // Verify we're on the LibraryDetail page for the clicked document.
+      expect(page.url(), 'Must be on LibraryDetail page for the clicked document').toContain(`/library/${cardDocId}`);
+
+      // Step 3: Click the "全文阅读" button on LibraryDetail to go to Reader.
+      // LibraryDetailPage.openReader() now navigates to /reader/:id (canonical Task 009 route).
+      const readBtn = page.locator('.lib-read-btn').first();
+      await expect(readBtn, '"全文阅读" button must be visible on LibraryDetail').toBeVisible({ timeout: 10_000 });
+      await readBtn.click();
+
+      // Step 4: Must land on /reader/:id, NOT /literature/:id.
+      await page.waitForURL((url: URL) => url.pathname.startsWith('/reader/'), { timeout: 10_000 });
+      const finalUrl = page.url();
+      expect(finalUrl, 'URL must use /reader/ route, not /literature/').toContain('/reader/');
+      expect(finalUrl, 'URL must contain the document ID').toContain(cardDocId);
+      expect(finalUrl, 'URL must NOT use legacy /literature/ route').not.toContain('/literature/');
+
+      // Step 5: Reader content must be visible with the real document.
       await expect(
         page.locator('.reader-page, .reader-body').first(),
         'Reader page content must be visible'
