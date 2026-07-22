@@ -312,9 +312,9 @@ async def _create_document_and_chunks(session, book_id: str, version_id: str, pa
 
     await session.execute(text(
         "INSERT INTO documents (id, title, dynasty, category, abstract, content_text, "
-        "source_url, language, copyright_status, review_status, rag_enabled, is_deleted) "
+        "source_url, language, is_deleted) "
         "VALUES (:id, :title, :dynasty, :category, :abstract, :content, "
-        ":url, 'zh', 'public_domain', 'approved', true, false)"
+        ":url, 'zh', false)"
     ), {
         "id": doc_id,
         "title": "针灸甲乙经",
@@ -330,16 +330,15 @@ async def _create_document_and_chunks(session, book_id: str, version_id: str, pa
         chunk_id = str(uuid_mod.uuid4())
         await session.execute(text(
             "INSERT INTO document_chunks (id, document_id, passage_id, content, "
-            "chunk_index, paragraph_index, is_deleted) "
+            "chunk_index, is_deleted) "
             "VALUES (:id, :doc_id, :passage_id, :content, "
-            ":chunk_index, :para_index, false)"
+            ":chunk_index, false)"
         ), {
             "id": chunk_id,
             "doc_id": doc_id,
             "passage_id": p["passage_id"],
             "content": p["content"],
             "chunk_index": idx,
-            "para_index": idx,
         })
 
     await session.flush()

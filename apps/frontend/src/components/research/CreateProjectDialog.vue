@@ -177,7 +177,8 @@ function onKeyDown(e: KeyboardEvent) {
       last.focus();
     }
   } else {
-    if (document.activeElement === last) {
+    const idx = Array.prototype.indexOf.call(focusable, document.activeElement);
+    if (document.activeElement === last || idx === -1) {
       e.preventDefault();
       first.focus();
     }
