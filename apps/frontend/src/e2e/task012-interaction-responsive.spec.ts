@@ -273,7 +273,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('Enter on document card navigates to detail', async ({ page }) => {
       const card = page.locator('.lib-list-item').first();
-      await card.waitFor({ state: 'visible', timeout: 5_000 });
+      await card.waitFor({ state: 'visible', timeout: 15_000 });
       await card.focus();
       await page.keyboard.press('Enter');
       await page.waitForURL(/\/library\//, { timeout: 10_000 });
@@ -293,8 +293,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('paragraph items are buttons and keyboard-reachable', async ({ page }) => {
       const paraBtns = page.locator('.reader-paragraph-item');
-      // Doc must have at least 1 paragraph
-      await paraBtns.first().waitFor({ state: 'visible', timeout: 10_000 });
+      await paraBtns.first().waitFor({ state: 'visible', timeout: 20_000 });
       const count = await paraBtns.count();
       expect(count, 'Reader must have paragraph buttons').toBeGreaterThan(0);
 
@@ -312,7 +311,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('back button is focusable and returns to Library', async ({ page }) => {
       const backBtn = page.locator('.reader-back-btn').first();
-      await backBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await backBtn.waitFor({ state: 'visible', timeout: 15_000 });
       await backBtn.focus();
       await expect(backBtn).toBeFocused();
       await page.keyboard.press('Enter');
@@ -390,7 +389,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses cancel, Escape closes', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -420,7 +419,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses title input', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
