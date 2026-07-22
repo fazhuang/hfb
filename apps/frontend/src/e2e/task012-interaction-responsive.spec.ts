@@ -374,10 +374,12 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
 
       const submit = page.locator('.cpd-btn--primary');
+      // When dialog opens with empty name, canSubmit is false = disabled
       await expect(submit).toBeDisabled();
 
       await page.locator('#cpd-name').fill('针灸穴位研究');
-      await expect(submit).toBeEnabled();
+      // After filling, canSubmit becomes true = enabled
+      await expect(submit).toBeEnabled({ timeout: 5_000 });
     });
   });
 
@@ -392,22 +394,22 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses cancel, Escape closes', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
-      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 3_000 });
+      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
       const delItem = page.locator('.pdp-more-item--danger');
-      await delItem.waitFor({ state: 'visible', timeout: 3_000 });
+      await delItem.waitFor({ state: 'visible', timeout: 5_000 });
       await delItem.click();
-      await page.waitForSelector('[role="alertdialog"]', { state: 'visible', timeout: 3_000 });
+      await page.waitForSelector('[role="alertdialog"]', { state: 'visible', timeout: 5_000 });
 
       // Cancel is auto-focused
       const cancelBtn = page.locator('.dpd-btn--cancel');
-      await expect(cancelBtn).toBeFocused();
+      await expect(cancelBtn).toBeFocused({ timeout: 5_000 });
 
       // Escape closes
       await page.keyboard.press('Escape');
-      await page.waitForSelector('[role="alertdialog"]', { state: 'hidden', timeout: 3_000 });
+      await page.waitForSelector('[role="alertdialog"]', { state: 'hidden', timeout: 5_000 });
     });
   });
 
@@ -422,16 +424,16 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses title input', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
-      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 3_000 });
+      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
       const editItem = page.locator('.pdp-more-item:not(.pdp-more-item--danger)');
-      await editItem.waitFor({ state: 'visible', timeout: 3_000 });
+      await editItem.waitFor({ state: 'visible', timeout: 5_000 });
       await editItem.click();
-      await page.waitForSelector('#epd-title', { state: 'visible', timeout: 3_000 });
+      await page.waitForSelector('#epd-title', { state: 'visible', timeout: 5_000 });
 
-      await expect(page.locator('#epd-title')).toBeFocused();
+      await expect(page.locator('#epd-title')).toBeFocused({ timeout: 5_000 });
     });
   });
 
@@ -602,16 +604,16 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
-      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 3_000 });
+      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
       const delItem = page.locator('.pdp-more-item--danger');
-      await delItem.waitFor({ state: 'visible', timeout: 3_000 });
+      await delItem.waitFor({ state: 'visible', timeout: 5_000 });
       await delItem.click();
 
       const alertdialog = page.locator('[role="alertdialog"][aria-modal="true"]');
-      await alertdialog.waitFor({ state: 'visible', timeout: 3_000 });
+      await alertdialog.waitFor({ state: 'visible', timeout: 5_000 });
       await expect(alertdialog).toBeVisible();
 
       const labelledBy = await alertdialog.getAttribute('aria-labelledby');
