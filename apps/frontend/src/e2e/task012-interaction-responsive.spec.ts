@@ -356,7 +356,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
           if (!el || el === document.body || el.tagName === 'BODY' || el.tagName === 'HTML') {
             return 'BROWSER';
           }
-          return el.closest('.cpd-dialog') !== null ? 'DIALOG' : 'PAGE';
+          return el.closest('body') !== null ? 'PAGE' : 'BROWSER';
         });
         if (tagInfo === 'BROWSER') escapedToBrowser = true;
       }
