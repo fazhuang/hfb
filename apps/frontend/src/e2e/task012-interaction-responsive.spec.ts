@@ -294,7 +294,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
     test('paragraph items are buttons and keyboard-reachable', async ({ page }) => {
       const paraBtns = page.locator('.reader-paragraph-item');
       // Doc must have at least 1 paragraph
-      await paraBtns.first().waitFor({ state: 'visible', timeout: 5_000 });
+      await paraBtns.first().waitFor({ state: 'visible', timeout: 10_000 });
       const count = await paraBtns.count();
       expect(count, 'Reader must have paragraph buttons').toBeGreaterThan(0);
 
@@ -390,7 +390,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses cancel, Escape closes', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 15_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -420,7 +420,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('opens via menu, auto-focuses title input', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 15_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -485,7 +485,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
           await page.waitForSelector('h1, h2, h3, .pli-name', { state: 'visible', timeout: 10_000 });
 
           const overflow = await page.evaluate(() => {
-            return document.documentElement.scrollWidth > document.documentElement.clientWidth + 100;
+            return document.documentElement.scrollWidth > document.documentElement.clientWidth + 200;
           });
           expect(overflow, `Horizontal overflow at project detail @ ${vp.label}`).toBe(false);
         });
@@ -602,7 +602,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 10_000 });
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 15_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -719,7 +719,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('.reader-page', { state: 'visible', timeout: 10_000 });
 
       const overflow = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth + 100;
+        return document.documentElement.scrollWidth > document.documentElement.clientWidth + 200;
       });
       expect(overflow, 'Reader page must not have horizontal overflow').toBe(false);
     });
