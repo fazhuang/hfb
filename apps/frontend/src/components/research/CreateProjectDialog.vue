@@ -4,7 +4,6 @@
     v-if="open"
     class="cpd-backdrop"
     @click.self="onCancel"
-    @keydown="onKeyDown"
   >
     <!-- Dialog -->
     <div
@@ -12,6 +11,7 @@
       role="dialog"
       aria-modal="true"
       :aria-label="t('researchEntry.newTitle')"
+      @keydown="onKeyDown"
     >
       <div class="cpd-header">
         <h2 class="cpd-title">{{ t('researchEntry.newTitle') }}</h2>
@@ -121,8 +121,14 @@ watch(() => props.open, (val) => {
     name.value = '';
     description.value = '';
     errorMessage.value = '';
+    // Double nextTick guarantees Vue has finished inserting the dialog
+    // into the DOM and any reactive sidebar collapse has settled before
+    // we claim focus. Without this, auto-focus races against layout shifts
+    // at narrow viewports (≤768px) where the sidebar auto-collapses.
     nextTick(() => {
-      nameInputRef.value?.focus();
+      nextTick(() => {
+        nameInputRef.value?.focus();
+      });
     });
   } else {
     // Restore focus to the stable trigger button (passed by parent) when dialog closes
@@ -154,7 +160,7 @@ async function onSubmit() {
 
 /**
  * Keep focus within the dialog when Tab or Shift+Tab is pressed.
- * Only handles the backdrop layer — actual focusable elements are children of .cpd-dialog.
+ * Handler is bound on .cpd-dialog itself (not backdrop).
  */
 function onKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
@@ -162,9 +168,8 @@ function onKeyDown(e: KeyboardEvent) {
     return;
   }
   if (e.key !== 'Tab') return;
-  // Find all focusable elements within the dialog
-  const dialog = (e.currentTarget as HTMLElement).querySelector('.cpd-dialog');
-  if (!dialog) return;
+  // e.currentTarget IS .cpd-dialog — use it directly
+  const dialog = e.currentTarget as HTMLElement;
   const focusable = dialog.querySelectorAll<HTMLElement>(
     'input:not(:disabled), textarea:not(:disabled), button:not(:disabled), [tabindex]:not([tabindex="-1"])',
   );

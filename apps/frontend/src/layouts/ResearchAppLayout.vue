@@ -41,12 +41,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
+
+// Auto-collapse sidebar on narrow viewports where it overlays content.
+// At ≤768px the sidebar is position:fixed and intercepts pointer events
+// on elements underneath. Collapsing it keeps the page usable.
+let narrowQuery: MediaQueryList | null = null;
+
+function onNarrowChange(e: MediaQueryListEvent | MediaQueryList) {
+  sidebarCollapsed.value = e.matches;
+}
+
+onMounted(() => {
+  narrowQuery = window.matchMedia('(max-width: 768px)');
+  narrowQuery.addEventListener('change', onNarrowChange);
+  // Set initial state
+  onNarrowChange(narrowQuery);
+});
+
+onBeforeUnmount(() => {
+  if (narrowQuery) {
+    narrowQuery.removeEventListener('change', onNarrowChange);
+  }
+});
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
@@ -204,12 +226,13 @@ const userName = auth.userName || '未登录';
 
   .ral-main-wrapper {
     margin-left: 0;
-    padding-left: 16px;
   }
 
+  /* When the sidebar is NOT collapsed (shifted state), it overlays content.
+     The sidebar is position: fixed at mobile widths, so no margin is needed —
+     adding margin-left: 240px leaves only 135px for content at 375px width. */
   .ral-main-wrapper--shifted {
-    margin-left: 240px;
-    padding-left: 0;
+    margin-left: 0;
   }
 }
 </style>

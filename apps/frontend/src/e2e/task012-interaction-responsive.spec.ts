@@ -2,7 +2,7 @@
  * Task 012 — Interaction & Responsive E2E Tests
  *
  * Covers keyboard navigation, focus management, responsive layout,
- * 200 % zoom, reduced motion, and accessibility across the 8 core
+ * 200 % zoom, reduced motion, and accessibility across all 8 core
  * Research pages.
  *
  * PRECONDITIONS:
@@ -42,24 +42,13 @@ async function login(page: import('@playwright/test').Page) {
   await page.waitForURL((u: URL) => !u.pathname.includes('/login'), { timeout: 15_000 });
 }
 
-/** Get the currently focused element as a short debug string. */
-async function focusedTag(page: import('@playwright/test').Page) {
-  return page.evaluate(() => {
-    const el = document.activeElement;
-    if (!el) return 'none';
-    const tag = el.tagName.toLowerCase();
-    const cls = (el as HTMLElement).className?.toString?.().slice(0, 40) ?? '';
-    return `${tag}.${cls}`;
-  });
-}
-
 /** Press Tab N times. */
-async function tab(page: import('@playwright/test').Page, n = 1) {
+async function pressTab(page: import('@playwright/test').Page, n = 1) {
   for (let i = 0; i < n; i++) await page.keyboard.press('Tab');
 }
 
 /** Press Shift+Tab N times. */
-async function shiftTab(page: import('@playwright/test').Page, n = 1) {
+async function pressShiftTab(page: import('@playwright/test').Page, n = 1) {
   for (let i = 0; i < n; i++) await page.keyboard.press('Shift+Tab');
 }
 
@@ -68,12 +57,38 @@ async function waitForShell(page: import('@playwright/test').Page) {
   await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 10_000 });
 }
 
-// suppress TS6133 for helpers that are only referenced inside
-// playwright closures
-void tab;
-void shiftTab;
-void focusedTag;
+/** Assert that document.activeElement is inside .cpd-dialog or at minimum
+ * is not the body/html — the page may shift focus during Vue reactive updates.
+ * The key invariant is: no tab key press should land on browser chrome. */
+async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
+  const tag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() || 'none');
+  expect(tag, 'Tab must never land on BODY/HTML (browser chrome)').not.toBe('body');
+  expect(tag, 'Tab must never land on BODY/HTML (browser chrome)').not.toBe('html');
+  expect(tag, 'Tab must land on a real element').not.toBe('none');
+}
+
+/** Assert that the main content area has scrollWidth <= clientWidth + tolerance. */
+async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
+  // Check overflow on the main content wrapper, not document.documentElement.
+  // At desktop widths the sidebar (240px) is inline in document flow and
+  // scrollWidth naturally exceeds clientWidth — that's not an overflow bug.
+  const overflow = await page.evaluate(() => {
+    const main = document.querySelector('[data-main-content]');
+    if (main) {
+      return main.scrollWidth - main.clientWidth;
+    }
+    // Fallback to document — only valid when sidebar is overlaid or collapsed
+    return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+  });
+  expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);
+}
+
+// suppress TS6133 for helpers only referenced in closures
+void pressTab;
+void pressShiftTab;
 void waitForShell;
+void assertFocusNotOnChrome;
+void assertNoOverflow;
 
 // ── suite ─────────────────────────────────────────────────────────────
 
@@ -145,13 +160,27 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
     test('Tab / Shift+Tab through search, pagination, create btn', async ({ page }) => {
       const search = page.locator('#plt-search-input');
+      await search.first().waitFor({ state: 'visible', timeout: 5_000 });
+
+      // Focus the search input and type — keystrokes keep focus on it
       await search.first().focus();
       await expect(search.first()).toBeFocused();
 
-      // Tab forward to reach pagination / create button
+      // Type character by character (stays focused) to trigger clear-button visibility
+      await page.keyboard.type('test');
+      await expect(search.first()).toHaveValue('test');
+
+      // Wait for the clear-filter button to appear via Vue reactivity
+      await page.waitForSelector('.plt-clear-btn', { state: 'visible', timeout: 5_000 });
+
+      // Tab: search input → clear button (both in same toolbar, adjacent tab stops)
       await page.keyboard.press('Tab');
-      const f1 = await focusedTag(page);
-      expect(f1, 'Tab after search must move focus').not.toContain('none');
+      // Assert focus left the search input
+      await expect(search.first()).not.toBeFocused({ timeout: 5_000 });
+      // Assert focus landed on a non-chrome element
+      const tag = await page.evaluate(() => document.activeElement?.tagName?.toLowerCase() || 'none');
+      expect(tag, 'Tab must land on a real element').not.toBe('body');
+      expect(tag).not.toBe('html');
 
       // Shift+Tab back to search
       await page.keyboard.press('Shift+Tab');
@@ -204,7 +233,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
       await moreBtn.focus();
       await page.keyboard.press('Enter');
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
@@ -212,7 +241,6 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.keyboard.press('Escape');
       // The menu is toggled off via showMoreMenu = false
       await expect(page.locator('.pdp-more-menu')).not.toBeVisible({ timeout: 5_000 });
-    });
     });
   });
 
@@ -226,21 +254,30 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('.reports-page', { state: 'visible', timeout: 10_000 });
     });
 
-    test('report list items have export/view links', async ({ page }) => {
-      // Export button or view-link should exist for dashboard items.
-      // Gracefully handle empty DB where no reports are seeded yet.
-      const exportBtn = page.locator('.rrli-export-btn').first();
+    test('report list items have export/view links, keyboard reachable', async ({ page }) => {
+      // Reports page must have at least one actionable item (view-link or export-btn).
+      // If the list is truly empty, the page shows EmptyState — but seeded data
+      // guarantees at least one report.
       const viewLink = page.locator('.rrli-view-link').first();
+      const exportBtn = page.locator('.rrli-export-btn').first();
 
+      // At least one of these must be visible — fail hard if neither exists
+      const hasView = await viewLink.isVisible().catch(() => false);
       const hasExport = await exportBtn.isVisible().catch(() => false);
-      const hasView   = await viewLink.isVisible().catch(() => false);
 
-      if (!hasExport && !hasView) {
-        // Empty state: acceptable when database has no report items
-        return;
-      }
+      expect(
+        hasView || hasExport,
+        'Reports page must have at least one actionable item (view-link or export-btn) — seed data precondition failed',
+      ).toBe(true);
 
-      if (hasExport) {
+      // Focus and activate the first available action
+      if (hasView) {
+        await viewLink.focus();
+        await expect(viewLink).toBeFocused();
+        await page.keyboard.press('Enter');
+        // Should navigate to report detail
+        await page.waitForURL(/\/(result|research)\//, { timeout: 10_000 });
+      } else if (hasExport) {
         await exportBtn.focus();
         await expect(exportBtn).toBeFocused();
       }
@@ -267,8 +304,11 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
       // Tab to copyright filter
       await page.keyboard.press('Tab');
-      const f1 = await focusedTag(page);
-      expect(f1, 'Focus must move to next element after search input').not.toBe('none');
+      const f1Active = await page.evaluate(() => {
+        const el = document.activeElement;
+        return !!el && el.tagName !== 'BODY' && el.tagName !== 'HTML';
+      });
+      expect(f1Active, 'Focus must move to next element after search input').toBe(true);
     });
 
     test('Enter on document card navigates to detail', async ({ page }) => {
@@ -331,36 +371,54 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('.rpp-create-btn', { state: 'visible', timeout: 10_000 });
     });
 
-    test('opens on click, auto-focuses name input, Escape closes + restores', async ({ page }) => {
+    test('opens on click, auto-focuses name input, Escape closes + restores to create btn', async ({ page }) => {
       const createBtn = page.locator('.rpp-create-btn').first();
       await createBtn.click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
 
       const nameInput = page.locator('#cpd-name');
-      await expect(nameInput).toBeFocused();
+      await expect(nameInput).toBeFocused({ timeout: 5_000 });
 
       // Escape closes and focus returns to trigger
       await page.keyboard.press('Escape');
       await page.waitForSelector('.cpd-dialog', { state: 'hidden', timeout: 3_000 });
-      await expect(createBtn, 'Focus must return to create button after Escape').toBeFocused();
+      await expect(createBtn, 'Focus must return to create button after Escape').toBeFocused({ timeout: 5_000 });
     });
 
-    test('Tab trap — focus stays within document', async ({ page }) => {
+    test('Tab trap — every Tab keeps focus inside .cpd-dialog, never escapes to chrome', async ({ page }) => {
       await page.locator('.rpp-create-btn').first().click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
 
-      // Tab many times; at the end, focus must be somewhere in the document,
-      // not in browser chrome (BODY/HTML with no real focus).
-      for (let i = 0; i < 8; i++) {
+      // Auto-focus must land on the name input — wait for it before testing trap
+      const nameInput = page.locator('#cpd-name');
+      await expect(nameInput).toBeFocused({ timeout: 5_000 });
+
+      // Tab forward — focus must stay inside .cpd-dialog.
+      // With the focus trap active, Tab cycles name→description→cancel→submit→name.
+      for (let i = 0; i < 4; i++) {
         await page.keyboard.press('Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Tab #${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
       }
-      // At mobile viewports, the dialog may close or focus may shift to the
-      // collapsed navigation bar. Accept any non-browser-chrome active element.
-      const didFocusEscape = await page.evaluate(() => {
-        const el = document.activeElement;
-        return !el || el.tagName === 'BODY' || el.tagName === 'HTML';
-      });
-      expect(didFocusEscape, 'Tab must never escape to browser chrome').toBe(false);
+
+      // Shift+Tab back to the beginning
+      for (let i = 0; i < 4; i++) {
+        await page.keyboard.press('Shift+Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Shift+Tab #${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+      }
+
+      // Escape closes and focus returns to create button
+      const createBtn = page.locator('.rpp-create-btn').first();
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.cpd-dialog', { state: 'hidden', timeout: 3_000 });
+      await expect(createBtn, 'Focus must return to create button after Escape').toBeFocused({ timeout: 5_000 });
     });
 
     test('submit disabled when name empty, enabled when filled', async ({ page }) => {
@@ -437,10 +495,8 @@ test.describe('Task 012 — Interaction & Responsive', () => {
   // =====================================================================
 
   test.describe('Responsive — no horizontal overflow', () => {
-    // Note: 375px viewport produces false-positive overflow due to
-    // Playwright's browser chromes scrollbar overlays. Responsive layout
-    // correctness at 375px is validated by the project-level viewport tests.
     const VIEWPORTS = [
+      { w: 375, h: 812, label: '375×812' },
       { w: 768, h: 1024, label: '768×1024' },
       { w: 1280, h: 800, label: '1280×800' },
       { w: 1440, h: 900, label: '1440×900' },
@@ -465,15 +521,8 @@ test.describe('Task 012 — Interaction & Responsive', () => {
             await waitForShell(page);
             await page.waitForSelector(pg.check, { state: 'visible', timeout: 10_000 });
 
-            // Verify no visible horizontal scrollbar causing content to exceed viewport.
-            // Browser devtools, scrollbar presence, and sub-pixel rounding
-            // can inflate scrollWidth by up to ~17px (scrollbar width).
-            // A genuine layout overflow shows > 30px gap.
-            const overflow = await page.evaluate(() => {
-              const gap = document.documentElement.scrollWidth - document.documentElement.clientWidth;
-              return gap > 100;
-            });
-            expect(overflow, `Horizontal overflow at ${pg.path} @ ${vp.label}`).toBe(false);
+            // Strict overflow check: scrollWidth must not exceed clientWidth + 2px
+            await assertNoOverflow(page, `${pg.path} @ ${vp.label}`);
           });
         }
 
@@ -483,10 +532,13 @@ test.describe('Task 012 — Interaction & Responsive', () => {
           await waitForShell(page);
           await page.waitForSelector('h1, h2, h3, .pli-name', { state: 'visible', timeout: 10_000 });
 
+          // Same strict threshold for detail page — check main content area
           const overflow = await page.evaluate(() => {
-            return document.documentElement.scrollWidth > document.documentElement.clientWidth + 200;
+            const main = document.querySelector('[data-main-content]');
+            if (main) return main.scrollWidth - main.clientWidth;
+            return document.documentElement.scrollWidth - document.documentElement.clientWidth;
           });
-          expect(overflow, `Horizontal overflow at project detail @ ${vp.label}`).toBe(false);
+          expect(overflow, `Horizontal overflow at project detail @ ${vp.label}: ${overflow}px`).toBeLessThanOrEqual(2);
         });
       });
     }
@@ -510,9 +562,13 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('.rpp-content', { state: 'visible', timeout: 10_000 });
 
       // Search input visible and usable
-      await expect(page.locator('#plt-search-input').first()).toBeVisible();
+      await expect(page.locator('#plt-search-input').first()).toBeVisible({ timeout: 5_000 });
       // Create button visible
-      await expect(page.locator('.rpp-create-btn').first()).toBeVisible();
+      await expect(page.locator('.rpp-create-btn').first()).toBeVisible({ timeout: 5_000 });
+
+      // Can actually use search
+      await page.locator('#plt-search-input').first().fill('test');
+      await expect(page.locator('#plt-search-input').first()).toHaveValue('test');
     });
 
     test('Library: search + filters reachable at 200% zoom', async ({ page }) => {
@@ -520,8 +576,12 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
       await page.waitForSelector('.library-page, .lib-body', { state: 'visible', timeout: 10_000 });
 
-      await expect(page.locator('#lib-search-input').first()).toBeVisible();
-      await expect(page.locator('#lib-copyright-filter').first()).toBeVisible();
+      await expect(page.locator('#lib-search-input').first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.locator('#lib-copyright-filter').first()).toBeVisible({ timeout: 5_000 });
+
+      // Can actually use search
+      await page.locator('#lib-search-input').first().fill('针灸');
+      await expect(page.locator('#lib-search-input').first()).toHaveValue('针灸');
     });
 
     test('Reports: list and actions visible at 200% zoom', async ({ page }) => {
@@ -529,14 +589,27 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
       await page.waitForSelector('.reports-page', { state: 'visible', timeout: 10_000 });
 
-      await expect(page.locator('.reports-page')).toBeVisible();
+      await expect(page.locator('.reports-page')).toBeVisible({ timeout: 5_000 });
     });
 
-    test('Reader: content readable at 200% zoom', async ({ page }) => {
+    test('Reader: content, paragraph nav, and back button reachable at 200% zoom', async ({ page }) => {
       await page.goto(`${BASE}/reader/${docId}`);
       await page.waitForSelector('.reader-page', { state: 'visible', timeout: 15_000 });
-      // At 200% zoom, the reader body or any content panel must be visible
-      await expect(page.locator('.reader-page').first()).toBeVisible({ timeout: 5_000 });
+
+      // Verify actual content is present and readable
+      const readerPage = page.locator('.reader-page');
+      await expect(readerPage).toBeVisible({ timeout: 5_000 });
+
+      // Paragraph navigation must be visible and interactive
+      const paraBtns = page.locator('.reader-paragraph-item');
+      const paraCount = await paraBtns.count();
+      if (paraCount > 0) {
+        await expect(paraBtns.first()).toBeVisible({ timeout: 5_000 });
+      }
+
+      // Back button must be visible and reachable
+      const backBtn = page.locator('.reader-back-btn').first();
+      await expect(backBtn).toBeVisible({ timeout: 5_000 });
     });
   });
 
@@ -556,7 +629,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
 
       await expect(page.locator('label[for="lib-search-input"]')).toBeAttached();
       await expect(page.locator('label[for="lib-copyright-filter"]')).toBeAttached();
-      // review filter label exists (use role-based fallback — a11y: select needs accessible name)
+      // review filter exists (role-based fallback for accessible name)
       await expect(page.locator('#lib-review-filter')).toBeAttached();
     });
 
@@ -598,10 +671,10 @@ test.describe('Task 012 — Interaction & Responsive', () => {
     test('DeleteProjectDialog has role=alertdialog + aria-modal + aria-labelledby', async ({ page }) => {
       await page.goto(`${BASE}/research/${sessionIdA}`);
       // The detail page can take a while to fully hydrate
-      await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 10_000 });
+      await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 15_000 });
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 20_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -629,12 +702,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
     test('every badge has an icon child', async ({ page }) => {
       const badges = page.locator('.rsb-badge');
       const count = await badges.count();
-      // Reports list may be empty in a fresh DB, but seeded data guarantees ≥ 1
-      if (count === 0) {
-        // No report items — acceptable when the DB is truly empty
-        // (the spec explicitly requires seeded reports)
-        return;
-      }
+      expect(count, 'Seeded data must contain at least one report badge').toBeGreaterThan(0);
 
       for (let i = 0; i < count; i++) {
         const icon = badges.nth(i).locator('.rsb-icon');
@@ -679,7 +747,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
       await page.waitForSelector('.reports-page', { state: 'visible', timeout: 10_000 });
 
-      // At minimum, page is present and interactive
+      // Page is present and interactive
       await expect(page.locator('.reports-page')).toBeVisible();
     });
   });
@@ -717,35 +785,44 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
       await page.waitForSelector('.reader-page', { state: 'visible', timeout: 10_000 });
 
+      // Reader page overflow must use strict threshold — check reader-page element
+      // At desktop widths the sidebar is inline in document flow, so check .reader-page directly
       const overflow = await page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth + 200;
+        const reader = document.querySelector('.reader-page');
+        if (reader) return reader.scrollWidth - reader.clientWidth;
+        return document.documentElement.scrollWidth - document.documentElement.clientWidth;
       });
-      expect(overflow, 'Reader page must not have horizontal overflow').toBe(false);
+      expect(overflow, `Reader page overflow: ${overflow}px, must be <= 2`).toBeLessThanOrEqual(2);
     });
   });
 
   // =====================================================================
-  //  WORKFLOW / RESULT PAGE KEYBOARD
+  //  WORKFLOW KEYBOARD ACCESSIBILITY
   // =====================================================================
 
   test.describe('Workflow keyboard accessibility', () => {
-    test('workflow page loads and either renders question input or loading state', async ({ page }) => {
+    test('workflow page loads and question input is keyboard reachable', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research/${sessionIdA}/workflow`);
       await waitForShell(page);
 
-      // The workflow page may show LoadingState, ErrorState, or the Question step.
-      // Wait for any content to appear — the page shell must render something.
-      const content = page.locator('#rqs-input, .loading-state, .empty-state, .error-state, .rwf-error-banner').first();
-      await content.waitFor({ state: 'visible', timeout: 15_000 });
-      // If the question input rendered, verify keyboard reachability
+      // Wait for the session to load — the question step or loading state must appear.
+      // The key assertion: the page must render the question step, NOT loading/empty/error.
       const questionInput = page.locator('#rqs-input');
-      if (await questionInput.isVisible().catch(() => false)) {
-        await questionInput.focus();
-        await expect(questionInput).toBeFocused();
-        await page.keyboard.type('Testing keyboard input');
-        await expect(questionInput).toHaveValue('Testing keyboard input');
-      }
+      await questionInput.waitFor({ state: 'visible', timeout: 20_000 });
+
+      // Strong assertions: question input must be interactable
+      await expect(questionInput).toBeVisible();
+      await questionInput.focus();
+      await expect(questionInput).toBeFocused();
+      await page.keyboard.type('Testing keyboard input');
+      await expect(questionInput).toHaveValue('Testing keyboard input');
+
+      // Verify submit button exists and its disabled/enabled state is correct
+      const submitBtn = page.locator('.rqs-submit-btn');
+      await expect(submitBtn).toBeVisible();
+      // With text filled, submit should be enabled
+      await expect(submitBtn).toBeEnabled();
     });
   });
 
@@ -782,3 +859,4 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await expect(page.locator('.library-page, .lib-body, #lib-search-input').first()).toBeVisible();
     });
   });
+});
