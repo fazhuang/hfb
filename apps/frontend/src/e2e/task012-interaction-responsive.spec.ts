@@ -242,6 +242,8 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.goto(`${BASE}/reports`);
       await waitForShell(page);
       await page.waitForSelector('.reports-page', { state: 'visible', timeout: 10_000 });
+      // Wait for async data to arrive — must be network-idle before DOM checks
+      await page.waitForLoadState('networkidle');
     });
 
     test('report list items have export/view links, keyboard reachable', async ({ page }) => {
@@ -379,22 +381,39 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.locator('.rpp-create-btn').first().click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
 
-      // Auto-focus must land on the name input
+      // Auto-focus must land on the name input — at narrow viewports the
+      // sidebar auto-collapse triggers a layout shift that can pull focus
+      // away from the dialog. Wait for focus to stabilise inside the dialog.
       const nameInput = page.locator('#cpd-name');
       await expect(nameInput).toBeFocused({ timeout: 5_000 });
-
-      // Tab from name input must land on the description textarea (next focusable
-      // inside .cpd-dialog). This is the strongest assertion we can make about
-      // the focus trap: the first Tab after auto-focus must stay inside the dialog.
-      await page.keyboard.press('Tab');
-      const inDialog = await page.evaluate(() => {
+      await page.waitForFunction(() => {
         const el = document.activeElement;
-        return el ? el.closest('.cpd-dialog') !== null : false;
-      });
-      expect(inDialog, 'Tab from name input must land inside .cpd-dialog').toBe(true);
+        return el && el.closest('.cpd-dialog') !== null;
+      }, null, { timeout: 5_000 });
 
-      // Shift+Tab back to name input — focus trap keeps us inside
-      await page.keyboard.press('Shift+Tab');
+      // — Cycle 1: Tab forward through all focusable elements, then wrap around —
+      // Focusable: name input → description textarea → cancel btn (submit is disabled)
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Cycle 1 Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+      }
+      // After wrapping, focus must land back on name input (tab trap wraps)
+      await expect(nameInput).toBeFocused({ timeout: 3_000 });
+
+      // — Cycle 2: Shift+Tab backward through all focusable elements, then wrap —
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Shift+Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Cycle 2 Shift+Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+      }
+      // After wrapping, focus must land back on name input
       await expect(nameInput).toBeFocused({ timeout: 3_000 });
 
       // Escape closes and focus returns to create button
@@ -680,6 +699,8 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.goto(`${BASE}/reports`);
       await waitForShell(page);
       await page.waitForSelector('.reports-page', { state: 'visible', timeout: 10_000 });
+      // Wait for async data to arrive
+      await page.waitForLoadState('networkidle');
     });
 
     test('every badge has an icon child', async ({ page }) => {

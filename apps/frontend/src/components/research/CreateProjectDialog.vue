@@ -4,6 +4,7 @@
     v-if="open"
     class="cpd-backdrop"
     @click.self="onCancel"
+    @keydown.escape="onCancel"
   >
     <!-- Dialog -->
     <div
@@ -11,7 +12,6 @@
       role="dialog"
       aria-modal="true"
       :aria-label="t('researchEntry.newTitle')"
-      @keydown="onKeyDown"
     >
       <div class="cpd-header">
         <h2 class="cpd-title">{{ t('researchEntry.newTitle') }}</h2>
@@ -87,7 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 
@@ -125,9 +125,17 @@ watch(() => props.open, (val) => {
     // into the DOM and any reactive sidebar collapse has settled before
     // we claim focus. Without this, auto-focus races against layout shifts
     // at narrow viewports (≤768px) where the sidebar auto-collapses.
+    // Triple nextTick adds an extra microtask cycle for WebKit to
+    // fully resolve layout-after-collapse, which can otherwise steal
+    // focus from the dialog during the first Tab cycle.
+    // Use requestAnimationFrame as the final anchor — it fires after
+    // all layout/paint work is complete, guaranteeing the dialog is
+    // in its final position before we claim focus.
     nextTick(() => {
       nextTick(() => {
-        nameInputRef.value?.focus();
+        requestAnimationFrame(() => {
+          nameInputRef.value?.focus();
+        });
       });
     });
   } else {
@@ -136,6 +144,22 @@ watch(() => props.open, (val) => {
       props.triggerEl?.focus();
     });
   }
+});
+
+// Bind the focus-trap keydown handler on document so it catches Tab even when
+// focus leaks to body (e.g. after sidebar-collapse layout shift at ≤768px).
+// Template @keydown on backdrop only catches bubbling from children, not from body.
+function onDocumentKeyDown(e: KeyboardEvent) {
+  if (!props.open) return;
+  onKeyDown(e);
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onDocumentKeyDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onDocumentKeyDown);
 });
 
 async function onSubmit() {
@@ -168,24 +192,34 @@ function onKeyDown(e: KeyboardEvent) {
     return;
   }
   if (e.key !== 'Tab') return;
-  // e.currentTarget IS .cpd-dialog — use it directly
-  const dialog = e.currentTarget as HTMLElement;
+  // Handler is on document; always query the dialog from the DOM.
+  const dialog = document.querySelector('.cpd-dialog') as HTMLElement | null;
+  if (!dialog) return;
   const focusable = dialog.querySelectorAll<HTMLElement>(
     'input:not(:disabled), textarea:not(:disabled), button:not(:disabled), [tabindex]:not([tabindex="-1"])',
   );
   if (focusable.length === 0) return;
   const first = focusable[0]!;
   const last = focusable[focusable.length - 1]!;
+  const idx = Array.prototype.indexOf.call(focusable, document.activeElement);
+
+  // Always prevent the browser's default Tab — we manage focus manually.
+  // The browser's natural tab order may skip elements outside the visible
+  // viewport (e.g. cancel btn at narrow viewports ≤768px), leaking focus
+  // to body and then to sidebar chrome.
+  e.preventDefault();
+
   if (e.shiftKey) {
-    if (document.activeElement === first) {
-      e.preventDefault();
+    if (idx <= 0) {
       last.focus();
+    } else {
+      focusable[idx - 1]!.focus();
     }
   } else {
-    const idx = Array.prototype.indexOf.call(focusable, document.activeElement);
-    if (document.activeElement === last || idx === -1) {
-      e.preventDefault();
+    if (idx === -1 || document.activeElement === last) {
       first.focus();
+    } else {
+      focusable[idx + 1]!.focus();
     }
   }
 }

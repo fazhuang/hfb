@@ -139,8 +139,8 @@ describe('ResearchPrimaryNav', () => {
       props: { collapsed: true },
     });
 
-    // Labels should be absent when collapsed
-    expect(wrapper.findAll('.rpn-link-label').length).toBe(0);
+    // Labels are sr-only when sidebar is collapsed — always present in DOM
+    expect(wrapper.findAll('.rpn-link-label').length).toBe(5);
     // Icons should still render
     expect(wrapper.findAll('.rpn-link-icon').length).toBe(5); // 4 research + 1 admin
   });

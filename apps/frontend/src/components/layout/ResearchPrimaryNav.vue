@@ -7,9 +7,11 @@
           :to="item.path"
           class="rpn-link"
           :class="{ 'rpn-link--active': item.active }"
+          :aria-label="item.label"
+          :title="item.label"
         >
-          <span class="rpn-link-icon">{{ item.icon }}</span>
-          <span v-if="!collapsed" class="rpn-link-label">{{ item.label }}</span>
+          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
         </router-link>
       </li>
     </ul>
@@ -23,8 +25,8 @@
           :href="item.path"
           class="rpn-link rpn-link--admin"
         >
-          <span class="rpn-link-icon">{{ item.icon }}</span>
-          <span v-if="!collapsed" class="rpn-link-label">{{ item.label }}</span>
+          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
         </a>
         <router-link
           v-else
@@ -32,8 +34,8 @@
           class="rpn-link rpn-link--admin"
           :class="{ 'rpn-link--active': item.active }"
         >
-          <span class="rpn-link-icon">{{ item.icon }}</span>
-          <span v-if="!collapsed" class="rpn-link-label">{{ item.label }}</span>
+          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+          <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
         </router-link>
       </li>
     </ul>
