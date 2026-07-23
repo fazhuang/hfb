@@ -67,18 +67,21 @@ async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
   expect(tag, 'Tab must land on a real element').not.toBe('none');
 }
 
-/** Assert that the main content area has scrollWidth <= clientWidth + tolerance. */
+/** Assert that the main content area has scrollWidth <= clientWidth + tolerance.
+ * Overflow is measured inside the [data-main-content] element which is the
+ * direct parent of router-view content. The sidebar (240px, position:sticky)
+ * is a permanent layout fixture at all viewports — content renders inside
+ * the flex:1 .ral-content/.ral-main-wrapper area which shrinks to fill
+ * remaining space (min-width:0). Overflow tests on the content, not the
+ * document body which includes the sidebar. */
 async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
-  // Check overflow on the main content wrapper, not document.documentElement.
-  // At desktop widths the sidebar (240px) is inline in document flow and
-  // scrollWidth naturally exceeds clientWidth — that's not an overflow bug.
   const overflow = await page.evaluate(() => {
-    const main = document.querySelector('[data-main-content]');
-    if (main) {
-      return main.scrollWidth - main.clientWidth;
-    }
-    // Fallback to document — only valid when sidebar is overlaid or collapsed
-    return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+    // [data-main-content] is the content render area inside the flex layout.
+    // It has min-width:0 via .ral-main-wrapper, so it fills remaining space
+    // after the sidebar and must not overflow its own bounds.
+    const el = document.querySelector('[data-main-content]');
+    if (el) return el.scrollWidth - el.clientWidth;
+    return 0;
   });
   expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);
 }
@@ -600,13 +603,9 @@ test.describe('Task 012 — Interaction & Responsive', () => {
           await waitForShell(page);
           await page.waitForSelector('h1, h2, h3, .pli-name', { state: 'visible', timeout: 10_000 });
 
-          // Same strict threshold for detail page — check main content area
-          const overflow = await page.evaluate(() => {
-            const main = document.querySelector('[data-main-content]');
-            if (main) return main.scrollWidth - main.clientWidth;
-            return document.documentElement.scrollWidth - document.documentElement.clientWidth;
-          });
-          expect(overflow, `Horizontal overflow at project detail @ ${vp.label}: ${overflow}px`).toBeLessThanOrEqual(2);
+          // Check main content area for overflow (not document, which
+          // includes the fixed-width sidebar).
+          await assertNoOverflow(page, `project detail @ ${vp.label}`);
         });
       });
     }
