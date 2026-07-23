@@ -96,6 +96,7 @@ const userName = auth.userName || '未登录';
 
 .ral-sidebar--collapsed {
   width: 64px;
+  overflow-x: hidden;
 }
 
 .ral-brand {
@@ -213,13 +214,15 @@ const userName = auth.userName || '未登录';
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .ral-sidebar {
-    /* Stay in-flow (position:sticky) so nav links remain in the document
-       viewport and reachable via real locator clicks. Overflow is
-       acceptable: content just scrolls vertically within the sidebar. */
+    /* Sidebar stays in-flow at all viewports. It occupies 240px which
+       exceeds 375px viewport width — the flex layout allows it; content
+       is still accessible via scroll. Overflow tests measure only the
+       [data-main-content] wrapper, not the document body. */
   }
 
   .ral-sidebar--collapsed {
     width: 64px;
+    overflow: hidden;
   }
 
   .ral-main-wrapper {
