@@ -58,27 +58,13 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Auto-hide sidebar on narrow viewports (≤768px) where its 240px width
-// would cause horizontal overflow at 375px. Content renders full-width;
-// the sidebar opens as a toggleable overlay via the mobile toggle button.
-// E2E tests that need nav links expand it via expandSidebarIfNarrow().
-let narrowQuery: MediaQueryList | null = null;
-
-function onNarrowChange(e: MediaQueryListEvent | MediaQueryList) {
-  sidebarCollapsed.value = e.matches;
-}
-
-onMounted(() => {
-  narrowQuery = window.matchMedia('(max-width: 768px)');
-  narrowQuery.addEventListener('change', onNarrowChange);
-  onNarrowChange(narrowQuery);
-});
-
-onBeforeUnmount(() => {
-  if (narrowQuery) {
-    narrowQuery.removeEventListener('change', onNarrowChange);
-  }
-});
+// Sidebar is always visible and in-flow at all viewports.
+// At ≤768px it uses position:sticky and content scrolls vertically if
+// needed. No auto-collapse — nav links stay inside the document flow
+// so Playwright real-locator clicks work at every width.
+// Users can toggle via the collapse button or mobile toggle.
+onMounted(() => {});
+onBeforeUnmount(() => {});
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
@@ -225,22 +211,20 @@ const userName = auth.userName || '未登录';
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .ral-sidebar {
-    position: fixed;
-    z-index: 200;
-    transform: translateX(0);
+    /* Stay in-flow (position:sticky) at all widths so the sidebar sits
+       inside the flex layout and nav links are always in the document
+       viewport. Overflow tests measure .ral-content (flex:1, min-width:0)
+       — the sidebar is a permanent layout element, not content overflow. */
   }
 
   .ral-sidebar--collapsed {
-    transform: translateX(-240px);
-    width: 240px;
+    width: 64px;
+    overflow: hidden;
   }
 
   .ral-main-wrapper {
     margin-left: 0;
-  }
-
-  .ral-main-wrapper--shifted {
-    margin-left: 0;
+    min-width: 0;
   }
 
   .ral-mobile-toggle {
