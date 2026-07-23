@@ -158,18 +158,12 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
 
-      // The primary nav is inside a sticky sidebar. At narrow viewports
-      // (≤768px) the scrolled position of the page may put the link
-      // outside the viewport. Use page.evaluate to click programmatically
-      // since the element is visible and enabled — it just sits in a
-      // fixed sidebar that Playwright's scroll-into-view can't reach.
-      await page.evaluate(() => {
-        const links = document.querySelectorAll('.rpn-link');
-        // Research, Library, Knowledge, Reports, Admin — Reports is index 3
-        const reportsLink = links[3];
-        if (reportsLink instanceof HTMLElement) reportsLink.click();
-      });
-      await page.waitForURL((url: URL) => url.pathname.startsWith('/reports'), { timeout: 10_000 });
+      // Click Reports in primary nav
+      const reportsLink = page.locator('.rpn-link').filter({ hasText: 'Reports' }).first();
+      await expect(reportsLink).toBeVisible({ timeout: 10_000 });
+      await reportsLink.click();
+
+      await page.waitForURL((url: URL) => url.pathname === '/reports' || url.pathname.startsWith('/reports'), { timeout: 10_000 });
       await expect(page.locator('.reports-page, .rp-body, .rp-content').first()).toBeVisible({ timeout: 10_000 });
     });
   });
@@ -185,13 +179,11 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.goto(`${BASE}/research/${sessionIdA}`);
       await page.waitForLoadState('networkidle');
 
-      await page.evaluate(() => {
-        const links = document.querySelectorAll('.rpn-link');
-        // Library is the second link (Research, Library, Knowledge, Reports, Admin)
-        const libLink = links[1];
-        if (libLink instanceof HTMLElement) libLink.click();
-      });
-      await page.waitForURL((url: URL) => url.pathname.startsWith('/library'), { timeout: 10_000 });
+      const libraryLink = page.locator('.rpn-link').filter({ hasText: 'Library' }).first();
+      await expect(libraryLink).toBeVisible({ timeout: 10_000 });
+      await libraryLink.click();
+
+      await page.waitForURL((url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'), { timeout: 10_000 });
       await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
     });
 
