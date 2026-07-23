@@ -68,16 +68,18 @@ async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
 }
 
 /** Assert that the main content area has scrollWidth <= clientWidth + tolerance.
- * The sidebar has width 240px at all viewports — at 375px the sidebar +
- * content naturally exceeds document body. Overflow is measured only on
- * the [data-main-content] wrapper, which auto-fills remaining flex space. */
+ * Overflow is measured inside .ral-content (the flex:1 content area after
+ * the sidebar), not the document body which includes the fixed 240px
+ * sidebar that naturally exceeds the viewport at ≤375px widths. */
 async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
+  // .ral-content is the content render area; [data-main-content] includes
+  // the sidebar too when the app layout uses it. Use the more specific
+  // .ral-content when available, fallback to data-main-content.
   const overflow = await page.evaluate(() => {
+    const content = document.querySelector('.ral-content');
+    if (content) return content.scrollWidth - content.clientWidth;
     const main = document.querySelector('[data-main-content]');
-    // Always check the main content element — it auto-fills the remaining
-    // space after the sidebar and must not overflow its own bounds.
     if (main) return main.scrollWidth - main.clientWidth;
-    // Absent wrapper → fallback
     return 0;
   });
   expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);
