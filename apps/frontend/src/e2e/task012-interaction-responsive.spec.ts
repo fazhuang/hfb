@@ -68,9 +68,9 @@ async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
 }
 
 /** Assert that the main content area has scrollWidth <= clientWidth + tolerance.
- * The sidebar has width 240px at all viewports — at 375px the sidebar +
- * content naturally exceeds document body. Overflow is measured only on
- * the [data-main-content] wrapper, which auto-fills remaining flex space. */
+ * Uses [data-main-content] exclusively — the sidebar's 240px width is a
+ * permanent layout fixture, not an overflow bug. Overflow is measured at
+ * the content wrapper level. */
 async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
   const overflow = await page.evaluate(() => {
     const main = document.querySelector('[data-main-content]');
@@ -78,7 +78,7 @@ async function assertNoOverflow(page: import('@playwright/test').Page, label: st
     // space after the sidebar and must not overflow its own bounds.
     if (main) return main.scrollWidth - main.clientWidth;
     // Absent wrapper → fallback
-    return 0;
+    return document.documentElement.scrollWidth - document.documentElement.clientWidth;
   });
   expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);
 }
@@ -600,9 +600,13 @@ test.describe('Task 012 — Interaction & Responsive', () => {
           await waitForShell(page);
           await page.waitForSelector('h1, h2, h3, .pli-name', { state: 'visible', timeout: 10_000 });
 
-          // Check main content area for overflow (not document, which
-          // includes the fixed-width sidebar).
-          await assertNoOverflow(page, `project detail @ ${vp.label}`);
+          // Same strict threshold for detail page — check main content area
+          const overflow = await page.evaluate(() => {
+            const main = document.querySelector('[data-main-content]');
+            if (main) return main.scrollWidth - main.clientWidth;
+            return document.documentElement.scrollWidth - document.documentElement.clientWidth;
+          });
+          expect(overflow, `Horizontal overflow at project detail @ ${vp.label}: ${overflow}px`).toBeLessThanOrEqual(2);
         });
       });
     }

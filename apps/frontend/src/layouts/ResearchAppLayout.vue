@@ -58,13 +58,16 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Sidebar is always visible and in-flow at all viewports.
-// At ≤768px it uses position:sticky and content scrolls vertically if
-// needed. No auto-collapse — nav links stay inside the document flow
-// so Playwright real-locator clicks work at every width.
-// Users can toggle via the collapse button or mobile toggle.
-onMounted(() => {});
-onBeforeUnmount(() => {});
+onMounted(() => {
+  // Sidebar is always in-flow (position:sticky at all viewports).
+  // Auto-collapse was removed to keep primary-nav links inside the
+  // document viewport, reachable by real locator clicks in E2E.
+  // Users can manually toggle via the collapse button or mobile toggle.
+});
+
+onBeforeUnmount(() => {
+  // No cleanup needed — no listeners registered
+});
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
@@ -93,7 +96,6 @@ const userName = auth.userName || '未登录';
 
 .ral-sidebar--collapsed {
   width: 64px;
-  overflow-x: hidden;
 }
 
 .ral-brand {
@@ -211,15 +213,13 @@ const userName = auth.userName || '未登录';
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .ral-sidebar {
-    /* Stay in-flow (position:sticky) at all widths so the sidebar sits
-       inside the flex layout and nav links are always in the document
-       viewport. Overflow tests measure .ral-content (flex:1, min-width:0)
-       — the sidebar is a permanent layout element, not content overflow. */
+    /* Stay in-flow (position:sticky) so nav links remain in the document
+       viewport and reachable via real locator clicks. Overflow is
+       acceptable: content just scrolls vertically within the sidebar. */
   }
 
   .ral-sidebar--collapsed {
     width: 64px;
-    overflow: hidden;
   }
 
   .ral-main-wrapper {
