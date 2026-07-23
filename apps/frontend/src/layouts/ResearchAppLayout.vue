@@ -58,15 +58,26 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
+// Auto-hide sidebar on narrow viewports (≤768px) where its 240px width
+// would cause horizontal overflow at 375px. Content renders full-width;
+// the sidebar opens as a toggleable overlay via the mobile toggle button.
+// E2E tests that need nav links expand it via expandSidebarIfNarrow().
+let narrowQuery: MediaQueryList | null = null;
+
+function onNarrowChange(e: MediaQueryListEvent | MediaQueryList) {
+  sidebarCollapsed.value = e.matches;
+}
+
 onMounted(() => {
-  // Sidebar is always in-flow (position:sticky at all viewports).
-  // Auto-collapse was removed to keep primary-nav links inside the
-  // document viewport, reachable by real locator clicks in E2E.
-  // Users can manually toggle via the collapse button or mobile toggle.
+  narrowQuery = window.matchMedia('(max-width: 768px)');
+  narrowQuery.addEventListener('change', onNarrowChange);
+  onNarrowChange(narrowQuery);
 });
 
 onBeforeUnmount(() => {
-  // No cleanup needed — no listeners registered
+  if (narrowQuery) {
+    narrowQuery.removeEventListener('change', onNarrowChange);
+  }
 });
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
@@ -214,20 +225,22 @@ const userName = auth.userName || '未登录';
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .ral-sidebar {
-    /* Sidebar stays in-flow at all viewports. It occupies 240px which
-       exceeds 375px viewport width — the flex layout allows it; content
-       is still accessible via scroll. Overflow tests measure only the
-       [data-main-content] wrapper, not the document body. */
+    position: fixed;
+    z-index: 200;
+    transform: translateX(0);
   }
 
   .ral-sidebar--collapsed {
-    width: 64px;
-    overflow: hidden;
+    transform: translateX(-240px);
+    width: 240px;
   }
 
   .ral-main-wrapper {
     margin-left: 0;
-    min-width: 0;
+  }
+
+  .ral-main-wrapper--shifted {
+    margin-left: 0;
   }
 
   .ral-mobile-toggle {
