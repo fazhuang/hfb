@@ -34,6 +34,22 @@ async function login(page: any) {
   await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15_000 });
 }
 
+/** Expand the sidebar at narrow viewports (≤768px) so primary nav links
+ * are visible and clickable. No-op at desktop widths where the toggle
+ * button is hidden. */
+async function expandSidebarIfNarrow(page: any) {
+  const toggle = page.locator('.ral-mobile-toggle');
+  // Wait briefly for the button to appear — it's only visible at ≤768px
+  if (await toggle.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    const label = await toggle.getAttribute('aria-label');
+    if (label?.includes('展开')) {
+      await toggle.click();
+      // Wait for the sidebar to expand and the nav links to become visible
+      await page.waitForSelector('.rpn-link', { state: 'visible', timeout: 5_000 });
+    }
+  }
+}
+
 // ─── Suite ───────────────────────────────────────────────────────────
 
 test.describe('Task 011 E2E — Research Navigation Consistency', () => {
@@ -158,6 +174,10 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
 
+      // At narrow viewports the sidebar auto-collapses. Expand it via the
+      // real mobile toggle button so the Reports nav link is reachable.
+      await expandSidebarIfNarrow(page);
+
       // Click Reports in primary nav
       const reportsLink = page.locator('.rpn-link').filter({ hasText: 'Reports' }).first();
       await expect(reportsLink).toBeVisible({ timeout: 10_000 });
@@ -178,6 +198,10 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await login(page);
       await page.goto(`${BASE}/research/${sessionIdA}`);
       await page.waitForLoadState('networkidle');
+
+      // At narrow viewports the sidebar auto-collapses. Expand it so the
+      // Library nav link is reachable via real locator click.
+      await expandSidebarIfNarrow(page);
 
       const libraryLink = page.locator('.rpn-link').filter({ hasText: 'Library' }).first();
       await expect(libraryLink).toBeVisible({ timeout: 10_000 });

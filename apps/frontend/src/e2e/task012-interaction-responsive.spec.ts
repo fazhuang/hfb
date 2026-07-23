@@ -83,12 +83,26 @@ async function assertNoOverflow(page: import('@playwright/test').Page, label: st
   expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);
 }
 
+/** Expand the sidebar at narrow viewports (≤768px) so interactive elements
+ * are not blocked by the sidebar overlay. No-op at desktop widths. */
+async function expandSidebarIfNarrow(page: import('@playwright/test').Page) {
+  const toggle = page.locator('.ral-mobile-toggle');
+  if (await toggle.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    const label = await toggle.getAttribute('aria-label');
+    if (label?.includes('展开')) {
+      await toggle.click();
+      await page.waitForSelector('.rpn-link', { state: 'visible', timeout: 5_000 });
+    }
+  }
+}
+
 // suppress TS6133 for helpers only referenced in closures
 void pressTab;
 void pressShiftTab;
 void waitForShell;
 void assertFocusNotOnChrome;
 void assertNoOverflow;
+void expandSidebarIfNarrow;
 
 // ── suite ─────────────────────────────────────────────────────────────
 
@@ -364,6 +378,9 @@ test.describe('Task 012 — Interaction & Responsive', () => {
     });
 
     test('Cancel button closes and restores focus to create button', async ({ page }) => {
+      // At narrow viewports the sidebar overlay can block the create button.
+      await expandSidebarIfNarrow(page);
+
       const createBtn = page.locator('.rpp-create-btn').first();
       await createBtn.click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
