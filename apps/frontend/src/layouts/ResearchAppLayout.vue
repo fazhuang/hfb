@@ -30,6 +30,16 @@
       </div>
     </aside>
 
+    <!-- Mobile sidebar toggle — always reachable at narrow viewports -->
+    <button
+      class="ral-mobile-toggle"
+      @click="sidebarCollapsed = !sidebarCollapsed"
+      :aria-label="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
+      :title="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
+    >
+      {{ sidebarCollapsed ? '☰' : '✕' }}
+    </button>
+
     <!-- Main content area -->
     <div class="ral-main-wrapper" :class="{ 'ral-main-wrapper--shifted': !sidebarCollapsed }">
       <!-- Page header slot — filled by router-view pages via ResearchPageHeader -->
@@ -234,5 +244,40 @@ const userName = auth.userName || '未登录';
   .ral-main-wrapper--shifted {
     margin-left: 0;
   }
+
+  .ral-mobile-toggle {
+    display: flex;
+  }
+}
+
+.ral-mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 300;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  line-height: 1;
+}
+
+.ral-mobile-toggle:hover {
+  background: var(--color-hover);
+}
+
+.ral-mobile-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  background: var(--color-hover);
 }
 </style>

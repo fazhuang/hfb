@@ -223,7 +223,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await waitForShell(page);
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.focus();
       await page.keyboard.press('Enter');
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
@@ -250,29 +250,15 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       // Reports page must have at least one actionable item (view-link or export-btn).
       // If the list is truly empty, the page shows EmptyState — but seeded data
       // guarantees at least one report.
-      const viewLink = page.locator('.rrli-view-link').first();
-      const exportBtn = page.locator('.rrli-export-btn').first();
-
-      // At least one of these must be visible — fail hard if neither exists
-      const hasView = await viewLink.isVisible().catch(() => false);
-      const hasExport = await exportBtn.isVisible().catch(() => false);
-
-      expect(
-        hasView || hasExport,
-        'Reports page must have at least one actionable item (view-link or export-btn) — seed data precondition failed',
-      ).toBe(true);
+      const actionLink = page.locator('.rrli-view-link, .rrli-export-btn').first();
+      await actionLink.waitFor({ state: 'visible', timeout: 10_000 });
 
       // Focus and activate the first available action
-      if (hasView) {
-        await viewLink.focus();
-        await expect(viewLink).toBeFocused();
-        await page.keyboard.press('Enter');
-        // Should navigate to report detail
-        await page.waitForURL(/\/(result|research)\//, { timeout: 10_000 });
-      } else if (hasExport) {
-        await exportBtn.focus();
-        await expect(exportBtn).toBeFocused();
-      }
+      await actionLink.focus();
+      await expect(actionLink).toBeFocused();
+      await page.keyboard.press('Enter');
+      // Should navigate to report detail
+      await page.waitForURL(/\/(result|research)\//, { timeout: 10_000 });
     });
   });
 
@@ -377,6 +363,23 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await expect(createBtn, 'Focus must return to create button after Escape').toBeFocused({ timeout: 5_000 });
     });
 
+    test('Cancel button closes and restores focus to create button', async ({ page }) => {
+      const createBtn = page.locator('.rpp-create-btn').first();
+      await createBtn.click();
+      await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
+
+      // Tab to cancel, press Enter
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab');
+      const cancelBtn = page.locator('.cpd-btn--cancel');
+      await expect(cancelBtn).toBeFocused({ timeout: 3_000 });
+      await page.keyboard.press('Enter');
+
+      await page.waitForSelector('.cpd-dialog', { state: 'hidden', timeout: 3_000 });
+      await expect(createBtn, 'Focus must return to create button after Cancel').toBeFocused({ timeout: 5_000 });
+    });
+
     test('Tab trap — every Tab keeps focus inside .cpd-dialog, never escapes to chrome', async ({ page }) => {
       await page.locator('.rpp-create-btn').first().click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
@@ -404,14 +407,37 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       // After wrapping, focus must land back on name input (tab trap wraps)
       await expect(nameInput).toBeFocused({ timeout: 3_000 });
 
-      // — Cycle 2: Shift+Tab backward through all focusable elements, then wrap —
+      // — Cycle 2: full forward cycle again, every Tab press stays in .cpd-dialog —
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Cycle 2 Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+      }
+      await expect(nameInput).toBeFocused({ timeout: 3_000 });
+
+      // — Cycle 3: Shift+Tab backward through all focusable elements, then wrap —
       for (let i = 0; i < 3; i++) {
         await page.keyboard.press('Shift+Tab');
         const inDialog = await page.evaluate(() => {
           const el = document.activeElement;
           return el ? el.closest('.cpd-dialog') !== null : false;
         });
-        expect(inDialog, `Cycle 2 Shift+Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+        expect(inDialog, `Cycle 3 Shift+Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
+      }
+      // After wrapping, focus must land back on name input
+      await expect(nameInput).toBeFocused({ timeout: 3_000 });
+
+      // — Cycle 4: full reverse cycle again, every Shift+Tab stays in .cpd-dialog —
+      for (let i = 0; i < 3; i++) {
+        await page.keyboard.press('Shift+Tab');
+        const inDialog = await page.evaluate(() => {
+          const el = document.activeElement;
+          return el ? el.closest('.cpd-dialog') !== null : false;
+        });
+        expect(inDialog, `Cycle 4 Shift+Tab ${i + 1}: focus must stay inside .cpd-dialog`).toBe(true);
       }
       // After wrapping, focus must land back on name input
       await expect(nameInput).toBeFocused({ timeout: 3_000 });
@@ -447,24 +473,45 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 15_000 });
     });
 
-    test('opens via menu, auto-focuses cancel, Escape closes', async ({ page }) => {
+    test('opens via menu, auto-focuses cancel, Escape closes + restores focus', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
       const delItem = page.locator('.pdp-more-item--danger');
       await delItem.waitFor({ state: 'visible', timeout: 5_000 });
       await delItem.click();
-      await page.waitForSelector('[role="alertdialog"]', { state: 'visible', timeout: 5_000 });
+      const alertdialog = page.locator('[role="alertdialog"]');
+      await alertdialog.waitFor({ state: 'visible', timeout: 5_000 });
 
       // Cancel is auto-focused
       const cancelBtn = page.locator('.dpd-btn--cancel');
       await expect(cancelBtn).toBeFocused({ timeout: 5_000 });
 
-      // Escape closes
+      // Escape closes and focus returns to trigger
       await page.keyboard.press('Escape');
       await page.waitForSelector('[role="alertdialog"]', { state: 'hidden', timeout: 5_000 });
+      await expect(moreBtn, 'Focus must return to more-actions button after Escape').toBeFocused({ timeout: 5_000 });
+    });
+
+    test('Cancel button click closes and restores focus', async ({ page }) => {
+      const moreBtn = page.locator('[aria-label="更多操作"]');
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
+      await moreBtn.click();
+      await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
+
+      const delItem = page.locator('.pdp-more-item--danger');
+      await delItem.waitFor({ state: 'visible', timeout: 5_000 });
+      await delItem.click();
+      const alertdialog = page.locator('[role="alertdialog"]');
+      await alertdialog.waitFor({ state: 'visible', timeout: 5_000 });
+
+      // Click Cancel
+      const cancelBtn = page.locator('.dpd-btn--cancel');
+      await cancelBtn.click();
+      await page.waitForSelector('[role="alertdialog"]', { state: 'hidden', timeout: 5_000 });
+      await expect(moreBtn, 'Focus must return to more-actions button after Cancel').toBeFocused({ timeout: 5_000 });
     });
   });
 
@@ -477,9 +524,9 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 15_000 });
     });
 
-    test('opens via menu, auto-focuses title input', async ({ page }) => {
+    test('opens via menu, auto-focuses title input, Escape restores focus', async ({ page }) => {
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
@@ -489,6 +536,11 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('#epd-title', { state: 'visible', timeout: 5_000 });
 
       await expect(page.locator('#epd-title')).toBeFocused({ timeout: 5_000 });
+
+      // Escape closes and focus returns to trigger
+      await page.keyboard.press('Escape');
+      await page.waitForSelector('.epd-dialog', { state: 'hidden', timeout: 5_000 });
+      await expect(moreBtn, 'Focus must return to more-actions button after Escape').toBeFocused({ timeout: 5_000 });
     });
   });
 
@@ -676,7 +728,7 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 15_000 });
 
       const moreBtn = page.locator('[aria-label="更多操作"]');
-      await moreBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await moreBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await moreBtn.click();
       await page.waitForSelector('.pdp-more-menu', { state: 'visible', timeout: 5_000 });
 
