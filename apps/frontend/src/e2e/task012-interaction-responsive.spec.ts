@@ -67,17 +67,17 @@ async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
   expect(tag, 'Tab must land on a real element').not.toBe('none');
 }
 
-/** Assert that the main content area has scrollWidth <= clientWidth + tolerance. */
+/** Assert that the main content area has scrollWidth <= clientWidth + tolerance.
+ * Uses [data-main-content] exclusively — the sidebar is part of the layout
+ * and at narrow viewports (≤375px) its width naturally exceeds the viewport
+ * when in-flow. The content area is what must fit. */
 async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
-  // Check overflow on the main content wrapper, not document.documentElement.
-  // At desktop widths the sidebar (240px) is inline in document flow and
-  // scrollWidth naturally exceeds clientWidth — that's not an overflow bug.
   const overflow = await page.evaluate(() => {
     const main = document.querySelector('[data-main-content]');
     if (main) {
       return main.scrollWidth - main.clientWidth;
     }
-    // Fallback to document — only valid when sidebar is overlaid or collapsed
+    // Only fallback to document when main-content wrapper is absent
     return document.documentElement.scrollWidth - document.documentElement.clientWidth;
   });
   expect(overflow, `Horizontal overflow at ${label}: ${overflow}px (tolerance=${tolerance})`).toBeLessThanOrEqual(tolerance);

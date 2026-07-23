@@ -58,26 +58,15 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Auto-collapse sidebar on narrow viewports where it overlays content.
-// At ≤768px the sidebar is position:fixed and intercepts pointer events
-// on elements underneath. Collapsing it keeps the page usable.
-let narrowQuery: MediaQueryList | null = null;
-
-function onNarrowChange(e: MediaQueryListEvent | MediaQueryList) {
-  sidebarCollapsed.value = e.matches;
-}
-
 onMounted(() => {
-  narrowQuery = window.matchMedia('(max-width: 768px)');
-  narrowQuery.addEventListener('change', onNarrowChange);
-  // Set initial state
-  onNarrowChange(narrowQuery);
+  // Sidebar is always in-flow (position:sticky at all viewports).
+  // Auto-collapse was removed to keep primary-nav links inside the
+  // document viewport, reachable by real locator clicks in E2E.
+  // Users can manually toggle via the collapse button or mobile toggle.
 });
 
 onBeforeUnmount(() => {
-  if (narrowQuery) {
-    narrowQuery.removeEventListener('change', onNarrowChange);
-  }
+  // No cleanup needed — no listeners registered
 });
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
@@ -224,25 +213,18 @@ const userName = auth.userName || '未登录';
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .ral-sidebar {
-    position: fixed;
-    z-index: 200;
-    transform: translateX(0);
+    /* Stay in-flow (position:sticky) so nav links remain in the document
+       viewport and reachable via real locator clicks. Overflow is
+       acceptable: content just scrolls vertically within the sidebar. */
   }
 
   .ral-sidebar--collapsed {
-    transform: translateX(-64px);
     width: 64px;
   }
 
   .ral-main-wrapper {
     margin-left: 0;
-  }
-
-  /* When the sidebar is NOT collapsed (shifted state), it overlays content.
-     The sidebar is position: fixed at mobile widths, so no margin is needed —
-     adding margin-left: 240px leaves only 135px for content at 375px width. */
-  .ral-main-wrapper--shifted {
-    margin-left: 0;
+    min-width: 0;
   }
 
   .ral-mobile-toggle {
