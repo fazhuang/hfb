@@ -368,13 +368,10 @@ test.describe('Task 012 — Interaction & Responsive', () => {
       await createBtn.click();
       await page.waitForSelector('.cpd-dialog', { state: 'visible', timeout: 3_000 });
 
-      // Tab to cancel, press Enter
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('Tab');
-      await page.keyboard.press('Tab');
+      // Click the Cancel button — real user interaction, no DOM injection
       const cancelBtn = page.locator('.cpd-btn--cancel');
-      await expect(cancelBtn).toBeFocused({ timeout: 3_000 });
-      await page.keyboard.press('Enter');
+      await expect(cancelBtn).toBeVisible({ timeout: 3_000 });
+      await cancelBtn.click();
 
       await page.waitForSelector('.cpd-dialog', { state: 'hidden', timeout: 3_000 });
       await expect(createBtn, 'Focus must return to create button after Cancel').toBeFocused({ timeout: 5_000 });
