@@ -54,7 +54,7 @@ const mockApiGet = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
-    get: (...args: unknown[]) => mockApiGet(...args),
+    get: (...args: Array<unknown>) => mockApiGet(...args),
   },
 }));
 
@@ -84,7 +84,7 @@ function makeReportItem(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeReportsResponse(items: unknown[], total?: number, page = 1, limit = 20) {
+function makeReportsResponse(items: Array<unknown>, total?: number, page = 1, limit = 20) {
   return {
     data: {
       success: true,
@@ -605,7 +605,7 @@ describe('ResearchReportsPage', () => {
 
       // Verify export API call
       const exportCalls = mockApiGet.mock.calls.filter(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/export'),
+        (call: Array<unknown>) => typeof call[0] === 'string' && call[0].includes('/export'),
       );
       expect(exportCalls.length).toBe(1);
       const firstCallArgs = exportCalls.at(0);
@@ -658,7 +658,7 @@ describe('ResearchReportsPage', () => {
       await flushPromises();
 
       const exportCalls = mockApiGet.mock.calls.filter(
-        (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/export'),
+        (call: Array<unknown>) => typeof call[0] === 'string' && call[0].includes('/export'),
       );
       expect(exportCalls.length).toBe(1);
 

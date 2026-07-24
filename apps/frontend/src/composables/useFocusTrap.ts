@@ -16,7 +16,7 @@ export function useFocusTrap() {
   const containerRef = ref<HTMLElement | null>(null);
   let previousFocus: HTMLElement | null = null;
 
-  function getFocusable(): HTMLElement[] {
+  function getFocusable(): Array<HTMLElement> {
     if (!containerRef.value) return [];
     return Array.from(containerRef.value.querySelectorAll(FOCUSABLE));
   }

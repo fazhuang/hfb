@@ -17,13 +17,13 @@ import type {
 
 /** Shared paginated list result */
 export interface LibraryListResult {
-  items: LibraryDocument[];
+  items: Array<LibraryDocument>;
   total: number;
 }
 
 /** Return type of useLibraryList */
 export interface UseLibraryList {
-  items: Ref<LibraryDocument[]>;
+  items: Ref<Array<LibraryDocument>>;
   total: Ref<number>;
   loading: Ref<boolean>;
   error: Ref<string | null>;
@@ -53,7 +53,7 @@ export interface UseLibraryStats {
 // ---- List ----
 
 export function useLibraryList(filters: Ref<LibraryFilters>): UseLibraryList {
-  const items = ref<LibraryDocument[]>([]) as Ref<LibraryDocument[]>;
+  const items = ref<Array<LibraryDocument>>([]) as Ref<Array<LibraryDocument>>;
   const total = ref(0);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -82,7 +82,7 @@ export function useLibraryList(filters: Ref<LibraryFilters>): UseLibraryList {
       const { data } = await api.get('/api/v1/documents', { params });
       if (myReqId !== reqId) return;
       const body = data.data ?? data;
-      items.value = (body.items ?? []) as LibraryDocument[];
+      items.value = (body.items ?? []) as Array<LibraryDocument>;
       total.value = body.total ?? 0;
       totalPages.value = Math.max(1, Math.ceil(total.value / limit.value));
     } catch (e: unknown) {

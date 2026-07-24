@@ -118,7 +118,7 @@ function sessionResponse() {
 /**
  * Build a ReadableStream SSE fixture matching the real /api/v1/ai/chat shape.
  */
-function fakeSSEStream(chunks: string[]) {
+function fakeSSEStream(chunks: Array<string>) {
   const encoder = new TextEncoder();
   const lines = chunks.flatMap(c => [`data: ${JSON.stringify({ content: c })}\n\n`]);
   lines.push(`data: ${JSON.stringify({ done: true })}\n\n`);
@@ -247,7 +247,7 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
       chatSessionId: string;
       sendMessage: () => Promise<void>;
       evidence: Array<{ entity_type: string; id: string; content: string }>;
-      evidenceGraphData: { nodes: unknown[]; edges: unknown[] } | null;
+      evidenceGraphData: { nodes: Array<unknown>; edges: Array<unknown> } | null;
     };
     vm.chatInput = '针灸甲乙经有哪些腧穴理论贡献？';
     vm.chatSessionId = 'sess-chat-1';

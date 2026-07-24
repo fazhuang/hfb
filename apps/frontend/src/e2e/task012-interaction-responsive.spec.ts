@@ -20,6 +20,7 @@
  * Baseline: 59e6fcec7194f8bcde82efec1149d8f1739ca7f0
  */
 import { test, expect } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const BASE = 'http://127.0.0.1:5173';
 const API  = 'http://127.0.0.1:8000';
@@ -33,7 +34,7 @@ let docId: string;
 // ── helpers ───────────────────────────────────────────────────────────
 
 /** Log in via the real Login UI and wait for redirect away from /login. */
-async function login(page: import('@playwright/test').Page) {
+async function login(page: Page) {
   await page.goto(`${BASE}/login`);
   await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
   await page.fill('#username', 'researcher');
@@ -43,24 +44,24 @@ async function login(page: import('@playwright/test').Page) {
 }
 
 /** Press Tab N times. */
-async function pressTab(page: import('@playwright/test').Page, n = 1) {
+async function pressTab(page: Page, n = 1) {
   for (let i = 0; i < n; i++) await page.keyboard.press('Tab');
 }
 
 /** Press Shift+Tab N times. */
-async function pressShiftTab(page: import('@playwright/test').Page, n = 1) {
+async function pressShiftTab(page: Page, n = 1) {
   for (let i = 0; i < n; i++) await page.keyboard.press('Shift+Tab');
 }
 
 /** Wait for the app shell (main content area) — proves the page finished mounting. */
-async function waitForShell(page: import('@playwright/test').Page) {
+async function waitForShell(page: Page) {
   await page.waitForSelector('[data-main-content]', { state: 'attached', timeout: 10_000 });
 }
 
 /** Assert that document.activeElement is inside .cpd-dialog or at minimum
  * is not the body/html — the page may shift focus during Vue reactive updates.
  * The key invariant is: no tab key press should land on browser chrome. */
-async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
+async function assertFocusNotOnChrome(page: Page) {
   const tag = await page.evaluate(() => document.activeElement?.tagName.toLowerCase() || 'none');
   expect(tag, 'Tab must never land on BODY/HTML (browser chrome)').not.toBe('body');
   expect(tag, 'Tab must never land on BODY/HTML (browser chrome)').not.toBe('html');
@@ -74,7 +75,7 @@ async function assertFocusNotOnChrome(page: import('@playwright/test').Page) {
  * the flex:1 .ral-content/.ral-main-wrapper area which shrinks to fill
  * remaining space (min-width:0). Overflow tests on the content, not the
  * document body which includes the sidebar. */
-async function assertNoOverflow(page: import('@playwright/test').Page, label: string, tolerance = 2) {
+async function assertNoOverflow(page: Page, label: string, tolerance = 2) {
   const overflow = await page.evaluate(() => {
     // [data-main-content] is the content render area inside the flex layout.
     // It has min-width:0 via .ral-main-wrapper, so it fills remaining space
@@ -88,7 +89,7 @@ async function assertNoOverflow(page: import('@playwright/test').Page, label: st
 
 /** Expand the sidebar at narrow viewports (≤768px) so interactive elements
  * are not blocked by the sidebar overlay. No-op at desktop widths. */
-async function expandSidebarIfNarrow(page: import('@playwright/test').Page) {
+async function expandSidebarIfNarrow(page: Page) {
   const toggle = page.locator('.ral-mobile-toggle');
   if (await toggle.isVisible({ timeout: 1_000 }).catch(() => false)) {
     const label = await toggle.getAttribute('aria-label');

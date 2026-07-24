@@ -84,15 +84,15 @@ const userName = auth.userName || '未登录';
 .ral-sidebar {
   width: 240px;
   flex-shrink: 0;
-  background: var(--color-navbar-bg, #ffffff);
-  border-right: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-navbar-bg);
+  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  transition: width 0.2s;
+  transition: width var(--transition-slow);
 }
 
 .ral-sidebar--collapsed {
@@ -100,16 +100,16 @@ const userName = auth.userName || '未登录';
 }
 
 .ral-brand {
-  padding: 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .ral-brand-link {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   text-decoration: none;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .ral-brand-icon {
@@ -128,43 +128,43 @@ const userName = auth.userName || '未登录';
 /* ---- Sidebar footer ---- */
 .ral-sidebar-footer {
   margin-top: auto;
-  padding: 12px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  padding: var(--space-3);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .ral-project-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) 8px;
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .ral-project-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--color-accent, #4299e1);
+  background: var(--color-accent);
   flex-shrink: 0;
 }
 
 .ral-user-area {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-2);
+  padding: var(--space-1-5) 8px;
 }
 
 .ral-user-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,7 +175,7 @@ const userName = auth.userName || '未登录';
 
 .ral-user-name {
   font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -185,18 +185,18 @@ const userName = auth.userName || '未登录';
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
+  padding: var(--space-1-5);
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
-  border-radius: 4px;
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
 }
 
 .ral-collapse-btn:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .ral-collapse-btn:focus-visible {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 /* ---- Main wrapper ---- */
@@ -241,7 +241,7 @@ const userName = auth.userName || '未登录';
   position: fixed;
   top: 12px;
   left: 12px;
-  z-index: 300;
+  z-index: var(--z-dropdown);
   width: 40px;
   height: 40px;
   align-items: center;

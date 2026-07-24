@@ -215,7 +215,7 @@ describe('ResearchWorkflowPage', () => {
     await flushPromises();
     await nextTick();
 
-    const sessionCall = mockGet.mock.calls.find((c: any[]) => c[0] === SESSION_URL);
+    const sessionCall = mockGet.mock.calls.find((c: Array<any>) => c[0] === SESSION_URL);
     expect(sessionCall).toBeTruthy();
   });
 
@@ -350,7 +350,7 @@ describe('ResearchWorkflowPage', () => {
     await wrapper.find('.dss-submit-btn').trigger('click');
     await flushPromises();
 
-    const wfCall = mockPost.mock.calls.find((c: any[]) => c[0] === '/api/v4/research/workflow');
+    const wfCall = mockPost.mock.calls.find((c: Array<any>) => c[0] === '/api/v4/research/workflow');
     expect(wfCall).toBeTruthy();
     expect(wfCall![1].session_id).toBe(PROJECT_ID);
   });
@@ -382,7 +382,7 @@ describe('ResearchWorkflowPage', () => {
     await btn.trigger('click');
     await flushPromises();
 
-    const wfCalls = mockPost.mock.calls.filter((c: any[]) => c[0] === '/api/v4/research/workflow');
+    const wfCalls = mockPost.mock.calls.filter((c: Array<any>) => c[0] === '/api/v4/research/workflow');
     expect(wfCalls.length).toBe(1);
   });
 
@@ -418,7 +418,7 @@ describe('ResearchWorkflowPage', () => {
     await btn.trigger('click');
     await flushPromises(); await nextTick();
 
-    const wfCalls = mockPost.mock.calls.filter((c: any[]) => c[0] === '/api/v4/research/workflow');
+    const wfCalls = mockPost.mock.calls.filter((c: Array<any>) => c[0] === '/api/v4/research/workflow');
     expect(wfCalls.length).toBe(1);
   });
 
@@ -1110,7 +1110,7 @@ describe('ResearchWorkflowPage', () => {
     return wrapper;
   }
 
-  const errorCases: [string, unknown, string][] = [
+  const errorCases: Array<[string, unknown, string]> = [
     ['400', { response: { status: 400, data: { detail: '研究问题不能为空' } } }, '输入错误'],
     ['403', { response: { status: 403, data: { detail: 'Forbidden' } } }, '权限不足'],
     ['404', { response: { status: 404, data: { detail: 'Session not found' } } }, '未找到'],
@@ -1252,7 +1252,7 @@ describe('ResearchWorkflowPage', () => {
 
     expect(router.currentRoute.value.fullPath).not.toContain('敏感研究问题');
 
-    const sensitiveLogs = consoleSpy.mock.calls.filter((call: any[]) =>
+    const sensitiveLogs = consoleSpy.mock.calls.filter((call: Array<any>) =>
       call.some((arg: any) => typeof arg === 'string' && arg.includes('敏感研究问题'))
     );
     expect(sensitiveLogs.length).toBe(0);
@@ -1271,7 +1271,7 @@ describe('ResearchWorkflowPage', () => {
     );
     await flushPromises();
 
-    const sessionCalls = mockGet.mock.calls.filter((c: any[]) => c[0] === SESSION_URL);
+    const sessionCalls = mockGet.mock.calls.filter((c: Array<any>) => c[0] === SESSION_URL);
     expect(sessionCalls.length).toBe(1);
   });
 

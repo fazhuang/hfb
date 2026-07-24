@@ -34,7 +34,7 @@ export interface WorkflowStep {
   name: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
   result?: Record<string, unknown> | null;
-  trace_ids?: string[];
+  trace_ids?: Array<string>;
 }
 
 export interface WorkflowEvidence {
@@ -101,9 +101,9 @@ function makeStorageKey(projectId: string): string {
  */
 function extractEvidenceFromSingleRun(
   run: Record<string, unknown>,
-): { evidence: WorkflowEvidence[]; citations: WorkflowCitation[] } {
-  const evidenceList: WorkflowEvidence[] = [];
-  const citationList: WorkflowCitation[] = [];
+): { evidence: Array<WorkflowEvidence>; citations: Array<WorkflowCitation> } {
+  const evidenceList: Array<WorkflowEvidence> = [];
+  const citationList: Array<WorkflowCitation> = [];
   const evidenceSeen = new Set<string>();
   const citationSeen = new Set<string>();
 
@@ -266,9 +266,9 @@ export function useResearchWorkflow(projectId: () => string) {
 
   // ---- Workflow result ----
   const workflowResult = ref<Record<string, unknown> | null>(null);
-  const steps = ref<WorkflowStep[]>([]);
-  const evidenceList = ref<WorkflowEvidence[]>([]);
-  const citationList = ref<WorkflowCitation[]>([]);
+  const steps = ref<Array<WorkflowStep>>([]);
+  const evidenceList = ref<Array<WorkflowEvidence>>([]);
+  const citationList = ref<Array<WorkflowCitation>>([]);
   const report = ref<WorkflowReport | null>(null);
   const runId = ref('');
   const workflowSuccess = ref(false);
@@ -401,7 +401,7 @@ export function useResearchWorkflow(projectId: () => string) {
       workflowSuccess.value = data.success === true;
 
       if (!data.success) {
-        const serverSteps = (data.data?.steps as WorkflowStep[]) || [];
+        const serverSteps = (data.data?.steps as Array<WorkflowStep>) || [];
         steps.value = serverSteps;
         submitError.value = data.message || '工作流执行失败';
         stepState.value = 'error';
@@ -411,7 +411,7 @@ export function useResearchWorkflow(projectId: () => string) {
       workflowResult.value = data.data as Record<string, unknown>;
       // Accept ONLY the server-generated run_id from the POST response
       runId.value = (data.data?.run_id as string) || '';
-      steps.value = (data.data?.steps as WorkflowStep[]) || [];
+      steps.value = (data.data?.steps as Array<WorkflowStep>) || [];
 
       if (!runId.value) {
         submitError.value = '工作流已完成，但未返回运行标识。';
@@ -493,7 +493,7 @@ export function useResearchWorkflow(projectId: () => string) {
       if (myReqId !== reqId) return;
       if (currentAbortController.signal.aborted) return;
 
-      const runs = (data.data?.runs ?? []) as Record<string, unknown>[];
+      const runs = (data.data?.runs ?? []) as Array<Record<string, unknown>>;
 
       // Strict: find ONLY the run matching the current runId
       const currentRun = runs.find((r) => (r.run_id as string) === runId.value);

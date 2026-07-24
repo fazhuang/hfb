@@ -88,7 +88,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   // ── P1: State Components ──────────────────────────────────────────
 
   test('LoadingState spinner is rendered during page load', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -145,7 +145,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   // ── P2: Eight Core Pages ──────────────────────────────────────────
 
   test('Page 1: /research — ProjectListPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -162,7 +162,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 2: /research/:id — ProjectDetailPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -184,7 +184,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 3: /research/:id/workspace — ResearchWorkspacePage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -204,7 +204,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 4: /research/:id/workflow — ResearchWorkflowPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -236,7 +236,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 5: /research/:id/result/:runId — ResearchResultPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -254,7 +254,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 6: /reports — ReportListPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -273,7 +273,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 7: /library — LibrarySearchPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -293,7 +293,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Page 8: /reader/:id — ReaderPage', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -420,6 +420,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
+    // Wait for focus trap to activate (nextTick + animation frame)
+    await page.waitForTimeout(200);
+
     // P0-2: Focus must be inside the dialog after opening
     const focusInDialog = await page.evaluate(() => {
       const el = document.activeElement;
@@ -531,7 +534,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.waitForLoadState('networkidle');
 
     // Collect focusable elements reached via Tab
-    const focusedElements: string[] = [];
+    const focusedElements: Array<string> = [];
     for (let i = 0; i < 15; i++) {
       await page.keyboard.press('Tab');
       const info = await page.evaluate(() => {
@@ -701,7 +704,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
   });
 
   test('Reports page — export button triggers real export for ready reports', async ({ page }) => {
-    const errors: string[] = [];
+    const errors: Array<string> = [];
     page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
 
     await login(page);
@@ -742,7 +745,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
     // Verify the downloaded file has content
     const stream = await download!.createReadStream();
-    const chunks: Buffer[] = [];
+    const chunks: Array<Buffer> = [];
     for await (const chunk of stream) {
       if (Buffer.isBuffer(chunk)) chunks.push(chunk);
     }

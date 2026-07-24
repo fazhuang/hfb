@@ -7,7 +7,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 // Wrapper registry — every mount() in this file must register its wrapper
 // here so afterEach can unmount it and prevent cross-test timer/async leaks.
-let activeWrappers: ReturnType<typeof mount>[] = [];
+let activeWrappers: Array<ReturnType<typeof mount>> = [];
 
 // ================================================================
 // Mock setup
@@ -18,8 +18,8 @@ const mockApiPost = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
-    get: (...args: unknown[]) => mockApiGet(...args),
-    post: (...args: unknown[]) => mockApiPost(...args),
+    get: (...args: Array<unknown>) => mockApiGet(...args),
+    post: (...args: Array<unknown>) => mockApiPost(...args),
   },
 }));
 
@@ -63,7 +63,7 @@ function buildRouter() {
   });
 }
 
-async function mountPage(sessions: Record<string, unknown>[] = []) {
+async function mountPage(sessions: Array<Record<string, unknown>> = []) {
   mockApiGet.mockResolvedValue({
     data: { data: sessions },
   });
@@ -753,7 +753,7 @@ describe('Domain mapping contract', () => {
 
     // Verify that no GET call ever includes q/search/keyword params
     const allGetCalls = mockApiGet.mock.calls.filter(
-      (call: unknown[]) => {
+      (call: Array<unknown>) => {
         const url = call[0] as string;
         return url === '/api/v1/workspace/sessions';
       },

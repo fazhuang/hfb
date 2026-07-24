@@ -46,7 +46,7 @@ const mockApiGet = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
-    get: (...args: unknown[]) => mockApiGet(...args),
+    get: (...args: Array<unknown>) => mockApiGet(...args),
   },
 }));
 
@@ -171,7 +171,7 @@ const SESSION_B = `/api/v1/workspace/sessions/${PROJ_B}`;
 const RUNS_A = `/api/v4/research/session/${PROJ_A}/runs`;
 const RUNS_B = `/api/v4/research/session/${PROJ_B}/runs`;
 
-function setupDefaultMocks(session?: Record<string, unknown>, runs?: Record<string, unknown>[]) {
+function setupDefaultMocks(session?: Record<string, unknown>, runs?: Array<Record<string, unknown>>) {
   mockApiGet.mockImplementation((url: string) => {
     if (url.includes('/history')) {
       return Promise.resolve({
@@ -246,7 +246,7 @@ describe('ResearchWorkspacePage', () => {
 
     await flushPromises();
 
-    const runsCalls = mockApiGet.mock.calls.filter((c: unknown[]) => (c[0] as string).includes('/runs'));
+    const runsCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => (c[0] as string).includes('/runs'));
     expect(runsCalls.length).toBe(1);
   });
 
@@ -281,7 +281,7 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
 
     const sessionCalls = mockApiGet.mock.calls.filter(
-      (c: unknown[]) => (c[0] as string).includes('/workspace/sessions/') && !(c[0] as string).includes('/notes') && !(c[0] as string).includes('/citations'),
+      (c: Array<unknown>) => (c[0] as string).includes('/workspace/sessions/') && !(c[0] as string).includes('/notes') && !(c[0] as string).includes('/citations'),
     );
     expect(sessionCalls.length).toBe(1);
   });
@@ -393,7 +393,7 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
 
     // Verify B was loaded correctly — at minimum the API was called
-    const bRunsCalls = mockApiGet.mock.calls.filter((c: unknown[]) => c[0] === RUNS_B);
+    const bRunsCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => c[0] === RUNS_B);
     expect(bRunsCalls.length).toBe(1);
   });
 
@@ -586,7 +586,7 @@ describe('ResearchWorkspacePage', () => {
     expect(router.currentRoute.value.fullPath).not.toContain('Sensitive question');
 
     // Console must not contain question
-    const sensitiveLogs = consoleSpy.mock.calls.filter((call: any[]) =>
+    const sensitiveLogs = consoleSpy.mock.calls.filter((call: Array<any>) =>
       call.some((arg: any) => typeof arg === 'string' && arg.includes('Sensitive question')),
     );
     expect(sensitiveLogs.length).toBe(0);
@@ -1314,7 +1314,7 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
 
     const links = wrapper.findAll('.mock-link');
-    const hrefs = links.map((l) => l.attributes('href')) as string[];
+    const hrefs = links.map((l) => l.attributes('href')) as Array<string>;
     expect(hrefs.some((h) => h.includes(customId))).toBe(true);
     expect(hrefs.every((h) => !h.includes('/research/1/'))).toBe(true);
   });

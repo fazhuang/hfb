@@ -17,7 +17,7 @@ export interface Toast {
 }
 
 // Global shared state
-const toasts = ref<Toast[]>([]);
+const toasts = ref<Array<Toast>>([]);
 let _id = 0;
 
 export interface ToastOptions {

@@ -139,9 +139,9 @@ function classifyError(err: unknown): { status: number; message: string } {
  */
 function extractEvidenceFromSingleRun(
   run: Record<string, unknown>,
-): { evidence: ResultEvidence[]; citations: ResultCitation[] } {
-  const evidenceList: ResultEvidence[] = [];
-  const citationList: ResultCitation[] = [];
+): { evidence: Array<ResultEvidence>; citations: Array<ResultCitation> } {
+  const evidenceList: Array<ResultEvidence> = [];
+  const citationList: Array<ResultCitation> = [];
   const evidenceSeen = new Set<string>();
   const citationSeen = new Set<string>();
 
@@ -241,8 +241,8 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
   // ---- Data ----
   const session = ref<ResultSession | null>(null);
   const report = ref<ResultReport | null>(null);
-  const evidenceList = ref<ResultEvidence[]>([]);
-  const citationList = ref<ResultCitation[]>([]);
+  const evidenceList = ref<Array<ResultEvidence>>([]);
+  const citationList = ref<Array<ResultCitation>>([]);
   const rawRun = ref<Record<string, unknown> | null>(null);
 
   // ---- Export ----
@@ -354,7 +354,7 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
       });
       if (mySeq !== reqSeq || abortSignal.aborted) return;
 
-      const runs = (data.data?.runs ?? []) as Record<string, unknown>[];
+      const runs = (data.data?.runs ?? []) as Array<Record<string, unknown>>;
       const targetRun = runs.find((r) => (r.run_id as string) === rid);
 
       if (!targetRun) {
@@ -545,7 +545,7 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
   }
 
   /** Find evidence entries for a given citation trace_id */
-  function evidenceForCitation(traceId: string): ResultEvidence[] {
+  function evidenceForCitation(traceId: string): Array<ResultEvidence> {
     return evidenceList.value.filter((e) => e.trace_id === traceId);
   }
 

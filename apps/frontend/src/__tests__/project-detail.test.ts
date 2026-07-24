@@ -43,9 +43,9 @@ const mockApiDelete = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
-    get: (...args: unknown[]) => mockApiGet(...args),
-    patch: (...args: unknown[]) => mockApiPatch(...args),
-    delete: (...args: unknown[]) => mockApiDelete(...args),
+    get: (...args: Array<unknown>) => mockApiGet(...args),
+    patch: (...args: Array<unknown>) => mockApiPatch(...args),
+    delete: (...args: Array<unknown>) => mockApiDelete(...args),
   },
 }));
 
@@ -177,7 +177,7 @@ describe('ProjectDetailPage', () => {
       title: 'ABC Project',
     });
     const calls = mockApiGet.mock.calls.filter(
-      (c: string[]) => c[0] === '/api/v1/workspace/sessions/session-abc-123',
+      (c: Array<string>) => c[0] === '/api/v1/workspace/sessions/session-abc-123',
     );
     expect(calls.length).toBeGreaterThanOrEqual(1);
     expect(wrapper.text()).toContain('ABC Project');

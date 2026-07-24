@@ -132,7 +132,7 @@ const mockApiGet = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
-    get: (...args: unknown[]) => mockApiGet(...args),
+    get: (...args: Array<unknown>) => mockApiGet(...args),
   },
 }));
 
@@ -282,7 +282,7 @@ function setupBlobMock() {
   // Use the native Blob constructor that jsdom already provides.
   // We spy on it to capture calls without blocking behavior.
   const OrigBlob = globalThis.Blob;
-  vi.stubGlobal('Blob', vi.fn((contentParts: string[], options: { type: string }) => {
+  vi.stubGlobal('Blob', vi.fn((contentParts: Array<string>, options: { type: string }) => {
     const entry = { content: contentParts.join(''), type: options.type };
     createdBlobs.push(entry);
     return new OrigBlob(contentParts, options);

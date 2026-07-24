@@ -146,7 +146,7 @@ function collectViolations(source, lineOffset) {
 
 // ─── Main ───────────────────────────────────────────────────────────────
 
-const scanDirs = [resolve(SRC, 'styles', 'base'), resolve(SRC, 'components'), resolve(SRC, 'pages')];
+const scanDirs = [resolve(SRC, 'styles', 'base'), resolve(SRC, 'components'), resolve(SRC, 'pages'), resolve(SRC, 'layouts')];
 if (existsSync(resolve(SRC, 'views'))) scanDirs.push(resolve(SRC, 'views'));
 
 const all = [];
