@@ -63,7 +63,7 @@ defineProps<{
 .rph-breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-bottom: var(--space-2);
   font-size: var(--text-sm);
   flex-wrap: wrap;
@@ -105,7 +105,7 @@ defineProps<{
 }
 
 .rph-description {
-  margin: 6px 0 0;
+  margin: var(--space-1-5) 0 0;
   font-size: var(--text-base);
   color: var(--color-text-muted);
   line-height: var(--leading-normal);

@@ -63,7 +63,7 @@ onMounted(() => fetch(props.passageId));
 
 <style scoped>
 .passage-reader {
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .passage-content {
@@ -74,82 +74,82 @@ onMounted(() => fetch(props.passageId));
 .passage-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   margin-bottom: 20px;
 }
 
 .passage-order {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-accent, #2b6cb0);
-  padding: 2px 8px;
-  background: var(--color-active, #ebf8ff);
-  border-radius: 4px;
+  color: var(--color-accent);
+  padding: var(--space-0-5) 8px;
+  background: var(--color-accent-light);
+  border-radius: var(--radius-sm);
 }
 
 .passage-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .tag {
   font-size: 11px;
-  padding: 1px 6px;
-  background: var(--color-tag-bg, #edf2f7);
-  border-radius: 3px;
-  color: var(--color-text-muted, #718096);
+  padding: var(--space-0-25) 6px;
+  background: var(--color-hover);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
 }
 
 .passage-text {
   font-size: 18px;
   line-height: 2;
-  color: var(--color-text-primary, #1a365d);
-  padding: 20px 0;
-  border-top: 1px solid var(--color-border, #e2e8f0);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-primary);
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
 .passage-translation {
   margin-top: 24px;
-  padding: 16px;
-  background: var(--color-hover, #f7fafc);
-  border-radius: 8px;
+  padding: var(--space-4);
+  background: var(--color-hover, var(--color-page-bg));
+  border-radius: var(--radius-lg);
 }
 
 .passage-translation h4 {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 8px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
 }
 
 .passage-translation p {
   font-size: 14px;
   line-height: 1.8;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .passage-notes {
   margin-top: 16px;
-  padding: 16px;
-  border: 1px dashed var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .passage-notes h4 {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 8px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
 }
 
 .passage-notes p {
   font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -159,13 +159,13 @@ onMounted(() => fetch(props.passageId));
 
 .meta-label {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .loading-state, .error-state {
   text-align: center;
-  padding: 60px 20px;
-  color: var(--color-text-muted, #a0aec0);
+  padding: var(--space-15) 20px;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 </style>

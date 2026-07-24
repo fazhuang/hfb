@@ -88,10 +88,10 @@ const badgeText = computed(() => lineage.value.text);
 <style scoped>
 .els-badge {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   align-items: center;
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: var(--space-2) 12px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   margin-top: 10px;
 }

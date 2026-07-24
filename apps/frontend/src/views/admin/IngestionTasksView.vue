@@ -119,22 +119,22 @@ onMounted(() => fetchPage(1));
 </script>
 
 <style scoped>
-.ingestion-page { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+.ingestion-page { max-width: 1200px; margin: 0 auto; padding: var(--space-8) 24px; }
 .page-header { margin-bottom: 16px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: var(--color-text-primary, #1a365d); margin: 0; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
-.filter-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-.filter-select { padding: 8px 12px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 8px; font-size: 13px; background: var(--color-navbar-bg, #fff); color: var(--color-text-primary, #1a365d); }
+.filter-bar { display: flex; gap: var(--space-2); margin-bottom: 16px; }
+.filter-select { padding: var(--space-2) 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: 13px; background: var(--color-navbar-bg, var(--color-surface)); color: var(--color-text-primary); }
 
-.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 24px; font-size: 13px; color: var(--color-text-secondary, #4a5568); }
-.pagination button { padding: 6px 16px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 6px; background: var(--color-navbar-bg, #fff); cursor: pointer; font-size: 13px; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: var(--space-4); margin-top: 24px; font-size: 13px; color: var(--color-text-secondary); }
+.pagination button { padding: var(--space-1-5) 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-navbar-bg, var(--color-surface)); cursor: pointer; font-size: 13px; }
 .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 
 <style>
-.badge { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
-.badge-status-success { background: #c6f6d5; color: #276749; }
-.badge-status-skipped { background: var(--color-tag-bg, #edf2f7); color: var(--color-text-muted, #a0aec0); }
-.badge-status-rejected { background: #fed7d7; color: #c53030; }
-.badge-status-withdrawn { background: #e2e8f0; color: #718096; }
+.badge { font-size: 12px; padding: var(--space-0-5) 8px; border-radius: var(--radius-sm); }
+.badge-status-success { background: var(--color-success-icon-bg); color: var(--color-success-text); }
+.badge-status-skipped { background: var(--color-hover); color: var(--color-text-muted); }
+.badge-status-rejected { background: var(--color-error-icon-bg); color: var(--color-error-text); }
+.badge-status-withdrawn { background: var(--color-border); color: var(--color-text-muted); }
 </style>

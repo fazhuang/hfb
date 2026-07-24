@@ -29,6 +29,7 @@
 
   /* ---- Surfaces ---- */
   --color-overlay: rgba(0, 0, 0, 0.4);
+  --color-overlay-light: rgba(0, 0, 0, 0.35);
 
   /* ---- Text on accent/dark backgrounds ---- */
   --color-on-accent: #ffffff;
@@ -37,4 +38,15 @@
 html.dark {
   --color-disabled-bg: #2d3748;
   --color-disabled-text: #718096;
+}
+
+/* ── Accent alpha variants (used for subtle backgrounds/borders) ── */
+:root {
+  --color-accent-alpha-08: rgba(43, 108, 176, 0.08);
+  --color-accent-alpha-12: rgba(43, 108, 176, 0.12);
+  --color-accent-alpha-15: rgba(43, 108, 176, 0.15);
+  --color-accent-alpha-05: rgba(43, 108, 176, 0.05);
+  --color-success-alpha-12: rgba(56, 161, 105, 0.12);
+  --color-error-alpha-10: rgba(197, 48, 48, 0.1);
+  --color-muted-alpha-12: rgba(160, 174, 192, 0.12);
 }

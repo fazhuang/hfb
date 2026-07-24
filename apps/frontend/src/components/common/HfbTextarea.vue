@@ -113,7 +113,7 @@ function onInput(event: Event) {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .hfb-textarea__count {

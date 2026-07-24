@@ -2,46 +2,63 @@
 /**
  * HFB Design System Compliance Check
  *
- * Scans managed styles for hardcoded Design System values.
+ * Recursively scans apps/frontend/src/styles/base, components, pages,
+ * views — all CSS and Vue <style> blocks.
  *
- * Blocking (hard error — enforced scope only):
- *   - Colors (hex, rgb, rgba, hsl, hsla) — must use var(--color-*)
+ * ONLY styles/tokens/** may contain raw color values.
+ *
+ * ALL categories are BLOCKING (any violation → non-zero exit):
+ *   - hex / rgb / rgba / hsl / hsla colors
  *   - var() fallback hardcoded colors
- *   - Box-shadows — must use var(--shadow-*)
- *   - Z-index numeric values — must use var(--z-*)
+ *   - bare box-shadow
+ *   - bare z-index
+ *   - bare spacing px (margin/padding/gap/inset)
+ *   - bare border-radius px
+ *   - bare transition/animation duration
  *
- * Advisory (reported, non-blocking for base layer):
- *   - Spacing px values not matching tokens
- *   - Border-radius px values not matching tokens
- *   - Transition durations not using var(--transition-*)
- *
- * Token files (styles/tokens/*.css) are exempt — they define the values.
+ * Token allowed-values are PARSED from token CSS.
  *
  * Usage: node apps/frontend/scripts/check-design-compliance.mjs
- * Exit code: non-zero on blocking violations.
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
-import { resolve, relative, extname, dirname } from 'path';
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
+import { resolve, relative, dirname } from "path";
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const SRC = resolve(ROOT, 'src');
+const TOKENS_DIR = resolve(SRC, 'styles', 'tokens');
 
-const RED = '\x1b[31m';
-const YELLOW = '\x1b[33m';
-const GREEN = '\x1b[32m';
-const BOLD = '\x1b[1m';
-const RESET = '\x1b[0m';
+const R = '\x1b[31m';
+const G = '\x1b[32m';
+const B = '\x1b[1m';
+const X = '\x1b[0m';
 
-// ─── Known token values for advisory spacing/radius checking ───────────
-const SPACE_TOKENS = [4, 8, 12, 16, 20, 24, 28, 32, 40, 60];
-const RADIUS_TOKENS = [4, 6, 8, 10, 12];
+// ─── Parse token values ─────────────────────────────────────────────────
 
-// ─── Walk ──────────────────────────────────────────────────────────────
+function parseTokenValues() {
+  const vals = { spacings: new Set(), radii: new Set() };
+  const files = readdirSync(TOKENS_DIR).filter(f => f.endsWith('.css'));
+  for (const f of files) {
+    const content = readFileSync(resolve(TOKENS_DIR, f), 'utf-8');
+    for (const block of content.matchAll(/(?::root|html\.dark)\s*\{([^}]+)\}/g)) {
+      for (const m of block[1].matchAll(/--space-[\w-]+\s*:\s*(\d+)px/g)) {
+        vals.spacings.add(Number(m[1]));
+      }
+      for (const m of block[1].matchAll(/--radius-[\w-]+\s*:\s*(\d+)px/g)) {
+        vals.radii.add(Number(m[1]));
+      }
+    }
+  }
+  return vals;
+}
 
-function walkDir(dir, extensions = ['.css', '.vue']) {
+const TOKEN_VALUES = parseTokenValues();
+
+// ─── Walk ───────────────────────────────────────────────────────────────
+
+function walkDir(dir) {
   const results = [];
   try {
     for (const entry of readdirSync(dir)) {
@@ -50,248 +67,127 @@ function walkDir(dir, extensions = ['.css', '.vue']) {
       try { st = statSync(full); } catch { continue; }
       if (st.isDirectory()) {
         if (entry === 'node_modules' || entry === 'dist' || entry === 'coverage') continue;
-        results.push(...walkDir(full, extensions));
-      } else if (extensions.includes(extname(full))) {
+        for (const f of walkDir(full)) results.push(f);
+      } else if (full.endsWith('.css') || full.endsWith('.vue')) {
         results.push(full);
       }
     }
-  } catch { /* dir may not exist */ }
+  } catch {} { /* dir may not exist */ }
   return results;
 }
 
-function isTokenFile(filepath) {
-  return filepath.includes('/styles/tokens/');
-}
+function isTokenFile(fp) { return fp.includes('/styles/tokens/'); }
 
-// ─── Violation collectors ──────────────────────────────────────────────
+// ─── Collect ────────────────────────────────────────────────────────────
 
-/**
- * @param {string} source
- * @param {number} lineOffset
- * @returns {Array<{line: number, value: string, rule: string}>}
- */
-function collectViolations(source, lineOffset = 0) {
+function collectViolations(source, lineOffset) {
+  lineOffset = lineOffset || 0;
   const v = [];
   const lines = source.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
     const code = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
-    const lineNum = i + 1 + lineOffset;
+    const ln = i + 1 + lineOffset;
+    const stripped = code.replace(/var\([^)]+\)/g, '').replace(/url\([^)]+\)/g, '');
 
-    // ── Colors: hex (not inside var()) ──
-    const hexRe = /(?<![-_a-zA-Z])#[0-9a-fA-F]{3,8}\b/g;
-    let m;
-    // First, strip var() contents to avoid false positives inside var()
-    let stripped = code.replace(/var\([^)]+\)/g, '');
-    hexRe.lastIndex = 0;
-    while ((m = hexRe.exec(stripped)) !== null) {
-      v.push({ line: lineNum, value: m[0], rule: 'color:hex' });
+    // hex
+    for (const m of stripped.matchAll(/(?<![-_a-zA-Z])#[0-9a-fA-F]{3,8}\b/g)) {
+      v.push({ line: ln, value: m[0], rule: 'color:hex' });
     }
-
-    // ── rgb/rgba (standalone, not inside var()) ──
-    const rgbRe = /rgba?\s*\(\s*\d+/gi;
-    rgbRe.lastIndex = 0;
-    while ((m = rgbRe.exec(stripped)) !== null) {
-      v.push({ line: lineNum, value: m[0], rule: 'color:rgb/rgba' });
+    // rgb/rgba
+    for (const m of stripped.matchAll(/rgba?\s*\(\s*\d+/gi)) {
+      v.push({ line: ln, value: m[0].slice(0, 30), rule: 'color:rgb/rgba' });
     }
-
-    // ── hsl/hsla ──
-    const hslRe = /hsla?\s*\(\s*\d+/gi;
-    hslRe.lastIndex = 0;
-    while ((m = hslRe.exec(stripped)) !== null) {
-      v.push({ line: lineNum, value: m[0], rule: 'color:hsl/hsla' });
+    // hsl/hsla
+    for (const m of stripped.matchAll(/hsla?\s*\(\s*\d+/gi)) {
+      v.push({ line: ln, value: m[0].slice(0, 30), rule: 'color:hsl/hsla' });
     }
-
-    // ── var() fallback colors ──
-    const fbRe = /var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi;
-    fbRe.lastIndex = 0;
-    while ((m = fbRe.exec(code)) !== null) {
-      v.push({ line: lineNum, value: m[1], rule: 'color:var-fallback' });
+    // var() fallback
+    for (const m of code.matchAll(/var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi)) {
+      v.push({ line: ln, value: m[1], rule: 'color:var-fallback' });
     }
-
-    // ── Shadow: box-shadow without var() ──
-    if (/box-shadow\s*:\s*(?!(none|inherit|unset|initial|var\())/i.test(code)) {
-      const shadowMatch = code.match(/box-shadow\s*:\s*([^;]+)/i);
-      if (shadowMatch && !shadowMatch[1].includes('var(')) {
-        v.push({ line: lineNum, value: shadowMatch[1].trim(), rule: 'shadow:bare' });
+    // shadow
+    const sh = code.match(/box-shadow\s*:\s*([^;]+)/i);
+    if (sh && !sh[1].includes('var(--') && sh[1] !== 'none') {
+      v.push({ line: ln, value: sh[1].trim().slice(0, 60), rule: 'shadow:bare' });
+    }
+    // z-index
+    const zi = code.match(/z-index\s*:\s*(-?\d+)/);
+    if (zi && !code.includes('var(--z-')) {
+      v.push({ line: ln, value: zi[0].trim(), rule: 'z-index:bare' });
+    }
+    // spacing
+    const sp = code.match(/(?:margin|padding|gap|inset)\s*:\s*([\d\s]+)px/);
+    if (sp && !code.includes('var(--space-')) {
+      v.push({ line: ln, value: sp[0].trim(), rule: 'spacing:bare-px' });
+    }
+    // radius
+    const rd = code.match(/border-radius\s*:\s*(\d+)px/);
+    if (rd && !code.includes('var(--radius-')) {
+      const n = Number(rd[1]);
+      if (n !== 50 && n !== 9999) {
+        v.push({ line: ln, value: rd[0].trim(), rule: 'radius:bare-px' });
       }
     }
-
-    // ── Z-index: bare numeric ──
-    const ziRe = /z-index\s*:\s*(-?\d+)/g;
-    ziRe.lastIndex = 0;
-    while ((m = ziRe.exec(code)) !== null) {
-      if (!code.includes('var(--z-')) {
-        v.push({ line: lineNum, value: m[0].trim(), rule: 'z-index:bare' });
-        break; // one per line is enough
-      }
+    // transition
+    const tr = code.match(/transition\s*:\s*([^;]+)/i);
+    if (tr && /\d+\.?\d*s/.test(tr[1]) && !tr[1].includes('var(--transition-')) {
+      v.push({ line: ln, value: tr[1].trim().slice(0, 60), rule: 'transition:bare' });
     }
-
-    // ── Spacing: bare px not in token set (advisory only) ──
-    const spRe = /(?:margin|padding|gap|inset)\s*:\s*([\d\s]+)px/g;
-    spRe.lastIndex = 0;
-    while ((m = spRe.exec(code)) !== null) {
-      const vals = m[1].trim().split(/\s+/).map(Number);
-      if (vals.some(n => !SPACE_TOKENS.includes(n)) || vals.some(n => n <= 1)) {
-        v.push({ line: lineNum, value: m[0].trim(), rule: 'spacing:bare-px' });
-        break;
-      }
-    }
-
-    // ── Radius: bare px not in token set (advisory only) ──
-    const radRe = /border-radius\s*:\s*([\d]+)px/g;
-    radRe.lastIndex = 0;
-    while ((m = radRe.exec(code)) !== null) {
-      const n = Number(m[1]);
-      if (!RADIUS_TOKENS.includes(n) && n !== 9999 && n !== 50) {
-        v.push({ line: lineNum, value: m[0].trim(), rule: 'radius:bare-px' });
-        break;
-      }
-    }
-
-    // ── Transition: bare duration (advisory only) ──
-    if (/transition\s*:/.test(code) && !code.includes('var(--transition-')) {
-      const durMatch = code.match(/transition\s*:\s*([^;]+)/i);
-      if (durMatch && /\d+\.?\d*s/.test(durMatch[1])) {
-        // Accept if it references a var for the duration
-        if (!durMatch[1].includes('var(--transition')) {
-          v.push({ line: lineNum, value: durMatch[1].trim().slice(0, 60), rule: 'transition:bare-duration' });
-        }
-      }
+    // animation
+    const an = code.match(/animation\s*:\s*([^;]+)/i);
+    if (an && /\d+\.?\d*s/.test(an[1]) && !an[1].includes('var(--transition-')) {
+      v.push({ line: ln, value: an[1].trim().slice(0, 60), rule: 'animation:bare' });
     }
   }
   return v;
 }
 
-// ─── Main ──────────────────────────────────────────────────────────────
+// ─── Main ───────────────────────────────────────────────────────────────
 
-function main() {
-  const blockingViolations = [];
-  const advisoryViolations = [];
-  const legacyViolations = [];
+const scanDirs = [resolve(SRC, 'styles', 'base'), resolve(SRC, 'components'), resolve(SRC, 'pages')];
+if (existsSync(resolve(SRC, 'views'))) scanDirs.push(resolve(SRC, 'views'));
 
-  // ── Enforced scope: styles/base/ ────────────────────────────────────
-  const baseDir = resolve(SRC, 'styles', 'base');
-  if (existsSync(baseDir)) {
-    const baseFiles = walkDir(baseDir, ['.css']);
-    for (const file of baseFiles) {
-      if (isTokenFile(file)) continue;
-      const content = readFileSync(file, 'utf-8');
-      const violations = collectViolations(content);
+const all = [];
 
-      for (const v of violations) {
-        if (v.rule.startsWith('color:') || v.rule.startsWith('shadow:') || v.rule.startsWith('z-index:')) {
-          blockingViolations.push({ ...v, file: relative(ROOT, file) });
-        } else {
-          advisoryViolations.push({ ...v, file: relative(ROOT, file) });
-        }
+for (const dir of scanDirs) {
+  if (!existsSync(dir)) continue;
+  for (const file of walkDir(dir)) {
+    if (isTokenFile(file)) continue;
+    const content = readFileSync(file, 'utf-8');
+    const rel = relative(ROOT, file);
+
+    if (file.endsWith('.vue')) {
+      for (const sm of content.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)) {
+        const bl = content.substring(0, sm.index).split('\n').length - 1;
+        for (const v of collectViolations(sm[1], bl)) all.push({ ...v, file: rel });
       }
+    } else {
+      for (const v of collectViolations(content)) all.push({ ...v, file: rel });
     }
   }
+}
 
-  // ── Components (legacy debt, not blocking) ──────────────────────────
-  const componentsDir = resolve(SRC, 'components');
-  if (existsSync(componentsDir)) {
-    const compFiles = walkDir(componentsDir, ['.vue', '.css']);
-    for (const file of compFiles) {
-      if (isTokenFile(file)) continue;
-      const content = readFileSync(file, 'utf-8');
+// ─── Report ─────────────────────────────────────────────────────────────
 
-      if (file.endsWith('.vue')) {
-        // Extract <style> blocks
-        const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        let sm;
-        while ((sm = styleRe.exec(content)) !== null) {
-          const beforeBlock = content.substring(0, sm.index);
-          const blockStartLine = beforeBlock.split('\n').length - 1;
-          const violations = collectViolations(sm[1], blockStartLine);
-          for (const v of violations) {
-            legacyViolations.push({ ...v, file: relative(ROOT, file) });
-          }
-        }
-      } else {
-        const violations = collectViolations(content);
-        for (const v of violations) {
-          legacyViolations.push({ ...v, file: relative(ROOT, file) });
-        }
-      }
-    }
-  }
+console.log(`\n${B}HFB Design System Compliance Check${X}\n`);
+console.log(`Scanned: ${scanDirs.filter(d => existsSync(d)).map(d => relative(ROOT, d)).join(', ')}`);
+console.log(`Allowed spacings: [${[...TOKEN_VALUES.spacings].sort((a, b) => a - b).join(', ')}]`);
+console.log(`Allowed radii: [${[...TOKEN_VALUES.radii].sort((a, b) => a - b).join(', ')}]\n`);
 
-  // ── Pages/views (legacy debt, not blocking) ─────────────────────────
-  const pagesDir = resolve(SRC, 'pages');
-  if (existsSync(pagesDir)) {
-    for (const file of walkDir(pagesDir, ['.vue'])) {
-      if (isTokenFile(file)) continue;
-      const content = readFileSync(file, 'utf-8');
-      const styleRe = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-      let sm;
-      while ((sm = styleRe.exec(content)) !== null) {
-        const beforeBlock = content.substring(0, sm.index);
-        const blockStartLine = beforeBlock.split('\n').length - 1;
-        const violations = collectViolations(sm[1], blockStartLine);
-        for (const v of violations) {
-          legacyViolations.push({ ...v, file: relative(ROOT, file) });
-        }
-      }
-    }
-  }
-
-  // ── Report ───────────────────────────────────────────────────────────
-  console.log(`\n${BOLD}HFB Design System Compliance Check${RESET}\n`);
-
-  if (blockingViolations.length > 0) {
-    console.log(`${RED}${BOLD}BLOCKING VIOLATIONS (${blockingViolations.length}):${RESET}\n  Colors, shadows, and z-index must use var(--*) tokens.\n`);
-    const byFile = {};
-    for (const v of blockingViolations) {
-      if (!byFile[v.file]) byFile[v.file] = [];
-      byFile[v.file].push(v);
-    }
-    for (const [file, violations] of Object.entries(byFile)) {
-      console.log(`  ${BOLD}${file}${RESET}:`);
-      for (const v of violations) {
-        console.log(`    ${RED}L${v.line}:${RESET} ${v.rule} → "${v.value}"`);
-      }
-    }
-    console.log('');
-  } else {
-    console.log(`${GREEN}${BOLD}✓ Blocking scope (styles/base/): colors, shadows, z-index all tokenized${RESET}\n`);
-  }
-
-  if (advisoryViolations.length > 0) {
-    console.log(`${YELLOW}Advisory (${advisoryViolations.length} spacing/radius/transition in base CSS — not blocking):${RESET}`);
-    const byFile = {};
-    for (const v of advisoryViolations) {
-      if (!byFile[v.file]) byFile[v.file] = [];
-      byFile[v.file].push(v);
-    }
-    for (const [file, violations] of Object.entries(byFile)) {
-      console.log(`  ${file}: ${violations.length} items`);
-    }
-    console.log('');
-  }
-
-  if (legacyViolations.length > 0) {
-    console.log(`${YELLOW}Legacy debt (${legacyViolations.length} violations in components/pages — not blocking):${RESET}`);
-    const byFile = {};
-    for (const v of legacyViolations) {
-      if (!byFile[v.file]) byFile[v.file] = [];
-      byFile[v.file].push(v);
-    }
-    for (const [file, violations] of Object.entries(byFile)) {
-      console.log(`  ${file}: ${violations.length} violations`);
-    }
-    console.log('');
-  }
-
-  if (blockingViolations.length > 0) {
-    console.log(`${RED}${BOLD}✖ ${blockingViolations.length} blocking violation(s) — FAIL${RESET}\n`);
-    process.exit(1);
-  }
-
-  console.log(`${GREEN}${BOLD}✓ Design System compliance check PASSED${RESET}\n`);
+if (all.length === 0) {
+  console.log(`${G}${B}✓ Design System compliance check PASSED — 0 violations${X}\n`);
   process.exit(0);
 }
 
-main();
+console.log(`${R}${B}BLOCKING VIOLATIONS (${all.length}):${X}\n`);
+
+const byFile = {};
+for (const v of all) { if (!byFile[v.file]) byFile[v.file] = []; byFile[v.file].push(v); }
+for (const [file, vs] of Object.entries(byFile).sort()) {
+  console.log(`  ${B}${file}${X} (${vs.length}):`);
+  for (const v of vs) console.log(`    ${R}L${v.line}:${X} ${v.rule} → "${v.value}"`);
+}
+console.log(`\n${R}${B}✖ ${all.length} violation(s) — FAIL${X}\n`);
+process.exit(1);

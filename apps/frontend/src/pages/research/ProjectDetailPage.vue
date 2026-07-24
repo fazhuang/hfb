@@ -304,7 +304,7 @@ onBeforeUnmount(() => {
 .pdp-action-btn--primary {
   border: none;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .pdp-action-btn--primary:hover {
@@ -320,7 +320,7 @@ onBeforeUnmount(() => {
   background: var(--color-surface);
   color: var(--color-text-secondary);
   letter-spacing: 2px;
-  padding: 8px 14px;
+  padding: var(--space-2) 14px;
   font-size: var(--text-lg);
   line-height: 1;
 }
@@ -347,14 +347,14 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: var(--z-dropdown)0;
   overflow: hidden;
 }
 
 .pdp-more-item {
   display: block;
   width: 100%;
-  padding: 10px var(--space-4);
+  padding: var(--space-2-5) var(--space-4);
   border: none;
   background: none;
   font-size: var(--text-sm);
@@ -400,12 +400,12 @@ onBeforeUnmount(() => {
 
 .pdp-back-link:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .pdp-back-link:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 /* ---- Responsive ---- */

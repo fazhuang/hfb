@@ -60,7 +60,7 @@ const { t } = useI18n();
 .about-page {
   max-width: 800px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: var(--space-12) 24px;
 }
 
 .about-header {
@@ -71,12 +71,12 @@ const { t } = useI18n();
 .about-header h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 8px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .about-subtitle {
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   font-size: 14px;
   margin: 0;
 }
@@ -88,39 +88,39 @@ const { t } = useI18n();
 .about-section h2 {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text-primary, #2d3748);
-  margin: 0 0 16px;
+  color: var(--color-text-primary, var(--color-hover));
+  margin: 0 0 var(--space-4);
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--color-accent, #4299e1);
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .about-section p {
   font-size: 15px;
   line-height: 1.8;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
 .tech-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .tech-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 16px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  gap: var(--space-1);
+  padding: var(--space-4) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   text-align: center;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-base);
 }
 
 .tech-card:hover {
-  border-color: var(--color-accent, #4299e1);
+  border-color: var(--color-accent);
 }
 
 .tech-icon {
@@ -129,11 +129,11 @@ const { t } = useI18n();
 
 .tech-card strong {
   font-size: 14px;
-  color: var(--color-text-primary, #2d3748);
+  color: var(--color-text-primary, var(--color-hover));
 }
 
 .tech-card span:last-child {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 </style>

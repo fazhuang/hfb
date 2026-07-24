@@ -65,63 +65,63 @@ function handleSubmit() {
 <style scoped>
 .research-new {
   max-width: 520px;
-  margin: 80px auto;
-  padding: 0 20px;
+  margin: var(--space-20) auto;
+  padding: 0 var(--space-5);
 }
 
 .new-card {
-  background: var(--color-navbar-bg, #fff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
-  padding: 36px 32px;
+  background: var(--color-navbar-bg, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-9) 32px;
 }
 
 h1 {
   font-size: 22px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 6px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1-5);
 }
 
 .new-subtitle {
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   font-size: 14px;
-  margin: 0 0 28px;
+  margin: 0 0 var(--space-7);
 }
 
 .new-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4-5);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .form-input {
-  padding: 10px 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-2-5) 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: 14px;
   font-family: inherit;
-  color: var(--color-text-primary, #1a365d);
-  background: var(--color-page-bg, #fafafa);
-  transition: border-color 0.15s;
+  color: var(--color-text-primary);
+  background: var(--color-page-bg);
+  transition: border-color var(--transition-base);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-accent, #4299e1);
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-focus-ring);
 }
 
 textarea.form-input {
@@ -130,13 +130,13 @@ textarea.form-input {
 
 .form-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   padding-top: 6px;
 }
 
 .btn {
-  padding: 10px 24px;
-  border-radius: 8px;
+  padding: var(--space-2-5) 24px;
+  border-radius: var(--radius-lg);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -144,16 +144,16 @@ textarea.form-input {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .btn--primary {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .btn--primary:disabled {
@@ -163,11 +163,11 @@ textarea.form-input {
 
 .btn--ghost {
   background: transparent;
-  color: var(--color-text-secondary, #4a5568);
-  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn--ghost:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 </style>

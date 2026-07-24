@@ -179,7 +179,7 @@ function cycleTheme() {
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-dropdown)0;
   gap: var(--space-6);
 }
 
@@ -217,8 +217,8 @@ function cycleTheme() {
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) 14px;
   border-radius: var(--radius-md);
   text-decoration: none;
   font-size: var(--text-base);
@@ -243,7 +243,7 @@ function cycleTheme() {
 }
 
 .nav-link--pulse {
-  animation: navPulse 1s ease-in-out 5;
+  animation: navPulse var(--transition-slow) ease-in-out 5;
   position: relative;
 }
 
@@ -253,7 +253,7 @@ function cycleTheme() {
   inset: -2px;
   border-radius: var(--radius-lg);
   border: 2px solid var(--color-accent);
-  animation: navPulseRing 1s ease-in-out 5;
+  animation: navPulseRing var(--transition-slow) ease-in-out 5;
   opacity: 0;
 }
 
@@ -289,7 +289,7 @@ function cycleTheme() {
   font-size: var(--text-sm);
   text-decoration: none;
   color: var(--color-accent);
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-accent);
   background: transparent;
@@ -317,7 +317,7 @@ function cycleTheme() {
 }
 
 .locale-btn {
-  padding: 4px 10px;
+  padding: var(--space-1) 10px;
   border: none;
   background: transparent;
   font-size: var(--text-xs);
@@ -329,7 +329,7 @@ function cycleTheme() {
 
 .locale-btn.active {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .locale-btn:not(.active):hover {
@@ -341,7 +341,7 @@ function cycleTheme() {
 }
 
 .theme-toggle {
-  padding: 6px 8px;
+  padding: var(--space-1-5) 8px;
   border: none;
   background: transparent;
   cursor: pointer;

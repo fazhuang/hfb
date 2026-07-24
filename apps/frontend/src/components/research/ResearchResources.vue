@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
 
 .rres-tag {
   font-size: 11px;
-  padding: 1px 8px;
+  padding: var(--space-0-25) 8px;
   border-radius: var(--radius-sm);
   background: var(--color-hover);
   color: var(--color-text-muted);

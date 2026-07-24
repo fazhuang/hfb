@@ -101,19 +101,19 @@ function formatDate(iso?: string | null): string {
 
 <style scoped>
 .rrs-summary {
-  padding: 16px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-4) 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-navbar-bg, var(--color-surface));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rrs-row {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-3);
   font-size: 13px;
 }
 
@@ -123,26 +123,26 @@ function formatDate(iso?: string | null): string {
 
 .rrs-label {
   font-weight: 500;
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   min-width: 80px;
   flex-shrink: 0;
 }
 
 .rrs-value {
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .rrs-value--code {
   font-size: 12px;
-  background: var(--color-page-bg, #fafafa);
-  padding: 2px 6px;
-  border-radius: 3px;
+  background: var(--color-page-bg);
+  padding: var(--space-0-5) 6px;
+  border-radius: var(--radius-sm);
 }
 
 .rrs-status {
   display: inline-block;
-  padding: 2px 10px;
-  border-radius: 4px;
+  padding: var(--space-0-5) 10px;
+  border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
 }
@@ -164,14 +164,14 @@ function formatDate(iso?: string | null): string {
 
 .rrs-steps {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-wrap: wrap;
 }
 
 .rrs-step-badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
 }

@@ -234,11 +234,11 @@ function onCancel() {
 .cpd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown)00;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--color-overlay-light);
   padding: var(--space-5);
 }
 
@@ -260,7 +260,7 @@ function onCancel() {
   font-size: var(--text-xl);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
 }
 
 .cpd-subtitle {
@@ -272,13 +272,13 @@ function onCancel() {
 .cpd-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4-5);
 }
 
 .cpd-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .cpd-label {
@@ -293,7 +293,7 @@ function onCancel() {
 }
 
 .cpd-input {
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: var(--text-base);
@@ -352,7 +352,7 @@ textarea.cpd-input {
 
 .cpd-btn--primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .cpd-btn--primary:hover:not(:disabled) {

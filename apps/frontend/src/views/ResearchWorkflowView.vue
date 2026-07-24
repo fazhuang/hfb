@@ -513,17 +513,17 @@ onMounted(restoreLatestWorkflow);
 .back-to-research {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 20px;
-  background: var(--color-page-bg, #fafafa);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  gap: var(--space-3);
+  padding: var(--space-2-5) 20px;
+  background: var(--color-page-bg);
+  border-bottom: 1px solid var(--color-border);
   margin-bottom: 0;
 }
 
 .back-link {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-accent, #4299e1);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
@@ -533,15 +533,15 @@ onMounted(restoreLatestWorkflow);
 
 .back-context {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 /* --- existing styles unchanged --- */
 .research-workflow {
   width: min(1440px, 100%);
   margin: 0 auto;
-  padding: 24px;
-  color: var(--color-text-primary, #17202a);
+  padding: var(--space-6);
+  color: var(--color-text-primary, var(--color-page-bg));
 }
 
 .workflow-header,
@@ -558,14 +558,14 @@ onMounted(restoreLatestWorkflow);
 
 .workflow-header {
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-6);
   margin-bottom: 16px;
 }
 
 .eyebrow,
 .section-number {
-  margin: 0 0 4px;
-  color: #8a3b2f;
+  margin: 0 0 var(--space-1);
+  color: var(--color-error-light-text);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -585,40 +585,40 @@ h2 {
 
 .validation-banner {
   display: flex;
-  gap: 12px;
-  padding: 10px 14px;
-  border-left: 4px solid #ad6b17;
-  background: #fff7e7;
-  color: #673f0c;
+  gap: var(--space-3);
+  padding: var(--space-2-5) 14px;
+  border-left: 4px solid var(--color-warning-text);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
   font-size: 13px;
 }
 
 .workflow-steps {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin: 18px 0 24px;
+  margin: var(--space-4-5) 0 24px;
   padding: 0;
   list-style: none;
-  border-bottom: 1px solid var(--color-border, #d8dee6);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .workflow-steps li {
-  padding: 10px 8px;
-  color: var(--color-text-muted, #7b8794);
+  padding: var(--space-2-5) 8px;
+  color: var(--color-text-muted, var(--color-text-secondary));
   font-size: 13px;
   border-bottom: 3px solid transparent;
 }
 
 .workflow-steps li.active {
-  color: #1f5f55;
-  border-bottom-color: #1f5f55;
+  color: var(--color-accent-hover);
+  border-bottom-color: var(--color-accent-hover);
   font-weight: 700;
 }
 
 .workflow-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .workflow-grid--lower {
@@ -633,23 +633,23 @@ h2 {
 .note-panel {
   min-width: 0;
   padding-top: 16px;
-  border-top: 2px solid var(--color-text-primary, #17202a);
+  border-top: 2px solid var(--color-text-primary, var(--color-page-bg));
 }
 
 .section-heading {
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 16px;
 }
 
 .result-count,
 .comparison-metrics {
-  color: var(--color-text-muted, #687482);
+  color: var(--color-text-muted);
   font-size: 12px;
 }
 
 .comparison-metrics {
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .search-form label,
@@ -661,35 +661,35 @@ h2 {
 }
 
 .search-row {
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 input,
 textarea {
   width: 100%;
-  border: 1px solid var(--color-border, #cfd6de);
-  border-radius: 4px;
-  background: var(--color-page-bg, #fff);
-  color: var(--color-text-primary, #17202a);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-page-bg, var(--color-surface));
+  color: var(--color-text-primary, var(--color-page-bg));
   font: inherit;
 }
 
 input {
   min-height: 40px;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
 }
 
 textarea {
-  padding: 10px;
+  padding: var(--space-2-5);
   resize: vertical;
   line-height: 1.6;
 }
 
 .button {
   min-height: 36px;
-  padding: 7px 13px;
+  padding: var(--space-1-75) 13px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -697,27 +697,27 @@ textarea {
 }
 
 .button--primary {
-  background: #1f5f55;
-  color: #fff;
+  background: var(--color-accent-hover);
+  color: var(--color-surface);
 }
 
 .button--secondary,
 .button--compact {
-  border-color: var(--color-border, #bcc6d0);
+  border-color: var(--color-border);
   background: transparent;
-  color: var(--color-text-primary, #17202a);
+  color: var(--color-text-primary, var(--color-page-bg));
 }
 
 .button--compact {
   min-height: 30px;
-  padding: 4px 8px;
+  padding: var(--space-1) 8px;
   font-size: 12px;
 }
 
 .button--compact.selected {
-  border-color: #1f5f55;
-  background: #e4f1ee;
-  color: #164840;
+  border-color: var(--color-accent-hover);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .button--wide {
@@ -732,14 +732,14 @@ textarea {
 
 .search-results {
   margin-top: 14px;
-  border-top: 1px solid var(--color-border, #d8dee6);
+  border-top: 1px solid var(--color-border);
 }
 
 .result-item {
   justify-content: space-between;
-  gap: 18px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--color-border, #d8dee6);
+  gap: var(--space-4-5);
+  padding: var(--space-3-5) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .result-main {
@@ -747,49 +747,49 @@ textarea {
 }
 
 .result-main p {
-  margin: 7px 0;
+  margin: var(--space-1-75) 0;
   line-height: 1.65;
 }
 
 .result-main small {
-  color: var(--color-text-muted, #687482);
+  color: var(--color-text-muted);
 }
 
 .result-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  color: #8a3b2f;
+  gap: var(--space-1-5);
+  color: var(--color-error-light-text);
   font-size: 12px;
   font-weight: 700;
 }
 
 .result-actions {
   flex-shrink: 0;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .selection-slots {
   display: grid;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .selection-slot {
   min-height: 128px;
-  padding: 14px;
-  border: 1px solid var(--color-border, #d8dee6);
-  border-radius: 4px;
+  padding: var(--space-3-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 .selection-slot p {
-  margin: 8px 0;
+  margin: var(--space-2) 0;
   line-height: 1.55;
 }
 
 .slot-label {
   display: block;
   margin-bottom: 8px;
-  color: var(--color-text-muted, #687482);
+  color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -797,7 +797,7 @@ textarea {
 
 .slot-empty,
 .empty-state {
-  color: var(--color-text-muted, #7b8794);
+  color: var(--color-text-muted, var(--color-text-secondary));
 }
 
 .empty-hint {
@@ -810,25 +810,25 @@ textarea {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #8a3b2f;
+  color: var(--color-error-light-text);
   cursor: pointer;
 }
 
 .inline-warning,
 .message {
-  padding: 9px 11px;
+  padding: var(--space-2-25) 11px;
   font-size: 13px;
 }
 
 .inline-warning,
 .message--error {
-  background: #fff0ef;
-  color: #8f2f25;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .message--success {
-  background: #e8f4ef;
-  color: #1f5f55;
+  background: var(--color-success-bg);
+  color: var(--color-accent-hover);
 }
 
 .comparison-panel {
@@ -838,27 +838,27 @@ textarea {
 .passage-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--color-border, #d8dee6);
-  border: 1px solid var(--color-border, #d8dee6);
+  gap: var(--space-0-25);
+  background: var(--color-border);
+  border: 1px solid var(--color-border);
 }
 
 .passage-column {
-  padding: 18px;
-  background: var(--color-page-bg, #fff);
+  padding: var(--space-4-5);
+  background: var(--color-page-bg, var(--color-surface));
 }
 
 .passage-heading {
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-border, #d8dee6);
+  border-bottom: 1px solid var(--color-border);
   font-size: 13px;
 }
 
 .passage-text {
   min-height: 88px;
-  margin: 16px 0;
+  margin: var(--space-4) 0;
   font-family: "Songti SC", "STSong", serif;
   font-size: 18px;
   line-height: 2;
@@ -866,7 +866,7 @@ textarea {
 
 .citation {
   margin: 0;
-  color: var(--color-text-muted, #687482);
+  color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -884,36 +884,36 @@ textarea {
 
 .diff-table th,
 .diff-table td {
-  padding: 9px 10px;
-  border-bottom: 1px solid var(--color-border, #d8dee6);
+  padding: var(--space-2-25) 10px;
+  border-bottom: 1px solid var(--color-border);
   text-align: left;
 }
 
 .diff-type {
-  color: #8a3b2f;
+  color: var(--color-error-light-text);
   font-weight: 700;
 }
 
 .evidence-row {
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--color-border, #d8dee6);
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .evidence-row p {
-  margin: 4px 0;
+  margin: var(--space-1) 0;
 }
 
 .evidence-status {
   flex-shrink: 0;
-  color: #8f2f25;
+  color: var(--color-error-text);
   font-size: 12px;
   font-weight: 700;
 }
 
 .evidence-status.complete {
-  color: #1f5f55;
+  color: var(--color-accent-hover);
 }
 
 .note-panel .button {
@@ -922,7 +922,7 @@ textarea {
 
 @media (max-width: 900px) {
   .research-workflow {
-    padding: 16px;
+    padding: var(--space-4);
   }
 
   .workflow-grid,

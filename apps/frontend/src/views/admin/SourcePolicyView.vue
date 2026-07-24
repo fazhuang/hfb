@@ -137,26 +137,26 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.sp-page { max-width: 900px; margin: 0 auto; padding: 32px 24px; }
+.sp-page { max-width: 900px; margin: 0 auto; padding: var(--space-8) 24px; }
 .page-header { margin-bottom: 16px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: var(--color-text-primary, #1a365d); margin: 0; }
+.page-header h1 { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
 
-.add-form { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
-.add-input { padding: 8px 12px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 8px; font-size: 14px; min-width: 200px; background: var(--color-page-bg, #f7fafc); color: var(--color-text-primary, #1a365d); }
-.add-check { font-size: 13px; color: var(--color-text-secondary, #4a5568); display: flex; align-items: center; gap: 4px; }
-.btn { padding: 6px 16px; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }
-.btn-primary { background: var(--color-accent, #2b6cb0); color: white; }
+.add-form { display: flex; gap: var(--space-2); align-items: center; margin-bottom: 16px; }
+.add-input { padding: var(--space-2) 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: 14px; min-width: 200px; background: var(--color-page-bg); color: var(--color-text-primary); }
+.add-check { font-size: 13px; color: var(--color-text-secondary); display: flex; align-items: center; gap: var(--space-1); }
+.btn { padding: var(--space-1-5) 16px; border: none; border-radius: var(--radius-md); font-size: 13px; cursor: pointer; }
+.btn-primary { background: var(--color-accent); color: white; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.action-msg { font-size: 13px; margin-bottom: 12px; padding: 8px 12px; border-radius: 6px; }
-.msg-ok { background: #c6f6d5; color: #276749; }
-.action-msg:not(.msg-ok) { background: #fed7d7; color: #c53030; }
+.action-msg { font-size: 13px; margin-bottom: 12px; padding: var(--space-2) 12px; border-radius: var(--radius-md); }
+.msg-ok { background: var(--color-success-icon-bg); color: var(--color-success-text); }
+.action-msg:not(.msg-ok) { background: var(--color-error-icon-bg); color: var(--color-error-text); }
 
-.empty-state { text-align: center; padding: 40px 16px; color: var(--color-text-muted, #a0aec0); font-size: 14px; }
+.empty-state { text-align: center; padding: var(--space-10) 16px; color: var(--color-text-muted); font-size: 14px; }
 </style>
 
 <style>
 /* Inline button styles (unscoped for render HTML) */
-.sp-toggle-btn { font-size: 12px; padding: 2px 8px; margin-right: 4px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 4px; background: var(--color-navbar-bg, #fff); color: var(--color-text-primary, #1a365d); cursor: pointer; }
-.sp-delete-btn { font-size: 12px; padding: 2px 8px; border: 1px solid #c53030; border-radius: 4px; background: #fff; color: #c53030; cursor: pointer; }
+.sp-toggle-btn { font-size: 12px; padding: var(--space-0-5) 8px; margin-right: 4px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-navbar-bg, var(--color-surface)); color: var(--color-text-primary); cursor: pointer; }
+.sp-delete-btn { font-size: 12px; padding: var(--space-0-5) 8px; border: 1px solid var(--color-error-text); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-error-text); cursor: pointer; }
 </style>

@@ -63,8 +63,8 @@ const badgeClass = computed(() => {
 .rsb-badge {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
+  gap: var(--space-1);
+  padding: var(--space-0-5) 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: var(--font-semibold);

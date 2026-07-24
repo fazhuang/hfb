@@ -165,7 +165,7 @@ onMounted(() => {
 .version-detail-page {
   max-width: 860px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--space-8) 24px;
 }
 
 .detail-header {
@@ -175,7 +175,7 @@ onMounted(() => {
 .btn-back-link {
   background: none;
   border: none;
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   cursor: pointer;
   font-size: 14px;
   padding: 0;
@@ -189,43 +189,43 @@ onMounted(() => {
 .detail-header h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 12px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
 }
 
 .header-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .meta-tag {
   font-size: 13px;
-  padding: 3px 10px;
-  background: var(--color-accent, #2b6cb0);
+  padding: var(--space-0-75) 10px;
+  background: var(--color-accent);
   color: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .meta-tag.meta-id {
-  background: var(--color-text-muted, #a0aec0);
+  background: var(--color-text-muted);
   font-family: monospace;
   font-size: 11px;
 }
 
 .version-meta-card {
-  background: var(--color-hover, #f7fafc);
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--color-hover, var(--color-page-bg));
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
   margin-bottom: 32px;
 }
 
 .info-row {
   display: flex;
-  gap: 12px;
-  padding: 6px 0;
+  gap: var(--space-3);
+  padding: var(--space-1-5) 0;
   font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   align-items: flex-start;
 }
 
@@ -236,7 +236,7 @@ onMounted(() => {
 .info-label {
   font-weight: 600;
   min-width: 72px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -251,38 +251,38 @@ onMounted(() => {
   justify-content: space-between;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--color-accent, #2b6cb0);
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .passages-header h3 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .passages-warning {
   font-size: 12px;
-  color: var(--color-warning, #dd6b20);
+  color: var(--color-warning);
 }
 
 .no-passages {
   text-align: center;
-  padding: 48px 20px;
-  color: var(--color-text-muted, #a0aec0);
+  padding: var(--space-12) 20px;
+  color: var(--color-text-muted);
 }
 
 .no-passages-reason {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   margin-top: 8px;
 }
 
 .passage-item {
   display: flex;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
   line-height: 1.8;
 }
@@ -294,19 +294,19 @@ onMounted(() => {
 .passage-order {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   min-width: 28px;
   text-align: right;
   flex-shrink: 0;
 }
 
 .passage-text {
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   flex: 1;
 }
 
 .passage-translation {
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   font-style: italic;
   margin-top: 4px;
 }
@@ -315,20 +315,20 @@ onMounted(() => {
 .error-state,
 .passages-loading {
   text-align: center;
-  padding: 80px 20px;
-  color: var(--color-text-muted, #a0aec0);
+  padding: var(--space-20) 20px;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
 .error-state {
-  color: var(--color-error, #e53e3e);
+  color: var(--color-error, var(--color-error-text));
 }
 
 .btn-back {
   margin-top: 12px;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 4px;
+  padding: var(--space-2) 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: white;
   cursor: pointer;
   font-size: 14px;

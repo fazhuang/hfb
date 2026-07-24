@@ -128,19 +128,19 @@ const safeSourceUrl = computed(() => {
 <style scoped>
 .esrc-card {
   margin-top: 10px;
-  padding: 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
-  background: var(--color-page-bg, #fafafa);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-page-bg);
 }
 
 .esrc-header {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   align-items: center;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .esrc-icon {
@@ -150,25 +150,25 @@ const safeSourceUrl = computed(() => {
 .esrc-label {
   font-size: 12px;
   font-weight: 700;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .esrc-field {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-bottom: 4px;
   font-size: 12px;
 }
 
 .esrc-field-label {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   flex-shrink: 0;
   min-width: 52px;
 }
 
 .esrc-field-value {
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .esrc-field-value--incomplete {
@@ -180,8 +180,8 @@ const safeSourceUrl = computed(() => {
   font-size: 11px;
   color: var(--color-text-secondary);
   background: var(--color-navbar-bg);
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: var(--space-0-25) 4px;
+  border-radius: var(--radius-sm);
 }
 
 .esrc-field-note {
@@ -211,11 +211,11 @@ const safeSourceUrl = computed(() => {
 
 .esrc-missing {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   align-items: center;
-  padding: 8px 10px;
+  padding: var(--space-2) 10px;
   border: 1px dashed var(--color-warning);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
 }
 

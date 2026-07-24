@@ -12,6 +12,7 @@
 @import '../styles/tokens/shadow.css';
 @import '../styles/tokens/transition.css';
 @import '../styles/tokens/z-index.css';
+@import '../styles/tokens/breakpoints.css';
 @import '../styles/tokens/components.css';
 
 /* ---- Global Reset ---- */
@@ -95,5 +96,5 @@ body {
   border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: hfb-spin 0.8s linear infinite;
+  animation: hfb-spin var(--transition-spinner) var(--ease-linear) infinite;
 }

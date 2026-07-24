@@ -73,7 +73,7 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
@@ -81,13 +81,13 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
 .rrh-breadcrumbs {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .rrh-breadcrumb-link {
-  color: var(--color-accent, #4299e1);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 500;
 }
@@ -101,40 +101,40 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
 }
 
 .rrh-breadcrumb-sep {
-  color: var(--color-border, #cbd5e0);
+  color: var(--color-border);
 }
 
 .rrh-breadcrumb-current {
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   font-weight: 600;
 }
 
 .rrh-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .rrh-btn {
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: var(--space-2) 18px;
+  border-radius: var(--radius-lg);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   border: none;
 }
 
 .rrh-btn--export {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .rrh-btn--export:hover:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .rrh-btn--export:focus-visible:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .rrh-btn:disabled {
@@ -149,13 +149,13 @@ const exportDisabled = computed(() => props.exporting || !props.hasReport);
 .rrh-title {
   font-size: 22px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 8px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .rrh-topic {
   font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   margin: 0;
 }
 </style>

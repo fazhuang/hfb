@@ -190,7 +190,7 @@ onMounted(() => fetch());
 
 .lib-meta-tag {
   font-size: var(--text-sm);
-  padding: 3px 10px;
+  padding: var(--space-0-75) 10px;
   background: var(--color-accent);
   color: white;
   border-radius: var(--radius-sm);
@@ -269,7 +269,7 @@ onMounted(() => fetch());
 /* Badges */
 .lib-badge {
   font-size: var(--text-xs);
-  padding: 2px 8px;
+  padding: var(--space-0-5) 8px;
   border-radius: var(--radius-sm);
 }
 
@@ -286,7 +286,7 @@ onMounted(() => fetch());
 /* Withdrawn alert */
 .lib-withdrawn-alert {
   margin-top: var(--space-3);
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   background: var(--color-error-bg);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
@@ -316,7 +316,7 @@ onMounted(() => fetch());
 .lib-read-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   padding: var(--btn-padding-lg);
   border: 1px solid var(--color-accent);
   border-radius: var(--btn-radius);

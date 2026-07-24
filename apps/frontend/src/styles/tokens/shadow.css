@@ -9,3 +9,25 @@
   --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.15);
   --shadow-toast: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* ── Accent shadows ── */
+:root {
+  --shadow-accent-sm: 0 2px 8px rgba(43, 108, 176, 0.1);
+  --focus-ring-accent: 0 0 0 2px rgba(43, 108, 176, 0.2);
+}
+
+/* ── Extended shadows ── */
+:root {
+  --shadow-accent-sm: 0 2px 8px rgba(43, 108, 176, 0.1);
+  --shadow-accent-focus: 0 0 0 2px rgba(43, 108, 176, 0.2);
+  --shadow-focus-sm: 0 0 0 2px rgba(66, 153, 225, 0.15);
+  --shadow-focus-md: 0 0 0 2px rgba(66, 153, 225, 0.2);
+  --shadow-focus-lg: 0 0 0 2px rgba(66, 153, 225, 0.3);
+  --shadow-focus-ring: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  --shadow-card-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card-xs: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-accent-lg: 0 4px 14px rgba(43, 108, 176, 0.3);
+  --shadow-accent-xl: 0 6px 20px rgba(43, 108, 176, 0.4);
+}

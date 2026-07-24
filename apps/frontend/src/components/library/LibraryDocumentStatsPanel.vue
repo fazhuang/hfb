@@ -42,58 +42,58 @@ defineProps<{ stats: LibraryDocumentStats }>();
 <style scoped>
 .lib-stats-panel {
   margin-bottom: 24px;
-  padding: 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-navbar-bg, var(--color-surface));
 }
 
 .lib-stats-panel h3 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 12px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
   padding-bottom: 8px;
-  border-bottom: 2px solid var(--color-accent, #2b6cb0);
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .lib-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .lib-stat {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px;
-  border-radius: 6px;
-  background: var(--color-page-bg, #f7fafc);
+  gap: var(--space-0-5);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--color-page-bg);
 }
 
 .lib-stat-label {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .lib-stat-value {
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .lib-stat-link {
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
 }
 
 .lib-ocr-ok {
-  color: #276749;
+  color: var(--color-success-text);
   font-size: 14px;
 }
 
 .lib-ocr-none {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 </style>

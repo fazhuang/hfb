@@ -12,7 +12,7 @@
  * Contrast: computed from resolved Token values.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { mount, VueWrapper, DOMWrapper } from '@vue/test-utils';
+import { mount, type VueWrapper, type DOMWrapper } from '@vue/test-utils';
 import { h, nextTick } from 'vue';
 import { createI18n } from 'vue-i18n';
 

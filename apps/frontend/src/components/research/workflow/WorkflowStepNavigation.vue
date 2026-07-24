@@ -75,7 +75,7 @@ function isStepClickable(idx: number): boolean {
   margin: 0;
   padding: 0;
   display: flex;
-  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .wsn-step {
@@ -87,8 +87,8 @@ function isStepClickable(idx: number): boolean {
 .wsn-step-text {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 10px;
+  gap: var(--space-2);
+  padding: var(--space-3) 10px;
   width: 100%;
   border: none;
   border-bottom: 2px solid transparent;
@@ -96,33 +96,33 @@ function isStepClickable(idx: number): boolean {
   font: inherit;
   font-size: 13px;
   cursor: default;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .wsn-step-btn {
   cursor: pointer;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   background: transparent;
 }
 
 .wsn-step-btn:hover {
-  color: var(--color-accent, #2b6cb0);
-  background: var(--color-hover, #edf2f7);
+  color: var(--color-accent);
+  background: var(--color-hover);
 }
 
 .wsn-step-btn:focus-visible {
-  color: var(--color-accent, #2b6cb0);
-  background: var(--color-hover, #edf2f7);
+  color: var(--color-accent);
+  background: var(--color-hover);
 }
 
 .wsn-step-text {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .wsn-step--current .wsn-step-btn,
 .wsn-step--current .wsn-step-text {
-  color: var(--color-accent, #2b6cb0);
-  border-bottom-color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
   font-weight: 700;
 }
 
@@ -146,7 +146,7 @@ function isStepClickable(idx: number): boolean {
 }
 
 .wsn-step--disabled .wsn-step-text {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .wsn-step-number {
@@ -159,20 +159,20 @@ function isStepClickable(idx: number): boolean {
   font-size: 12px;
   font-weight: 700;
   flex-shrink: 0;
-  background: var(--color-page-bg, #fafafa);
-  color: var(--color-text-muted, #a0aec0);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-page-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .wsn-step--current .wsn-step-number {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
-  border-color: var(--color-accent, #4299e1);
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
 }
 
 .wsn-step--completed .wsn-step-number {
   background: var(--color-success);
-  color: #fff;
+  color: var(--color-surface);
   border-color: var(--color-success);
 }
 
@@ -186,9 +186,9 @@ function isStepClickable(idx: number): boolean {
   .wsn-step-btn,
   .wsn-step-text {
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-1);
     text-align: center;
-    padding: 10px 6px;
+    padding: var(--space-2-5) 6px;
   }
 
   .wsn-step-label {

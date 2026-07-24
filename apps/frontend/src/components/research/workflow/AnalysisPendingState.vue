@@ -74,14 +74,14 @@ onBeforeUnmount(() => {
 .aps-heading {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
 }
 
 .aps-hint {
   font-size: 14px;
-  color: var(--color-text-muted, #718096);
-  margin: 16px 0 0;
+  color: var(--color-text-muted);
+  margin: var(--space-4) 0 0;
   line-height: 1.5;
   text-align: center;
   max-width: 480px;
@@ -92,7 +92,7 @@ onBeforeUnmount(() => {
 .aps-elapsed {
   margin-top: 12px;
   font-size: 13px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   text-align: center;
 }
 </style>

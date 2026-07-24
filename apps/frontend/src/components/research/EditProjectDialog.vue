@@ -178,11 +178,11 @@ function onKeyDown(e: KeyboardEvent) {
 .epd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown)00;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--color-overlay-light);
   padding: var(--space-5);
 }
 
@@ -210,13 +210,13 @@ function onKeyDown(e: KeyboardEvent) {
 .epd-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-4-5);
 }
 
 .epd-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .epd-label {
@@ -226,7 +226,7 @@ function onKeyDown(e: KeyboardEvent) {
 }
 
 .epd-input {
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: var(--text-base);
@@ -285,7 +285,7 @@ function onKeyDown(e: KeyboardEvent) {
 
 .epd-btn--primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .epd-btn--primary:hover:not(:disabled) {

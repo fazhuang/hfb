@@ -63,10 +63,10 @@ let network: Network | null = null;
 
 // Entity type colors
 const TYPE_COLORS: Record<string, { bg: string; border: string; highlight: string }> = {
-  person: { bg: '#E8F4FD', border: '#2196F3', highlight: '#BBDEFB' },
-  book: { bg: '#FEF3E2', border: '#FF9800', highlight: '#FFE0B2' },
-  version: { bg: '#E8F5E9', border: '#4CAF50', highlight: '#C8E6C9' },
-  passage: { bg: '#F3E5F5', border: '#9C27B0', highlight: '#E1BEE7' },
+  person: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: '#BBDEFB' },
+  book: { bg: 'var(--color-warning-bg)', border: 'var(--color-warning)', highlight: '#FFE0B2' },
+  version: { bg: 'var(--color-success-bg)', border: 'var(--color-success)', highlight: '#C8E6C9' },
+  passage: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: '#E1BEE7' },
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -116,8 +116,8 @@ function buildNetwork() {
       label: e.label,
       title: `${e.label} (${e.source})`,
       arrows: 'to',
-      font: { size: 10, color: '#666', strokeWidth: 0, align: 'middle' as const },
-      color: { color: '#999', highlight: '#2196F3' },
+      font: { size: 10, color: 'var(--color-text-secondary)', strokeWidth: 0, align: 'middle' as const },
+      color: { color: 'var(--color-text-muted)', highlight: 'var(--color-accent)' },
       width: 1.5,
       smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
     })),
@@ -231,10 +231,10 @@ watch(
   width: 100%;
   height: 100%;
   min-height: 500px;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--color-page-bg, #fafafa);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-page-bg);
+  border: 1px solid var(--color-border);
 }
 
 .graph-network {
@@ -242,7 +242,7 @@ watch(
   height: 100%;
   min-height: 500px;
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--transition-slow);
 }
 
 .graph-network--ready {
@@ -256,38 +256,38 @@ watch(
   justify-content: center;
   height: 100%;
   min-height: 500px;
-  gap: 12px;
-  color: var(--color-text-secondary, #718096);
+  gap: var(--space-3);
+  color: var(--color-text-secondary, var(--color-text-muted));
   font-size: 14px;
 }
 
 .graph-state--error {
-  color: var(--color-error, #e53e3e);
+  color: var(--color-error, var(--color-error-text));
 }
 
 .graph-retry-btn {
-  padding: 6px 16px;
-  border: 1px solid var(--color-accent, #2b6cb0);
-  border-radius: 6px;
+  padding: var(--space-1-5) 16px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   cursor: pointer;
   font-size: 13px;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .graph-retry-btn:hover {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: white;
 }
 
 .spinner {
   width: 24px;
   height: 24px;
-  border: 3px solid var(--color-border, #e2e8f0);
-  border-top-color: var(--color-accent, #2b6cb0);
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  animation: spin var(--transition-spinner) linear infinite;
 }
 
 @keyframes spin {

@@ -182,7 +182,7 @@ onBeforeUnmount(() => {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
 }
 
 .pr-steps {
@@ -193,7 +193,7 @@ onBeforeUnmount(() => {
 
 .pr-step-badge {
   display: inline-block;
-  padding: 1px 6px;
+  padding: var(--space-0-25) 6px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: var(--font-medium);
@@ -202,17 +202,17 @@ onBeforeUnmount(() => {
 }
 
 .pr-step--completed {
-  background: rgba(56, 161, 105, 0.12);
+  background: var(--color-success-alpha-12);
   color: var(--color-success-text);
 }
 
 .pr-step--failed {
-  background: rgba(197, 48, 48, 0.1);
+  background: var(--color-error-alpha-10);
   color: var(--color-error-light-text);
 }
 
 .pr-step--pending {
-  background: rgba(160, 174, 192, 0.12);
+  background: var(--color-muted-alpha-12);
   color: var(--color-text-muted);
 }
 
@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
 .pr-view-link {
   display: inline-flex;
   align-items: center;
-  padding: 4px 14px;
+  padding: var(--space-1) 14px;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   font-size: var(--text-xs);
@@ -245,11 +245,11 @@ onBeforeUnmount(() => {
 
 .pr-view-link:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .pr-view-link:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 </style>

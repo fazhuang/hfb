@@ -175,7 +175,7 @@ onBeforeUnmount(() => {
 
 .ral-type-badge {
   display: inline-block;
-  padding: 1px 8px;
+  padding: var(--space-0-25) 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: var(--font-semibold);

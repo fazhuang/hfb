@@ -54,56 +54,56 @@ function emitSearch() {
 .lib-search-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }
 
 .lib-search-input-wrap {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
   max-width: 480px;
 }
 
 .lib-search-input-wrap input {
-  padding: 8px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-2) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: 14px;
   min-width: 0;
   width: 100%;
   max-width: 320px;
-  background: var(--color-page-bg, #f7fafc);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-page-bg);
+  color: var(--color-text-primary);
 }
 
 .lib-search-btn {
-  padding: 8px 16px;
-  background: var(--color-accent, #2b6cb0);
+  padding: var(--space-2) 16px;
+  background: var(--color-accent);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: 13px;
   transition: background var(--transition-base);
 }
 
 .lib-search-btn:hover {
-  background: var(--color-accent-hover, #1a4f8a);
+  background: var(--color-accent-hover);
 }
 
 .lib-search-btn:focus-visible {
-  background: var(--color-accent-hover, #1a4f8a);
+  background: var(--color-accent-hover);
 }
 
 .lib-filter-select {
-  padding: 8px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-2) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: 13px;
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-navbar-bg, var(--color-surface));
+  color: var(--color-text-primary);
   min-width: 0;
   max-width: 160px;
 }

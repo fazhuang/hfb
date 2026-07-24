@@ -16,7 +16,7 @@
 /* ---- Header ---- */
 .hfb-table thead th {
   text-align: left;
-  padding: 10px var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   border-bottom: 2px solid var(--color-border);
@@ -40,7 +40,7 @@
 
 /* ---- Rows ---- */
 .hfb-table tbody td {
-  padding: 10px var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
   border-bottom: 1px solid var(--color-border);
   color: var(--color-text-primary);
   max-width: 320px;
@@ -86,7 +86,7 @@
 /* ---- Dense ---- */
 .hfb-table--dense thead th,
 .hfb-table--dense tbody td {
-  padding: 6px var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   font-size: var(--text-sm);
 }
 

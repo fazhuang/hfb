@@ -145,40 +145,40 @@ const workflowLink = computed(() => `/research/${props.projectId}/workflow`);
 <style scoped>
 .rre-state {
   display: flex;
-  gap: 20px;
-  padding: 40px 32px;
-  border-radius: 12px;
+  gap: var(--space-5);
+  padding: var(--space-10) 32px;
+  border-radius: var(--radius-2xl);
   align-items: flex-start;
 }
 
 .rre-state--not-found {
-  border: 2px solid var(--color-border, #e2e8f0);
-  background: var(--color-page-bg, #fafafa);
+  border: 2px solid var(--color-border);
+  background: var(--color-page-bg);
 }
 
 .rre-state--forbidden {
-  border: 2px solid #fed7d7;
-  background: #fff5f5;
+  border: 2px solid var(--color-error-icon-bg);
+  background: var(--color-error-bg);
 }
 
 .rre-state--pending {
-  border: 2px solid #fefcbf;
-  background: #fffff0;
+  border: 2px solid var(--color-warning-bg);
+  background: var(--color-warning-bg);
 }
 
 .rre-state--failed {
-  border: 2px solid #fed7d7;
-  background: #fff5f5;
+  border: 2px solid var(--color-error-icon-bg);
+  background: var(--color-error-bg);
 }
 
 .rre-state--missing {
-  border: 2px solid #d69e2e;
-  background: #fffff0;
+  border: 2px solid var(--color-warning);
+  background: var(--color-warning-bg);
 }
 
 .rre-state--error {
-  border: 2px solid #fed7d7;
-  background: #fff5f5;
+  border: 2px solid var(--color-error-icon-bg);
+  background: var(--color-error-bg);
 }
 
 .rre-icon {
@@ -193,60 +193,60 @@ const workflowLink = computed(() => `/research/${props.projectId}/workflow`);
 .rre-title {
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 8px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2);
 }
 
 .rre-message {
   font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 20px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-5);
   line-height: 1.6;
 }
 
 .rre-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-2-5);
   flex-wrap: wrap;
 }
 
 .rre-btn {
   display: inline-flex;
   align-items: center;
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: var(--space-2) 18px;
+  border-radius: var(--radius-lg);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rre-btn--primary {
   border: none;
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .rre-btn--primary:hover {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .rre-btn--primary:focus-visible {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .rre-btn--secondary {
-  border: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-text-secondary, #4a5568);
+  border: 1px solid var(--color-border);
+  background: var(--color-navbar-bg, var(--color-surface));
+  color: var(--color-text-secondary);
 }
 
 .rre-btn--secondary:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .rre-btn--secondary:focus-visible {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 </style>

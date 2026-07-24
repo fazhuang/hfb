@@ -163,7 +163,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
-  padding: 80px 0;
+  padding: var(--space-20) 0;
 }
 
 .rpage-spinner {
@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
   border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: hfb-spin 0.8s linear infinite;
+  animation: hfb-spin var(--transition-spinner) linear infinite;
 }
 
 .rpage-loading-text {
@@ -186,7 +186,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: var(--space-3);
   align-items: center;
-  padding: 14px var(--space-4);
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--color-warning);
   border-left: 4px solid var(--color-warning);
   border-radius: var(--radius-md);
@@ -215,7 +215,7 @@ onBeforeUnmount(() => {
 
 /* Export error */
 .rpage-export-error {
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   border: 1px solid var(--color-error-icon-bg);
   border-radius: var(--radius-md);
   background: var(--color-error-bg);

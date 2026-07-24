@@ -6,7 +6,7 @@
 .hfb-input-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .hfb-input__label {
@@ -28,7 +28,7 @@
 
 .hfb-input__field {
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-2) 12px;
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-lg);
   background: var(--color-input-bg);
@@ -81,12 +81,12 @@
 
 /* ---- Sizes ---- */
 .hfb-input__field--sm {
-  padding: 5px 10px;
+  padding: var(--space-1-25) 10px;
   font-size: var(--text-xs);
 }
 
 .hfb-input__field--lg {
-  padding: 10px 16px;
+  padding: var(--space-2-5) 16px;
   font-size: var(--text-lg);
 }
 
@@ -117,7 +117,7 @@
 .hfb-input__suffix {
   display: flex;
   align-items: center;
-  padding: 0 8px;
+  padding: 0 var(--space-2);
   color: var(--color-text-muted);
   font-size: var(--text-base);
 }

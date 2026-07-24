@@ -87,12 +87,12 @@ async function handleLogin(): Promise<void> {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 120px);
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .login-layout {
   display: flex;
-  gap: 32px;
+  gap: var(--space-8);
   align-items: flex-start;
   max-width: 820px;
   width: 100%;
@@ -101,58 +101,58 @@ async function handleLogin(): Promise<void> {
 .login-card {
   flex: 1;
   max-width: 400px;
-  padding: 40px 32px;
-  background: var(--color-navbar-bg, #fff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 12px;
+  padding: var(--space-10) 32px;
+  background: var(--color-navbar-bg, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
   text-align: center;
 }
 
 .login-card h1 {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 4px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
 }
 
 .login-subtitle {
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   font-size: 14px;
-  margin: 0 0 32px;
+  margin: 0 0 var(--space-8);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   text-align: left;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .form-group label {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .form-group input {
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-2-5) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: 14px;
-  color: var(--color-text-primary, #1a365d);
-  background: var(--color-page-bg, #f7fafc);
+  color: var(--color-text-primary);
+  background: var(--color-page-bg);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-base);
 }
 
 .form-group input:focus {
-  border-color: var(--color-accent, #2b6cb0);
+  border-color: var(--color-accent);
 }
 
 .form-group input:disabled {
@@ -160,10 +160,10 @@ async function handleLogin(): Promise<void> {
 }
 
 .error-message {
-  padding: 10px 14px;
-  background: var(--color-error-bg, #fff5f5);
-  color: var(--color-error-text, #c53030);
-  border-radius: 8px;
+  padding: var(--space-2-5) 14px;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border-radius: var(--radius-lg);
   font-size: 13px;
 }
 
@@ -171,21 +171,21 @@ async function handleLogin(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  background: var(--color-accent, #2b6cb0);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-accent);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-base);
   margin-top: 8px;
 }
 
 .login-btn:hover:not(:disabled) {
-  background: var(--color-accent-hover, #1a4f8a);
+  background: var(--color-accent-hover);
 }
 
 .login-btn:disabled {
@@ -196,11 +196,11 @@ async function handleLogin(): Promise<void> {
 .register-link {
   margin-top: 24px;
   font-size: 13px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .register-link a {
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -212,17 +212,17 @@ async function handleLogin(): Promise<void> {
 /* --- Value card --- */
 .login-value-card {
   flex: 0 0 260px;
-  padding: 28px 24px;
-  background: linear-gradient(135deg, #f0f4ff, #faf5ff);
-  border: 1px solid rgba(43, 108, 176, 0.12);
-  border-radius: 12px;
+  padding: var(--space-7) 24px;
+  background: linear-gradient(135deg, var(--color-accent-light), var(--color-accent-light));
+  border: 1px solid var(--color-accent-alpha-12);
+  border-radius: var(--radius-2xl);
 }
 
 .login-value-card h3 {
   font-size: 15px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 14px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3-5);
 }
 
 .login-value-card ul {
@@ -231,12 +231,12 @@ async function handleLogin(): Promise<void> {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .login-value-card li {
   font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   padding-left: 16px;
   position: relative;
@@ -246,7 +246,7 @@ async function handleLogin(): Promise<void> {
   content: '✓';
   position: absolute;
   left: 0;
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   font-weight: 700;
   font-size: 12px;
 }
@@ -255,10 +255,10 @@ async function handleLogin(): Promise<void> {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid var(--color-surface);
   border-top-color: white;
   border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  animation: spin var(--transition-spinner) var(--ease-linear) infinite;
 }
 
 @keyframes spin {

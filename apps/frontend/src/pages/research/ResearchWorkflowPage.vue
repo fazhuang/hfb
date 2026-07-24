@@ -287,7 +287,7 @@ watch(
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: 14px 18px;
+  padding: var(--space-3-5) 18px;
   border: 1px solid var(--color-error);
   border-left: 4px solid var(--color-error-text);
   border-radius: var(--radius-md);
@@ -325,19 +325,19 @@ watch(
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-error-text);
   transition: all var(--transition-base);
 }
 
 .rwf-error-retry-btn:hover {
   background: var(--color-error-text);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rwf-error-retry-btn:focus-visible {
   background: var(--color-error-text);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 /* ---- Back link ---- */
@@ -356,12 +356,12 @@ watch(
 
 .rwf-back-link:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rwf-back-link:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 /* ---- Responsive ---- */

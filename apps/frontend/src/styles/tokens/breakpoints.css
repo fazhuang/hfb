@@ -1,0 +1,22 @@
+/* ============================================================
+   HFB Design Tokens — Breakpoints
+   皇甫谧数字人文平台
+
+   CSS custom properties cannot be used directly in @media
+   conditions. These tokens define the canonical breakpoint values.
+   All @media queries MUST use these exact values (enforced by
+   check-design-compliance.mjs).
+
+   Canonical values:
+     --breakpoint-sm: 640px
+     --breakpoint-md: 768px
+     --breakpoint-lg: 1024px
+     --breakpoint-xl: 1440px
+   ============================================================ */
+
+:root {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1440px;
+}

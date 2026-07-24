@@ -151,11 +151,11 @@ function onKeyDown(e: KeyboardEvent) {
 .dpd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: var(--z-dropdown)00;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--color-overlay-light);
   padding: var(--space-5);
 }
 
@@ -220,7 +220,7 @@ function onKeyDown(e: KeyboardEvent) {
 
 .dpd-btn--danger {
   background: var(--color-error-text);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .dpd-btn--danger:hover:not(:disabled) {

@@ -58,10 +58,10 @@ defineProps<{
 
 <style scoped>
 .eed-card {
-  padding: 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-navbar-bg, var(--color-surface));
 }
 
 .eed-section {
@@ -70,8 +70,8 @@ defineProps<{
 
 .eed-label {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 700;
   margin-bottom: 6px;
@@ -96,15 +96,15 @@ defineProps<{
 }
 
 .eed-claim-text {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 13px;
   color: var(--color-text-primary);
   line-height: 1.6;
 }
 
 .eed-quote-text {
-  margin: 4px 0 0;
-  padding: 10px 14px;
+  margin: var(--space-1) 0 0;
+  padding: var(--space-2-5) 14px;
   border-left: 3px solid var(--color-success);
   background: var(--color-success-bg);
   font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
@@ -119,8 +119,8 @@ defineProps<{
   margin-top: 4px;
   font-size: 12px;
   background: var(--color-page-bg);
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: var(--space-1) 10px;
+  border-radius: var(--radius-sm);
   word-break: break-all;
   color: var(--color-text-secondary);
 }
@@ -129,27 +129,27 @@ defineProps<{
 .eed-meta {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .eed-meta-row {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 11px;
 }
 
 .eed-meta-label {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   flex-shrink: 0;
   min-width: 72px;
 }
 
 .eed-meta-value {
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .eed-meta-value--incomplete {

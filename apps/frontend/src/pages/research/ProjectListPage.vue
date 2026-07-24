@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
   border: none;
   border-radius: var(--btn-radius);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
   font-size: var(--btn-font-lg);
   font-weight: var(--font-semibold);
   cursor: pointer;
@@ -375,13 +375,13 @@ onBeforeUnmount(() => {
   transform: translateX(-50%);
   padding: var(--btn-padding-lg);
   border-radius: var(--radius-lg);
-  background: #38a169;
-  color: #fff;
+  background: var(--color-success-text);
+  color: var(--color-surface);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
-  z-index: 2000;
+  z-index: var(--z-toast);
   box-shadow: var(--shadow-toast);
-  animation: hfb-toast-in 0.2s ease;
+  animation: hfb-toast-in var(--transition-slow) var(--ease-out);
 }
 
 /* ---- Responsive ---- */

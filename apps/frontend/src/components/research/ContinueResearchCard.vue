@@ -93,7 +93,7 @@ defineEmits<{
   font-weight: var(--font-semibold);
   text-decoration: none;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
   transition: background var(--transition-base);
 }
 

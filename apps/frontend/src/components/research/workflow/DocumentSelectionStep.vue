@@ -55,18 +55,18 @@ defineEmits<{
 .dss-heading {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
 }
 
 .dss-system-notice {
   display: flex;
-  gap: 10px;
-  padding: 14px 16px;
-  border: 1px solid #4299e1;
-  border-left: 4px solid #4299e1;
-  border-radius: 6px;
-  background: #ebf8ff;
+  gap: var(--space-2-5);
+  padding: var(--space-3-5) 16px;
+  border: 1px solid var(--color-accent);
+  border-left: 4px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-accent-light);
   margin-bottom: 24px;
 }
 
@@ -79,57 +79,57 @@ defineEmits<{
 .dss-system-notice p {
   margin: 0;
   font-size: 13px;
-  color: #2b6cb0;
+  color: var(--color-accent);
   line-height: 1.6;
 }
 
 .dss-summary {
-  padding: 16px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-page-bg, #fafafa);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-page-bg);
   margin-bottom: 24px;
 }
 
 .dss-summary-title {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   text-transform: uppercase;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .dss-summary-text {
   font-size: 15px;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1.6;
 }
 
 .dss-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   align-items: center;
 }
 
 .dss-back-btn {
-  padding: 10px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
+  padding: var(--space-2-5) 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--color-navbar-bg, #fff);
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  background: var(--color-navbar-bg, var(--color-surface));
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .dss-back-btn:hover:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .dss-back-btn:focus-visible:not(:disabled) {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .dss-back-btn:disabled {
@@ -138,23 +138,23 @@ defineEmits<{
 }
 
 .dss-submit-btn {
-  padding: 10px 24px;
+  padding: var(--space-2-5) 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  background: var(--color-accent, #4299e1);
-  color: #fff;
-  transition: background 0.15s;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  transition: background var(--transition-base);
 }
 
 .dss-submit-btn:hover:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .dss-submit-btn:focus-visible:not(:disabled) {
-  background: var(--color-accent-hover, #3182ce);
+  background: var(--color-accent-hover, var(--color-info));
 }
 
 .dss-submit-btn:disabled {

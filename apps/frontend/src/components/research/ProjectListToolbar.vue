@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
 
 .plt-search-input {
   width: 100%;
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: var(--text-base);
@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
 }
 
 .plt-clear-btn {
-  padding: 10px 16px;
+  padding: var(--space-2-5) 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);

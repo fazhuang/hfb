@@ -107,28 +107,28 @@ function endResearch() {
 .research-home {
   max-width: 840px;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: var(--space-7) 20px 60px;
 }
 
 .rh-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
   margin-bottom: 32px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .rh-header h1 {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 4px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
 }
 
 .rh-topic-desc {
-  color: var(--color-text-muted, #718096);
+  color: var(--color-text-muted);
   font-size: 14px;
   margin: 0;
 }
@@ -140,8 +140,8 @@ function endResearch() {
 .rh-section-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 14px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3-5);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -149,24 +149,24 @@ function endResearch() {
 .rh-tools-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
+  gap: var(--space-2-5);
 }
 
 .rh-tool-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--color-navbar-bg, #fff);
+  gap: var(--space-3-5);
+  padding: var(--space-4) 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-navbar-bg, var(--color-surface));
   text-decoration: none;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
 }
 
 .rh-tool-card:hover {
-  border-color: var(--color-accent, #4299e1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-card-xs);
   transform: translateY(-1px);
 }
 
@@ -178,46 +178,46 @@ function endResearch() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-page-bg, #fafafa);
-  border-radius: 8px;
+  background: var(--color-page-bg);
+  border-radius: var(--radius-lg);
 }
 
 .rh-tool-name {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .rh-tool-desc {
   display: block;
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 .rh-dashboard-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  background: var(--color-navbar-bg, #fff);
+  gap: var(--space-2);
+  padding: var(--space-2-5) 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-navbar-bg, var(--color-surface));
   text-decoration: none;
   font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
-  transition: all 0.15s;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-base);
 }
 
 .rh-dashboard-link:hover {
-  border-color: var(--color-accent, #4299e1);
-  color: var(--color-text-primary, #1a365d);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
 }
 
 .btn {
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: var(--space-2) 18px;
+  border-radius: var(--radius-lg);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -225,18 +225,18 @@ function endResearch() {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   white-space: nowrap;
 }
 
 .btn--secondary {
   background: transparent;
-  color: var(--color-text-secondary, #4a5568);
-  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn--secondary:hover {
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-error-text, #c53030);
+  background: var(--color-hover);
+  color: var(--color-error-text);
 }
 </style>

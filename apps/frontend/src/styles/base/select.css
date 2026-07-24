@@ -6,7 +6,7 @@
 .hfb-select-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .hfb-select__label {
@@ -29,7 +29,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-2) 12px;
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-lg);
   background: var(--color-input-bg);
@@ -93,14 +93,14 @@
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
   list-style: none;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 
 .hfb-select__option {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: var(--space-2) 12px;
   font-size: var(--text-base);
   color: var(--color-text-primary);
   cursor: pointer;

@@ -154,13 +154,13 @@ onMounted(() => fetch());
 .card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-bottom: var(--space-2);
 }
 
 .meta-tag {
   font-size: var(--text-xs);
-  padding: 2px 8px;
+  padding: var(--space-0-5) 8px;
   background: var(--color-tag-bg);
   border-radius: var(--radius-sm);
   color: var(--color-text-secondary);

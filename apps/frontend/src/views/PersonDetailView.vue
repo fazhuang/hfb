@@ -100,7 +100,7 @@ onMounted(() => fetch(route.params.id as string));
 .person-detail-page {
   max-width: 800px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--space-8) 24px;
 }
 
 .detail-header {
@@ -110,28 +110,28 @@ onMounted(() => fetch(route.params.id as string));
 .detail-header h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .name-alt {
   font-size: 16px;
-  color: var(--color-text-muted, #a0aec0);
-  margin: 4px 0 12px;
+  color: var(--color-text-muted);
+  margin: var(--space-1) 0 12px;
 }
 
 .header-meta {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 12px;
 }
 
 .meta-tag {
   font-size: 13px;
-  padding: 3px 10px;
-  background: var(--color-accent, #2b6cb0);
+  padding: var(--space-0-75) 10px;
+  background: var(--color-accent);
   color: white;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .info-grid {
@@ -140,42 +140,42 @@ onMounted(() => fetch(route.params.id as string));
 
 .info-row {
   display: flex;
-  gap: 12px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
   font-size: 14px;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 .info-label {
   font-weight: 600;
   min-width: 64px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .person-bio {
-  padding: 20px;
-  background: var(--color-hover, #f7fafc);
-  border-radius: 8px;
+  padding: var(--space-5);
+  background: var(--color-hover, var(--color-page-bg));
+  border-radius: var(--radius-lg);
   margin-bottom: 24px;
 }
 
 .person-bio h3 {
   font-size: 15px;
   font-weight: 600;
-  margin: 0 0 8px;
-  color: var(--color-text-primary, #1a365d);
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-primary);
 }
 
 .person-bio p {
   font-size: 14px;
   line-height: 1.8;
-  color: var(--color-text-secondary, #4a5568);
-  margin: 0 0 8px;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
 }
 
 .bio-source {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .person-works {
@@ -185,28 +185,28 @@ onMounted(() => fetch(route.params.id as string));
 .person-works h3 {
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 12px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
 }
 
 .works-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .work-item {
-  padding: 6px 14px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
+  padding: var(--space-1-5) 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  color: var(--color-text-secondary, #4a5568);
-  background: var(--color-navbar-bg, #fff);
+  color: var(--color-text-secondary);
+  background: var(--color-navbar-bg, var(--color-surface));
 }
 
 .external-ref a {
   font-size: 13px;
-  color: var(--color-accent, #2b6cb0);
+  color: var(--color-accent);
   text-decoration: none;
 }
 
@@ -216,8 +216,8 @@ onMounted(() => fetch(route.params.id as string));
 
 .loading-state, .error-state {
   text-align: center;
-  padding: 80px 20px;
-  color: var(--color-text-muted, #a0aec0);
+  padding: var(--space-20) 20px;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 </style>

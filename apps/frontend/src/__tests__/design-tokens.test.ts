@@ -68,13 +68,13 @@ function collectAllTokens(): { rootTokens: Set<string>; darkTokens: Set<string> 
 }
 
 /** Collect all var(--*) references from Vue SFC style blocks and .css files in components/ */
-function collectVarReferences(): Map<string, string[]> {
-  const refs = new Map<string, string[]>();
+function collectVarReferences(): Map<string, Array<string>> {
+  const refs = new Map<string, Array<string>>();
   const componentsDir = resolve(ROOT, 'src', 'components');
   const stylesDir = resolve(ROOT, 'src', 'styles', 'base');
 
-  function walkDir(dir: string): string[] {
-    const results: string[] = [];
+  function walkDir(dir: string): Array<string> {
+    const results: Array<string> = [];
     try {
       for (const entry of readdirSync(dir)) {
         const full = resolve(dir, entry);
@@ -192,7 +192,11 @@ describe('Design Token Validation', () => {
           '--color-input-bg', '--color-input-border',
           '--color-input-focus-ring',
           '--focus-ring', '--focus-ring-sm', '--focus-ring-error',
-          '--color-overlay', '--color-on-accent',
+          '--color-overlay', '--color-on-accent', '--color-overlay-light',
+          '--color-accent-alpha-08', '--color-accent-alpha-12',
+          '--color-accent-alpha-15', '--color-accent-alpha-05',
+          '--color-success-alpha-12', '--color-error-alpha-10',
+          '--color-muted-alpha-12',
         ];
         if (token.startsWith('--btn-') || derivedTokens.includes(token)) {
           return; // These derive from other tokens that ARE overridden
@@ -207,7 +211,7 @@ describe('Design Token Validation', () => {
 
   describe('Token Usage Validation', () => {
     it('all var(--*) references in components resolve to defined tokens', () => {
-      const undefinedTokens: string[] = [];
+      const undefinedTokens: Array<string> = [];
       for (const [token, files] of varRefs) {
         if (!rootTokens.has(token) && !darkTokens.has(token)) {
           undefinedTokens.push(`${token} (used in: ${files.join(', ')})`);

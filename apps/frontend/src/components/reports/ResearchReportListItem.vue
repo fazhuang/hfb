@@ -87,7 +87,7 @@ const exportButtonLabel = computed(() => {
 
 <style scoped>
 .rrli-root {
-  padding: 14px var(--space-4);
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
@@ -113,7 +113,7 @@ const exportButtonLabel = computed(() => {
 .rrli-topic {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
   line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -135,7 +135,7 @@ const exportButtonLabel = computed(() => {
 .rrli-badges {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-shrink: 0;
 }
 
@@ -149,7 +149,7 @@ const exportButtonLabel = computed(() => {
 .rrli-view-link {
   display: inline-flex;
   align-items: center;
-  padding: 5px 14px;
+  padding: var(--space-1-25) 14px;
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
   font-size: var(--text-xs);
@@ -162,18 +162,18 @@ const exportButtonLabel = computed(() => {
 
 .rrli-view-link:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rrli-view-link:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rrli-export-btn {
   display: inline-flex;
   align-items: center;
-  padding: 5px 14px;
+  padding: var(--space-1-25) 14px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-size: var(--text-xs);

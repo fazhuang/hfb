@@ -345,63 +345,63 @@ function getTypeIcon(entityType: string): string {
 .graph-sidebar {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--color-border, #e2e8f0);
-  background: var(--color-navbar-bg, #fff);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-navbar-bg, var(--color-surface));
   overflow-y: auto;
 }
 
 .sidebar-header {
-  padding: 20px 20px 12px;
+  padding: var(--space-5) 20px 12px;
 }
 
 .sidebar-title {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .sidebar-subtitle {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 /* --- Search --- */
 .search-section {
-  padding: 0 20px 12px;
+  padding: 0 var(--space-5) 12px;
 }
 
 .search-input-wrapper {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .search-input {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
+  padding: var(--space-2) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   font-size: 13px;
-  background: var(--color-page-bg, #fafafa);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-page-bg);
+  color: var(--color-text-primary);
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color var(--transition-base);
 }
 
 .search-input:focus {
-  border-color: var(--color-accent, #2b6cb0);
+  border-color: var(--color-accent);
 }
 
 .search-btn {
-  padding: 8px 16px;
+  padding: var(--space-2) 16px;
   border: none;
-  border-radius: 6px;
-  background: var(--color-accent, #2b6cb0);
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
   color: white;
   font-size: 13px;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-base);
 }
 
 .search-btn:hover {
@@ -416,38 +416,38 @@ function getTypeIcon(entityType: string): string {
 /* --- Type Filters --- */
 .type-filters {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin-top: 8px;
   flex-wrap: wrap;
 }
 
 .type-chip {
-  padding: 4px 10px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 20px;
+  padding: var(--space-1) 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
   background: transparent;
   font-size: 12px;
   cursor: pointer;
-  color: var(--color-text-secondary, #718096);
-  transition: all 0.15s;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  transition: all var(--transition-base);
 }
 
 .type-chip--active {
-  border-color: var(--color-accent, #2b6cb0);
-  background: rgba(43, 108, 176, 0.1);
-  color: var(--color-accent, #2b6cb0);
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-accent);
 }
 
 /* --- Search Results --- */
 .search-results {
-  padding: 0 20px;
+  padding: 0 var(--space-5);
 }
 
 .results-header {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   margin-bottom: 6px;
 }
 
@@ -460,19 +460,19 @@ function getTypeIcon(entityType: string): string {
 .result-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border-radius: 6px;
+  gap: var(--space-2);
+  padding: var(--space-2) 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: background var(--transition-fast);
 }
 
 .result-item:hover {
-  background: var(--color-hover, #edf2f7);
+  background: var(--color-hover);
 }
 
 .result-item--active {
-  background: var(--color-active, #ebf8ff);
+  background: var(--color-accent-light);
 }
 
 .result-icon {
@@ -488,7 +488,7 @@ function getTypeIcon(entityType: string): string {
 
 .result-label {
   font-size: 13px;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -496,21 +496,21 @@ function getTypeIcon(entityType: string): string {
 
 .result-type {
   font-size: 11px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 /* --- Node Info --- */
 .node-info {
-  padding: 16px 20px;
-  border-top: 1px solid var(--color-border, #e2e8f0);
+  padding: var(--space-4) 20px;
+  border-top: 1px solid var(--color-border);
   margin-top: auto;
 }
 
 .node-info-title {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-2-5);
   font-size: 15px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
 }
 
 .node-info-list {
@@ -518,54 +518,54 @@ function getTypeIcon(entityType: string): string {
   font-size: 12px;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 2px 8px;
+  gap: var(--space-0-5) 8px;
 }
 
 .node-info-list dt {
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
 .node-info-list dd {
   margin: 0;
-  color: var(--color-text-secondary, #718096);
+  color: var(--color-text-secondary, var(--color-text-muted));
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .node-info-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 12px;
 }
 
 .action-btn {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 6px;
+  padding: var(--space-2) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   font-size: 12px;
   cursor: pointer;
-  color: var(--color-text-secondary, #718096);
-  transition: all 0.15s;
+  color: var(--color-text-secondary, var(--color-text-muted));
+  transition: all var(--transition-base);
   text-align: center;
 }
 
 .action-btn:hover {
-  background: var(--color-hover, #edf2f7);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-hover);
+  color: var(--color-text-primary);
 }
 
 .action-btn--primary {
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
   color: white;
-  border-color: var(--color-accent, #2b6cb0);
+  border-color: var(--color-accent);
 }
 
 .action-btn--primary:hover {
   opacity: 0.9;
-  background: var(--color-accent, #2b6cb0);
+  background: var(--color-accent);
 }
 
 /* --- Main Canvas --- */
@@ -580,26 +580,26 @@ function getTypeIcon(entityType: string): string {
   right: 16px;
   bottom: 16px;
   width: 280px;
-  background: var(--color-navbar-bg, #fff);
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  z-index: 10;
+  background: var(--color-navbar-bg, var(--color-surface));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card-hover);
+  z-index: var(--z-dropdown);
 }
 
 .path-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+  padding: var(--space-2-5) 14px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .path-panel-body {
-  padding: 14px;
+  padding: var(--space-3-5);
 }
 
 .path-field {
@@ -610,18 +610,18 @@ function getTypeIcon(entityType: string): string {
   display: block;
   font-size: 11px;
   font-weight: 500;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   margin-bottom: 4px;
 }
 
 .path-input {
   width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 4px;
+  padding: var(--space-1-5) 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: 12px;
-  background: var(--color-page-bg, #fafafa);
-  color: var(--color-text-primary, #1a365d);
+  background: var(--color-page-bg);
+  color: var(--color-text-primary);
 }
 
 .close-btn {
@@ -629,7 +629,7 @@ function getTypeIcon(entityType: string): string {
   background: transparent;
   cursor: pointer;
   font-size: 18px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
 }
 
 .path-result {
@@ -638,11 +638,11 @@ function getTypeIcon(entityType: string): string {
 }
 
 .path-success {
-  color: var(--color-success, #38a169);
+  color: var(--color-success, var(--color-success-text));
 }
 
 .path-empty {
-  color: var(--color-error, #e53e3e);
+  color: var(--color-error, var(--color-error-text));
 }
 
 /* --- Responsive --- */
@@ -655,7 +655,7 @@ function getTypeIcon(entityType: string): string {
   .graph-sidebar {
     max-height: 40vh;
     border-right: none;
-    border-bottom: 1px solid var(--color-border, #e2e8f0);
+    border-bottom: 1px solid var(--color-border);
   }
 
   .node-info {

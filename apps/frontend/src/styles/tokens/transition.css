@@ -7,4 +7,10 @@
   --transition-fast: 0.1s;
   --transition-base: 0.15s;
   --transition-slow: 0.2s;
+  --transition-spinner: 0.8s;
+  --animation-pulse: 1.5s;
+
+  --ease-out: ease-out;
+  --ease-in-out: ease-in-out;
+  --ease-linear: linear;
 }

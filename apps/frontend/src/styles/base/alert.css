@@ -26,7 +26,7 @@
 
 .hfb-alert__title {
   font-weight: var(--font-semibold);
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-1);
   font-size: var(--text-base);
 }
 

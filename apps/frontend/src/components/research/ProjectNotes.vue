@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
 .pn-content {
   font-size: var(--text-base);
   color: var(--color-text-primary);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
   line-height: var(--leading-normal);
   white-space: pre-wrap;
   word-break: break-word;
@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
 
 .pn-tag {
   font-size: 11px;
-  padding: 1px 8px;
+  padding: var(--space-0-25) 8px;
   border-radius: var(--radius-sm);
   background: var(--color-hover);
   color: var(--color-text-muted);

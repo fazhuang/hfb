@@ -256,10 +256,10 @@ function isSelectedCitation(traceId: string): boolean {
 .rrv-heading {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 16px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-4);
   padding-bottom: 10px;
-  border-bottom: 2px solid var(--color-accent, #4299e1);
+  border-bottom: 2px solid var(--color-accent);
 }
 
 .rrv-report {
@@ -269,8 +269,8 @@ function isSelectedCitation(traceId: string): boolean {
 .rrv-report-title {
   font-size: 20px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
-  margin: 0 0 20px;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-5);
   line-height: 1.4;
 }
 
@@ -281,16 +281,16 @@ function isSelectedCitation(traceId: string): boolean {
 .rrv-section-heading {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary, #2d3748);
-  margin: 0 0 12px;
-  border-left: 3px solid var(--color-accent, #4299e1);
+  color: var(--color-text-primary, var(--color-hover));
+  margin: 0 0 var(--space-3);
+  border-left: 3px solid var(--color-accent);
   padding-left: 12px;
 }
 
 .rrv-paragraph {
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-2-5);
   font-size: 14px;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   line-height: 1.8;
 }
 
@@ -300,34 +300,34 @@ function isSelectedCitation(traceId: string): boolean {
 
 .rrv-citation-marker {
   display: inline;
-  margin: 0 1px;
-  padding: 1px 5px;
-  border: 1px solid var(--color-accent, #4299e1);
-  border-radius: 3px;
-  background: #ebf8ff;
-  color: #2b6cb0;
+  margin: 0 var(--space-0-25);
+  padding: var(--space-0-25) 5px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-base);
   vertical-align: super;
   line-height: 1;
 }
 
 .rrv-citation-marker:hover {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .rrv-citation-marker:focus-visible {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .rrv-citation-marker--active {
-  background: var(--color-accent, #4299e1);
-  color: #fff;
-  outline: 2px solid #1a365d;
+  background: var(--color-accent);
+  color: var(--color-surface);
+  outline: 2px solid var(--color-text-primary);
   outline-offset: 2px;
 }
 
@@ -336,11 +336,11 @@ function isSelectedCitation(traceId: string): boolean {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 48px 20px;
-  border: 2px dashed var(--color-border, #e2e8f0);
-  border-radius: 8px;
-  color: var(--color-text-muted, #a0aec0);
+  gap: var(--space-3);
+  padding: var(--space-12) 20px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
 }
 
 .rrv-empty-icon {

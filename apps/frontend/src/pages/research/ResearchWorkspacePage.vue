@@ -299,7 +299,7 @@ onBeforeUnmount(() => {
 .rwp-action-btn--primary {
   border: none;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rwp-action-btn--primary:hover {
@@ -340,12 +340,12 @@ onBeforeUnmount(() => {
 
 .rwp-back-link:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .rwp-back-link:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 /* ---- Responsive ---- */

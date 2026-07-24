@@ -88,7 +88,7 @@ function formatDate(iso?: string | null): string {
 .pli-name {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1-5);
 }
 
 .pli-name-link {
@@ -151,11 +151,11 @@ function formatDate(iso?: string | null): string {
 
 .pli-enter-btn:hover {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 
 .pli-enter-btn:focus-visible {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
 }
 </style>

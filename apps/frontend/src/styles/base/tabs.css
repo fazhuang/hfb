@@ -16,8 +16,8 @@
 .hfb-tabs__tab {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
+  gap: var(--space-1-5);
+  padding: var(--space-2-5) 16px;
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
@@ -58,7 +58,7 @@
   justify-content: center;
   min-width: 18px;
   height: 18px;
-  padding: 0 5px;
+  padding: 0 var(--space-1-25);
   border-radius: 9999px;
   background: var(--color-border);
   color: var(--color-text-muted);
@@ -75,8 +75,8 @@
 /* ---- Pills variant ---- */
 .hfb-tabs__nav--pills {
   border-bottom: none;
-  gap: 4px;
-  padding: 4px;
+  gap: var(--space-1);
+  padding: var(--space-1);
   background: var(--color-page-bg);
   border-radius: var(--radius-lg);
 }
@@ -84,7 +84,7 @@
 .hfb-tabs__nav--pills .hfb-tabs__tab {
   border-bottom: none;
   border-radius: var(--radius-md);
-  padding: 6px 14px;
+  padding: var(--space-1-5) 14px;
   font-size: var(--text-sm);
 }
 
@@ -103,7 +103,7 @@
 .hfb-tabs__nav--buttons .hfb-tabs__tab {
   border: 1px solid var(--color-border);
   border-right-width: 0;
-  padding: 6px 16px;
+  padding: var(--space-1-5) 16px;
   font-size: var(--text-sm);
 }
 

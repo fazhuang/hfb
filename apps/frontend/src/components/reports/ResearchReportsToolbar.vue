@@ -56,7 +56,7 @@ function onChange(e: Event) {
 }
 
 .rrt-select {
-  padding: 6px var(--space-3);
+  padding: var(--space-1-5) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);

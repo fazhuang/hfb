@@ -113,7 +113,7 @@ function onSubmit() {
 
 .rae-input {
   width: 100%;
-  padding: 10px var(--space-3);
+  padding: var(--space-2-5) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: var(--text-base);
@@ -134,14 +134,14 @@ function onSubmit() {
 }
 
 .rae-submit-btn {
-  padding: 10px var(--space-4);
+  padding: var(--space-2-5) var(--space-4);
   border: none;
   border-radius: var(--radius-lg);
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   cursor: pointer;
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-surface);
   transition: background var(--transition-base);
   display: flex;
   align-items: center;

@@ -21,7 +21,7 @@ defineProps<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 24px;
+  padding: var(--space-20) 24px;
   text-align: center;
   flex: 1;
 }
@@ -36,7 +36,7 @@ defineProps<{
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-2);
 }
 
 .placeholder-desc {

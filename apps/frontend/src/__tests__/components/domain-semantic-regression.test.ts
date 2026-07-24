@@ -64,7 +64,7 @@ function makeEvidence(overrides: Partial<ResultEvidence> & { trace_id: string })
 // ────────────────────────────────────────────────────────────────────────
 describe('CitationPanel — Domain Semantic Regression', () => {
   it('renders trace_id for each citation', () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 'trace-001-abcdef', citation_text: 'Test citation' }),
       makeCitation({ trace_id: 'trace-002-ghijkl', quote: 'Original text quote' }),
     ];
@@ -76,7 +76,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('renders citation_text when available', () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 't1', citation_text: '《针灸甲乙经》记载...' }),
     ];
     const wrapper = mount(CitationPanel, {
@@ -86,7 +86,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('renders quote when citation_text is absent', () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 't1', quote: 'A direct quote from source' }),
     ];
     const wrapper = mount(CitationPanel, {
@@ -96,7 +96,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('data contract: trace_id key is used for unique identification and selection', () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 'trace-001' }),
     ];
     const wrapper = mount(CitationPanel, {
@@ -106,7 +106,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('emits select event with trace_id', async () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 'ct-1', citation_text: 'Citation 1' }),
     ];
     const wrapper = mount(CitationPanel, {
@@ -118,7 +118,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('shows evidence count prompt text', () => {
-    const citations: ResultCitation[] = [
+    const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 't1', citation_text: 'Test' }),
     ];
     const wrapper = mount(CitationPanel, {

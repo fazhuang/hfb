@@ -30,90 +30,90 @@ function formatDate(iso: string): string {
 <style scoped>
 .lib-list-item {
   display: block;
-  padding: 16px 20px;
-  border: 1px solid var(--color-border, #e2e8f0);
-  border-radius: 10px;
-  background: var(--color-navbar-bg, #fff);
+  padding: var(--space-4) 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-navbar-bg, var(--color-surface));
   text-decoration: none;
   color: inherit;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  transition: box-shadow var(--transition-base), border-color 0.15s;
   cursor: pointer;
 }
 
 .lib-list-item:hover {
-  border-color: var(--color-accent, #2b6cb0);
-  box-shadow: 0 2px 8px rgba(43, 108, 176, 0.1);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-accent-sm);
 }
 
 .lib-list-item:focus-visible {
-  border-color: var(--color-accent, #2b6cb0);
-  box-shadow: 0 2px 8px rgba(43, 108, 176, 0.1);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-accent-sm);
 }
 
 .lib-item-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   margin-bottom: 6px;
 }
 
 .lib-item-meta {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
 
 .lib-meta-tag {
   font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: var(--color-accent, #2b6cb0);
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
   color: white;
 }
 
 .lib-meta-tag--source {
-  background: var(--color-tag-bg, #edf2f7);
-  color: var(--color-text-secondary, #4a5568);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
 }
 
 .lib-item-badges {
   display: flex;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-wrap: wrap;
   margin-bottom: 4px;
 }
 
 .lib-badge {
   font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
 }
 
 .lib-badge-copyright {
-  background: var(--color-tag-bg, #edf2f7);
-  color: var(--color-text-secondary, #4a5568);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
 }
 
-.lib-badge-review-pending_review { background: #fefcbf; color: #975a16; }
-.lib-badge-review-under_review { background: #bee3f8; color: #2a4365; }
-.lib-badge-review-approved { background: #c6f6d5; color: #276749; }
-.lib-badge-review-rejected { background: #fed7d7; color: #c53030; }
+.lib-badge-review-pending_review { background: var(--color-warning-bg); color: var(--color-warning-text); }
+.lib-badge-review-under_review { background: var(--color-info-text); color: var(--color-accent-light); }
+.lib-badge-review-approved { background: var(--color-success-icon-bg); color: var(--color-success-text); }
+.lib-badge-review-rejected { background: var(--color-error-icon-bg); color: var(--color-error-text); }
 
 .lib-badge-rag {
-  background: #bee3f8;
-  color: #2a4365;
+  background: var(--color-info-text);
+  color: var(--color-accent-light);
 }
 
 .lib-badge-withdrawn {
-  background: #e2e8f0;
-  color: #718096;
+  background: var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .lib-item-date {
   font-size: 12px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 </style>

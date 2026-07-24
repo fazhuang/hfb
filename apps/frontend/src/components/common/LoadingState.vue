@@ -31,7 +31,7 @@ defineProps<{
   border: 3px solid var(--color-border);
   border-top-color: var(--color-accent);
   border-radius: 50%;
-  animation: hfb-spin 0.8s linear infinite;
+  animation: hfb-spin var(--transition-spinner) linear infinite;
 }
 
 .loading-text {

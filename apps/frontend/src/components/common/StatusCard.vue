@@ -18,7 +18,7 @@ defineProps<{
 .status-card {
   display: flex;
   align-items: center;
-  padding: 14px var(--space-5);
+  padding: var(--space-3-5) var(--space-5);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
   gap: var(--space-3);
