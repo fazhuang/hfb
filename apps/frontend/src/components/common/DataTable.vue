@@ -11,6 +11,7 @@
     :error="error"
     :clickable="clickable"
     :row-key="rowKey"
+    :html-render="true"
     @row-click="$emit('rowClick', $event)"
   />
 </template>

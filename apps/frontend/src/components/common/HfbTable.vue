@@ -61,7 +61,11 @@
             />
           </td>
           <td v-for="col in columns" :key="col.key">
-            <span v-if="col.render" v-html="col.render(row)"></span>
+            <template v-if="col.render && htmlRender">
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <span v-html="col.render(row)"></span>
+            </template>
+            <span v-else-if="col.render">{{ col.render(row) }}</span>
             <span v-else>{{ row[col.key] ?? '—' }}</span>
           </td>
         </tr>
@@ -99,6 +103,12 @@ const props = withDefaults(defineProps<{
   hoverable?: boolean;
   bordered?: boolean;
   dense?: boolean;
+  /**
+   * Allow render() to output raw HTML. Default false for safety.
+   * Enable ONLY for pre-existing consumers that return <span> badge markup.
+   * New code should use text-only render() with :html-render="false".
+   */
+  htmlRender?: boolean;
   emptyMessage?: string;
   loadingMessage?: string;
 }>(), {
