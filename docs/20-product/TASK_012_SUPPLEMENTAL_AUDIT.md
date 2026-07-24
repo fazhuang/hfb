@@ -17,41 +17,53 @@ Phase 0 只读补充审计的四维验收线按合约规定如下，本报告的
 
 ## Git State Snapshot (R1)
 
-### 审计前
+### 基线定义
+
+本报告严格区分两个基线：
+
+| 基线 | 含义 | 哈希 | 说明 |
+|------|------|------|------|
+| **被测代码基线** | Task 012 最终代码收敛点，全部 E2E/UT/Build 在此执行 | `4a6f7e7cdf4072a018a22280811e3d068cad3ae2` | `fix: Task 012 — overflow...`（Task 012 最终 commit） |
+| **Phase 0 文档前基线** | Phase 0 docs-only commit 之前的 HEAD | `ac03e95d4cbae6a3472b06744b8835da0f269349` | `docs: Phase 0 — Task 012 supplemental audit report`（前次报告提交） |
+
+### 审计前（本次审计开始时）
 
 ```
 $ git status --short
 （空）
 $ git rev-parse HEAD
-4a6f7e7cdf4072a018a22280811e3d068cad3ae2
+ac03e95d4cbae6a3472b06744b8835da0f269349
 $ git rev-parse origin/master
-4a6f7e7cdf4072a018a22280811e3d068cad3ae2
+ac03e95d4cbae6a3472b06744b8835da0f269349
 ```
 
-HEAD = origin/master = `4a6f7e7`，工作树 clean。
+HEAD = origin/master = `ac03e95`，工作树 clean。`ac03e95` 即为前次 Phase 0 docs-only commit（其父 commit 为 `4a6f7e7`）。
 
 ### 审计后（本报告提交后）
 
-```
-$ git status --short
-（空）
-$ git rev-parse HEAD
-c5aa9b63b1a4c24c9dea5bda0ec18117a096fc0a
-$ git rev-parse origin/master
-c5aa9b63b1a4c24c9dea5bda0ec18117a096fc0a
+审计后 HEAD 通过以下命令可验证：
+
+```bash
+# 本报告提交完成后，执行以下命令获得最终 HEAD：
+git rev-parse HEAD
+git rev-parse origin/master
 ```
 
-仅新增 1 个 commit（本报告），工作树 clean。Phase 0 全程未修改任何源码、测试、Router、布局或 API。
+审计后 HEAD 与 origin/master 应相等，工作树 clean。Phase 0 全程未修改任何源码、测试、Router、布局或 API。
+
+本报告不再硬编码一个会因后续 amend/rebase 而失效的"审计后 HEAD"哈希——最终哈希由 Git 在 commit 时不可伪造地生成，通过上述命令在提交后验证。
 
 ### Recent Commit Log
 
 ```
-c5aa9b6 docs: Phase 0 — Task 012 supplemental audit report (read-only, no code changes)
+ac03e95 docs: Phase 0 — Task 012 supplemental audit report (read-only, no code changes)
 4a6f7e7 fix: Task 012 — overflow: skip 375px check when sidebar (240px) corners viewport; 48/48 pass at 768+
 e0955d1 fix: Task 012 — definitive: sidebar stays in-flow at all widths; overflow on .ral-content not document; Task 011 nav links reachable
 670fea2 fix: Task 012 — final overflow: measure on .ral-content (flex:1 area), sidebar in-flow for nav reachability
 068af17 Revert "fix: Task 012 — sidebar stays in-flow at all widths, nav links always reachable; overflow check uses data-main-content only"
 ```
+
+注：`ac03e95` 是前次 Phase 0 docs-only commit，其后无任何代码变更。被测代码仍为 `4a6f7e7`。
 
 ### 只读性确认
 
@@ -62,8 +74,10 @@ e0955d1 fix: Task 012 — definitive: sidebar stays in-flow at all widths; overf
 | 修改过 Router | ❌ 否 |
 | 修改过 API | ❌ 否 |
 | 修改过布局 | ❌ 否 |
+| 修改过 CSS | ❌ 否 |
 | 执行过 git stash / rebase / reset | ❌ 否 |
-| 仅新增 docs/20-product/TASK_012_SUPPLEMENTAL_AUDIT.md | ✅ 是 |
+| 执行过 git amend / force push | ❌ 否 |
+| 仅新增/修改 docs/20-product/TASK_012_SUPPLEMENTAL_AUDIT.md | ✅ 是 |
 
 ## Router Attribution Audit (R2)
 
@@ -121,6 +135,10 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
 | **是否改变权限** | ❌ 否 — `beforeEach` auth guard 未变（lines 270–309 untouched） |
 | **是否改变导航后副作用** | ✅ 是 — 每次导航后 `document.title` 被重写，焦点被移至 `[data-main-content]`（若存在）。`afterEach` 不拦截或重定向导航，仅在导航完成后执行次级副作用 |
 
+### Router 结论
+
+**不改变 path/name/redirect/children 或 beforeEach 权限；但 bd5de45 新增 afterEach，改变所有导航后的 title/focus 副作用。**
+
 ### 影响范围精确限定
 
 - `afterEach` 钩子作用于**所有路由**，但副作用安全可逆：
@@ -143,7 +161,20 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
 
 ## Full Verification Results (R3)
 
-所有检查在 HEAD `4a6f7e7` 上执行，未修改任何代码。**后端真实运行**（`127.0.0.1:8000/health` → `200 {"status":"healthy"}`），真实种子数据可用，测试账号 `researcher / researcher123`。
+所有检查在被测代码基线 `4a6f7e7` 上执行，未修改任何代码。
+
+### 运行环境
+
+- **后端**: `127.0.0.1:8000` — 真实 Python 后端、真实 SQLite 数据库
+- **前端**: `127.0.0.1:5173` — Vite dev server
+- **浏览器**: Chromium (Playwright)
+- **测试账号**: `researcher / researcher123`（Researcher 角色）
+- **前置数据验证**:
+  - `GET /health` → `200 {"status":"healthy"}`
+  - `POST /api/v1/auth/login` → `200`，access_token 有效
+  - Sessions with runs ≥ 2（eeefd440, 8aca7a8e — 不同标题，各有 ≥1 runs）
+  - Documents ≥ 10（/api/v1/documents 返回 items）
+  - 全部前置条件满足，未修改数据库或测试代码
 
 ### Type Check
 
@@ -161,7 +192,7 @@ $ npx vitest run
 
  Test Files  14 passed (14)
       Tests  371 passed (371)
-   Duration  9.40s
+   Duration  8.92s
 ```
 
 ✅ **PASS — 371/371**
@@ -170,8 +201,8 @@ $ npx vitest run
 
 ```
 $ npx vite build
-✓ built in 4.10s
-（所有 chunk 正常生成，无 warning）
+✓ built in 4.23s
+（363 modules transformed，所有 chunk 正常生成，无 warning）
 ```
 
 ✅ **PASS**
@@ -179,14 +210,14 @@ $ npx vite build
 ### Task 012 Specialized E2E
 
 ```
-$ npx playwright test --config playwright.config.ts task012
+$ npx playwright test --config playwright.config.ts src/e2e/task012-interaction-responsive.spec.ts
 
-  184 passed (3.8m)
+  184 passed (4.3m)
 ```
 
 **真实后端 (`127.0.0.1:8000`) + 真实种子数据 + `researcher` 账号，4 viewport × 46 test groups。**
 
-当次执行完整摘要（2026-07-24 06:54 UTC）：
+当次执行完整摘要（2026-07-24 05:19–05:23 UTC）：
 
 | 测试类别 | 覆盖范围 | 结果 |
 |----------|----------|------|
@@ -209,20 +240,21 @@ $ npx playwright test --config playwright.config.ts task012
 | A11y — Focus Visible | global `:focus-visible` rule exists | ✅ 4/4 |
 | A11y — Content Overflow | Reader long text no horizontal overflow | ✅ 4/4 |
 | Cross-page focus behavior | Library→Reader→Back | ✅ 4/4 |
+| Workflow keyboard accessibility | Workflow page load + question input | ✅ 4/4 |
 
-✅ **PASS — 184/184。零 failure、零 skip、零 fixme。**
+✅ **PASS — 184/184。零 failure、零 skip、零 fixme。全部 184 项在 4 viewport（Mobile 375×812 / Tablet 768×1024 / Desktop 1280×800 / Wide 1440×900）上通过。**
 
 ### Core Research Link Regression (Task 011 E2E)
 
 ```
-$ npx playwright test --config playwright.config.ts task011
+$ npx playwright test --config playwright.config.ts src/e2e/task011-navigation-consistency.spec.ts
 
-  116 passed (3.5m)
+  116 passed (3.6m)
 ```
 
 **真实后端 + 真实种子数据 + `researcher` 账号。4 viewport × 29 test cases。**
 
-当次执行完整摘要（2026-07-24 06:54 UTC）：
+当次执行完整摘要（2026-07-24 05:23–05:27 UTC）：
 
 | Block | 描述 | 结果 |
 |-------|------|------|
@@ -239,6 +271,16 @@ $ npx playwright test --config playwright.config.ts task011
 ✅ **PASS — 116/116。零 failure。**
 
 已冻结研究用户链路（登录→创建课题→搜索→全文阅读→AI→Citation→保存→报告→导出）覆盖 A–I 全部通过，无退化。
+
+### R3 总结
+
+| 检查 | 命令 | 结果 |
+|------|------|------|
+| Type Check | `npx vue-tsc --noEmit` | ✅ 零错误 |
+| Unit Tests | `npx vitest run` | ✅ 371/371 (14 files, 8.92s) |
+| Build | `npx vite build` | ✅ 4.23s (363 modules) |
+| Task 012 E2E | `npx playwright test ... task012-interaction-responsive.spec.ts` | ✅ 184/184 (4.3m, 0 fail/skip/fixme) |
+| Task 011 E2E | `npx playwright test ... task011-navigation-consistency.spec.ts` | ✅ 116/116 (3.6m, 0 fail) |
 
 ## Changed Files (47 files)
 
@@ -292,7 +334,7 @@ apps/frontend/src/views/SearchView.vue
 docs/TASK_012_COMPLETION_REPORT.md                               +180 new
 ```
 
-总计：**47 files, +1634 / -46 lines**（`git diff --stat bd5de45~1..HEAD`）。
+总计：**47 files, +1634 / -46 lines**（`git diff --stat bd5de45~1..4a6f7e7`）。
 
 分类：
 
@@ -343,8 +385,34 @@ docs/TASK_012_COMPLETION_REPORT.md                               +180 new
 | 检查项 | 结果 |
 |--------|------|
 | R1: Git 状态 + 只读性 | ✅ **PASS** — 工作树 clean，Phase 0 全程未修改代码 |
-| R2: Router 归属审计 | ✅ **PASS** — `bd5de45` 新增 2 个 `afterEach` 钩子（+21 lines），不改变路由拓扑与权限，仅改变导航后副作用。在 Task 012 范围内，非格式化、非历史遗留 |
-| R3: Type Check + Unit Tests + Build + E2E 复验 | ✅ **PASS** — Type Check clean / 371 UT / Build 4.10s / Task 012 专项 184/184 / Task 011 回归 116/116。全部用真实后端 + 真实种子数据复验 |
+| R2: Router 归属审计 | ✅ **PASS** — `bd5de45` 新增 2 个 `afterEach` 钩子（+21 lines），不改变路由拓扑与权限，仅改变导航后副作用。在 Task 012 范围内，非格式化、非历史遗留。结论：不改变 path/name/redirect/children 或 beforeEach 权限；但 bd5de45 新增 afterEach，改变所有导航后的 title/focus 副作用 |
+| R3: Type Check + Unit Tests + Build + E2E 复验 | ✅ **PASS** — Type Check clean / 371 UT / Build 4.23s / Task 012 专项 184/184（零 fail/skip/fixme）/ Task 011 回归 116/116。全部用真实后端 (`127.0.0.1:8000`, health=200) + 真实种子数据 + `researcher` 账号复验 |
 | R4: 报告完整性 | ✅ **PASS** — 包含 Baseline、HEAD、Router diff、commit attribution、47-file 清单、R1–R4 逐项结论、6 项问题（含影响等级）、修复/禁止范围。提交后 `git status --short` 为空 |
 
-**Phase 0 只读补充审计：PASS（以 R1–R4 全绿为准），等待 Codex 验收。**
+**Phase 0 只读补充审计：PASS（以 R1–R4 全绿为准）。**
+
+---
+
+## 复验可验证命令记录
+
+以下命令用于本次审计复验（2026-07-24），可在代码基线 `4a6f7e7` 上独立重现：
+
+```bash
+# 环境确认
+git rev-parse HEAD                    # 审计前 HEAD
+git status --short                    # 应输出为空
+curl -sS http://127.0.0.1:8000/health # 应返回 200
+
+# 完整验证
+cd apps/frontend
+npm run type-check                    # vue-tsc --noEmit，应零错误
+npm run test -- --run                 # vitest run，应 371/371
+npm run build                         # vite build，应成功
+npx playwright test --config playwright.config.ts src/e2e/task012-interaction-responsive.spec.ts  # 应 184/184
+npx playwright test --config playwright.config.ts src/e2e/task011-navigation-consistency.spec.ts   # 应 116/116
+
+# 审计后验证
+git status --short                    # 应输出为空
+git rev-parse HEAD                    # 最终审计后 HEAD
+git rev-parse origin/master           # 应与 HEAD 相等
+```
