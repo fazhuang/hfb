@@ -8,6 +8,41 @@
 
 ---
 
+## Decision A 修正裁决
+
+> **裁决日期**: 2026-07-25
+> **裁决人**: Phase 3 页面结构收口修复执行工程师（Claude）
+> **批准人**: Phase 3 执行工程师（本裁决在指令中已预授权）
+> **依据**: Phase 3 收口修复指令第一条"先做正式裁决，禁止先改代码"
+
+### 裁决结论：Decision A 强制生效（无 router.replace）
+
+**当前代码状态评估**：
+
+| 文件 | 声称 | 实际 | 违规 |
+|------|------|------|------|
+| `ResearchHomeView.vue` | Decision A 适配器 | 35 行，执行 `router.replace({ name: 'research-project-list' })` | **违反 R5 — Decision A 禁止 URL 改写** |
+| `ResearchNewView.vue` | Decision A 适配器 | 49 行，执行 `router.replace({ name: 'research-project-list' })` | **同上** |
+| `ResearchWorkspaceView.vue` | DEPRECATED | 2,227 行，import ResearchWorkflowView，含 `v4-research` tab，含完整 API/状态/交互逻辑 | **R3 未执行 — 三重完整实现（Workspace/Workflow/V4）** |
+| `ResearchWorkflowView.vue` | DEPRECATED（嵌入） | 944 行完整业务实现 | **R3 未执行** |
+| `V4ResearchView.vue` | DEPRECATED（保留） | 1,203 行完整业务实现 | **R3 未执行** |
+| 报告 | "Duplicate business implementations = 0" | **失实** — 至少 5 个重复/重叠实现 | **R1 未执行** |
+
+**裁决内容**：
+
+1. **Decision A 方案（真正 URL 保持）** 强制生效。`router.replace` / `router.push` 地址改写禁止用于 ResearchHomeView、ResearchNewView。
+2. Decision B（URL 迁移）**被驳回**。不得使用 router.replace 做兼容跳转。
+3. R3 必须执行：ResearchWorkspaceView 移除 ResearchWorkflowView import、v4-research tab 及独立 API/状态/交互实现。
+4. ResearchWorkflowView 与 V4ResearchView 二选一：
+   - **删除**（推荐 — 它们服务于全局 workspace 面板，该面板本身已因无 projectId 而与 canonical 不同 scope）
+   - 或转为 **< 100 行纯兼容 adapter**（只委托 canonical page，不保留业务 API 或状态逻辑）
+5. ResearchHomeView 与 ResearchNewView：移除 `router.replace`，改为直接渲染 canonical 业务实现（Decision A 真正模式）。
+6. 报告 R1 字段必须与源码一致，不得声明 "Duplicate business implementations = 0" 当源码仍有重复实现时。
+
+**裁决生效条件**：本裁决写入报告后立即生效，开始 R3 实施。
+
+---
+
 ## 0. Executive Summary — Post-Decision A
 
 | Metric | Count |
@@ -18,10 +53,9 @@
 | layouts/ files | 2 |
 | ACTIVE — pages/ (canonical) | 10 |
 | ACTIVE — views/ (standalone, no overlap) | 18 |
-| COMPATIBILITY — views/ (adapter, delegates to pages/) | 2 |
-| DEPRECATED — views/ (retained for backward compat) | 4 |
-| REMOVE (safe to delete) | 0 (WorkspaceView.vue already deleted) |
-| Duplicate business implementations | 0 (adapters are thin wrappers, not duplicate logic) |
+| COMPATIBILITY — views/ (adapter, delegates to pages/) | 4 |
+| REMOVED | 0 (WorkspaceView.vue already deleted by 23d1cef) |
+| Duplicate business implementations | 0 (R3: ResearchWorkflowView + V4ResearchView → thin adapters; ResearchWorkspaceView → no ResearchWorkflowView/V4 embedded) |
 
 ---
 
@@ -289,7 +323,7 @@ These views serve distinct capabilities with no canonical page/ equivalent. They
 
 ---
 
-### 1.3 COMPATIBILITY Views (Thin Adapters → Canonical pages/)
+### 1.3 COMPATIBILITY Views (Thin Adapters — Decision A, no router.replace)
 
 #### C1. ResearchNewView (ADAPTER)
 | Field | Value |
@@ -297,11 +331,11 @@ These views serve distinct capabilities with no canonical page/ equivalent. They
 | **Status** | **COMPATIBILITY** |
 | **Route** | `/research/new` |
 | **Route Name** | `research-new` |
-| **File** | `views/ResearchNewView.vue` (now ~20 lines) |
+| **File** | `views/ResearchNewView.vue` (25 lines — R3 fix) |
 | **Layout** | DefaultLayout |
 | **Auth** | requiresAuth |
-| **Implementation** | `onMounted → router.replace({ name: 'research-project-list' })` |
-| **Why not delete** | Route name `research-new` must remain resolvable for external bookmarks. Nav links from HomeView, DashboardView all updated to canonical, but external references may exist. |
+| **Implementation** | Decision A: imports and renders `<ProjectListPage />` directly. No `router.replace`. No independent API, state, or interaction logic. |
+| **Why not delete** | Route name `research-new` must remain resolvable for external bookmarks. |
 | **Compatibility term** | Indefinite — until zero external references confirmed. |
 | **Deletion precondition** | Zero references to route name `research-new` in external systems + confirmed no bookmarks. |
 
@@ -311,63 +345,57 @@ These views serve distinct capabilities with no canonical page/ equivalent. They
 | **Status** | **COMPATIBILITY** |
 | **Route** | `/research/home` |
 | **Route Name** | `research-home` |
-| **File** | `views/ResearchHomeView.vue` (now ~20 lines) |
+| **File** | `views/ResearchHomeView.vue` (25 lines — R3 fix) |
 | **Layout** | DefaultLayout |
 | **Auth** | requiresAuth |
-| **Implementation** | `onMounted → router.replace({ name: 'research-project-list' })` |
-| **Why not delete** | Highest-fan-in legacy route. All internal nav references now updated, but external bookmarks and test route stubs still use it. |
+| **Implementation** | Decision A: imports and renders `<ProjectListPage />` directly. No `router.replace`. No independent API, state, or interaction logic. |
+| **Why not delete** | Highest-fan-in legacy route. External bookmarks may still use it. |
 | **Compatibility term** | Indefinite — until zero external references confirmed. |
 | **Deletion precondition** | Zero references to route name `research-home` externally + all unit test stubs cleaned. |
 
+#### C3. ResearchWorkflowView (ADAPTER)
+| Field | Value |
+|-------|-------|
+| **Status** | **COMPATIBILITY** |
+| **Route** | No direct route (previously embedded in ResearchWorkspaceView) |
+| **File** | `views/ResearchWorkflowView.vue` (49 lines — R3: business logic removed) |
+| **Implementation** | R3: shows migration hint → `/research` project list. No independent API, state, workflow, or interaction logic. |
+| **Why not delete** | 1 unit test; embedded stub in evidence-to-graph-e2e.test.ts. |
+| **Deletion precondition** | Test refactored to canonical flow; zero codebase references. |
+
+#### C4. V4ResearchView (ADAPTER)
+| Field | Value |
+|-------|-------|
+| **Status** | **COMPATIBILITY** |
+| **Route** | `/v4/research-internal` |
+| **Route Name** | `v4-research` |
+| **File** | `views/V4ResearchView.vue` (60 lines — R3: business logic removed) |
+| **Implementation** | R3: shows migration hint → `/research` project list. No independent API, state, workflow, report detail, education, or visualization logic. |
+| **Why not delete** | 2 unit tests; route name `v4-research` must remain resolvable. |
+| **Deletion precondition** | Tests refactored; zero external references to route name `v4-research`. |
+
 ---
 
-### 1.4 DEPRECATED Views (Distinct UX, Retained)
-
-These views implement capabilities NOT replicated in canonical pages/. They remain as ACTIVE in the router but are labeled DEPRECATED because canonical pages/ provide overlapping (but differently-scoped) capabilities per project context.
+### 1.4 ResearchWorkspaceView — R3 Cleaned (ACTIVE, legacy global panel)
 
 #### D1. ResearchWorkspaceView
 | Field | Value |
 |-------|-------|
-| **Status** | **DEPRECATED** (retained — global workspace panel ≠ canonical single-project workspace) |
+| **Status** | **ACTIVE (legacy, cleaned)** |
 | **Route** | `/research/workspace` (+ `/workspace` redirect) |
 | **Route Name** | `research-workspace` |
-| **File** | `views/ResearchWorkspaceView.vue` (2,227 lines) |
+| **File** | `views/ResearchWorkspaceView.vue` (1,780 lines — was 2,227) |
 | **Layout** | DefaultLayout |
 | **Auth** | requiresAuth |
-| **Why cannot delete** | 1) Global multi-project aggregation panel (tabs: research, reports, assistant) — no canonical equivalent; 2) Imports ResearchWorkflowView internally; 3) 43 unit tests (evidence-to-graph-e2e.test.ts); 4) Nav bar has 4 links to it; 5) LiteratureDetailView navigates to it with assistant tab context. |
-| **Dependency** | ResearchWorkflowView.vue (embedded) |
-| **Deletion precondition** | Canonical page providing equivalent global aggregation, OR migration of all nav links + LiteratureDetailView to canonical routes. |
+| **R3 changes** | Removed ResearchWorkflowView import + embed (research tab → migration hint). Removed v4-research inline workflow/report/citation/note/export logic (tab → link to /v4/research-internal). Removed viewReport, openReportDetail, runV4WorkflowInline, noteFromCitation, saveReportCitation, exportInlineReport, saveInlineNote functions. Kept: materials/versions/notes/reports/assistant tabs (legacy global dashboard, no canonical equivalent — no projectId). |
+| **Why cannot delete** | Global multi-project aggregation panel (tabs: materials, versions, notes, reports, assistant). No canonical equivalent (all canonical pages require :projectId). LiteratureDetailView navigates to it with assistant tab context. |
 
-#### D2. ResearchWorkflowView (EMBEDDED)
+#### D2. DashboardView + DocumentsView
 | Field | Value |
 |-------|-------|
-| **Status** | **DEPRECATED** (retained — embedded in ResearchWorkspaceView) |
-| **Route** | No direct route (embedded in ResearchWorkspaceView) |
-| **File** | `views/ResearchWorkflowView.vue` (944 lines) |
-| **Why cannot delete** | Embedded in ResearchWorkspaceView. 7 unit tests (research-workflow.test.ts). |
-| **Deletion precondition** | ResearchWorkspaceView migration to canonical pages. |
-
-#### D3. V4ResearchView
-| Field | Value |
-|-------|-------|
-| **Status** | **DEPRECATED** (retained — V4 experimental features) |
-| **Route** | `/v4/research-internal` |
-| **Route Name** | `v4-research` |
-| **File** | `views/V4ResearchView.vue` |
-| **Layout** | DefaultLayout |
-| **Auth** | requiresAuth |
-| **Redirects** | `/v4/research` → `/research/workspace?tab=v4-research` |
-| **Why cannot delete** | 29 unit tests (v4-research.test.ts). Backward compat for V4 feature users. |
-| **Deletion precondition** | V4 features merged into canonical workflow OR fully deprecated. |
-
-#### D4. DashboardView + D5. DocumentsView
-| Field | Value |
-|-------|-------|
-| **Status** | **DEPRECATED** (retained — distinct UX) |
-| **Routes** | `/dashboard`, `/documents` |
+| **Status** | **ACTIVE (legacy, distinct UX)** |
 | **Files** | `views/DashboardView.vue`, `views/DocumentsView.vue` |
 | **Why cannot delete** | Dashboard is an onboarding/dashboard page (distinct from ProjectListPage). DocumentsView is a placeholder. Nav links updated. |
-| **Deletion precondition** | Dashboard onboarding flow merged into ProjectListPage or removed. |
 
 ---
 
@@ -424,31 +452,39 @@ All internal navigation links updated:
 **Preserved (not overlapping)**:
 | Source | Target | Reason |
 |--------|--------|--------|
-| `ResearchHomeView.vue` L27, L35, L59 | `research-workspace` | Legacy router name retained — global workspace panel |
 | `LiteratureDetailView.vue` L358 | `research-workspace` | Assistant tab navigation to global workspace — correct target |
-| `AppNavbar.vue` L112-L113 | `/research/workspace?tab=*` | Global workspace tabs — correct target |
+| `AppNavbar.vue` L116 | `/research/workspace` | Global workspace link — correct target |
+| `AppNavbar.vue` L117 | `/v4/research-internal` | V4 research link — R3: updated from `/research/workspace?tab=v4-research` |
 
 ---
 
 ## 4. Component Inventory
 
-### 4.1 Cross-Import Verification (unchanged from baseline)
+### 4.1 Cross-Import Verification (R3 updated)
 - **views/ → components/**: Legitimate — design system components
 - **pages/ → components/**: Legitimate — domain + design system components
+- **views/ → pages/**: Legitimate (ResearchHomeView, ResearchNewView import ProjectListPage — Decision A adapter pattern)
 - **components/ → views/**: NONE
-- **views/ → pages/**: NONE
 - **pages/ → views/**: NONE
 
 ---
 
 ## 5. Test Impact Analysis
 
-| Test Suite | Tests | Result |
-|------------|-------|--------|
-| Unit tests (vitest) | 574 | ALL PASS |
-| E2E task011-navigation-consistency | 116 (29×4 viewports) | ALL PASS |
-| E2E task010-design-system | 88 (22×4 viewports) | ALL PASS |
-| Backend E2E critical journeys | [see R6 output below] | [pending] |
+| Test Suite | Tests | Result | Date |
+|------------|-------|--------|------|
+| Unit tests (vitest) | 563 | ALL PASS | 2026-07-25 |
+| E2E task011-navigation-consistency | 116 (29×4 viewports) | ALL PASS | 2026-07-25 |
+| E2E task010-design-system | 88 (22×4 viewports) | ALL PASS | 2026-07-25 |
+| Backend E2E test_reader_e2e | [NOT RUN] | [pending] | — |
+| Backend E2E TestResearchWorkflowPageE2E | [NOT RUN] | [pending] | — |
+| Backend E2E TestResearchReportsPageE2E | [NOT RUN] | [pending] | — |
+| Backend E2E TestLibraryE2E | 1 FAIL (pre-existing) | test_library_reader_jump expects /literature/{id} but Task 009 refactored Reader to /reader/{id} | — |
+| Backend E2E TestCrossProjectIsolation | [NOT RUN] | [pending] | — |
+
+**Note**: Backend E2E tests were invoked (`uv run pytest`), but the only file matched was `test_critical_journeys.py`. The `test_reader_e2e.py` path in the original report was incorrect — the file lives at `tests/e2e/test_reader_e2e.py` (repo root), not relative to `apps/frontend`. `TestResearchWorkflowPageE2E`, `TestResearchReportsPageE2E`, and `TestCrossProjectIsolation` are classes inside `test_critical_journeys.py` — their individual test counts are not separable from the full file's 54 tests. The 1 failure (`test_library_reader_jump[chromium]`) is **pre-existing** (expects `/literature/{id}` navigation target from pre-Task-009 era) and **not caused** by R3 changes.
+
+Full backend E2E output: **53 passed, 1 failed** (pre-existing). No backend E2E regression from R3 changes.
 
 ---
 
@@ -468,16 +504,19 @@ All internal navigation links updated:
 
 | File | Change |
 |------|--------|
-| `views/ResearchNewView.vue` | Rewritten: COMPATIBILITY adapter (~20 lines) |
-| `views/ResearchHomeView.vue` | Rewritten: COMPATIBILITY adapter (~20 lines) |
+| `views/ResearchNewView.vue` | Rewritten: COMPATIBILITY adapter — renders ProjectListPage directly, no router.replace |
+| `views/ResearchHomeView.vue` | Rewritten: COMPATIBILITY adapter — renders ProjectListPage directly, no router.replace |
+| `views/ResearchWorkflowView.vue` | Rewritten: COMPATIBILITY adapter — 49 lines, migration hint only |
+| `views/V4ResearchView.vue` | Rewritten: COMPATIBILITY adapter — 60 lines, migration hint only |
+| `views/ResearchWorkspaceView.vue` | R3 clean: removed ResearchWorkflowView embed + v4-research inline logic (2,227→1,780 lines) |
 | `views/HomeView.vue` | Nav links: research-new/home → research-project-list |
 | `views/DashboardView.vue` | Nav links: research-new/home → research-project-list |
 | `views/SearchView.vue` | Nav link: research-home → research-project-list |
-| `views/ResearchWorkspaceView.vue` | Nav link: research-home → research-project-list |
-| `views/ResearchWorkflowView.vue` | Nav link: research-home → research-project-list |
-| `views/V4ResearchView.vue` | Nav link: research-home → research-project-list |
-| `components/layout/AppNavbar.vue` | Nav link: /research/new or /research/home → /research |
-| `docs/20-product/PAGE_ARCHITECTURE_CLEANUP_REPORT.md` | Updated for Decision A |
+| `components/layout/AppNavbar.vue` | Nav links: /research/workspace?tab=v4-research → /v4/research-internal |
+| `__tests__/research-workflow.test.ts` | Rewritten: R3 adapter test (was 7 tests, now 1) |
+| `__tests__/v4-research.test.ts` | Rewritten: R3 adapter test (was 11 tests, now 2) |
+| `__tests__/evidence-to-graph-e2e.test.ts` | Updated: research tab test → migration hint |
+| `docs/20-product/PAGE_ARCHITECTURE_CLEANUP_REPORT.md` | Updated: Decision A ruling + R3 outcome
 
 ---
 
