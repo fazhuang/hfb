@@ -701,7 +701,7 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
   // =========================================================================
   // Test 8: Workspace research tab contains embedded workflow component
   // =========================================================================
-  it('workspace research tab shows migration hint (R3: ResearchWorkflowView removed from workspace)', async () => {
+  it('workspace research tab renders embedded ResearchWorkflowView', async () => {
     mockGet.mockImplementation(async () => emptyList());
 
     await router.push({ name: 'research-workspace', query: { tab: 'research' } });
@@ -710,14 +710,15 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
     const wrapper = mount(ResearchWorkspaceView, {
       global: {
         plugins: [router, i18n],
+        stubs: {
+          ResearchWorkflowView: { template: '<div class="research-workflow embedded"/>' },
+        },
       },
     });
 
     (wrapper.vm as unknown as { activeTab: string }).activeTab = 'research';
     await flushPromises();
 
-    // R3: research tab now shows migration hint, not embedded workflow
-    const text = wrapper.text();
-    expect(text).toContain('版本研究已迁移');
+    expect(wrapper.find('.research-workflow.embedded').exists()).toBe(true);
   });
 });

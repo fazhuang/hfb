@@ -8,6 +8,30 @@
 
 ---
 
+## Phase 3 行为等价裁决表
+
+> **裁决日期**: 2026-07-25
+> **裁决人**: Phase 3 结构收口与行为冻结修复负责人（Claude）
+> **待批准人**: 产品负责人
+
+| # | 能力 | 旧入口 | 旧可执行行为 | canonical 等价入口 | 等价证明 | 裁决 |
+|---|------|--------|-------------|---------------------|----------|------|
+| 1 | 全局 Workspace（材料/版本/笔记/报告/助手）| `/research/workspace` | 多会话聚合浏览（materials、versions、notes、reports、assistant 五 tab，AI 聊天含 SSE streaming + evidence + graph context）| **无等价物** | canonical 页面均为 `:projectId` 作用域；全局 Workspace 是唯一无 projectId 的多会话聚合面板 | **保留独立业务** — ResearchWorkspaceView 保留 materials/versions/notes/reports/assistant tab 及其 API/状态/交互 |
+| 2 | 版本研究 Workflow（research tab）| `/research/workspace?tab=research` | 版本比较、会话恢复（restoreLatestWorkflow）、空数据容错、网络错误容错 | `ResearchWorkflowPage`（`/research/:projectId/workflow`）— 作用域不同（project-scoped vs global） | 旧 research tab 的会话恢复逻辑通过遍历所有 sessions 查找 version-comparison 数据实现，canonical 无此全局遍历能力 | **保留独立业务** — research tab 恢复 ResearchWorkflowView 嵌入，不可降级为迁移提示 |
+| 3 | V4 研究（workflow + 报告 + 引用 + 导出 + 教育 + 可视化）| `/v4/research-internal`、`/v4/research` → redirect | 完整研究流程（workflow run → report → citation save/export → note）；教育模式（education level send → learn API）；可视化（graph_type → visualization API）；无证据 fail-closed；错误边界；引用真实验证 | `ResearchWorkflowPage` + `ResearchResultPage` — 作用域不同且缺失 V4 实验功能（education、visualization） | canonical 工作流无 education mode、visualization graph API、V4 inline report detail 和引用完整性验证 | **保留独立业务** — V4ResearchView 恢复完整功能；`/v4/research` redirect 保持 |
+| 4 | ResearchHome → ProjectList | `/research/home` | 原首页路由入口 | `ProjectListPage`（`/research`）— 同一业务 | ProjectListPage 可直接渲染，无需 router.replace | ✅ **已收口** — ResearchHomeView 渲染 `<ProjectListPage />`（Decision A） |
+| 5 | ResearchNew → ProjectList | `/research/new` | 原新建课题路由入口 | `ProjectListPage`（`/research`）— 同一业务 | ProjectListPage 的 CreateProjectDialog 等效原新建流程 | ✅ **已收口** — ResearchNewView 渲染 `<ProjectListPage />`（Decision A） |
+| 6 | test_library_reader_jump | `/library/:id` → "全文阅读" → `/reader/:id` | LibraryDetailPage 跳转 Reader 的点击链路 | `/reader/:id`（Task 009 确立的规范） | 当前 `/reader/:id` 是批准后的规范；测试期望 `/literature/:id` 是旧路径 | **修复测试** — 更新 backend E2E 期望 URL 为 `/reader/:id` |
+
+**裁决说明**：
+
+- **#1-3 裁决为"保留独立业务"**：这三项各自服务于全局 / 无 projectId 场景或拥有 canonical 未实现的 V4 实验功能，不得以降级为"迁移提示"代替可执行行为。
+- **R3 收口已完成项（#4-5）**：ResearchHomeView、ResearchNewView 已 Decision A 适配（直接渲染 canonical 组件、无 router.replace），与 canonical 是同一业务，R3 已闭合。
+- **已降级的行为必须在本裁决批准后恢复**：ResearchWorkflowView（完整版本比较 + 会话恢复）、V4ResearchView（完整 workflow/报告/引用/教育/可视化）、ResearchWorkspaceView 的 research + v4-research tab 必须恢复可执行逻辑。
+- 全局 Workspace 与项目 Workspace 标为 **"并存但非重复"**：不同作用域（global vs project-scoped），不可记为 R3 已清退。
+
+---
+
 ## Decision A 修正裁决
 
 > **裁决日期**: 2026-07-25

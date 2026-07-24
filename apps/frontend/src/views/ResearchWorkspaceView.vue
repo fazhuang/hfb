@@ -209,9 +209,9 @@
     <section v-if="activeTab === 'reports'" class="rw-panel">
       <div class="rw-panel-header">
         <h2>{{ t('researchWorkspace.reports') }}</h2>
-        <router-link to="/v4/research-internal" class="rw-action-link rw-action-link--btn">
+        <button class="rw-action-link rw-action-link--btn" @click="activeTab = 'v4-research'">
           {{ t('researchWorkspace.newReport') }} →
-        </router-link>
+        </button>
       </div>
 
       <div v-if="reportsLoading" class="rw-loading">{{ t('common.loading') }}</div>
@@ -219,9 +219,9 @@
       <div v-else-if="reports.length === 0" class="rw-empty">
         <p>{{ t('researchWorkspace.noReports') }}</p>
         <p class="rw-empty-hint">{{ t('onboarding.reportsEmptyHint') }}</p>
-        <router-link to="/v4/research-internal" class="rw-btn rw-btn--primary">
+        <button class="rw-btn rw-btn--primary" @click="activeTab = 'v4-research'">
           {{ t('researchWorkspace.runFirstResearch') }}
-        </router-link>
+        </button>
       </div>
       <div v-else class="rw-reports-list">
         <div v-for="run in reports" :key="run.run_id" class="rw-report-card">
@@ -254,48 +254,209 @@
             </div>
           </div>
           <div class="rw-report-actions">
-            <router-link
-              :to="`/v4/research-internal?run=${run.run_id}`"
-              class="rw-btn rw-btn--sm"
-            >
+            <a v-if="run.run_id" class="rw-btn rw-btn--sm" @click="viewReport(run)">
               {{ t('researchWorkspace.viewReport') }}
-            </router-link>
+            </a>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ============================================================ -->
-    <!-- Tab: 版本研究 (Version Comparison) — delegates to canonical -->
-    <!-- R3 cleanup: ResearchWorkflowView embedded component removed.  -->
-    <!-- This is a global workspace panel (no projectId); the canonical -->
-    <!-- ResearchWorkflowPage is project-scoped. Users should use the   -->
-    <!-- canonical workflow via /research/:projectId/workflow.          -->
+    <!-- Tab: 版本研究 (Version Comparison) — embedded inline        -->
     <!-- ============================================================ -->
     <section v-if="activeTab === 'research'" class="rw-panel rw-panel--flush">
-      <div class="rw-empty">
-        <p>版本研究已迁移至研究课题工作流。</p>
-        <router-link to="/research" class="rw-btn rw-btn--primary">
-          前往研究课题列表
-        </router-link>
-      </div>
+      <ResearchWorkflowView />
     </section>
 
     <!-- ============================================================ -->
-    <!-- Tab: V4 研究 (V4 Research) — redirection hint -->
-    <!-- R3 cleanup: V4ResearchView embedded workflow + report detail -->
-    <!-- logic removed. V4 experimental features are accessed via the   -->
-    <!-- standalone /v4/research-internal route for backward compat.    -->
+    <!-- Tab: V4 研究 (V4 Research) — inline workflow + run loading -->
     <!-- ============================================================ -->
     <section v-if="activeTab === 'v4-research'" class="rw-panel">
       <div class="rw-panel-header">
         <h2>{{ t('nav.v4Research') }} — {{ t('v4.researchTitle') }}</h2>
       </div>
-      <div class="rw-empty">
-        <p>{{ t('researchWorkspace.v4RedirectHint') || 'V4 研究已迁移至独立页面。' }}</p>
-        <router-link to="/v4/research-internal" class="rw-btn rw-btn--primary">
-          前往 V4 研究
-        </router-link>
+
+      <!-- If a specific report is selected -->
+      <div v-if="selectedReport" class="rw-report-detail">
+        <button class="rw-btn rw-btn--sm rw-back-btn" @click="selectedReport = null">
+          ← {{ t('common.back') }}
+        </button>
+
+        <div class="rw-report-header">
+          <h3>{{ selectedReport.topic || t('researchWorkspace.untitledReport') }}</h3>
+          <span class="rw-report-date">{{ formatDate(selectedReport.completed_at) }}</span>
+        </div>
+
+        <!-- Steps -->
+        <div v-if="selectedReport.step_execution_trace" class="rw-report-steps">
+          <span
+            v-for="step in selectedReport.step_execution_trace"
+            :key="step.name"
+            class="rw-step-badge"
+            :class="`rw-step--${step.status || 'pending'}`"
+          >
+            {{ stepIcon(step.status) }} {{ stepName(step.name) }}
+          </span>
+        </div>
+
+        <!-- Full report content -->
+        <div v-if="selectedReport.output_artifacts?.report_sections" class="rw-report-full">
+          <div
+            v-for="(section, si) in selectedReport.output_artifacts.report_sections"
+            :key="si"
+            class="rw-report-section-full"
+          >
+            <h4>{{ section.title || section.heading || `§${si + 1}` }}</h4>
+            <div class="rw-report-body" v-text="section.content || section.body"></div>
+            <!-- Evidence badges for this section -->
+            <div v-if="section.evidence_ids?.length" class="rw-section-evidence">
+              <span class="rw-evidence-label">📎 {{ t('researchWorkspace.linkedEvidence') }}:</span>
+              <span
+                v-for="(evId, ei) in section.evidence_ids.slice(0, 5)"
+                :key="ei"
+                class="rw-evidence-pill"
+                @click="openEvidenceInGraph(evId)"
+              >
+                {{ evId.slice(0, 8) }}...
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full markdown fallback -->
+        <pre v-else-if="selectedReport.output_artifacts?.markdown" class="rw-report-markdown">{{
+          selectedReport.output_artifacts.markdown
+        }}</pre>
+
+        <!-- Citations -->
+        <div v-if="reportCitations.length" class="rw-citations">
+          <h4>{{ t('v4.citations') }} ({{ reportCitations.length }})</h4>
+          <div v-for="(cit, ci) in reportCitations" :key="ci" class="rw-citation-item">
+            <span class="cit-index">#{{ ci + 1 }}</span>
+            <span class="cit-text">{{
+              cit.claim_text || cit.quote || cit.citation_text || '—'
+            }}</span>
+            <button
+              v-if="cit.trace_id"
+              class="rw-evidence-pill rw-evidence-pill--link"
+              @click="openEvidenceInGraph(cit.trace_id)"
+            >
+              🔗 {{ t('researchWorkspace.viewInGraph') }}
+            </button>
+            <!-- P2-⑤: Create note from citation -->
+            <button
+              class="rw-evidence-pill rw-evidence-pill--note"
+              @click="noteFromCitation(cit)"
+              :title="t('v4.noteFromCitation')"
+            >
+              📝 {{ t('v4.noteFromCitation') }}
+            </button>
+            <!-- Save citation to collection -->
+            <button
+              class="rw-evidence-pill rw-evidence-pill--save"
+              @click="saveReportCitation(cit)"
+              :title="t('v4.saveCitation')"
+            >
+              💾 {{ t('v4.saveCitation') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Actions row: Export + Save Note + Citations (matches V4ResearchView) -->
+        <div class="rw-report-actions-row">
+          <button
+            class="rw-btn rw-btn--sm"
+            :disabled="!selectedReport?.output_artifacts?.markdown || v4Exporting"
+            @click="exportInlineReport"
+          >
+            {{ v4Exporting ? t('v4.exporting') : t('v4.export') }}
+          </button>
+          <button
+            class="rw-btn rw-btn--sm"
+            :disabled="v4SavingNote"
+            @click="v4ShowNoteEditor = !v4ShowNoteEditor"
+          >
+            {{ t('v4.saveNote') }}
+          </button>
+          <span v-if="v4NoteMessage" class="rw-note-feedback">{{ v4NoteMessage }}</span>
+        </div>
+
+        <!-- Note editor -->
+        <div v-if="v4ShowNoteEditor" class="rw-note-editor" style="margin-top: 8px">
+          <textarea
+            v-model="v4NoteContent"
+            rows="4"
+            :placeholder="t('v4.notePlaceholder')"
+            style="
+              width: 100%;
+              padding: var(--space-2);
+              border: 1px solid var(--rw-border);
+              border-radius: var(--radius-sm);
+            "
+          ></textarea>
+          <div style="margin-top: 6px">
+            <button
+              class="rw-btn rw-btn--sm rw-btn--primary"
+              :disabled="!v4NoteContent.trim() || v4SavingNote"
+              @click="saveInlineNote"
+            >
+              {{ v4SavingNote ? t('v4.saving') : t('v4.save') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Report list (when no specific report is selected) -->
+      <div v-else>
+        <!-- Quick workflow runner -->
+        <div class="rw-v4-quick">
+          <input
+            v-model="v4Topic"
+            type="text"
+            class="rw-search-input"
+            :placeholder="t('v4.topicPlaceholder')"
+            :disabled="v4Loading"
+            style="flex: 1"
+            @keyup.enter="runV4WorkflowInline"
+          />
+          <button
+            class="rw-btn rw-btn--primary"
+            :disabled="v4Loading || !v4Topic.trim()"
+            @click="runV4WorkflowInline"
+          >
+            {{ v4Loading ? t('common.loading') + '...' : t('v4.runWorkflow') }}
+          </button>
+        </div>
+        <p v-if="v4Error" class="rw-error">{{ v4Error }}</p>
+
+        <div v-if="reportsLoading" class="rw-loading">{{ t('common.loading') }}</div>
+        <div v-else-if="reports.length === 0" class="rw-empty">
+          <p>{{ t('researchWorkspace.noReports') }}</p>
+        </div>
+        <div v-else class="rw-reports-list">
+          <div v-for="run in reports" :key="run.run_id" class="rw-report-card">
+            <div class="rw-report-header">
+              <h3>{{ run.topic || t('researchWorkspace.untitledReport') }}</h3>
+              <span class="rw-report-date">{{ formatDate(run.completed_at) }}</span>
+            </div>
+            <div v-if="run.step_execution_trace" class="rw-report-steps">
+              <span
+                v-for="step in run.step_execution_trace"
+                :key="step.name"
+                class="rw-step-badge"
+                :class="`rw-step--${step.status || 'pending'}`"
+              >
+                {{ stepIcon(step.status) }} {{ stepName(step.name) }}
+              </span>
+            </div>
+            <div class="rw-report-actions">
+              <button class="rw-btn rw-btn--sm" @click="openReportDetail(run)">
+                {{ t('researchWorkspace.viewReport') }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -443,6 +604,7 @@ import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
+import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -451,7 +613,7 @@ const auth = useAuthStore();
 const store = useResearchStore();
 
 // ---- Tab state ----
-// Support ?tab=materials|versions|notes|reports|assistant|v4-research
+// Support ?tab=materials|versions|notes|reports|assistant|research|v4-research
 const activeTab = ref('materials');
 
 interface TabDef {
@@ -518,6 +680,27 @@ interface EvidenceItem {
   saved?: boolean;
   saving?: boolean;
 }
+
+// ---- V4 inline state ----
+const v4Topic = ref('');
+const v4Loading = ref(false);
+const v4Error = ref('');
+const v4SessionId = ref('');
+const selectedReport = ref<ReportRun | null>(null);
+const reportCitations = ref<
+  Array<{
+    trace_id: string;
+    claim_text: string;
+    quote: string;
+    citation_text: string;
+    document_id: string;
+  }>
+>([]);
+const v4Exporting = ref(false);
+const v4ShowNoteEditor = ref(false);
+const v4NoteContent = ref('');
+const v4SavingNote = ref(false);
+const v4NoteMessage = ref('');
 
 // ---- Evidence graph state ----
 interface GraphPreview {
@@ -717,9 +900,258 @@ async function fetchReports() {
   }
 }
 
-// Evidence -> Graph linking
+function viewReport(run: ReportRun) {
+  // Open inline in workspace instead of navigating
+  selectedReport.value = run;
+  // Also extract citations so the detail view has them
+  openReportDetail(run);
+  activeTab.value = 'v4-research';
+}
+
+// ================================================================
+// Reports — detail helpers
+// ================================================================
+function openReportDetail(run: ReportRun) {
+  selectedReport.value = run;
+  // Extract citations from run — try output_artifacts.citations, then replay_manifest
+  const citations: Array<{
+    trace_id: string;
+    claim_text: string;
+    quote: string;
+    citation_text: string;
+    document_id: string;
+  }> = [];
+  const seen = new Set<string>();
+
+  // Path 1: output_artifacts.citations (populated by backend for V4 reports)
+  const artifacts = run.output_artifacts;
+  if (artifacts?.citations) {
+    for (const c of artifacts.citations as Array<Record<string, unknown>>) {
+      const tid = (c.trace_id as string) || '';
+      if (!tid || seen.has(tid)) continue;
+      seen.add(tid);
+      citations.push({
+        trace_id: tid,
+        claim_text: (c.claim_text as string) || '',
+        quote: (c.quote as string) || '',
+        citation_text: (c.citation_text as string) || '',
+        document_id: (c.document_id as string) || '',
+      });
+    }
+  }
+
+  // Path 2: replay_manifest.traces + retrieval_snapshot (cross-reference for richer metadata)
+  const manifest = run.replay_manifest;
+  if (manifest) {
+    const snapshotMap = new Map<string, Record<string, unknown>>();
+    if (manifest.retrieval_snapshot && Array.isArray(manifest.retrieval_snapshot)) {
+      for (const rec of manifest.retrieval_snapshot as Array<Record<string, unknown>>) {
+        const tid = rec.trace_id as string;
+        if (tid) snapshotMap.set(tid, rec);
+      }
+    }
+    if (manifest.traces && Array.isArray(manifest.traces)) {
+      for (const tr of manifest.traces as Array<Record<string, unknown>>) {
+        const tid = tr.trace_id as string;
+        if (!tid || seen.has(tid)) continue;
+        seen.add(tid);
+        const snap = snapshotMap.get(tid) || {};
+        citations.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || (tr.claim_text as string) || '',
+          quote: (snap.quote as string) || (tr.quote as string) || '',
+          citation_text: (snap.citation_text as string) || (tr.citation_text as string) || '',
+          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+        });
+      }
+    }
+    // Fallback: snapshot only
+    if (citations.length === 0 && snapshotMap.size > 0) {
+      for (const [tid, snap] of snapshotMap) {
+        if (seen.has(tid)) continue;
+        seen.add(tid);
+        citations.push({
+          trace_id: tid,
+          claim_text: (snap.claim_text as string) || '',
+          quote: (snap.quote as string) || '',
+          citation_text: (snap.citation_text as string) || '',
+          document_id: (snap.document_id as string) || '',
+        });
+      }
+    }
+  }
+
+  reportCitations.value = citations;
+}
+
+async function runV4WorkflowInline() {
+  if (!v4Topic.value.trim()) return;
+  v4Loading.value = true;
+  v4Error.value = '';
+  try {
+    const sResp = await api.post('/api/v4/research/session', {
+      title: `V4 研究 - ${v4Topic.value}`,
+    });
+    const sid = sResp.data.data.session_id as string;
+    v4SessionId.value = sid;
+
+    const wfResp = await api.post(
+      '/api/v4/research/workflow',
+      {
+        session_id: sid,
+        topic: v4Topic.value.trim(),
+        workflow_type: 'full_research_flow',
+      },
+      { timeout: 120000 },
+    );
+
+    if (wfResp.data.success) {
+      await loadSessions();
+      await fetchReports();
+      const latest = reports.value[0];
+      if (latest) openReportDetail(latest);
+    } else {
+      v4Error.value = wfResp.data.message || t('v4.workflowFailed');
+    }
+  } catch (e: any) {
+    v4Error.value = e?.message || t('v4.workflowFailed');
+  } finally {
+    v4Loading.value = false;
+  }
+}
+
+// P2-⑤: Create a note from a citation
+async function noteFromCitation(cit: {
+  trace_id: string;
+  claim_text: string;
+  quote: string;
+  citation_text: string;
+  document_id: string;
+}) {
+  // Reject citations with no real content
+  if (!cit.trace_id || (!cit.claim_text && !cit.citation_text && !cit.quote && !cit.document_id))
+    return;
+  if (!quickNoteSession.value && sessions.value.length === 0) return;
+  const sessionId = quickNoteSession.value || sessions.value[0]?.id;
+  if (!sessionId) return;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${sessionId}/notes`, {
+      content: `引用: ${cit.citation_text || cit.claim_text || cit.quote || '—'}\n\n---\n\n`,
+      entity_type: 'citation',
+      entity_id: cit.trace_id,
+      tags: '引用笔记',
+    });
+    quickNoteText.value = '';
+    await fetchNotesForSession();
+    activeTab.value = 'notes';
+  } catch {
+    /* ignore */
+  }
+}
+
+// ================================================================
+// Report detail — Save Citation (to citation_collections)
+// ================================================================
+async function saveReportCitation(cit: {
+  trace_id: string;
+  claim_text: string;
+  quote: string;
+  citation_text: string;
+  document_id: string;
+}) {
+  if (!cit.trace_id || !v4SessionId.value) return;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${v4SessionId.value}/citations`, {
+      trace_json: JSON.stringify({
+        trace_id: cit.trace_id,
+        claim_text: cit.claim_text,
+        quote: cit.quote,
+        citation_text: cit.citation_text,
+        document_id: cit.document_id,
+      }),
+      citation_text: cit.citation_text || cit.claim_text || cit.quote || '—',
+      source_document: cit.document_id || 'unknown',
+    });
+    v4NoteMessage.value = t('v4.citationSaved');
+  } catch {
+    v4NoteMessage.value = t('v4.exportFailed');
+  }
+}
+
+// ================================================================
+// Report detail — Export Markdown
+// ================================================================
+async function exportInlineReport() {
+  if (!selectedReport.value) return;
+  v4Exporting.value = true;
+  try {
+    let content = selectedReport.value.output_artifacts?.markdown || '';
+    // Try to append notes
+    if (v4SessionId.value && content) {
+      try {
+        const notesResp = await api.get(`/api/v1/workspace/sessions/${v4SessionId.value}/notes`);
+        const notesList = (notesResp.data.data ?? []) as Array<{
+          content: string;
+          created_at: string;
+        }>;
+        if (notesList.length > 0) {
+          content += '\n\n---\n\n## 研究笔记\n\n';
+          for (const note of notesList) {
+            const date = note.created_at ? new Date(note.created_at).toLocaleString('zh-CN') : '';
+            content += `> ${date}\n\n${note.content}\n\n---\n\n`;
+          }
+        }
+      } catch {
+        /* no notes */
+      }
+    }
+    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hfb-research-report-${(selectedReport.value.run_id || 'report').slice(0, 8)}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    v4NoteMessage.value = t('v4.exported');
+  } catch {
+    v4NoteMessage.value = t('v4.exportFailed');
+  } finally {
+    v4Exporting.value = false;
+  }
+}
+
+// ================================================================
+// Report detail — Save Note
+// ================================================================
+async function saveInlineNote() {
+  if (!v4SessionId.value || !v4NoteContent.value.trim()) return;
+  v4SavingNote.value = true;
+  try {
+    await api.post(`/api/v1/workspace/sessions/${v4SessionId.value}/notes`, {
+      content: v4NoteContent.value.trim(),
+      entity_type: 'v4_research_workflow',
+      entity_id: selectedReport.value?.run_id || v4SessionId.value,
+      tags: 'V4研究',
+    });
+    v4NoteMessage.value = t('v4.noteSaved');
+    v4NoteContent.value = '';
+    v4ShowNoteEditor.value = false;
+  } catch {
+    v4NoteMessage.value = t('v4.noteFailed');
+  } finally {
+    v4SavingNote.value = false;
+  }
+}
+
+// ================================================================
+// Evidence → Graph linking
+// ================================================================
 function openEntityInGraph(entityType: string, entityId: string) {
   router.push({ name: 'graph', query: { type: entityType, id: entityId } });
+}
+
+function openEvidenceInGraph(traceId: string) {
+  router.push({ name: 'graph', query: { trace: traceId } });
 }
 
 // ================================================================
@@ -948,6 +1380,13 @@ onMounted(() => {
   ) {
     activeTab.value = tabParam;
   }
+  // Honor ?run= query param (deep-link to a specific report)
+  const runParam = route.query.run as string | undefined;
+  if (runParam) {
+    activeTab.value = 'v4-research';
+    // The run will be opened after reports load
+    (window as any).__pendingRunId = runParam;
+  }
   // P0-③: Honor ?ask= query param (auto-ask in assistant tab)
   const askParam = route.query.ask as string | undefined;
   if (askParam) {
@@ -960,7 +1399,15 @@ loadSessions().then(async () => {
   fetchMaterials(1);
   fetchVersions(1);
   fetchNotesForSession();
-  fetchReports();
+  fetchReports().then(() => {
+    // If a run was requested via ?run=, open it inline
+    const pendingRunId = (window as any).__pendingRunId as string | undefined;
+    if (pendingRunId) {
+      delete (window as any).__pendingRunId;
+      const found = reports.value.find((r) => r.run_id === pendingRunId);
+      if (found) openReportDetail(found);
+    }
+  });
 
   // P0-③: Handle deferred ask — create session and send the question
   const pendingAsk = (window as any).__pendingAsk as string | undefined;
