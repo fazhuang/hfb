@@ -376,7 +376,7 @@ function addToTopic(item: SearchResultItem) {
     if (!confirmed) return;
   }
   researchStore.setTopic(item.title, item.snippet || item.subtitle || '');
-  router.push({ name: 'research-home' });
+  router.push({ name: 'research-project-list' });
 }
 
 // Watch filters — re-search on change

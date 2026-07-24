@@ -105,11 +105,7 @@ const navItems = computed<NavItem[]>(() => {
 
   // Research entry: shown as primary action right after Home
   if (auth.isAuthenticated) {
-    if (researchStore.hasActiveResearch) {
-      base.push({ path: '/research/home', icon: '🔬', labelKey: 'nav.currentResearch' });
-    } else {
-      base.push({ path: '/research/new', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value });
-    }
+    base.push({ path: '/research', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value });
   }
 
   base.push(

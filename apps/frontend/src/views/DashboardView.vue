@@ -6,7 +6,7 @@
     <div v-if="auth.isAuthenticated && !researchStore.hasActiveResearch && allStatsZero" class="step-guide">
       <span class="sg-title">{{ t('onboarding.stepGuideTitle') }}</span>
       <div class="sg-steps">
-        <router-link :to="{ name: 'research-new' }" class="sg-step sg-step--active">
+        <router-link :to="{ name: 'research-project-list' }" class="sg-step sg-step--active">
           <span class="sg-num">1</span>
           <span class="sg-label">{{ t('onboarding.stepGuideCreateTopic') }}</span>
         </router-link>
@@ -36,14 +36,14 @@
       </div>
       <router-link
         v-if="researchStore.hasActiveResearch"
-        :to="{ name: 'research-home' }"
+        :to="{ name: 'research-project-list' }"
         class="rec-action"
       >
         {{ t('dashboard.goToResearch') }}
       </router-link>
       <router-link
         v-else
-        :to="{ name: 'research-new' }"
+        :to="{ name: 'research-project-list' }"
         class="rec-action rec-action--primary"
       >
         {{ t('researchEntry.create') }}
@@ -66,7 +66,7 @@
       <span class="onboarding-icon">📊</span>
       <p class="onboarding-text">{{ t('onboarding.dashboardAllZero') }}</p>
       <p class="onboarding-sub">{{ t('onboarding.dashboardAllZeroHint') }}</p>
-      <router-link :to="{ name: 'research-new' }" class="onboarding-link">{{ t('onboarding.startExplore') }} →</router-link>
+      <router-link :to="{ name: 'research-project-list' }" class="onboarding-link">{{ t('onboarding.startExplore') }} →</router-link>
     </div>
 
     <!-- Charts Row -->

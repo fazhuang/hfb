@@ -2,7 +2,7 @@
   <div class="research-workflow">
     <!-- Back to current research -->
     <div v-if="researchStore.hasActiveResearch" class="back-to-research">
-      <router-link :to="{ name: 'research-home' }" class="back-link">
+      <router-link :to="{ name: 'research-project-list' }" class="back-link">
         {{ t('researchEntry.backToResearch') }}
       </router-link>
       <span class="back-context">{{ researchStore.currentTopic?.name }}</span>

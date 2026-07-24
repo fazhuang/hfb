@@ -7,12 +7,12 @@
         <p class="hero-subtitle">{{ t('onboarding.welcomeNewUserHint') }}</p>
         <router-link
           v-if="!store.hasActiveResearch"
-          :to="{ name: 'research-new' }"
+          :to="{ name: 'research-project-list' }"
           class="hero-cta"
         >{{ t('onboarding.createFirstTopic') }}</router-link>
         <router-link
           v-else
-          :to="{ name: 'research-home' }"
+          :to="{ name: 'research-project-list' }"
           class="hero-cta"
         >{{ t('researchEntry.backToResearch') }}</router-link>
       </template>
@@ -34,7 +34,7 @@
     <div class="research-entry">
       <router-link
         v-if="auth.isAuthenticated"
-        :to="{ name: store.hasActiveResearch ? 'research-home' : 'research-new' }"
+        :to="{ name: 'research-project-list' }"
         class="research-entry-btn"
       >
         <span class="entry-icon">🔬</span>
