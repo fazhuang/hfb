@@ -147,9 +147,9 @@ const selectedEvidence = computed(() => {
 }
 
 .rcp-citation-item--selected {
-  border-color: var(--color-accent, #4299e1);
+  border-color: var(--color-accent);
   box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
-  background: #ebf8ff;
+  background: var(--color-accent-light);
 }
 
 .rcp-citation-header {

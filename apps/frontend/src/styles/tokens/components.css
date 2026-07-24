@@ -1,0 +1,33 @@
+/* ============================================================
+   HFB Design Tokens — Component Tokens (button, focus ring, input, disabled)
+   皇甫谧数字人文平台
+   ============================================================ */
+
+:root {
+  /* ---- Button Tokens ---- */
+  --btn-padding-sm: 6px 16px;
+  --btn-padding-md: 8px 20px;
+  --btn-padding-lg: 10px 24px;
+  --btn-font-sm: var(--text-xs);
+  --btn-font-md: var(--text-sm);
+  --btn-font-lg: var(--text-base);
+  --btn-radius: var(--radius-lg);
+
+  /* ---- Focus Ring ---- */
+  --focus-ring: 0 0 0 3px rgba(66, 153, 225, 0.15);
+  --focus-ring-sm: 0 0 0 2px rgba(66, 153, 225, 0.15);
+
+  /* ---- Input Tokens ---- */
+  --color-input-bg: var(--color-page-bg);
+  --color-input-border: var(--color-border);
+  --color-input-focus-ring: var(--focus-ring);
+
+  /* ---- Disabled State ---- */
+  --color-disabled-bg: #e2e8f0;
+  --color-disabled-text: #a0aec0;
+}
+
+html.dark {
+  --color-disabled-bg: #2d3748;
+  --color-disabled-text: #718096;
+}

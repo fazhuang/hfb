@@ -1,0 +1,79 @@
+/* ============================================================
+   HFB Base Component — Skeleton
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-skeleton {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-hover) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+}
+
+.hfb-skeleton--pulse {
+  animation: hfb-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.hfb-skeleton--wave {
+  animation: hfb-skeleton-wave 1.5s ease-in-out infinite;
+}
+
+.hfb-skeleton--text {
+  height: 1em;
+  margin-bottom: 0.5em;
+}
+
+.hfb-skeleton--circle {
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.hfb-skeleton--rect {
+  border-radius: var(--radius-md);
+}
+
+/* Skeleton text block (multiple lines) */
+.hfb-skeleton__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hfb-skeleton__line {
+  height: 1em;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-border) 25%,
+    var(--color-hover) 50%,
+    var(--color-border) 75%
+  );
+  background-size: 200% 100%;
+}
+
+.hfb-skeleton__line:last-child {
+  width: 60%;
+}
+
+.hfb-skeleton__line--pulse {
+  animation: hfb-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.hfb-skeleton__line--wave {
+  animation: hfb-skeleton-wave 1.5s ease-in-out infinite;
+}
+
+@keyframes hfb-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes hfb-skeleton-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}

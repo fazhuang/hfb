@@ -1,0 +1,92 @@
+/* ============================================================
+   HFB Base Component — Dropdown
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.hfb-dropdown__trigger {
+  cursor: pointer;
+}
+
+.hfb-dropdown__menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  min-width: 180px;
+  padding: 4px 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+  animation: hfb-fade-in 0.1s ease-out;
+}
+
+/* ---- Placements ---- */
+.hfb-dropdown__menu--bottom-start {
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+}
+
+.hfb-dropdown__menu--bottom-end {
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+}
+
+.hfb-dropdown__menu--top-start {
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+}
+
+.hfb-dropdown__menu--top-end {
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+}
+
+/* ---- Item ---- */
+.hfb-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hfb-dropdown__item:hover {
+  background: var(--color-hover);
+}
+
+.hfb-dropdown__item:disabled {
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.hfb-dropdown__item--danger {
+  color: var(--color-error-text);
+}
+
+.hfb-dropdown__item--danger:hover {
+  background: var(--color-error-bg);
+}
+
+/* ---- Divider ---- */
+.hfb-dropdown__divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 4px 0;
+}

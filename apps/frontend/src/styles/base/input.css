@@ -1,0 +1,131 @@
+/* ============================================================
+   HFB Base Component — Input
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hfb-input__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.hfb-input__required {
+  color: var(--color-error-text);
+  margin-left: 2px;
+}
+
+.hfb-input__container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hfb-input__field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.hfb-input__field::placeholder {
+  color: var(--color-text-muted);
+}
+
+.hfb-input__field:hover:not(:disabled):not(.hfb-input__field--error) {
+  border-color: var(--color-accent);
+}
+
+.hfb-input__field:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--color-input-focus-ring);
+}
+
+.hfb-input__field:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+/* ---- Error state ---- */
+.hfb-input__field--error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 1px var(--color-error);
+}
+
+.hfb-input__field--error:focus {
+  box-shadow: 0 0 0 3px rgba(252, 129, 129, 0.3);
+}
+
+.hfb-input__error {
+  font-size: var(--text-xs);
+  color: var(--color-error-text);
+}
+
+.hfb-input__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---- Sizes ---- */
+.hfb-input__field--sm {
+  padding: 5px 10px;
+  font-size: var(--text-xs);
+}
+
+.hfb-input__field--lg {
+  padding: 10px 16px;
+  font-size: var(--text-lg);
+}
+
+/* ---- Clearable ---- */
+.hfb-input__clear {
+  position: absolute;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hfb-input__clear:hover {
+  background: var(--color-text-secondary);
+}
+
+/* ---- Prefix / Suffix slots ---- */
+.hfb-input__prefix,
+.hfb-input__suffix {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+}
+
+.hfb-input__container--with-prefix .hfb-input__field {
+  padding-left: 4px;
+}
+
+.hfb-input__container--with-suffix .hfb-input__field {
+  padding-right: 4px;
+}

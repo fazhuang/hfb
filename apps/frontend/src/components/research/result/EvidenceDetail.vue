@@ -78,38 +78,38 @@ defineProps<{
 }
 
 .eed-label--claim {
-  background: #ebf8ff;
-  color: #2b6cb0;
-  border: 1px solid #bee3f8;
+  background: var(--color-active);
+  color: var(--color-accent);
+  border: 1px solid var(--color-info);
 }
 
 .eed-label--quote {
-  background: #f0fff4;
-  color: #276749;
-  border: 1px solid #c6f6d5;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-icon-bg);
 }
 
 .eed-label--cit {
-  background: var(--color-page-bg, #fafafa);
-  color: var(--color-text-muted, #a0aec0);
-  border: 1px solid var(--color-border, #e2e8f0);
+  background: var(--color-page-bg);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .eed-claim-text {
   margin: 4px 0 0;
   font-size: 13px;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   line-height: 1.6;
 }
 
 .eed-quote-text {
   margin: 4px 0 0;
   padding: 10px 14px;
-  border-left: 3px solid #38a169;
-  background: #f0fff4;
+  border-left: 3px solid var(--color-success);
+  background: var(--color-success-bg);
   font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
   font-size: 14px;
-  color: #276749;
+  color: var(--color-success-text);
   line-height: 1.9;
   border-radius: 0 6px 6px 0;
 }
@@ -118,11 +118,11 @@ defineProps<{
   display: block;
   margin-top: 4px;
   font-size: 12px;
-  background: var(--color-page-bg, #fafafa);
+  background: var(--color-page-bg);
   padding: 4px 10px;
   border-radius: 4px;
   word-break: break-all;
-  color: var(--color-text-secondary, #4a5568);
+  color: var(--color-text-secondary);
 }
 
 /* Metadata */
@@ -153,11 +153,11 @@ defineProps<{
 }
 
 .eed-meta-value--incomplete {
-  color: #d69e2e;
+  color: var(--color-warning);
 }
 
 .eed-meta-note {
-  color: #d69e2e;
+  color: var(--color-warning);
   font-style: italic;
 }
 </style>

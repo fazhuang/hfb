@@ -1,0 +1,73 @@
+/* ============================================================
+   HFB Base Component — Badge
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ---- Sizes ---- */
+.hfb-badge--md {
+  padding: 3px 10px;
+  font-size: 13px;
+}
+
+/* ---- Pill variant ---- */
+.hfb-badge--pill {
+  border-radius: 9999px;
+  padding: 3px 12px;
+}
+
+/* ---- Dot indicator ---- */
+.hfb-badge--dot {
+  gap: 6px;
+  padding: 2px 10px;
+}
+
+.hfb-badge__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Variants ---- */
+.hfb-badge--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-icon-bg);
+}
+
+.hfb-badge--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border: 1px solid var(--color-warning);
+}
+
+.hfb-badge--error {
+  background: var(--color-error-bg);
+  color: var(--color-error-light-text);
+  border: 1px solid var(--color-error-icon-bg);
+}
+
+.hfb-badge--info {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border: 1px solid var(--color-info);
+}
+
+.hfb-badge--neutral {
+  background: var(--color-tag-bg);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}

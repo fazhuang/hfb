@@ -128,8 +128,8 @@ function isStepClickable(idx: number): boolean {
 
 .wsn-step--completed .wsn-step-btn,
 .wsn-step--completed .wsn-step-text {
-  color: #38a169;
-  border-bottom-color: #38a169;
+  color: var(--color-success-text);
+  border-bottom-color: var(--color-success-text);
 }
 
 /* Visually hidden status text for screen readers */
@@ -171,9 +171,9 @@ function isStepClickable(idx: number): boolean {
 }
 
 .wsn-step--completed .wsn-step-number {
-  background: #38a169;
+  background: var(--color-success);
   color: #fff;
-  border-color: #38a169;
+  border-color: var(--color-success);
 }
 
 .wsn-step-label {

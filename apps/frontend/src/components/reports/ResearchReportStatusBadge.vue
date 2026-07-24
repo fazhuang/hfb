@@ -79,43 +79,43 @@ const badgeClass = computed(() => {
 
 /* ---- Run status colors ---- */
 .rsb-run-completed {
-  background: rgba(56, 161, 105, 0.12);
+  background: var(--color-success-bg);
   color: var(--color-success-text);
 }
 
 .rsb-run-failed {
-  background: rgba(197, 48, 48, 0.1);
+  background: var(--color-error-bg);
   color: var(--color-error-light-text);
 }
 
 .rsb-run-running {
-  background: rgba(49, 130, 206, 0.12);
+  background: var(--color-info-bg);
   color: var(--color-info-text);
 }
 
 .rsb-run-pending {
-  background: rgba(160, 174, 192, 0.12);
+  background: var(--color-tag-bg);
   color: var(--color-text-muted);
 }
 
 /* ---- Report status colors ---- */
 .rsb-report-ready {
-  background: rgba(56, 161, 105, 0.12);
+  background: var(--color-success-bg);
   color: var(--color-success-text);
 }
 
 .rsb-report-missing {
-  background: rgba(237, 137, 54, 0.12);
+  background: var(--color-warning-bg);
   color: var(--color-warning-text);
 }
 
 .rsb-report-failed {
-  background: rgba(197, 48, 48, 0.1);
+  background: var(--color-error-bg);
   color: var(--color-error-light-text);
 }
 
 .rsb-report-pending {
-  background: rgba(160, 174, 192, 0.12);
+  background: var(--color-tag-bg);
   color: var(--color-text-muted);
 }
 </style>

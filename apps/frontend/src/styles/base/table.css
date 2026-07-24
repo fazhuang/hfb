@@ -1,0 +1,116 @@
+/* ============================================================
+   HFB Base Component — Table
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-table-wrapper {
+  width: 100%;
+}
+
+.hfb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+}
+
+/* ---- Header ---- */
+.hfb-table thead th {
+  text-align: left;
+  padding: 10px var(--space-3);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.hfb-table thead th.hfb-table__th--sortable {
+  cursor: pointer;
+}
+
+.hfb-table thead th.hfb-table__th--sortable:hover {
+  color: var(--color-accent);
+}
+
+.hfb-table__sort-icon {
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* ---- Rows ---- */
+.hfb-table tbody td {
+  padding: 10px var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Hoverable ---- */
+.hfb-table--hoverable tbody tr:hover td {
+  background: var(--color-hover);
+}
+
+/* ---- Clickable ---- */
+.hfb-table--clickable tbody tr {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hfb-table--clickable tbody tr:hover td {
+  background: var(--color-hover);
+}
+
+/* ---- Striped ---- */
+.hfb-table--striped tbody tr:nth-child(even) td {
+  background: var(--color-page-bg);
+}
+
+.hfb-table--striped.hfb-table--hoverable tbody tr:hover td {
+  background: var(--color-hover);
+}
+
+/* ---- Bordered ---- */
+.hfb-table--bordered {
+  border: 1px solid var(--color-border);
+}
+
+.hfb-table--bordered td,
+.hfb-table--bordered th {
+  border: 1px solid var(--color-border);
+}
+
+/* ---- Dense ---- */
+.hfb-table--dense thead th,
+.hfb-table--dense tbody td {
+  padding: 6px var(--space-2);
+  font-size: var(--text-sm);
+}
+
+/* ---- Selected ---- */
+.hfb-table tbody tr.hfb-table__row--selected td {
+  background: var(--color-accent-light);
+}
+
+/* ---- Empty / Loading / Error states ---- */
+.hfb-table__state {
+  text-align: center;
+  padding: var(--space-10) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-base);
+}
+
+.hfb-table__state--error {
+  color: var(--color-error-text);
+}
+
+/* ---- Selection checkbox ---- */
+.hfb-table__checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}

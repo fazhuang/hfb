@@ -172,26 +172,26 @@ const safeSourceUrl = computed(() => {
 }
 
 .esrc-field-value--incomplete {
-  color: #d69e2e;
+  color: var(--color-warning);
   font-style: italic;
 }
 
 .esrc-field-code {
   font-size: 11px;
-  color: var(--color-text-secondary, #4a5568);
-  background: var(--color-navbar-bg, #fff);
+  color: var(--color-text-secondary);
+  background: var(--color-navbar-bg);
   padding: 1px 4px;
   border-radius: 3px;
 }
 
 .esrc-field-note {
-  color: #276749;
+  color: var(--color-success-text);
   font-style: italic;
   font-size: 11px;
 }
 
 .esrc-link {
-  color: var(--color-accent, #4299e1);
+  color: var(--color-accent);
   text-decoration: none;
   font-weight: 600;
   font-size: 12px;
@@ -206,7 +206,7 @@ const safeSourceUrl = computed(() => {
 }
 
 .esrc-link--internal {
-  color: #2b6cb0;
+  color: var(--color-accent);
 }
 
 .esrc-missing {
@@ -214,9 +214,9 @@ const safeSourceUrl = computed(() => {
   gap: 6px;
   align-items: center;
   padding: 8px 10px;
-  border: 1px dashed #d69e2e;
+  border: 1px dashed var(--color-warning);
   border-radius: 4px;
-  background: #fffff0;
+  background: var(--color-warning-bg);
 }
 
 .esrc-missing-icon {
@@ -227,6 +227,6 @@ const safeSourceUrl = computed(() => {
 .esrc-missing p {
   margin: 0;
   font-size: 12px;
-  color: #975a16;
+  color: var(--color-warning-text);
 }
 </style>

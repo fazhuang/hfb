@@ -1,0 +1,164 @@
+/* ============================================================
+   HFB Base Component — Select
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hfb-select__label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-primary);
+}
+
+.hfb-select__required {
+  color: var(--color-error-text);
+  margin-left: 2px;
+}
+
+.hfb-select__container {
+  position: relative;
+}
+
+.hfb-select__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-input-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  cursor: pointer;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  text-align: left;
+}
+
+.hfb-select__trigger:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.hfb-select__trigger:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--color-input-focus-ring);
+}
+
+.hfb-select__trigger:disabled {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.hfb-select__trigger--error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 1px var(--color-error);
+}
+
+.hfb-select__placeholder {
+  color: var(--color-text-muted);
+}
+
+.hfb-select__chevron {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.hfb-select__chevron--open {
+  transform: rotate(180deg);
+}
+
+.hfb-select__menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: var(--z-dropdown);
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+  padding: 4px 0;
+}
+
+.hfb-select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hfb-select__option:hover {
+  background: var(--color-hover);
+}
+
+.hfb-select__option--selected {
+  background: var(--color-active);
+  color: var(--color-accent);
+  font-weight: var(--font-medium);
+}
+
+.hfb-select__option--disabled {
+  color: var(--color-disabled-text);
+  cursor: not-allowed;
+}
+
+.hfb-select__option--disabled:hover {
+  background: transparent;
+}
+
+.hfb-select__check {
+  font-size: 12px;
+  color: var(--color-accent);
+}
+
+.hfb-select__error {
+  font-size: var(--text-xs);
+  color: var(--color-error-text);
+}
+
+.hfb-select__hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ---- Clearable ---- */
+.hfb-select__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+  margin-left: 4px;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.hfb-select__clear:hover {
+  background: var(--color-text-secondary);
+}

@@ -97,21 +97,21 @@ const badgeText = computed(() => lineage.value.text);
 }
 
 .els-badge--full {
-  border: 1px solid #c6f6d5;
-  background: #f0fff4;
-  color: #276749;
+  border: 1px solid var(--color-success-icon-bg);
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .els-badge--partial {
-  border: 1px solid #d69e2e;
-  background: #fffff0;
-  color: #975a16;
+  border: 1px solid var(--color-warning);
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .els-badge--minimal {
-  border: 1px solid #fed7d7;
-  background: #fff5f5;
-  color: #9b2c2c;
+  border: 1px solid var(--color-error-icon-bg);
+  background: var(--color-error-bg);
+  color: var(--color-error-light-text);
 }
 
 .els-icon {

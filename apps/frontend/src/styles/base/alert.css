@@ -1,0 +1,89 @@
+/* ============================================================
+   HFB Base Component — Alert
+   皇甫谧数字人文平台
+   ============================================================ */
+
+.hfb-alert {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+.hfb-alert__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.hfb-alert__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.hfb-alert__title {
+  font-weight: var(--font-semibold);
+  margin: 0 0 4px;
+  font-size: var(--text-base);
+}
+
+.hfb-alert__body {
+  color: inherit;
+  margin: 0;
+  opacity: 0.9;
+}
+
+.hfb-alert__actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.hfb-alert__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.hfb-alert__close:hover {
+  opacity: 1;
+}
+
+/* ---- Variants ---- */
+.hfb-alert--info {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info);
+}
+
+.hfb-alert--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border-color: var(--color-success-icon-bg);
+}
+
+.hfb-alert--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+  border-color: var(--color-warning);
+}
+
+.hfb-alert--error {
+  background: var(--color-error-bg);
+  color: var(--color-error-light-text);
+  border-color: var(--color-error-icon-bg);
+}

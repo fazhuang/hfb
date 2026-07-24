@@ -148,18 +148,18 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-status--completed {
-  background: #c6f6d5;
-  color: #276749;
+  background: var(--color-success-icon-bg);
+  color: var(--color-success-text);
 }
 
 .rrs-status--failed {
-  background: #fed7d7;
-  color: #9b2c2c;
+  background: var(--color-error-icon-bg);
+  color: var(--color-error-light-text);
 }
 
 .rrs-status--pending {
-  background: #fefcbf;
-  color: #975a16;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 
 .rrs-steps {
@@ -177,17 +177,17 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-step-badge--completed {
-  background: #c6f6d5;
-  color: #276749;
+  background: var(--color-success-icon-bg);
+  color: var(--color-success-text);
 }
 
 .rrs-step-badge--failed {
-  background: #fed7d7;
-  color: #9b2c2c;
+  background: var(--color-error-icon-bg);
+  color: var(--color-error-light-text);
 }
 
 .rrs-step-badge--pending {
-  background: var(--color-page-bg, #edf2f7);
-  color: var(--color-text-muted, #a0aec0);
+  background: var(--color-page-bg);
+  color: var(--color-text-muted);
 }
 </style>

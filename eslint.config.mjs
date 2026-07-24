@@ -75,6 +75,9 @@ const eslintConfig = [
       'vue/multi-word-component-names': 'off',
       'vue/require-default-prop': 'off',
       'vue/no-v-html': 'warn',
+
+      // Design system: no hardcoded colors
+      'local/no-hardcoded-colors': 'warn',
     },
   },
   // Test files
@@ -87,6 +90,16 @@ const eslintConfig = [
   },
   // Prettier compatibility
   (await import('eslint-config-prettier')).default,
+  // Custom project rules
+  {
+    plugins: {
+      local: {
+        rules: {
+          'no-hardcoded-colors': (await import('./apps/frontend/eslint-rules/no-hardcoded-colors.cjs')).default,
+        },
+      },
+    },
+  },
 ];
 
 export default eslintConfig;
