@@ -47,7 +47,7 @@
 /* Primary */
 .hfb-button--primary {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   border-color: var(--color-accent);
 }
 
@@ -96,7 +96,7 @@
 /* Danger */
 .hfb-button--danger {
   background: var(--color-error-text);
-  color: #fff;
+  color: var(--color-on-accent);
   border-color: var(--color-error-text);
 }
 

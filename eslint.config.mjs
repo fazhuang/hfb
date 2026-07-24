@@ -10,6 +10,8 @@ const eslintConfig = [
       '**/coverage/**',
       '**/pnpm-lock.yaml',
       '**/*.d.ts',
+      '**/.playwright-cli/**',
+      'apps/frontend/eslint-rules/**',
     ],
   },
   // Base TypeScript config (exclude .vue — Vue uses its own parser)
@@ -76,7 +78,16 @@ const eslintConfig = [
       'vue/require-default-prop': 'off',
       'vue/no-v-html': 'warn',
 
-      // Design system: no hardcoded colors
+      // Design system: no hardcoded colors — error (enforced)
+      'local/no-hardcoded-colors': 'error',
+    },
+  },
+  // Pages/views — historical debt, not in current migration scope.
+  // Rule enforced as warn (keeps visibility, doesn't block lint).
+  // These will be migrated in a subsequent phase.
+  {
+    files: ['apps/frontend/src/pages/**/*.vue', 'apps/frontend/src/views/**/*.vue'],
+    rules: {
       'local/no-hardcoded-colors': 'warn',
     },
   },

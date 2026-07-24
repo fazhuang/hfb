@@ -7,7 +7,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-drawer);
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-overlay);
   animation: hfb-fade-in 0.15s ease-out;
 }
 

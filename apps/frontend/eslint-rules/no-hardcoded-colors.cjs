@@ -2,15 +2,20 @@
  * ESLint rule: no-hardcoded-colors
  *
  * Detects standalone hex, rgb, rgba, hsl, hsla color literals in Vue SFC
- * <style> blocks. Requires that colors use `var(--*)` design tokens instead.
+ * <style> blocks AND standalone .css files. Requires that colors use
+ * `var(--*)` design tokens instead.
  *
- * Allowed values:
+ * Whitelist (only these files may contain raw color values):
+ *   - styles/tokens/*.css     (token definition layer)
+ *
+ * Allowed values in managed styles:
  *   - transparent, currentColor, inherit
  *   - url(#...) (SVG references)
- *   - Values inside var(…) fallbacks (already covered by token usage)
  *   - rgba(var(--*) …) — transforming tokens
  *
- * Level: warn (escalate to error after migration)
+ * Also detects var(--token, #fallback) fallback hardcoded colors.
+ *
+ * Level: error
  */
 
 'use strict';
@@ -22,6 +27,9 @@ const RGBA_COLOR = /rgba\([^)]+\)/gi;
 const HSL_COLOR = /(?<!var\()hsl\([^)]+\)/gi;
 const HSLA_COLOR = /hsla\([^)]+\)/gi;
 
+// Detect hardcoded fallback in var(--token, #FALLBACK)
+const VAR_FALLBACK_COLOR = /var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi;
+
 // Allowed exceptions
 const ALLOWED_PATTERNS = [
   /rgba\(var\(--/,           // rgba(var(--*) ...) — token transform
@@ -30,7 +38,7 @@ const ALLOWED_PATTERNS = [
 
 /**
  * @param {string} source
- * @returns {{line: number, column: number, value: string}[]}
+ * @returns {Array<{line: number, column: number, value: string, kind: string}>}
  */
 function findStandaloneColors(source) {
   const lines = source.split('\n');
@@ -40,43 +48,53 @@ function findStandaloneColors(source) {
     const line = lines[i];
     const lineNum = i + 1;
 
-    // Skip comments
+    // Skip CSS comments
     const codeOnly = line.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
 
+    // Strip var() contents to avoid false positives from token references
+    const stripped = codeOnly.replace(/var\([^)]+\)/g, '');
+    // Strip url() contents to avoid SVG references
+    const sanitized = stripped.replace(/url\([^)]+\)/g, '');
+
+    // Detect fallback hardcoded colors inside var()
+    VAR_FALLBACK_COLOR.lastIndex = 0;
+    let fm;
+    while ((fm = VAR_FALLBACK_COLOR.exec(codeOnly)) !== null) {
+      results.push({ line: lineNum, column: fm.index + 1, value: fm[1], kind: 'var-fallback' });
+    }
+
     // Check hex colors (only standalone, not inside var())
-    let match;
     HEX_COLOR.lastIndex = 0;
-    while ((match = HEX_COLOR.exec(codeOnly)) !== null) {
-      const value = match[1];
-      // Skip #fff, #000 and other common short forms in special contexts
-      if (value === '#fff' || value === '#FFF' || value === '#000' || value === '#000000') {
-        // Still report — these should use tokens
-      }
-      results.push({ line: lineNum, column: match.index + 1, value });
+    let match;
+    while ((match = HEX_COLOR.exec(sanitized)) !== null) {
+      results.push({ line: lineNum, column: match.index + 1, value: match[1], kind: 'hex' });
     }
 
     // Check rgb/rgba (standalone, not inside var())
     RGBA_COLOR.lastIndex = 0;
-    while ((match = RGBA_COLOR.exec(codeOnly)) !== null) {
+    while ((match = RGBA_COLOR.exec(sanitized)) !== null) {
       const isAllowed = ALLOWED_PATTERNS.some(p => p.test(match[0]));
       if (!isAllowed) {
-        results.push({ line: lineNum, column: match.index + 1, value: match[0] });
+        results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'rgba' });
       }
     }
 
     RGB_COLOR.lastIndex = 0;
-    while ((match = RGB_COLOR.exec(codeOnly)) !== null) {
-      results.push({ line: lineNum, column: match.index + 1, value: match[0] });
+    while ((match = RGB_COLOR.exec(sanitized)) !== null) {
+      const isAllowed = ALLOWED_PATTERNS.some(p => p.test(match[0]));
+      if (!isAllowed) {
+        results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'rgb' });
+      }
     }
 
     HSL_COLOR.lastIndex = 0;
-    while ((match = HSL_COLOR.exec(codeOnly)) !== null) {
-      results.push({ line: lineNum, column: match.index + 1, value: match[0] });
+    while ((match = HSL_COLOR.exec(sanitized)) !== null) {
+      results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'hsl' });
     }
 
     HSLA_COLOR.lastIndex = 0;
-    while ((match = HSLA_COLOR.exec(codeOnly)) !== null) {
-      results.push({ line: lineNum, column: match.index + 1, value: match[0] });
+    while ((match = HSLA_COLOR.exec(sanitized)) !== null) {
+      results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'hsla' });
     }
   }
 
@@ -86,28 +104,38 @@ function findStandaloneColors(source) {
 /** @type {import('eslint').Rule.RuleModule} */
 module.exports = {
   meta: {
-    type: 'suggestion',
+    type: 'problem',
     docs: {
-      description: 'Disallow hardcoded color values in Vue SFC style blocks',
+      description: 'Disallow hardcoded color values — use design tokens (var(--*))',
       category: 'Best Practices',
-      recommended: false,
+      recommended: true,
     },
     schema: [],
     messages: {
       noHardcodedColor:
         'Hardcoded color "{{value}}" found. Use a design token (var(--color-*)) instead. ' +
-        'Allowed exceptions: transparent, currentColor, inherit, var() references.',
+        'If you need a new color, define it in styles/tokens/ first.',
+      noVarFallback:
+        'Hardcoded fallback color "{{value}}" in var() found. Remove the fallback or use a defined token. ' +
+        'Fallbacks defeat the purpose of token governance.',
     },
   },
 
   create(context) {
-    // Only check .vue files — skip .css files (they define the tokens)
-    if (!context.filename || !context.filename.endsWith('.vue')) {
+    const filename = context.filename || context.getFilename?.() || '';
+
+    // Skip node_modules, dist, coverage
+    if (filename.includes('node_modules') || filename.includes('/dist/') || filename.includes('/coverage/')) {
       return {};
     }
 
-    // Exclude token-definition files and base component styles
-    if (context.filename.includes('/styles/')) {
+    // WHITELIST: only token definition files may contain raw colors
+    if (filename.includes('/styles/tokens/')) {
+      return {};
+    }
+
+    // Only check .vue and .css files
+    if (!filename.endsWith('.vue') && !filename.endsWith('.css')) {
       return {};
     }
 
@@ -115,26 +143,38 @@ module.exports = {
       Program(node) {
         const source = context.getSourceCode().getText();
 
-        // Extract <style> blocks from Vue SFC
-        const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        let blockMatch;
+        if (filename.endsWith('.vue')) {
+          // Extract <style> blocks from Vue SFC
+          const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+          let blockMatch;
 
-        while ((blockMatch = styleRegex.exec(source)) !== null) {
-          const styleContent = blockMatch[1];
-          const blockOffset = blockMatch.index + blockMatch[0].indexOf('>') + 1;
+          while ((blockMatch = styleRegex.exec(source)) !== null) {
+            const styleContent = blockMatch[1];
+            const beforeBlock = source.substring(0, blockMatch.index);
+            const blockStartLine = beforeBlock.split('\n').length;
 
-          // Find the line offset for this block
-          const beforeBlock = source.substring(0, blockMatch.index);
-          const blockStartLine = beforeBlock.split('\n').length;
-
-          const colors = findStandaloneColors(styleContent);
+            const colors = findStandaloneColors(styleContent);
+            for (const c of colors) {
+              context.report({
+                loc: {
+                  line: blockStartLine + c.line - 1,
+                  column: c.column,
+                },
+                messageId: c.kind === 'var-fallback' ? 'noVarFallback' : 'noHardcodedColor',
+                data: { value: c.value },
+              });
+            }
+          }
+        } else {
+          // Standalone .css file
+          const colors = findStandaloneColors(source);
           for (const c of colors) {
             context.report({
               loc: {
-                line: blockStartLine + c.line - 1,
+                line: c.line,
                 column: c.column,
               },
-              messageId: 'noHardcodedColor',
+              messageId: c.kind === 'var-fallback' ? 'noVarFallback' : 'noHardcodedColor',
               data: { value: c.value },
             });
           }

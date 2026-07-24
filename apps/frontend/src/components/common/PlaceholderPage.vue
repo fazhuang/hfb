@@ -35,13 +35,13 @@ defineProps<{
 .placeholder-title {
   font-size: 24px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a365d);
+  color: var(--color-text-primary);
   margin: 0 0 8px;
 }
 
 .placeholder-desc {
   font-size: 14px;
-  color: var(--color-text-muted, #a0aec0);
+  color: var(--color-text-muted);
   max-width: 400px;
   margin: 0;
 }

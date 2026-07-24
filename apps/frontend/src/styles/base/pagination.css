@@ -38,12 +38,12 @@
 .hfb-pagination__btn--active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .hfb-pagination__btn--active:hover {
   background: var(--color-accent-hover);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .hfb-pagination__btn:disabled {

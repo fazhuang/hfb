@@ -1,9 +1,11 @@
 <template>
   <router-view />
+  <HfbToastProvider />
 </template>
 
 <script setup lang="ts">
 import { useTheme } from '@/composables/useTheme';
+import HfbToastProvider from '@/components/common/HfbToastProvider.vue';
 
 // Initialize theme on app mount
 useTheme();

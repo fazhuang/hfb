@@ -77,129 +77,99 @@ related_documents:
 
 # 第三章 色彩系统
 
-## 主色（Primary）
+本章色值以 `apps/frontend/src/styles/tokens/colors.css` 与 `semantic.css` 为唯一真源。
+所有组件必须通过 `var(--color-*)` / `var(--color-*-*)` 引用，禁止组件内硬编码颜色。
 
-```text
-玄墨黑
-#1F2937
-```
+## 核心色彩（Core Colors）
 
-用于：
+定义于 `styles/tokens/colors.css`：
 
-- 导航
-- 标题
-- Logo
+| Token | 用途 | 值 |
+|-------|------|-----|
+| `--color-accent` | 主强调色/链接/AI | `#2b6cb0` |
+| `--color-accent-hover` | 主强调色悬停 | `#1a4f8a` |
+| `--color-accent-light` | 主强调色浅底 | `#ebf8ff` |
+| `--color-text-primary` | 正文/主标题 | `#1a365d` |
+| `--color-text-secondary` | 次要文字/说明 | `#4a5568` |
+| `--color-text-muted` | 占位/禁用/辅助文字 | `#a0aec0` |
+| `--color-border` | 边框/分割线 | `#e2e8f0` |
+| `--color-hover` | 列表/行悬停底色 | `#edf2f7` |
+| `--color-active` | 选中/激活底色 | `#ebf8ff` |
+| `--color-navbar-bg` | 顶部导航背景 | `#ffffff` |
+| `--color-footer-bg` | 底部背景 | `#f8fafc` |
+| `--color-page-bg` | 页面背景 | `#f7fafc` |
+| `--color-surface` | 卡片/面板/弹窗背景 | `#ffffff` |
+| `--color-tag-bg` | 标签背景 | `#edf2f7` |
 
----
+## 语义色彩（Semantic Colors）
 
-## 学术蓝（Academic Blue）
+定义于 `styles/tokens/semantic.css`：
 
-```text
-#1E40AF
-```
+| Token | 语义 | 值 |
+|-------|------|-----|
+| `--color-success` | 成功（图标/边框） | `#68d391` |
+| `--color-success-text` | 成功文字 | `#276749` |
+| `--color-success-bg` | 成功背景 | `#f0fff4` |
+| `--color-success-icon-bg` | 成功图标背景 | `#c6f6d5` |
+| `--color-warning` | 警告（图标/边框） | `#d69e2e` |
+| `--color-warning-text` | 警告文字 | `#975a16` |
+| `--color-warning-bg` | 警告背景 | `#fffff0` |
+| `--color-error` | 错误（图标/边框） | `#fc8181` |
+| `--color-error-text` | 错误文字 | `#c53030` |
+| `--color-error-light-text` | 错误文字（alt） | `#9b2c2c` |
+| `--color-error-bg` | 错误背景 | `#fff5f5` |
+| `--color-error-icon-bg` | 错误图标背景 | `#fed7d7` |
+| `--color-info` | 信息（图标/边框） | `#3182ce` |
+| `--color-info-text` | 信息文字 | `#2c5282` |
+| `--color-info-bg` | 信息背景 | `#ebf8ff` |
 
-用于：
+## 禁用状态（Disabled State）
 
-- 链接
-- AI
-- 图谱
-- 数据分析
+定义于 `styles/tokens/components.css`：
 
----
+| Token | 用途 | Light 值 | Dark 值 |
+|-------|------|----------|---------|
+| `--color-disabled-bg` | 禁用背景 | `#e2e8f0` | `#2d3748` |
+| `--color-disabled-text` | 禁用文字 | `#a0aec0` | `#718096` |
 
-## 朱砂红（Vermilion）
+## 暗色模式
 
-```text
-#B91C1C
-```
-
-用于：
-
-- 校勘
-- 批注
-- 重要提示
-
----
-
-## 宣纸白（Paper）
-
-```text
-#FAF8F2
-```
-
-页面背景。
-
----
-
-## 墨灰
-
-```text
-#6B7280
-```
-
-正文说明。
-
----
-
-## 成功绿
-
-```text
-#15803D
-```
-
-审核通过。
-
----
-
-## 警示橙
-
-```text
-#D97706
-```
-
-待审核。
+`html.dark` 下同名 Token 覆盖为暗色对应值，详见各 Token 文件。组件无需感知模式切换——仅引用 Token 即可。
 
 ---
 
 # 第四章 字体规范
 
-中文：
+所有字族定义于 `styles/tokens/typography.css`：
 
-```text
-思源宋体
-```
+| Token | 用途 | 值 |
+|-------|------|-----|
+| `--font-sans` | UI 正文 | `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif` |
+| `--font-mono` | 代码 | `'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace` |
 
-用于：
+| 字号 Token | 值 |
+|------------|-----|
+| `--text-xs` | `12px` |
+| `--text-sm` | `13px` |
+| `--text-base` | `14px` |
+| `--text-lg` | `16px` |
+| `--text-xl` | `20px` |
+| `--text-2xl` | `22px` |
+| `--text-3xl` | `24px` |
 
-古籍。
+| 字重 Token | 值 |
+|------------|-----|
+| `--font-normal` | `400` |
+| `--font-medium` | `500` |
+| `--font-semibold` | `600` |
+| `--font-bold` | `700` |
 
----
+| 行高 Token | 值 |
+|------------|-----|
+| `--leading-tight` | `1.3` |
+| `--leading-normal` | `1.5` |
 
-中文 UI：
-
-```text
-思源黑体
-```
-
----
-
-英文：
-
-```text
-Inter
-```
-
----
-
-代码：
-
-```text
-JetBrains Mono
-```
-
-禁止：
-
-系统默认字体混用。
+禁止组件硬编码 `font-family`、`font-size`、`font-weight`、`line-height` 值；必须引用上述 Token。
 
 ---
 
@@ -233,56 +203,53 @@ JetBrains Mono
 
 # 第六章 间距系统
 
-统一采用 8pt Grid：
+定义于 `styles/tokens/spacing.css`，基于 4px 基网格：
 
 | Token | 数值 |
 |--------|------|
-| XS | 4px |
-| SM | 8px |
-| MD | 16px |
-| LG | 24px |
-| XL | 32px |
-| XXL | 48px |
-| XXXL | 64px |
+| `--space-1` | 4px |
+| `--space-2` | 8px |
+| `--space-3` | 12px |
+| `--space-4` | 16px |
+| `--space-5` | 20px |
+| `--space-6` | 24px |
+| `--space-7` | 28px |
+| `--space-8` | 32px |
+| `--space-10` | 40px |
+| `--space-15` | 60px |
 
-禁止使用任意间距值。
+禁止硬编码 `margin`、`padding`、`gap` 中的非 Token 间距值。
 
 ---
 
 # 第七章 圆角规范
 
-统一：
+定义于 `styles/tokens/radius.css`：
 
-| 类型 | 数值 |
-|------|------|
-| Small | 4px |
-| Medium | 8px |
-| Large | 12px |
-| Dialog | 16px |
+| Token | 数值 |
+|--------|------|
+| `--radius-sm` | 4px |
+| `--radius-md` | 6px |
+| `--radius-lg` | 8px |
+| `--radius-xl` | 10px |
+| `--radius-2xl` | 12px |
 
-禁止胶囊化按钮。
+禁止胶囊化按钮（`border-radius: 9999px` 仅限 Badge pill 变体与内部指示器）。
 
 ---
 
 # 第八章 阴影规范
 
-统一三级：
+定义于 `styles/tokens/shadow.css`：
 
-Level 1
+| Token | 数值 | 用途 |
+|--------|------|------|
+| `--shadow-sm` | `0 2px 8px rgba(0,0,0,0.06)` | 轻微悬浮 |
+| `--shadow-md` | `0 4px 12px rgba(0,0,0,0.08)` | 卡片/下拉菜单 |
+| `--shadow-lg` | `0 8px 30px rgba(0,0,0,0.15)` | 弹窗/抽屉 |
+| `--shadow-toast` | `0 4px 12px rgba(0,0,0,0.15)` | Toast 通知 |
 
-轻微悬浮。
-
-Level 2
-
-卡片。
-
-Level 3
-
-弹窗。
-
-避免重阴影。
-
-保持纸张质感。
+保持纸张质感，避免重阴影。
 
 ---
 
@@ -437,19 +404,26 @@ Academic Night：
 
 # 第十七章 动效规范
 
-原则：
+定义于 `styles/tokens/transition.css`：
 
-少而精。
+| Token | 值 | 用途 |
+|-------|-----|------|
+| `--transition-fast` | `0.1s` | 微交互（hover/icon） |
+| `--transition-base` | `0.15s` | 常用过渡 |
+| `--transition-slow` | `0.2s` | 面板/抽屉展开 |
 
-动画时长：
+原则：少而精，动画时长 ≤250ms。禁止炫酷特效，不得影响阅读。
 
-150~250ms。
+## Z-Index 层级
 
-禁止：
+定义于 `styles/tokens/z-index.css`：
 
-炫酷特效。
-
-不得影响阅读。
+| Token | 值 | 用途 |
+|-------|-----|------|
+| `--z-dropdown` | `900` | 下拉菜单/选择器 |
+| `--z-dialog` | `1000` | 对话框 |
+| `--z-drawer` | `1100` | 抽屉 |
+| `--z-toast` | `1200` | Toast 通知 |
 
 ---
 
@@ -484,15 +458,25 @@ WCAG 2.1 AA。
 
 # 第二十章 Design Token
 
-所有颜色、字体、间距必须配置为：
+唯一真源目录：`apps/frontend/src/styles/tokens/`。
 
-```text
-Design Tokens
-```
+Token 文件结构：
 
-禁止：
+| 文件 | 内容 |
+|------|------|
+| `colors.css` | 核心色彩（accent, text, border, surface, bg） |
+| `semantic.css` | 语义色彩（success, warning, error, info） |
+| `components.css` | 组件级 Token（btn, input, focus-ring, disabled） |
+| `typography.css` | 字族、字号、字重、行高 |
+| `spacing.css` | 4px 基网格间距 |
+| `radius.css` | 圆角 |
+| `shadow.css` | 阴影 |
+| `z-index.css` | Z 轴层级 |
+| `transition.css` | 动画时长 |
 
-组件硬编码颜色。
+入口文件 `apps/frontend/src/assets/main.css` 仅负责 `@import` Token 文件与全局 reset/keyframe。禁止在其他位置定义同类视觉常量。
+
+所有组件必须引用 `var(--*)` Token，禁止硬编码颜色/间距/圆角/阴影/z-index/transition 值。
 
 ---
 

@@ -66,7 +66,7 @@
 }
 
 .hfb-input__field--error:focus {
-  box-shadow: 0 0 0 3px rgba(252, 129, 129, 0.3);
+  box-shadow: var(--focus-ring-error);
 }
 
 .hfb-input__error {
@@ -102,7 +102,7 @@
   border: none;
   border-radius: 50%;
   background: var(--color-text-muted);
-  color: #fff;
+  color: var(--color-on-accent);
   font-size: 12px;
   cursor: pointer;
   transition: background var(--transition-fast);

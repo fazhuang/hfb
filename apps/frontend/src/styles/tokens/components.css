@@ -16,6 +16,7 @@
   /* ---- Focus Ring ---- */
   --focus-ring: 0 0 0 3px rgba(66, 153, 225, 0.15);
   --focus-ring-sm: 0 0 0 2px rgba(66, 153, 225, 0.15);
+  --focus-ring-error: 0 0 0 3px rgba(252, 129, 129, 0.3);
 
   /* ---- Input Tokens ---- */
   --color-input-bg: var(--color-page-bg);
@@ -25,6 +26,12 @@
   /* ---- Disabled State ---- */
   --color-disabled-bg: #e2e8f0;
   --color-disabled-text: #a0aec0;
+
+  /* ---- Surfaces ---- */
+  --color-overlay: rgba(0, 0, 0, 0.4);
+
+  /* ---- Text on accent/dark backgrounds ---- */
+  --color-on-accent: #ffffff;
 }
 
 html.dark {

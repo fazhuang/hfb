@@ -151,7 +151,7 @@
   border: none;
   border-radius: 50%;
   background: var(--color-text-muted);
-  color: #fff;
+  color: var(--color-on-accent);
   font-size: 10px;
   cursor: pointer;
   margin-left: 4px;
