@@ -51,19 +51,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Stay in-flow at all widths. No auto-collapse. Sidebar occupies
-// its 240px slot in the flex layout; content gets the remaining space.
-// At ≤375px this causes the document body to horizontally overflow, so
-// overflow tests measure the content area (.ral-content), not document.
-onMounted(() => {});
-onBeforeUnmount(() => {});
+// Sidebar stays in-flow at all widths. No auto-collapse. The sidebar
+// occupies its 240px slot in the flex layout; content gets the remaining
+// space. At ≤375px this causes the document body to horizontally
+// overflow, so overflow tests measure the content area (.ral-content),
+// not document.
+//
+// The .ral-mobile-toggle button (position:fixed, z-index:300) only
+// appears at ≤768px via @media query. At that width the sidebar remains
+// in-flow (position:sticky), so the toggle is spatially independent of
+// the sidebar — it does not push or reposition the sidebar, which stays
+// in the document flow for nav-link reachability.
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
