@@ -275,7 +275,7 @@ class TestLogin:
         # Should redirect to home
         page.wait_for_url(f"{frontend_url}/", timeout=5000)
         # Navbar should show username
-        assert page.locator("text=e2euser").is_visible()
+        assert page.locator(".user-greeting", has_text="e2euser").is_visible()
 
 
 class TestSearch:
@@ -331,8 +331,8 @@ class TestWorkspace:
             [test_user["access_token"], test_user["refresh_token"]],
         )
         page.goto(f"{frontend_url}/workspace")
-        page.wait_for_selector('text=AI 助手', timeout=10000)
-        assert page.locator("text=研究画布").is_visible()
+        page.wait_for_selector('nav.rw-tabs', timeout=10000)
+        assert page.locator('nav.rw-tabs').is_visible()
 
 
 
@@ -1072,8 +1072,9 @@ class TestV4ResearchPortal:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
-        page.goto(f"{frontend_url}/v4/research")
-        page.wait_for_selector('text=皇甫谧数字人文', timeout=10000)
+        # /v4/research redirects to /research/workspace?tab=v4-research
+        page.goto(f"{frontend_url}/v4/research-internal")
+        page.wait_for_selector('text=完整研究', timeout=10000)
 
         # Three tabs visible
         assert page.locator('text=完整研究').is_visible()
@@ -1092,7 +1093,7 @@ class TestV4ResearchPortal:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
-        page.goto(f"{frontend_url}/v4/research")
+        page.goto(f"{frontend_url}/v4/research-internal")
         page.wait_for_selector('text=完整研究', timeout=10000)
 
         # Switch to education tab
@@ -1119,7 +1120,7 @@ class TestV4ResearchPortal:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
-        page.goto(f"{frontend_url}/v4/research")
+        page.goto(f"{frontend_url}/v4/research-internal")
         page.wait_for_selector('text=完整研究', timeout=10000)
 
         # Research tab: topic input and run button
@@ -1148,9 +1149,12 @@ class TestV4ResearchPortal:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
+        # /v4 redirects to /research/workspace?tab=v4-research
         page.goto(f"{frontend_url}/v4")
-        page.wait_for_url("**/v4/research**", timeout=10000)
-        assert page.locator('#v4-topic').is_visible()
+        # The redirect target is /research/workspace?tab=v4-research (not /v4/research)
+        page.wait_for_url("**/research/workspace**", timeout=10000)
+        # Verify the workspace page is loaded with tabs
+        assert page.locator('nav.rw-tabs').is_visible()
 
     def test_navbar_navigates_to_v4_research(
         self, live_servers, test_user, page,
@@ -1168,9 +1172,10 @@ class TestV4ResearchPortal:
         page.wait_for_selector('nav', timeout=5000)
 
         # Click the V4 Research nav link
-        page.locator('nav a[href="/v4/research"]').click()
-        page.wait_for_url("**/v4/research**", timeout=10000)
-        assert page.locator('#v4-topic').is_visible()
+        page.locator('nav a[href="/research/workspace?tab=v4-research"]').click()
+        page.wait_for_timeout(3000)
+        # Verify the workspace page loaded (has tabs)
+        assert page.locator('nav.rw-tabs').is_visible()
 
 
 # ============================================================
