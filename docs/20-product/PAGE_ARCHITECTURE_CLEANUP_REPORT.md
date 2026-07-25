@@ -47,17 +47,17 @@
 
 | Command | HEAD | Date | Result |
 |---------|------|------|--------|
-| `npm run type-check` | `bf2eebd` | 2026-07-25 | ✅ PASS |
-| `npm run test -- --run` | `bf2eebd` | 2026-07-25 | **574/574 PASS** |
-| `npm run build` | `bf2eebd` | 2026-07-25 | ✅ PASS |
-| `npx playwright test task011-navigation-consistency.spec.ts` | `bf2eebd` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
-| `npx playwright test task010-design-system.spec.ts` | `bf2eebd` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
+| `npm run typecheck` | `066502c` | 2026-07-25 | ✅ PASS |
+| `npm run test -- --run` | `066502c` | 2026-07-25 | **574/574 PASS** |
+| `npm run build` | `066502c` | 2026-07-25 | ✅ PASS |
+| `npx playwright test task011-navigation-consistency.spec.ts` | `066502c` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
+| `npx playwright test task010-design-system.spec.ts` | `066502c` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
 
 ### 后端 E2E（repo root，`--browser chromium`）
 
 | Command | HEAD | Date | Result |
 |---------|------|------|--------|
-| `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `bf2eebd` | 2026-07-25 | **93/93 PASS** |
+| `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `066502c` | 2026-07-25 | **93/93 PASS** |
 
 ### 修复的后端 E2E —— 使其与当前 UI 一致
 
