@@ -1,10 +1,12 @@
 # Page Architecture Cleanup Report — Phase 3
 
 > **Generated**: 2026-07-25
-> **HEAD**: `bf2eebd`
-> **Baseline**: Phase 2 DS Engineering Governance freeze (23d1cef)
+> **代码证据基线**: `066502c`（运行命令实际执行的代码提交）
+> **文档状态基线**: `ab7b4f8`（本报告当前提交）
+> **Phase 2 工程治理冻结基线**: `23d1cef`
 > **Scope**: `apps/frontend/src/` — router, pages, views, layouts, components
-> **Status**: **BLOCK_RELEASE** — R3/R5: PENDING_PRODUCT_APPROVAL
+> **Status**: **BLOCK_RELEASE** — R3/R5: PENDING_PRODUCT_APPROVAL；R6: PENDING_CURRENT_RUNTIME_RECHECK
+> **重新验收要求**: 任何代码或测试变更后，必须在该新 HEAD 重新执行全部 R6 命令。
 
 ---
 
@@ -34,16 +36,20 @@
 
 ---
 
-## R6 真实运行证据 — 当前 HEAD `bf2eebd`（2026-07-25）
+## R6 运行证据 — PENDING_CURRENT_RUNTIME_RECHECK
 
-### 环境确认
+**当前状态**: `http://127.0.0.1:8000/health` → 后端不可达（连接拒绝）。
+
+**`066502c` 历史运行记录**（2026-07-25，保留为历史证据；不可替代当前环境的运行证明）：
+
+### 环境确认（历史记录，`066502c`）
 
 | Check | Result |
 |-------|--------|
 | `curl /health` | ✅ HTTP 200 — `{"status":"healthy"}` |
 | `curl /ready` | ✅ HTTP 200 — 全部服务（PostgreSQL、Redis、Elasticsearch、MinIO）健康 |
 
-### 前端命令（`apps/frontend`）
+### 前端命令（历史记录，`066502c`）
 
 | Command | HEAD | Date | Result |
 |---------|------|------|--------|
@@ -53,15 +59,15 @@
 | `npx playwright test task011-navigation-consistency.spec.ts` | `066502c` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
 | `npx playwright test task010-design-system.spec.ts` | `066502c` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
 
-### 后端 E2E（repo root，`--browser chromium`）
+### 后端 E2E（历史记录，`066502c`，`--browser chromium`）
 
 | Command | HEAD | Date | Result |
 |---------|------|------|--------|
 | `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `066502c` | 2026-07-25 | **93/93 PASS** |
 
-### 修复的后端 E2E —— 使其与当前 UI 一致
+### 历史修复的后端 E2E —— 使其与当前 UI 一致（`066502c`）
 
-以下测试在本次运行中更新，以匹配生产中的实际路由/选择器：
+以下测试在 `066502c` 运行中更新，以匹配生产中的实际路由/选择器：
 
 | Test | Change | Reason |
 |------|--------|--------|
@@ -74,21 +80,29 @@
 | `test_navbar_navigates_to_v4_research` | 点击 `nav a[href="/v4/research"]`，期望 `**/v4/research**` → 点击 `nav a[href="/research/workspace?tab=v4-research"]`，期望 `**/v4/research-internal**` | 导航栏链接是 `/research/workspace?tab=v4-research`；点击后重定向至 `/v4/research-internal` |
 | `test_library_reader_jump` | `/literature/{doc_id}` → `/reader/{doc_id}` | Task 009 将 Reader 从 `/literature/:id` 重构为 `/reader/:id` |
 
+### R6 重新闭合条件
+
+后端恢复并满足以下两项后：
+- `curl -fsS http://127.0.0.1:8000/health`
+- `curl -fsS http://127.0.0.1:8000/ready`
+
+在当时的当前 HEAD 依次执行所有 R6 命令并获取全部最终全绿统计后，才可将 R6 改为 PASS，并记录实际执行 HEAD。
+
 ---
 
 ## 结论
 
 | Gate | Status |
 |------|--------|
-| R1 (Report truth) | ✅ — report updated to reflect HEAD `bf2eebd` and real run data |
+| R1 (Report truth) | ✅ — 报告已使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `ab7b4f8`） |
 | R3 (Single implementation) | **PENDING_PRODUCT_APPROVAL** — 能力 #1-3 必须由产品负责人批准 |
 | R5 (Behavior preservation) | **PENDING_PRODUCT_APPROVAL** — 直至能力 #1-3 获批准；#4-5 已收口 |
-| R6 (Real evidence) | ✅ — type-check、574 UT、build、116 E2E task011、88 E2E task010 全部通过；后端 E2E 最终统计见上文 |
-| Release | **BLOCK_RELEASE** — 产品负责人必须在报告上签字批准能力边界，然后才可解除；backend E2E 必须在本报告定稿时显示最终全绿统计 |
+| R6 (Real evidence) | **PENDING_CURRENT_RUNTIME_RECHECK** — 当前验收环境后端不可达；`066502c` 历史运行记录保留为历史证据，不可替代当前环境的运行证明。后端恢复后重新执行全部 R6 命令并获取全绿统计后方可改为 PASS。 |
+| Release | **BLOCK_RELEASE** — 产品负责人必须在报告上签字批准能力边界，然后才可解除；R6 必须在当前运行环境重新闭合。 |
 
 ---
 
-## Appendix A: Route Name Mapping (Current — `bf2eebd`)
+## Appendix A: Route Name Mapping（代码证据基线 `066502c`）
 
 | Route Name | Route URL | Status |
 |------------|-----------|--------|
