@@ -223,7 +223,7 @@ async def list_source_policies(
     "/admin/source-policies",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(user_create_guard)],
+    dependencies=[Depends(user_read_guard)],
 )
 async def create_source_policy(
     body: SourcePolicyCreate,
