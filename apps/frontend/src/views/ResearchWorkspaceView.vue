@@ -788,7 +788,7 @@ async function fetchVersions(p: number) {
   try {
     const params: Record<string, unknown> = { page: p, limit: versionsLimit };
     if (versionsQuery.value.trim()) params.q = versionsQuery.value.trim();
-    const { data } = await api.get('/api/classical-versions', { params });
+    const { data } = await api.get('/api/v1/classical-versions', { params });
     versions.value = (data.data ?? []) as VersionItem[];
     versionsTotal.value = (data.total ?? data.meta?.total ?? 0) as number;
   } catch (e: any) {

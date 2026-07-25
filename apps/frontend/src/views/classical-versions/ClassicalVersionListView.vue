@@ -96,7 +96,7 @@ async function fetchPage(p: number) {
     if (reviewFilter.value) params.review_status = reviewFilter.value;
     if (domainFilter.value) params.public_domain_status = domainFilter.value;
 
-    const { data } = await api.get('/api/classical-versions', { params });
+    const { data } = await api.get('/api/v1/classical-versions', { params });
     const body = data.data ?? data;
     items.value = body.items ?? [];
     total.value = body.total ?? 0;
