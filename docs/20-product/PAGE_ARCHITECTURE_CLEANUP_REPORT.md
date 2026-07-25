@@ -49,30 +49,32 @@
 
 ---
 
-## R6 运行证据 — ✅ PASS（`74cee05`，2026-07-25 当前环境）
+## R6 验证命令（需在当前 HEAD 执行后方可判定）
 
-### 当前环境确认（`74cee05`）
+以下命令需在目标 HEAD 逐一执行，结果不得臆造：
 
-| Check | Result |
-|-------|--------|
-| `curl /health` | ✅ HTTP 200 — `{"status":"healthy"}` |
-| `curl /ready` | ✅ HTTP 200 — 全部服务（PostgreSQL、Redis、Elasticsearch、MinIO）健康 |
+### 当前环境确认
+
+```bash
+curl -fsS http://127.0.0.1:8000/health
+curl -fsS http://127.0.0.1:8000/ready
+```
 
 ### 前端命令（`apps/frontend`）
 
-| Command | HEAD | Date | Result |
-|---------|------|------|--------|
-| `npm run typecheck` | `74cee05` | 2026-07-25 | ✅ PASS |
-| `npm run test -- --run` | `74cee05` | 2026-07-25 | **574/574 PASS** |
-| `npm run build` | `74cee05` | 2026-07-25 | ✅ PASS |
-| `npx playwright test task011-navigation-consistency.spec.ts` | `74cee05` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
-| `npx playwright test task010-design-system.spec.ts` | `74cee05` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
+```bash
+npm run typecheck
+npm run test -- --run
+npm run build
+npx playwright test task011-navigation-consistency.spec.ts
+npx playwright test task010-design-system.spec.ts
+```
 
 ### 后端 E2E（repo root，`--browser chromium`）
 
-| Command | HEAD | Date | Result |
-|---------|------|------|--------|
-| `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `74cee05` | 2026-07-25 | **93/93 PASS** (9:59 elapsed) |
+```bash
+uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov --browser chromium
+```
 
 ### 历史运行记录（Historical evidence only — not current-environment release proof）
 
@@ -97,11 +99,18 @@
 
 | Gate | Status |
 |------|--------|
-| R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；`c9a4f5e` 历史运行记录已标注为 Historical evidence only |
+| R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；历史运行记录已标注为 Historical evidence only |
 | R3 (Single implementation) | **CONDITIONAL** — 能力 #1–#3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED（迁移后闭合）；#4–#5 已收口（Decision A） |
 | R5 (Behavior preservation) | **CONDITIONAL** — 能力 #1–#3 迁移验收通过后闭合；#4–#5 已收口 |
-| R6 (Real evidence) | ✅ — 在 `74cee05` 当前环境重新验收：type-check、574 UT、build、116 E2E task011、88 E2E task010、93 后端 E2E 全部通过 |
-| Release | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 |
+| R6 (Real evidence) | **PENDING** — 需在当前 HEAD 执行全部 R6 验证命令；现有数据来自 `74cee05` 历史运行记录，不是当前 HEAD 的实时证据 |
+| Release | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 + R6 当前 HEAD 未复验 + 未完成项待解决 |
+
+**未完成项（当前 HEAD）**：
+
+1. `/v4/research-internal` 内部入口仍对开发环境开放（Phase 3 未公开入口验收）
+2. Knowledge 占位页（教育模式/可视化工作流等价实现）推迟，未完成
+3. API 契约未收口（V4 内部路由兼容行为未声明为最终状态）
+4. M5 发布验收命令尚未在当前 HEAD 运行
 
 ---
 

@@ -315,20 +315,44 @@ M0（本契约 FROZEN ✅）
 - [x] 每条等价验收标准的「停止条件」已解决
 - [x] 本契约经审查确认无遗漏能力
 
-**当前状态：M5 PASS ✅ — 全部门禁闭合，RELEASE_READY**
+**当前状态：BLOCK_RELEASE** — 能力 #1–#3 迁移已实施，但当前 HEAD 未完成发布验收。需在新 HEAD 重新运行全部门禁命令后方可更新状态。
 
-## M5 运行闭环证据（当前 HEAD）
+## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
 
-| 门禁 | 命令 | 结果 |
-|------|------|------|
-| Health | `curl -fsS http://127.0.0.1:8000/health` | `{"success":true,"status":"healthy"}` |
-| Ready | `curl -fsS http://127.0.0.1:8000/ready` | All 4 services healthy |
-| Type-check | `npm run type-check` | **PASS** (0 errors) |
-| Unit tests | `npm run test -- --run` | **21 files / 599 tests ALL GREEN** |
-| Build | `npm run build` | **PASS** (4.02s, VersionComparisonPage included) |
-| Backend E2E | `pytest tests/e2e/test_critical_journeys.py tests/e2e/test_reader_e2e.py --browser chromium` | **93 passed** (9m35s) |
-| Git status | `git status --short` | **CLEAN** — HEAD 9ff76b9 |
-| HEAD commit | `git log --oneline -1` | `2c71e6f` — 已推送 origin/master |
+以下命令需在目标 HEAD 逐一执行，结果不得臆造：
+
+```bash
+# Health
+curl -fsS http://127.0.0.1:8000/health
+
+# Ready
+curl -fsS http://127.0.0.1:8000/ready
+
+# Type-check
+cd apps/frontend && npm run type-check
+
+# Unit tests
+cd apps/frontend && npm run test -- --run
+
+# Build
+cd apps/frontend && npm run build
+
+# Backend E2E
+uv run pytest tests/e2e/test_critical_journeys.py tests/e2e/test_reader_e2e.py \
+  --browser chromium -q --no-cov
+
+# Git status
+git status --short && git rev-parse --short HEAD && git log --oneline -1
+```
+
+**未完成项（当前 HEAD 未验收）**：
+
+- M5 发布验收命令尚未在当前 HEAD 运行
+- `/v4/research-internal` 内部入口仍对开发环境开放（Phase 3 未公开入口验收）
+- Knowledge 占位页（教育模式/可视化工作流等价实现）推迟，未完成
+- API 契约未收口（V4 内部路由兼容行为未声明为最终状态）
+
+**前提条件**：以上未完成项全部解决、当前 HEAD 上全部命令均通过后，方可更新状态为 RELEASE_READY。
 
 ---
 
