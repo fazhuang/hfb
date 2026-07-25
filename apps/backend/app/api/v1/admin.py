@@ -1,6 +1,7 @@
 """
 Admin API — document review, withdraw, ingestion audit, source policies.
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -58,7 +59,9 @@ async def review_document(
 
     doc = await session.get(Document, str(document_id))
     if doc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
 
     now = datetime.now(timezone.utc)
     doc.review_status = body.review_status
@@ -75,6 +78,7 @@ async def review_document(
     if rag_enabled and doc.source_url:
         try:
             from app.services.ingestion import IngestionService as _IngSvc
+
             await _IngSvc._ensure_source_ref(
                 session=session,
                 title=doc.title,
@@ -84,6 +88,7 @@ async def review_document(
             )
         except Exception:
             import logging
+
             logging.getLogger(__name__).exception(
                 "Failed to create SourceRef on review for doc %s", document_id
             )
@@ -117,7 +122,9 @@ async def withdraw_document(
 ) -> dict:
     doc = await session.get(Document, str(document_id))
     if doc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     if doc.withdrawn_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -169,27 +176,29 @@ async def list_ingestion_tasks(
 
     items = []
     for r in rows:
-        items.append({
-            "id": r.id,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
-            "action": r.action,
-            "status": r.status,
-            "source_url": r.source_url,
-            "source_name": r.source_name,
-            "copyright_status": r.copyright_status,
-            "authorization_basis": r.authorization_basis,
-            "license_type": r.license_type,
-            "review_status": r.review_status,
-            "reviewed_by": r.reviewed_by,
-            "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
-            "checksum": r.checksum,
-            "result_entity_type": r.result_entity_type,
-            "result_entity_id": r.result_entity_id,
-            "reject_reason": r.reject_reason,
-            "skipped_reason": r.skipped_reason,
-            "actor_id": r.actor_id,
-            "details": r.details,
-        })
+        items.append(
+            {
+                "id": r.id,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+                "action": r.action,
+                "status": r.status,
+                "source_url": r.source_url,
+                "source_name": r.source_name,
+                "copyright_status": r.copyright_status,
+                "authorization_basis": r.authorization_basis,
+                "license_type": r.license_type,
+                "review_status": r.review_status,
+                "reviewed_by": r.reviewed_by,
+                "reviewed_at": r.reviewed_at.isoformat() if r.reviewed_at else None,
+                "checksum": r.checksum,
+                "result_entity_type": r.result_entity_type,
+                "result_entity_id": r.result_entity_id,
+                "reject_reason": r.reject_reason,
+                "skipped_reason": r.skipped_reason,
+                "actor_id": r.actor_id,
+                "details": r.details,
+            }
+        )
 
     return api_response(data={"items": items, "total": total})
 
@@ -216,7 +225,9 @@ async def list_source_policies(
 ) -> dict:
     stmt = sql_select(SourcePolicy).order_by(SourcePolicy.source_name)
     rows = (await session.execute(stmt)).scalars().all()
-    items = [SourcePolicyResponse.model_validate(r).model_dump(mode="json") for r in rows]
+    items = [
+        SourcePolicyResponse.model_validate(r).model_dump(mode="json") for r in rows
+    ]
     return api_response(data={"items": items, "total": len(items)})
 
 
@@ -230,9 +241,11 @@ async def create_source_policy(
     body: SourcePolicyCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict:
-    existing = (await session.execute(
-        sql_select(SourcePolicy).where(SourcePolicy.source_name == body.source_name)
-    )).scalar_one_or_none()
+    existing = (
+        await session.execute(
+            sql_select(SourcePolicy).where(SourcePolicy.source_name == body.source_name)
+        )
+    ).scalar_one_or_none()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -265,7 +278,9 @@ async def update_source_policy(
 ) -> dict:
     sp = await session.get(SourcePolicy, str(policy_id))
     if sp is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found"
+        )
 
     updates = body.model_dump(exclude_unset=True)
     for k, v in updates.items():
@@ -289,7 +304,9 @@ async def delete_source_policy(
 ) -> dict:
     sp = await session.get(SourcePolicy, str(policy_id))
     if sp is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Source policy not found"
+        )
 
     await session.delete(sp)
     await session.commit()
@@ -299,6 +316,7 @@ async def delete_source_policy(
 # ============================================================
 # Version withdraw / restore (P2T1)
 # ============================================================
+
 
 class VersionWithdrawRequest(_PydanticBaseModel):
     reason: str = "未说明"
@@ -320,7 +338,9 @@ async def withdraw_version(
 
     ver = await session.get(Version, str(version_id))
     if ver is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Version not found"
+        )
 
     # Ownership check: admin-only action via RBAC; verify version → book is reachable
     if not ver.book_id:
@@ -366,9 +386,12 @@ async def restore_version(
 ) -> dict:
     """Restore a previously withdrawn version."""
     from app.models.version import Version
+
     ver = await session.get(Version, str(version_id))
     if ver is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Version not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Version not found"
+        )
     if ver.withdrawn_at is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
