@@ -330,9 +330,11 @@ class TestWorkspace:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
+        # M4: /workspace → /research (canonical project list)
         page.goto(f"{frontend_url}/workspace")
-        page.wait_for_selector('nav.rw-tabs', timeout=10000)
-        assert page.locator('nav.rw-tabs').is_visible()
+        page.wait_for_url("**/research**", timeout=10000)
+        # Verify we land on the canonical project list page
+        assert page.locator('h1').first.is_visible()
 
 
 
@@ -1149,12 +1151,12 @@ class TestV4ResearchPortal:
         }""",
             [test_user["access_token"], test_user["refresh_token"]],
         )
-        # /v4 redirects to /research/workspace?tab=v4-research
+        # M4: /v4 redirects to /research (canonical project list)
         page.goto(f"{frontend_url}/v4")
-        # The redirect target is /research/workspace?tab=v4-research (not /v4/research)
-        page.wait_for_url("**/research/workspace**", timeout=10000)
-        # Verify the workspace page is loaded with tabs
-        assert page.locator('nav.rw-tabs').is_visible()
+        page.wait_for_url("**/research**", timeout=10000)
+        # We land on either /research or a canonical research page
+        # Verify the page is not blank — heading or project list visible
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
 
     def test_navbar_navigates_to_v4_research(
         self, live_servers, test_user, page,
@@ -1171,11 +1173,11 @@ class TestV4ResearchPortal:
         page.goto(f"{frontend_url}/")
         page.wait_for_selector('nav', timeout=5000)
 
-        # Click the V4 Research nav link
-        page.locator('nav a[href="/research/workspace?tab=v4-research"]').click()
+        # M4: Navbar link now points to /research (canonical, not workspace)
+        page.locator('nav a[href="/research"]').first.click()
         page.wait_for_timeout(3000)
-        # Verify the workspace page loaded (has tabs)
-        assert page.locator('nav.rw-tabs').is_visible()
+        # Verify navigation to canonical research page
+        assert page.locator('h1').first.is_visible()
 
 
 # ============================================================

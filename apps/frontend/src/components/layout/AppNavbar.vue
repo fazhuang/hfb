@@ -113,10 +113,9 @@ const navItems = computed<NavItem[]>(() => {
     { path: '/literature', icon: '📄', labelKey: 'nav.literature' },
     { path: '/classical-versions', icon: '🏛️', labelKey: 'nav.classicalVersions' },
     { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
-    { path: '/research/workspace?tab=research', icon: '校', labelKey: 'nav.research' },
-    { path: '/research/workspace?tab=v4-research', icon: '🧬', labelKey: 'nav.v4Research' },
-    { path: '/graph', icon: '🔗', labelKey: 'nav.graph' },
-    { path: '/research/workspace', icon: '🧪', labelKey: 'nav.workspace' },
+    { path: '/research', icon: '校', labelKey: 'nav.research' },
+    { path: '/library', icon: '📚', labelKey: 'nav.library' },
+    { path: '/knowledge', icon: '🔗', labelKey: 'nav.knowledge' },
     { path: '/search', icon: '🔍', labelKey: 'nav.search' },
     { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
   );

@@ -77,7 +77,7 @@ const router = createRouter({
         },
         {
           path: 'workspace',
-          redirect: '/research/workspace',
+          redirect: '/research',
         },
         {
           path: 'research/new',
@@ -123,6 +123,11 @@ const router = createRouter({
               path: ':projectId/workflow',
               name: 'research-project-workflow',
               component: () => import('@/pages/research/ResearchWorkflowPage.vue'),
+            },
+            {
+              path: ':projectId/version-comparison',
+              name: 'research-project-version-comparison',
+              component: () => import('@/pages/research/VersionComparisonPage.vue'),
             },
             {
               path: ':projectId/result/:runId',
@@ -192,23 +197,24 @@ const router = createRouter({
         // Individual `/research/workspace` w/o :projectId falls through to here.
         {
           path: 'research',
-          redirect: '/research/workspace?tab=research',
+          redirect: '/research',
         },
         {
           path: 'research/workspace',
           name: 'research-workspace',
-          component: () => import('@/views/ResearchWorkspaceView.vue'),
-          meta: { requiresAuth: true },
+          redirect: '/research',
         },
+        // M3: /v4/* redirects now point to canonical /research (project list).
+        // M4 will add session-context-aware redirects to /research/:projectId/workflow.
         {
           path: 'v4/research',
-          redirect: '/research/workspace?tab=v4-research',
+          redirect: '/research',
         },
         {
           path: 'v4',
-          redirect: '/research/workspace?tab=v4-research',
+          redirect: '/research',
         },
-        // Keep V4ResearchView as an internal route (workspace renders it inline)
+        // V4ResearchView kept for backwards compatibility during M4 transition
         {
           path: 'v4/research-internal',
           name: 'v4-research',
