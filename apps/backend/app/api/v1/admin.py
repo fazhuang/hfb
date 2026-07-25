@@ -27,10 +27,10 @@ router = APIRouter(tags=["Admin"])
 
 document_review_guard = require_permission("document", "review")
 document_update_guard = require_permission("document", "update")
-user_read_guard = require_permission("user", "read")
-user_create_guard = require_permission("user", "create")
-user_update_guard = require_permission("user", "update")
-user_delete_guard = require_permission("user", "delete")
+source_policy_read_guard = require_permission("source_policy", "read")
+source_policy_create_guard = require_permission("source_policy", "create")
+source_policy_update_guard = require_permission("source_policy", "update")
+source_policy_delete_guard = require_permission("source_policy", "delete")
 
 
 # ============================================================
@@ -208,7 +208,7 @@ from app.schemas.source_policy import (  # noqa: E402
 @router.get(
     "/admin/source-policies",
     response_model=dict,
-    dependencies=[Depends(document_update_guard)],
+    dependencies=[Depends(source_policy_read_guard)],
 )
 async def list_source_policies(
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -223,7 +223,7 @@ async def list_source_policies(
     "/admin/source-policies",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(document_update_guard)],
+    dependencies=[Depends(source_policy_create_guard)],
 )
 async def create_source_policy(
     body: SourcePolicyCreate,
@@ -255,7 +255,7 @@ async def create_source_policy(
 @router.patch(
     "/admin/source-policies/{policy_id}",
     response_model=dict,
-    dependencies=[Depends(user_update_guard)],
+    dependencies=[Depends(source_policy_update_guard)],
 )
 async def update_source_policy(
     policy_id: UUID,
@@ -280,7 +280,7 @@ async def update_source_policy(
 @router.delete(
     "/admin/source-policies/{policy_id}",
     response_model=dict,
-    dependencies=[Depends(user_delete_guard)],
+    dependencies=[Depends(source_policy_delete_guard)],
 )
 async def delete_source_policy(
     policy_id: UUID,
