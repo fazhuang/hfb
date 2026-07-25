@@ -208,7 +208,7 @@ from app.schemas.source_policy import (  # noqa: E402
 @router.get(
     "/admin/source-policies",
     response_model=dict,
-    dependencies=[Depends(user_read_guard)],
+    dependencies=[Depends(document_update_guard)],
 )
 async def list_source_policies(
     session: Annotated[AsyncSession, Depends(get_session)],
