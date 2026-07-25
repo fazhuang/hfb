@@ -38,14 +38,14 @@
 | `pages/research/ResearchResultPage.vue` | `/research/:projectId/result/:runId` | 已迁移 — 报告、引用、证据、SourceRef、导出 |
 | `pages/reports/ReportListPage.vue` | `/reports` | 已迁移 — 跨会话报告聚合 |
 | `pages/library/LibrarySearchPage.vue` | `/library` | 已迁移 — 统一文献搜索 |
-| `pages/knowledge/KnowledgeExplorerPage.vue` | `/knowledge` | 已迁移 — 知识图谱探索（**不含教育模式/可视化工作流**） |
+| `pages/knowledge/KnowledgeExplorerPage.vue` | `/knowledge` | **占位页** — 功能迁移中，模板明确声明 Knowledge Explorer / Entity Detail 后续 Sprint 实现 |
 
 ### 1.3 关键架构事实
 
 - **ResearchSession.id === projectId**。系统中不存在独立的 `Project` 表或 `project_id` 列。域映射审计确认（ref: `docs/20-product/2011-project-domain-mapping-audit.md`）。
 - **无恢复/中断 API**。V4 workflow 在单个同步 HTTP 响应中执行全部 5 步。不存在部分执行状态、中断/恢复端点。
 - **ResearchWorkflowView（版本比较）无 canonical 替代**。Canonical `ResearchWorkflowPage` 实现的是 V4 topic→pipeline 工作流，而非 diff-based 古籍版本比较。
-- **V4ResearchView 的教育/可视化 tab 推迟至 KnowledgeExplorer**。当前 KnowledgeExplorer 不包含教育模式（概念学习）或可视化工作流（graph_type 选择）的等价实现。
+- **V4ResearchView 的教育/可视化 tab 推迟至 KnowledgeExplorer**。当前 KnowledgeExplorer 为占位页（明确标注功能迁移中），教育模式（概念学习）和可视化工作流（graph_type 选择）的等价实现均需后续 Sprint 完成。
 - **Legacy 助手 tab（SSE AI chat）推迟**。无 canonical AI 助手页面。
 - **引用提取逻辑重复**。`ResearchWorkspaceView.vue` 与 `V4ResearchView.vue` 各自实现相同的 `replay_manifest.retrieval_snapshot` × `traces` 交叉引用逻辑。
 
@@ -171,8 +171,8 @@
 | 完整研究 — workflow 执行 | `ResearchWorkflowPage` `/research/:projectId/workflow` | **已迁移** — useResearchWorkflow composable，5 步组件，sessionStorage 隔离，39 个前端测试 ALL GREEN |
 | 完整研究 — 报告/引用/证据/导出 | `ResearchResultPage` `/research/:projectId/result/:runId` | **已迁移** — 安全 markdown、SourceRef 验证、CitationPanel、真实浏览器导出、77 个前端测试 + 22 个 E2E ALL GREEN |
 | 完整研究 — 重放验证 | `ResearchResultPage`（run replay） | **部分迁移** — replay API 可用，但 canonical result page 不暴露重放 UI |
-| 教育模式 | **推迟** — KnowledgeExplorer 或独立教育页面 | KnowledgeExplorer 当前不包含概念学习等价实现 |
-| 可视化 | **推迟** — KnowledgeExplorer | KnowledgeExplorer 当前不包含 graph_type 选择等价实现 |
+| 教育模式 | **推迟** — KnowledgeExplorer 当前为占位页，概念学习等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
+| 可视化 | **推迟** — KnowledgeExplorer 当前为占位页，graph_type 选择等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
 | 引用保存（save-citation） | `ResearchWorkflowPage` + `ResearchResultPage` | **已迁移** — 两个 canonical 页面均有引用保存 |
 | 笔记保存 | `ResearchWorkflowPage` | **已迁移** — workflow report 步骤含笔记保存 |
 | 导出（markdown） | `ResearchResultPage` | **已迁移** — 真实 `GET /api/v4/research/session/:id/runs/:runId/export` |
@@ -220,8 +220,8 @@
 | 功能 | Legacy 位置 | 推迟去向 | 理由 |
 |------|-----------|---------|------|
 | AI 助手（SSE 流式 chat + evidence sidebar + graph preview） | `ResearchWorkspaceView.vue` assistant tab | 未来 AI 助手页面 | 需要独立的 SSE 流式架构设计，不可仓促迁入 workspace |
-| 教育模式（概念学习） | `V4ResearchView.vue` education tab | `KnowledgeExplorerPage` 或独立教育页面 | KnowledgeExplorer 当前无等价实现，需产品设计 |
-| 可视化工作流（graph_type 选择 + 图谱渲染） | `V4ResearchView.vue` visualization tab | `KnowledgeExplorerPage` | KnowledgeExplorer 当前无 graph_type 选择等价实现 |
+| 教育模式（概念学习） | `V4ResearchView.vue` education tab | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需产品设计后在后续 Sprint 实现 |
+| 可视化工作流（graph_type 选择 + 图谱渲染） | `V4ResearchView.vue` visualization tab | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需后续 Sprint 实现 |
 | 材料/版本浏览（独立于项目的数据浏览） | `ResearchWorkspaceView.vue` materials/versions tab | `LibrarySearchPage` | 已就绪 — Library 是 canonical 替代，URL 兼容规则见 §2.1 |
 
 ---
@@ -368,7 +368,7 @@ git status --short && git rev-parse --short HEAD && git log --oneline -1
 | `research-project-result` | `/research/:projectId/result/:runId` | `ResearchResultPage.vue` | ACTIVE canonical |
 | `library-search` | `/library` | `LibrarySearchPage.vue` | ACTIVE canonical |
 | `report-list` | `/reports` | `ReportListPage.vue` | ACTIVE canonical |
-| `knowledge-explorer` | `/knowledge` | `KnowledgeExplorerPage.vue` | ACTIVE canonical |
+| `knowledge-explorer` | `/knowledge` | `KnowledgeExplorerPage.vue` | **占位页** — 功能迁移中，后续 Sprint 实现 |
 | `research-workspace` | `/research/workspace` | `ResearchWorkspaceView.vue` | RETIRED — M4 已重定向至 `/research` |
 | `v4-research` | `/v4/research-internal` | `V4ResearchView.vue` | COMPATIBILITY — M4 保留内部路由（向后兼容） |
 | `research-home` | `/research/home` | `ResearchHomeView.vue` | COMPATIBILITY — 渲染 ProjectListPage |
