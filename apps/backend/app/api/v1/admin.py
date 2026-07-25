@@ -8,6 +8,7 @@ from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel as _PydanticBaseModel
 from sqlalchemy import select as sql_select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -299,9 +300,6 @@ async def delete_source_policy(
 # Version withdraw / restore (P2T1)
 # ============================================================
 
-from pydantic import BaseModel as _PydanticBaseModel
-
-
 class VersionWithdrawRequest(_PydanticBaseModel):
     reason: str = "未说明"
 
@@ -319,7 +317,6 @@ async def withdraw_version(
 ) -> dict:
     """Withdraw a version — marks it as non-academic-citable."""
     from app.models.version import Version
-    from sqlalchemy import select as _sel
 
     ver = await session.get(Version, str(version_id))
     if ver is None:
