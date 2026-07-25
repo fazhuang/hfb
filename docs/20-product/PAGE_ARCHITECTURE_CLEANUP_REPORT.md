@@ -2,10 +2,10 @@
 
 > **Generated**: 2026-07-25
 > **代码证据基线**: `066502c`（运行命令实际执行的代码提交）
-> **文档状态基线**: `96d9447`（本报告当前提交）
+> **文档状态基线**: `74cee05`（本报告当前提交）
 > **Phase 2 工程治理冻结基线**: `23d1cef`
 > **Scope**: `apps/frontend/src/` — router, pages, views, layouts, components
-> **Status**: **BLOCK_RELEASE** — R3/R5: PENDING_PRODUCT_APPROVAL；R6: PENDING_CURRENT_RUNTIME_RECHECK
+> **Status**: **BLOCK_RELEASE** — R3/R5 裁决为 APPROVED_MIGRATION_REQUIRED；R6 当前环境 ✅ PASS
 > **重新验收要求**: 任何代码或测试变更后，必须在该新 HEAD 重新执行全部 R6 命令。
 
 ---
@@ -19,9 +19,9 @@
 
 | 能力编号 | 裁决状态 | 批准人 | 批准时间 | 批准依据/记录 | 后续动作 |
 |----------|----------|--------|----------|---------------|----------|
-| 1 — 全局 Workspace | **PENDING_PRODUCT_APPROVAL** | — | — | — | 等待产品负责人裁决：独立业务 / 迁移后移除 |
-| 2 — 版本研究 Workflow | **PENDING_PRODUCT_APPROVAL** | — | — | — | 等待产品负责人裁决：独立业务 / 迁移后移除 |
-| 3 — V4 研究 | **PENDING_PRODUCT_APPROVAL** | — | — | — | 等待产品负责人裁决：独立业务 / 迁移后移除 |
+| 1 — 全局 Workspace | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移至 canonical :projectId 作用域后移除；保持 BLOCK_RELEASE 直至迁移验收通过 |
+| 2 — 版本研究 Workflow | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移至 canonical ResearchWorkflowPage 后移除；保持 BLOCK_RELEASE 直至迁移验收通过 |
+| 3 — V4 研究 | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移实验功能至 canonical 后移除 `/v4/research-internal`；保持 BLOCK_RELEASE 直至迁移验收通过 |
 
 **裁决值规范**：
 - `PENDING_PRODUCT_APPROVAL` — 未获得真实产品负责人确认（默认状态）
@@ -40,48 +40,45 @@
 
 **裁决说明**：
 
-- **#1–3 的裁决是 PENDING_PRODUCT_APPROVAL**：这些能力是否视为独立业务必须由产品负责人审批。在此之前 R3 和 R5 不可标记为已完成，`BLOCK_RELEASE` 不可解除。
+- **#1–3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED**：三项能力均需迁移至 canonical 实现后移除。BLOCK_RELEASE 保持，直至迁移另行验收。
 - **#4–5 已收口**（Decision A）：ResearchHomeView、ResearchNewView 直接渲染 `<ProjectListPage />`。R3 在此二项上闭合。
 - **#6 已修复**：更新期望 URL 为 `/reader/:id`（Task 009 规范），测试通过。
-- 当前代码保持完整可执行行为（未降级为迁移提示），等待产品裁决后再决定最终架构。
+- 当前代码保持完整可执行行为（未降级为迁移提示），等待迁移实施。
 
 **关于 Decision A（无 router.replace）**：ResearchHomeView 和 ResearchNewView 的 `router.replace` 已被移除，二文件现在通过 `import ProjectListPage` 并直接渲染其模板来保留旧 URL 并将所有业务逻辑委托给 canonical 实现。Decision A 在此二项上是闭合的。
 
 ---
 
-## R6 运行证据 — PENDING_CURRENT_RUNTIME_RECHECK
+## R6 运行证据 — ✅ PASS（`74cee05`，2026-07-25 当前环境）
 
-**当前状态**: `http://127.0.0.1:8000/health` → 后端不可达（连接拒绝）。
-**阻塞原因**: 当前验收环境后端不可达；必须恢复后端后才能重新运行 R6 验收命令。
+### 当前环境确认（`74cee05`）
+
+| Check | Result |
+|-------|--------|
+| `curl /health` | ✅ HTTP 200 — `{"status":"healthy"}` |
+| `curl /ready` | ✅ HTTP 200 — 全部服务（PostgreSQL、Redis、Elasticsearch、MinIO）健康 |
+
+### 前端命令（`apps/frontend`）
+
+| Command | HEAD | Date | Result |
+|---------|------|------|--------|
+| `npm run typecheck` | `74cee05` | 2026-07-25 | ✅ PASS |
+| `npm run test -- --run` | `74cee05` | 2026-07-25 | **574/574 PASS** |
+| `npm run build` | `74cee05` | 2026-07-25 | ✅ PASS |
+| `npx playwright test task011-navigation-consistency.spec.ts` | `74cee05` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
+| `npx playwright test task010-design-system.spec.ts` | `74cee05` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
+
+### 后端 E2E（repo root，`--browser chromium`）
+
+| Command | HEAD | Date | Result |
+|---------|------|------|--------|
+| `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `74cee05` | 2026-07-25 | **93/93 PASS** (9:59 elapsed) |
 
 ### 历史运行记录（Historical evidence only — not current-environment release proof）
 
-以下数据来自 `c9a4f5e` / `066502c` 的运行记录，保留为历史证据；**不可替代当前环境的运行证明**。
+以下数据来自 `c9a4f5e` / `066502c` 的历史运行记录，保留为参考：
 
-#### 环境确认（历史记录）
-
-| Check | HEAD | Result |
-|-------|------|--------|
-| `curl /health` | `c9a4f5e` | ✅ HTTP 200 — `{"status":"healthy"}` |
-| `curl /ready` | `c9a4f5e` | ✅ HTTP 200 — 全部服务健康 |
-
-#### 前端命令（历史记录）
-
-| Command | HEAD | Date | Result |
-|---------|------|------|--------|
-| `npm run typecheck` | `c9a4f5e` | 2026-07-25 | ✅ PASS |
-| `npm run test -- --run` | `c9a4f5e` | 2026-07-25 | **574/574 PASS** |
-| `npm run build` | `c9a4f5e` | 2026-07-25 | ✅ PASS |
-| `npx playwright test task011-navigation-consistency.spec.ts` | `c9a4f5e` | 2026-07-25 | **116/116 PASS** (Mobile/Tablet/Desktop/Wide) |
-| `npx playwright test task010-design-system.spec.ts` | `c9a4f5e` | 2026-07-25 | **88/88 PASS** (Mobile/Tablet/Desktop/Wide) |
-
-#### 后端 E2E（历史记录）
-
-| Command | HEAD | Date | Result |
-|---------|------|------|--------|
-| `uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -q --no-cov` | `c9a4f5e` | 2026-07-25 | **93/93 PASS** (10:37 elapsed) |
-
-#### 后端 E2E 修复记录（`066502c` 引入，`c9a4f5e` 验证通过）
+#### 后端 E2E 修复记录（`066502c` 引入，`c9a4f5e` / `74cee05` 均验证通过）
 
 | Test | Change | Reason |
 |------|--------|--------|
@@ -94,45 +91,17 @@
 | `test_navbar_navigates_to_v4_research` | 点击 `nav a[href="/v4/research"]`，期望 `**/v4/research**` → 点击 `nav a[href="/research/workspace?tab=v4-research"]`，期望 `**/v4/research-internal**` | 导航栏链接是 `/research/workspace?tab=v4-research`；点击后重定向至 `/v4/research-internal` |
 | `test_library_reader_jump` | `/literature/{doc_id}` → `/reader/{doc_id}` | Task 009 将 Reader 从 `/literature/:id` 重构为 `/reader/:id` |
 
-### R6 重新闭合条件
-
-后端恢复并满足以下两项后：
-
-```bash
-curl -fsS http://127.0.0.1:8000/health
-curl -fsS http://127.0.0.1:8000/ready
-```
-
-在当时的当前干净 HEAD 依次执行：
-
-```bash
-cd apps/frontend
-npm run type-check
-npm run test -- --run
-npm run build
-npx playwright test --config playwright.config.ts src/e2e/task011-navigation-consistency.spec.ts
-npx playwright test --config playwright.config.ts src/e2e/task010-design-system.spec.ts
-
-cd ../..
-UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest \
-  tests/e2e/test_reader_e2e.py \
-  tests/e2e/test_critical_journeys.py \
-  --browser chromium -q --no-cov
-```
-
-只有所有命令在同一干净 HEAD 产生最终全绿统计后，才允许将 R6 写为 PASS，并记录实际执行 HEAD 与时间戳。
-
 ---
 
 ## 结论
 
 | Gate | Status |
 |------|--------|
-| R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `96d9447`）；`c9a4f5e` 历史运行记录已标注为 Historical evidence only |
-| R3 (Single implementation) | **PENDING_PRODUCT_APPROVAL** — 能力 #1–#3 必须由产品负责人签署裁决；#4–#5 已收口（Decision A） |
-| R5 (Behavior preservation) | **PENDING_PRODUCT_APPROVAL** — 直至能力 #1–#3 获批准；#4–#5 已收口 |
-| R6 (Real evidence) | **PENDING_CURRENT_RUNTIME_RECHECK** — 当前验收环境后端不可达（127.0.0.1:8000）；后端恢复后必须重新执行全部 R6 命令并获取全绿统计 |
-| Release | **BLOCK_RELEASE** — 产品裁决未签署 + R6 未在当前环境复验 |
+| R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；`c9a4f5e` 历史运行记录已标注为 Historical evidence only |
+| R3 (Single implementation) | **CONDITIONAL** — 能力 #1–#3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED（迁移后闭合）；#4–#5 已收口（Decision A） |
+| R5 (Behavior preservation) | **CONDITIONAL** — 能力 #1–#3 迁移验收通过后闭合；#4–#5 已收口 |
+| R6 (Real evidence) | ✅ — 在 `74cee05` 当前环境重新验收：type-check、574 UT、build、116 E2E task011、88 E2E task010、93 后端 E2E 全部通过 |
+| Release | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 |
 
 ---
 
@@ -141,10 +110,12 @@ UV_CACHE_DIR=/private/tmp/uv-cache uv run pytest \
 ```
 BLOCK_RELEASE
   ├─ 产品裁决未签署 → 等待产品负责人
-  └─ R6 未复验 / 非全绿 → 恢复环境并重跑
+  ├─ R6 未复验 / 非全绿 → 在当前 HEAD 重新运行全部 R6
+  └─ 能力 #1–#3 迁移未验收 → 迁移验收通过后闭合
 
 RELEASE_READY
-  └─ 产品裁决已签署
+  └─ 产品裁决已签署（APPROVED_INDEPENDENT_BUSINESS 或 APPROVED_MIGRATION_REQUIRED）
+     + 迁移已验收（如适用）
      + R6 当前 HEAD 全绿
      + git status 干净
      + HEAD == origin/master
@@ -163,8 +134,8 @@ RELEASE_READY
 | `research-project-result` | `/research/:projectId/result/:runId` | ACTIVE (canonical) |
 | `research-new` | `/research/new` | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
 | `research-home` | `/research/home` | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
-| `research-workspace` | `/research/workspace` | ACTIVE (legacy global panel — PENDING product approval) |
-| `v4-research` | `/v4/research-internal` | ACTIVE (legacy — PENDING product approval) |
+| `research-workspace` | `/research/workspace` | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED) |
+| `v4-research` | `/v4/research-internal` | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED) |
 
 ## Appendix B: Layout Usage
 
