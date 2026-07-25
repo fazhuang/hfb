@@ -328,7 +328,7 @@ M0（本契约 FROZEN ✅）
 | Build | `npm run build` | **PASS** (4.02s, VersionComparisonPage included) |
 | Backend E2E | `pytest tests/e2e/test_critical_journeys.py tests/e2e/test_reader_e2e.py --browser chromium` | **93 passed** (9m35s) |
 | Git status | `git status --short` | **CLEAN** — HEAD 9ff76b9 |
-| HEAD commit | `git log --oneline -1` | `9ff76b9 docs: Phase 3 M0-M5 — 全迁移闭环完成，RELEASE_READY` |
+| HEAD commit | `git log --oneline -1` | `2c71e6f` — 已推送 origin/master |
 
 ---
 
