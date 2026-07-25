@@ -39,7 +39,7 @@ user_delete_guard = require_permission("user", "delete")
 
 
 @router.patch(
-    "/api/v1/documents/{document_id}/review",
+    "/documents/{document_id}/review",
     response_model=dict,
     dependencies=[Depends(document_review_guard)],
 )
@@ -104,7 +104,7 @@ async def review_document(
 
 
 @router.post(
-    "/api/v1/documents/{document_id}/withdraw",
+    "/documents/{document_id}/withdraw",
     response_model=dict,
     dependencies=[Depends(document_update_guard)],
 )
@@ -136,7 +136,7 @@ async def withdraw_document(
 
 
 @router.get(
-    "/api/v1/ingestion/tasks",
+    "/ingestion/tasks",
     response_model=dict,
     dependencies=[Depends(require_permission("document", "read"))],
 )
@@ -206,7 +206,7 @@ from app.schemas.source_policy import (  # noqa: E402
 
 
 @router.get(
-    "/api/v1/admin/source-policies",
+    "/admin/source-policies",
     response_model=dict,
     dependencies=[Depends(user_read_guard)],
 )
@@ -220,7 +220,7 @@ async def list_source_policies(
 
 
 @router.post(
-    "/api/v1/admin/source-policies",
+    "/admin/source-policies",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(user_create_guard)],
@@ -253,7 +253,7 @@ async def create_source_policy(
 
 
 @router.patch(
-    "/api/v1/admin/source-policies/{policy_id}",
+    "/admin/source-policies/{policy_id}",
     response_model=dict,
     dependencies=[Depends(user_update_guard)],
 )
@@ -278,7 +278,7 @@ async def update_source_policy(
 
 
 @router.delete(
-    "/api/v1/admin/source-policies/{policy_id}",
+    "/admin/source-policies/{policy_id}",
     response_model=dict,
     dependencies=[Depends(user_delete_guard)],
 )
@@ -307,7 +307,7 @@ class VersionWithdrawRequest(_PydanticBaseModel):
 
 
 @router.post(
-    "/api/v1/versions/{version_id}/withdraw",
+    "/versions/{version_id}/withdraw",
     response_model=dict,
     dependencies=[Depends(document_update_guard)],
 )
@@ -358,7 +358,7 @@ async def withdraw_version(
 
 
 @router.post(
-    "/api/v1/versions/{version_id}/restore",
+    "/versions/{version_id}/restore",
     response_model=dict,
     dependencies=[Depends(document_update_guard)],
 )
