@@ -2,7 +2,7 @@ name: Documentation
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'docs/**'
       - '*.md'
@@ -47,7 +47,7 @@ jobs:
           use-verbose-mode: 'yes'
           config-file: '.github/mlc_config.json'
           check-modified-files-only: 'yes'
-          base-branch: main
+          base-branch: master
 
   doc-build:
     name: Build Documentation

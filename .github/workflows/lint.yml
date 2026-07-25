@@ -2,7 +2,7 @@ name: Lint
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 concurrency:
@@ -32,7 +32,6 @@ jobs:
 
       - name: Mypy type check
         run: mypy . --config-file=pyproject.toml
-        continue-on-error: true  # Allow type errors in early sprints
 
   node-lint:
     name: Node (ESLint + Prettier)
