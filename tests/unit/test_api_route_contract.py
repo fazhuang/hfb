@@ -60,3 +60,20 @@ def test_admin_routes_have_single_v1_prefix(openapi_paths):
         assert "/api/v1/api/v1/" not in route, (
             f"Admin route {route!r} has double prefix"
         )
+
+
+def test_classical_versions_routes_under_v1(openapi_paths):
+    """Classical versions must be at /api/v1/, not /api/."""
+    legacy = [
+        p for p in openapi_paths
+        if p.startswith("/api/classical") or p.startswith("/api/admin/classical")
+    ]
+    assert legacy == [], (
+        f"Classical versions routes must not be at /api/ prefix (no version). "
+        f"Found legacy paths: {legacy}"
+    )
+    v1_paths = [p for p in openapi_paths if "classical-versions" in p]
+    assert len(v1_paths) >= 4, (
+        f"Expected at least 4 classical-versions paths under /api/v1/, "
+        f"found {len(v1_paths)}: {v1_paths}"
+    )

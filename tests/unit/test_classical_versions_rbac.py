@@ -152,7 +152,7 @@ class TestClassicalVersionRouteRBAC:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.patch(
-                    f"/api/admin/classical-versions/{cvid}",
+                    f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                     json={"review_status": "approved"},
                 )
@@ -175,7 +175,7 @@ class TestClassicalVersionRouteRBAC:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.patch(
-                    f"/api/admin/classical-versions/{cvid}",
+                    f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                     json={"review_status": "approved"},
                 )
@@ -199,7 +199,7 @@ class TestClassicalVersionRouteRBAC:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.delete(
-                    f"/api/admin/classical-versions/{cvid}",
+                    f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                 )
                 assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
@@ -218,7 +218,7 @@ class TestClassicalVersionRouteRBAC:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.delete(
-                    f"/api/admin/classical-versions/{cvid}",
+                    f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                 )
                 assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
@@ -238,7 +238,7 @@ class TestClassicalVersionRouteRBAC:
         try:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
-                response = await client.get("/api/classical-versions")
+                response = await client.get("/api/v1/classical-versions")
                 assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         finally:
             _cleanup_overrides()
@@ -249,7 +249,7 @@ class TestClassicalVersionRouteRBAC:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.delete(
-                    "/api/admin/classical-versions/00000000-0000-0000-0000-000000000000",
+                    "/api/v1/admin/classical-versions/00000000-0000-0000-0000-000000000000",
                 )
                 assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         finally:

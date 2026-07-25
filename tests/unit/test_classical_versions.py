@@ -299,7 +299,7 @@ class TestClassicalVersionCRUD:
 
 
 class TestClassicalVersionDeleteIsSoftDelete:
-    """DELETE /api/admin/classical-versions/{id} must soft-delete, not hard-delete."""
+    """DELETE /api/v1/admin/classical-versions/{id} must soft-delete, not hard-delete."""
 
     async def test_superuser_delete_is_soft_delete(self, db_session):
         from app.middleware import auth as auth_mod
@@ -349,7 +349,7 @@ class TestClassicalVersionDeleteIsSoftDelete:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.delete(
-                    f"/api/admin/classical-versions/{created_id}",
+                    f"/api/v1/admin/classical-versions/{created_id}",
                     headers=_auth_headers("test-user-1"),
                 )
                 assert response.status_code == 200
@@ -416,7 +416,7 @@ class TestClassicalVersionPublicDomainRequired:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 response = await client.post(
-                    "/api/admin/classical-versions",
+                    "/api/v1/admin/classical-versions",
                     headers=_auth_headers(),
                     json={
                         "work_title": "针灸甲乙经",

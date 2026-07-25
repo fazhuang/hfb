@@ -138,7 +138,7 @@ async def require_admin_update(
 # ------------------------------------------------------------------
 
 
-@router.get("/api/classical-versions", response_model=dict)
+@router.get("/classical-versions", response_model=dict)
 async def list_classical_versions(
     session: Annotated[AsyncSession, Depends(get_session)],
     _user_id: Annotated[str, Depends(get_current_user)],
@@ -164,7 +164,7 @@ async def list_classical_versions(
     return api_response(data={"items": results, "total": total})
 
 
-@router.get("/api/classical-versions/{version_id}", response_model=dict)
+@router.get("/classical-versions/{version_id}", response_model=dict)
 async def get_classical_version(
     version_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],
@@ -183,7 +183,7 @@ async def get_classical_version(
 
 
 @router.post(
-    "/api/admin/classical-versions",
+    "/admin/classical-versions",
     response_model=dict,
     status_code=status.HTTP_201_CREATED,
 )
@@ -203,7 +203,7 @@ async def create_classical_version(
     )
 
 
-@router.patch("/api/admin/classical-versions/{version_id}", response_model=dict)
+@router.patch("/admin/classical-versions/{version_id}", response_model=dict)
 async def update_classical_version(
     version_id: UUID,
     body: ClassicalVersionUpdate,
@@ -226,7 +226,7 @@ async def update_classical_version(
     )
 
 
-@router.delete("/api/admin/classical-versions/{version_id}", response_model=dict)
+@router.delete("/admin/classical-versions/{version_id}", response_model=dict)
 async def delete_classical_version(
     version_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)],

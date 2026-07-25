@@ -13,6 +13,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1.academic_rag import router as academic_rag_router
+from app.api.v1.classical_versions import router as classical_versions_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.ai import ai_router, workspace_router
 from app.api.v1.auth import router as auth_router
@@ -40,6 +41,7 @@ router.include_router(graph_router)
 router.include_router(research_router)
 router.include_router(search_router)
 router.include_router(academic_rag_router)
+router.include_router(classical_versions_router)
 router.include_router(admin_router)
 router.include_router(ai_router)
 router.include_router(workspace_router)
