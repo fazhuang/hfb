@@ -5,7 +5,7 @@
 > **文档状态基线**: `74cee05`（本报告当前提交）
 > **Phase 2 工程治理冻结基线**: `23d1cef`
 > **Scope**: `apps/frontend/src/` — router, pages, views, layouts, components
-> **Status**: **BLOCK_RELEASE** — R3/R5 裁决为 APPROVED_MIGRATION_REQUIRED；R6 当前环境 ✅ PASS
+> **Status**: **BLOCK_RELEASE** — R3/R5 裁决为 APPROVED_MIGRATION_REQUIRED；R6 PENDING（当前 HEAD 未复验，仅有历史证据）
 > **重新验收要求**: 任何代码或测试变更后，必须在该新 HEAD 重新执行全部 R6 命令。
 
 ---
