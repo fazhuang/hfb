@@ -64,31 +64,36 @@
 | 资料 (materials) | `LibrarySearchPage` `/library` — 统一文献搜索 | 已就绪 |
 | 版本 (versions) | `LibrarySearchPage` `/library` — 古籍版本搜索 | 已就绪 |
 | 笔记 (notes) | `ResearchWorkspacePage` `/research/:projectId/workspace` — RecentNotes 段 | 已就绪 |
-| 报告 (reports) | `ReportListPage` `/reports`（跨项目）+ `ResearchWorkspacePage` RecentReports 段（单项目） | 已就绪 |
+| 报告 (reports) | `ReportListPage` `/reports`（跨项目）+ `ResearchWorkspacePage` RecentReports 段（单项目） | **待验证** — 实测：项目详情页显示已有报告，但其 canonical workspace "最近研究运行"为空，未证明单项目 Reports 等价行为 |
 | 研究 (research) | `VersionComparisonPage` `/research/:projectId/version-comparison`（**方案 B 新建**） | **待 M2 构建** |
-| V4 研究 (v4-research) | `ResearchWorkflowPage` `/research/:projectId/workflow`（V4 pipeline）+ `ResearchResultPage`（报告/引用/导出） | 已就绪 |
+| V4 研究 (v4-research) | `ResearchWorkflowPage` `/research/:projectId/workflow`（V4 pipeline）+ `ResearchResultPage`（报告/引用/导出） | ⚠️ **未完成迁移** — `/v4/research-internal` 仍直接加载 V4ResearchView（legacy 服役中）；re-search 缺失；写入/下载能力未在真实浏览器端到端验证 |
 | 助手 (assistant) | **推迟** — 未来 AI 助手页面（不在本次迁移范围） | 推迟 |
 
 **URL 兼容规则**：
 
-| 旧 URL | 兼容行为 | 期限 |
-|--------|---------|------|
-| `/research/workspace` | → 项目选择页 `/research`（如用户无活跃 session）或重定向至最近活跃项目的 workspace `/research/:projectId/workspace` | M4 清退前保持 |
-| `/research/workspace?tab=materials` | → `/library` | M4 |
-| `/research/workspace?tab=versions` | → `/library` | M4 |
-| `/research/workspace?tab=notes` | → 需先解析项目上下文，再跳转 `/research/:projectId/workspace`（notes 段锚点） | M4 |
-| `/research/workspace?tab=reports` | → `/reports`（跨项目聚合） | M4 |
-| `/research/workspace?tab=research` | → `/research/:projectId/version-comparison`（解析最近活跃 session 的 projectId） | M4 |
-| `/research/workspace?tab=v4-research` | → `/research/:projectId/workflow`（解析最近活跃 session 的 projectId） | M4 |
-| `/research/workspace?tab=assistant` | → 助手占位页（功能推迟） | M4 |
-| `/workspace` | → 同 `/research/workspace` 规则 | M4 |
+| 旧 URL | 当前实际行为 | 矩阵要求 | 差距 |
+|--------|---------|------|------|
+| `/research/workspace` | 无条件重定向至 `/research`（router/index.ts:204） | 带项目上下文的等价迁移 | **不等价** — 丢失 tab 与项目上下文 |
+| `/research/workspace?tab=materials` | 无条件重定向至 `/research` | → `/library` | **不等价** |
+| `/research/workspace?tab=versions` | 无条件重定向至 `/research` | → `/library` | **不等价** |
+| `/research/workspace?tab=notes` | 无条件重定向至 `/research` | → `/research/:projectId/workspace` | **不等价** |
+| `/research/workspace?tab=reports` | 无条件重定向至 `/research` | → `/reports` | **不等价** |
+| `/research/workspace?tab=research` | 无条件重定向至 `/research` | → `/research/:projectId/version-comparison` | **不等价** |
+| `/research/workspace?tab=v4-research` | 无条件重定向至 `/research` | → `/research/:projectId/workflow` | **不等价** |
+| `/research/workspace?tab=assistant` | 无条件重定向至 `/research` | → 助手占位页（推迟） | **不等价** |
+| `/workspace` | 无条件重定向至 `/research` | → 同 `/research/workspace` | **不等价** |
+| `/v4/research-internal` | **直接渲染 V4ResearchView**（router/index.ts:220） | 跳转至 canonical 页面 | **未清退 — legacy 仍在服役** |
+| `/v4/research` | 无条件重定向至 `/research` | 带项目上下文的跳转 | **不等价** |
+| `/v4` | 无条件重定向至 `/research` | 带项目上下文的跳转 | **不等价** |
+
+**⚠️ 结论**：当前所有旧 URL 的处理均为无条件重定向至 `/research`（项目列表页），不满足矩阵要求的等价迁移（带项目上下文、tab 解析、session 恢复）。`/v4/research-internal` 甚至未清退，直接渲染 legacy 组件。
 
 **迁移完成判定**：
 
 - [ ] 7 个 tab 的每项归宿均有 canonical 等价实现或明确的推迟声明
-- [ ] `/research/workspace` 访问时，旧 URL 的 session 选择/上下文恢复规则清晰可用
-- [ ] 旧 `/research/workspace?tab=*` 全部有确定的跳转行为，不发生 404 或空白页
-- [ ] ResearchWorkspaceView.vue 可安全变为纯兼容 adapter 或删除（M4）
+- [ ] `/research/workspace` 访问时，旧 URL 的 session 选择/上下文恢复规则清晰可用（**当前：无条件重定向，不等价**）
+- [ ] 旧 `/research/workspace?tab=*` 全部有确定的跳转行为，不发生 404 或空白页（**当前：全部无条件重定向至 /research，不等价**）
+- [ ] ResearchWorkspaceView.vue 可安全变为纯兼容 adapter 或删除（M4）（**当前：`/v4/research-internal` 仍直接加载 V4ResearchView，未清退**）
 
 **停止条件**：
 - 助手 tab（SSE AI chat + evidence sidebar + graph preview）推迟，但必须在 M0 中标记为「已知未迁移」，不是「静默丢失」
@@ -171,19 +176,26 @@
 | 完整研究 — workflow 执行 | `ResearchWorkflowPage` `/research/:projectId/workflow` | **已迁移** — useResearchWorkflow composable，5 步组件，sessionStorage 隔离，39 个前端测试 ALL GREEN |
 | 完整研究 — 报告/引用/证据/导出 | `ResearchResultPage` `/research/:projectId/result/:runId` | **已迁移** — 安全 markdown、SourceRef 验证、CitationPanel、真实浏览器导出、77 个前端测试 + 22 个 E2E ALL GREEN |
 | 完整研究 — 重放验证 | `ResearchResultPage`（run replay） | **部分迁移** — replay API 可用，但 canonical result page 不暴露重放 UI |
+| 完整研究 — 基于报告重新搜索 | **无 canonical 等价实现** | ❌ **缺失 — 停止条件** — 见下方 §2.4 |
 | 教育模式 | **推迟** — KnowledgeExplorer 当前为占位页，概念学习等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
 | 可视化 | **推迟** — KnowledgeExplorer 当前为占位页，graph_type 选择等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
 | 引用保存（save-citation） | `ResearchWorkflowPage` + `ResearchResultPage` | **已迁移** — 两个 canonical 页面均有引用保存 |
 | 笔记保存 | `ResearchWorkflowPage` | **已迁移** — workflow report 步骤含笔记保存 |
 | 导出（markdown） | `ResearchResultPage` | **已迁移** — 真实 `GET /api/v4/research/session/:id/runs/:runId/export` |
+| 基于报告重新搜索（re-search） | **无 canonical 等价实现** | ❌ **缺失** — `V4ResearchView.vue:686-692` 提取 report markdown 首个非标题行或 topic 作为 query，导航至搜索页。所有 canonical 页面（Workflow、Result、Workspace）和 composable 均无此功能入口 |
+| 运行历史列表 | `ResearchWorkspacePage` (RecentReports) + `ReportListPage` | **已迁移** — 跨页面聚合 |
+| 开始新工作流 (reset) | `ResearchWorkflowPage` (useResearchWorkflow.reset) | **已迁移** |
+| 通过 ?run= 加载历史 | 直接 URL `/research/:projectId/result/:runId` | **已迁移**（改进 — 无需遍历 sessions 列表）|
+| 已用时间计数器 | `AnalysisPendingState`（不确定进度） | **已迁移**（等价 UX） |
+| 返回研究导航 | `ResearchPageHeader` 面包屑 | **已迁移** |
 
 **URL 兼容规则**：
 
-| 旧 URL | 兼容行为 | 期限 |
-|--------|---------|------|
-| `/v4/research-internal` | → 需先解析项目上下文（用户最近活跃 session），再跳转至 `/research/:projectId/workflow` | M4 清退前保持 |
-| `/v4/research` | → 同 `/v4/research-internal` 规则（当前重定向至 `/research/workspace?tab=v4-research` 视为临时行为，M4 需更新） | M4 |
-| `/v4` | → 同 `/v4/research` | M4 |
+| 旧 URL | 兼容行为 | 当前实际 | 状态 |
+|--------|---------|---------|------|
+| `/v4/research-internal` | → 需先解析项目上下文（用户最近活跃 session），再跳转至 `/research/:projectId/workflow` | **直接渲染 V4ResearchView**（router/index.ts:220）— legacy 仍在服役 | ❌ 未清退 |
+| `/v4/research` | → 同 `/v4/research-internal` 规则（当前重定向至 `/research` 视为临时行为，M4 需更新） | 无条件重定向至 `/research`（丢失项目上下文） | ❌ 不等价 |
+| `/v4` | → 同 `/v4/research` | 无条件重定向至 `/research` | ❌ 不等价 |
 
 **逐项迁移完成判定**：
 
@@ -196,6 +208,7 @@
 - [ ] 教育模式：明确推迟至 KnowledgeExplorer 并记录占位路由
 - [ ] 可视化：明确推迟至 KnowledgeExplorer 并记录占位路由
 - [ ] `/v4/*` 兼容跳转在所有场景（有/无 session、有/无 run_id query、匿名用户）不产生 404/空白页
+- [ ] **[STOP]** 基于报告重新搜索（re-search）：canonical 等价实现或明确推迟声明 — 见 §2.4
 
 **Legacy 测试映射**（`apps/frontend/src/__tests__/v4-research.test.ts`，10 个测试）：
 
@@ -212,6 +225,37 @@
 | no-evidence state when success=false, records=0 | Canonical workflow page：NO_EVIDENCE error banner，不渲染 report body / citations，导出禁用 |
 | hides save-citation when citation fields empty | Canonical workflow page：无 snapshot citation → 不渲染 save-citation |
 | shows save-citation when citation has real content | Canonical workflow page：有 snapshot citation → citation body 渲染，导出启用 |
+
+---
+section: 2.4
+
+### 2.4 ⚠️ 停止条件：基于报告重新搜索 (re-search) 无 canonical 等价实现
+
+**Legacy 行为** (`V4ResearchView.vue:686-692`):
+```typescript
+function reSearchFromReport() {
+  if (!reportContent.value) return;
+  const lines = reportContent.value.split('\n').filter(l => l.trim() && !l.startsWith('#') && l.length > 10);
+  const query = topic.value || lines[0]?.slice(0, 60) || '';
+  router.push({ name: 'search', query: { q: encodeURIComponent(query) } });
+}
+```
+— 从报告 Markdown 提取第一个非标题行或回退到原始 topic，导航至搜索页 (`router.push({ name: 'search', query: { q } })`)。
+
+**Canonical 缺失范围**（2026-07-27 验证）：
+- `ResearchWorkflowPage` — 无 re-search 按钮或链接
+- `ResearchResultPage` — 无 re-search 按钮或链接
+- `ResearchWorkspacePage` — 无 re-search 按钮或链接
+- `useResearchWorkflow` — 无 `reSearchFromReport` 函数
+- `useResearchResult` — 无 `reSearchFromReport` 函数
+
+**缺失严重程度**：中。此能力缺失意味着用户无法从研究报告一键跳转到搜索页面；需手动复制关键词并导航。Legacy 使用 `router.push({ name: 'search', query })` — 当前 canonical 搜索路由名为 `library-search` (`/library`)，不是 `search`。
+
+**当前停止状态**：**BLOCK** — 此缺失阻止该 Research-tab 能力被标记为 "已迁移"。在获得重新搜索 canonical 实现或用明文承认已知差距的推迟声明之前，V4 Research 迁移不得报告完成。
+
+**建议解决方案**（两个选项）：
+1. **实现**：在 `ResearchReportStep` 或 `ResearchResultPage` 添加 "重新搜索" 按钮，将报告 topic 或首个段落作为 query 参数，导航至 `/library`（或当前的搜索路由名称）
+2. **推迟**：如果重新搜索被视为低优先级，请将此项添加到 §3 推迟声明，并标注真实原因（UI 未就绪、用户需求等）
 
 ---
 
@@ -261,11 +305,14 @@
 ```
 M0（本契约 FROZEN ✅）
  │
- ├── M1（建立迁移测试基线 ✅ 完成）
+ ├── M1（建立迁移测试基线 — ⚠️ 需回退）
  │     │  依赖：M0 全部能力有明确目标
  │     │  产物：2 个新测试文件，25 个映射测试
- │     │  结果：2/2 文件全绿、25/25 测试 PASS
- │     │  全量验证：7 文件 210 测试 ALL GREEN（含 legacy + canonical + M1）
+ │     │  结果：2/2 文件全绿
+ │     │  ⚠️ 但是：等价测试声明不等同于真实浏览器端到端行为证明；
+ │     │    旧 URL 等价迁移未实现（无条件重定向 ≠ 等价迁移）；
+ │     │    legacy 路径未清退（/v4/research-internal 仍在服役）；
+ │     │    单项目 Reports 等价未在真实环境验证。
  │     │
  │     ├── M2（迁移版本 Workflow ✅ 完成）
  │     │     │  依赖：M1 版本比较等价测试就绪
@@ -311,11 +358,15 @@ M0（本契约 FROZEN ✅）
 - [x] **§2.2 版本比较方案（A/B/C）已选定并记录在本契约中** → **方案 B：新建独立 `VersionComparisonPage` `/research/:projectId/version-comparison`**
 - [x] 能力 #1 全部 7 个 tab 的归宿均有明确声明（canonical 等价 / 推迟 / 已就绪），且推迟项不被静默丢失
 - [x] 能力 #3 的 3 个 tab（research / education / visualization）逐项归宿明确
-- [x] 每条旧 URL（`/research/workspace*`、`/v4/research*`、`/v4`、`/workspace`）的兼容行为已定义
-- [x] 每条等价验收标准的「停止条件」已解决
-- [x] 本契约经审查确认无遗漏能力
+- [ ] **旧 URL 等价迁移** — 当前所有旧 URL 均为无条件重定向至 `/research`（router/index.ts:204），丢失 tab 与项目上下文。不满足矩阵要求的等价迁移
+- [ ] **legacy 路径清退** — `/v4/research-internal` 仍直接加载 V4ResearchView（router/index.ts:220），legacy 系统仍在服役。必须完成清退或至少将入口改为条件跳转
+- [ ] **单项目 Reports 等价** — 实测：项目详情页显示已有报告，但其 canonical workspace RecentReports 为空。必须证明单项目报告列表等价行为
+- [ ] **re-search 缺失** — V4 legacy "基于报告重新搜索" 仅存在于 V4ResearchView；canonical Workflow/Result/Workspace 均无等价入口（§2.4 BLOCK）
+- [ ] **写入/下载能力端到端验证** — workflow 提交、引用保存、导出等写入或下载能力必须经真实登录浏览器完成端到端行为验证，页面/按钮存在不构成等价行为证明
+- [ ] **已提交发布物** — 当前工作区含未提交的迁移契约、前端等价测试和 E2E 改动，不能作为已提交发布物的验收依据
 
-**当前状态：BLOCK_RELEASE** — 能力 #1–#3 迁移已实施，但当前 HEAD 未完成发布验收。需在新 HEAD 重新运行全部门禁命令后方可更新状态。
+**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。所有 "V4 Research 已迁移完成" 或 "旧入口已等价迁移" 声明已撤回。
+
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
 
@@ -369,12 +420,12 @@ git status --short && git rev-parse --short HEAD && git log --oneline -1
 | `library-search` | `/library` | `LibrarySearchPage.vue` | ACTIVE canonical |
 | `report-list` | `/reports` | `ReportListPage.vue` | ACTIVE canonical |
 | `knowledge-explorer` | `/knowledge` | `KnowledgeExplorerPage.vue` | **占位页** — 功能迁移中，后续 Sprint 实现 |
-| `research-workspace` | `/research/workspace` | `ResearchWorkspaceView.vue` | RETIRED — M4 已重定向至 `/research` |
-| `v4-research` | `/v4/research-internal` | `V4ResearchView.vue` | COMPATIBILITY — M4 保留内部路由（向后兼容） |
+| `research-workspace` | `/research/workspace` | `ResearchWorkspaceView.vue` | RETIRED — M4 已重定向至 `/research`（⚠️ 无条件重定向，丢失 tab 与项目上下文 — 不等价） |
+| `v4-research` | `/v4/research-internal` | `V4ResearchView.vue` | **LEGACY 仍在服役** — 路由仍直接加载 V4ResearchView，未经清退 |
 | `research-home` | `/research/home` | `ResearchHomeView.vue` | COMPATIBILITY — 渲染 ProjectListPage |
 | `research-new` | `/research/new` | `ResearchNewView.vue` | COMPATIBILITY — 渲染 ProjectListPage |
-| — | `/v4/research` | （redirect） | COMPATIBILITY — M3 更新：→ `/research` |
-| — | `/v4` | （redirect） | COMPATIBILITY — M3 更新：→ `/research` |
+| — | `/v4/research` | （redirect） | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文） |
+| — | `/v4` | （redirect） | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文） |
 | — | `/workspace` | （redirect） | COMPATIBILITY → `/research/workspace`（M4 更新） |
 
 ## 附录 B：测试资产清单

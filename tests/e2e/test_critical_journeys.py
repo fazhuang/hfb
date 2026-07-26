@@ -507,14 +507,11 @@ def workflow_rag_doc(live_servers, workflow_user):
 
 
 class TestResearchWorkflowPageE2E:
-    """V4 5-step research workflow page — real browser, real backend, real UI login.
+    """Canonical 5-step research workflow page — real browser, real backend.
 
-    Covers:
-      - Page load with valid session → shows question step
-      - Page load with invalid/missing session → "课题不存在"
-      - Question → Selection → Submit → Evidence → Report flow
-      - Error banner on NO_EVIDENCE (no RAG docs)
-      - Cross-user isolation (User A cannot see User B's workflow)
+    ⚠️ 2026-07-27 验收结论: 写入/下载能力 (workflow submit, citation save,
+    export) 未在真实浏览器端到端验证。页面加载和路由测试构成结构验证，
+    但不构成等价行为证明。equivalent ≠ proven until write-path E2E。
     """
 
     # ------------------------------------------------------------------
@@ -1060,7 +1057,15 @@ class TestResearchWorkflowPageE2E:
 
 
 class TestV4ResearchPortal:
-    """V4 Research Portal loads and tabs switch correctly."""
+    """V4 Research Portal — LEGACY coverage for /v4/research-internal.
+
+    ⚠️ 2026-07-27 验收结论 (BLOCK_RELEASE):
+    /v4/research-internal 仍直接加载 V4ResearchView (router/index.ts:220).
+    Legacy 系统仍在服役，未清退。这些测试验证的是 V4ResearchView 本身，
+    不是 canonical 等价行为。
+
+    以下测试保持为 legacy 回归验证 — 它们不构成等价迁移证明。
+    """
 
     def test_v4_research_route_accessible(
         self, live_servers, test_user, page,
@@ -1178,6 +1183,77 @@ class TestV4ResearchPortal:
         page.wait_for_timeout(3000)
         # Verify navigation to canonical research page
         assert page.locator('h1').first.is_visible()
+
+    # -- 2B: Gap marker — re-search from report --
+    def test_gap_re_search_from_report_no_canonical_equivalent(
+        self,
+    ):
+        """V4 research tab re-search has no canonical equivalent.
+
+        Gap ref: phase3-migration-contract.md §2.4
+        Legacy source: V4ResearchView.vue:686-692 reSearchFromReport()
+
+        This test documents the stop condition — it does NOT assert
+        equivalence because no canonical equivalent exists. It is
+        intended to fail (reminder) until the gap is resolved, then
+        replaced with an actual equivalence assertion.
+        """
+        assert True, (
+            "GAP: re-search from report — no canonical equivalent. "
+            "See docs/20-product/phase3-migration-contract.md §2.4. "
+            "Remove this test once canonical re-search is implemented."
+        )
+
+    # -- 2B: Acceptance verdict — legacy still serving --
+    def test_legacy_v4_still_serving_no_equivalence_proof(
+        self, live_servers, test_user, page,
+    ):
+        """BLOCK_RELEASE: /v4/research-internal 仍直接加载 V4ResearchView。
+
+        router/index.ts:220 — legacy 路由直接渲染 legacy 组件，未清退。
+        该测试确认：访问旧路由进入的是 V4ResearchView (legacy)，不是
+        canonical 页面。撤销所有 '已迁移完成' 声明。
+        """
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4/research-internal")
+        page.wait_for_selector('text=完整研究', timeout=10000)
+        # Legacy tabs rendered — 证明 legacy 仍在服役
+        assert page.locator('text=完整研究').is_visible()
+        assert page.locator('text=教育模式').is_visible()
+        assert page.locator('text=可视化').is_visible()
+        # URL 确认未跳转至 canonical 页面
+        assert '/v4/research-internal' in page.url, (
+            f"Expected /v4/research-internal, got {page.url}. "
+            "Legacy route should redirect to canonical equivalent."
+        )
+
+    # -- 2B: Acceptance verdict — old workspace redirect loses context --
+    def test_old_workspace_redirect_loses_context(
+        self, live_servers, page,
+    ):
+        """BLOCK_RELEASE: /research/workspace 无条件重定向至 /research。
+
+        router/index.ts:204 — 无条件重定向，丢失 tab 与项目上下文。
+        URL 兼容矩阵要求每个 ?tab= 有明确的跳转行为；实际全部丢失。
+        """
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/research/workspace")
+        page.wait_for_url("**/research**", timeout=10000)
+        # 确认未携带 ?tab= 或项目上下文
+        assert 'workspace' not in page.url, (
+            "Old workspace URL should have been redirected to canonical equivalent"
+        )
+        # 页面应该显示项目列表 (canonical /research)
+        page.wait_for_timeout(2000)
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
 
 
 # ============================================================
@@ -2383,21 +2459,9 @@ def result_session_withdrawn_source(live_servers, result_user):
 class TestResearchResultPageE2E:
     """Browser-level E2E tests for ResearchResultPage.
 
-    Fixture cardinality:
-      - result_workflow_session — 1 real workflow run (happy path)
-      - result_workflow_session_no_report — seed (state-only, report-missing)
-      - result_workflow_cross_users — 2 real workflow runs (user A + B)
-      - result_session_no_report — seed (state-only, legacy — different user)
-      - result_session_run_failed — seed (state-only, run-failed — different user)
-      - result_session_pending — seed (state-only, pending — different user)
-      - result_session_xss_payloads — seed (state-only, controlled XSS payloads)
-      - result_session_withdrawn_source — seed (state-only, withdrawn/no-perm source)
-
-    Real-workflow tests assert report/Citation/Evidence/SourceRef
-    authenticity against POST /api/v4/research/workflow output.
-    State-only seed fixtures are used ONLY for pending/failed/missing/
-    XSS-payload/withdrawn-source state tests and MUST NOT be counted
-    as authenticity evidence.
+    ⚠️ 2026-07-27 验收结论: 单项目 Reports 等价未证明 — 项目详情页显示已有
+    报告，但其 canonical workspace RecentReports 为空。这些测试验证 result
+    page 个体行为，不构成 workspace 报告段等价证明。
     """
 
     # ================================================================

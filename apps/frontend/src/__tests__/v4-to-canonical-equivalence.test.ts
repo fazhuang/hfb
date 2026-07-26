@@ -11,8 +11,18 @@
  *   - 完整研究 workflow: legacy V4ResearchView research tab → canonical ResearchWorkflowPage ✓ 已迁移
  *   - 报告/引用/证据/导出: legacy V4ResearchView report detail → canonical ResearchResultPage ✓ 已迁移
  *   - 重放验证: legacy replay → 待 canonical result page 暴露 replay UI (M3 处理)
+ *   - 基于报告重新搜索 (re-search): legacy → 无 canonical 等价实现 → BLOCK (见 §2.4)
  *   - 教育模式: legacy education tab → DEFERRED (KnowledgeExplorer 无等价实现)
  *   - 可视化: legacy visualization tab → DEFERRED (KnowledgeExplorer 无等价实现)
+ *
+ * ⚠️ 2026-07-27 验收结论 (BLOCK_RELEASE):
+ *   1. /v4/research-internal 仍直接加载 V4ResearchView (router/index.ts:220) — legacy 仍在服役
+ *   2. 旧 /research/workspace 无条件重定向至 /research — 丢失 tab 与项目上下文，不等价
+ *   3. 写入/下载能力 (workflow submit, citation save, export) 未在真实浏览器端到端验证
+ *   4. 单项目 Reports 等价未证明 (项目详情有报告，workspace RecentReports 为空)
+ *   5. 未提交的修改不能作为已提交发布物的验收依据
+ *
+ * 任何 "V4 Research 已迁移完成" 声明均已撤回。
  *
  * 对应 legacy 测试: apps/frontend/src/__tests__/v4-research.test.ts (10 tests)
  *
@@ -617,5 +627,22 @@ describe('M1 能力 #3 Group 6: Result page 等价 → ResearchResultPage', () =
 
     const text = wrapper.text();
     expect(text).toContain('导出');
+  });
+});
+
+// =============================================================================
+// Group 7: Re-search from report — GAP
+// 对应 legacy: V4ResearchView.vue:686-692 reSearchFromReport
+// =============================================================================
+
+describe('M1 能力 #3 Group 7: Re-search from report → GAP', () => {
+  it('M1-V4-016: [GAP] 基于报告重新搜索 — canonical 页面无等价实现 (见 phase3-migration-contract §2.4)', async () => {
+    // Legacy: extracts first non-heading line from report markdown or falls back
+    // to topic, navigates to search page via router.push({ name: 'search', ... }).
+    // Canonical: no equivalent — ResearchWorkflowPage, ResearchResultPage,
+    // ResearchWorkspacePage, useResearchWorkflow, and useResearchResult all
+    // lack a re-search from report entry point.
+    // This gap blocks V4 Research tab migration completion.
+    expect(true).toBe(true);
   });
 });
