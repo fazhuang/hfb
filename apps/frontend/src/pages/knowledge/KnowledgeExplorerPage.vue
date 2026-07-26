@@ -622,10 +622,5 @@ function getIcon(entityType: string): string {
     border-right: none;
     border-bottom: 1px solid var(--color-border);
   }
-
-  .entity-detail,
-  .edge-detail {
-    display: none;
-  }
 }
 </style>

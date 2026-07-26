@@ -170,8 +170,7 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
     // vis-network edges live on a Canvas element — we must drive the
     // vis-network instance directly to select the first edge and trigger
     // the edge-click emit.  Failing to find an edge is a hard failure.
-    const networkReady = await page.locator('.graph-network--ready').waitFor({ state: 'visible', timeout: 10_000 });
-    expect(networkReady).toBeTruthy();
+    await page.waitForSelector('.graph-network--ready', { state: 'visible', timeout: 10_000 });
 
     // Programme the vis-network edge selection via the exposed handle
     const edgesExist = await page.evaluate(() => {
