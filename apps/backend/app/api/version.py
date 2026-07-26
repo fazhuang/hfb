@@ -8,9 +8,6 @@ from app.utils.response import api_response
 
 router = APIRouter()
 
-# /live is exempt — infrastructure liveness probe, not a business API
-# /config is exempt — infrastructure public config, not a business API
-
 
 @router.get("/version")
 async def get_version() -> dict:
