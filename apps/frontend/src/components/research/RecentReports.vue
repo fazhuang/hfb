@@ -118,15 +118,27 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-/** Only runs with completed report_generation step have real report artifacts. */
+/** Only runs with report artifacts (completed report_generation) OR runs that have
+ * at least some completed steps. This prevents hiding runs that had partial
+ * completion — the workspace should display the same runs visible in
+ * ProjectDetailPage's ProjectReports component.
+ *
+ * See ProjectReports.vue for the canonical unfiltered display.
+ * Minimum bar: run has a run_id, topic, and completed at least one step.
+ * This avoids the discrepancy where ProjectReports shows runs that
+ * RecentReports hides due to aggressive filter.
+ */
 function hasReportArtifact(run: RunItem): boolean {
   const trace = run.step_execution_trace ?? [];
+  if (trace.length === 0) return false;
+  // Show runs with completed report_generation OR any completed step
+  // (matches ProjectReports behavior where all runs are shown)
   return trace.some(
-    (s) => s.name === 'report_generation' && s.status === 'completed',
+    (s) => s.status === 'completed',
   );
 }
 
-/** Result route exists when run_id is truthy and report_generation completed. */
+/** Result route exists when run_id is truthy and has at least one completed step. */
 function hasResultRoute(run: RunItem): boolean {
   return !!run.run_id && hasReportArtifact(run);
 }

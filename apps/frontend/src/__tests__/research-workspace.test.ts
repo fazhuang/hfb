@@ -22,7 +22,7 @@
  *
  *   BATCH 3 — Correct runs/report semantics:
  *     20. No "继续研究" (no resume API)
- *     21. Only completed runs with report_generation show in RecentReports
+ *     21. RecentReports shows runs with at least one completed step (aligned with ProjectReports)
  *     22. Incomplete runs do not get view links
  *     23. Sorting by completed_at DESC with missing times last
  *     24. No fake completed_at from started_at
@@ -674,16 +674,21 @@ describe('ResearchWorkspacePage', () => {
     expect(wrapper.text()).toContain('开始新研究');
   });
 
-  // ---- Batch 3: RecentReports only shows completed runs with report artifacts ----
+  // ---- Batch 3: RecentReports shows runs with at least one completed step ----
+  //
+  // Task 2B: filter relaxed from "report_generation completed only" to
+  // "any completed step" — matches ProjectReports.vue behavior so that
+  // workspace RecentReports and project-detail ProjectReports show the
+  // same runs from GET /api/v4/research/session/{id}/runs.
 
-  it('RecentReports only shows completed runs with report_generation completed', async () => {
+  it('RecentReports shows runs with at least one completed step', async () => {
     const { default: RecentReports } = await import(
       '@/components/research/RecentReports.vue'
     );
 
     const runs = [
       makeRun({ run_id: 'r1', topic: 'Complete', completed_at: '2026-07-16T10:00:00Z' }),
-      makeRun({ run_id: 'r2', topic: 'No Report', completed_at: '2026-07-16T09:00:00Z', step_execution_trace: [
+      makeRun({ run_id: 'r2', topic: 'Partial', completed_at: '2026-07-16T09:00:00Z', step_execution_trace: [
         { name: 'topic_selection', status: 'completed' },
         { name: 'literature_retrieval', status: 'completed' },
         { name: 'evidence_synthesis', status: 'pending' },
@@ -712,26 +717,26 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
 
     const text = wrapper.text();
-    // Only the completed run should appear
+    // All runs with at least one completed step appear (matches ProjectReports behavior)
     expect(text).toContain('Complete');
-    expect(text).not.toContain('No Report');
-    expect(text).not.toContain('Failed Report');
+    expect(text).toContain('Partial');
+    expect(text).toContain('Failed Report');
   });
 
-  it('RecentReports — incomplete run does not get view link', async () => {
+  it('RecentReports — run with no completed steps does not show', async () => {
     const { default: RecentReports } = await import(
       '@/components/research/RecentReports.vue'
     );
 
     const runs = [
       makeRun({
-        run_id: 'r-incomplete',
-        topic: 'Incomplete',
+        run_id: 'r-all-pending',
+        topic: 'All Pending',
         completed_at: '2026-07-16T10:00:00Z',
         step_execution_trace: [
-          { name: 'topic_selection', status: 'completed' },
-          { name: 'literature_retrieval', status: 'completed' },
-          { name: 'evidence_synthesis', status: 'completed' },
+          { name: 'topic_selection', status: 'pending' },
+          { name: 'literature_retrieval', status: 'pending' },
+          { name: 'evidence_synthesis', status: 'pending' },
           { name: 'report_generation', status: 'pending' },
         ],
       }),
@@ -751,7 +756,7 @@ describe('ResearchWorkspacePage', () => {
 
     await flushPromises();
 
-    // No items should render (report_generation not completed)
+    // No items — zero completed steps
     const items = wrapper.findAll('.rr-item');
     expect(items.length).toBe(0);
   });

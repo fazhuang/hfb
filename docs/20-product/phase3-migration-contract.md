@@ -365,12 +365,12 @@ M0（本契约 FROZEN ✅）
 - [x] 能力 #3 的 3 个 tab（research / education / visualization）逐项归宿明确
 - [x] **旧 URL 等价迁移** — **Task 2B**: LegacyRedirect.vue 实现 session-aware 跳转，7 个 legacy 路由名 + 6 个 tab 值 → canonical 路由解析，降级至 project list
 - [x] **legacy 路径清退** — **Task 2B**: `/v4/research-internal` 不再直接加载 V4ResearchView（`legacy-v4-research-internal` → LegacyRedirect → `/research/:projectId/workflow`）
-- [ ] **单项目 Reports 等价** — 实测：项目详情页显示已有报告，但其 canonical workspace RecentReports 为空。必须证明单项目报告列表等价行为
+- [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
 - [ ] **re-search 缺失** — V4 legacy "基于报告重新搜索" 仅存在于 V4ResearchView；canonical Workflow/Result/Workspace 均无等价入口（§2.4 BLOCK）
 - [ ] **写入/下载能力端到端验证** — workflow 提交、引用保存、导出等写入或下载能力必须经真实登录浏览器完成端到端行为验证，页面/按钮存在不构成等价行为证明
 - [ ] **已提交发布物** — 当前工作区含未提交的迁移契约、前端等价测试和 E2E 改动，不能作为已提交发布物的验收依据
 
-**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了两项阻断条件（旧 URL 等价迁移、legacy 路径清退）。剩余阻断：单项目 Reports 等价、re-search 缺失、写入/下载端到端验证、已提交发布物。
+**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了三项阻断条件（旧 URL 等价迁移、legacy 路径清退、单项目 Reports 等价）。剩余阻断：re-search 缺失、写入/下载端到端验证、已提交发布物。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
