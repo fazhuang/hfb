@@ -45,7 +45,8 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
 
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto(`${BASE}/app/knowledge`);
+    // Knowledge module is a child route of DefaultLayout → path is /knowledge
+    await page.goto(`${BASE}/knowledge`);
     await page.waitForSelector('input.search-input', { state: 'visible', timeout: 10_000 });
   });
 
