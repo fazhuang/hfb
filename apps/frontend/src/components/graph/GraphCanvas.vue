@@ -39,6 +39,16 @@ export interface GraphEdgeData {
   relation_type: string;
   label: string;
   source: string;
+  evidence?: {
+    document_id?: string;
+    chunk_id?: string;
+    exact_quote?: string;
+    citation?: string;
+    version_id?: string;
+    passage_id?: string;
+    source_uri?: string;
+    claim_text?: string;
+  };
 }
 
 const props = defineProps<{
@@ -54,6 +64,7 @@ const emit = defineEmits<{
   (e: 'retry'): void;
   (e: 'node-click', node: GraphNodeData): void;
   (e: 'node-double-click', node: GraphNodeData): void;
+  (e: 'edge-click', edge: GraphEdgeData): void;
 }>();
 
 const containerRef = ref<HTMLElement | null>(null);
@@ -148,6 +159,12 @@ function buildNetwork() {
 
   network = new Network(networkRef.value, { nodes: visNodes, edges: visEdges }, options);
 
+  // Expose the vis-network instance on the DOM element so E2E tests can
+  // select edges programmatically (edges live on a Canvas, not in the DOM).
+  if (networkRef.value) {
+    (networkRef.value as any).__visNetwork = network;
+  }
+
   // Events
   network.on('click', (params) => {
     if (params.nodes.length === 1) {
@@ -163,6 +180,16 @@ function buildNetwork() {
       const nodeData = props.nodes.find((n) => n.id === params.nodes[0]);
       if (nodeData) {
         emit('node-double-click', nodeData);
+      }
+    }
+  });
+
+  // Edge click — emit edge data for evidence inspection
+  network.on('selectEdge', (params) => {
+    if (params.edges.length === 1) {
+      const edgeData = props.edges.find((e) => e.id === params.edges[0]);
+      if (edgeData) {
+        emit('edge-click', edgeData);
       }
     }
   });

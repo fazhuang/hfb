@@ -164,7 +164,7 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
 
-        // Knowledge module (placeholder)
+        // Knowledge module
         {
           path: 'knowledge',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
