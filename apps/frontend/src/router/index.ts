@@ -77,7 +77,9 @@ const router = createRouter({
         },
         {
           path: 'workspace',
-          redirect: '/research',
+          name: 'legacy-workspace-short',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'research/new',
@@ -197,28 +199,44 @@ const router = createRouter({
         // Individual `/research/workspace` w/o :projectId falls through to here.
         {
           path: 'research',
-          redirect: '/research',
+          name: 'legacy-research',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
         },
         {
           path: 'research/workspace',
-          name: 'research-workspace',
-          redirect: '/research',
+          name: 'legacy-workspace',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
         },
-        // M3: /v4/* redirects now point to canonical /research (project list).
-        // M4 will add session-context-aware redirects to /research/:projectId/workflow.
+        // /workspace → resolve most-recent session → /research/:projectId/workspace
+        {
+          path: 'workspace',
+          name: 'legacy-workspace-short',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
+        },
+        // /v4/research → resolve most-recent session → /research/:projectId/workflow
         {
           path: 'v4/research',
-          redirect: '/research',
+          name: 'legacy-v4-research',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
         },
+        // /v4 → resolve most-recent session → /research/:projectId/workflow
         {
           path: 'v4',
-          redirect: '/research',
+          name: 'legacy-v4',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
+          meta: { requiresAuth: true },
         },
-        // V4ResearchView kept for backwards compatibility during M4 transition
+        // /v4/research-internal → resolve most-recent session → /research/:projectId/workflow
+        // Legacy V4ResearchView is NO LONGER directly served — canonical equivalent
+        // (/research/:projectId/workflow, /research/:projectId/result/:runId) replaces it.
         {
           path: 'v4/research-internal',
-          name: 'v4-research',
-          component: () => import('@/views/V4ResearchView.vue'),
+          name: 'legacy-v4-research-internal',
+          component: () => import('@/components/common/LegacyRedirect.vue'),
           meta: { requiresAuth: true },
         },
         {

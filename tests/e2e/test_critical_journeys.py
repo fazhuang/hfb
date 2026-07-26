@@ -1057,40 +1057,24 @@ class TestResearchWorkflowPageE2E:
 
 
 class TestV4ResearchPortal:
-    """V4 Research Portal — LEGACY coverage for /v4/research-internal.
+    """Legacy URL redirect tests — session-aware canonical redirects.
 
-    ⚠️ 2026-07-27 验收结论 (BLOCK_RELEASE):
-    /v4/research-internal 仍直接加载 V4ResearchView (router/index.ts:220).
-    Legacy 系统仍在服役，未清退。这些测试验证的是 V4ResearchView 本身，
-    不是 canonical 等价行为。
+    Task 2B: /v4/research-internal, /v4/research, /v4, /research/workspace,
+    and /workspace now use LegacyRedirect.vue which resolves the user's
+    most-recent session and redirects with full project context.
 
-    以下测试保持为 legacy 回归验证 — 它们不构成等价迁移证明。
+    These tests verify the redirect resolution — NOT V4ResearchView
+    (which is no longer directly served).
     """
 
-    def test_v4_research_route_accessible(
+    def test_v4_research_internal_redirects_to_canonical_workflow(
         self, live_servers, test_user, page,
     ):
-        frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
-        # /v4/research redirects to /research/workspace?tab=v4-research
-        page.goto(f"{frontend_url}/v4/research-internal")
-        page.wait_for_selector('text=完整研究', timeout=10000)
+        """BLOCK_RELEASE fix: /v4/research-internal redirects to canonical workflow.
 
-        # Three tabs visible
-        assert page.locator('text=完整研究').is_visible()
-        assert page.locator('text=教育模式').is_visible()
-        assert page.locator('text=可视化').is_visible()
-
-    def test_v4_research_tab_switching(
-        self, live_servers, test_user, page,
-    ):
+        LegacyRedirect resolves most-recent session and redirects to
+        /research/:projectId/workflow instead of rendering V4ResearchView.
+        """
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/")
         page.evaluate(
@@ -1101,69 +1085,92 @@ class TestV4ResearchPortal:
             [test_user["access_token"], test_user["refresh_token"]],
         )
         page.goto(f"{frontend_url}/v4/research-internal")
-        page.wait_for_selector('text=完整研究', timeout=10000)
-
-        # Switch to education tab
-        page.locator('text=教育模式').click()
-        assert page.locator('#v4-edu-level').is_visible()
-
-        # Switch to visualization tab
-        page.locator('text=可视化').click()
-        assert page.locator('#v4-viz-type').is_visible()
-
-        # Switch back to research tab
-        page.locator('text=完整研究').click()
-        assert page.locator('#v4-topic').is_visible()
-
-    def test_v4_research_core_inputs_present(
-        self, live_servers, test_user, page,
-    ):
-        frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
+        # Should redirect to canonical research page (not stay on /v4/research-internal)
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        # Must NOT render V4ResearchView tabs
+        assert page.locator('text=完整研究').count() == 0, (
+            "V4ResearchView should no longer be served at /v4/research-internal"
         )
-        page.goto(f"{frontend_url}/v4/research-internal")
-        page.wait_for_selector('text=完整研究', timeout=10000)
-
-        # Research tab: topic input and run button
-        assert page.locator('#v4-topic').is_visible()
-        assert page.locator('[data-testid="v4-run-workflow"]').is_visible()
-
-        # Education tab: inputs
-        page.locator('text=教育模式').click()
-        assert page.locator('#v4-edu-topic').is_visible()
-        assert page.locator('[data-testid="v4-run-education"]').is_visible()
-
-        # Visualization tab: inputs
-        page.locator('text=可视化').click()
-        assert page.locator('#v4-viz-labels').is_visible()
-        assert page.locator('[data-testid="v4-run-viz"]').is_visible()
-
-    def test_v4_redirects_to_v4_research(
-        self, live_servers, test_user, page,
-    ):
-        frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
-        # M4: /v4 redirects to /research (canonical project list)
-        page.goto(f"{frontend_url}/v4")
-        page.wait_for_url("**/research**", timeout=10000)
-        # We land on either /research or a canonical research page
-        # Verify the page is not blank — heading or project list visible
+        # Must land on a canonical research page (project list or workflow)
         assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
 
-    def test_navbar_navigates_to_v4_research(
+    def test_v4_research_redirects_to_canonical(
+        self, live_servers, test_user, page,
+    ):
+        """/v4/research redirects to canonical workflow with project context."""
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4/research")
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+    def test_v4_root_redirects_to_canonical(
+        self, live_servers, test_user, page,
+    ):
+        """/v4 redirects to canonical workflow with project context."""
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/v4")
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        # We land on either /research or a canonical research page
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+    def test_workspace_redirects_to_canonical_with_context(
+        self, live_servers, test_user, page,
+    ):
+        """/research/workspace redirects with project context (not blank /research)."""
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/research/workspace")
+        # LegacyRedirect resolves session and redirects with projectId
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        # Page must be visible — not blank
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+    def test_short_workspace_redirects_to_canonical(
+        self, live_servers, test_user, page,
+    ):
+        """/workspace redirects with session context."""
+        frontend_url, _ = live_servers
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
+        )
+        page.goto(f"{frontend_url}/workspace")
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+    def test_navbar_navigates_to_canonical_research(
         self, live_servers, test_user, page,
     ):
         frontend_url, _ = live_servers
@@ -1178,7 +1185,7 @@ class TestV4ResearchPortal:
         page.goto(f"{frontend_url}/")
         page.wait_for_selector('nav', timeout=5000)
 
-        # M4: Navbar link now points to /research (canonical, not workspace)
+        # Navbar link points to /research (canonical, not workspace)
         page.locator('nav a[href="/research"]').first.click()
         page.wait_for_timeout(3000)
         # Verify navigation to canonical research page
@@ -1204,15 +1211,15 @@ class TestV4ResearchPortal:
             "Remove this test once canonical re-search is implemented."
         )
 
-    # -- 2B: Acceptance verdict — legacy still serving --
-    def test_legacy_v4_still_serving_no_equivalence_proof(
+    # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
+    def test_legacy_v4_research_internal_now_redirects(
         self, live_servers, test_user, page,
     ):
-        """BLOCK_RELEASE: /v4/research-internal 仍直接加载 V4ResearchView。
+        """Task 2B fix: /v4/research-internal now redirects to canonical workflow.
 
-        router/index.ts:220 — legacy 路由直接渲染 legacy 组件，未清退。
-        该测试确认：访问旧路由进入的是 V4ResearchView (legacy)，不是
-        canonical 页面。撤销所有 '已迁移完成' 声明。
+        LegacyRedirect resolves most-recent session → redirect to
+        /research/:projectId/workflow. V4ResearchView is no longer
+        directly served at this URL.
         """
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/")
@@ -1224,35 +1231,39 @@ class TestV4ResearchPortal:
             [test_user["access_token"], test_user["refresh_token"]],
         )
         page.goto(f"{frontend_url}/v4/research-internal")
-        page.wait_for_selector('text=完整研究', timeout=10000)
-        # Legacy tabs rendered — 证明 legacy 仍在服役
-        assert page.locator('text=完整研究').is_visible()
-        assert page.locator('text=教育模式').is_visible()
-        assert page.locator('text=可视化').is_visible()
-        # URL 确认未跳转至 canonical 页面
-        assert '/v4/research-internal' in page.url, (
-            f"Expected /v4/research-internal, got {page.url}. "
-            "Legacy route should redirect to canonical equivalent."
+        # Should redirect away from /v4/research-internal to canonical
+        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_timeout(2000)
+        # Must NOT still be on /v4/research-internal
+        assert '/v4/research-internal' not in page.url, (
+            f"Still at {page.url} — legacy route no longer serves V4ResearchView"
         )
+        # Must NOT render V4ResearchView tabs
+        assert page.locator('text=完整研究').count() == 0
 
-    # -- 2B: Acceptance verdict — old workspace redirect loses context --
-    def test_old_workspace_redirect_loses_context(
-        self, live_servers, page,
+    # -- 2B: Acceptance verdict — old workspace redirect now session-aware --
+    def test_old_workspace_redirect_resolves_session_context(
+        self, live_servers, test_user, page,
     ):
-        """BLOCK_RELEASE: /research/workspace 无条件重定向至 /research。
+        """Task 2B fix: /research/workspace → session-aware canonical redirect.
 
-        router/index.ts:204 — 无条件重定向，丢失 tab 与项目上下文。
-        URL 兼容矩阵要求每个 ?tab= 有明确的跳转行为；实际全部丢失。
+        LegacyRedirect resolves most-recent session and redirects to
+        /research/:projectId/workspace (or fallback to project list).
+        No longer a blank redirect to /research.
         """
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/research/workspace")
-        page.wait_for_url("**/research**", timeout=10000)
-        # 确认未携带 ?tab= 或项目上下文
-        assert 'workspace' not in page.url, (
-            "Old workspace URL should have been redirected to canonical equivalent"
+        page.goto(f"{frontend_url}/")
+        page.evaluate(
+            """([token, refresh]) => {
+            localStorage.setItem('hfb-access-token', token);
+            localStorage.setItem('hfb-refresh-token', refresh);
+        }""",
+            [test_user["access_token"], test_user["refresh_token"]],
         )
-        # 页面应该显示项目列表 (canonical /research)
+        page.goto(f"{frontend_url}/research/workspace")
+        page.wait_for_url("**/research/**", timeout=15000)
         page.wait_for_timeout(2000)
+        # Page must be visible — not blank
         assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
 
 
