@@ -102,7 +102,7 @@ uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -
 | R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；历史运行记录已标注为 Historical evidence only |
 | R3 (Single implementation) | **CONDITIONAL** — 能力 #1–#3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED（迁移后闭合）；#4–#5 已收口（Decision A） |
 | R5 (Behavior preservation) | **CONDITIONAL** — 能力 #1–#3 迁移验收通过后闭合；#4–#5 已收口 |
-| R6 (Real evidence) | **PENDING** — 需在当前 HEAD 执行全部 R6 验证命令；现有数据来自 `74cee05` 历史运行记录，不是当前 HEAD 的实时证据 |
+| R6 (Real evidence) | **PENDING** — 需在当前 HEAD 执行全部 R6 验证命令后判定。当前 HEAD 已被 Task 0A/0B/1A/1B 多次修改，无实时运行证据。现有数据来自 `74cee05` 历史运行记录，不是当前 HEAD 的实时证据 |
 | Release | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 + R6 当前 HEAD 未复验 + 未完成项待解决 |
 
 **未完成项（当前 HEAD）**：
