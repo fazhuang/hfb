@@ -205,7 +205,7 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
     const docLink = page.locator('.evidence-link').first();
     await expect(docLink).toBeVisible({ timeout: 5_000 });
     const href = await docLink.getAttribute('href');
-    expect(href).toMatch(/\/app\/library\//);
+    expect(href).toMatch(/\/library\//);
   });
 
   // ─── Error recovery ────────────────────────────────────────────────
