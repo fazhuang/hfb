@@ -714,8 +714,12 @@ describe('ResearchWorkspacePage', () => {
     const text = wrapper.text();
     // Only the completed run should appear
     expect(text).toContain('Complete');
-    expect(text).not.toContain('No Report');
-    expect(text).not.toContain('Failed Report');
+    // Task 2B: filter relaxed — any completed step now qualifies.
+    // Both 'No Report' (completed topic_selection + literature_retrieval)
+    // and 'Failed Report' (completed topic_selection + literature_retrieval)
+    // now display in RecentReports.
+    expect(text).toContain('No Report');
+    expect(text).toContain('Failed Report');
   });
 
   it('RecentReports — incomplete run does not get view link', async () => {
@@ -751,9 +755,14 @@ describe('ResearchWorkspacePage', () => {
 
     await flushPromises();
 
-    // No items should render (report_generation not completed)
+    // Task 2B: filter relaxed — any completed step qualifies.
+    // This run has 3 completed steps (topic_selection, literature_retrieval,
+    // evidence_synthesis), so it now renders with a view link.
     const items = wrapper.findAll('.rr-item');
-    expect(items.length).toBe(0);
+    expect(items.length).toBe(1);
+    // View link <a> should be present (has completed steps)
+    const links = wrapper.findAll('.rr-view-link');
+    expect(links.length).toBe(1);
   });
 
   it('RecentReports — sorts by completed_at DESC, missing times last', async () => {
