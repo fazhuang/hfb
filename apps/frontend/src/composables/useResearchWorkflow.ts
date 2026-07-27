@@ -178,16 +178,28 @@ function extractEvidenceFromSingleRun(
     for (const [tid, snap] of snapshotMap) {
       if (evidenceSeen.has(tid)) continue;
       evidenceSeen.add(tid);
+      const citText = (snap.citation_text as string) || '';
       evidenceList.push({
         trace_id: tid,
         document_id: (snap.document_id as string) || '',
         chunk_id: (snap.chunk_id as string) || '',
         claim_text: (snap.claim_text as string) || '',
         quote: (snap.quote as string) || '',
-        citation_text: (snap.citation_text as string) || '',
+        citation_text: citText,
         source_ref_title: (snap.source_ref_title as string) || undefined,
         passage_id: undefined,
       });
+      // Task 2B: also extract citation from snapshot fallback when
+      // output_artifacts.citations is empty.
+      if (!citationSeen.has(tid)) {
+        citationSeen.add(tid);
+        citationList.push({
+          trace_id: tid,
+          citation_text: citText,
+          document_id: (snap.document_id as string) || '',
+          quote: (snap.quote as string) || '',
+        });
+      }
     }
   }
 

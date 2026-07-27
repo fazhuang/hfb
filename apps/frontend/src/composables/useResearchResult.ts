@@ -206,23 +206,43 @@ function extractEvidenceFromSingleRun(
     }
   }
 
-  // Fallback: snapshot-only
+  // Fallback: snapshot-only (cite snapshot entries directly when traces are empty)
   if (evidenceList.length === 0 && snapshotMap.size > 0) {
     for (const [tid, snap] of snapshotMap) {
       if (evidenceSeen.has(tid)) continue;
+      const citText = (snap.citation_text as string) || '';
+      const claimText = (snap.claim_text as string) || '';
+      const quoteText = (snap.quote as string) || '';
+
+      // Evidence from snapshot fallback
       evidenceSeen.add(tid);
       evidenceList.push({
         trace_id: tid,
         document_id: (snap.document_id as string) || '',
         chunk_id: (snap.chunk_id as string) || '',
-        claim_text: (snap.claim_text as string) || '',
-        quote: (snap.quote as string) || '',
-        citation_text: (snap.citation_text as string) || '',
+        claim_text: claimText,
+        quote: quoteText,
+        citation_text: citText,
         source_ref_title: (snap.source_ref_title as string) || undefined,
         source_ref_url: (snap.source_ref_url as string) || undefined,
         source_ref_id: (snap.source_ref_id as string) || undefined,
         passage_id: undefined,
       });
+
+      // Task 2B: also extract citation from snapshot fallback when
+      // output_artifacts.citations is empty (e.g. workflow completed
+      // before citation_export populated artifacts). This ensures the
+      // citation panel shows data even when the backend run has
+      // evidence but no output_artifacts.citations array.
+      if (!citationSeen.has(tid)) {
+        citationSeen.add(tid);
+        citationList.push({
+          trace_id: tid,
+          citation_text: citText,
+          document_id: (snap.document_id as string) || '',
+          quote: quoteText,
+        });
+      }
     }
   }
 
