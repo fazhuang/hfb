@@ -598,6 +598,8 @@ async def _build_retrieval_snapshot(
     if doc_ids:
         from sqlalchemy import select as sql_select
         from app.models.academic_evidence import SourceRef
+
+        # First pass: try document:-scoped SourceRef entries
         sr_stmt = sql_select(SourceRef).where(
             SourceRef.is_deleted.is_(False),
             SourceRef.page_location.in_([f"document:{did}" for did in doc_ids]),
@@ -612,28 +614,50 @@ async def _build_retrieval_snapshot(
                     "source_ref_title": sr.title,
                 }
 
-        # Task 2B BLOCK_RELEASE: when no SourceRef rows match the
-        # document: prefix (e.g. only passage:-scoped SourceRefs exist),
-        # fall back to Document table for title + source_url so
-        # retrieval_snapshot entries carry a visible source_ref_title
-        # and SourceReferenceCard renders a navigable link instead of
-        # "此证据缺少文献来源信息".
-        unmatched = doc_ids - set(source_ref_by_doc.keys())
-        if unmatched:
-            from app.models.document import Document as Doc
-            doc_stmt = sql_select(Doc.id, Doc.title, Doc.source_url).where(
-                Doc.is_deleted.is_(False),
-                Doc.id.in_(list(unmatched)),
+        # Second pass: find passage_ids associated with unmatched documents
+        # via document_chunks, then try passage:-scoped SourceRef entries.
+        # This provides same-trace SourceRef when the ingestion pipeline
+        # creates SourceRefs keyed by passage_id rather than document_id.
+        unmatched_for_passage = doc_ids - set(source_ref_by_doc.keys())
+        if unmatched_for_passage:
+            from app.models.document_chunk import DocumentChunk as DC
+            chunk_stmt = sql_select(DC.document_id, DC.passage_id).where(
+                DC.is_deleted.is_(False),
+                DC.document_id.in_(list(unmatched_for_passage)),
+                DC.passage_id.isnot(None),
+                DC.passage_id != "",
             )
-            doc_result = await db.execute(doc_stmt)
-            for row in doc_result.all():
-                did, d_title, d_url = row[0], row[1], row[2]
-                if did and did not in source_ref_by_doc:
-                    source_ref_by_doc[did] = {
-                        "source_ref_id": did,
-                        "source_ref_url": d_url or "",
-                        "source_ref_title": d_title or "",
-                    }
+            chunk_result = await db.execute(chunk_stmt)
+            passage_ids: set[str] = set()
+            doc_by_passage: dict[str, str] = {}  # passage_id → document_id
+            for row in chunk_result.all():
+                did, pid = row[0], row[1]
+                if pid and pid.strip() and did:
+                    passage_ids.add(pid)
+                    doc_by_passage[pid] = did
+
+            if passage_ids:
+                passage_sr_stmt = sql_select(SourceRef).where(
+                    SourceRef.is_deleted.is_(False),
+                    SourceRef.page_location.in_(
+                        [f"passage:{pid}" for pid in passage_ids]
+                    ),
+                )
+                passage_sr_result = await db.execute(passage_sr_stmt)
+                for sr in passage_sr_result.scalars().all():
+                    pid = (
+                        sr.page_location.replace("passage:", "")
+                        if sr.page_location
+                        else ""
+                    )
+                    if pid and pid in doc_by_passage:
+                        did = doc_by_passage[pid]
+                        if did not in source_ref_by_doc:
+                            source_ref_by_doc[did] = {
+                                "source_ref_id": sr.id,
+                                "source_ref_url": sr.url or "",
+                                "source_ref_title": sr.title,
+                            }
 
     for t in result.evidence_trace:
         tid = make_trace_id(t.document_id, t.chunk_id)

@@ -42,25 +42,44 @@
       </div>
     </template>
 
-    <!-- No SourceRef — fallback to document-level link when document_id exists -->
-    <template v-else-if="evidence.document_id">
+    <!-- With SourceRef (human-readable name from real SourceRef table) -->
+    <template v-if="evidence.source_ref_title">
       <div class="esrc-field">
         <span class="esrc-field-label">文献</span>
-        <code class="esrc-field-code">{{ evidence.document_id.slice(0, 16) }}...</code>
-        <span class="esrc-field-note">（文档 ID，无 SourceRef 记录）</span>
+        <span class="esrc-field-value">{{ evidence.source_ref_title }}</span>
       </div>
-      <div v-if="internalRoute" class="esrc-field">
-        <span class="esrc-field-label">查看</span>
+      <div v-if="evidence.source_ref_id" class="esrc-field">
+        <span class="esrc-field-label">来源 ID</span>
+        <code class="esrc-field-code">{{ evidence.source_ref_id.slice(0, 16) }}...</code>
+      </div>
+
+      <!-- Internal passage link (preferred) -->
+      <div v-if="hasInternalRoute" class="esrc-field">
+        <span class="esrc-field-label">查看原文</span>
         <router-link
+          v-if="internalRoute"
           :to="internalRoute"
           class="esrc-link esrc-link--internal"
         >
-          打开文献详情 →
+          打开原文 →
         </router-link>
+      </div>
+
+      <!-- External link (fallback, only when no internal route) -->
+      <div v-else-if="safeSourceUrl" class="esrc-field">
+        <span class="esrc-field-label">原文链接</span>
+        <a
+          :href="safeSourceUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="esrc-link"
+        >
+          打开原文 →
+        </a>
       </div>
     </template>
 
-    <!-- No SourceRef and no document_id — truly missing -->
+    <!-- No SourceRef — fail-closed: display missing state, never fallback to Document -->
     <template v-else>
       <div class="esrc-missing">
         <span class="esrc-missing-icon" aria-hidden="true">⚠️</span>
