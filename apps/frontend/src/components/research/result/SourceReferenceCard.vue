@@ -42,7 +42,25 @@
       </div>
     </template>
 
-    <!-- No SourceRef -->
+    <!-- No SourceRef — fallback to document-level link when document_id exists -->
+    <template v-else-if="evidence.document_id">
+      <div class="esrc-field">
+        <span class="esrc-field-label">文献</span>
+        <code class="esrc-field-code">{{ evidence.document_id.slice(0, 16) }}...</code>
+        <span class="esrc-field-note">（文档 ID，无 SourceRef 记录）</span>
+      </div>
+      <div v-if="internalRoute" class="esrc-field">
+        <span class="esrc-field-label">查看</span>
+        <router-link
+          :to="internalRoute"
+          class="esrc-link esrc-link--internal"
+        >
+          打开文献详情 →
+        </router-link>
+      </div>
+    </template>
+
+    <!-- No SourceRef and no document_id — truly missing -->
     <template v-else>
       <div class="esrc-missing">
         <span class="esrc-missing-icon" aria-hidden="true">⚠️</span>
