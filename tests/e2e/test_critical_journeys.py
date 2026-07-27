@@ -509,9 +509,20 @@ def workflow_rag_doc(live_servers, workflow_user):
 class TestResearchWorkflowPageE2E:
     """Canonical 5-step research workflow page — real browser, real backend.
 
-    ⚠️ 2026-07-27 验收结论: 写入/下载能力 (workflow submit, citation save,
-    export) 未在真实浏览器端到端验证。页面加载和路由测试构成结构验证，
-    但不构成等价行为证明。equivalent ≠ proven until write-path E2E。
+    Task 2B write-path E2E coverage:
+      - test_successful_workflow_uses_current_run_artifacts
+        Real browser: POST /api/v4/research/workflow (write) → runs fetch →
+        evidence/citation extraction → result link. Exactly one workflow
+        POST. Citation chain verified in DOM.
+      - test_workflow_no_evidence_shows_error_banner
+        Write path failure case: NO_EVIDENCE error banner with retry.
+      - Cross-user isolation (test_workflow_cross_user_isolation):
+        User A writes workflow → User B cannot see User A's result.
+
+    Page-load + structural tests:
+      - test_workflow_page_loads_with_valid_session
+      - test_workflow_page_shows_not_found_for_invalid_session
+      - test_workflow_page_session_requires_auth
     """
 
     # ------------------------------------------------------------------
@@ -2470,9 +2481,21 @@ def result_session_withdrawn_source(live_servers, result_user):
 class TestResearchResultPageE2E:
     """Browser-level E2E tests for ResearchResultPage.
 
-    ⚠️ 2026-07-27 验收结论: 单项目 Reports 等价未证明 — 项目详情页显示已有
-    报告，但其 canonical workspace RecentReports 为空。这些测试验证 result
-    page 个体行为，不构成 workspace 报告段等价证明。
+    Task 2B: Write/download path E2E coverage in Batch 1-2:
+      - test_real_workflow_report_loads — workflow result page loads
+      - test_real_workflow_citation_shows_evidence — citation → evidence chain
+      - test_real_workflow_citation_marker_clickable — citation marker interaction
+      - test_real_workflow_lineage_displayed — SourceRef lineage badges
+      - test_real_workflow_sourceref_link_routes — SourceRef internal links
+      - test_real_workflow_lineage_complete_or_partial — lineage completeness
+      - test_export_markdown_real_browser_download — real browser export download
+      - test_export_disabled_when_no_report — export disabled in report-missing state
+      - test_export_no_double_click — concurrent export prevention
+      - test_export_stale_after_route_switch — stale export protection
+
+    These tests use real browser login + real workflow run artifacts and
+    verify read (report/citation/evidence/SourceRef), download (export),
+    and state (disabled/double-click/stale) behavior.
     """
 
     # ================================================================
