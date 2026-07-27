@@ -205,15 +205,16 @@
 **逐项迁移完成判定**：
 
 - [ ] Workflow 执行：legacy 5 步 pipeline 与 canonical 5 步行为等价（topic→retrieval→synthesis→report→citation），**M1 的 10 个 v4-research.test.ts 测试全部有 canonical 等价测试**
-- [ ] 报告渲染：canonical result page 与 legacy report 详情等价（markdown 章节、引用标记、证据展示）
-- [ ] 引用保存/导出：canonical 行为与 legacy 等价（`extractCitationsFromRuns` 的 snapshot × traces 交叉引用逻辑一致）
+- [x] 报告渲染：canonical result page 与 legacy report 详情等价（markdown 章节、引用标记、证据展示）
+- [ ] **⚠️ Citation/SourceRef 等价（BLOCK）**：2026-07-27 验收。真实 canonical 报告显示 "证据 5 条 · 引用 0 条"，引用区 "此报告暂无引用记录"。backend 在 `output_artifacts.citations` 中填充来自 `synthesis_output.evidence` 的引用，前端 `useResearchResult.extractEvidenceFromSingleRun` Path 1 读取正确。但真实 run 的 `output_artifacts.citations` 为空数组 — provenance 链的端到端等价尚未证明，因为 backend workflow 产出不包含 citation 数据（即使 evidence 有 5 条）。Unit test 覆盖不等同于跨层真实数据链证明。
 - [ ] 无证据 fail-closed：`success=false` + `records=0` → no-evidence-state，导出禁用，引用区段不渲染（与 legacy P2T1 行为等价）
 - [ ] 空 citation 字段 → save-citation 按钮不渲染（与 legacy P2T1 行为等价）
 - [ ] 重放验证：canonical result page 需暴露 replay UI，或明确声明推迟并记录
 - [ ] 教育模式：明确推迟至 KnowledgeExplorer 并记录占位路由
 - [ ] 可视化：明确推迟至 KnowledgeExplorer 并记录占位路由
+- [ ] 引用保存/导出：canonical 行为与 legacy 等价（`extractCitationsFromRuns` 的 snapshot × traces 交叉引用逻辑一致）
 - [ ] `/v4/*` 兼容跳转在所有场景（有/无 session、有/无 run_id query、匿名用户）不产生 404/空白页
-- [ ] **[STOP]** 基于报告重新搜索（re-search）：canonical 等价实现或明确推迟声明 — 见 §2.4
+- [x] **[RESOLVED]** 基于报告重新搜索（re-search）：Task 2B — `navigateToLibrarySearch()` 在 `useResearchWorkflow` 中实现
 
 **Legacy 测试映射**（`apps/frontend/src/__tests__/v4-research.test.ts`，10 个测试）：
 
@@ -368,9 +369,10 @@ M0（本契约 FROZEN ✅）
 - [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
 - [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
 - [x] **Docker 构建** — **Task 2B**: docker/dev/Dockerfile.backend 和 docker/prod/Dockerfile.backend 中 `COPY pyproject.toml README.md ./` 修复 `OSError: Readme file does not exist`（pyproject.toml:9 readme = "README.md" 要求）
-- [x] **写入/下载能力端到端验证** — **Task 2B**: 已有 E2E 覆盖确认。`TestResearchWorkflowPageE2E.test_successful_workflow_uses_current_run_artifacts` 验证 POST /api/v4/research/workflow 写入路径；`TestResearchResultPageE2E` Batch 1-2 验证报告/引用/证据/SourceRef 读取及 export markdown 下载路径。Docstring 标注完成，真实浏览器 + 真实 backend + 真实用户登录。
+- [ ] **写入/下载能力端到端验证（BLOCK）**：2026-07-27 验收。导出按钮在真实报告页可见，但未触发下载 — 下载能力仍未被本轮端到端证明。须在真实浏览器中完成 export markdown download 验证。
+- [ ] **⚠️ Citation/SourceRef 等价（BLOCK）**：2026-07-27 验收。真实 canonical 报告显示 "证据 5 条 · 引用 0 条"，引用区 "此报告暂无引用记录"。须先解决 backend→frontend citation 数据链断裂，然后重新验收。
 
-**当前状态：RELEASE_READY** — 2026-07-27 真实环境验收。Task 2B 修复了全部 6/6 阻断条件。所有不等价声明已撤回并替换为可验证的等价实现。
+**当前状态：BLOCK_RELEASE** — 2026-07-27 验收。Task 2B 修复了 6/8 阻断条件。2 项新阻断：Citation/SourceRef 数据链断裂（backend 真实产出无 citation）+ 工作区不干净（已修正）。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
