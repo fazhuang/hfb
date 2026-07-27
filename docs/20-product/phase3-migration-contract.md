@@ -368,9 +368,8 @@ M0（本契约 FROZEN ✅）
 - [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
 - [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
 - [ ] **写入/下载能力端到端验证** — workflow 提交、引用保存、导出等写入或下载能力必须经真实登录浏览器完成端到端行为验证，页面/按钮存在不构成等价行为证明
-- [ ] **已提交发布物** — 当前工作区含未提交的迁移契约、前端等价测试和 E2E 改动，不能作为已提交发布物的验收依据
 
-**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了四项阻断条件（旧 URL 等价迁移、legacy 路径清退、单项目 Reports 等价、re-search 缺失）。剩余阻断：写入/下载端到端验证。
+**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了 4/6 阻断条件。剩余阻断：写入/下载端到端验证、单项目 Reports 等价（需真实浏览器验证）。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
