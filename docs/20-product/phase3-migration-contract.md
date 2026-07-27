@@ -370,7 +370,7 @@ M0（本契约 FROZEN ✅）
 - [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
 - [x] **Docker 构建** — **Task 2B**: docker/dev/Dockerfile.backend 和 docker/prod/Dockerfile.backend 中 `COPY pyproject.toml README.md ./` 修复 `OSError: Readme file does not exist`（pyproject.toml:9 readme = "README.md" 要求）
 - [ ] **写入/下载能力端到端验证（BLOCK）**：2026-07-27 验收。导出按钮在真实报告页可见，但未触发下载 — 下载能力仍未被本轮端到端证明。须在真实浏览器中完成 export markdown download 验证。
-- [ ] **⚠️ Citation/SourceRef 等价（BLOCK）**：2026-07-27 验收。真实 canonical 报告显示 "证据 5 条 · 引用 0 条"，引用区 "此报告暂无引用记录"。须先解决 backend→frontend citation 数据链断裂，然后重新验收。
+- [ ] **⚠️ Citation/SourceRef 等价（需验收）**：2026-07-27。`374d5ad` 修复 — `useResearchWorkflow` 和 `useResearchResult` 中的 snapshot-only 回退路径现在同时提取 citation（之前仅提取 evidence）。当 `output_artifacts.citations` 为空且 `manifest.traces` 为空时，回退路径从 `retrieval_snapshot` 条目中为每个 trace_id 构建 citation。需在真实后端 run 上重新验收 citaton 显示。
 
 **当前状态：BLOCK_RELEASE** — 2026-07-27 验收。Task 2B 修复了 6/8 阻断条件。2 项新阻断：Citation/SourceRef 数据链断裂（backend 真实产出无 citation）+ 工作区不干净（已修正）。
 
