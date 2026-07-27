@@ -663,6 +663,36 @@ export function useResearchWorkflow(projectId: () => string) {
     savingMessage.value = '';
   }
 
+  // ---- Re-search from report (Task 2B: BLOCK_RELEASE fix) ----
+  /**
+   * Extracts the first non-heading sentence from the report markdown and
+   * navigates to the canonical Library search page. Falls back to the
+   * report topic if markdown extraction fails.
+   *
+   * Equivalent to V4ResearchView.vue:686-692 reSearchFromReport().
+   *
+   * Accepts a router-like object so callers can inject the router instance
+   * without this composable importing vue-router directly.
+   */
+  function navigateToLibrarySearch(router: { push: (o: object) => void }) {
+    const topic = report.value?.topic || question.value;
+    let query = topic || '';
+
+    // Try to extract first meaningful line from report markdown
+    if (report.value?.markdown) {
+      const lines = report.value.markdown
+        .split('\n')
+        .filter((l) => l.trim() && !l.startsWith('#') && l.length > 10);
+      if (lines.length > 0 && lines[0]) {
+        query = lines[0].slice(0, 60);
+      }
+    }
+
+    if (query) {
+      router.push({ name: 'library-search', query: { q: query } });
+    }
+  }
+
   // ---- Cleanup ----
   onBeforeUnmount(() => {
     reqId = -1;
@@ -711,6 +741,7 @@ export function useResearchWorkflow(projectId: () => string) {
     goToEvidence,
     goToReport,
     reset,
+    navigateToLibrarySearch,
 
     // Save
     saving,

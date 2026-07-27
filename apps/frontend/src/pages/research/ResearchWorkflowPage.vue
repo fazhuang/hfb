@@ -125,6 +125,7 @@
           :project-id="projectId"
           @back-to-evidence="goToEvidence"
           @new-workflow="reset"
+          @re-search="navigateToLibrarySearch(router)"
         />
       </template>
     </div>
@@ -163,7 +164,7 @@
  * ref: docs/20-product/2014-research-workflow-migration.md
  */
 import { computed, ref, watch, onMounted, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
@@ -177,6 +178,7 @@ import ResearchReportStep from '@/components/research/workflow/ResearchReportSte
 import { useResearchWorkflow } from '@/composables/useResearchWorkflow';
 
 const route = useRoute();
+const router = useRouter();
 const projectId = computed(() => String(route.params.projectId || ''));
 
 const {
@@ -204,6 +206,7 @@ const {
   report,
   citationSaveState,
   saveCitation,
+  navigateToLibrarySearch,
 } = useResearchWorkflow(() => projectId.value);
 
 // ---- Error banner focus ----

@@ -56,6 +56,14 @@
         >
           开始新研究
         </button>
+        <button
+          v-if="report.topic"
+          type="button"
+          class="rrs-action-btn rrs-action-btn--secondary"
+          @click="$emit('re-search')"
+        >
+          🔍 基于报告重新搜索
+        </button>
         <router-link
           v-if="report.run_id"
           :to="`/research/${projectId}/result/${report.run_id}`"
@@ -99,6 +107,7 @@ const props = defineProps<{
 defineEmits<{
   'back-to-evidence': [];
   'new-workflow': [];
+  're-search': [];
 }>();
 
 const reportPreview = computed(() => {

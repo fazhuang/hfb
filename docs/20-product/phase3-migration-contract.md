@@ -247,7 +247,7 @@ function reSearchFromReport() {
 ```
 — 从报告 Markdown 提取第一个非标题行或回退到原始 topic，导航至搜索页 (`router.push({ name: 'search', query: { q } })`)。
 
-**Canonical 缺失范围**（2026-07-27 验证）：
+**Canonical 缺失范围**（2026-07-27 验证 → **已修复 2026-07-27 Task 2B**）：
 - `ResearchWorkflowPage` — 无 re-search 按钮或链接
 - `ResearchResultPage` — 无 re-search 按钮或链接
 - `ResearchWorkspacePage` — 无 re-search 按钮或链接
@@ -256,7 +256,7 @@ function reSearchFromReport() {
 
 **缺失严重程度**：中。此能力缺失意味着用户无法从研究报告一键跳转到搜索页面；需手动复制关键词并导航。Legacy 使用 `router.push({ name: 'search', query })` — 当前 canonical 搜索路由名为 `library-search` (`/library`)，不是 `search`。
 
-**当前停止状态**：**BLOCK** — 此缺失阻止该 Research-tab 能力被标记为 "已迁移"。在获得重新搜索 canonical 实现或用明文承认已知差距的推迟声明之前，V4 Research 迁移不得报告完成。
+**当前停止状态**：**已修复** — Task 2B 实现了 `navigateToLibrarySearch()`（`useResearchWorkflow.ts`）和 `ResearchReportStep` 中的 "基于报告重新搜索" 按钮。路径：report markdown → 提取首个非标题行 → `router.push({ name: 'library-search', query: { q } })`。
 
 **建议解决方案**（两个选项）：
 1. **实现**：在 `ResearchReportStep` 或 `ResearchResultPage` 添加 "重新搜索" 按钮，将报告 topic 或首个段落作为 query 参数，导航至 `/library`（或当前的搜索路由名称）
@@ -366,11 +366,11 @@ M0（本契约 FROZEN ✅）
 - [x] **旧 URL 等价迁移** — **Task 2B**: LegacyRedirect.vue 实现 session-aware 跳转，7 个 legacy 路由名 + 6 个 tab 值 → canonical 路由解析，降级至 project list
 - [x] **legacy 路径清退** — **Task 2B**: `/v4/research-internal` 不再直接加载 V4ResearchView（`legacy-v4-research-internal` → LegacyRedirect → `/research/:projectId/workflow`）
 - [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
-- [ ] **re-search 缺失** — V4 legacy "基于报告重新搜索" 仅存在于 V4ResearchView；canonical Workflow/Result/Workspace 均无等价入口（§2.4 BLOCK）
+- [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
 - [ ] **写入/下载能力端到端验证** — workflow 提交、引用保存、导出等写入或下载能力必须经真实登录浏览器完成端到端行为验证，页面/按钮存在不构成等价行为证明
 - [ ] **已提交发布物** — 当前工作区含未提交的迁移契约、前端等价测试和 E2E 改动，不能作为已提交发布物的验收依据
 
-**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了三项阻断条件（旧 URL 等价迁移、legacy 路径清退、单项目 Reports 等价）。剩余阻断：re-search 缺失、写入/下载端到端验证、已提交发布物。
+**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了四项阻断条件（旧 URL 等价迁移、legacy 路径清退、单项目 Reports 等价、re-search 缺失）。剩余阻断：写入/下载端到端验证、已提交发布物。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
