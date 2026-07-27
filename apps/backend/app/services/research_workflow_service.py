@@ -612,6 +612,29 @@ async def _build_retrieval_snapshot(
                     "source_ref_title": sr.title,
                 }
 
+        # Task 2B BLOCK_RELEASE: when no SourceRef rows match the
+        # document: prefix (e.g. only passage:-scoped SourceRefs exist),
+        # fall back to Document table for title + source_url so
+        # retrieval_snapshot entries carry a visible source_ref_title
+        # and SourceReferenceCard renders a navigable link instead of
+        # "此证据缺少文献来源信息".
+        unmatched = doc_ids - set(source_ref_by_doc.keys())
+        if unmatched:
+            from app.models.document import Document as Doc
+            doc_stmt = sql_select(Doc.id, Doc.title, Doc.source_url).where(
+                Doc.is_deleted.is_(False),
+                Doc.id.in_(list(unmatched)),
+            )
+            doc_result = await db.execute(doc_stmt)
+            for row in doc_result.all():
+                did, d_title, d_url = row[0], row[1], row[2]
+                if did and did not in source_ref_by_doc:
+                    source_ref_by_doc[did] = {
+                        "source_ref_id": did,
+                        "source_ref_url": d_url or "",
+                        "source_ref_title": d_title or "",
+                    }
+
     for t in result.evidence_trace:
         tid = make_trace_id(t.document_id, t.chunk_id)
         key = f"{t.document_id}:{t.chunk_id}"
