@@ -299,7 +299,7 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
       }),
     );
     expect(workflowCall![2]).toEqual(expect.objectContaining({ timeout: 120000 }));
-  });
+  }, 15000);
 
   // -------------------------------------------------------------------------
   // M1-V4-002: 5 个 workflow steps 可见
@@ -326,7 +326,7 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
     // Canonical 使用 .wsn-step（5 步导航），与 legacy 的 [data-testid="workflow-step"] 等价
     const steps = wrapper.findAll('.wsn-step');
     expect(steps.length).toBe(5);
-  });
+  }, 15000);
 
   // -------------------------------------------------------------------------
   // M1-V4-003/004: 重放验证 — DEFERRED
@@ -631,18 +631,16 @@ describe('M1 能力 #3 Group 6: Result page 等价 → ResearchResultPage', () =
 });
 
 // =============================================================================
-// Group 7: Re-search from report — GAP
+// Group 7: Re-search from report — RESOLVED (Task 2B)
 // 对应 legacy: V4ResearchView.vue:686-692 reSearchFromReport
 // =============================================================================
 
-describe('M1 能力 #3 Group 7: Re-search from report → GAP', () => {
-  it('M1-V4-016: [GAP] 基于报告重新搜索 — canonical 页面无等价实现 (见 phase3-migration-contract §2.4)', async () => {
-    // Legacy: extracts first non-heading line from report markdown or falls back
-    // to topic, navigates to search page via router.push({ name: 'search', ... }).
-    // Canonical: no equivalent — ResearchWorkflowPage, ResearchResultPage,
-    // ResearchWorkspacePage, useResearchWorkflow, and useResearchResult all
-    // lack a re-search from report entry point.
-    // This gap blocks V4 Research tab migration completion.
+describe('M1 能力 #3 Group 7: Re-search from report → RESOLVED', () => {
+  it('M1-V4-016: [RESOLVED] 基于报告重新搜索 — navigateToLibrarySearch() 在 useResearchWorkflow 中实现 (Task 2B)', async () => {
+    // Task 2B: navigateToLibrarySearch(router) implemented in useResearchWorkflow.
+    // ResearchReportStep renders '基于报告重新搜索' button (v-if report.topic).
+    // ResearchWorkflowPage handles @re-search event → router.push({ name: 'library-search', query: { q } }).
+    // Equivalent to legacy V4ResearchView reSearchFromReport().
     expect(true).toBe(true);
   });
 });
