@@ -206,7 +206,8 @@ class ResearchWorkflowService:
                 lines.append(f"### {i}. {rec.get('claim_text', 'N/A')[:80]}")
                 lines.append(f"> {rec.get('quote', '')[:200]}")
                 lines.append(f"- 文献: `{rec.get('document_id', '')}`")
-                lines.append(f"- Trace: `{rec.get('trace_id', '')}`")
+                tid = rec.get('trace_id', '')
+                lines.append(f"- 引用标记: [{tid}]")
                 lines.append("")
         else:
             lines.append("_暂无检索快照_")
@@ -217,13 +218,14 @@ class ResearchWorkflowService:
                 lines.append(f"### {sec.get('heading', 'Untitled')}")
                 lines.append(sec.get("body", ""))
                 for ref in sec.get("references", []):
-                    lines.append(f"- Trace: `{ref}`")
+                    lines.append(f"- 引用标记: [{ref}]")
                 lines.append("")
         elif evidence:
             for i, ev in enumerate(evidence[:20], 1):
                 lines.append(f"### {i}. {ev.get('claim_text', 'N/A')[:80]}")
                 lines.append(f"- 引用: `{ev.get('citation_text', '')}`")
-                lines.append(f"- Trace: `{ev.get('trace_id', '')}`")
+                tid = ev.get('trace_id', '')
+                lines.append(f"- 引用标记: [{tid}]")
                 lines.append("")
 
         # Compute content hash

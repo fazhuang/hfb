@@ -166,6 +166,18 @@ function extractEvidenceFromSingleRun(
         // Real passage_id from traces (NOT chunk_id)
         passage_id: (tr.passage_id as string) || undefined,
       });
+
+      // Task 2B BLOCK_RELEASE: Path 2 must also extract citation
+      // (mirrors useResearchResult.ts fix — same root cause).
+      if (!citationSeen.has(tid)) {
+        citationSeen.add(tid);
+        citationList.push({
+          trace_id: tid,
+          citation_text: citText,
+          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+          quote: quoteText,
+        });
+      }
     }
   }
 

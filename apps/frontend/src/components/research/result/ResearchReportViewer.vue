@@ -74,8 +74,16 @@ interface ParsedSection {
   paragraphs: ParsedParagraph[];
 }
 
-/** Pattern to match citation markers like [doc-id:chk-id] */
-const CITATION_RE = /\[([a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+)\]/g;
+/**
+ * Pattern to match citation markers.
+ *
+ * Three formats are supported (validated against validCitationTraceIds):
+ *   1. [doc_id:chunk_id]       — generation_service / seed test data
+ *   2. [UUIDv5]                 — workflow build_markdown_artifact (new)
+ *   3. `UUIDv5`                — legacy reports (backtick-wrapped trace_id)
+ */
+const CITATION_RE =
+  /\[([a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]|`([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`/gi;
 
 /** Pattern to match bold markers like **text** */
 const BOLD_RE = /\*\*(.+?)\*\*/g;
@@ -164,10 +172,12 @@ function parseTokens(line: string): TextToken[] {
   let citMatch: RegExpExecArray | null;
   CITATION_RE.lastIndex = 0;
   while ((citMatch = CITATION_RE.exec(line)) !== null) {
+    // group(1) = bracket capture, group(2) = backtick capture
+    const tid = citMatch[1] || citMatch[2] || '';
     matches.push({
       start: citMatch.index,
       end: citMatch.index + citMatch[0].length,
-      text: citMatch[1] || '',
+      text: tid,
       type: 'citation',
     });
   }
@@ -232,7 +242,7 @@ const displayNumbers = computed((): Map<string, number> => {
   CITATION_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = CITATION_RE.exec(props.report.markdown)) !== null) {
-    const tid = m[1];
+    const tid = m[1] || m[2];
     if (tid && props.validCitationTraceIds.has(tid) && !map.has(tid)) {
       map.set(tid, next++);
     }

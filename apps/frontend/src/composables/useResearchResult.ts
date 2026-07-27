@@ -203,6 +203,22 @@ function extractEvidenceFromSingleRun(
         source_ref_id: (snap.source_ref_id as string) || undefined,
         passage_id: (tr.passage_id as string) || undefined,
       });
+
+      // Task 2B BLOCK_RELEASE: Path 2 must also extract citation.
+      // When output_artifacts.citations is empty but manifest.traces
+      // has entries with valid snapshot cross-references, the citation
+      // panel shows "此报告暂无引用记录" — the snapshot-only fallback
+      // below already handles the traces-empty case; Path 2 must do
+      // the same when traces are non-empty.
+      if (!citationSeen.has(tid)) {
+        citationSeen.add(tid);
+        citationList.push({
+          trace_id: tid,
+          citation_text: citText,
+          document_id: (snap.document_id as string) || (tr.document_id as string) || '',
+          quote: quoteText,
+        });
+      }
     }
   }
 
