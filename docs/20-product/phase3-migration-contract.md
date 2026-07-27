@@ -369,7 +369,9 @@ M0（本契约 FROZEN ✅）
 - [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
 - [ ] **写入/下载能力端到端验证** — workflow 提交、引用保存、导出等写入或下载能力必须经真实登录浏览器完成端到端行为验证，页面/按钮存在不构成等价行为证明
 
-**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了 4/6 阻断条件。剩余阻断：写入/下载端到端验证、单项目 Reports 等价（需真实浏览器验证）。
+- [x] **Docker 构建** — **Task 2B**: docker/dev/Dockerfile.backend 和 docker/prod/Dockerfile.backend 中 `COPY pyproject.toml README.md ./` 修复 `OSError: Readme file does not exist`（pyproject.toml:9 readme = "README.md" 要求）
+
+**当前状态：BLOCK_RELEASE** — 2026-07-27 真实环境验收结论。Task 2B 修复了 5/6 阻断条件。剩余阻断：写入/下载端到端验证（需成功启动前后端后在真实浏览器中执行）。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
