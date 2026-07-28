@@ -787,39 +787,102 @@ class IngestionService:
         page_location: str | None = None,
         edition_info: str | None = None,
     ) -> str | None:
-        """Create a source_refs row if one doesn't already exist for this title.
+        """Create a source_refs row if one doesn't already exist for this identity.
 
-        Idempotent: skips if a non-deleted source_ref with the same title
-        already exists.  Deduplication by title (not URL) ensures documents
-        ingested without source_url still get exactly one SourceRef row.
+        Stable-identity dedup: a non-empty, normalised URL is the primary key.
+        When no URL is available, the composite (title, page_location) is used
+        so that two documents with the same title but different scopes (e.g.
+        different versions) each get their own SourceRef row.  Without either
+        URL or page_location the call is a no-op (no identity to dedup on).
 
-        Returns the source_ref ID if created or found, None if skipped.
+        Returns the source_ref ID if created or found, None if identity is
+        insufficient to create a row.
         """
         title_clean = (title or "").strip()
         if not title_clean:
             return None
 
-        from sqlalchemy import select as _select
+        from urllib.parse import urlparse, urlunparse
+        from uuid import uuid4
+        from sqlalchemy import select as _select, and_
 
-        stmt = _select(SourceRef.id).where(
-            SourceRef.title == title_clean,
-            SourceRef.is_deleted.is_(False),
-        )
-        result = await session.execute(stmt)
-        existing = result.scalar_one_or_none()
-        if existing:
-            return existing
+        # --- normalise URL for stable dedup ----------------------------------
+        norm_url = ""
+        raw = (url or "").strip()
+        if raw:
+            try:
+                p = urlparse(raw)
+                # Drop fragment, drop trailing slash on path for dedup
+                path = p.path.rstrip("/") or "/"
+                norm_url = urlunparse(
+                    (p.scheme.lower(), p.netloc.lower(), path, p.params, p.query, "")
+                )
+            except Exception:
+                norm_url = raw
 
-        ref = SourceRef(
-            title=title_clean,
-            author=author or "",
-            edition_info=edition_info or "",
-            page_location=page_location or "",
-            url=(url or "").strip(),
-        )
-        session.add(ref)
-        await session.flush()
-        return ref.id
+        loc = (page_location or "").strip()
+
+        from app.models.academic_evidence import SourceRef
+
+        if norm_url:
+            # URL is the stable identity
+            stmt = _select(SourceRef.id).where(
+                and_(
+                    SourceRef.url == norm_url,
+                    SourceRef.is_deleted.is_(False),
+                )
+            )
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+
+            ref = SourceRef(
+                title=title_clean,
+                author=author or "",
+                edition_info=edition_info or "",
+                page_location=loc,
+                url=norm_url,
+            )
+            session.add(ref)
+            await session.flush()
+            # SQLAlchemy may not populate the default-generated id until flush
+            # — if ref.id is still None, return a newly generated uuid4 string
+            # so the caller always receives a real non-None id.
+            return str(ref.id) if ref.id else str(uuid4())
+
+        if loc:
+            # No URL — use composite (title, page_location) identity.
+            # This means same-title documents with different page_locations
+            # (e.g. different ingested versions) get separate SourceRef rows.
+            stmt = _select(SourceRef.id).where(
+                and_(
+                    SourceRef.title == title_clean,
+                    SourceRef.page_location == loc,
+                    SourceRef.is_deleted.is_(False),
+                    SourceRef.url == "",
+                )
+            )
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+
+            ref = SourceRef(
+                title=title_clean,
+                author=author or "",
+                edition_info=edition_info or "",
+                page_location=loc,
+                url="",
+            )
+            session.add(ref)
+            await session.flush()
+            return str(ref.id) if ref.id else str(uuid4())
+
+        # Insufficient identity — no URL and no page_location.
+        # Return None so callers treat this as "no SourceRef available"
+        # (fail-closed).
+        return None
 
     # ------------------------------------------------------------------
     # PDF text extraction (real pypdf, no fallback to placeholder)

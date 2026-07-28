@@ -379,13 +379,13 @@ class TestSessionIsolation:
 
 
 class TestNoSourceRefRowFailClosed:
-    """When a document has no SourceRef row (ingested without title/pipeline
-    never called _ensure_source_ref), the retrieval_snapshot entry must carry
-    null source_ref fields.  The frontend LineageStatusBadge/SourceReferenceCard
-    displays fail-closed ("缺少来源文献") — this is correct behaviour, not a bug.
+    """When a document has no SourceRef row, the retrieval_snapshot entry must
+    carry null source_ref fields.  The frontend LineageStatusBadge /
+    SourceReferenceCard displays fail-closed ("缺少来源文献") — this is
+    correct behaviour, not a bug.
 
-    The fix for missing SourceRef data is upstream: every document ingest MUST
-    create a real source_refs row (title-based dedup in _ensure_source_ref).
+    Upstream fix: every document ingest creates a real source_refs row
+    (URL-stable-identity dedup, or title+page_location composite when no URL).
     """
 
     @pytest.mark.asyncio
@@ -508,3 +508,169 @@ class TestNoSourceRefRowFailClosed:
         )
         assert entry["source_ref_title"] == sr_title
         assert entry["source_ref_url"] == sr_url
+
+
+# =============================================================================
+# Test 5: SourceRef identity — stable URL dedup, title+location composite,
+#         no global-title sharing, no pseudo IDs
+# =============================================================================
+
+
+class TestSourceRefIdentity:
+    """Verify _ensure_source_ref identity rules (ingestion.py).
+
+    - URL is the primary stable key (normalised)
+    - Same title, different URL → different rows
+    - Same title, different page_location (no URL) → different rows
+    - Repeat ingest of same identity → idempotent
+
+    The _ensure_source_ref method calls result.scalar_one_or_none()
+    after every SELECT, so every fake result must provide it.
+    """
+
+    @staticmethod
+    def _fake_result(one_or_none_value):
+        """Return a FakeResult-like object whose scalars() yields
+        something with .all() → [] and .one_or_none() → one_or_none_value."""
+        class FS:
+            @staticmethod
+            def all():
+                return []
+            @staticmethod
+            def one_or_none():
+                return one_or_none_value
+        class FR:
+            @staticmethod
+            def scalars():
+                return FS
+            @staticmethod
+            def scalar_one_or_none():
+                return one_or_none_value
+            @staticmethod
+            def all():
+                return []
+        return FR()
+
+    @pytest.mark.asyncio
+    async def test_same_title_different_url_produces_distinct_rows(self):
+        """Two documents with the same title but different URLs get separate SourceRef rows."""
+        from unittest.mock import AsyncMock
+        from app.services.ingestion import IngestionService
+
+        calls = []
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(
+            side_effect=lambda stmt: self._fake_result(None)
+        )
+        mock_db.flush = AsyncMock()
+        mock_db.add = lambda obj: calls.append(obj)
+
+        id_a = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经",
+            url="https://ctext.org/jia-yi-jing-v1",
+            page_location="document:doc-a",
+        )
+        id_b = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经",
+            url="https://example.com/jia-yi-jing-v2",
+            page_location="document:doc-b",
+        )
+
+        assert id_a is not None, "First SourceRef should be created"
+        assert id_b is not None, "Second SourceRef should be created"
+        assert id_a != id_b, (
+            f"Same title but different URLs must produce different SourceRef rows: "
+            f"{id_a} vs {id_b}"
+        )
+        assert len(calls) == 2, f"Expected 2 SourceRef objects, got {len(calls)}"
+
+    @pytest.mark.asyncio
+    async def test_repeat_ingest_same_url_is_idempotent(self):
+        """Ingesting the same URL twice returns the same SourceRef id."""
+        from unittest.mock import AsyncMock
+        from app.services.ingestion import IngestionService
+
+        import uuid
+        existing_id = str(uuid.uuid4())
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(
+            side_effect=lambda stmt: self._fake_result(existing_id)
+        )
+
+        id1 = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经",
+            url="https://ctext.org/jia-yi-jing",
+            page_location="document:doc-01",
+        )
+        id2 = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经 (different casing)",
+            url="https://ctext.org/jia-yi-jing",
+            page_location="document:doc-01",
+        )
+
+        assert id1 is not None
+        assert id2 is not None
+        assert id1 == existing_id, f"First call should return existing id {existing_id}, got {id1}"
+        assert id2 == existing_id, f"Second call should be idempotent, got {id2}"
+
+    @pytest.mark.asyncio
+    async def test_same_title_different_page_location_no_url_distinct(self):
+        """No URL: same title + different page_location → distinct rows."""
+        from unittest.mock import AsyncMock
+        from app.services.ingestion import IngestionService
+
+        calls = []
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(
+            side_effect=lambda stmt: self._fake_result(None)
+        )
+        mock_db.flush = AsyncMock()
+        mock_db.add = lambda obj: calls.append(obj)
+
+        id_a = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经",
+            url="",
+            page_location="document:version-a-id",
+        )
+        id_b = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="针灸甲乙经",
+            url="",
+            page_location="document:version-b-id",
+        )
+
+        assert id_a is not None
+        assert id_b is not None
+        assert id_a != id_b, (
+            "Same title with different page_locations must produce different SourceRef rows"
+        )
+        assert len(calls) == 2, f"Expected 2 SourceRef rows, got {len(calls)}"
+
+    @pytest.mark.asyncio
+    async def test_no_url_no_page_location_returns_none(self):
+        """Without URL or page_location there is no identity → returns None."""
+        from unittest.mock import AsyncMock
+        from app.services.ingestion import IngestionService
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(
+            side_effect=lambda stmt: self._fake_result(None)
+        )
+
+        result = await IngestionService._ensure_source_ref(
+            mock_db,
+            title="No URL or location",
+            url="",
+            page_location="",
+        )
+        assert result is None, (
+            "No URL, no page_location → must return None (fail-closed, no identity to dedup on)"
+        )
