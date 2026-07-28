@@ -316,17 +316,17 @@ class IngestionService:
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
-        # P0: Create SourceRef if document has source_url (Codex requirement)
+        # P0: Create SourceRef on every ingest (title-based dedup —
+        # survives source_url being empty).
         source_url = doc_data.get("source_url") or (meta.get("source_url") if metadata else None)
-        if source_url:
-            await self._ensure_source_ref(
-                self.session,
-                title=title.strip(),
-                url=source_url,
-                author=doc_data.get("source_name") or (meta.get("source_name") if metadata else None),
-                page_location=f"document:{doc.id}",
-                edition_info=meta.get("edition") if metadata else None,
-            )
+        await self._ensure_source_ref(
+            self.session,
+            title=title.strip(),
+            url=source_url or "",
+            author=doc_data.get("source_name") or (meta.get("source_name") if metadata else None),
+            page_location=f"document:{doc.id}",
+            edition_info=meta.get("edition") if metadata else None,
+        )
 
         try:
             # 2. Chunk with paragraph indices
@@ -572,17 +572,17 @@ class IngestionService:
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
-        # P0: Create SourceRef on ingest (Codex requirement)
+        # P0: Create SourceRef on every ingest (title-based dedup —
+        # survives source_url being empty).
         source_url = doc_data.get("source_url")
-        if source_url:
-            await self._ensure_source_ref(
-                self.session,
-                title=title.strip(),
-                url=source_url,
-                author=doc_data.get("source_name"),
-                page_location=f"document:{doc.id}",
-                edition_info=meta.get("edition"),
-            )
+        await self._ensure_source_ref(
+            self.session,
+            title=title.strip(),
+            url=source_url or "",
+            author=doc_data.get("source_name"),
+            page_location=f"document:{doc.id}",
+            edition_info=meta.get("edition"),
+        )
 
         try:
             # 2. Chunk each page independently, tracking page_number
@@ -787,18 +787,22 @@ class IngestionService:
         page_location: str | None = None,
         edition_info: str | None = None,
     ) -> str | None:
-        """Create a source_refs row if one doesn't already exist for this URL.
+        """Create a source_refs row if one doesn't already exist for this title.
 
-        Idempotent: skips if a non-deleted source_ref with the same URL already exists.
+        Idempotent: skips if a non-deleted source_ref with the same title
+        already exists.  Deduplication by title (not URL) ensures documents
+        ingested without source_url still get exactly one SourceRef row.
+
         Returns the source_ref ID if created or found, None if skipped.
         """
-        if not url or not url.strip():
+        title_clean = (title or "").strip()
+        if not title_clean:
             return None
 
         from sqlalchemy import select as _select
 
         stmt = _select(SourceRef.id).where(
-            SourceRef.url == url.strip(),
+            SourceRef.title == title_clean,
             SourceRef.is_deleted.is_(False),
         )
         result = await session.execute(stmt)
@@ -807,11 +811,11 @@ class IngestionService:
             return existing
 
         ref = SourceRef(
-            title=title or "untitled",
+            title=title_clean,
             author=author or "",
             edition_info=edition_info or "",
             page_location=page_location or "",
-            url=url.strip(),
+            url=(url or "").strip(),
         )
         session.add(ref)
         await session.flush()

@@ -329,16 +329,27 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
   }, 15000);
 
   // -------------------------------------------------------------------------
-  // M1-V4-003/004: 重放验证 — DEFERRED
+  // M1-V4-003/004: 重放验证 — BLOCKED: STOP CONDITION (2026-07-28)
+  //
+  // V4 legacy: V4ResearchView.vue:605-621 — POST /api/v4/research/runs/{id}/replay
+  //             → matched/mismatched badge + original/replay SHA256
+  // Canonical: 无 — ResearchWorkflowPage、ResearchResultPage、useResearchWorkflow、
+  //             useResearchResult 均无 replay 函数或 UI
+  //
+  // 后端 API POST /api/v4/research/runs/{id}/replay 存在但无规范前端暴露。
+  // 严重程度：低 — 开发/调试功能，非终端用户核心流程。
+  // 参见 docs/20-product/phase3-migration-contract.md §2.4
   // -------------------------------------------------------------------------
 
-  it('M1-V4-003: [DEFERRED] 重放验证 matched=true — canonical result page 待暴露 replay UI (M3)', async () => {
-    // M3 需实现: canonical ResearchResultPage 暴露 replay 按钮 + matched/mismatch 显示
-    expect(true).toBe(true);
+  it('M1-V4-003: [BLOCKED] 重放验证 matched=true — 无 canonical replay UI (停止条件 §2.4)', () => {
+    // BLOCKED: 无规范等价实现。后端 API POST /api/v4/research/runs/{id}/replay
+    // 存在但无规范前端暴露。需实现或明确推迟。
+    // 此测试故意失败以标记停止条件 — 实现 replay UI 或推迟声明后更新。
+    expect(false).toBe(true);
   });
 
-  it('M1-V4-004: [DEFERRED] 重放验证 matched=false — canonical result page 待暴露 replay UI (M3)', async () => {
-    expect(true).toBe(true);
+  it('M1-V4-004: [BLOCKED] 重放验证 matched=false — 无 canonical replay UI (停止条件 §2.4)', () => {
+    expect(false).toBe(true);
   });
 });
 

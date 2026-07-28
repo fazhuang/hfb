@@ -371,3 +371,140 @@ class TestSessionIsolation:
         assert "db" in param_names
         assert "result" in param_names
         assert "retrieval_snapshot" in param_names
+
+
+# =============================================================================
+# Test 4: fail-closed — no SourceRef row means no source_ref fields in snapshot
+# =============================================================================
+
+
+class TestNoSourceRefRowFailClosed:
+    """When a document has no SourceRef row (ingested without title/pipeline
+    never called _ensure_source_ref), the retrieval_snapshot entry must carry
+    null source_ref fields.  The frontend LineageStatusBadge/SourceReferenceCard
+    displays fail-closed ("缺少来源文献") — this is correct behaviour, not a bug.
+
+    The fix for missing SourceRef data is upstream: every document ingest MUST
+    create a real source_refs row (title-based dedup in _ensure_source_ref).
+    """
+
+    @pytest.mark.asyncio
+    async def test_null_sourceref_when_no_row_exists(self):
+        """_build_retrieval_snapshot returns nulls when no SourceRef row matches.
+
+        This is the correct fail-closed contract.  No mock, no pseudo ID.
+        """
+        from unittest.mock import AsyncMock
+        from app.services.research_workflow_service import _build_retrieval_snapshot
+
+        doc_id = "doc-no-sourceref-row"
+
+        class FakeEvidenceTrace:
+            document_id = doc_id
+            chunk_id = "chk-01"
+            claim_text = "经络是运行气血的通道"
+            quote = "经络者，所以行血气而营阴阳。"
+            citation_text = f"[{doc_id}:chk-01]"
+
+        retrieval_snapshot = {
+            "chk-01": {"score": 0.95, "retrieval_method": "ili_keyword_search"},
+        }
+
+        async def fake_execute(stmt):
+            class FakeResult:
+                def scalars(self):
+                    return FakeScalars()
+                def all(self):
+                    return []
+                def one_or_none(self):
+                    return None
+            class FakeScalars:
+                def all(self2):
+                    return []   # no SourceRef, no chunk->passage, no Document
+            return FakeResult()
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=fake_execute)
+
+        result = type("FakeResult", (), {"evidence_trace": [FakeEvidenceTrace]})()
+
+        snapshot, _ = await _build_retrieval_snapshot(
+            mock_db, result, retrieval_snapshot=retrieval_snapshot,
+        )
+
+        assert len(snapshot) == 1
+        entry = snapshot[0]
+        assert entry["document_id"] == doc_id
+        assert entry["source_ref_id"] is None, (
+            f"Expected null source_ref_id, got {entry['source_ref_id']!r} — "
+            "no SourceRef row means no source_ref_id"
+        )
+        assert entry["source_ref_title"] is None, (
+            f"Expected null source_ref_title, got {entry['source_ref_title']!r}"
+        )
+        # source_ref_url may be None or empty — either is acceptable without a SourceRef row
+        assert entry["source_ref_url"] is None or entry["source_ref_url"] == "", (
+            f"Expected null/empty source_ref_url, got {entry['source_ref_url']!r}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_real_sourceref_id_present_when_row_exists(self):
+        """When a SourceRef row exists, its real id flows into snapshot."""
+        from unittest.mock import AsyncMock
+        from app.services.research_workflow_service import _build_retrieval_snapshot
+
+        doc_id = "doc-has-sourceref"
+        sr_id = "src-ref-uuid-123"
+        sr_title = "针灸甲乙经·四库全书本"
+        sr_url = "https://ctext.org/siku/jia-yi-jing"
+
+        class FakeSourceRef:
+            id = sr_id
+            title = sr_title
+            url = sr_url
+            page_location = f"document:{doc_id}"
+            is_deleted = False
+
+        class FakeEvidenceTrace:
+            document_id = doc_id
+            chunk_id = "chk-01"
+            claim_text = "经络是运行气血的通道"
+            quote = "经络者，所以行血气而营阴阳。"
+            citation_text = f"[{doc_id}:chk-01]"
+
+        retrieval_snapshot = {
+            "chk-01": {"score": 0.95, "retrieval_method": "ili_keyword_search"},
+        }
+
+        async def fake_execute(stmt):
+            stmt_str = str(stmt)
+            class FakeResult:
+                def scalars(self):
+                    return FakeScalars()
+                def all(self):
+                    return []
+                def one_or_none(self):
+                    return None
+            class FakeScalars:
+                def all(self2):
+                    if "source_refs" in stmt_str.lower():
+                        return [FakeSourceRef]
+                    return []
+            return FakeResult()
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(side_effect=fake_execute)
+
+        result = type("FakeResult", (), {"evidence_trace": [FakeEvidenceTrace]})()
+
+        snapshot, _ = await _build_retrieval_snapshot(
+            mock_db, result, retrieval_snapshot=retrieval_snapshot,
+        )
+
+        assert len(snapshot) == 1
+        entry = snapshot[0]
+        assert entry["source_ref_id"] == sr_id, (
+            f"Real SourceRef row → real id. Got {entry['source_ref_id']!r}, expected {sr_id!r}"
+        )
+        assert entry["source_ref_title"] == sr_title
+        assert entry["source_ref_url"] == sr_url

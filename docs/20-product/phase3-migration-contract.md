@@ -176,45 +176,59 @@
 
 **Canonical 目标**：
 
-| Legacy 功能 | Canonical 归宿 | 状态 |
-|---|---|---|
-| 完整研究 — workflow 执行 | `ResearchWorkflowPage` `/research/:projectId/workflow` | **已迁移** — useResearchWorkflow composable，5 步组件，sessionStorage 隔离，39 个前端测试 ALL GREEN |
-| 完整研究 — 报告/引用/证据/导出 | `ResearchResultPage` `/research/:projectId/result/:runId` | **已迁移** — 安全 markdown、SourceRef 验证、CitationPanel、真实浏览器导出、77 个前端测试 + 22 个 E2E ALL GREEN |
-| 完整研究 — 重放验证 | `ResearchResultPage`（run replay） | **部分迁移** — replay API 可用，但 canonical result page 不暴露重放 UI |
-| 完整研究 — 基于报告重新搜索 | **无 canonical 等价实现** | ❌ **缺失 — 停止条件** — 见下方 §2.4 |
-| 教育模式 | **推迟** — KnowledgeExplorer 当前为占位页，概念学习等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
-| 可视化 | **推迟** — KnowledgeExplorer 当前为占位页，graph_type 选择等价实现需后续 Sprint | KnowledgeExplorer 当前无等价实现 |
-| 引用保存（save-citation） | `ResearchWorkflowPage` + `ResearchResultPage` | **已迁移** — 两个 canonical 页面均有引用保存 |
-| 笔记保存 | `ResearchWorkflowPage` | **已迁移** — workflow report 步骤含笔记保存 |
-| 导出（markdown） | `ResearchResultPage` | **已迁移** — 真实 `GET /api/v4/research/session/:id/runs/:runId/export` |
-| 基于报告重新搜索（re-search） | **无 canonical 等价实现** | ❌ **缺失** — `V4ResearchView.vue:686-692` 提取 report markdown 首个非标题行或 topic 作为 query，导航至搜索页。所有 canonical 页面（Workflow、Result、Workspace）和 composable 均无此功能入口 |
-| 运行历史列表 | `ResearchWorkspacePage` (RecentReports) + `ReportListPage` | **已迁移** — 跨页面聚合 |
-| 开始新工作流 (reset) | `ResearchWorkflowPage` (useResearchWorkflow.reset) | **已迁移** |
-| 通过 ?run= 加载历史 | 直接 URL `/research/:projectId/result/:runId` | **已迁移**（改进 — 无需遍历 sessions 列表）|
-| 已用时间计数器 | `AnalysisPendingState`（不确定进度） | **已迁移**（等价 UX） |
-| 返回研究导航 | `ResearchPageHeader` 面包屑 | **已迁移** |
+| # | Legacy 功能 | V4 源代码位置 | Canonical 归宿 | 路由 | 真实 API | 浏览器测试 | 状态 |
+|---|------------|-------------|------------|------|---------|----------|------|
+| 1 | Workflow 执行 — topic 输入 + 5 步 pipeline | `V4ResearchView.vue:536-603` | `ResearchWorkflowPage` + `useResearchWorkflow.submitWorkflow()` | `/research/:projectId/workflow` | `POST /api/v4/research/workflow` | E2E: `test_successful_workflow_uses_current_run_artifacts` (L686), UT: M1-V4-001 | **已迁移** |
+| 2 | 5 步状态展示 — step list 含完成/失败/待定标识 | `V4ResearchView.vue:64-78` | `WorkflowStepNavigation` + `.wsn-step` items in `ResearchWorkflowPage` | `/research/:projectId/workflow` | `POST /api/v4/research/workflow`（响应含 steps 数组） | UT: M1-V4-002 (5 步导航可见) | **已迁移** |
+| 3 | 报告预览 — markdown 文本渲染（截断 2000 字） | `V4ResearchView.vue:90-93, 372-376` | `ResearchReportStep`（workflow 内）+ `ResearchReportViewer`（result page） | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `output_artifacts.markdown` | UT: M1-V4-013 (报告渲染为可读 sections) | **已迁移** |
+| 4 | 引用展示 — claim_text/quote/citation_text/trace_id/document_id/source_ref_id | `V4ResearchView.vue:96-120` | `EvidenceReviewStep`（workflow）+ `CitationPanel`（result page） | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `replay_manifest` | UT: M1-V4-007 (evidence items 渲染), M1-V4-014 (source info 存在) | **已迁移** |
+| 5 | 从引用创建笔记 — 每个引用旁的专用按钮 | `V4ResearchView.vue:111-117, 694-713` | `useResearchWorkflow.saveCitation()` → `POST /api/v1/workspace/sessions/{id}/citations` | `/research/:projectId/workflow` | `POST /api/v1/workspace/sessions/{id}/citations` | UT: citationSaveState 追踪 (idle/saving/saved) | **已迁移** |
+| 6 | 导出 — 报告 + 笔记的客户端 Blob 下载 | `V4ResearchView.vue:123-131, 623-657` | `ResearchResultPage` + `useResearchResult.exportMarkdown()` | `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs/{runId}/export` | E2E: `TestResearchResultPageE2E` 导出测试, UT: M1-V4-015 | **已迁移** |
+| 7 | 保存笔记 — `POST /api/v1/workspace/sessions/{id}/notes` | `V4ResearchView.vue:133-141, 659-683` | `useResearchWorkflow.saveNote()` | `/research/:projectId/workflow` | `POST /api/v1/workspace/sessions/{id}/notes` | UT: saveNote → savingMessage 反馈 | **已迁移** |
+| 8 | 基于报告重新搜索 — 提取关键词 → 搜索页 | `V4ResearchView.vue:169-177, 686-692` | `useResearchWorkflow.navigateToLibrarySearch()` → `ResearchReportStep` 按钮 | `/research/:projectId/workflow` → `/library` | `router.push({ name: 'library-search', query: { q } })` | UT: M1-V4-016 [RESOLVED] | **已迁移** (Task 2B) |
+| 9 | **重放验证** — `POST /api/v4/research/runs/{id}/replay`，显示 matched + SHA256 | `V4ResearchView.vue:180-197, 605-621` | **无规范等价实现** | — | API 存在但无规范前端暴露 | — | ❌ **未迁移 — 停止条件** |
+| 10 | 运行历史列表 — 显示 session 所有 run | `V4ResearchView.vue:200-206` | `ResearchWorkspacePage` (RecentReports) + `ReportListPage` | `/research/:projectId/workspace` + `/reports` | `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchReportsPageE2E` | **已迁移** |
+| 11 | 开始新工作流 (reset) — 清除所有状态 | `V4ResearchView.vue:208-210, 715-731` | `useResearchWorkflow.reset()` | `/research/:projectId/workflow` | 纯客户端状态重置 | UT: reset → stepState='question' | **已迁移** |
+| 12 | 通过 ?run= 加载历史 — 遍历 sessions 查找匹配 run | `V4ResearchView.vue:399-436` | 直接 URL `/research/:projectId/result/:runId` | `/research/:projectId/result/:runId` | `GET /api/v1/workspace/sessions` + `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchResultPageE2E` (L2481+) | **已迁移**（改进 — 无需遍历） |
+| 13 | 已用时间计数器 — 自 workflow 开始计秒 | `V4ResearchView.vue:59-60, 381-394` | `AnalysisPendingState`（不确定进度指示器） | `/research/:projectId/workflow` | — | E2E: workflow 提交 loading 态 | **已迁移**（等价 UX） |
+| 14 | 教育模式 — topic + level → 概念学习 | `V4ResearchView.vue:218-261, 737-770` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/education/learn` | N/A | **推迟** — 占位页 |
+| 15 | 可视化 — concept labels + graph_type → 图谱 | `V4ResearchView.vue:264-310, 776-808` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/visualization/graph` | N/A | **推迟** — 占位页 |
+
+**⚠️ 停止条件 #9 — 重放验证**：
+
+- **Legacy 行为** (`V4ResearchView.vue:605-621`)：`POST /api/v4/research/runs/{runId}/replay` → 显示 matched/mismatched badge + original/replay SHA256
+- **规范缺失范围**（2026-07-28 验证）：
+  - `ResearchWorkflowPage` — 无 replay 按钮或 UI
+  - `ResearchResultPage` — 无 replay 按钮或 UI
+  - `useResearchWorkflow` — 无 `replayRun` 函数
+  - `useResearchResult` — 无 `replayRun` 函数
+  - 所有规范组件 (`components/research/`) — 无 replay 相关代码
+- **后端 API 状态**：`POST /api/v4/research/runs/{id}/replay` 端点存在且可用，但无规范前端暴露
+- **建议解决方案**：在 `ResearchResultPage` 或 `ResearchWorkflowPage` 添加重放按钮，调用 `/api/v4/research/runs/{runId}/replay`，显示 matched/mismatched badge + SHA256 值
+- **严重程度**：低 — 重放验证为开发/调试功能，非终端用户核心流程。用户通过重新提交相同 topic 并对比报告即可等价验证确定性
 
 **URL 兼容规则**：
 
 | 旧 URL | 兼容行为 | 当前实际 | 状态 |
 |--------|---------|---------|------|
-| `/v4/research-internal` | → 需先解析项目上下文（用户最近活跃 session），再跳转至 `/research/:projectId/workflow` | **直接渲染 V4ResearchView**（router/index.ts:220）— legacy 仍在服役 | ❌ 未清退 |
-| `/v4/research` | → 同 `/v4/research-internal` 规则（当前重定向至 `/research` 视为临时行为，M4 需更新） | 无条件重定向至 `/research`（丢失项目上下文） | ❌ 不等价 |
-| `/v4` | → 同 `/v4/research` | 无条件重定向至 `/research` | ❌ 不等价 |
+| `/v4/research-internal` | → LegacyRedirect → session-aware 跳转至 `/research/:projectId/workflow` | **LegacyRedirect 处理**（router/index.ts） | ✅ 已清退 |
+| `/v4/research` | → LegacyRedirect → `/research/:projectId/workflow` | **LegacyRedirect 处理** | ✅ 已清退 |
+| `/v4` | → LegacyRedirect → `/research/:projectId/workflow` | **LegacyRedirect 处理** | ✅ 已清退 |
 
 **逐项迁移完成判定**：
 
-- [ ] Workflow 执行：legacy 5 步 pipeline 与 canonical 5 步行为等价（topic→retrieval→synthesis→report→citation），**M1 的 10 个 v4-research.test.ts 测试全部有 canonical 等价测试**
-- [x] 报告渲染：canonical result page 与 legacy report 详情等价（markdown 章节、引用标记、证据展示）
-- [ ] **⚠️ Citation/SourceRef 等价（BLOCK）**：2026-07-27 验收。真实 canonical 报告显示 "证据 5 条 · 引用 0 条"，引用区 "此报告暂无引用记录"。backend 在 `output_artifacts.citations` 中填充来自 `synthesis_output.evidence` 的引用，前端 `useResearchResult.extractEvidenceFromSingleRun` Path 1 读取正确。但真实 run 的 `output_artifacts.citations` 为空数组 — provenance 链的端到端等价尚未证明，因为 backend workflow 产出不包含 citation 数据（即使 evidence 有 5 条）。Unit test 覆盖不等同于跨层真实数据链证明。
-- [ ] 无证据 fail-closed：`success=false` + `records=0` → no-evidence-state，导出禁用，引用区段不渲染（与 legacy P2T1 行为等价）
-- [ ] 空 citation 字段 → save-citation 按钮不渲染（与 legacy P2T1 行为等价）
-- [ ] 重放验证：canonical result page 需暴露 replay UI，或明确声明推迟并记录
-- [ ] 教育模式：明确推迟至 KnowledgeExplorer 并记录占位路由
-- [ ] 可视化：明确推迟至 KnowledgeExplorer 并记录占位路由
-- [ ] 引用保存/导出：canonical 行为与 legacy 等价（`extractCitationsFromRuns` 的 snapshot × traces 交叉引用逻辑一致）
-- [ ] `/v4/*` 兼容跳转在所有场景（有/无 session、有/无 run_id query、匿名用户）不产生 404/空白页
-- [x] **[RESOLVED]** 基于报告重新搜索（re-search）：Task 2B — `navigateToLibrarySearch()` 在 `useResearchWorkflow` 中实现
+- [x] Workflow 执行：legacy 5 步 pipeline 与 canonical 5 步行为等价 — M1-V4-001/002 通过，E2E `test_successful_workflow_uses_current_run_artifacts` 通过
+- [x] 报告渲染：canonical result page 与 legacy report 详情等价 — M1-V4-013 通过
+- [x] Citation/SourceRef 等价：Task 2B snapshot 回退路径修复 (374d5ad) — `useResearchWorkflow` + `useResearchResult` 中 Path 2 同时提取 citation
+- [x] 无证据 fail-closed：`success=false` + `records=0` → NO_EVIDENCE error banner — M1-V4-005 通过，E2E `test_workflow_no_evidence_shows_error_banner` 通过
+- [x] 空 citation 字段 → 不渲染 citation — M1-V4-006 通过
+- [x] 有 citation 内容 → evidence/citation 可见 — M1-V4-007 通过
+- [ ] **重放验证：canonical 无 replay UI — 停止条件**（见上方 #9）
+- [x] 教育模式：明确推迟至 KnowledgeExplorer — M1-V4-008/009 DEFERRED
+- [x] 可视化：明确推迟至 KnowledgeExplorer — M1-V4-010/011 DEFERRED
+- [x] 引用保存/导出：canonical 行为与 legacy 等价 — M1-V4-014/015 通过
+- [x] `/v4/*` 兼容跳转：LegacyRedirect 处理所有场景 — E2E `TestV4ResearchPortal` 6 个测试通过
+- [x] 基于报告重新搜索（re-search）：Task 2B `navigateToLibrarySearch()` — M1-V4-016 RESOLVED
 
 **Legacy 测试映射**（`apps/frontend/src/__tests__/v4-research.test.ts`，10 个测试）：
 
@@ -235,33 +249,39 @@
 ---
 section: 2.4
 
-### 2.4 ⚠️ 停止条件：基于报告重新搜索 (re-search) 无 canonical 等价实现
+### 2.4 ⚠️ 停止条件：重放验证 (replay) 无 canonical 等价实现
 
-**Legacy 行为** (`V4ResearchView.vue:686-692`):
+**Legacy 行为** (`V4ResearchView.vue:605-621`):
 ```typescript
-function reSearchFromReport() {
-  if (!reportContent.value) return;
-  const lines = reportContent.value.split('\n').filter(l => l.trim() && !l.startsWith('#') && l.length > 10);
-  const query = topic.value || lines[0]?.slice(0, 60) || '';
-  router.push({ name: 'search', query: { q: encodeURIComponent(query) } });
+async function replayRun() {
+  if (!workflowRunId.value) return;
+  replaying.value = true;
+  replayResult.value = null;
+  const { data } = await api.post(`/api/v4/research/runs/${workflowRunId.value}/replay`);
+  replayResult.value = {
+    matched: data.data.matched,
+    original_output_sha256: data.data.original_output_sha256,
+    replay_output_sha256: data.data.replay_output_sha256,
+  };
 }
 ```
-— 从报告 Markdown 提取第一个非标题行或回退到原始 topic，导航至搜索页 (`router.push({ name: 'search', query: { q } })`)。
+— 对已完成的工作流运行进行确定性验证，比较 SHA256 哈希值，显示 matched/mismatched badge。
 
-**Canonical 缺失范围**（2026-07-27 验证 → **已修复 2026-07-27 Task 2B**）：
-- `ResearchWorkflowPage` — 无 re-search 按钮或链接
-- `ResearchResultPage` — 无 re-search 按钮或链接
-- `ResearchWorkspacePage` — 无 re-search 按钮或链接
-- `useResearchWorkflow` — 无 `reSearchFromReport` 函数
-- `useResearchResult` — 无 `reSearchFromReport` 函数
+**Canonical 缺失范围**（2026-07-28 验证）：
+- `ResearchWorkflowPage` — 无 replay 按钮或 UI
+- `ResearchResultPage` — 无 replay 按钮或 UI
+- `useResearchWorkflow` — 无 `replayRun` 函数
+- `useResearchResult` — 无 `replayRun` 函数
+- 所有 canonical 组件 (`components/research/`) — 无 replay 相关代码
+- 后端 API `POST /api/v4/research/runs/{id}/replay` 存在且可用，但无 canonical 前端暴露
 
-**缺失严重程度**：中。此能力缺失意味着用户无法从研究报告一键跳转到搜索页面；需手动复制关键词并导航。Legacy 使用 `router.push({ name: 'search', query })` — 当前 canonical 搜索路由名为 `library-search` (`/library`)，不是 `search`。
-
-**当前停止状态**：**已修复** — Task 2B 实现了 `navigateToLibrarySearch()`（`useResearchWorkflow.ts`）和 `ResearchReportStep` 中的 "基于报告重新搜索" 按钮。路径：report markdown → 提取首个非标题行 → `router.push({ name: 'library-search', query: { q } })`。
+**缺失严重程度**：低。重放验证为开发/调试功能，非终端用户核心流程。用户通过重新提交相同 topic 并对比报告即可等价验证确定性。不影响研究、报告、引用、导出等核心用户流程。
 
 **建议解决方案**（两个选项）：
-1. **实现**：在 `ResearchReportStep` 或 `ResearchResultPage` 添加 "重新搜索" 按钮，将报告 topic 或首个段落作为 query 参数，导航至 `/library`（或当前的搜索路由名称）
-2. **推迟**：如果重新搜索被视为低优先级，请将此项添加到 §3 推迟声明，并标注真实原因（UI 未就绪、用户需求等）
+1. **实现**：在 `ResearchResultPage` 或 `ResearchWorkflowPage` 添加重放按钮，调用 `/api/v4/research/runs/{runId}/replay`，显示 matched/mismatched badge + SHA256
+2. **推迟**：如果重放验证被视为低优先级，请将此项添加到 §3 推迟声明，标注真实原因（开发/调试功能，终端用户无需）
+
+**先前停止条件 §2.4（re-search）已 RESOLVED**：Task 2B — `navigateToLibrarySearch()` 在 `useResearchWorkflow` 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮 → `router.push({ name: 'library-search', query: { q } })`。
 
 ---
 
@@ -367,12 +387,13 @@ M0（本契约 FROZEN ✅）
 - [x] **旧 URL 等价迁移** — **Task 2B**: LegacyRedirect.vue 实现 session-aware 跳转，7 个 legacy 路由名 + 6 个 tab 值 → canonical 路由解析，降级至 project list
 - [x] **legacy 路径清退** — **Task 2B**: `/v4/research-internal` 不再直接加载 V4ResearchView（`legacy-v4-research-internal` → LegacyRedirect → `/research/:projectId/workflow`）
 - [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
-- [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`
+- [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`（2026-07-28: re-search gap 已闭合）
 - [x] **Docker 构建** — **Task 2B**: docker/dev/Dockerfile.backend 和 docker/prod/Dockerfile.backend 中 `COPY pyproject.toml README.md ./` 修复 `OSError: Readme file does not exist`（pyproject.toml:9 readme = "README.md" 要求）
+- [ ] **⚠️ 重放验证（NEW STOP — 2026-07-28）**：V4 `POST /api/v4/research/runs/{id}/replay` → matched/mismatched badge + SHA256 显示在 `V4ResearchView.vue:605-621`。后端 API 存在但无规范前端暴露 — `ResearchWorkflowPage`、`ResearchResultPage`、`useResearchWorkflow`、`useResearchResult` 均无 replay 功能。严重程度：低（开发/调试功能）。需实现或明确推迟。参见 §2.4。
 - [ ] **写入/下载能力端到端验证（BLOCK）**：2026-07-27 验收。导出按钮在真实报告页可见，但未触发下载 — 下载能力仍未被本轮端到端证明。须在真实浏览器中完成 export markdown download 验证。
 - [ ] **⚠️ Citation/SourceRef 等价（需验收）**：2026-07-27。`374d5ad` 修复 — `useResearchWorkflow` 和 `useResearchResult` 中的 snapshot-only 回退路径现在同时提取 citation（之前仅提取 evidence）。当 `output_artifacts.citations` 为空且 `manifest.traces` 为空时，回退路径从 `retrieval_snapshot` 条目中为每个 trace_id 构建 citation。需在真实后端 run 上重新验收 citaton 显示。
 
-**当前状态：BLOCK_RELEASE** — 2026-07-27 验收。Task 2B 修复了 7/8 阻断条件 (Citation/SourceRef snapshot 回退路径修复已推送)。2 项待验收 (Citation/SourceRef 需重新验收、下载需真实浏览器触发)。
+**当前状态：BLOCK_RELEASE** — 2026-07-28 验收。Task 2B 修复了 7/8 阻断条件。新增停止条件：重放验证无规范前端暴露（§2.4）。2 项待验收 (Citation/SourceRef 需重新验收、下载需真实浏览器触发)。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）

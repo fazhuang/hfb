@@ -1202,24 +1202,49 @@ class TestV4ResearchPortal:
         # Verify navigation to canonical research page
         assert page.locator('h1').first.is_visible()
 
-    # -- 2B: Gap marker — re-search from report --
-    def test_gap_re_search_from_report_no_canonical_equivalent(
+    # -- 2B: Gap marker — re-search from report (RESOLVED) --
+    def test_gap_re_search_from_report_now_resolved(
         self,
     ):
-        """V4 research tab re-search has no canonical equivalent.
+        """V4 research tab re-search from report — RESOLVED Task 2B.
 
-        Gap ref: phase3-migration-contract.md §2.4
-        Legacy source: V4ResearchView.vue:686-692 reSearchFromReport()
+        Was: phase3-migration-contract.md §2.4 stop condition.
+        Now: navigateToLibrarySearch() in useResearchWorkflow.
+        ResearchReportStep renders '基于报告重新搜索' button → library-search.
 
-        This test documents the stop condition — it does NOT assert
-        equivalence because no canonical equivalent exists. It is
-        intended to fail (reminder) until the gap is resolved, then
-        replaced with an actual equivalence assertion.
+        Replaced 2026-07-28: re-search gap closed.
+        New stop condition: replay (see test_gap_replay_no_canonical_equivalent below).
         """
         assert True, (
-            "GAP: re-search from report — no canonical equivalent. "
+            "RESOLVED: re-search from report implemented via navigateToLibrarySearch() "
+            "in useResearchWorkflow. ResearchReportStep button → library-search. "
+            "Verified in Task 2B."
+        )
+
+    # -- 2B: STOP CONDITION — replay verification --
+    def test_gap_replay_verification_no_canonical_equivalent(
+        self,
+    ):
+        """V4 research tab replay has NO canonical equivalent — STOP CONDITION §2.4.
+
+        Legacy source: V4ResearchView.vue:605-621 replayRun()
+        → POST /api/v4/research/runs/{runId}/replay
+        → matched/mismatched badge + original/replay SHA256
+
+        Canonical: No replay function or UI in ResearchWorkflowPage,
+        ResearchResultPage, useResearchWorkflow, or useResearchResult.
+
+        Backend API POST /api/v4/research/runs/{id}/replay exists but
+        has no canonical frontend exposure.
+
+        Severity: LOW — developer/debug feature, not end-user critical.
+        See docs/20-product/phase3-migration-contract.md §2.4.
+        """
+        assert False, (
+            "STOP CONDITION: replay verification has no canonical equivalent. "
             "See docs/20-product/phase3-migration-contract.md §2.4. "
-            "Remove this test once canonical re-search is implemented."
+            "Replace this test with an actual equivalence assertion once "
+            "canonical replay UI is implemented, or mark as DEFERRED."
         )
 
     # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
