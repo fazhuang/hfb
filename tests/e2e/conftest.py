@@ -47,11 +47,8 @@ def _run_backend(port: int) -> subprocess.Popen:
     """Start the FastAPI backend on the given port with SQLite override."""
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
     env = os.environ.copy()
-    env["DATABASE_URL"] = f"sqlite+aiosqlite:////tmp/hfb-e2e-{port}.db"
+    env["DATABASE_URL"] = "sqlite+aiosqlite://"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
-    # Ensure the DB file is created with user-only permissions.
-    # The backend process inherits this umask.
-    os.umask(0o077)
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
         cwd=str(backend_dir),

@@ -53,20 +53,44 @@ def _wait_ready(url: str, timeout: int = 30) -> bool:
     return False
 
 
+def _stop_proc(proc: subprocess.Popen) -> None:
+    """Terminate a subprocess, then wait; force-kill on timeout."""
+    if proc is None or proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait(timeout=5)
+
+
+def _cleanup_db(port: int) -> None:
+    """Remove the SQLite file (and -wal/-shm companions) scoped to this port."""
+    db_path = Path(f"/tmp/hfb-e2e-cj-{port}.db")
+    for suffix in ("", "-wal", "-shm"):
+        p = Path(f"{db_path}{suffix}")
+        if p.is_file():
+            p.unlink(missing_ok=True)
+
+
 def _run_backend(port: int) -> subprocess.Popen:
     """Start the FastAPI backend on the given port with SQLite override."""
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite+aiosqlite:////tmp/hfb-e2e-cj-{port}.db"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
-    os.umask(0o077)
-    proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
-        cwd=str(backend_dir),
-        env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    old_umask = os.umask(0o077)
+    try:
+        proc = subprocess.Popen(
+            [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+            cwd=str(backend_dir),
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    finally:
+        os.umask(old_umask)
     return proc
 
 
@@ -130,21 +154,23 @@ def live_servers():
     frontend_ready = _wait_ready(frontend_url, timeout=30)
 
     if not backend_ready:
-        backend_proc.terminate()
-        frontend_proc.terminate()
+        _stop_proc(backend_proc)
+        _stop_proc(frontend_proc)
+        _cleanup_db(backend_port)
         raise RuntimeError("Backend failed to start")
 
     if not frontend_ready:
-        backend_proc.terminate()
-        frontend_proc.terminate()
+        _stop_proc(backend_proc)
+        _stop_proc(frontend_proc)
+        _cleanup_db(backend_port)
         raise RuntimeError("Frontend failed to start")
 
-    yield frontend_url, backend_port
-
-    backend_proc.terminate()
-    frontend_proc.terminate()
-    backend_proc.wait(timeout=10)
-    frontend_proc.wait(timeout=10)
+    try:
+        yield frontend_url, backend_port
+    finally:
+        _stop_proc(backend_proc)
+        _stop_proc(frontend_proc)
+        _cleanup_db(backend_port)
 
 
 @pytest.fixture(scope="module")
