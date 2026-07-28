@@ -3453,27 +3453,96 @@ class TestResearchResultPageE2E:
     def test_export_markdown_real_browser_download(
         self, live_servers, result_workflow_session, page,
     ):
-        """Real UI click on export button → browser download event →
-        validate filename, content, Content-Type, and Content-Disposition."""
+        """Full UI navigation export: /login → Research → project list →
+        click project → project detail → click report → result page →
+        click export → real browser download validated.
+
+        Forbidden: page.goto() to protected result URL, localStorage
+        token injection, network mock, or test-API report creation.
+        """
         frontend_url, _ = live_servers
         ws = result_workflow_session
+        sid = ws["session_id"]
+        rid = ws["run_id"]
+
+        # ---- Step 1: Real login via UI ----
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
-        page.wait_for_selector(".rrv-report", timeout=10000)
+        # ---- Step 2: Navigate to Research project list ----
+        page.goto(f"{frontend_url}/research")
+        page.wait_for_selector("h1", timeout=10000)
 
-        # Capture export response headers BEFORE triggering download
+        # ---- Step 3: Click the project on the project list ----
+        found_pl = False
+        for sel in ['.pli-name-link', '.pli-enter-btn']:
+            links = page.locator(sel)
+            for i in range(links.count()):
+                href = links.nth(i).get_attribute("href") or ""
+                if sid in href:
+                    links.nth(i).click()
+                    found_pl = True
+                    break
+            if found_pl:
+                break
+        # Fallback: direct href match
+        if not found_pl:
+            direct = page.locator(f'a[href="/research/{sid}"]')
+            if direct.count() > 0:
+                direct.first.click()
+                found_pl = True
+        assert found_pl, f"Project link for session {sid} not found on project list"
+
+        # ---- Step 4: Wait for project detail to load ----
+        page.wait_for_selector("h1", timeout=10000)
+        page.wait_for_timeout(3000)
+
+        # ---- Step 5: Find and click report link on project detail ----
+        found_report_link = False
+        for selector in ['.pr-view-link', '.rr-view-link']:
+            links = page.locator(selector)
+            for i in range(links.count()):
+                href = links.nth(i).get_attribute("href") or ""
+                if rid in href and sid in href:
+                    links.nth(i).click()
+                    found_report_link = True
+                    break
+            if found_report_link:
+                break
+        # Fallback: try '查看' text links
+        if not found_report_link:
+            view_links = page.locator('a:has-text("查看")')
+            for i in range(view_links.count()):
+                href = view_links.nth(i).get_attribute("href") or ""
+                if rid in href and sid in href:
+                    view_links.nth(i).click()
+                    found_report_link = True
+                    break
+        assert found_report_link, (
+            f"Report link for run {rid} not found on project detail page "
+            f"(checked .pr-view-link, .rr-view-link, a:has-text('查看'))"
+        )
+
+        # ---- Step 6: Wait for result page to load ----
+        page.wait_for_selector(".rrv-report", timeout=10000)
+        assert f"/research/{sid}/result/{rid}" in page.url, (
+            f"Expected result URL containing /research/{sid}/result/{rid}, got {page.url}"
+        )
+        # Confirm we did NOT navigate directly — the URL should contain the correct IDs
+        assert sid in page.url, f"URL must contain session_id {sid}, got {page.url}"
+        assert rid in page.url, f"URL must contain run_id {rid}, got {page.url}"
+
+        # ---- Step 7: Capture export response status + headers ----
+        export_http_status: int = 0
         export_ct: str = ""
         export_cd: str = ""
 
-        def _capture_export_headers(response):
-            nonlocal export_ct, export_cd
+        def _capture_export_response(response):
+            nonlocal export_http_status, export_ct, export_cd
             if (
                 "/api/v4/research/session/" in response.url
                 and "/export" in response.url
             ):
+                export_http_status = response.status
                 export_ct = (
                     response.headers.get("content-type", "")
                 ).lower()
@@ -3481,50 +3550,72 @@ class TestResearchResultPageE2E:
                     response.headers.get("content-disposition", "")
                 ).lower()
 
-        page.on("response", _capture_export_headers)
+        page.on("response", _capture_export_response)
 
-        # Set up download promise BEFORE clicking
+        # ---- Step 8: Click export and capture real browser download ----
+        export_btn = page.locator(".rrh-btn--export")
+        assert export_btn.is_visible(), "Export button must be visible"
+        assert export_btn.is_enabled(), "Export button must be enabled"
+
         with page.expect_download(timeout=30000) as download_info:
-            page.locator(".rrh-btn--export").click()
+            export_btn.click()
 
         download = download_info.value
-        assert download is not None, "Download must be triggered"
+        assert download is not None, "Real browser download must be triggered"
 
+        # ---- Step 9: Validate filename matches backend naming rule ----
+        # Backend: safe_filename = f"hfb-research-report-{safe_run_id}.md"
+        #          safe_run_id = run_id[:8]
         filename = download.suggested_filename
-        assert "hfb-research-report-" in filename, (
-            f"Filename must contain 'hfb-research-report-', got {filename!r}"
+        expected_prefix = "hfb-research-report-"
+        assert filename.startswith(expected_prefix), (
+            f"Filename must start with '{expected_prefix}', got {filename!r}"
         )
         assert filename.endswith(".md"), (
             f"Filename must end with .md, got {filename!r}"
         )
+        # The filename embeds the run_id prefix — verify it matches
+        assert rid[:8] in filename, (
+            f"Filename must contain run_id prefix '{rid[:8]}', got {filename!r}"
+        )
 
-        # Read and validate content via Playwright's download.path() API
+        # ---- Step 10: Validate content is real Markdown ----
         download_path = download.path()
-        assert download_path is not None, "Download path must not be None"
+        assert download_path is not None, "Download file path must not be None"
         raw_bytes = download_path.read_bytes()
         content = raw_bytes.decode("utf-8")
         assert len(content) > 0, "Downloaded file must be non-empty"
-        # Real workflow report must contain markdown headings
+        # Must be Markdown — at least one heading
         assert "#" in content, (
-            "Real export must contain markdown content (headings)"
+            "Real export must contain Markdown headings"
+        )
+        # Must contain the real report title or research topic as
+        # proof it's THIS report, not a stale or fake one
+        session_title = "结果页真实工作流验证"
+        topic = "ResultE2E验证"
+        assert (session_title in content or topic in content), (
+            f"Exported Markdown must contain the real report title "
+            f"'{session_title}' or research topic '{topic}'. "
+            f"Content preview: {content[:500]}"
         )
 
-        # ---- Assert response headers ----
-        assert export_ct, (
-            "Export response must have a Content-Type header"
+        # ---- Step 11: Assert HTTP 200 on export response ----
+        assert export_http_status == 200, (
+            f"Export response must be HTTP 200, got {export_http_status}"
         )
+
+        # ---- Step 12: Assert response headers ----
+        assert export_ct, "Export response must have a Content-Type header"
         assert "text/markdown" in export_ct, (
-            f"Export Content-Type must be text/markdown, got: {export_ct!r}"
+            f"Export Content-Type must be text/markdown; charset=utf-8, got {export_ct!r}"
         )
-        assert export_cd, (
-            "Export response must have a Content-Disposition header"
-        )
+        assert export_cd, "Export response must have a Content-Disposition header"
         assert "attachment" in export_cd, (
-            f"Export Content-Disposition must be attachment, got: {export_cd!r}"
+            f"Content-Disposition must be attachment, got {export_cd!r}"
         )
-        assert "hfb-research-report-" in export_cd, (
-            f"Content-Disposition filename must contain 'hfb-research-report-', "
-            f"got cd={export_cd!r}"
+        assert f'hfb-research-report-{rid[:8]}.md' in export_cd, (
+            f"Content-Disposition must name the file with correct run_id prefix. "
+            f"Expected 'hfb-research-report-{rid[:8]}.md' in {export_cd!r}"
         )
 
     def test_export_disabled_when_no_report(
