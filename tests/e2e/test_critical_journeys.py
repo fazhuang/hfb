@@ -57,8 +57,9 @@ def _run_backend(port: int) -> subprocess.Popen:
     """Start the FastAPI backend on the given port with SQLite override."""
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
     env = os.environ.copy()
-    env["DATABASE_URL"] = "sqlite+aiosqlite://"
+    env["DATABASE_URL"] = f"sqlite+aiosqlite:////tmp/hfb-e2e-cj-{port}.db"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
+    os.umask(0o077)
     proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
         cwd=str(backend_dir),
@@ -1348,30 +1349,133 @@ class TestV4ResearchPortal:
             f"Result page URL must contain run_id {rid}, got {page.url}"
         )
 
-    def test_gap_replay_verification_mismatched_blocked(
-        self,
+    def test_gap_replay_verification_mismatched(
+        self, live_servers, result_workflow_session_mismatched, page,
     ):
-        """Canonical replay matched=false has NO real-browser attainable path — BLOCKED.
+        """Canonical replay verification matched=false — real browser, real UI nav.
 
-        The replay endpoint is deterministic: it re-executes the same
-        frozen manifest data and compares SHA-256 hashes.  Real workflow
-        runs always produce matched=true (by design).  Seed-created runs
-        lack the full manifest integrity fields required for replay, so
-        they fail with NO_REPLAY_MANIFEST / CORRUPT_MANIFEST before
-        reaching the hash comparison.
+        A dedicated fixture (result_workflow_session_mismatched) clones
+        a real workflow run's replay_manifest, replaces
+        canonical_output_sha256 with a fabricated value, recomputes
+        manifest_sha256, and injects the tampered run into the session's
+        workflow_state via the file-based test SQLite DB — all in the
+        fixture layer, before any browser operations.
 
-        No real browser user operation can trigger matched=false without:
-          - API-level data injection outside the browser (forbidden)
-          - Modifying the production seed endpoint (forbidden)
-          - Front-end mock/route.fulfill (forbidden)
-
-        Matched=false is therefore not demonstrable through a real-browser
-        end-to-end flow.  The matched=true path (above) proves the full
-        replay UI + API works correctly in a real browser.
-
-        Severity: LOW — matched=false is an edge case of a dev/debug feature.
+        The browser test then navigates the full UI: /login → /research →
+        click project → project detail → click report link → result page →
+        click replay → assert "重放不一致" + 2x different SHA-256.
         """
-        pass  # BLOCKED — no real-browser path to matched=false
+        frontend_url, _ = live_servers
+        ws = result_workflow_session_mismatched
+        sid = ws["session_id"]
+        rid = ws["run_id"]
+
+        # --- Step 1: Real login via UI ---
+        _login_via_ui(page, frontend_url, ws["username"], ws["password"])
+
+        # --- Step 2: Navigate to project list ---
+        page.goto(f"{frontend_url}/research")
+        page.wait_for_selector("h1", timeout=10000)
+
+        # --- Step 3: Click the project on the project list ---
+        found_pl = False
+        for sel in ['.pli-name-link', '.pli-enter-btn']:
+            links = page.locator(sel)
+            for i in range(links.count()):
+                href = links.nth(i).get_attribute("href") or ""
+                if sid in href:
+                    links.nth(i).click()
+                    found_pl = True
+                    break
+            if found_pl:
+                break
+        # Fallback: try direct href match
+        if not found_pl:
+            project_link = page.locator(f'a[href="/research/{sid}"]')
+            if project_link.count() > 0:
+                project_link.first.click()
+                found_pl = True
+        assert found_pl, (
+            f"Project link for session {sid} not found on project list"
+        )
+
+        # Wait for project detail to load
+        page.wait_for_selector("h1", timeout=10000)
+        page.wait_for_timeout(3000)
+
+        # --- Step 4: Find and click report link on project detail ---
+        found_report_link = False
+        for selector in ['.pr-view-link', '.rr-view-link']:
+            links = page.locator(selector)
+            count = links.count()
+            for i in range(count):
+                href = links.nth(i).get_attribute("href") or ""
+                if rid in href and sid in href:
+                    links.nth(i).click()
+                    found_report_link = True
+                    break
+            if found_report_link:
+                break
+
+        # Fallback: try '查看' text links
+        if not found_report_link:
+            view_links = page.locator('a:has-text("查看")')
+            for i in range(view_links.count()):
+                href = view_links.nth(i).get_attribute("href") or ""
+                if rid in href and sid in href:
+                    view_links.nth(i).click()
+                    found_report_link = True
+                    break
+
+        assert found_report_link, (
+            f"Report link for run {rid} not found on project detail page"
+        )
+
+        # --- Step 5: Wait for result page to load ---
+        page.wait_for_selector(".rrv-report", timeout=10000)
+        assert f"/research/{sid}/result/{rid}" in page.url, (
+            f"Expected result URL, got {page.url}"
+        )
+
+        # --- Step 6: Click replay button ---
+        replay_btn = page.locator('[data-testid="canonical-replay"]')
+        assert replay_btn.is_visible(), (
+            "Canonical replay button must be visible on result page"
+        )
+        replay_btn.click()
+        page.wait_for_selector('[data-testid="canonical-replay-result"]', timeout=30000)
+
+        # --- Step 7: Assert matched=false ---
+        result = page.locator('[data-testid="canonical-replay-result"]')
+        assert result.is_visible()
+        assert "重放不一致" in result.text_content(), (
+            "Canonical replay result must show '重放不一致' for matched=false"
+        )
+        assert "重放一致" not in result.text_content(), (
+            "Canonical replay result must NOT show '重放一致' for mismatched"
+        )
+
+        # Assert both SHA-256 values are displayed and DIFFERENT
+        hashes = page.locator('.rpage-replay-hash-value')
+        assert hashes.count() >= 2, (
+            f"Replay result must show 2 SHA-256 hashes, got {hashes.count()}"
+        )
+        hash_original = hashes.nth(0).text_content().strip()
+        hash_replay = hashes.nth(1).text_content().strip()
+        assert len(hash_original) == 64, (
+            f"Original SHA-256 must be 64 hex chars, got {len(hash_original)}: {hash_original!r}"
+        )
+        assert len(hash_replay) == 64, (
+            f"Replay SHA-256 must be 64 hex chars, got {len(hash_replay)}: {hash_replay!r}"
+        )
+        assert hash_original != hash_replay, (
+            "matched=false: original and replay SHA-256 must differ"
+        )
+
+        # Assert run ID is in the page URL
+        assert rid in page.url, (
+            f"Result page URL must contain run_id {rid}, got {page.url}"
+        )
 
     # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
     def test_legacy_v4_research_internal_now_redirects(
@@ -2132,6 +2236,138 @@ def result_workflow_session(live_servers, result_workflow_rag_doc):
         "username": username,
         "password": password,
         "token": tokens,
+    }
+
+
+# -- Mismatch replay fixture — tampered manifest via file-based SQLite --
+@pytest.fixture(scope="module")
+def result_workflow_session_mismatched(live_servers, result_workflow_session):
+    """Create a persistent run with tampered canonical_output_sha256.
+
+    Clones the real result_workflow_session run's replay_manifest,
+    replaces canonical_output_sha256 with a fabricated 64-hex-char
+    value, recomputes manifest_sha256, and injects the tampered
+    run into the session's workflow_state via direct SQLite access.
+
+    ALL database manipulation happens in this fixture — the browser
+    test only reads the already-persisted tampered state.
+    """
+    import hashlib as _hashlib
+    import json as _json
+    import sqlite3 as _sqlite3
+    from uuid import uuid4 as _uuid4
+
+    _, backend_port = live_servers
+    base = f"http://127.0.0.1:{backend_port}"
+    ws = result_workflow_session
+    headers = {"Authorization": f"Bearer {ws['token']['access_token']}"}
+
+    def _canonical_json_bytes(payload: dict) -> bytes:
+        return _json.dumps(
+            payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        ).encode("utf-8")
+
+    def _canonical_sha256(payload: dict) -> str:
+        return _hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+
+    # --- Step 1: Fetch the real run's manifest ---
+    runs_resp = httpx.get(
+        f"{base}/api/v4/research/session/{ws['session_id']}/runs",
+        headers=headers,
+        timeout=10,
+    )
+    assert runs_resp.status_code == 200, (
+        f"GET runs failed: {runs_resp.status_code} {runs_resp.text[:500]}"
+    )
+    runs_list = runs_resp.json()["data"]["runs"]
+    target_run = None
+    for r in runs_list:
+        if r.get("run_id") == ws["run_id"]:
+            target_run = dict(r)
+            break
+    assert target_run is not None, (
+        f"Target run {ws['run_id']} not found in {len(runs_list)} runs"
+    )
+    manifest = target_run.get("replay_manifest")
+    assert manifest is not None, "Real run must have replay_manifest"
+
+    # --- Step 2: Clone manifest with fabricated output hash ---
+    bad_manifest = dict(manifest)
+    bad_manifest["canonical_output_sha256"] = (
+        "0000000000000000000000000000000000000000000000000000000000000001"
+    )
+    # Recompute manifest_sha256 so self-integrity check passes
+    manifest_for_hash = {
+        k: v for k, v in bad_manifest.items() if k != "manifest_sha256"
+    }
+    bad_manifest["manifest_sha256"] = _canonical_sha256(manifest_for_hash)
+
+    # --- Step 3: Build a tampered run entry (new run_id, same session) ---
+    mismatch_run_id = str(_uuid4())
+    tampered_run = dict(target_run)
+    tampered_run["run_id"] = mismatch_run_id
+    tampered_run["replay_manifest"] = bad_manifest
+
+    # --- Step 4: Inject into file-based SQLite ---
+    db_path = f"/tmp/hfb-e2e-cj-{backend_port}.db"
+
+    # Retry loop: the backend may not have flushed yet
+    conn = None
+    for attempt in range(10):
+        try:
+            conn = _sqlite3.connect(db_path)
+            row = conn.execute(
+                "SELECT workflow_state FROM research_sessions WHERE id = ?",
+                [ws["session_id"]],
+            ).fetchone()
+            if row and row[0]:
+                break
+            conn.close()
+            conn = None
+            import time as _time
+            _time.sleep(0.5)
+        except Exception:
+            if conn:
+                conn.close()
+                conn = None
+            import time as _time
+            _time.sleep(0.5)
+
+    assert conn is not None and row is not None, (
+        f"Cannot read workflow_state for session {ws['session_id']} "
+        f"from {db_path} after 10 attempts"
+    )
+
+    state = _json.loads(row[0])
+    runs = state.get("runs", [])
+    runs.append(tampered_run)
+    state["runs"] = runs
+    conn.execute(
+        "UPDATE research_sessions SET workflow_state = ? WHERE id = ?",
+        [_json.dumps(state, ensure_ascii=False), ws["session_id"]],
+    )
+    conn.commit()
+    conn.close()
+
+    # --- Step 5: Verify the tampered run is readable via API ---
+    verify_resp = httpx.get(
+        f"{base}/api/v4/research/session/{ws['session_id']}/runs",
+        headers=headers,
+        timeout=10,
+    )
+    assert verify_resp.status_code == 200
+    verify_runs = verify_resp.json()["data"]["runs"]
+    found = [r for r in verify_runs if r.get("run_id") == mismatch_run_id]
+    assert len(found) == 1, (
+        f"Tampered run {mismatch_run_id} not found via API after injection"
+    )
+
+    return {
+        "session_id": ws["session_id"],
+        "run_id": mismatch_run_id,
+        "username": ws["username"],
+        "password": ws["password"],
+        "token": ws["token"],
     }
 
 
