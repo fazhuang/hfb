@@ -74,39 +74,84 @@ def _cleanup_db(port: int) -> None:
             p.unlink(missing_ok=True)
 
 
-def _run_backend(port: int) -> subprocess.Popen:
-    """Start the FastAPI backend on the given port with SQLite override."""
+def _tail(path: Path, lines: int = 40) -> str:
+    """Return the last *lines* of a text file, or '(empty)' if missing."""
+    try:
+        content = path.read_text(errors="replace")
+    except FileNotFoundError:
+        return "(file not found)"
+    raw = content.splitlines()
+    if not raw:
+        return "(empty)"
+    return "\n".join(raw[-lines:])
+
+
+def _fail_start(
+    backend_proc: subprocess.Popen | None,
+    frontend_proc: subprocess.Popen | None,
+    logs: list[Path],
+    port: int,
+    reason: str,
+    url: str,
+) -> None:
+    """Kill processes, print log tails, clean up DB, and raise RuntimeError."""
+    _stop_proc(backend_proc)
+    _stop_proc(frontend_proc)
+    _cleanup_db(port)
+    lines = []
+    lines.append(f"\n=== STARTUP FAILED ({url}) ===")
+    lines.append(reason)
+    lines.append("--- service logs (last 40 lines each) ---")
+    for p in logs:
+        lines.append(f"\n>>> {p.name} ({p})")
+        lines.append(_tail(p))
+    lines.append("=== end startup failure ===\n")
+    raise RuntimeError("\n".join(lines))
+
+
+def _run_backend(port: int) -> tuple[subprocess.Popen, Path]:
+    """Start the FastAPI backend on the given port with SQLite override.
+
+    Returns (process, log_path) — log goes to a scoped temp file, never DEVNULL.
+    """
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
+    log_path = Path(f"/tmp/hfb-e2e-cj-{port}-backend.log")
     env = os.environ.copy()
     env["DATABASE_URL"] = f"sqlite+aiosqlite:////tmp/hfb-e2e-cj-{port}.db"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
     old_umask = os.umask(0o077)
+    log_fh = log_path.open("wb")
     try:
         proc = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
             cwd=str(backend_dir),
             env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=log_fh,
+            stderr=subprocess.STDOUT,
         )
     finally:
         os.umask(old_umask)
-    return proc
+    return proc, log_path
 
 
-def _run_frontend(port: int, backend_port: int) -> subprocess.Popen:
-    """Start the Vite dev server on the given port, proxying to backend."""
+def _run_frontend(port: int, backend_port: int) -> tuple[subprocess.Popen, Path]:
+    """Start the Vite dev server on the given port, proxying to backend.
+
+    Returns (process, log_path) — log goes to a scoped temp file, never DEVNULL.
+    """
     frontend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "frontend"
+    log_path = Path(f"/tmp/hfb-e2e-cj-{port}-frontend.log")
     env = os.environ.copy()
     env["VITE_PROXY_TARGET"] = f"http://127.0.0.1:{backend_port}"
+    log_fh = log_path.open("wb")
     proc = subprocess.Popen(
         ["npx", "vite", "--host", "127.0.0.1", "--port", str(port), "--strictPort"],
         cwd=str(frontend_dir),
         env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=log_fh,
+        stderr=subprocess.STDOUT,
     )
-    return proc
+    return proc, log_path
 
 
 def _seed_user(backend_port: int, username: str, password: str) -> dict | None:
@@ -144,33 +189,67 @@ def live_servers():
     backend_port = _free_port()
     frontend_port = _free_port()
 
-    backend_proc = _run_backend(backend_port)
-    frontend_proc = _run_frontend(frontend_port, backend_port)
+    backend_proc, backend_log = _run_backend(backend_port)
+    frontend_proc, frontend_log = _run_frontend(frontend_port, backend_port)
+
+    logs: list[Path] = [backend_log, frontend_log]
 
     backend_url = f"http://127.0.0.1:{backend_port}"
     frontend_url = f"http://127.0.0.1:{frontend_port}"
 
-    backend_ready = _wait_ready(f"{backend_url}/health", timeout=30)
-    frontend_ready = _wait_ready(frontend_url, timeout=30)
+    # ---- /health probe ----
+    backend_healthy = _wait_ready(f"{backend_url}/health", timeout=30)
+    frontend_healthy = _wait_ready(frontend_url, timeout=30)
 
-    if not backend_ready:
-        _stop_proc(backend_proc)
-        _stop_proc(frontend_proc)
-        _cleanup_db(backend_port)
-        raise RuntimeError("Backend failed to start")
+    if not backend_healthy:
+        _fail_start(backend_proc, frontend_proc, logs, backend_port,
+                     "Backend /health failed", backend_url)
 
-    if not frontend_ready:
-        _stop_proc(backend_proc)
-        _stop_proc(frontend_proc)
-        _cleanup_db(backend_port)
-        raise RuntimeError("Frontend failed to start")
+    if not frontend_healthy:
+        _fail_start(backend_proc, frontend_proc, logs, backend_port,
+                     "Frontend failed to start", frontend_url)
 
+    # ---- /ready probe (guards against silent infra failures) ----
+    ready_body: str = ""
+    ready_ok: bool = False
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        try:
+            r = httpx.get(f"{backend_url}/ready", timeout=5)
+            ready_body = r.text[:2000]
+            if r.status_code == 200:
+                ready_ok = True
+                break
+        except Exception:
+            pass
+        time.sleep(0.5)
+
+    if not ready_ok:
+        _fail_start(backend_proc, frontend_proc, logs, backend_port,
+                     f"/ready returned non-200.\nbody: {ready_body}",
+                     backend_url)
+
+    # ---- Yield to tests ----
+    success = False
     try:
         yield frontend_url, backend_port
+        success = True
     finally:
         _stop_proc(backend_proc)
         _stop_proc(frontend_proc)
         _cleanup_db(backend_port)
+        if success:
+            # On success, remove log files — no accumulation
+            for p in logs:
+                if p.is_file():
+                    p.unlink(missing_ok=True)
+        else:
+            # On failure, print log tails so the operator can diagnose
+            print("\n--- E2E LOG TAILS (failure) ---")
+            for p in logs:
+                print(f"\n>>> {p.name} ({p})")
+                print(_tail(p))
+            print("--- end log tails ---\n")
 
 
 @pytest.fixture(scope="module")
