@@ -329,28 +329,127 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
   }, 15000);
 
   // -------------------------------------------------------------------------
-  // M1-V4-003/004: 重放验证 — BLOCKED: STOP CONDITION (2026-07-28)
+  // M1-V4-003/004: 重放验证 — FIXED (2026-07-29)
   //
   // V4 legacy: V4ResearchView.vue:605-621 — POST /api/v4/research/runs/{id}/replay
   //             → matched/mismatched badge + original/replay SHA256
-  // Canonical: 无 — ResearchWorkflowPage、ResearchResultPage、useResearchWorkflow、
-  //             useResearchResult 均无 replay 函数或 UI
+  // Canonical: ResearchResultPage.vue:39-78 — .rpage-replay button +
+  //            POST /api/v4/research/runs/{id}/replay → matched/mismatched +
+  //            原始/重放 SHA-256（data-testid="canonical-replay" +
+  //            "canonical-replay-result"）
   //
-  // 后端 API POST /api/v4/research/runs/{id}/replay 存在但无规范前端暴露。
-  // 严重程度：低 — 开发/调试功能，非终端用户核心流程。
-  // 参见 docs/20-product/phase3-migration-contract.md §2.4
+  // 实现提交: d08fbbd, 101e9ef, e6a5153
+  // 后端 API POST /api/v4/research/runs/{id}/replay 已通过
+  //   useResearchResult.replayRun() 规范暴露。
   // -------------------------------------------------------------------------
 
-  it('M1-V4-003: [BLOCKED] 重放验证 matched=true — 无 canonical replay UI (停止条件 §2.4)', () => {
-    // BLOCKED: 无规范等价实现。后端 API POST /api/v4/research/runs/{id}/replay
-    // 存在但无规范前端暴露。需实现或明确推迟。
-    // 此测试故意失败以标记停止条件 — 实现 replay UI 或推迟声明后更新。
-    expect(false).toBe(true);
-  });
+  it('M1-V4-003: 重放验证 matched=true — canonical result page 显示"重放一致"及原始/重放 SHA-256', async () => {
+    // Mock replay API response: matched=true
+    mockPost.mockImplementation(async (url: string) => {
+      if (url === `/api/v4/research/runs/${RUN_ID}/replay`) {
+        return {
+          data: {
+            data: {
+              matched: true,
+              original_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+              replay_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+            },
+            message: 'ok',
+          },
+        };
+      }
+      return { data: { data: {} } };
+    });
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === SESSION_URL) return sessionResponse();
+      if (url === RUNS_URL) return runsWithEvidenceResponse();
+      return { data: { data: {} } };
+    });
 
-  it('M1-V4-004: [BLOCKED] 重放验证 matched=false — 无 canonical replay UI (停止条件 §2.4)', () => {
-    expect(false).toBe(true);
-  });
+    const page = await import('@/pages/research/ResearchResultPage.vue');
+    const resultRouter = makeRouter();
+    await resultRouter.push(RESULT_ROUTE);
+    const wrapper = mount(page.default, {
+      global: { plugins: [resultRouter, createPinia(), i18n] },
+    });
+    await flushPromises();
+    await nextTick();
+
+    // Replay button must be visible on canonical result page
+    const replayBtn = wrapper.find('[data-testid="canonical-replay"]');
+    expect(replayBtn.exists()).toBe(true);
+    expect(replayBtn.text()).toContain('验证可重放性');
+
+    // Click replay
+    await replayBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Assert matched=true result: "重放一致"
+    const result = wrapper.find('[data-testid="canonical-replay-result"]');
+    expect(result.exists()).toBe(true);
+    expect(result.text()).toContain('重放一致');
+    expect(result.text()).not.toContain('重放不一致');
+
+    // Assert both SHA-256 values are displayed
+    const hashValues = wrapper.findAll('.rpage-replay-hash-value');
+    expect(hashValues.length).toBeGreaterThanOrEqual(2);
+    expect(hashValues[0]!.text()).toMatch(/[a-f0-9]{64}/);
+    expect(hashValues[1]!.text()).toMatch(/[a-f0-9]{64}/);
+  }, 15000);
+
+  it('M1-V4-004: 重放验证 matched=false — canonical result page 显示"不一致"及两份 SHA-256', async () => {
+    // Mock replay API response: matched=false
+    mockPost.mockImplementation(async (url: string) => {
+      if (url === `/api/v4/research/runs/${RUN_ID}/replay`) {
+        return {
+          data: {
+            data: {
+              matched: false,
+              original_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+              replay_output_sha256: 'f0e1d2c3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d',
+            },
+            message: 'Replay mismatch — reproducibility failure',
+          },
+        };
+      }
+      return { data: { data: {} } };
+    });
+    mockGet.mockImplementation(async (url: string) => {
+      if (url === SESSION_URL) return sessionResponse();
+      if (url === RUNS_URL) return runsWithEvidenceResponse();
+      return { data: { data: {} } };
+    });
+
+    const page = await import('@/pages/research/ResearchResultPage.vue');
+    const resultRouter = makeRouter();
+    await resultRouter.push(RESULT_ROUTE);
+    const wrapper = mount(page.default, {
+      global: { plugins: [resultRouter, createPinia(), i18n] },
+    });
+    await flushPromises();
+    await nextTick();
+
+    // Click replay
+    const replayBtn = wrapper.find('[data-testid="canonical-replay"]');
+    expect(replayBtn.exists()).toBe(true);
+    await replayBtn.trigger('click');
+    await flushPromises();
+    await nextTick();
+
+    // Assert matched=false result: "重放不一致"
+    const result = wrapper.find('[data-testid="canonical-replay-result"]');
+    expect(result.exists()).toBe(true);
+    expect(result.text()).toContain('重放不一致');
+    expect(result.text()).not.toContain('重放一致');
+
+    // Assert both SHA-256 values are displayed and DIFFERENT
+    const hashValues = wrapper.findAll('.rpage-replay-hash-value');
+    expect(hashValues.length).toBeGreaterThanOrEqual(2);
+    expect(hashValues[0]!.text()).toMatch(/[a-f0-9]{64}/);
+    expect(hashValues[1]!.text()).toMatch(/[a-f0-9]{64}/);
+    expect(hashValues[0]!.text()).not.toBe(hashValues[1]!.text());
+  }, 15000);
 });
 
 // =============================================================================

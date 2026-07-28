@@ -1224,6 +1224,13 @@ class SeedRunRequest(BaseModel):
     citations: list[dict] | None = None
     retrieval_snapshot: list[dict] | None = None
     traces: list[dict] | None = None
+    # Optional full replay_manifest override — accepts any valid JSON object.
+    # Populate the manifest key names (manifest_version, manifest_sha256,
+    # corpus_sha256, canonical_input_sha256, canonical_output_sha256,
+    # retrieval_snapshot, traces, topic, workflow_type) directly.  When
+    # provided, the seed endpoint will store it verbatim instead of
+    # constructing a minimal {retrieval_snapshot, traces} stub.
+    replay_manifest: dict | None = None
 
 
 @router.post(
@@ -1329,10 +1336,14 @@ async def seed_research_run(
             "created_at": now,
             "citations": body.citations if body.citations is not None else default_citations,
         },
-        "replay_manifest": {
-            "retrieval_snapshot": body.retrieval_snapshot if body.retrieval_snapshot is not None else default_snapshot,
-            "traces": body.traces if body.traces is not None else default_traces,
-        },
+        "replay_manifest": (
+            body.replay_manifest
+            if body.replay_manifest is not None
+            else {
+                "retrieval_snapshot": body.retrieval_snapshot if body.retrieval_snapshot is not None else default_snapshot,
+                "traces": body.traces if body.traces is not None else default_traces,
+            }
+        ),
     }
 
     # Persist into session workflow_state

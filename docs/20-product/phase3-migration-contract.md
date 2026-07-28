@@ -186,7 +186,7 @@
 | 6 | 导出 — 报告 + 笔记的客户端 Blob 下载 | `V4ResearchView.vue:123-131, 623-657` | `ResearchResultPage` + `useResearchResult.exportMarkdown()` | `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs/{runId}/export` | E2E: `TestResearchResultPageE2E` 导出测试, UT: M1-V4-015 | **已迁移** |
 | 7 | 保存笔记 — `POST /api/v1/workspace/sessions/{id}/notes` | `V4ResearchView.vue:133-141, 659-683` | `useResearchWorkflow.saveNote()` | `/research/:projectId/workflow` | `POST /api/v1/workspace/sessions/{id}/notes` | UT: saveNote → savingMessage 反馈 | **已迁移** |
 | 8 | 基于报告重新搜索 — 提取关键词 → 搜索页 | `V4ResearchView.vue:169-177, 686-692` | `useResearchWorkflow.navigateToLibrarySearch()` → `ResearchReportStep` 按钮 | `/research/:projectId/workflow` → `/library` | `router.push({ name: 'library-search', query: { q } })` | UT: M1-V4-016 [RESOLVED] | **已迁移** (Task 2B) |
-| 9 | **重放验证** — `POST /api/v4/research/runs/{id}/replay`，显示 matched + SHA256 | `V4ResearchView.vue:180-197, 605-621` | **无规范等价实现** | — | API 存在但无规范前端暴露 | — | ❌ **未迁移 — 停止条件** |
+| 9 | **重放验证** — `POST /api/v4/research/runs/{id}/replay`，显示 matched + SHA256 | `V4ResearchView.vue:180-197, 605-621` | `ResearchResultPage` + `useResearchResult.replayRun()` | `/research/:projectId/result/:runId` | `POST /api/v4/research/runs/{id}/replay` | UT: M1-V4-003/004, E2E: `test_gap_replay_verification_matched` / `test_gap_replay_verification_mismatched` | **已迁移** (d08fbbd, 101e9ef, e6a5153) |
 | 10 | 运行历史列表 — 显示 session 所有 run | `V4ResearchView.vue:200-206` | `ResearchWorkspacePage` (RecentReports) + `ReportListPage` | `/research/:projectId/workspace` + `/reports` | `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchReportsPageE2E` | **已迁移** |
 | 11 | 开始新工作流 (reset) — 清除所有状态 | `V4ResearchView.vue:208-210, 715-731` | `useResearchWorkflow.reset()` | `/research/:projectId/workflow` | 纯客户端状态重置 | UT: reset → stepState='question' | **已迁移** |
 | 12 | 通过 ?run= 加载历史 — 遍历 sessions 查找匹配 run | `V4ResearchView.vue:399-436` | 直接 URL `/research/:projectId/result/:runId` | `/research/:projectId/result/:runId` | `GET /api/v1/workspace/sessions` + `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchResultPageE2E` (L2481+) | **已迁移**（改进 — 无需遍历） |
@@ -194,17 +194,15 @@
 | 14 | 教育模式 — topic + level → 概念学习 | `V4ResearchView.vue:218-261, 737-770` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/education/learn` | N/A | **推迟** — 占位页 |
 | 15 | 可视化 — concept labels + graph_type → 图谱 | `V4ResearchView.vue:264-310, 776-808` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/visualization/graph` | N/A | **推迟** — 占位页 |
 
-**⚠️ 停止条件 #9 — 重放验证**：
+**✅ 停止条件 #9 — 重放验证（已解决，2026-07-29）**：
 
 - **Legacy 行为** (`V4ResearchView.vue:605-621`)：`POST /api/v4/research/runs/{runId}/replay` → 显示 matched/mismatched badge + original/replay SHA256
-- **规范缺失范围**（2026-07-28 验证）：
-  - `ResearchWorkflowPage` — 无 replay 按钮或 UI
-  - `ResearchResultPage` — 无 replay 按钮或 UI
-  - `useResearchWorkflow` — 无 `replayRun` 函数
-  - `useResearchResult` — 无 `replayRun` 函数
-  - 所有规范组件 (`components/research/`) — 无 replay 相关代码
-- **后端 API 状态**：`POST /api/v4/research/runs/{id}/replay` 端点存在且可用，但无规范前端暴露
-- **建议解决方案**：在 `ResearchResultPage` 或 `ResearchWorkflowPage` 添加重放按钮，调用 `/api/v4/research/runs/{runId}/replay`，显示 matched/mismatched badge + SHA256 值
+- **规范实现**（d08fbbd, 101e9ef, e6a5153）：
+  - `ResearchResultPage` — `.rpage-replay` 区域、`data-testid="canonical-replay"` button、`data-testid="canonical-replay-result"` 结果展示
+  - `useResearchResult` — `replayRun()` 函数，含 stale-response 丢弃保护
+  - 显示 "重放一致"/"重放不一致" + 原始/重放 SHA-256
+- **后端 API 状态**：`POST /api/v4/research/runs/{id}/replay` 端点存在且可用，通过 `replayRun()` 在 `useResearchResult` 中规范暴露
+- **验证**：M1-V4-003 (matched=true) / M1-V4-004 (matched=false) UT 通过；`test_gap_replay_verification_matched` / `test_gap_replay_verification_mismatched` E2E 真实浏览器通过
 - **严重程度**：低 — 重放验证为开发/调试功能，非终端用户核心流程。用户通过重新提交相同 topic 并对比报告即可等价验证确定性
 
 **URL 兼容规则**：
@@ -223,7 +221,7 @@
 - [x] 无证据 fail-closed：`success=false` + `records=0` → NO_EVIDENCE error banner — M1-V4-005 通过，E2E `test_workflow_no_evidence_shows_error_banner` 通过
 - [x] 空 citation 字段 → 不渲染 citation — M1-V4-006 通过
 - [x] 有 citation 内容 → evidence/citation 可见 — M1-V4-007 通过
-- [ ] **重放验证：canonical 无 replay UI — 停止条件**（见上方 #9）
+- [x] **重放验证：canonical replay UI 已实现** — M1-V4-003/004 通过，E2E `test_gap_replay_verification_matched` / `test_gap_replay_verification_mismatched` 通过 (d08fbbd, 101e9ef, e6a5153)
 - [x] 教育模式：明确推迟至 KnowledgeExplorer — M1-V4-008/009 DEFERRED
 - [x] 可视化：明确推迟至 KnowledgeExplorer — M1-V4-010/011 DEFERRED
 - [x] 引用保存/导出：canonical 行为与 legacy 等价 — M1-V4-014/015 通过
@@ -236,8 +234,8 @@
 |------------|---------------|
 | renders all three tabs | Canonical 等价页面的所有功能入口可见 |
 | clicking run workflow calls /session and /workflow | Canonical workflow page：POST session + POST workflow + GET runs 调用链等价 |
-| clicking replay with matched=true | Canonical result page：replay → matched=true → .match-ok |
-| clicking replay with matched=false | Canonical result page：replay → matched=false → .match-fail |
+| clicking replay with matched=true | Canonical result page：replay → matched=true → .rpage-replay-matched "重放一致" |
+| clicking replay with matched=false | Canonical result page：replay → matched=false → .rpage-replay-mismatched "重放不一致" |
 | education sends level parameter | 推迟 — M1 标记为 deferred，不 skip/xfail |
 | education shows error on API failure | 推迟 — M1 标记为 deferred |
 | visualization sends graph_type | 推迟 — M1 标记为 deferred |
@@ -249,7 +247,7 @@
 ---
 section: 2.4
 
-### 2.4 ⚠️ 停止条件：重放验证 (replay) 无 canonical 等价实现
+### 2.4 ✅ 停止条件已解决：重放验证 (replay) — canonical 等价实现 (2026-07-29)
 
 **Legacy 行为** (`V4ResearchView.vue:605-621`):
 ```typescript
@@ -267,19 +265,17 @@ async function replayRun() {
 ```
 — 对已完成的工作流运行进行确定性验证，比较 SHA256 哈希值，显示 matched/mismatched badge。
 
-**Canonical 缺失范围**（2026-07-28 验证）：
-- `ResearchWorkflowPage` — 无 replay 按钮或 UI
-- `ResearchResultPage` — 无 replay 按钮或 UI
-- `useResearchWorkflow` — 无 `replayRun` 函数
-- `useResearchResult` — 无 `replayRun` 函数
-- 所有 canonical 组件 (`components/research/`) — 无 replay 相关代码
-- 后端 API `POST /api/v4/research/runs/{id}/replay` 存在且可用，但无 canonical 前端暴露
+**Canonical 实现**（d08fbbd, 101e9ef, e6a5153）：
+- **`ResearchResultPage.vue:39-78`** — `.rpage-replay` 区域、`data-testid="canonical-replay"` button、`data-testid="canonical-replay-result"` 结果展示、"重放一致"/"重放不一致" + 原始/重放 SHA-256
+- **`useResearchResult.ts:598-639`** — `replayRun()` 函数，含 stale-response 丢弃保护、concurrent-guard
+- **路由**：`/research/:projectId/result/:runId`
+- **API**：`POST /api/v4/research/runs/{runId}/replay`，直接通过 `api.post()` 调用
 
-**缺失严重程度**：低。重放验证为开发/调试功能，非终端用户核心流程。用户通过重新提交相同 topic 并对比报告即可等价验证确定性。不影响研究、报告、引用、导出等核心用户流程。
-
-**建议解决方案**（两个选项）：
-1. **实现**：在 `ResearchResultPage` 或 `ResearchWorkflowPage` 添加重放按钮，调用 `/api/v4/research/runs/{runId}/replay`，显示 matched/mismatched badge + SHA256
-2. **推迟**：如果重放验证被视为低优先级，请将此项添加到 §3 推迟声明，标注真实原因（开发/调试功能，终端用户无需）
+**验证**：
+- M1-V4-003 (matched=true) / M1-V4-004 (matched=false) — UT 通过
+- `test_gap_replay_verification_matched` / `test_gap_replay_verification_mismatched` — 真实浏览器 E2E 通过
+- matched=true 由真实工作流 run 的 replay manifest 完整性哈希验证
+- matched=false 由受控 seed 数据（fabricated canonical_output_sha256）触发
 
 **先前停止条件 §2.4（re-search）已 RESOLVED**：Task 2B — `navigateToLibrarySearch()` 在 `useResearchWorkflow` 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮 → `router.push({ name: 'library-search', query: { q } })`。
 
@@ -389,11 +385,11 @@ M0（本契约 FROZEN ✅）
 - [x] **单项目 Reports 等价** — **Task 2B**: RecentReports.vue `hasReportArtifact` 过滤器从仅 `report_generation=completed` 放宽为任何步骤 `completed`，与 ProjectReports.vue 行为对齐。同一 `GET /api/v4/research/session/{id}/runs` 响应产生相同列表。
 - [x] **re-search 缺失** — **Task 2B**: `navigateToLibrarySearch()` 在 `useResearchWorkflow` composable 中实现。`ResearchReportStep` 渲染 "基于报告重新搜索" 按钮（v-if="report.topic"），emit `re-search` 事件，`ResearchWorkflowPage` 处理并调用 `navigateToLibrarySearch(router)` → `router.push({ name: 'library-search', query: { q: extractedQuery } })`（2026-07-28: re-search gap 已闭合）
 - [x] **Docker 构建** — **Task 2B**: docker/dev/Dockerfile.backend 和 docker/prod/Dockerfile.backend 中 `COPY pyproject.toml README.md ./` 修复 `OSError: Readme file does not exist`（pyproject.toml:9 readme = "README.md" 要求）
-- [ ] **⚠️ 重放验证（NEW STOP — 2026-07-28）**：V4 `POST /api/v4/research/runs/{id}/replay` → matched/mismatched badge + SHA256 显示在 `V4ResearchView.vue:605-621`。后端 API 存在但无规范前端暴露 — `ResearchWorkflowPage`、`ResearchResultPage`、`useResearchWorkflow`、`useResearchResult` 均无 replay 功能。严重程度：低（开发/调试功能）。需实现或明确推迟。参见 §2.4。
+- [x] **⚠️ 重放验证（RESOLVED — 2026-07-29）**：V4 `POST /api/v4/research/runs/{id}/replay` → matched/mismatched badge + SHA256 显示在 `ResearchResultPage.vue:39-78`。Canonical 实现通过 `useResearchResult.replayRun()` 暴露，后端 API 通过 `api.post()` 调用。UT M1-V4-003/004 + 真实浏览器 E2E `test_gap_replay_verification_matched` / `test_gap_replay_verification_mismatched` 全部通过。实现提交: d08fbbd, 101e9ef, e6a5153。
 - [ ] **写入/下载能力端到端验证（BLOCK）**：2026-07-27 验收。导出按钮在真实报告页可见，但未触发下载 — 下载能力仍未被本轮端到端证明。须在真实浏览器中完成 export markdown download 验证。
 - [ ] **⚠️ Citation/SourceRef 等价（需验收）**：2026-07-27。`374d5ad` 修复 — `useResearchWorkflow` 和 `useResearchResult` 中的 snapshot-only 回退路径现在同时提取 citation（之前仅提取 evidence）。当 `output_artifacts.citations` 为空且 `manifest.traces` 为空时，回退路径从 `retrieval_snapshot` 条目中为每个 trace_id 构建 citation。需在真实后端 run 上重新验收 citaton 显示。
 
-**当前状态：BLOCK_RELEASE** — 2026-07-28 验收。Task 2B 修复了 7/8 阻断条件。新增停止条件：重放验证无规范前端暴露（§2.4）。2 项待验收 (Citation/SourceRef 需重新验收、下载需真实浏览器触发)。
+**当前状态：BLOCK_RELEASE** — 2026-07-28 验收。Task 2B 修复了 7/8 阻断条件。**重放验证已解决 (2026-07-29)**：canonical 等价实现在 ResearchResultPage + useResearchResult (d08fbbd, 101e9ef, e6a5153)。2 项待验收 (Citation/SourceRef 需重新验收、下载需真实浏览器触发)。
 
 
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
@@ -475,4 +471,4 @@ git status --short && git rev-parse --short HEAD && git log --oneline -1
 1. **引用提取逻辑重复**：`ResearchWorkspaceView.vue`（L917–985）与 `V4ResearchView.vue`（L475–525）各自实现相同逻辑。M3 需统一至 `useResearchWorkflow` composable。
 2. **`window.__pendingRunId` / `window.__pendingAsk` hack**：Legacy workspace 使用全局变量延迟操作链接。M4 清退后移除。
 3. **`/v4/research` → `/research/workspace?tab=v4-research` 的中间重定向**：当前 `/v4/research` 不直接跳转 canonical 页面，而是经过 legacy workspace。M4 需更新为直接跳转。
-4. **Replay UI 缺失**：Canonical result page 不暴露重放验证 UI。M3 需处理（实现或声明推迟）。
+4. **Replay UI 已实现**：Canonical result page 现已在 `ResearchResultPage.vue` 暴露重放验证 UI（`data-testid="canonical-replay"`）+ `useResearchResult.replayRun()`，提交 d08fbbd, 101e9ef, e6a5153。

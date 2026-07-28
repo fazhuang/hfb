@@ -1221,30 +1221,165 @@ class TestV4ResearchPortal:
             "Verified in Task 2B."
         )
 
-    # -- 2B: STOP CONDITION — replay verification --
-    def test_gap_replay_verification_no_canonical_equivalent(
-        self,
+    # -- 2B: Replay verification — canonical equivalent FIXED (2026-07-29) --
+    def test_gap_replay_verification_matched(
+        self, live_servers, result_workflow_session, page,
     ):
-        """V4 research tab replay has NO canonical equivalent — STOP CONDITION §2.4.
+        """Canonical replay verification matched=true — real browser, real login.
 
-        Legacy source: V4ResearchView.vue:605-621 replayRun()
-        → POST /api/v4/research/runs/{runId}/replay
-        → matched/mismatched badge + original/replay SHA256
-
-        Canonical: No replay function or UI in ResearchWorkflowPage,
-        ResearchResultPage, useResearchWorkflow, or useResearchResult.
-
-        Backend API POST /api/v4/research/runs/{id}/replay exists but
-        has no canonical frontend exposure.
-
-        Severity: LOW — developer/debug feature, not end-user critical.
-        See docs/20-product/phase3-migration-contract.md §2.4.
+        Replay UI lives on canonical ResearchResultPage
+        (data-testid="canonical-replay"), implemented in d08fbbd.
+        Uses a real workflow run whose replay_manifest includes
+        valid integrity hashes — the replay endpoint re-executes
+        deterministically and returns matched=true.
         """
-        assert False, (
-            "STOP CONDITION: replay verification has no canonical equivalent. "
-            "See docs/20-product/phase3-migration-contract.md §2.4. "
-            "Replace this test with an actual equivalence assertion once "
-            "canonical replay UI is implemented, or mark as DEFERRED."
+        frontend_url, _ = live_servers
+        ws = result_workflow_session
+        _login_via_ui(page, frontend_url, ws["username"], ws["password"])
+
+        page.goto(
+            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
+        )
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # Replay button must be visible
+        replay_btn = page.locator('[data-testid="canonical-replay"]')
+        assert replay_btn.is_visible(), (
+            "Canonical replay button must be visible on result page"
+        )
+        assert "验证可重放性" in replay_btn.text_content(), (
+            "Replay button must show '验证可重放性'"
+        )
+
+        # Click replay
+        replay_btn.click()
+        page.wait_for_selector('[data-testid="canonical-replay-result"]', timeout=30000)
+
+        # Assert matched=true result
+        result = page.locator('[data-testid="canonical-replay-result"]')
+        assert result.is_visible()
+        assert "重放一致" in result.text_content(), (
+            "Canonical replay result must show '重放一致' for matched=true"
+        )
+
+        # Assert both SHA-256 values are displayed
+        hashes = page.locator('.rpage-replay-hash-value')
+        assert hashes.count() >= 2, (
+            f"Replay result must show 2 SHA-256 hashes, got {hashes.count()}"
+        )
+
+        hash_original = hashes.nth(0).text_content().strip()
+        hash_replay = hashes.nth(1).text_content().strip()
+        assert len(hash_original) == 64, (
+            f"Original SHA-256 must be 64 hex chars, got {len(hash_original)}: {hash_original!r}"
+        )
+        assert len(hash_replay) == 64, (
+            f"Replay SHA-256 must be 64 hex chars, got {len(hash_replay)}: {hash_replay!r}"
+        )
+        # Both SHA-256 hashes match (matched=true)
+        assert hash_original == hash_replay, (
+            "matched=true: original and replay SHA-256 must be equal"
+        )
+
+    def test_gap_replay_verification_mismatched(
+        self, live_servers, result_workflow_session, page,
+    ):
+        """Canonical replay verification matched=false — controlled persistent data.
+
+        Creates a seed run whose replay_manifest has a deliberately
+        wrong canonical_output_sha256. The replay endpoint re-executes
+        deterministically, recomputes the output hash, and finds
+        it does NOT match the stored (fabricated) hash → matched=false.
+        """
+        frontend_url, backend_port = live_servers
+        ws = result_workflow_session
+        base = f"http://127.0.0.1:{backend_port}"
+        headers = {"Authorization": f"Bearer {ws['token']['access_token']}"}
+
+        # --- Step 1: Get the real manifest from the successful run ---
+        runs_resp = httpx.get(
+            f"{base}/api/v4/research/session/{ws['session_id']}/runs",
+            headers=headers,
+            timeout=10,
+        )
+        assert runs_resp.status_code == 200
+        runs_list = runs_resp.json()["data"]["runs"]
+        target_run = None
+        for r in runs_list:
+            if r.get("run_id") == ws["run_id"]:
+                target_run = r
+                break
+        assert target_run is not None, "Target run not found"
+        manifest = target_run.get("replay_manifest", {})
+        # Need a valid manifest to clone — the seed endpoint will store it
+        assert "retrieval_snapshot" in manifest, "Run must have retrieval_snapshot"
+        assert "traces" in manifest, "Run must have traces"
+
+        # --- Step 2: Create a seed run with a deliberately wrong output hash ---
+        # Clone the manifest but inject a fabricated canonical_output_sha256.
+        # The replay endpoint will re-execute and find mismatch.
+        bad_manifest = dict(manifest)
+        bad_manifest["canonical_output_sha256"] = (
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        )
+        # Recompute manifest_sha256 so it passes the self-integrity check.
+        # We want the output hash comparison to fail, not integrity verification.
+        import hashlib, json as _json
+        manifest_for_hash = {k: v for k, v in bad_manifest.items() if k != "manifest_sha256"}
+        bad_manifest["manifest_sha256"] = hashlib.sha256(
+            _json.dumps(manifest_for_hash, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
+        seed_resp = httpx.post(
+            f"{base}/api/v4/research/_test/seed-research-run",
+            json={
+                "session_id": ws["session_id"],
+                "topic": "replay-mismatch-seed",
+                "markdown": "# Replay Mismatch Test\n\nThis run has a fabricated output hash.",
+                "citations": [],
+                "retrieval_snapshot": bad_manifest.get("retrieval_snapshot", []),
+                "traces": bad_manifest.get("traces", []),
+                "replay_manifest": bad_manifest,
+            },
+            headers=headers,
+            timeout=10,
+        )
+        assert seed_resp.status_code in (200, 201), (
+            f"Seed run creation failed: {seed_resp.status_code} {seed_resp.text[:500]}"
+        )
+        mismatch_run_id = seed_resp.json()["data"]["run_id"]
+        assert mismatch_run_id, "Seed run must return a run_id"
+
+        # --- Step 3: Real browser → navigate to the mismatched run ---
+        _login_via_ui(page, frontend_url, ws["username"], ws["password"])
+
+        page.goto(
+            f"{frontend_url}/research/{ws['session_id']}/result/{mismatch_run_id}"
+        )
+        page.wait_for_selector(".rrv-report", timeout=10000)
+
+        # --- Step 4: Click replay → assert mismatched ---
+        replay_btn = page.locator('[data-testid="canonical-replay"]')
+        assert replay_btn.is_visible()
+        replay_btn.click()
+        page.wait_for_selector('[data-testid="canonical-replay-result"]', timeout=30000)
+
+        result = page.locator('[data-testid="canonical-replay-result"]')
+        assert result.is_visible()
+        assert "重放不一致" in result.text_content(), (
+            "Canonical replay must show '重放不一致' for matched=false"
+        )
+
+        # Assert both SHA-256 values are displayed and DIFFERENT
+        hashes = page.locator('.rpage-replay-hash-value')
+        assert hashes.count() >= 2
+
+        hash_original = hashes.nth(0).text_content().strip()
+        hash_replay = hashes.nth(1).text_content().strip()
+        assert len(hash_original) == 64
+        assert len(hash_replay) == 64
+        assert hash_original != hash_replay, (
+            "matched=false: original and replay SHA-256 must differ"
         )
 
     # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
