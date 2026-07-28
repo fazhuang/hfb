@@ -341,6 +341,11 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
   // 实现提交: d08fbbd, 101e9ef, e6a5153
   // 后端 API POST /api/v4/research/runs/{id}/replay 已通过
   //   useResearchResult.replayRun() 规范暴露。
+  //
+  // 分类：组件回归测试 — mock API 响应，验证 replay UI 在组件级别
+  //   正确渲染 matched/mismatched 状态。不及格作为"已迁移"的唯一依据；
+  //   等价性迁移证据以真实浏览器 E2E test_gap_replay_verification_matched
+  //   为准（见 tests/e2e/test_critical_journeys.py）。
   // -------------------------------------------------------------------------
 
   it('M1-V4-003: 重放验证 matched=true — canonical result page 显示"重放一致"及原始/重放 SHA-256', async () => {
