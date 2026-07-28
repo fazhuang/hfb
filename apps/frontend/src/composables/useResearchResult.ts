@@ -332,6 +332,11 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
     exportError.value = '';
     releaseExportBlob();
 
+    // Clear replay state — old run hashes/errors must never appear
+    // on a new run (route switch, retry, reload).
+    replayResult.value = null;
+    replayError.value = '';
+
     // Validate IDs
     let pid: string;
     let rid: string;
@@ -611,9 +616,12 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
     replayError.value = '';
     replayResult.value = null;
 
+    // --- run-scope guard: only accept the response if we're still on the same run ---
+    const runAtStart = rid;
+
     try {
       const { data } = await api.post(`/api/v4/research/runs/${rid}/replay`);
-      // The API returns { success: boolean, data: { matched, original_output_sha256, replay_output_sha256 } }
+      if (runId() !== runAtStart) return; // stale response — run changed while waiting
       const inner = (data.data ?? data) as Record<string, unknown>;
       replayResult.value = {
         matched: Boolean(inner.matched),
@@ -621,6 +629,7 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
         replay_output_sha256: String(inner.replay_output_sha256 || ''),
       };
     } catch (err: unknown) {
+      if (runId() !== runAtStart) return; // stale error — discard
       const { message } = classifyError(err);
       replayError.value = message;
       replayResult.value = null;
