@@ -47,7 +47,14 @@
         </button>
 
         <div v-if="replayError" class="rpage-replay-error" role="alert">
-          {{ replayError }}
+          <span class="rpage-replay-error-text">{{ replayError }}</span>
+          <button
+            class="rpage-replay-retry-btn"
+            data-testid="canonical-replay-retry"
+            @click="handleReplay"
+          >
+            重新验证重放
+          </button>
         </div>
 
         <div
@@ -328,6 +335,34 @@ onBeforeUnmount(() => {
   background: var(--color-error-bg);
   color: var(--color-error-light-text);
   font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.rpage-replay-error-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.rpage-replay-retry-btn {
+  padding: var(--space-1) 12px;
+  border: 1px solid var(--color-error-light-text);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-error-light-text);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rpage-replay-retry-btn:hover {
+  background: var(--color-error-icon-bg);
+  color: white;
 }
 
 .rpage-replay-result {

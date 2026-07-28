@@ -2158,9 +2158,11 @@ describe('ResearchResultPage', () => {
       expect((wrapper.find('[data-testid="canonical-replay"]').element as HTMLButtonElement).disabled).toBe(false);
     });
 
-    it('87. retry after replay error clears error and old result', async () => {
-      // A → replay error shown → retry → error gone, no fake result
+    it('87. replay error shows retry button, retry clears error and succeeds', async () => {
+      // On the same mounted page instance: failure → retry button visible →
+      // click retry → error cleared → POST to same runId → success with hashes.
 
+      // First attempt: fail
       mockApiPost.mockRejectedValueOnce({
         response: { status: 500, data: { detail: 'Server Error' } },
       });
@@ -2170,41 +2172,135 @@ describe('ResearchResultPage', () => {
       await nextTick();
       await flushPromises();
 
-      // Error is visible, no result
+      // Error visible, retry button visible
       expect(wrapper.find('.rpage-replay-error').exists()).toBe(true);
+      const retryBtn = wrapper.find('[data-testid="canonical-replay-retry"]');
+      expect(retryBtn.exists()).toBe(true);
+      expect(retryBtn.text()).toBe('重新验证重放');
       expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
 
-      // Retry — calls load() which must clear replay state
-      // Simulate retry by calling load via retry() button path:
-      // the ResearchResultErrorState has a retry button; but for ready state
-      // we invoke retry via the composable directly. Instead, we re-trigger
-      // load manually by simulating a route re-entry.
-      // The cleanest way: trigger retry via the button that calls load().
-      // In ready state there's no retry button, so call load() by
-      // re-mounting the page with the same route.
-
-      // Actually: retry is available via error state only. For ready state
-      // the cleanest path is to re-enter the route. Let's just assert that
-      // load() clears replay state by mounting with the same session/runs
-      // again — which exercises the same load() path.
-      wrapper.unmount();
-
-      // Fresh mount — replay state starts clean (matching the load() contract)
-      mockApiGet.mockReset();
-      mockApiGet.mockImplementation(async (url: string) => {
-        if (url === `/api/v1/workspace/sessions/${PROJ_A}`) return makeSession();
-        if (url === `/api/v4/research/session/${PROJ_A}/runs`) {
-          return { data: { data: { runs: [makeRun()] } } };
-        }
-        return { data: {} };
+      // Second attempt: succeed
+      mockApiPost.mockResolvedValueOnce({
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
       });
 
-      await router.push(`/research/${PROJ_A}/result/${RUN_A}`);
-      const wrapper2 = await setupAndMount(makeSession(), [makeRun()]);
+      await retryBtn.trigger('click');
+      await nextTick();
+      await flushPromises();
 
-      // No replay error, no replay result from previous mount
-      expect(wrapper2.find('.rpage-replay-error').exists()).toBe(false);
-      expect(wrapper2.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
+      // POST must target the same runId
+      expect(mockApiPost).toHaveBeenCalledTimes(2);
+      const calls = mockApiPost.mock.calls;
+      expect(calls[0]![0]).toBe(REPLAY_PATH);
+      expect(calls[1]![0]).toBe(REPLAY_PATH);
+
+      // Error and retry button gone
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="canonical-replay-retry"]').exists()).toBe(false);
+
+      // Result visible with hashes
+      const result = wrapper.find('[data-testid="canonical-replay-result"]');
+      expect(result.exists()).toBe(true);
+      const text = result.text();
+      expect(text).toContain('重放一致');
+      expect(text).toContain(SHA_ORIG);
+      expect(text).toContain(SHA_REPLAY);
+    });
+
+    it('88. error + retry visible only while replayError is set; success clears retry', async () => {
+      // Ensure retry button only appears alongside an active replayError,
+      // and is absent when there's a success result or no replay has run.
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+
+      // Before any replay: no error, no retry button
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="canonical-replay-retry"]').exists()).toBe(false);
+
+      // After first click → fail
+      mockApiPost.mockRejectedValueOnce({
+        response: { status: 503, data: { detail: 'Service Unavailable' } },
+      });
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="canonical-replay-retry"]').exists()).toBe(true);
+
+      // Retry → succeed
+      mockApiPost.mockResolvedValueOnce({
+        data: { data: { matched: true, original_output_sha256: SHA_ORIG, replay_output_sha256: SHA_REPLAY } },
+      });
+      await wrapper.find('[data-testid="canonical-replay-retry"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      // Error + retry gone, result shown
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="canonical-replay-retry"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(true);
+    });
+
+    it('89. two ready runs A/B: A results do not leak into B, B retry button absent', async () => {
+      // Both A and B are valid ready runs. After replay on A succeeds,
+      // switch to B and verify B has no A replay data at all.
+
+      const runA = makeRun({ run_id: RUN_A });
+      const runB = makeRun({ run_id: RUN_B });
+
+      // A: replay succeeds
+      mockApiPost.mockResolvedValueOnce({
+        data: { data: { matched: true, original_output_sha256: SHA_ORIG, replay_output_sha256: SHA_REPLAY } },
+      });
+
+      const wrapper = await setupAndMount(makeSession(), [runA, runB]);
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(true);
+      const aText = wrapper.find('[data-testid="canonical-replay-result"]').text();
+      expect(aText).toContain(SHA_ORIG);
+
+      // Switch to run B
+      router.replace(`/research/${PROJ_A}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // B ready: no error, no retry, no result from A
+      expect(wrapper.find('[data-testid="canonical-replay"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="canonical-replay-retry"]').exists()).toBe(false);
+
+      // B replay: POST to B only, with distinct hash values
+      const B_REPLAY = `/api/v4/research/runs/${RUN_B}/replay`;
+      const B_ORIG = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+      const B_REPLAY_HASH = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
+      mockApiPost.mockResolvedValueOnce({
+        data: { data: { matched: false, original_output_sha256: B_ORIG, replay_output_sha256: B_REPLAY_HASH } },
+      });
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+      expect(mockApiPost).toHaveBeenCalled();
+      const lastCall = mockApiPost.mock.calls[mockApiPost.mock.calls.length - 1]!;
+      expect(lastCall[0]).toBe(B_REPLAY);
+
+      // B result shows B's hashes, not A's
+      const bResult = wrapper.find('[data-testid="canonical-replay-result"]');
+      expect(bResult.exists()).toBe(true);
+      const bText = bResult.text();
+      expect(bText).toContain('重放不一致');
+      expect(bText).toContain(B_ORIG);
+      expect(bText).toContain(B_REPLAY_HASH);
     });
   });
 });
