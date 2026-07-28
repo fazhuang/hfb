@@ -35,6 +35,42 @@
         <p>报告正文尚未生成，但以下显示了已检索到的证据和引用。</p>
       </div>
 
+      <!-- Replay verification (canonical, replaces legacy V4 replay) -->
+      <div v-if="status === 'ready' && rawRun" class="rpage-replay">
+        <button
+          class="rpage-replay-btn"
+          :disabled="replaying"
+          data-testid="canonical-replay"
+          @click="handleReplay"
+        >
+          {{ replaying ? '正在验证重放...' : '验证可重放性' }}
+        </button>
+
+        <div v-if="replayError" class="rpage-replay-error" role="alert">
+          {{ replayError }}
+        </div>
+
+        <div
+          v-if="replayResult"
+          class="rpage-replay-result"
+          data-testid="canonical-replay-result"
+        >
+          <p :class="replayResult.matched ? 'rpage-replay-matched' : 'rpage-replay-mismatched'">
+            {{ replayResult.matched ? '重放一致' : '重放不一致' }}
+          </p>
+          <div class="rpage-replay-hashes">
+            <div class="rpage-replay-hash">
+              <span class="rpage-replay-hash-label">原始输出 SHA‑256</span>
+              <code class="rpage-replay-hash-value">{{ replayResult.original_output_sha256 }}</code>
+            </div>
+            <div class="rpage-replay-hash">
+              <span class="rpage-replay-hash-label">重放输出 SHA‑256</span>
+              <code class="rpage-replay-hash-value">{{ replayResult.replay_output_sha256 }}</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="rpage-body">
         <!-- Report section -->
         <ResearchReportViewer
@@ -104,6 +140,10 @@ const {
   exportMarkdown,
   selectCitation,
   releaseExportBlob,
+  replaying,
+  replayError,
+  replayResult,
+  replayRun,
 } = useResearchResult(
   () => currentProjectId.value,
   () => currentRunId.value,
@@ -136,6 +176,10 @@ watch(
 
 async function handleExport() {
   await exportMarkdown();
+}
+
+async function handleReplay() {
+  await replayRun();
 }
 
 // Release any export Blob URL on unmount
@@ -242,5 +286,89 @@ onBeforeUnmount(() => {
 .rpage-empty-section p {
   margin: 0;
   font-size: var(--text-base);
+}
+
+/* Replay */
+.rpage-replay {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-navbar-bg, var(--color-surface));
+}
+
+.rpage-replay-btn {
+  padding: var(--space-2) 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-page-bg);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.rpage-replay-btn:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.rpage-replay-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rpage-replay-error {
+  margin-top: var(--space-3);
+  padding: var(--space-2-5) 12px;
+  border: 1px solid var(--color-error-icon-bg);
+  border-radius: var(--radius-md);
+  background: var(--color-error-bg);
+  color: var(--color-error-light-text);
+  font-size: var(--text-sm);
+}
+
+.rpage-replay-result {
+  margin-top: var(--space-3);
+}
+
+.rpage-replay-matched,
+.rpage-replay-mismatched {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin: 0 0 var(--space-2);
+}
+
+.rpage-replay-matched { color: var(--color-success-text); }
+.rpage-replay-mismatched { color: var(--color-error-light-text); }
+
+.rpage-replay-hashes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rpage-replay-hash {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+}
+
+.rpage-replay-hash-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.rpage-replay-hash-value {
+  font-size: var(--text-xs);
+  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  color: var(--color-text-secondary);
+  background: var(--color-page-bg);
+  padding: var(--space-1) 8px;
+  border-radius: var(--radius-sm);
+  word-break: break-all;
+  user-select: all;
 }
 </style>

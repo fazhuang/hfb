@@ -129,10 +129,12 @@ import { nextTick } from 'vue';
 // ================================================================
 
 const mockApiGet = vi.fn();
+const mockApiPost = vi.fn();
 
 vi.mock('@/api/client', () => ({
   default: {
     get: (...args: Array<unknown>) => mockApiGet(...args),
+    post: (...args: Array<unknown>) => mockApiPost(...args),
   },
 }));
 
@@ -1939,6 +1941,166 @@ describe('ResearchResultPage', () => {
       // Should not show any session title or report content
       expect(wrapper.html()).not.toContain('研究报告正文');
       expect(wrapper.html()).not.toContain('引用与证据');
+    });
+  });
+
+  // ==============================================================
+  // BATCH 9: Canonical Replay
+  // ==============================================================
+
+  describe('Replay', () => {
+    const REPLAY_PATH = `/api/v4/research/runs/${RUN_A}/replay`;
+    const SHA_ORIG = 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a';
+    const SHA_REPLAY = 'b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1';
+
+    beforeEach(() => {
+      mockApiPost.mockReset();
+    });
+
+    it('78. replay button visible when status is ready', async () => {
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      const btn = wrapper.find('[data-testid="canonical-replay"]');
+      expect(btn.exists()).toBe(true);
+      expect(btn.text()).toBe('验证可重放性');
+    });
+
+    it('79. replay button hidden when status is not ready', async () => {
+      const wrapper = await setupAndMount(makeSession(), [{ ...makeRun(), run_id: 'other' }]);
+      // Page is in not-found state (target run not present)
+      expect(wrapper.find('[data-testid="canonical-replay"]').exists()).toBe(false);
+    });
+
+    it('80. replay button posts to correct runId endpoint', async () => {
+      mockApiPost.mockResolvedValueOnce({
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
+      });
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      const btn = wrapper.find('[data-testid="canonical-replay"]');
+      await btn.trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      expect(mockApiPost).toHaveBeenCalledTimes(1);
+      const callArgs = mockApiPost.mock.calls[0]!;
+      expect(callArgs[0]).toBe(REPLAY_PATH);
+    });
+
+    it('81. matched replay shows "重放一致" and both SHA-256 hashes', async () => {
+      mockApiPost.mockResolvedValueOnce({
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
+      });
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      const result = wrapper.find('[data-testid="canonical-replay-result"]');
+      expect(result.exists()).toBe(true);
+      const text = result.text();
+      expect(text).toContain('重放一致');
+      expect(text).toContain(SHA_ORIG);
+      expect(text).toContain(SHA_REPLAY);
+    });
+
+    it('82. mismatched replay shows "重放不一致" and both hashes', async () => {
+      mockApiPost.mockResolvedValueOnce({
+        data: {
+          data: {
+            matched: false,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
+      });
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      const result = wrapper.find('[data-testid="canonical-replay-result"]');
+      expect(result.exists()).toBe(true);
+      const text = result.text();
+      expect(text).toContain('重放不一致');
+      expect(text).toContain(SHA_ORIG);
+      expect(text).toContain(SHA_REPLAY);
+      // Mismatch is a business result, not an error — error alert must not appear
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    });
+
+    it('83. replay button disabled during request, prevents concurrent clicks', async () => {
+      // Never resolve — keep request pending
+      mockApiPost.mockReturnValueOnce(new Promise(() => {}));
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      const btn = wrapper.find('[data-testid="canonical-replay"]');
+      await btn.trigger('click');
+      await nextTick();
+
+      // Button should be disabled while replaying
+      expect((btn.element as HTMLButtonElement).disabled).toBe(true);
+
+      // Second click should be a no-op (function-level guard)
+      await btn.trigger('click');
+      await nextTick();
+      expect(mockApiPost).toHaveBeenCalledTimes(1);
+    });
+
+    it('84. API error shows error message and no fake result', async () => {
+      mockApiPost.mockRejectedValueOnce({
+        response: { status: 500, data: { detail: 'Internal Server Error' } },
+      });
+
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+
+      // Should show error, not replay result
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
+      expect(wrapper.find('.rpage-replay-error').exists()).toBe(true);
+      expect(wrapper.find('.rpage-replay-error').text()).toBeTruthy();
+    });
+
+    it('85. route switch clears old replay result', async () => {
+      mockApiPost.mockResolvedValueOnce({
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
+      });
+
+      // First load: run A
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
+      await nextTick();
+      await flushPromises();
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(true);
+
+      // Switch route to run B — triggers full reload via watch
+      router.replace(`/research/${PROJ_A}/result/${RUN_B}`);
+      await flushPromises();
+      await nextTick();
+
+      // Old replay result must be cleared
+      expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
     });
   });
 });

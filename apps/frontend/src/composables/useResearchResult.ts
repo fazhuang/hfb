@@ -590,6 +590,45 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
     load();
   }
 
+  // ---- Replay ----
+  const replaying = ref(false);
+  const replayError = ref('');
+  // Canonical replay result — null when not yet run; reset to null on route change/retry.
+  // Shape: { matched: boolean; original_output_sha256: string; replay_output_sha256: string }
+  const replayResult = ref<{
+    matched: boolean;
+    original_output_sha256: string;
+    replay_output_sha256: string;
+  } | null>(null);
+
+  /** POST /api/v4/research/runs/{runId}/replay for the current route run only. */
+  async function replayRun() {
+    if (replaying.value) return; // guard concurrent clicks
+    const rid = runId();
+    if (!rid) return;
+
+    replaying.value = true;
+    replayError.value = '';
+    replayResult.value = null;
+
+    try {
+      const { data } = await api.post(`/api/v4/research/runs/${rid}/replay`);
+      // The API returns { success: boolean, data: { matched, original_output_sha256, replay_output_sha256 } }
+      const inner = (data.data ?? data) as Record<string, unknown>;
+      replayResult.value = {
+        matched: Boolean(inner.matched),
+        original_output_sha256: String(inner.original_output_sha256 || ''),
+        replay_output_sha256: String(inner.replay_output_sha256 || ''),
+      };
+    } catch (err: unknown) {
+      const { message } = classifyError(err);
+      replayError.value = message;
+      replayResult.value = null;
+    } finally {
+      replaying.value = false;
+    }
+  }
+
   // ---- Cleanup ----
   onBeforeUnmount(() => {
     reqSeq = -1;
@@ -631,5 +670,11 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
     selectedCitationTraceId,
     selectCitation,
     evidenceForCitation,
+
+    // Replay
+    replaying,
+    replayError,
+    replayResult,
+    replayRun,
   };
 }
