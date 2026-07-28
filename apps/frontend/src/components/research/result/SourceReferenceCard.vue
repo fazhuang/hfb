@@ -16,44 +16,7 @@
         <code class="esrc-field-code">{{ evidence.source_ref_id.slice(0, 16) }}...</code>
       </div>
 
-      <!-- Internal passage link (preferred) -->
-      <div v-if="hasInternalRoute" class="esrc-field">
-        <span class="esrc-field-label">查看原文</span>
-        <router-link
-          v-if="internalRoute"
-          :to="internalRoute"
-          class="esrc-link esrc-link--internal"
-        >
-          打开原文 →
-        </router-link>
-      </div>
-
-      <!-- External link (fallback, only when no internal route) -->
-      <div v-else-if="safeSourceUrl" class="esrc-field">
-        <span class="esrc-field-label">原文链接</span>
-        <a
-          :href="safeSourceUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="esrc-link"
-        >
-          打开原文 →
-        </a>
-      </div>
-    </template>
-
-    <!-- With SourceRef (human-readable name from real SourceRef table) -->
-    <template v-if="evidence.source_ref_title">
-      <div class="esrc-field">
-        <span class="esrc-field-label">文献</span>
-        <span class="esrc-field-value">{{ evidence.source_ref_title }}</span>
-      </div>
-      <div v-if="evidence.source_ref_id" class="esrc-field">
-        <span class="esrc-field-label">来源 ID</span>
-        <code class="esrc-field-code">{{ evidence.source_ref_id.slice(0, 16) }}...</code>
-      </div>
-
-      <!-- Internal passage link (preferred) -->
+      <!-- Internal document route (preferred) -->
       <div v-if="hasInternalRoute" class="esrc-field">
         <span class="esrc-field-label">查看原文</span>
         <router-link
@@ -112,31 +75,27 @@ const props = defineProps<{
 }>();
 
 /**
- * Build an internal app route when we have enough evidence identifiers.
+ * Build an internal app route when we have a document_id.
  *
  * Priority:
- *  1. document_id + passage_id → /versions/:versionId?passage=:passageId
- *     (passage-level deep link to the version reader)
- *  2. document_id only → /versions/:versionId
- *     (document-level fallback)
- *  3. No document_id → no internal route (use external link or hide)
+ *  1. document_id → /library/:document_id (document is a documents table PK)
+ *     Append ?passage= query param when passage_id is also present.
+ *  2. No document_id → no internal route (use external link or hide)
  *
- * document_id from retrieval_snapshot/hf_chunks is a version ID
- * in the current data model. We route to the existing VersionDetailView
- * which supports ?passage= query param for scroll-to-passage.
+ * evidence.document_id is the primary key of the documents table.
+ * Do NOT map it to /versions/ — that requires a real version_id field
+ * from the API, which is not present in retrieval_snapshot entries.
  */
 const internalRoute = computed((): RouteLocationRaw | null => {
   const docId = props.evidence.document_id;
   if (!docId) return null;
 
+  const base = `/library/${docId}`;
   if (props.evidence.passage_id) {
-    return {
-      path: `/versions/${docId}`,
-      query: { passage: props.evidence.passage_id },
-    };
+    return `${base}?passage=${props.evidence.passage_id}`;
   }
 
-  return { path: `/versions/${docId}` };
+  return base;
 });
 
 const hasInternalRoute = computed(() => internalRoute.value !== null);

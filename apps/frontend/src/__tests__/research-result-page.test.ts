@@ -1239,8 +1239,8 @@ describe('ResearchResultPage', () => {
   // ==============================================================
 
   describe('SourceRef', () => {
-    it('42. evidence with document_id + passage_id → internal passage link', async () => {
-      // Evidence with both doc and passage → internal router-link to version reader
+    it('42. evidence with document_id + passage_id → internal document link', async () => {
+      // Evidence with both doc and passage → internal router-link to /library/:docId?passage=...
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
       const citation = wrapper.find('.rcp-citation-item');
       if (citation.exists()) {
@@ -1249,9 +1249,14 @@ describe('ResearchResultPage', () => {
       }
       // Should show internal "查看原文" link, not external
       expect(wrapper.html()).toContain('查看原文');
-      // Should have a router-link pointing to /versions/doc-01?passage=passage-001
       const internalLinks = wrapper.findAll('.esrc-link--internal');
       expect(internalLinks.length).toBeGreaterThan(0);
+      // Exact href: /library/doc-01?passage=passage-001
+      // router-link is stubbed as <a :href="to"> — verify rendered HTML
+      const html = wrapper.html();
+      expect(html).toContain('href="/library/doc-01?passage=passage-001"');
+      expect(html).not.toContain('/versions/');
+      expect(html).not.toContain('/research/library/');
     });
 
     it('43. evidence without source_ref_title shows missing source after citation select', async () => {
@@ -1273,7 +1278,7 @@ describe('ResearchResultPage', () => {
       expect(internalLinks.length).toBeGreaterThan(0);
     });
 
-    it('45. evidence with document_id only → document-level internal link', async () => {
+    it('45. evidence with document_id only → document-level internal link to /library', async () => {
       // Create evidence with document_id but no passage_id
       const docOnlyRun = makeRun({
         run_id: RUN_A,
@@ -1288,7 +1293,7 @@ describe('ResearchResultPage', () => {
           retrieval_snapshot: [
             {
               trace_id: 'doc-only:chk',
-              document_id: 'doc-version-id',
+              document_id: 'doc-only-version-id',
               chunk_id: 'chk',
               claim_text: 'Claim',
               quote: 'Text.',
@@ -1300,7 +1305,7 @@ describe('ResearchResultPage', () => {
           traces: [
             {
               trace_id: 'doc-only:chk',
-              document_id: 'doc-version-id',
+              document_id: 'doc-only-version-id',
               chunk_id: 'chk',
               provenance_kind: 'retrieval',
               // NO passage_id
@@ -1316,6 +1321,12 @@ describe('ResearchResultPage', () => {
       // Should have internal router-link (document-level, no passage query)
       const internalLinks = wrapper.findAll('.esrc-link--internal');
       expect(internalLinks.length).toBeGreaterThan(0);
+      // Exact href: /library/doc-only-version-id (no passage query,
+      // no /research/library/ prefix, no /versions/)
+      const html = wrapper.html();
+      expect(html).toContain('href="/library/doc-only-version-id"');
+      expect(html).not.toContain('/versions/');
+      expect(html).not.toContain('/research/library/');
     });
 
     it('46. evidence without document_id → no internal link, external fallback only', async () => {
