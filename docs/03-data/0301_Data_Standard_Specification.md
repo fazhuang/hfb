@@ -37,6 +37,18 @@
 | `chapters` OR `alignable_passages` | chapters >= 3 或 alignable_passages >= 100 | 有足够的章节结构或可对齐经文数据 |
 | `persons` | >= 10 | 历史人物记录数（仅计数，无 Citation/Evidence 门槛） |
 | `literature_or_collections` | >= 20 | 至少 20 条有来源链接的文献（`documents` 中 `source_url` 非空） |
+| `approved_rag_documents` | >= 20 | 已审核且 RAG 启用的文献（`review_status=approved`, `source_url` 非空, `rag_enabled=true`） |
+
+### Evidence 链覆盖门槛
+
+| 路径 | 条件 | evidence_bound_passages 要求 |
+|---|---|---|
+| 章节路径 | `chapters >= 3` | >= 1 |
+| 经文路径 | `alignable_passages >= 100` | >= 100 |
+
+`evidence_bound_passages` 定义为同一 Passage 上真实存在 `Citation → Evidence → SourceRef` 绑定链，且 `Evidence.source_passage_id = Passage.id`、`Evidence.source_ref_id` 非空、`SourceRef.url` 非空。对应 SQL 见下方 Passage (已验证) 语义。
+
+章节路径与经文路径同时满足时，优先采用章节路径（要求更低）。两条路径都不满足时，Evidence 链门槛无意义（chapters_or_alignable_passages 已失败）。
 
 ## SQL Semantics
 
@@ -91,8 +103,8 @@ ORM 语义：`Person` 表全行计数。不施加审核/Citation/Evidence 过滤
 
 | 退出码 | 判定 | 含义 |
 |---|---|---|
-| 0 | PASS | 所有阈值满足，模型可表达全部所需绑定 |
-| 1 | FAIL_THRESHOLD | 模型绑定可表达，但一个或多个阈值未达标 |
+| 0 | PASS | 以下**全部**条件满足：（1）`approved_classical_versions >= 2`，（2）`chapters >= 3` 或 `alignable_passages >= 100`，（3）`persons >= 10`，（4）`literature_or_collections >= 20`，（5）`approved_rag_documents >= 20`，（6）满足对应路径的 Evidence 链覆盖门槛（章节路径 >=1 或经文路径 >=100），且（7）无 `BLOCKED_SCHEMA_GAP` |
+| 1 | FAIL_THRESHOLD | 无 schema gap，但上述任一条件不满足 |
 | 2 | BLOCKED_SCHEMA_GAP | 当前模型无法表达某条所需绑定（如 Person 缺 `review_status`） |
 
 ## Output Schema
