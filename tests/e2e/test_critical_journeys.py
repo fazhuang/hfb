@@ -903,59 +903,119 @@ class TestResearchWorkflowPageE2E:
         # ---- Navigate to report step ----
         # Click "查看研究报告 →" in the evidence summary bar.
         go_to_report_btn = page.locator(".ers-action-btn")
-        if go_to_report_btn.count() > 0:
-            go_to_report_btn.first.click()
-            page.wait_for_timeout(3000)
-            # Try explicit wait for report card
-            try:
-                page.wait_for_selector(".rrs-card", timeout=5000)
-            except Exception:
-                pass
+        assert go_to_report_btn.count() > 0, (
+            "Evidence review step must have '查看研究报告' button to reach report step"
+        )
+        go_to_report_btn.first.click()
 
-        # Verify we landed on report step or still have evidence view
-        has_report_card = page.locator(".rrs-card").count() > 0
-        if has_report_card:
-            # Verify report content
-            title_el = page.locator(".rrs-card-title")
-            if title_el.count() > 0:
-                assert len(title_el.first.text_content()) > 0
+        # Wait for report card — must appear, not optional
+        page.wait_for_selector(".rrs-card", timeout=10000)
+        assert page.locator(".rrs-card").count() > 0, (
+            "Report card .rrs-card must be visible after clicking '查看研究报告'"
+        )
 
-            # Verify stats
-            stats = page.locator(".rrs-stat-value")
-            if stats.count() >= 2:
-                evidence_stat = stats.nth(0).text_content()
-                citation_stat = stats.nth(1).text_content()
-                assert evidence_stat.isdigit() or evidence_stat == "0"
-                assert citation_stat.isdigit() or citation_stat == "0"
+        # Verify report content
+        title_el = page.locator(".rrs-card-title")
+        assert title_el.count() > 0, "Report card must have a title"
+        assert len(title_el.first.text_content()) > 0
 
-            # Verify report preview has markdown content
-            preview = page.locator(".rrs-preview-text")
-            if preview.count() > 0:
-                preview_text = preview.first.text_content()
-                assert len(preview_text) > 0, "Report preview should have content"
+        # Verify stats
+        stats = page.locator(".rrs-stat-value")
+        assert stats.count() >= 2, (
+            f"Report must show at least 2 stat values, got {stats.count()}"
+        )
+        evidence_stat = stats.nth(0).text_content()
+        citation_stat = stats.nth(1).text_content()
+        assert evidence_stat.isdigit() or evidence_stat == "0"
+        assert citation_stat.isdigit() or citation_stat == "0"
 
-            # Verify result link is correct: /research/{session_id}/result/{run_id}
-            result_link = page.locator(f'a[href="/research/{sid}/result/{run_id_from_api}"]')
-            if result_link.count() == 0:
-                # Try fuzzy match
-                all_links = page.locator(".rrs-actions a").all()
-                found_result_link = False
-                for link in all_links:
-                    href = link.get_attribute("href") or ""
-                    if f"/research/{sid}/result/" in href:
-                        found_result_link = True
-                        # Must contain the real run_id from POST response
-                        assert run_id_from_api in href, (
-                            f"Result link must use run_id from POST response. "
-                            f"Expected run_id={run_id_from_api} in href={href}"
-                        )
-                assert found_result_link, (
-                    f"Report step must have result link to /research/{sid}/result/..."
-                )
-            else:
-                assert result_link.count() >= 1, (
-                    f"Result link must point to /research/{sid}/result/{run_id_from_api}"
-                )
+        # Verify report preview has markdown content
+        preview = page.locator(".rrs-preview-text")
+        assert preview.count() > 0, "Report preview .rrs-preview-text must exist"
+        preview_text = preview.first.text_content()
+        assert len(preview_text) > 0, "Report preview should have content"
+
+        # Verify result link is correct: /research/{session_id}/result/{run_id}
+        result_link = page.locator(f'a[href="/research/{sid}/result/{run_id_from_api}"]')
+        if result_link.count() == 0:
+            # Try fuzzy match
+            all_links = page.locator(".rrs-actions a").all()
+            found_result_link = False
+            for link in all_links:
+                href = link.get_attribute("href") or ""
+                if f"/research/{sid}/result/" in href:
+                    found_result_link = True
+                    # Must contain the real run_id from POST response
+                    assert run_id_from_api in href, (
+                        f"Result link must use run_id from POST response. "
+                        f"Expected run_id={run_id_from_api} in href={href}"
+                    )
+            assert found_result_link, (
+                f"Report step must have result link to /research/{sid}/result/..."
+            )
+        else:
+            assert result_link.count() >= 1, (
+                f"Result link must point to /research/{sid}/result/{run_id_from_api}"
+            )
+
+        # ====================================================================
+        # --- Re-search closure: '基于报告重新搜索' button → /library?q=... ---
+        # ====================================================================
+
+        re_search_btn = page.locator("button:has-text('基于报告重新搜索')")
+        assert re_search_btn.count() > 0, (
+            "Report card must have '基于报告重新搜索' button"
+        )
+        assert re_search_btn.is_visible(), (
+            "'基于报告重新搜索' button must be visible"
+        )
+
+        # Compute expected query using production logic
+        # (useResearchWorkflow.ts navigateToLibrarySearch:701-712):
+        #   First non-empty, non-#-prefix line longer than 10 chars, truncated
+        #   to 60 chars.  Fallback to report topic/question.
+        lines = [l for l in preview_text.split('\n')
+                 if l.strip() and not l.startswith('#') and len(l) > 10]
+        expected_query = lines[0][:60] if lines else "E2E验证标识 经络"
+
+        # Click re-search button
+        re_search_btn.click()
+
+        # Must land on /library with q= query param
+        page.wait_for_url("**/library**", timeout=15000)
+        page.wait_for_timeout(2000)
+
+        parsed = urlparse(page.url)
+        assert parsed.path == "/library", (
+            f"Re-search must land on /library, got path {parsed.path}"
+        )
+        qs = parse_qs(parsed.query)
+        assert "q" in qs, (
+            f"Re-search URL must have 'q' query param, got {parsed.query}"
+        )
+        actual_q = qs["q"][0]
+        assert actual_q == expected_query, (
+            f"Re-search q param mismatch.\n"
+            f"Expected: {expected_query!r}\n"
+            f"Got:      {actual_q!r}"
+        )
+
+        # Must NOT be login page or /research fallback
+        assert "/login" not in page.url, (
+            "Re-search must not land on login page"
+        )
+        assert parsed.path != "/research", (
+            "Re-search must not land on generic /research fallback"
+        )
+
+        # Library search input must be visible
+        lib_input = page.locator("#lib-search-input")
+        assert lib_input.count() > 0, (
+            "Library search input #lib-search-input must be visible"
+        )
+        assert lib_input.is_visible(), (
+            "Library search input must be visible after re-search navigation"
+        )
 
         # ---- Verify no historical runs from other sessions leak in ----
         # No fake or hardcoded run IDs
@@ -967,7 +1027,7 @@ class TestResearchWorkflowPageE2E:
         # ---- Verify evidence/report persist across page reload ----
         # After reload, the page initializes to question step.
         # But the run data is persisted server-side — verify it's accessible.
-        page.reload()
+        page.goto(f"{frontend_url}/research/{sid}/workflow")
         page.wait_for_selector("#rqs-input", timeout=10000)
         # Direct API check: the run is persisted in the session
         _, be_port = live_servers
@@ -1185,32 +1245,47 @@ class TestV4ResearchPortal:
     """
 
     def test_v4_research_internal_redirects_to_canonical_workflow(
-        self, live_servers, test_user, page,
+        self, live_servers, workflow_user, workflow_session, page,
     ):
-        """BLOCK_RELEASE fix: /v4/research-internal redirects to canonical workflow.
+        """/v4/research-internal → /research/:projectId/workflow via LegacyRedirect.
 
-        LegacyRedirect resolves most-recent session and redirects to
-        /research/:projectId/workflow instead of rendering V4ResearchView.
+        Real UI login (workflow_user + workflow_session), then visit the old
+        /v4/research-internal URL.  LegacyRedirect resolves the most-recent
+        session and redirects to the canonical workflow page.
         """
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
+        sid = workflow_session["id"]
+
+        # Real UI login — no localStorage token injection
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        # Visit the legacy /v4/research-internal URL
         page.goto(f"{frontend_url}/v4/research-internal")
-        # Should redirect to canonical research page (not stay on /v4/research-internal)
-        page.wait_for_url("**/research/**", timeout=15000)
+
+        # Must land on canonical workflow page for the user's real session
+        page.wait_for_url(f"**/research/{sid}/workflow", timeout=15000)
         page.wait_for_timeout(2000)
-        # Must NOT render V4ResearchView tabs
-        assert page.locator('text=完整研究').count() == 0, (
-            "V4ResearchView should no longer be served at /v4/research-internal"
+
+        # Exact pathname assertion
+        parsed = urlparse(page.url)
+        assert parsed.path == f"/research/{sid}/workflow", (
+            f"Expected /research/{sid}/workflow, got {parsed.path}"
         )
-        # Must land on a canonical research page (project list or workflow)
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+        # Must NOT contain /v4 in final URL
+        assert "/v4" not in page.url, (
+            f"Final URL must not contain /v4, got {page.url}"
+        )
+
+        # Workflow-specific input visible
+        assert page.locator("#rqs-input").is_visible(), (
+            "Workflow question input #rqs-input must be visible after redirect"
+        )
+
+        # Must NOT render V4ResearchView tabs
+        assert page.locator("text=完整研究").count() == 0, (
+            "V4ResearchView '完整研究' tab must not appear after LegacyRedirect"
+        )
 
     def test_v4_research_redirects_to_canonical(
         self, live_servers, test_user, page,
@@ -1314,18 +1389,18 @@ class TestV4ResearchPortal:
     ):
         """V4 research tab re-search from report — RESOLVED Task 2B.
 
-        Was: phase3-migration-contract.md §2.4 stop condition.
-        Now: navigateToLibrarySearch() in useResearchWorkflow.
-        ResearchReportStep renders '基于报告重新搜索' button → library-search.
-
-        Replaced 2026-07-28: re-search gap closed.
-        New stop condition: replay (see test_gap_replay_no_canonical_equivalent below).
+        Proven in test_successful_workflow_uses_current_run_artifacts via
+        real browser closure: report card → re-search button click →
+        /library?q=... with computed query.  No gap remains.
         """
-        assert True, (
-            "RESOLVED: re-search from report implemented via navigateToLibrarySearch() "
-            "in useResearchWorkflow. ResearchReportStep button → library-search. "
-            "Verified in Task 2B."
-        )
+        # This gap was closed with a real browser re-search closure in
+        # test_successful_workflow_uses_current_run_artifacts, which:
+        # 1. Opens a report card after a successful workflow run
+        # 2. Reads the report preview to compute the expected query
+        # 3. Clicks the visible '基于报告重新搜索' button
+        # 4. Asserts exact pathname /library with q= query param
+        # 5. Asserts the library search page is loaded (not login/research)
+        pass
 
     # -- 2B: Replay verification — canonical equivalent FIXED (2026-07-29) --
     def test_gap_replay_verification_matched(
@@ -1584,33 +1659,43 @@ class TestV4ResearchPortal:
 
     # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
     def test_legacy_v4_research_internal_now_redirects(
-        self, live_servers, test_user, page,
+        self, live_servers, workflow_user, workflow_session, page,
     ):
         """Task 2B fix: /v4/research-internal now redirects to canonical workflow.
 
-        LegacyRedirect resolves most-recent session → redirect to
-        /research/:projectId/workflow. V4ResearchView is no longer
-        directly served at this URL.
+        Real UI login (workflow_user + workflow_session), then visit the old
+        /v4/research-internal URL.  LegacyRedirect resolves the most-recent
+        session and redirects to the canonical workflow page with the user's
+        real session ID in the URL.
         """
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
+        sid = workflow_session["id"]
+
+        # Real UI login — no localStorage token injection
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
+        # Visit the legacy /v4/research-internal URL
         page.goto(f"{frontend_url}/v4/research-internal")
-        # Should redirect away from /v4/research-internal to canonical
-        page.wait_for_url("**/research/**", timeout=15000)
+
+        # Must land on canonical workflow page for the user's real session
+        page.wait_for_url(f"**/research/{sid}/workflow", timeout=15000)
         page.wait_for_timeout(2000)
-        # Must NOT still be on /v4/research-internal
-        assert '/v4/research-internal' not in page.url, (
-            f"Still at {page.url} — legacy route no longer serves V4ResearchView"
+
+        # Exact pathname assertion
+        parsed = urlparse(page.url)
+        assert parsed.path == f"/research/{sid}/workflow", (
+            f"Expected /research/{sid}/workflow, got {parsed.path}"
         )
+
+        # Must NOT contain /v4 in final URL
+        assert "/v4" not in page.url, (
+            f"Final URL must not contain /v4, got {page.url}"
+        )
+
         # Must NOT render V4ResearchView tabs
-        assert page.locator('text=完整研究').count() == 0
+        assert page.locator("text=完整研究").count() == 0, (
+            "V4ResearchView '完整研究' tab must not appear after LegacyRedirect"
+        )
 
     # -- 2B: Acceptance verdict — old workspace redirect now session-aware --
     def test_old_workspace_redirect_resolves_session_context(
