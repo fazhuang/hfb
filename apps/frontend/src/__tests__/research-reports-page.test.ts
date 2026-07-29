@@ -116,6 +116,7 @@ describe('ResearchReportsPage', () => {
     router = createRouter({
       history: createWebHistory(),
       routes: [
+        { path: '/', component: { template: '<div/>' }, name: 'home' },
         {
           path: '/reports',
           name: 'report-list',
@@ -125,6 +126,21 @@ describe('ResearchReportsPage', () => {
           path: '/research/:projectId/result/:runId',
           name: 'research-project-result',
           component: { template: '<div class="result-page" />' },
+        },
+        {
+          path: '/knowledge',
+          name: 'knowledge',
+          component: { template: '<div class="knowledge-page" />' },
+        },
+        {
+          path: '/library',
+          name: 'library-search',
+          component: { template: '<div class="library-page" />' },
+        },
+        {
+          path: '/research',
+          name: 'research-project-list',
+          component: { template: '<div class="research-page" />' },
         },
       ],
     });

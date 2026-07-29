@@ -17,40 +17,46 @@
     </ul>
 
     <!-- Administration separator + link -->
-    <div class="rpn-separator"></div>
-    <ul class="rpn-section">
-      <li v-for="item in adminNavItems" :key="item.path">
-        <a
-          v-if="item.external"
-          :href="item.path"
-          class="rpn-link rpn-link--admin"
-        >
-          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
-          <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
-        </a>
-        <router-link
-          v-else
-          :to="item.path"
-          class="rpn-link rpn-link--admin"
-          :class="{ 'rpn-link--active': item.active }"
-        >
-          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
-          <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
-        </router-link>
-      </li>
-    </ul>
+    <template v-if="adminNavItems.length > 0">
+      <div class="rpn-separator"></div>
+      <ul class="rpn-section">
+        <li v-for="item in adminNavItems" :key="item.path">
+          <a
+            v-if="item.external"
+            :href="item.path"
+            class="rpn-link rpn-link--admin"
+          >
+            <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+            <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
+          </a>
+          <router-link
+            v-else
+            :to="item.path"
+            class="rpn-link rpn-link--admin"
+            :class="{ 'rpn-link--active': item.active }"
+          >
+            <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+            <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
+          </router-link>
+        </li>
+      </ul>
+    </template>
   </nav>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { useAuthStore } from '@/stores/auth';
 
 defineProps<{
   collapsed?: boolean;
 }>();
 
 const route = useRoute();
+const { t } = useI18n();
+const auth = useAuthStore();
 
 interface NavItem {
   path: string;
@@ -74,37 +80,41 @@ const researchNavItems = computed<NavItem[]>(() => [
   {
     path: '/research',
     icon: '🔬',
-    label: 'Research',
+    label: t('nav.startResearch'),
     active: section.value === 'research',
   },
   {
     path: '/library',
     icon: '📚',
-    label: 'Library',
+    label: t('nav.library'),
     active: section.value === 'library',
   },
   {
     path: '/knowledge',
     icon: '🔗',
-    label: 'Knowledge',
+    label: t('nav.knowledge'),
     active: section.value === 'knowledge',
   },
   {
     path: '/reports',
     icon: '📊',
-    label: 'Reports',
+    label: t('nav.reports'),
     active: section.value === 'reports',
   },
 ]);
 
-const adminNavItems = computed<NavItem[]>(() => [
-  {
-    path: '/admin/literature-review',
-    icon: '⚙️',
-    label: 'Administration',
-    active: section.value === 'admin',
-  },
-]);
+const adminNavItems = computed<NavItem[]>(() => {
+  const items: NavItem[] = [];
+  if (auth.canReviewDocuments || auth.canManageSourcePolicies) {
+    items.push({
+      path: '/admin/literature-review',
+      icon: '⚙️',
+      label: t('nav.administration'),
+      active: section.value === 'admin',
+    });
+  }
+  return items;
+});
 </script>
 
 <style scoped>

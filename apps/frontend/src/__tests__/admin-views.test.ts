@@ -35,15 +35,12 @@ function makeRouter() {
       { path: '/literature/:id', component: { template: '<div/>' }, name: 'literature-detail' },
       { path: '/classical-versions', component: { template: '<div/>' }, name: 'classical-versions' },
       { path: '/persons', component: { template: '<div/>' }, name: 'persons' },
-      { path: '/graph', component: { template: '<div/>' }, name: 'graph' },
       { path: '/search', component: { template: '<div/>' }, name: 'search' },
       { path: '/about', component: { template: '<div/>' }, name: 'about' },
-      { path: '/dashboard', component: { template: '<div/>' }, name: 'dashboard' },
-      { path: '/research/new', component: { template: '<div/>' }, name: 'research-new' },
-      { path: '/research/home', component: { template: '<div/>' }, name: 'research-home' },
-      { path: '/research', component: { template: '<div/>' }, name: 'research-workflow' },
-      { path: '/research/workspace', component: { template: '<div/>' }, name: 'research-workspace' },
-      { path: '/v4/research-internal', component: { template: '<div/>' }, name: 'v4-research' },
+      { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
+      { path: '/library', component: { template: '<div/>' }, name: 'library-search' },
+      { path: '/knowledge', component: { template: '<div/>' }, name: 'knowledge' },
+      { path: '/reports', component: { template: '<div/>' }, name: 'report-list' },
       { path: '/admin/literature-review', component: { template: '<div/>' }, name: 'admin-literature-review', meta: { requiresAuth: true, requiresAdmin: true } },
       { path: '/admin/ingestion-tasks', component: { template: '<div/>' }, name: 'admin-ingestion-tasks', meta: { requiresAuth: true, requiresAdmin: true } },
       { path: '/admin/source-policy', component: { template: '<div/>' }, name: 'admin-source-policy', meta: { requiresAuth: true, requiresSuperAdmin: true } },
@@ -148,6 +145,15 @@ describe('普通用户 (Visitor)', () => {
     expect(text).not.toContain('全文审核');
     expect(text).not.toContain('采集任务');
     expect(text).not.toContain('来源白名单');
+
+    // Canonical research modules — exactly these four, /research exactly once
+    expect(text).toContain('开始研究');
+    expect(text).toContain('文献中心');
+    expect(text).toContain('知识图谱');
+    expect(text).toContain('研究报告');
+    // No legacy V4/Shell entries
+    expect(text).not.toContain('工作台');
+    expect(text).not.toContain('V4');
   });
 
   it('文献详情页不显示管理操作', async () => {

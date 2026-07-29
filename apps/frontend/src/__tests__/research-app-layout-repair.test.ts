@@ -16,9 +16,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createRouter, createWebHistory } from 'vue-router';
 import { setActivePinia, createPinia } from 'pinia';
+import { createI18n } from 'vue-i18n';
+import zhCN from '@/i18n/locales/zh-CN';
 import ResearchAppLayout from '@/layouts/ResearchAppLayout.vue';
 
-// Mock auth store — needed because ResearchAppLayout uses useAuthStore()
+// Mock auth store — needed because ResearchPrimaryNav uses useAuthStore()
 vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(() => ({
     accessToken: null,
@@ -32,15 +34,18 @@ vi.mock('@/stores/auth', () => ({
   })),
 }));
 
+const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': zhCN } });
+
 function createMockRouter() {
   return createRouter({
     history: createWebHistory(),
     routes: [
-      {
-        path: '/research',
-        component: { template: '<div class="test-page">research</div>' },
-        meta: { section: 'research', requiresAuth: true },
-      },
+      { path: '/', component: { template: '<div class="home" />' } },
+      { path: '/research', component: { template: '<div class="test-page">research</div>' }, meta: { section: 'research', requiresAuth: true } },
+      { path: '/library', component: { template: '<div class="test-page">library</div>' }, meta: { section: 'library', requiresAuth: true } },
+      { path: '/knowledge', component: { template: '<div class="test-page">knowledge</div>' }, meta: { section: 'knowledge', requiresAuth: true } },
+      { path: '/reports', component: { template: '<div class="test-page">reports</div>' }, meta: { section: 'reports', requiresAuth: true } },
+      { path: '/admin/literature-review', component: { template: '<div class="test-page">admin</div>' }, meta: { section: 'admin', requiresAuth: true } },
     ],
   });
 }
@@ -50,7 +55,7 @@ describe('ResearchAppLayout — P2 repair: no empty lifecycle hooks', () => {
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     expect(wrapper.find('.research-app-layout').exists()).toBe(true);
@@ -62,7 +67,7 @@ describe('ResearchAppLayout — P2 repair: no empty lifecycle hooks', () => {
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     // Sidebar starts expanded
@@ -85,12 +90,11 @@ describe('ResearchAppLayout — P6 repair: mobile toggle design', () => {
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     const toggle = wrapper.find('.ral-mobile-toggle');
     expect(toggle.exists()).toBe(true);
-    // Sidebar starts expanded → button offers to collapse
     expect(toggle.attributes('aria-label')).toBe('折叠导航菜单');
   });
 
@@ -98,16 +102,14 @@ describe('ResearchAppLayout — P6 repair: mobile toggle design', () => {
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     const toggle = wrapper.find('.ral-mobile-toggle');
 
-    // Start: sidebar expanded → label says "collapse"
     expect(wrapper.find('.ral-sidebar--collapsed').exists()).toBe(false);
     expect(toggle.attributes('aria-label')).toBe('折叠导航菜单');
 
-    // Click toggle → sidebar collapses → label says "expand"
     await toggle.trigger('click');
     expect(wrapper.find('.ral-sidebar--collapsed').exists()).toBe(true);
     expect(toggle.attributes('aria-label')).toBe('展开导航菜单');
@@ -119,7 +121,7 @@ describe('ResearchAppLayout — structural invariants (P6 explicit doc)', () => 
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     const content = wrapper.find('[data-main-content]');
@@ -131,14 +133,13 @@ describe('ResearchAppLayout — structural invariants (P6 explicit doc)', () => 
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     const sidebar = wrapper.find('.ral-sidebar');
     expect(sidebar.exists()).toBe(true);
 
     const sidebarEl = sidebar.element as HTMLElement;
-    // display should not be 'none' — sidebar stays in-flow
     expect(sidebarEl.style.display).not.toBe('none');
   });
 
@@ -146,7 +147,7 @@ describe('ResearchAppLayout — structural invariants (P6 explicit doc)', () => 
     setActivePinia(createPinia());
     const router = createMockRouter();
     const wrapper = mount(ResearchAppLayout, {
-      global: { plugins: [router] },
+      global: { plugins: [router, i18n] },
     });
 
     const toggle = wrapper.find('.ral-mobile-toggle');

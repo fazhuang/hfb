@@ -103,22 +103,26 @@ const navItems = computed<NavItem[]>(() => {
     { path: '/', icon: '🏠', labelKey: 'nav.home' },
   ];
 
-  // Research entry: shown as primary action right after Home
+  // Canonical research modules — only these four entries
   if (auth.isAuthenticated) {
-    base.push({ path: '/research', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value });
+    base.push(
+      { path: '/research', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value },
+      { path: '/library', icon: '📚', labelKey: 'nav.library' },
+      { path: '/knowledge', icon: '🔗', labelKey: 'nav.knowledge' },
+      { path: '/reports', icon: '📊', labelKey: 'nav.reports' },
+    );
   }
 
+  // Public catalog entries
   base.push(
     { path: '/books', icon: '📚', labelKey: 'nav.books' },
     { path: '/literature', icon: '📄', labelKey: 'nav.literature' },
     { path: '/classical-versions', icon: '🏛️', labelKey: 'nav.classicalVersions' },
     { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
-    { path: '/research', icon: '校', labelKey: 'nav.research' },
-    { path: '/library', icon: '📚', labelKey: 'nav.library' },
-    { path: '/knowledge', icon: '🔗', labelKey: 'nav.knowledge' },
-    { path: '/search', icon: '🔍', labelKey: 'nav.search' },
     { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
   );
+
+  // Admin: gated by role capabilities
   if (auth.canReviewDocuments) {
     base.push(
       { path: '/admin/literature-review', icon: '✅', labelKey: 'nav.adminReview' },
