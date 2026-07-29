@@ -63,6 +63,10 @@ const ROUTE_NAME_MAP: Record<string, CanonicalResolver> = {
     name: 'research-project-workspace',
     params: { projectId: pid },
   }),
+  'legacy-workspace-short': (pid) => ({
+    name: 'research-project-workspace',
+    params: { projectId: pid },
+  }),
   'legacy-v4-research': (pid) => ({
     name: 'research-project-workflow',
     params: { projectId: pid },

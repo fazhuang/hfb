@@ -1288,41 +1288,67 @@ class TestV4ResearchPortal:
         )
 
     def test_v4_research_redirects_to_canonical(
-        self, live_servers, test_user, page,
+        self, live_servers, workflow_user, workflow_session, page,
     ):
-        """/v4/research redirects to canonical workflow with project context."""
+        """/v4/research redirects to canonical workflow with real session context.
+
+        Uses a real workflow_user + workflow_session (NOT token injection).
+        LegacyRedirect resolves the most-recent session and redirects to
+        the canonical workflow page for that user's real project.
+        """
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
+        sid = workflow_session["id"]
+
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
         page.goto(f"{frontend_url}/v4/research")
-        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_url(f"**/research/{sid}/workflow", timeout=15000)
         page.wait_for_timeout(2000)
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+        # Exact canonical path
+        parsed = urlparse(page.url)
+        assert parsed.path == f"/research/{sid}/workflow", (
+            f"Expected /research/{sid}/workflow, got {parsed.path}"
+        )
+
+        # Must NOT contain /v4 in final URL
+        assert "/v4" not in page.url, (
+            f"Final URL must not contain /v4, got {page.url}"
+        )
+
+        # Workflow input visible — proves we landed on the workflow page, not a blank fallback
+        assert page.locator("#rqs-input").is_visible(), (
+            "Workflow question input #rqs-input must be visible after redirect"
+        )
 
     def test_v4_root_redirects_to_canonical(
-        self, live_servers, test_user, page,
+        self, live_servers, workflow_user, workflow_session, page,
     ):
-        """/v4 redirects to canonical workflow with project context."""
+        """/v4 redirects to canonical workflow with real session context."""
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
+        sid = workflow_session["id"]
+
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
         page.goto(f"{frontend_url}/v4")
-        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_url(f"**/research/{sid}/workflow", timeout=15000)
         page.wait_for_timeout(2000)
-        # We land on either /research or a canonical research page
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+        # Exact canonical path
+        parsed = urlparse(page.url)
+        assert parsed.path == f"/research/{sid}/workflow", (
+            f"Expected /research/{sid}/workflow, got {parsed.path}"
+        )
+
+        # Must NOT contain /v4 in final URL
+        assert "/v4" not in page.url, (
+            f"Final URL must not contain /v4, got {page.url}"
+        )
+
+        # Workflow input visible
+        assert page.locator("#rqs-input").is_visible(), (
+            "Workflow question input #rqs-input must be visible after redirect"
+        )
 
     def test_workspace_redirects_to_canonical_with_context(
         self, live_servers, test_user, page,
@@ -1345,22 +1371,41 @@ class TestV4ResearchPortal:
         assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
 
     def test_short_workspace_redirects_to_canonical(
-        self, live_servers, test_user, page,
+        self, live_servers, workflow_user, workflow_session, page,
     ):
-        """/workspace redirects with session context."""
+        """/workspace redirects to /research/:projectId/workspace with real session.
+
+        Uses real UI login + workflow_session.  LegacyRedirect must resolve
+        the most-recent session and redirect to the canonical workspace page
+        for that session — NOT fall through to /research.
+        """
         frontend_url, _ = live_servers
-        page.goto(f"{frontend_url}/")
-        page.evaluate(
-            """([token, refresh]) => {
-            localStorage.setItem('hfb-access-token', token);
-            localStorage.setItem('hfb-refresh-token', refresh);
-        }""",
-            [test_user["access_token"], test_user["refresh_token"]],
-        )
+        sid = workflow_session["id"]
+
+        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
+
         page.goto(f"{frontend_url}/workspace")
-        page.wait_for_url("**/research/**", timeout=15000)
+        page.wait_for_url(f"**/research/{sid}/workspace", timeout=15000)
         page.wait_for_timeout(2000)
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+
+        # Exact canonical path — must NOT land on /research fallback
+        parsed = urlparse(page.url)
+        assert parsed.path == f"/research/{sid}/workspace", (
+            f"Expected /research/{sid}/workspace, got {parsed.path}"
+        )
+
+        # Not login, not error
+        assert "/login" not in page.url, (
+            f"Must not redirect to login, got {page.url}"
+        )
+        assert page.locator("text=课题不存在").count() == 0, (
+            "Must not show '课题不存在' for own session"
+        )
+
+        # Workspace page content visible
+        assert page.locator("h1").first.is_visible(), (
+            "Workspace page must have a heading visible after redirect"
+        )
 
     def test_navbar_navigates_to_canonical_research(
         self, live_servers, test_user, page,
@@ -1841,14 +1886,45 @@ class TestCrossProjectIsolation:
         page.wait_for_selector("h1", timeout=10000)
 
     def test_a_project_detail_loads(self, live_servers, cross_users, page):
-        """User A's own project detail shows '开始研究'."""
+        """User A's own project detail page loads with correct title and workspace link.
+
+        Verifies:
+          - h1 matches user A's project title (NOT navigation text)
+          - A workspace link to /research/{sid}/workspace exists with text '继续研究'
+          - No '课题不存在' error
+        """
         frontend_url, _ = live_servers
         a = cross_users["user_a"]
+        sid = a["session_id"]
         _login_via_ui(page, frontend_url, a["username"], "CrossA_Pass123!")
-        page.goto(f"{frontend_url}/research/{a['session_id']}")
+        page.goto(f"{frontend_url}/research/{sid}")
         page.wait_for_selector("h1", timeout=10000)
-        assert page.locator("text=开始研究").is_visible(), (
-            "Own project detail should show '开始研究'"
+
+        # h1 must match user A's own project title
+        h1_text = page.locator("h1").first.text_content()
+        assert a["title"] in h1_text, (
+            f"Project detail h1 should contain '{a['title']}', got '{h1_text}'"
+        )
+
+        # Workspace link must exist with exact href
+        workspace_link = page.locator(f'a[href="/research/{sid}/workspace"]')
+        assert workspace_link.count() > 0, (
+            f"Must have at least one link to /research/{sid}/workspace"
+        )
+
+        # At least one such link must have visible text '继续研究'
+        has_continue_text = False
+        for i in range(workspace_link.count()):
+            if "继续研究" in (workspace_link.nth(i).text_content() or ""):
+                has_continue_text = True
+                break
+        assert has_continue_text, (
+            "At least one workspace link must have visible text '继续研究'"
+        )
+
+        # No '课题不存在' error
+        assert page.locator("text=课题不存在").count() == 0, (
+            "Must not show '课题不存在' for own project"
         )
 
     def test_switch_own_projects_no_residue(self, live_servers, cross_users, page):
