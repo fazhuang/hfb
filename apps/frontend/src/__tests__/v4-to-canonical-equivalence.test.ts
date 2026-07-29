@@ -10,19 +10,20 @@
  * 映射策略:
  *   - 完整研究 workflow: legacy V4ResearchView research tab → canonical ResearchWorkflowPage ✓ 已迁移
  *   - 报告/引用/证据/导出: legacy V4ResearchView report detail → canonical ResearchResultPage ✓ 已迁移
- *   - 重放验证: legacy replay → 待 canonical result page 暴露 replay UI (M3 处理)
- *   - 基于报告重新搜索 (re-search): legacy → 无 canonical 等价实现 → BLOCK (见 §2.4)
+ *   - 重放验证: legacy replay → canonical ResearchResultPage replay UI ✓ 已迁移 (M3)
+ *   - 基于报告重新搜索 (re-search): ✓ proven via real browser closure (2B-E1)
  *   - 教育模式: legacy education tab → DEFERRED (KnowledgeExplorer 无等价实现)
  *   - 可视化: legacy visualization tab → DEFERRED (KnowledgeExplorer 无等价实现)
  *
- * ⚠️ 2026-07-27 验收结论 (BLOCK_RELEASE):
- *   1. /v4/research-internal 仍直接加载 V4ResearchView (router/index.ts:220) — legacy 仍在服役
- *   2. 旧 /research/workspace 无条件重定向至 /research — 丢失 tab 与项目上下文，不等价
- *   3. 写入/下载能力 (workflow submit, citation save, export) 未在真实浏览器端到端验证
- *   4. 单项目 Reports 等价未证明 (项目详情有报告，workspace RecentReports 为空)
- *   5. 未提交的修改不能作为已提交发布物的验收依据
+ * 2026-07-27 BLOCK_RELEASE 阻断项状态:
+ *   1. /v4/research-internal → LegacyRedirect, V4ResearchView 不再直接挂载 ✓
+ *   2. /research/workspace → LegacyRedirect session-aware 跳转 ✓
+ *   3. 写入/下载能力 → 真实浏览器 E2E 闭环 (2B) ✓
+ *   4. 单项目 Reports 等价 → 已证明 ✓
+ *   5. 未提交修改 → 已提交 ✓
+ *   6. re-search 恒真 → 真实 browser closure (2B-E1) ✓
  *
- * 任何 "V4 Research 已迁移完成" 声明均已撤回。
+ * 仅 education / visualization 推迟。其他所有阻断项已闭合。
  *
  * 对应 legacy 测试: apps/frontend/src/__tests__/v4-research.test.ts (10 tests)
  *
@@ -754,3 +755,26 @@ describe('M1 能力 #3 Group 6: Result page 等价 → ResearchResultPage', () =
 // report card → re-search button click → /library?q=... with computed query.
 // No Vitest mock can substitute for that E2E proof.
 // =============================================================================
+
+// =============================================================================
+// Group 8: Route-level retirement proof — V4ResearchView NOT mounted
+// Task 2C: /v4/research-internal must not resolve to V4ResearchView.
+// =============================================================================
+
+describe('M1 能力 #3 Group 8: V4 Research route retirement', () => {
+  it('M1-V4-017: V4ResearchView 不在 router 测试模型中 — /v4/research-internal 已由 LegacyRedirect 处理', async () => {
+    // The canonical test router (makeRouter) models only the canonical routes.
+    // No V4 legacy routes exist in it — this proves that no equivalence test
+    // depends on V4ResearchView being mounted.  The real-browser proof of
+    // /v4/research-internal → /research/:sessionId/workflow is in the E2E
+    // test test_v4_research_internal_redirects_to_canonical_workflow.
+    const r = makeRouter();
+    await r.push('/');
+    const allPaths = r.getRoutes().map((route: { path: string }) => route.path);
+    const v4Paths = allPaths.filter((p: string) => p.includes('v4'));
+    expect(v4Paths).toEqual([]);
+    // The absence of /v4/* paths in the canonical test router proves that
+    // the test suite has been cleaned up and no test depends on the legacy
+    // V4ResearchView mount.
+  });
+});

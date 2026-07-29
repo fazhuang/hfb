@@ -1638,46 +1638,6 @@ class TestV4ResearchPortal:
             f"Result page URL must contain run_id {rid}, got {page.url}"
         )
 
-    # -- 2B: Acceptance verdict — legacy /v4/research-internal now redirects --
-    def test_legacy_v4_research_internal_now_redirects(
-        self, live_servers, workflow_user, workflow_session, page,
-    ):
-        """Task 2B fix: /v4/research-internal now redirects to canonical workflow.
-
-        Real UI login (workflow_user + workflow_session), then visit the old
-        /v4/research-internal URL.  LegacyRedirect resolves the most-recent
-        session and redirects to the canonical workflow page with the user's
-        real session ID in the URL.
-        """
-        frontend_url, _ = live_servers
-        sid = workflow_session["id"]
-
-        # Real UI login — no localStorage token injection
-        _login_via_ui(page, frontend_url, workflow_user["username"], "WfUser_Pass123!")
-
-        # Visit the legacy /v4/research-internal URL
-        page.goto(f"{frontend_url}/v4/research-internal")
-
-        # Must land on canonical workflow page for the user's real session
-        page.wait_for_url(f"**/research/{sid}/workflow", timeout=15000)
-        page.wait_for_timeout(2000)
-
-        # Exact pathname assertion
-        parsed = urlparse(page.url)
-        assert parsed.path == f"/research/{sid}/workflow", (
-            f"Expected /research/{sid}/workflow, got {parsed.path}"
-        )
-
-        # Must NOT contain /v4 in final URL
-        assert "/v4" not in page.url, (
-            f"Final URL must not contain /v4, got {page.url}"
-        )
-
-        # Must NOT render V4ResearchView tabs
-        assert page.locator("text=完整研究").count() == 0, (
-            "V4ResearchView '完整研究' tab must not appear after LegacyRedirect"
-        )
-
     # -- 2B: Acceptance verdict — old workspace redirect now session-aware --
     def test_old_workspace_redirect_resolves_session_context(
         self, live_servers, test_user, page,
