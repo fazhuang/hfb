@@ -1,12 +1,12 @@
 ---
 title: Manual Research Source Admission Checklist
 document_id: HFB-DAT-0306
-version: 0.2.0
-status: Draft
-owner: Research Lead
+version: 0.2.1
+status: BLOCKED_REAL_SOURCE_AUTHORITY
+owner: Research Lead (vacant)
 reviewer: Project Steering Committee
 effective_date: 2026-07-30
-scope: Phase 3B — Timing & Evidence-State Repair (3C remains frozen)
+scope: Phase 3B — BLOCKED pending real source authority; 3C remains frozen
 priority: P0
 related_documents:
   - HFB-DAT-0301 Data Standard Specification
@@ -23,15 +23,15 @@ tags:
 
 ---
 
-> **状态:** Draft — 待 Research Lead 填写
-> **版本:** v0.2.0
+> **状态:** BLOCKED_REAL_SOURCE_AUTHORITY — 等待 Research Lead 持有真实来源与授权到位
+> **版本:** v0.2.1
 > **日期:** 2026-07-30
-> **负责人:** Research Lead
+> **负责人:** Research Lead (vacant)
 > **审核人:** Project Steering Committee
 >
-> **本模板不包含任何学术来源数据。所有来源行、姓名、签署日期均留空。不得填写、猜测、补造任何示例学术来源或签署信息。**
+> **3B 当前阻塞原因**：无 Research Lead。§3 全部 13 行空白。§4 零签署。3A-pre PASS（PostgreSQL hfb）已完成，但 3B 必须在 Research Lead 持有真实古籍版本、研究文献和馆藏资料来源及其授权后，亲自逐条填写并签署。**不得以模拟数据、测试数据、示例数据或 AI 补填替代。**
 >
-> **本模板是纯人工待填写 Markdown 文档，不具备运行时拦截能力，不得被描述为已实现数据准入控制。** 填写完成不代表 3C 自动放行；3C 必须在全量前置条件满足（3A-pre PASS → 3B 签署 → Codex 绑定计划验收 → Steering Committee 书面放行）后方可启动。3A-post 阈值验收和 Codex 逐条真实链验证发生在 3C 导入完成后，不在本模板签署阶段。
+> **解除条件（唯一）**：Research Lead 亲自完成 §3 全部 13 行填写（含真实来源 URI、版权依据、版本标识、导入范围、绑定计划、风险说明）+ §4 签署。之后由 Codex 验收「绑定计划」（不是验收虚构数据或运行时链）。3C 导入仍冻结。
 
 ---
 
@@ -247,6 +247,7 @@ Codex 逐条真实链验收 PASS （以实际数据库记录核实每条 SourceR
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
+| v0.2.1 | 2026-07-30 | **状态冻结** — 3B 正式标记为 `BLOCKED_REAL_SOURCE_AUTHORITY`，解除条件仅为 Research Lead 持有真实来源与授权并亲自完成 §3/§4。Codex 在填写完成后验收「绑定计划」，不验收虚构数据或运行时链。该阻塞不等于 MVP 工程阻塞。 |
 | v0.2.0 | 2026-07-30 | **时序与证据状态修复** — (1) 新增 §6.0 阶段顺序唯一管线 `3A-pre → 3B → Codex 绑定计划验收 → Steering Committee 放行 → 3C → 3A-post → Codex 逐条真实链验收`；(2) 将 §2.5/§3/§6.1 中「证据链逐条可验证」改为导入前可审计的「逐条绑定计划」，明确真正的运行时链验证在 3C-post；(3) §3.4 字段语义改为绑定计划，禁止在导入前填写尚未创建的数据库 ID；(4) §6.3 拆分为放行前验收（绑定计划一致性）+ 导入后独立验证（3A-post + Codex 逐条真实链）；(5) §7 重写为七步顺序流程；(6) §1 更新 3A 引用为 3A-pre。对应的 0301 v1.1 新增 3A-pre/3A-post 双阶段定义。未声称运行时拦截或 3C 放行。 |
 | v0.1.1 | 2026-07-30 | 逻辑修复 — 合并 Citation/Evidence 为单列绑定说明；新增 N/A 使用限制（§2.6）；新增 §6 3C 硬停止条款（前置条件、冻结禁令、放行条件、违规处理）；明确模板无运行时拦截能力、不自动放行 3C；强调所有来源行/姓名/签署日期留空 |
 | v0.1.0 | 2026-07-30 | 初稿 — Phase 3B 人工研究资料来源准入清单模板，所有字段留空，待 Research Lead 填写 |
