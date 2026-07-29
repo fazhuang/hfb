@@ -2108,15 +2108,14 @@ class TestCrossProjectIsolation:
 
 @pytest.fixture(scope="module")
 def result_workflow_rag_doc(live_servers, result_user):
-    """Seed two RAG-enabled Documents whose chunks the real result-page
-    workflow will retrieve.
+    """Seed ONE RAG-enabled Document, then append a second Passage to it.
 
-    Each document is created with its own Chapter + Passage so the
-    RAG retrieval returns chunks linked to two distinct passage_ids.
-    The query 'ResultE2E验证 九针天地至数三部九候' contains the unique
-    ResultE2E验证 watermark present in BOTH passage texts, guaranteeing
-    at least two traces with (document_id, passage_id) for cross-trace
-    SourceRef verification.
+    Uses the standard ingest API for the first passage, then the new
+    append-passage endpoint for the second — producing one document_id
+    with chunks linked to two distinct passage_ids.  This guarantees
+    at least two retrieval traces with the same document_id but
+    different passage_ids — the data shape required for same-document
+    / different-passage SourceRef isolation regression.
 
     Depends on result_user to ensure seed_rbac has run (admin
     user + RBAC roles are seeded on first registration).
@@ -2160,27 +2159,22 @@ def result_workflow_rag_doc(live_servers, result_user):
     assert version_resp.status_code in (200, 201), f"Version creation failed: {version_resp.text[:200]}"
     version_id = version_resp.json()["data"]["id"]
 
-    # ---- Step 1: Create two independent Chapters, each with one Passage ----
-    # Each (chapter, passage) yields a distinct passage_id.  Ingest each
-    # passage as a separate document so both passage_ids appear in distinct
-    # retrieval traces — required for cross-trace SourceRef verification.
-
-    # Document A: Chapter 1 → Passage 1
-    ch1_resp = httpx.post(
+    # ---- Step 1: Create ONE chapter, then TWO passages under it ----
+    ch_resp = httpx.post(
         f"{base}/api/v1/chapters",
-        json={"book_id": book_id, "title": "E2E验证 篇一", "order": 1},
+        json={"book_id": book_id, "title": "E2E验证 同文献双篇", "order": 1},
         headers=headers,
         timeout=10,
     )
-    assert ch1_resp.status_code in (200, 201), f"Chapter 1 creation failed: {ch1_resp.text[:200]}"
-    ch1_id = ch1_resp.json()["data"]["id"]
+    assert ch_resp.status_code in (200, 201), f"Chapter creation failed: {ch_resp.text[:200]}"
+    chapter_id = ch_resp.json()["data"]["id"]
 
     passage1_resp = httpx.post(
         f"{base}/api/v1/passages",
         json={
-            "chapter_id": ch1_id,
+            "chapter_id": chapter_id,
             "version_id": version_id,
-            "content_text": "ResultE2E验证标识 黄帝问曰：余闻九针于夫子，众多博大，不可胜数。余愿闻要道，以属子孙。",
+            "content_text": "ResultE2E验证标识 篇一 黄帝问曰：余闻九针于夫子，众多博大，不可胜数。",
             "order": 1,
             "tags": "E2E验证",
         },
@@ -2190,23 +2184,13 @@ def result_workflow_rag_doc(live_servers, result_user):
     assert passage1_resp.status_code in (200, 201), f"Passage 1 creation failed: {passage1_resp.text[:200]}"
     passage1_id = passage1_resp.json()["data"]["id"]
 
-    # Document B: Chapter 2 → Passage 2 (distinct passage_id, distinct document_id)
-    ch2_resp = httpx.post(
-        f"{base}/api/v1/chapters",
-        json={"book_id": book_id, "title": "E2E验证 篇二", "order": 2},
-        headers=headers,
-        timeout=10,
-    )
-    assert ch2_resp.status_code in (200, 201), f"Chapter 2 creation failed: {ch2_resp.text[:200]}"
-    ch2_id = ch2_resp.json()["data"]["id"]
-
     passage2_resp = httpx.post(
         f"{base}/api/v1/passages",
         json={
-            "chapter_id": ch2_id,
+            "chapter_id": chapter_id,
             "version_id": version_id,
-            "content_text": "ResultE2E验证标识 岐伯答曰：善言天者，必应于人。善言古者，必验于今。今合天道，必有终始。",
-            "order": 1,
+            "content_text": "ResultE2E验证标识 篇二 岐伯对曰：善言天者必应于人。善言古者必验于今。",
+            "order": 2,
             "tags": "E2E验证",
         },
         headers=headers,
@@ -2215,21 +2199,17 @@ def result_workflow_rag_doc(live_servers, result_user):
     assert passage2_resp.status_code in (200, 201), f"Passage 2 creation failed: {passage2_resp.text[:200]}"
     passage2_id = passage2_resp.json()["data"]["id"]
 
-    # ---- Step 2: Ingest each passage as a separate document ----
-    # Each ingest call creates a distinct document_id whose chunks carry
-    # a distinct passage_id.  The real workflow RAG retrieval returns
-    # both, producing at least two traces with (document_id, passage_id).
-
-    # Ingest passage 1
-    ingest1_resp = httpx.post(
+    # ---- Step 2: Ingest ONE document with passage A via standard API ----
+    ingest_resp = httpx.post(
         f"{base}/api/v1/search/ingest",
         json={
-            "title": "针灸甲乙经（E2E验证—篇一）",
+            "title": "针灸甲乙经（E2E同文献验证）",
             "text": (
-                "ResultE2E验证标识\n\n"
+                "ResultE2E验证标识 篇一\n\n"
                 "黄帝问曰：余闻九针于夫子，众多博大，不可胜数。"
                 "余愿闻要道，以属子孙，传之后世，著之骨髓，"
                 "藏之肝肺，歃血而受，不敢妄泄。\n\n"
+                "令合天道，必有终始，上应天光星辰历纪。\n\n"
             ),
             "copyright_status": "public_domain",
             "authorization_basis": "e2e-test-data",
@@ -2240,70 +2220,64 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    if ingest1_resp.status_code not in (200, 201):
-        raise RuntimeError(f"Ingest 1 failed: {ingest1_resp.status_code} {ingest1_resp.text[:300]}")
-    doc1_data = ingest1_resp.json().get("data", ingest1_resp.json())
-    doc1_id = doc1_data["document_id"]
+    if ingest_resp.status_code not in (200, 201):
+        raise RuntimeError(f"Ingest failed: {ingest_resp.status_code} {ingest_resp.text[:300]}")
+    doc_data = ingest_resp.json().get("data", ingest_resp.json())
+    doc_id = doc_data["document_id"]
 
-    # ---- Step 3: Ingest passage 2 (distinct document_id, distinct passage_id) ----
-    ingest2_resp = httpx.post(
-        f"{base}/api/v1/search/ingest",
-        json={
-            "title": "针灸甲乙经（E2E验证—篇二）",
-            "text": (
-                "ResultE2E验证标识\n\n"
-                "岐伯对曰：妙乎哉问也！此天地之至数。\n\n"
-                "帝曰：愿闻天地之至数，合于人形血气，"
-                "通决死生，为之奈何？\n\n"
-            ),
-            "copyright_status": "public_domain",
-            "authorization_basis": "e2e-test-data",
-            "source_name": "e2e-result-test",
-            "source_url": "https://example.invalid/result-e2e",
-            "passage_id": passage2_id,
-        },
-        headers=headers,
-        timeout=10,
-    )
-    if ingest2_resp.status_code not in (200, 201):
-        raise RuntimeError(f"Ingest 2 failed: {ingest2_resp.status_code} {ingest2_resp.text[:300]}")
-    doc2_data = ingest2_resp.json().get("data", ingest2_resp.json())
-    doc2_id = doc2_data["document_id"]
-
-    assert doc1_id != doc2_id, (
-        f"Two ingestions must produce distinct document IDs: "
-        f"doc1={doc1_id} doc2={doc2_id}"
-    )
-
-    # ---- Step 3: Enable RAG for both docs via admin review ----
+    # ---- Step 3: Append passage B to the SAME document via the new endpoint ----
+    # Requires research:update permission — admin token has it.
     admin_login = httpx.post(
         f"{base}/api/v1/auth/login",
         json={"username": "admin", "password": "admin123"},
         timeout=5,
     )
     if admin_login.status_code != 200:
-        raise RuntimeError(
-            f"Admin login failed: {admin_login.status_code} {admin_login.text[:300]}. "
-            f"result_user registration should have triggered seed_rbac."
-        )
+        raise RuntimeError(f"Admin login failed: {admin_login.status_code} {admin_login.text[:300]}")
     admin_token = admin_login.json()["data"]["access_token"]
 
-    for doc_id in [doc1_id, doc2_id]:
-        review_resp = httpx.patch(
-            f"{base}/api/v1/documents/{doc_id}/review",
-            json={"review_status": "approved", "rag_enabled": True},
-            headers={"Authorization": f"Bearer {admin_token}"},
-            timeout=10,
+    append_resp = httpx.post(
+        f"{base}/api/v1/search/documents/{doc_id}/append-passage",
+        json={
+            "text": (
+                "ResultE2E验证标识 篇二\n\n"
+                "岐伯对曰：妙乎哉问也！此天地之至数。\n"
+                "故人有三部，部有三候，以决死生，以处百病，以调虚实，而除邪疾。\n"
+                "故下部之天以候肝，地以候肾，人以候脾胃之气。\n\n"
+            ),
+            "passage_id": passage2_id,
+        },
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=10,
+    )
+    if append_resp.status_code not in (200, 201):
+        raise RuntimeError(
+            f"Append passage failed: {append_resp.status_code} {append_resp.text[:300]}"
         )
-        if review_resp.status_code != 200:
-            raise RuntimeError(
-                f"Admin review for {doc_id} failed: "
-                f"{review_resp.status_code} {review_resp.text}"
-            )
+    append_data = append_resp.json()
+    assert append_data.get("appended_chunk_count", 0) > 0, (
+        f"Append must produce chunks. Response: {append_resp.text[:300]}"
+    )
+    assert append_data.get("document_id") == doc_id, (
+        f"Append must return same document_id, got {append_data.get('document_id')}"
+    )
+    assert append_data.get("passage_id") == passage2_id, (
+        f"Append must return same passage_id, got {append_data.get('passage_id')}"
+    )
+
+    # ---- Step 4: Re-review to enable RAG (append resets review→pending, rag→False) ----
+    review_resp = httpx.patch(
+        f"{base}/api/v1/documents/{doc_id}/review",
+        json={"review_status": "approved", "rag_enabled": True},
+        headers={"Authorization": f"Bearer {admin_token}"},
+        timeout=10,
+    )
+    if review_resp.status_code != 200:
+        raise RuntimeError(f"Re-review after append failed: {review_resp.status_code} {review_resp.text[:300]}")
 
     return {
-        "document_ids": [doc1_id, doc2_id],
-        "chunk_count": doc1_data.get("chunk_count", 0) + doc2_data.get("chunk_count", 0),
+        "document_id": doc_id,
+        "chunk_count": doc_data.get("chunk_count", 0) + append_data.get("appended_chunk_count", 0),
         "passage_ids": [passage1_id, passage2_id],
         "version_id": version_id,
     }
@@ -3187,13 +3161,12 @@ class TestResearchResultPageE2E:
         self, live_servers, result_workflow_session, page,
     ):
         """SourceRef canonical /library/{document_id}?passage={passage_id}
-        binding — two distinct traces, full UI navigation, real click to
-        reader page.
+        binding — same document, two different passages, two distinct
+        traces, full UI navigation, both links clicked.
 
-        Each trace's Citation → Evidence → SourceRef internal link must
-        be EXACTLY /library/{document_id}?passage={passage_id}.  The two
-        traces MUST differ on both document_id and passage_id.  At least
-        one link is actually clicked and the browser URL verified.
+        Each trace's Citation → Evidence → SourceRef internal link MUST
+        be EXACTLY /library/{document_id}?passage={passage_id}.
+        Both internal links are clicked — each browser URL is verified.
         """
         frontend_url, backend_port = live_servers
         ws = result_workflow_session
@@ -3284,55 +3257,61 @@ class TestResearchResultPageE2E:
         assert manifest is not None, "Target run must have replay_manifest"
 
         traces = manifest.get("traces", [])
-        assert len(traces) >= 2, (
-            f"Need at least 2 traces with (document_id, passage_id) for "
-            f"cross-trace verification, got {len(traces)}."
-        )
 
-        # Collect traces that have usable document_id + passage_id + trace_id
-        usable = []
+        # Find traces with same document_id and different passage_id
+        by_doc: dict[str, list[dict]] = {}
         for t in traces:
             did = t.get("document_id", "")
             pid = t.get("passage_id", "")
             tid = t.get("trace_id", "")
             if did and pid and tid:
-                usable.append({"document_id": did, "passage_id": pid, "trace_id": tid})
+                by_doc.setdefault(did, []).append(
+                    {"document_id": did, "passage_id": pid, "trace_id": tid}
+                )
 
-        assert len(usable) >= 2, (
-            f"Need at least 2 traces with full (document_id, passage_id, trace_id), "
-            f"got {len(usable)}."
+        same_doc_traces = None
+        for did, tlist in by_doc.items():
+            unique_pids = list({t["passage_id"] for t in tlist})
+            if len(unique_pids) >= 2:
+                same_doc_traces = [tlist[0], tlist[1]]
+                break
+
+        assert same_doc_traces is not None, (
+            f"Must find at least 2 traces with same document_id and different "
+            f"passage_ids. Got {len(traces)} traces, doc_ids={list(by_doc.keys())}. "
+            f"Passage ids per doc: {[(k, [t['passage_id'][:8] for t in v]) for k, v in by_doc.items()]}"
         )
 
-        # Pick first two — they must differ on both document_id and passage_id
-        t1, t2 = usable[0], usable[1]
-        assert t1["document_id"] != t2["document_id"] or t1["passage_id"] != t2["passage_id"], (
-            f"Two traces must differ on document_id or passage_id. "
-            f"t1=(doc={t1['document_id'][:8]}..., psg={t1['passage_id'][:8]}...) "
-            f"t2=(doc={t2['document_id'][:8]}..., psg={t2['passage_id'][:8]}...)"
+        t1, t2 = same_doc_traces[0], same_doc_traces[1]
+        assert t1["document_id"] == t2["document_id"], (
+            f"Two traces must have SAME document_id for this regression test"
+        )
+        assert t1["passage_id"] != t2["passage_id"], (
+            f"Two traces must have DIFFERENT passage_ids"
         )
 
         import sys
         print(
-            f"\n--- SOURCEREF_E2E_TRACES: "
-            f"trace1=(tid={t1['trace_id'][:16]}... doc={t1['document_id'][:8]}... psg={t1['passage_id'][:8]}...) "
-            f"trace2=(tid={t2['trace_id'][:16]}... doc={t2['document_id'][:8]}... psg={t2['passage_id'][:8]}...)",
+            f"\n--- SOURCEREF_E2E_SAME_DOC_TRACES: "
+            f"doc={t1['document_id'][:8]}... "
+            f"trace1=(tid={t1['trace_id'][:16]}... psg={t1['passage_id'][:8]}...) "
+            f"trace2=(tid={t2['trace_id'][:16]}... psg={t2['passage_id'][:8]}...)",
             file=sys.stderr,
         )
 
-        # ---- Step 7: Verify both traces — match Citation, Evidence, SourceRef link ----
-        verified = []
+        # ---- Step 7: Verify BOTH traces — Citation, Evidence, SourceRef href ----
+        verified: list[dict] = []
         for idx, t in enumerate([t1, t2]):
             trace_id = t["trace_id"]
             doc_id = t["document_id"]
             psg_id = t["passage_id"]
 
-            # 7a. Match visible Citation by trace_id prefix
+            # 7a. Match visible Citation by trace_id prefix — fail-closed
             citation_items = page.locator(".rcp-citation-item")
-            item_count = citation_items.count()
-            assert item_count > 0, f"[trace {idx}] No citation items found"
+            assert citation_items.count() > 0, f"[trace {idx}] No citation items"
 
             clicked = False
-            for i in range(item_count):
+            for i in range(citation_items.count()):
                 item = citation_items.nth(i)
                 code_el = item.locator(".rcp-citation-id")
                 if code_el.count() > 0:
@@ -3341,20 +3320,18 @@ class TestResearchResultPageE2E:
                         item.click()
                         clicked = True
                         break
+            assert clicked, f"[trace {idx}] No citation matches {trace_id[:16]}..."
 
-            assert clicked, (
-                f"[trace {idx}] No citation matches trace_id={trace_id[:16]}..."
-            )
             page.wait_for_selector(".rcp-citation-item--selected", timeout=5000)
 
-            # 7b. Evidence detail must share the same trace_id
+            # 7b. Evidence detail trace match
             page.wait_for_selector(".eed-card", timeout=5000)
             evidence_id_el = (
                 page.locator('.eed-meta-row:has-text("证据 ID")')
                 .locator(".eed-meta-value")
             )
             assert evidence_id_el.count() > 0, (
-                f"[trace {idx}] Evidence card missing 证据 ID display"
+                f"[trace {idx}] Evidence card missing 证据 ID"
             )
             displayed_eid = evidence_id_el.first.text_content().strip()
             assert trace_id.startswith(displayed_eid.rstrip(".")), (
@@ -3362,69 +3339,43 @@ class TestResearchResultPageE2E:
                 f"expected prefix of {trace_id[:16]}..., got {displayed_eid!r}"
             )
 
-            # 7c. SourceRef — the evidence card MAY contain an internal
-            # link (.esrc-link--internal) that routes to
-            # /library/{doc_id}?passage={psg_id}, OR it may fall back to
-            # an external link or missing notice when retrieval_snapshot
-            # lacks document_id.  Both are legitimate fail-closed states.
-            #
-            # We only assert href structure when an internal link is
-            # present.  The Citation→Evidence trace binding is already
-            # verified above; the SourceRef card content is verified
-            # by the evidence card text-content check below.
+            # 7c. MUST have internal SourceRef link — no fallback
             internal_link = page.locator(".eed-card .esrc-link--internal")
+            assert internal_link.count() > 0, (
+                f"[trace {idx}] MUST have .esrc-link--internal. "
+                f"doc={doc_id[:8]}... psg={psg_id[:8]}..."
+            )
 
-            if internal_link.count() > 0:
-                href = internal_link.first.get_attribute("href") or ""
-                assert href.startswith("/library/"), (
-                    f"[trace {idx}] Internal SourceRef link must start with "
-                    f"/library/, got {href!r}"
-                )
-                assert "?passage=" in href or "&passage=" in href, (
-                    f"[trace {idx}] Internal SourceRef link must carry "
-                    f"passage query param, got {href!r}"
-                )
-                verified.append({
-                    "trace_id": trace_id,
-                    "document_id": doc_id,
-                    "passage_id": psg_id,
-                    "href": href,
-                    "has_internal_link": True,
-                })
-            else:
-                eed_text = page.locator(".eed-card").first.text_content() or ""
-                assert len(eed_text.strip()) > 0, (
-                    f"[trace {idx}] Evidence card must have content even "
-                    f"without internal link"
-                )
-                verified.append({
-                    "trace_id": trace_id,
-                    "document_id": doc_id,
-                    "passage_id": psg_id,
-                    "href": "",
-                    "has_internal_link": False,
-                })
+            href = internal_link.first.get_attribute("href") or ""
+            expected = f"/library/{doc_id}?passage={psg_id}"
+            assert href == expected, (
+                f"[trace {idx}] SourceRef href mismatch: "
+                f"expected {expected!r}, got {href!r}"
+            )
 
-        # ---- Step 8: Cross-trace no-serialization check ----
-        internal_verified = [v for v in verified if v["has_internal_link"]]
-        assert len(internal_verified) >= 1, (
-            f"At least one trace must have an internal SourceRef link. "
-            f"verified={verified}"
+            verified.append({
+                "trace_id": trace_id,
+                "document_id": doc_id,
+                "passage_id": psg_id,
+                "href": href,
+            })
+
+        # ---- Step 8: Cross-trace no-serialization ----
+        assert verified[0]["document_id"] == verified[1]["document_id"], (
+            f"Both must share the same document_id"
         )
-        # All verified traces must have distinct (doc_id, psg_id)
-        assert verified[0]["document_id"] != verified[1]["document_id"] or \
-               verified[0]["passage_id"] != verified[1]["passage_id"], (
-            "Two verified traces must have distinct (document_id, passage_id). "
-            f"t1 doc={verified[0]['document_id'][:8]}... psg={verified[0]['passage_id'][:8]}... "
-            f"t2 doc={verified[1]['document_id'][:8]}... psg={verified[1]['passage_id'][:8]}..."
+        assert verified[0]["passage_id"] != verified[1]["passage_id"], (
+            f"Passage_ids must differ: "
+            f"{verified[0]['passage_id'][:8]} vs {verified[1]['passage_id'][:8]}"
+        )
+        assert verified[0]["href"] != verified[1]["href"], (
+            f"Hrefs must differ: {verified[0]['href']} vs {verified[1]['href']}"
         )
 
-        # ---- Step 9: Click the first available internal link and verify
-        #             the reader page ----
-        internal_with_link = [v for v in verified if v["has_internal_link"]]
-        if internal_with_link:
-            first_tid = internal_with_link[0]["trace_id"]
-            # Re-select the citation to make the internal link visible again
+        # ---- Step 9: Click BOTH links, verify reader page, browser back ----
+        for idx, v in enumerate(verified):
+            tid = v["trace_id"]
+            # Re-select the citation
             citation_items = page.locator(".rcp-citation-item")
             clicked = False
             for i in range(citation_items.count()):
@@ -3432,13 +3383,11 @@ class TestResearchResultPageE2E:
                 code_el = item.locator(".rcp-citation-id")
                 if code_el.count() > 0:
                     displayed_id = code_el.first.text_content().strip()
-                    if first_tid.startswith(displayed_id.rstrip(".")):
+                    if tid.startswith(displayed_id.rstrip(".")):
                         item.click()
                         clicked = True
                         break
-            assert clicked, (
-                f"Could not re-select citation for trace {first_tid[:16]}..."
-            )
+            assert clicked, f"Could not re-select citation for {tid[:16]}..."
             page.wait_for_selector(".eed-card", timeout=5000)
             page.wait_for_selector(".esrc-link--internal", timeout=5000)
 
@@ -3448,24 +3397,28 @@ class TestResearchResultPageE2E:
             page.wait_for_timeout(2000)
 
             current_url = page.url
-            doc_id_clicked = internal_with_link[0]["document_id"]
-            psg_id_clicked = internal_with_link[0]["passage_id"]
-
-            assert f"/library/{doc_id_clicked}" in current_url, (
-                f"After click, URL must contain /library/{doc_id_clicked}, "
+            assert f"/library/{v['document_id']}" in current_url, (
+                f"[trace {idx}] URL missing /library/{v['document_id'][:8]}..., "
                 f"got {current_url}"
             )
-            assert f"passage={psg_id_clicked}" in current_url, (
-                f"After click, URL must contain passage={psg_id_clicked}, "
+            assert f"passage={v['passage_id']}" in current_url, (
+                f"[trace {idx}] URL missing passage={v['passage_id'][:8]}..., "
                 f"got {current_url}"
             )
 
             page.wait_for_selector("h1, h2, .doc-title, article, main", timeout=10000)
             body_text = page.locator("body").first.text_content() or ""
-            assert len(body_text.strip()) > 0, "Reader page body must not be empty"
-            assert "/login" not in current_url, (
-                f"SourceRef link must not redirect to login. URL: {current_url}"
+            assert len(body_text.strip()) > 0, (
+                f"[trace {idx}] Reader page body must not be empty"
             )
+            assert "/login" not in current_url, (
+                f"[trace {idx}] Must not redirect to login. URL: {current_url}"
+            )
+
+            if idx == 0:
+                # Back to result page for second trace
+                page.go_back()
+                page.wait_for_selector(".rrv-report", timeout=10000)
 
     def test_real_workflow_lineage_complete_or_partial(
         self, live_servers, result_workflow_session, page,

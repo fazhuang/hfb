@@ -195,6 +195,20 @@ async def append_passage(
     Returns 401 if unauthenticated, 403 if lacking permission.
     """
     try:
+        # Ownership check: only the document uploader (or null owner =
+        # system-seeded doc) may append.  research:update permission is
+        # a gate; ownership is a per-document enforcement.
+        from app.repositories.document import DocumentRepository
+        from fastapi import HTTPException
+        doc = await DocumentRepository(session).get_by_id(document_id)
+        if doc is None or doc.is_deleted:
+            raise HTTPException(status_code=404, detail="Document not found")
+        if doc.uploaded_by is not None and doc.uploaded_by != current_user:
+            raise HTTPException(
+                status_code=403,
+                detail="You do not own this document",
+            )
+
         svc = IngestionService(session)
         result = await svc.append_passage(
             document_id=document_id,
