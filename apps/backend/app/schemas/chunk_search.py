@@ -87,3 +87,27 @@ class IngestTextRequest(BaseModel):
     source_name: str | None = Field(default=None, description="摄入来源名称")
     metadata_only: bool = Field(default=False, description="仅元数据，不保存全文")
     forbidden_fulltext: bool = Field(default=False, description="明确禁止全文入库")
+
+
+# ---- Append-passage schemas ----
+
+class AppendPassageRequest(BaseModel):
+    """Append a new passage's text chunks to an existing document."""
+    model_config = {"extra": "forbid"}
+
+    text: str = Field(..., min_length=1, description="Text content for the new passage")
+    passage_id: str = Field(..., min_length=1, description="Passage UUID this text belongs to")
+    max_chunk_chars: int = Field(default=1000, ge=100, le=5000)
+
+
+class AppendPassageResponse(BaseModel):
+    """Result of appending passage chunks to an existing document."""
+    model_config = {"extra": "forbid"}
+
+    document_id: str
+    passage_id: str
+    appended_chunk_count: int
+    appended_chunk_ids: list[str]
+    first_chunk_index: int
+    last_chunk_index: int
+    content_checksum: str

@@ -5,6 +5,7 @@ Endpoints:
   POST /api/v1/search         — Search document chunks (primary endpoint)
   POST /api/v1/search/chunks  — Search document chunks (compatibility alias)
   POST /api/v1/search/ingest  — Ingest a plain-text document
+  POST /api/v1/search/documents/{document_id}/append-passage — Append passage to document
 """
 from __future__ import annotations
 
@@ -20,12 +21,17 @@ from app.schemas.chunk_search import (
     SearchResult,
     Metadata,
     IngestTextRequest,
+    AppendPassageRequest,
+    AppendPassageResponse,
 )
 from app.services.ingestion import IngestionService, IngestionError
 from app.services.retrieval import RetrievalService
 from app.utils.response import api_response
+from app.middleware.auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/search", tags=["Search"])
+
+_append_passage_guard = require_permission("research", "update")
 
 # ponytail: auth deferred to post-Day-2 hardening.
 # Search/ingest use no required permission to allow integration
@@ -167,3 +173,44 @@ async def ingest_text(
         )
     except IngestionError as e:
         return api_response(success=False, message=str(e), data=None)
+
+
+@router.post(
+    "/documents/{document_id}/append-passage",
+    response_model=AppendPassageResponse,
+    dependencies=[Depends(_append_passage_guard)],
+)
+async def append_passage(
+    document_id: str,
+    body: AppendPassageRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: str = Depends(get_current_user),
+) -> AppendPassageResponse:
+    """Append passage-bound text chunks to an existing document.
+
+    Permission: research:update (same as other document-mutating endpoints).
+    The document's review_status is reset to pending and rag_enabled to False
+    — re-review is required before RAG retrieval can use the new content.
+
+    Returns 401 if unauthenticated, 403 if lacking permission.
+    """
+    try:
+        svc = IngestionService(session)
+        result = await svc.append_passage(
+            document_id=document_id,
+            text=body.text,
+            passage_id=body.passage_id,
+            max_chunk_chars=body.max_chunk_chars,
+        )
+        return AppendPassageResponse(
+            document_id=result.document_id,
+            passage_id=result.passage_id,
+            appended_chunk_count=result.appended_chunk_count,
+            appended_chunk_ids=result.appended_chunk_ids,
+            first_chunk_index=result.first_chunk_index,
+            last_chunk_index=result.last_chunk_index,
+            content_checksum=result.content_checksum,
+        )
+    except (ValueError, IngestionError) as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))

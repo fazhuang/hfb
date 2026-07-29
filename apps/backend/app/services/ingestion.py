@@ -73,6 +73,28 @@ class IngestionResult:
         self.checksum = checksum
 
 
+class AppendResult:
+    """Result of an append-passage operation."""
+
+    def __init__(
+        self,
+        document_id: str,
+        passage_id: str,
+        appended_chunk_count: int,
+        appended_chunk_ids: list[str],
+        first_chunk_index: int,
+        last_chunk_index: int,
+        content_checksum: str,
+    ) -> None:
+        self.document_id = document_id
+        self.passage_id = passage_id
+        self.appended_chunk_count = appended_chunk_count
+        self.appended_chunk_ids = appended_chunk_ids
+        self.first_chunk_index = first_chunk_index
+        self.last_chunk_index = last_chunk_index
+        self.content_checksum = content_checksum
+
+
 class IngestionService:
     """Ingest documents, extract text, and create chunked indices.
 
@@ -657,6 +679,146 @@ class IngestionService:
             await self.doc_repo.hard_delete(doc.id)
             await self.session.flush()
             raise
+
+    # ------------------------------------------------------------------
+    # Append passage chunks to an existing document
+    # ------------------------------------------------------------------
+
+    async def append_passage(
+        self,
+        document_id: str,
+        text: str,
+        passage_id: str,
+        max_chunk_chars: int = 1000,
+    ) -> "AppendResult":
+        """Append passage-bound chunks to an existing document.
+
+        All work happens inside a single transaction.
+        On any failure, no partial chunks, no stale checksum, and no
+        half-updated review status survive.
+
+        Post-append: the document's review_status is reset to 'pending'
+        and rag_enabled is set to False — re-review is required before
+        RAG retrieval can use the new content.
+        """
+        from datetime import datetime, timezone
+        from sqlalchemy import select as _sel, func as _func
+
+        stripped = text.strip()
+        if not stripped:
+            raise ValueError("Cannot append empty text to document")
+
+        # 1. Document must exist, be non-deleted
+        doc = await self.doc_repo.get_by_id(document_id)
+        if doc is None or doc.is_deleted:
+            raise ValueError(f"Document {document_id} does not exist or is deleted")
+
+        # 2. Passage must exist, be non-deleted
+        from app.models.passage import Passage
+
+        p_stmt = _sel(Passage.id).where(
+            Passage.id == passage_id.strip(),
+            Passage.is_deleted.is_(False),
+        )
+        p_result = await self.session.execute(p_stmt)
+        if p_result.scalar_one_or_none() is None:
+            raise ValueError(f"Passage {passage_id} does not exist or is deleted")
+
+        # 3. Chunk the new text
+        chunks_with_indices = chunk_text(
+            stripped, max_chars=max_chunk_chars, return_indices=True
+        )
+        if chunks_with_indices and isinstance(chunks_with_indices[0], str):
+            chunk_list: list[tuple[str, int]] = [
+                (t, -1) for t in chunks_with_indices
+            ]
+        else:
+            chunk_list = chunks_with_indices
+
+        if not chunk_list:
+            raise ValueError("No chunks produced from input text")
+
+        # 4. Compute next chunk_index atomically
+        max_idx_result = await self.session.execute(
+            _sel(_func.coalesce(_func.max(DocumentChunk.chunk_index), -1)).where(
+                DocumentChunk.document_id == document_id,
+                DocumentChunk.is_deleted.is_(False),
+            )
+        )
+        next_index = max_idx_result.scalar_one() + 1
+
+        # 5. Create chunks with consecutive indices
+        chunk_ids: list[str] = []
+        for offset, item in enumerate(chunk_list):
+            if isinstance(item, str):
+                chunk_text_val = item
+                para_idx = -1
+            else:
+                chunk_text_val, para_idx = item
+
+            cid = str(uuid4())
+            chunk = DocumentChunk(
+                id=cid,
+                document_id=document_id,
+                chunk_index=next_index + offset,
+                content=chunk_text_val,
+                token_count=len(chunk_text_val),
+                passage_id=passage_id.strip(),
+                paragraph_index=para_idx if para_idx >= 0 else (next_index + offset),
+                evidence_weight="primary",
+            )
+            self.session.add(chunk)
+            chunk_ids.append(cid)
+
+        # 6. Rebuild full content text and recompute checksum
+        all_chunks_result = await self.session.execute(
+            _sel(DocumentChunk.content).where(
+                DocumentChunk.document_id == document_id,
+                DocumentChunk.is_deleted.is_(False),
+            ).order_by(DocumentChunk.chunk_index)
+        )
+        all_text = "\n\n".join(row[0] for row in all_chunks_result)
+        new_checksum = hashlib.sha256(all_text.encode("utf-8")).hexdigest()
+
+        # 7. Update document: content, checksum, review status, rag
+        now = datetime.now(timezone.utc)
+        doc.content_text = all_text
+        doc.content_checksum = new_checksum
+        doc.review_status = "pending"
+        doc.rag_enabled = False
+        doc.updated_at = now
+
+        # 8. Audit log
+        await self._write_audit(
+            action="append_passage",
+            status="success",
+            source_url=doc.source_url,
+            source_name=doc.source_name,
+            copyright_status=doc.copyright_status,
+            authorization_basis=doc.authorization_basis,
+            license_type=doc.license_type,
+            checksum=new_checksum,
+            result_entity_type="document",
+            result_entity_id=document_id,
+            details={
+                "passage_id": passage_id,
+                "appended_chunk_count": len(chunk_ids),
+                "first_chunk_index": next_index,
+                "last_chunk_index": next_index + len(chunk_ids) - 1,
+            },
+        )
+
+        await self.session.flush()
+
+        return AppendResult(
+            document_id=document_id,
+            passage_id=passage_id,
+            appended_chunk_count=len(chunk_ids),
+            appended_chunk_ids=chunk_ids,
+            first_chunk_index=next_index,
+            last_chunk_index=next_index + len(chunk_ids) - 1,
+            content_checksum=new_checksum,
+        )
 
     # ------------------------------------------------------------------
     # Withdraw

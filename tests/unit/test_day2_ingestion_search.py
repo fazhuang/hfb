@@ -711,3 +711,260 @@ class TestSearchAPI:
                 assert result["citation"].count("[") == 1
                 assert result["citation"].count("]") == 1
                 assert ":" in result["citation"]
+
+
+# ============================================================
+# APPEND-PASSAGE UNIT + API TESTS
+# ============================================================
+
+
+@pytest.mark.anyio
+class TestAppendPassage:
+    """Tests for POST /api/v1/search/documents/{id}/append-passage.
+
+    Covers: same-document/different-passage data relationship,
+    transactional safety, review/RAG state reset, and permission guards.
+    """
+
+    async def test_append_passage_to_existing_document(self, app_db_session):
+        """Ingest passage A, then append passage B → same document, two
+        distinct passage_ids, chunk_index continues, checksum changes."""
+        from app.db.database import get_session
+
+        # Ingest initial document with passage A
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="同文献多篇测试",
+            text="第一段经文。\n\n第二段经文。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "篇一", 1),
+        )
+        doc_id = r1.document_id
+        original_checksum = r1.checksum
+        original_chunk_count = r1.chunk_count
+
+        # Verify initial state
+        chunks_before = list((await app_db_session.execute(
+            select(DocumentChunk).where(
+                DocumentChunk.document_id == doc_id,
+                DocumentChunk.is_deleted.is_(False),
+            ).order_by(DocumentChunk.chunk_index)
+        )).scalars())
+        assert len(chunks_before) == original_chunk_count
+
+        # Append passage B to same document
+        psg_b_id = _make_passage(app_db_session, "篇二", 2)
+        r2 = await svc.append_passage(
+            document_id=doc_id,
+            text="第三段经文。\n\n第四段经文。",
+            passage_id=psg_b_id,
+        )
+        assert r2.document_id == doc_id
+        assert r2.passage_id == psg_b_id
+        assert r2.appended_chunk_count > 0
+        assert len(r2.appended_chunk_ids) == r2.appended_chunk_count
+        assert r2.first_chunk_index == original_chunk_count
+        assert r2.last_chunk_index >= r2.first_chunk_index
+        assert r2.content_checksum != original_checksum
+
+        # Verify chunk_index is continuous
+        all_chunks = list((await app_db_session.execute(
+            select(DocumentChunk).where(
+                DocumentChunk.document_id == doc_id,
+                DocumentChunk.is_deleted.is_(False),
+            ).order_by(DocumentChunk.chunk_index)
+        )).scalars())
+        for i, ch in enumerate(all_chunks):
+            assert ch.chunk_index == i, f"chunk_index gap: expected {i}, got {ch.chunk_index}"
+
+        # Verify two distinct passage_ids exist on this document
+        passage_ids = list(set(
+            ch.passage_id for ch in all_chunks if ch.passage_id
+        ))
+        assert len(passage_ids) >= 2, f"Expected >=2 distinct passage_ids, got {len(passage_ids)}: {passage_ids}"
+
+        # Verify document checksum updated
+        doc_after = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        assert doc_after.content_checksum == r2.content_checksum
+        assert doc_after.content_checksum != original_checksum
+
+    async def test_append_resets_review_and_rag(self, app_db_session):
+        """After append, review_status → pending and rag_enabled → False."""
+        from app.db.database import get_session
+
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="审核重置测试",
+            text="初始内容。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "审核篇", 1),
+        )
+        doc_id = r1.document_id
+
+        # Simulate admin review → approved + rag_enabled
+        doc = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        doc.review_status = "approved"
+        doc.rag_enabled = True
+        await app_db_session.flush()
+
+        # Append another passage
+        psg_b = _make_passage(app_db_session, "审核篇二", 2)
+        await svc.append_passage(
+            document_id=doc_id,
+            text="追加内容。",
+            passage_id=psg_b,
+        )
+
+        doc_after = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        assert doc_after.review_status == "pending", (
+            f"Expected pending, got {doc_after.review_status}"
+        )
+        assert doc_after.rag_enabled is False, (
+            f"Expected rag_enabled=False, got {doc_after.rag_enabled}"
+        )
+
+    async def test_append_nonexistent_document_fails(self, app_db_session):
+        """Appending to a nonexistent document_id raises ValueError,
+        zero chunks created."""
+        import uuid
+
+        svc = IngestionService(app_db_session)
+        count_before = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+
+        with pytest.raises(ValueError, match="does not exist"):
+            await svc.append_passage(
+                document_id=str(uuid.uuid4()),
+                text="任意文字",
+                passage_id=_make_passage(app_db_session, "不存在文件测试", 1),
+            )
+
+        count_after = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        assert count_before == count_after, "No chunks may be created on failure"
+
+    async def test_append_nonexistent_passage_fails(self, app_db_session):
+        """Appending with a nonexistent passage_id raises ValueError,
+        zero chunks created."""
+        import uuid
+
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="测试空passage",
+            text="初始经文。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "有效篇章", 1),
+        )
+        count_before = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+
+        with pytest.raises(ValueError, match="does not exist"):
+            await svc.append_passage(
+                document_id=r1.document_id,
+                text="任意文字",
+                passage_id=str(uuid.uuid4()),
+            )
+
+        count_after = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        assert count_before == count_after, "No chunks may be created on failure"
+
+    async def test_append_empty_text_fails(self, app_db_session):
+        """Empty text raises ValueError, no state changes."""
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="空文本测试",
+            text="初始内容。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "空文本篇", 1),
+        )
+        count_before = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+
+        with pytest.raises(ValueError, match="empty"):
+            await svc.append_passage(
+                document_id=r1.document_id,
+                text="   ",
+                passage_id=_make_passage(app_db_session, "空文本篇二", 2),
+            )
+
+        count_after = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        assert count_before == count_after
+
+    async def test_append_permission_required(self, app_db_session):
+        """Unauthenticated → 401. No permission → 403."""
+        from app.db.database import get_session
+
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="权限测试文档",
+            text="初始内容。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "权限篇", 1),
+        )
+        await app_db_session.flush()
+
+        app = _make_test_app()
+        async def override_get_session():
+            yield app_db_session
+        app.dependency_overrides[get_session] = override_get_session
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            # Unauthenticated
+            r = await c.post(
+                f"/api/v1/search/documents/{r1.document_id}/append-passage",
+                json={"text": "追加", "passage_id": _make_passage(app_db_session, "权限篇二", 2)},
+            )
+            assert r.status_code in (401, 403), f"Expected 401/403 unauthenticated, got {r.status_code}"
+
+
+#  -- helpers --
+
+
+def _make_passage(db_session, title: str, order: int) -> str:
+    """Create a minimal Passage and return its id."""
+    from uuid import uuid4
+    from app.models.passage import Passage
+    from app.models.person import Person
+    from app.models.book import Book
+    from app.models.version import Version
+    from app.models.chapter import Chapter
+
+    # Quick entity chain
+    person = Person(id=str(uuid4()), name="测试作者")
+    db_session.add(person)
+    book = Book(id=str(uuid4()), title="测试书", author_id=person.id)
+    db_session.add(book)
+    ver = Version(
+        id=str(uuid4()),
+        book_id=book.id,
+        version_name="测试版",
+        era="现代",
+        repository="测试库",
+        shelf_mark="TEST",
+    )
+    db_session.add(ver)
+    ch = Chapter(id=str(uuid4()), book_id=book.id, title=f"{title}-章", order=order)
+    db_session.add(ch)
+    psg = Passage(
+        id=str(uuid4()),
+        chapter_id=ch.id,
+        content_text=f"{title}正文",
+        order=order,
+    )
+    db_session.add(psg)
+    return psg.id
