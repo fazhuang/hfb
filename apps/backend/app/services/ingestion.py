@@ -693,16 +693,16 @@ class IngestionService:
     ) -> "AppendResult":
         """Append passage-bound chunks to an existing document.
 
-        All work happens inside a single transaction.
-        On any failure, no partial chunks, no stale checksum, and no
-        half-updated review status survive.
+        Wraps all work inside a SQLAlchemy savepoint (begin_nested).
+        On any failure the savepoint is rolled back — no partial chunks,
+        no stale checksum, and no half-updated review status survive.
 
         Post-append: the document's review_status is reset to 'pending'
         and rag_enabled is set to False — re-review is required before
         RAG retrieval can use the new content.
         """
         from datetime import datetime, timezone
-        from sqlalchemy import select as _sel, func as _func
+        from sqlalchemy import select as _sel, func as _func, text as _text
 
         stripped = text.strip()
         if not stripped:
@@ -724,7 +724,70 @@ class IngestionService:
         if p_result.scalar_one_or_none() is None:
             raise ValueError(f"Passage {passage_id} does not exist or is deleted")
 
-        # 3. Chunk the new text
+        # 3. Re-run full-text compliance gate from the document's own metadata.
+        #    We do NOT accept override metadata — the append is to the SAME
+        #    source document so its original compliance attributes govern.
+        meta = {
+            "copyright_status": doc.copyright_status,
+            "authorization_basis": doc.authorization_basis,
+            "license_type": doc.license_type,
+            "source_name": doc.source_name,
+            "source_url": doc.source_url,
+        }
+        if self._is_forbidden_fulltext(meta):
+            await self._write_audit(
+                action="reject",
+                status="rejected",
+                source_url=doc.source_url,
+                source_name=doc.source_name,
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                reject_reason="forbidden_fulltext: append rejected",
+                result_entity_type="document",
+                result_entity_id=document_id,
+                details={"passage_id": passage_id},
+            )
+            raise FulltextRejectedError(
+                "Append rejected: document has forbidden_fulltext status"
+            )
+        if self._is_metadata_only(meta):
+            await self._write_audit(
+                action="skip",
+                status="skipped",
+                source_url=doc.source_url,
+                source_name=doc.source_name,
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                skipped_reason="metadata_only: append rejected",
+                result_entity_type="document",
+                result_entity_id=document_id,
+                details={"passage_id": passage_id},
+            )
+            raise FulltextRejectedError(
+                "Append rejected: document is metadata_only"
+            )
+        allowed, reason = self._is_fulltext_allowed(meta)
+        if not allowed:
+            await self._write_audit(
+                action="reject",
+                status="rejected",
+                source_url=doc.source_url,
+                source_name=doc.source_name,
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                reject_reason=reason,
+                result_entity_type="document",
+                result_entity_id=document_id,
+                details={"passage_id": passage_id},
+            )
+            raise FulltextRejectedError(
+                f"Append rejected by compliance gate: {reason}"
+            )
+
+        # 4. Chunk the new text
         chunks_with_indices = chunk_text(
             stripped, max_chars=max_chunk_chars, return_indices=True
         )
@@ -738,87 +801,104 @@ class IngestionService:
         if not chunk_list:
             raise ValueError("No chunks produced from input text")
 
-        # 4. Compute next chunk_index atomically
-        max_idx_result = await self.session.execute(
-            _sel(_func.coalesce(_func.max(DocumentChunk.chunk_index), -1)).where(
-                DocumentChunk.document_id == document_id,
-                DocumentChunk.is_deleted.is_(False),
+        # ---- Savepoint-bounded atomic block ----
+        sp = await self.session.begin_nested()
+        try:
+            # 5. Row-lock the document (FOR UPDATE) to prevent concurrent
+            #    append races on chunk_index and checksum.
+            await self.session.execute(
+                _sel(Document.id).where(
+                    Document.id == document_id,
+                ).with_for_update()
             )
-        )
-        next_index = max_idx_result.scalar_one() + 1
 
-        # 5. Create chunks with consecutive indices
-        chunk_ids: list[str] = []
-        for offset, item in enumerate(chunk_list):
-            if isinstance(item, str):
-                chunk_text_val = item
-                para_idx = -1
-            else:
-                chunk_text_val, para_idx = item
+            # 6. Compute next chunk_index under the lock
+            max_idx_result = await self.session.execute(
+                _sel(_func.coalesce(_func.max(DocumentChunk.chunk_index), -1))
+                .where(
+                    DocumentChunk.document_id == document_id,
+                    DocumentChunk.is_deleted.is_(False),
+                )
+            )
+            next_index = max_idx_result.scalar_one() + 1
 
-            cid = str(uuid4())
-            chunk = DocumentChunk(
-                id=cid,
+            # 7. Create chunks with consecutive indices
+            chunk_ids: list[str] = []
+            for offset, item in enumerate(chunk_list):
+                if isinstance(item, str):
+                    chunk_text_val = item
+                    para_idx = -1
+                else:
+                    chunk_text_val, para_idx = item
+
+                cid = str(uuid4())
+                chunk = DocumentChunk(
+                    id=cid,
+                    document_id=document_id,
+                    chunk_index=next_index + offset,
+                    content=chunk_text_val,
+                    token_count=len(chunk_text_val),
+                    passage_id=passage_id.strip(),
+                    paragraph_index=para_idx if para_idx >= 0 else (next_index + offset),
+                    evidence_weight="primary",
+                )
+                self.session.add(chunk)
+                chunk_ids.append(cid)
+
+            await self.session.flush()
+
+            # 8. Rebuild full content text and recompute checksum
+            all_chunks_result = await self.session.execute(
+                _sel(DocumentChunk.content).where(
+                    DocumentChunk.document_id == document_id,
+                    DocumentChunk.is_deleted.is_(False),
+                ).order_by(DocumentChunk.chunk_index)
+            )
+            all_text = "\n\n".join(row[0] for row in all_chunks_result)
+            new_checksum = hashlib.sha256(all_text.encode("utf-8")).hexdigest()
+
+            # 9. Update document: content, checksum, review status, rag
+            now = datetime.now(timezone.utc)
+            doc.content_text = all_text
+            doc.content_checksum = new_checksum
+            doc.review_status = "pending"
+            doc.rag_enabled = False
+            doc.updated_at = now
+
+            # 10. Audit log
+            await self._write_audit(
+                action="append_passage",
+                status="success",
+                source_url=doc.source_url,
+                source_name=doc.source_name,
+                copyright_status=doc.copyright_status,
+                authorization_basis=doc.authorization_basis,
+                license_type=doc.license_type,
+                checksum=new_checksum,
+                result_entity_type="document",
+                result_entity_id=document_id,
+                details={
+                    "passage_id": passage_id,
+                    "appended_chunk_count": len(chunk_ids),
+                    "first_chunk_index": next_index,
+                    "last_chunk_index": next_index + len(chunk_ids) - 1,
+                },
+            )
+
+            await sp.commit()
+
+            return AppendResult(
                 document_id=document_id,
-                chunk_index=next_index + offset,
-                content=chunk_text_val,
-                token_count=len(chunk_text_val),
-                passage_id=passage_id.strip(),
-                paragraph_index=para_idx if para_idx >= 0 else (next_index + offset),
-                evidence_weight="primary",
+                passage_id=passage_id,
+                appended_chunk_count=len(chunk_ids),
+                appended_chunk_ids=chunk_ids,
+                first_chunk_index=next_index,
+                last_chunk_index=next_index + len(chunk_ids) - 1,
+                content_checksum=new_checksum,
             )
-            self.session.add(chunk)
-            chunk_ids.append(cid)
-
-        # 6. Rebuild full content text and recompute checksum
-        all_chunks_result = await self.session.execute(
-            _sel(DocumentChunk.content).where(
-                DocumentChunk.document_id == document_id,
-                DocumentChunk.is_deleted.is_(False),
-            ).order_by(DocumentChunk.chunk_index)
-        )
-        all_text = "\n\n".join(row[0] for row in all_chunks_result)
-        new_checksum = hashlib.sha256(all_text.encode("utf-8")).hexdigest()
-
-        # 7. Update document: content, checksum, review status, rag
-        now = datetime.now(timezone.utc)
-        doc.content_text = all_text
-        doc.content_checksum = new_checksum
-        doc.review_status = "pending"
-        doc.rag_enabled = False
-        doc.updated_at = now
-
-        # 8. Audit log
-        await self._write_audit(
-            action="append_passage",
-            status="success",
-            source_url=doc.source_url,
-            source_name=doc.source_name,
-            copyright_status=doc.copyright_status,
-            authorization_basis=doc.authorization_basis,
-            license_type=doc.license_type,
-            checksum=new_checksum,
-            result_entity_type="document",
-            result_entity_id=document_id,
-            details={
-                "passage_id": passage_id,
-                "appended_chunk_count": len(chunk_ids),
-                "first_chunk_index": next_index,
-                "last_chunk_index": next_index + len(chunk_ids) - 1,
-            },
-        )
-
-        await self.session.flush()
-
-        return AppendResult(
-            document_id=document_id,
-            passage_id=passage_id,
-            appended_chunk_count=len(chunk_ids),
-            appended_chunk_ids=chunk_ids,
-            first_chunk_index=next_index,
-            last_chunk_index=next_index + len(chunk_ids) - 1,
-            content_checksum=new_checksum,
-        )
+        except Exception:
+            await sp.rollback()
+            raise
 
     # ------------------------------------------------------------------
     # Withdraw

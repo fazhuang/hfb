@@ -31,7 +31,7 @@ from app.middleware.auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
-_append_passage_guard = require_permission("research", "update")
+_append_passage_guard = require_permission("document", "update")
 
 # ponytail: auth deferred to post-Day-2 hardening.
 # Search/ingest use no required permission to allow integration

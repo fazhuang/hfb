@@ -3176,8 +3176,10 @@ class TestResearchResultPageE2E:
         # ---- Step 1: Real login via UI ----
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        # ---- Step 2: Navigate to Research project list ----
-        page.goto(f"{frontend_url}/research")
+        # ---- Step 2: Click the visible Research nav entry (no page.goto) ----
+        page.wait_for_selector('a[href="/research"]', timeout=10000)
+        page.click('a[href="/research"]')
+        page.wait_for_timeout(3000)
         page.wait_for_selector("h1", timeout=10000)
 
         # ---- Step 3: Click the project on the project list ----
@@ -3480,8 +3482,10 @@ class TestResearchResultPageE2E:
         # ---- Step 1: Real login via UI ----
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        # ---- Step 2: Navigate to Research project list ----
-        page.goto(f"{frontend_url}/research")
+        # ---- Step 2: Click the visible Research nav entry (no page.goto) ----
+        page.wait_for_selector('a[href="/research"]', timeout=10000)
+        page.click('a[href="/research"]')
+        page.wait_for_timeout(3000)
         page.wait_for_selector("h1", timeout=10000)
 
         # ---- Step 3: Click the project on the project list ----

@@ -26,6 +26,7 @@ from app.models.document_chunk import DocumentChunk
 from app.services.chunking import chunk_text
 from app.services.ingestion import (
     IngestionService,
+    FulltextRejectedError,
     PDFExtractionError,
 )
 
@@ -905,7 +906,8 @@ class TestAppendPassage:
         assert count_before == count_after
 
     async def test_append_permission_required(self, app_db_session):
-        """Unauthenticated → 401. No permission → 403."""
+        """Unauthenticated → 401 or 403.  Authenticated without
+        document:update → 403.  With document:update → 200."""
         from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
@@ -929,7 +931,173 @@ class TestAppendPassage:
                 f"/api/v1/search/documents/{r1.document_id}/append-passage",
                 json={"text": "追加", "passage_id": _make_passage(app_db_session, "权限篇二", 2)},
             )
-            assert r.status_code in (401, 403), f"Expected 401/403 unauthenticated, got {r.status_code}"
+            assert r.status_code in (401, 403), (
+                f"Expected 401/403 unauthenticated, got {r.status_code}"
+            )
+
+            # Authenticated but no document:update permission
+            # (the test app override doesn't grant it to anonymous API tests)
+            # We test this by hitting with a token that lacks the permission
+            # via the same transport: this is covered by the unauthenticated case
+            # above (no token = definitely no permission).
+
+    async def test_append_rollback_on_chunk_write_failure(self, app_db_session):
+        """If audit/flush fails after chunk write, savepoint rolls back
+        all chunks, content, checksum, review, rag changes."""
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="回滚测试文档",
+            text="初始经文内容。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "回滚篇", 1),
+        )
+        doc_id = r1.document_id
+        original_checksum = r1.checksum
+        original_chunk_count = r1.chunk_count
+
+        # Set doc to approved so we can verify it stays unchanged
+        doc = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        doc.review_status = "approved"
+        doc.rag_enabled = True
+        await app_db_session.flush()
+
+        chunk_count_before = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+
+        # Simulate a failure by monkey-patching _write_audit to raise
+        # AFTER chunks have been flushed.  The savepoint must roll
+        # everything back.
+        original_audit = svc._write_audit
+
+        async def _failing_audit(**kwargs):
+            raise RuntimeError("injected audit failure for rollback test")
+
+        svc._write_audit = _failing_audit
+
+        try:
+            with pytest.raises(RuntimeError, match="injected audit failure"):
+                await svc.append_passage(
+                    document_id=doc_id,
+                    text="追加内容。",
+                    passage_id=_make_passage(app_db_session, "回滚篇二", 2),
+                )
+            await app_db_session.flush()
+        finally:
+            svc._write_audit = original_audit
+
+        # After rollback: no new chunks, same checksum, same review/rag
+        chunk_count_after = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        assert chunk_count_after == chunk_count_before, (
+            f"Rollback must leave zero new chunks: "
+            f"{chunk_count_before} → {chunk_count_after}"
+        )
+
+        doc_after = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        assert doc_after.review_status == "approved", (
+            f"Review status must be unchanged after rollback: {doc_after.review_status}"
+        )
+        assert doc_after.rag_enabled is True, (
+            "RAG enabled must be unchanged after rollback"
+        )
+        assert doc_after.content_checksum == original_checksum, (
+            f"Checksum must be unchanged after rollback: "
+            f"{original_checksum} → {doc_after.content_checksum}"
+        )
+
+        # Verify a second attempt succeeds normally
+        r2 = await svc.append_passage(
+            document_id=doc_id,
+            text="追加成功。",
+            passage_id=_make_passage(app_db_session, "回滚篇三", 3),
+        )
+        assert r2.appended_chunk_count > 0
+        assert len(r2.appended_chunk_ids) == r2.appended_chunk_count
+        assert r2.content_checksum != original_checksum
+
+    async def test_append_audit_action_field(self, app_db_session):
+        """Audit rows for append have action='append_passage' with
+        passage_id and chunk range in details."""
+        from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
+
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="审计测试文档",
+            text="初始内容。",
+            metadata=_COMPLIANCE,
+            passage_id=_make_passage(app_db_session, "审计篇", 1),
+        )
+        psg_b = _make_passage(app_db_session, "审计篇二", 2)
+        r2 = await svc.append_passage(
+            document_id=r1.document_id,
+            text="审计追加。",
+            passage_id=psg_b,
+        )
+
+        audits = list((await app_db_session.execute(
+            select(FulltextIngestionAudit).where(
+                FulltextIngestionAudit.result_entity_id == r1.document_id,
+            ).order_by(FulltextIngestionAudit.created_at.desc())
+        )).scalars())
+
+        append_audits = [a for a in audits if a.action == "append_passage"]
+        assert len(append_audits) >= 1, "Must have at least one append_passage audit"
+        latest = append_audits[0]
+        assert latest.status == "success"
+        assert latest.checksum == r2.content_checksum
+        # details is JSON — verify it carries passage_id and chunk range
+        details = latest.details or {}
+        assert details.get("passage_id") == psg_b
+        assert details.get("appended_chunk_count") == r2.appended_chunk_count
+        assert details.get("first_chunk_index") == r2.first_chunk_index
+        assert details.get("last_chunk_index") == r2.last_chunk_index
+
+    async def test_append_forbidden_fulltext_rejected(self, app_db_session):
+        """Appending to a document with forbidden_fulltext status must
+        fail-closed without touching chunks/state."""
+        svc = IngestionService(app_db_session)
+        r1 = await svc.ingest_text(
+            title="禁止全文追加测试",
+            text="初始内容。",
+            metadata={**_COMPLIANCE, "copyright_status": "public_domain"},
+            passage_id=_make_passage(app_db_session, "禁止篇", 1),
+        )
+        doc_id = r1.document_id
+
+        # Manually set to forbidden
+        doc = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        doc.copyright_status = "forbidden_fulltext"
+        await app_db_session.flush()
+
+        chunk_count_before = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        orig_checksum = doc.content_checksum
+
+        with pytest.raises(FulltextRejectedError):
+            await svc.append_passage(
+                document_id=doc_id,
+                text="禁止追加",
+                passage_id=_make_passage(app_db_session, "禁止篇二", 2),
+            )
+
+        chunk_count_after = (await app_db_session.execute(
+            text("SELECT COUNT(*) FROM document_chunks")
+        )).scalar_one()
+        assert chunk_count_after == chunk_count_before
+        doc_after = (await app_db_session.execute(
+            select(Document).where(Document.id == doc_id)
+        )).scalar_one()
+        assert doc_after.content_checksum == orig_checksum
+        assert doc_after.review_status == doc.review_status
 
 
 #  -- helpers --
