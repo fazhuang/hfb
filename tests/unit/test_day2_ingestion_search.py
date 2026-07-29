@@ -906,9 +906,13 @@ class TestAppendPassage:
         assert count_before == count_after
 
     async def test_append_permission_required(self, app_db_session):
-        """Unauthenticated → 401 or 403.  Authenticated without
-        document:update → 403.  With document:update → 200."""
+        """Unauthenticated → 401.  Authenticated without
+        document:update → 403.  With document:update → 200.
+
+        This test verifies the append endpoint's permission guard via
+        real JWT auth chain (no mock overrides)."""
         from app.db.database import get_session
+        from app.services.auth_service import AuthService, create_access_token
 
         svc = IngestionService(app_db_session)
         r1 = await svc.ingest_text(
@@ -919,27 +923,105 @@ class TestAppendPassage:
         )
         await app_db_session.flush()
 
+        # Create users; register() auto-assigns Researcher role
+        auth_svc = AuthService(app_db_session)
+        owner = await auth_svc.register(
+            "append_owner", "append_owner@test.com", "Test123456!", "AppendOwner"
+        )
+        no_perm = await auth_svc.register(
+            "append_noperm", "append_noperm@test.com", "Test123456!", "AppendNoPerm"
+        )
+        await app_db_session.flush()
+
+        from app.models.user import Role, Permission as PermModel
+        from app.models.user import user_role as ur, role_permission as rp
+        from sqlalchemy import select as sa, and_, delete as sa_del
+
+        # Ensure document:update permission is granted to Researcher role
+        researcher_role = (await app_db_session.execute(
+            sa(Role).where(Role.name == "Researcher")
+        )).scalar_one_or_none()
+        if researcher_role:
+            # Remove no_perm from Researcher so they DON'T have document:update
+            await app_db_session.execute(
+                sa_del(ur).where(
+                    and_(ur.c.user_id == no_perm.id, ur.c.role_id == researcher_role.id)
+                )
+            )
+            await app_db_session.flush()
+
+        doc_upd = (await app_db_session.execute(
+            sa(PermModel).where(
+                and_(PermModel.resource == "document", PermModel.action == "update")
+            )
+        )).scalar_one_or_none()
+        if doc_upd is None:
+            doc_upd = PermModel(resource="document", action="update", description="Update documents")
+            app_db_session.add(doc_upd)
+            await app_db_session.flush()
+
+        # Grant document:update to Researcher role
+        if researcher_role and doc_upd:
+            ex_rp = (await app_db_session.execute(
+                sa(rp).where(
+                    and_(rp.c.role_id == researcher_role.id, rp.c.permission_id == doc_upd.id)
+                )
+            )).first()
+            if ex_rp is None:
+                await app_db_session.execute(
+                    rp.insert().values(role_id=researcher_role.id, permission_id=doc_upd.id)
+                )
+            # Ensure owner has researcher role (already auto-assigned)
+            ex_ur = (await app_db_session.execute(
+                sa(ur).where(
+                    and_(ur.c.user_id == owner.id, ur.c.role_id == researcher_role.id)
+                )
+            )).first()
+            if ex_ur is None:
+                await app_db_session.execute(
+                    ur.insert().values(user_id=owner.id, role_id=researcher_role.id)
+                )
+        await app_db_session.flush()
+
+        owner_token = create_access_token(owner.id)
+        noperm_token = create_access_token(no_perm.id)
+
         app = _make_test_app()
         async def override_get_session():
             yield app_db_session
         app.dependency_overrides[get_session] = override_get_session
 
+        psg_id_2 = _make_passage(app_db_session, "权限篇二", 2)
         transport = ASGITransport(app=app, raise_app_exceptions=False)
         async with AsyncClient(transport=transport, base_url="http://test") as c:
-            # Unauthenticated
+            # (1) No token → 401
             r = await c.post(
                 f"/api/v1/search/documents/{r1.document_id}/append-passage",
-                json={"text": "追加", "passage_id": _make_passage(app_db_session, "权限篇二", 2)},
+                json={"text": "追加", "passage_id": psg_id_2},
             )
-            assert r.status_code in (401, 403), (
-                f"Expected 401/403 unauthenticated, got {r.status_code}"
+            assert r.status_code == 401, (
+                f"Expected 401 unauthenticated, got {r.status_code}: {r.text}"
             )
 
-            # Authenticated but no document:update permission
-            # (the test app override doesn't grant it to anonymous API tests)
-            # We test this by hitting with a token that lacks the permission
-            # via the same transport: this is covered by the unauthenticated case
-            # above (no token = definitely no permission).
+            # (2) Authenticated, no document:update → 403
+            r = await c.post(
+                f"/api/v1/search/documents/{r1.document_id}/append-passage",
+                json={"text": "追加", "passage_id": psg_id_2},
+                headers={"Authorization": f"Bearer {noperm_token}"},
+            )
+            assert r.status_code == 403, (
+                f"Expected 403 no-permission, got {r.status_code}: {r.text}"
+            )
+
+            # (3) Authenticated, has document:update → 200
+            r = await c.post(
+                f"/api/v1/search/documents/{r1.document_id}/append-passage",
+                json={"text": "追加", "passage_id": psg_id_2},
+                headers={"Authorization": f"Bearer {owner_token}"},
+            )
+            assert r.status_code == 200, (
+                f"Expected 200 with permission, got {r.status_code}: {r.text}"
+            )
 
     async def test_append_rollback_on_chunk_write_failure(self, app_db_session):
         """If audit/flush fails after chunk write, savepoint rolls back

@@ -199,6 +199,7 @@ async def append_passage(
         # system-seeded doc) may append.  research:update permission is
         # a gate; ownership is a per-document enforcement.
         from app.repositories.document import DocumentRepository
+        from app.models.workspace import ResearchSession
         from fastapi import HTTPException
         doc = await DocumentRepository(session).get_by_id(document_id)
         if doc is None or doc.is_deleted:
@@ -208,6 +209,14 @@ async def append_passage(
                 status_code=403,
                 detail="You do not own this document",
             )
+        # Cross-project isolation: session-scoped docs require the owning session
+        if doc.session_id is not None:
+            owner_session = await session.get(ResearchSession, doc.session_id)
+            if owner_session is None or owner_session.user_id != current_user:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Access denied",
+                )
 
         svc = IngestionService(session)
         result = await svc.append_passage(

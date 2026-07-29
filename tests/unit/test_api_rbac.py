@@ -1269,3 +1269,375 @@ class TestDocumentCrossProjectIsolation:
         assert total >= 1
         titles = {d.title for d in items}
         assert "Public Doc" in titles
+
+
+# ============================================================
+# Append-Passage RBAC parity (M1-V4-SOURCEREF-APPEND-PASSAGE-RBAC-PARITY-11)
+# ============================================================
+#
+# Six identity/object combinations verified through real JWT auth chain:
+#   1. No token → 401
+#   2. Authenticated, missing document:update → 403 (state unchanged)
+#   3. document:update owner of public doc (uploaded_by=NULL) → 200
+#   4. document:update non-owner of private doc (uploaded_by≠user) → 403 (state unchanged)
+#   5. document:update non-session-owner of session-scoped doc → 403 (state unchanged)
+#   6. document:update + session owner → 200
+
+
+class TestAppendPassageRBACParity:
+    """Append-passage must mirror the Document update authorization policy."""
+
+    @pytest.fixture
+    async def parity_app(
+        self, db_session_persistent: AsyncSession
+    ):
+        """Build test app with real JWT auth chain + seed 3 documents + 3 users.
+
+        Documents:
+          - public_doc:  uploaded_by=NULL, session_id=NULL (system/public)
+          - private_doc: uploaded_by=user_a, session_id=NULL
+          - session_doc: uploaded_by=user_a, session_id=sess_a
+
+        Users:
+          - user_a (owner): has document:update + belongs to Researcher role
+          - user_b (non-owner): has document:update
+          - user_c (no-perm):  authenticated but NO document:update
+        """
+        import uuid as _uuid
+
+        from fastapi import FastAPI
+
+        from app.db.database import get_session
+        from app.models.user import User, Role, Permission as PermModel
+        from app.models.user import user_role as ur, role_permission as rp
+        from app.models.document import Document
+        from app.models.workspace import ResearchSession
+        from app.models.person import Person
+        from app.models.book import Book
+        from app.models.version import Version
+        from app.models.chapter import Chapter
+        from app.models.passage import Passage
+        from app.services.auth_service import AuthService, create_access_token
+
+        from sqlalchemy import select as sa, and_
+
+        db = db_session_persistent
+        auth_svc = AuthService(db)
+
+        # ---- Create users ----
+        user_a = await auth_svc.register(
+            "parity-a", "parity-a@test.com", "ParityA_123!", "ParityA"
+        )
+        user_b = await auth_svc.register(
+            "parity-b", "parity-b@test.com", "ParityB_123!", "ParityB"
+        )
+        user_c = await auth_svc.register(
+            "parity-c", "parity-c@test.com", "ParityC_123!", "ParityC"
+        )
+        await db.flush()
+
+        # ---- Users A, B get document:update. User C does not. ----
+        # register() auto-assigns Researcher role + its permissions.
+        # We remove C from Researcher to strip document:update.
+        researcher_role = (await db.execute(
+            sa(Role).where(Role.name == "Researcher")
+        )).scalar_one_or_none()
+        if researcher_role:
+            from sqlalchemy import delete as sa_del
+            await db.execute(
+                sa_del(ur).where(
+                    and_(ur.c.user_id == user_c.id, ur.c.role_id == researcher_role.id)
+                )
+            )
+        await db.flush()
+
+        doc_upd = (await db.execute(
+            sa(PermModel).where(
+                and_(PermModel.resource == "document", PermModel.action == "update")
+            )
+        )).scalar_one_or_none()
+        if doc_upd is None:
+            doc_upd = PermModel(
+                id=str(_uuid.uuid4()),
+                resource="document", action="update", description="Update documents"
+            )
+            db.add(doc_upd)
+            await db.flush()
+
+        # Grant document:update to Researcher role (user_a, user_b already members)
+        if researcher_role and doc_upd:
+            ex_rp = (await db.execute(
+                sa(rp).where(
+                    and_(rp.c.role_id == researcher_role.id, rp.c.permission_id == doc_upd.id)
+                )
+            )).first()
+            if ex_rp is None:
+                await db.execute(
+                    rp.insert().values(role_id=researcher_role.id, permission_id=doc_upd.id)
+                )
+        await db.flush()
+
+        # ---- Create session for session-scoped doc ----
+        sess_a = ResearchSession(
+            id=str(_uuid.uuid4()), user_id=user_a.id, title="Parity Project A",
+        )
+        db.add(sess_a)
+        await db.flush()
+
+        # ---- Create FK chain for passage ----
+        person = Person(id=str(_uuid.uuid4()), name="RBAC作者")
+        db.add(person)
+        book = Book(id=str(_uuid.uuid4()), title="RBAC书", author_id=person.id)
+        db.add(book)
+        ver = Version(
+            id=str(_uuid.uuid4()),
+            book_id=book.id, version_name="RBAC版", era="现代",
+            repository="RBAC库", shelf_mark="RBAC-001",
+        )
+        db.add(ver)
+        ch = Chapter(id=str(_uuid.uuid4()), book_id=book.id, title="RBAC章", order=1)
+        db.add(ch)
+        passage = Passage(
+            id=str(_uuid.uuid4()),
+            chapter_id=ch.id, version_id=ver.id,
+            content_text="RBAC经文", order=1,
+        )
+        db.add(passage)
+        await db.flush()
+        passage_id = passage.id
+
+        # ---- Create the 3 documents (with compliance metadata) ----
+        public_doc = Document(
+            id=str(_uuid.uuid4()),
+            title="公共文献",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            copyright_status="public_domain",
+            authorization_basis="public domain pre-1928",
+            review_status="pending_review",
+            content_text="公共内容。",
+        )
+        private_doc = Document(
+            id=str(_uuid.uuid4()),
+            title="私有文献",
+            uploaded_by=user_a.id,
+            session_id=None,
+            language="zh",
+            copyright_status="public_domain",
+            authorization_basis="test fixture",
+            review_status="pending_review",
+            content_text="私有内容。",
+        )
+        session_doc = Document(
+            id=str(_uuid.uuid4()),
+            title="项目文献",
+            uploaded_by=user_a.id,
+            session_id=sess_a.id,
+            language="zh",
+            copyright_status="public_domain",
+            authorization_basis="test fixture",
+            review_status="pending_review",
+            content_text="项目内容。",
+        )
+        db.add_all([public_doc, private_doc, session_doc])
+        await db.flush()
+
+        # ---- Tokens ----
+        token_a = create_access_token(user_a.id)
+        token_b = create_access_token(user_b.id)
+        token_c = create_access_token(user_c.id)
+
+        # ---- Build app — ONLY override get_session ----
+        from app.api.v1 import router as v1_router
+        app = FastAPI()
+        app.include_router(v1_router)
+
+        async def _override_get_session():
+            yield db_session_persistent
+
+        app.dependency_overrides[get_session] = _override_get_session
+
+        return {
+            "app": app,
+            "user_a": user_a,
+            "user_b": user_b,
+            "user_c": user_c,
+            "token_a": token_a,
+            "token_b": token_b,
+            "token_c": token_c,
+            "public_doc": public_doc,
+            "private_doc": private_doc,
+            "session_doc": session_doc,
+            "passage_id": passage_id,
+            "session": db,
+        }
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    async def _snapshot(self, db: AsyncSession, doc_id: str) -> dict:
+        """Capture document state for immutable assertions."""
+        from sqlalchemy import text as sqla_text
+
+        doc = (await db.execute(
+            sqla_text(
+                "SELECT content_checksum, review_status, rag_enabled FROM documents WHERE id = :id"
+            ).bindparams(id=doc_id)
+        )).mappings().first()
+        chunk_count = (await db.execute(
+            sqla_text("SELECT COUNT(*) FROM document_chunks WHERE document_id = :id")
+            .bindparams(id=doc_id)
+        )).scalar_one()
+        return {
+            "chunk_count": chunk_count,
+            "content_checksum": doc["content_checksum"] if doc else None,
+            "review_status": doc["review_status"] if doc else None,
+            "rag_enabled": bool(doc["rag_enabled"]) if doc and "rag_enabled" in doc else None,
+        }
+
+    def _assert_state_unchanged(
+        self, before: dict, after: dict, label: str
+    ) -> None:
+        """Assert document state is completely unchanged after a failed call."""
+        for key in ["chunk_count", "content_checksum", "review_status", "rag_enabled"]:
+            assert after.get(key) == before.get(key), (
+                f"[{label}] {key} changed: {before.get(key)} → {after.get(key)}"
+            )
+
+    # ------------------------------------------------------------------
+    # Scenario 1: No token → 401
+    # ------------------------------------------------------------------
+
+    async def test_append_no_token_401(self, parity_app):
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{parity_app['public_doc'].id}/append-passage",
+                json={"text": "追加", "passage_id": parity_app["passage_id"]},
+            )
+            assert r.status_code == 401, (
+                f"Expected 401, got {r.status_code}: {r.text}"
+            )
+
+    # ------------------------------------------------------------------
+    # Scenario 2: Authenticated but missing document:update → 403
+    #              State must be unchanged
+    # ------------------------------------------------------------------
+
+    async def test_append_no_perm_403_state_unchanged(self, parity_app):
+        doc_id = parity_app["public_doc"].id
+        db = parity_app["session"]
+        before = await self._snapshot(db, doc_id)
+
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{doc_id}/append-passage",
+                json={"text": "追加", "passage_id": parity_app["passage_id"]},
+                headers={"Authorization": f"Bearer {parity_app['token_c']}"},
+            )
+            assert r.status_code == 403, (
+                f"Expected 403, got {r.status_code}: {r.text}"
+            )
+
+        after = await self._snapshot(db, doc_id)
+        self._assert_state_unchanged(before, after, "no-perm-403")
+
+    # ------------------------------------------------------------------
+    # Scenario 3: document:update owner of public doc → 200
+    # ------------------------------------------------------------------
+
+    async def test_append_public_doc_with_perm_200(self, parity_app):
+        doc_id = parity_app["public_doc"].id
+        token_a = parity_app["token_a"]
+
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{doc_id}/append-passage",
+                json={"text": "追加公开内容", "passage_id": parity_app["passage_id"]},
+                headers={"Authorization": f"Bearer {token_a}"},
+            )
+            assert r.status_code == 200, (
+                f"Expected 200, got {r.status_code}: {r.text}"
+            )
+            body = r.json()
+            assert body["document_id"] == doc_id
+            assert body["passage_id"] == parity_app["passage_id"]
+            assert body["appended_chunk_count"] > 0
+            assert len(body["appended_chunk_ids"]) == body["appended_chunk_count"]
+            assert body["content_checksum"] is not None
+
+    # ------------------------------------------------------------------
+    # Scenario 4: document:update non-owner of private doc → 403
+    #              State unchanged
+    # ------------------------------------------------------------------
+
+    async def test_append_private_doc_non_owner_403_state_unchanged(self, parity_app):
+        doc_id = parity_app["private_doc"].id
+        db = parity_app["session"]
+        before = await self._snapshot(db, doc_id)
+
+        # user_b has document:update but does NOT own this doc (owned by user_a)
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{doc_id}/append-passage",
+                json={"text": "越权追加", "passage_id": parity_app["passage_id"]},
+                headers={"Authorization": f"Bearer {parity_app['token_b']}"},
+            )
+            assert r.status_code == 403, (
+                f"Expected 403 private non-owner, got {r.status_code}: {r.text}"
+            )
+
+        after = await self._snapshot(db, doc_id)
+        self._assert_state_unchanged(before, after, "private-non-owner-403")
+
+    # ------------------------------------------------------------------
+    # Scenario 5: document:update non-session-owner of session doc → 403
+    #              State unchanged
+    # ------------------------------------------------------------------
+
+    async def test_append_session_doc_non_owner_403_state_unchanged(self, parity_app):
+        doc_id = parity_app["session_doc"].id
+        db = parity_app["session"]
+        before = await self._snapshot(db, doc_id)
+
+        # user_b has document:update but does NOT own the session (session owned by user_a)
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{doc_id}/append-passage",
+                json={"text": "跨项目追加", "passage_id": parity_app["passage_id"]},
+                headers={"Authorization": f"Bearer {parity_app['token_b']}"},
+            )
+            assert r.status_code == 403, (
+                f"Expected 403 session non-owner, got {r.status_code}: {r.text}"
+            )
+
+        after = await self._snapshot(db, doc_id)
+        self._assert_state_unchanged(before, after, "session-non-owner-403")
+
+    # ------------------------------------------------------------------
+    # Scenario 6: document:update + session owner → 200
+    # ------------------------------------------------------------------
+
+    async def test_append_session_doc_owner_200(self, parity_app):
+        doc_id = parity_app["session_doc"].id
+        token_a = parity_app["token_a"]
+
+        transport = ASGITransport(app=parity_app["app"], raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as c:
+            r = await c.post(
+                f"/api/v1/search/documents/{doc_id}/append-passage",
+                json={"text": "追加项目内容", "passage_id": parity_app["passage_id"]},
+                headers={"Authorization": f"Bearer {token_a}"},
+            )
+            assert r.status_code == 200, (
+                f"Expected 200 session owner, got {r.status_code}: {r.text}"
+            )
+            body = r.json()
+            assert body["document_id"] == doc_id
+            assert body["appended_chunk_count"] > 0
