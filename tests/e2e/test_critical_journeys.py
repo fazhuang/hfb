@@ -1383,25 +1383,6 @@ class TestV4ResearchPortal:
         # Verify navigation to canonical research page
         assert page.locator('h1').first.is_visible()
 
-    # -- 2B: Gap marker — re-search from report (RESOLVED) --
-    def test_gap_re_search_from_report_now_resolved(
-        self,
-    ):
-        """V4 research tab re-search from report — RESOLVED Task 2B.
-
-        Proven in test_successful_workflow_uses_current_run_artifacts via
-        real browser closure: report card → re-search button click →
-        /library?q=... with computed query.  No gap remains.
-        """
-        # This gap was closed with a real browser re-search closure in
-        # test_successful_workflow_uses_current_run_artifacts, which:
-        # 1. Opens a report card after a successful workflow run
-        # 2. Reads the report preview to compute the expected query
-        # 3. Clicks the visible '基于报告重新搜索' button
-        # 4. Asserts exact pathname /library with q= query param
-        # 5. Asserts the library search page is loaded (not login/research)
-        pass
-
     # -- 2B: Replay verification — canonical equivalent FIXED (2026-07-29) --
     def test_gap_replay_verification_matched(
         self, live_servers, result_workflow_session, page,

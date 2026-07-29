@@ -748,21 +748,9 @@ describe('M1 能力 #3 Group 6: Result page 等价 → ResearchResultPage', () =
 // =============================================================================
 // Group 7: Re-search from report — RESOLVED (Task 2B / 2B-E1)
 // 对应 legacy: V4ResearchView.vue:686-692 reSearchFromReport
+//
+// M1-V4-016 REMOVED — real browser closure in
+// test_successful_workflow_uses_current_run_artifacts:
+// report card → re-search button click → /library?q=... with computed query.
+// No Vitest mock can substitute for that E2E proof.
 // =============================================================================
-
-describe('M1 能力 #3 Group 7: Re-search from report → RESOLVED', () => {
-  it('M1-V4-016: [RESOLVED] 基于报告重新搜索 — proven via real browser closure in test_successful_workflow_uses_current_run_artifacts (Task 2B-E1)', () => {
-    // Task 2B: navigateToLibrarySearch(router) implemented in useResearchWorkflow.
-    // ResearchReportStep renders '基于报告重新搜索' button (v-if report.topic).
-    // ResearchWorkflowPage handles @re-search event → router.push({ name: 'library-search', query: { q } }).
-    //
-    // Task 2B-E1: real browser closure replaces this placeholder.
-    // test_successful_workflow_uses_current_run_artifacts now:
-    //   1. Opens real report card after successful workflow run
-    //   2. Reads report preview, computes expected query (production logic)
-    //   3. Clicks visible '基于报告重新搜索' button
-    //   4. Asserts exact pathname /library with q= query param
-    //   5. Asserts library search page is loaded (not login/research fallback)
-    // No mock — the closure is proven in the E2E file.
-  });
-});
