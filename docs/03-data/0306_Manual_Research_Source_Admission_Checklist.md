@@ -1,12 +1,12 @@
 ---
 title: Manual Research Source Admission Checklist
 document_id: HFB-DAT-0306
-version: 0.1.1
+version: 0.2.0
 status: Draft
 owner: Research Lead
 reviewer: Project Steering Committee
 effective_date: 2026-07-30
-scope: Phase 3B — Manual Research Data Source Admission Gate
+scope: Phase 3B — Timing & Evidence-State Repair (3C remains frozen)
 priority: P0
 related_documents:
   - HFB-DAT-0301 Data Standard Specification
@@ -24,14 +24,14 @@ tags:
 ---
 
 > **状态:** Draft — 待 Research Lead 填写
-> **版本:** v0.1.1
+> **版本:** v0.2.0
 > **日期:** 2026-07-30
 > **负责人:** Research Lead
 > **审核人:** Project Steering Committee
 >
 > **本模板不包含任何学术来源数据。所有来源行、姓名、签署日期均留空。不得填写、猜测、补造任何示例学术来源或签署信息。**
 >
-> **本模板是纯人工待填写 Markdown 文档，不具备运行时拦截能力，不得被描述为已实现数据准入控制。** 填写完成不代表 3C 自动放行；3C 必须在 Research Lead 真实签署资料到位并经独立 Codex 验收后方可启动。
+> **本模板是纯人工待填写 Markdown 文档，不具备运行时拦截能力，不得被描述为已实现数据准入控制。** 填写完成不代表 3C 自动放行；3C 必须在全量前置条件满足（3A-pre PASS → 3B 签署 → Codex 绑定计划验收 → Steering Committee 书面放行）后方可启动。3A-post 阈值验收和 Codex 逐条真实链验证发生在 3C 导入完成后，不在本模板签署阶段。
 
 ---
 
@@ -55,10 +55,10 @@ tags:
 
 - **纯人工待填写文档** — 所有字段由 Research Lead 基于可验证的原始文献和授权文件人工填写。本模板不含、且不得补造任何示例学术来源或签署信息。
 - **不具备运行时拦截能力** — 本模板是纯 Markdown 文档，不是代码、脚本、数据库约束或 API 中间件。它无法在运行时阻止任何数据写入操作。**不得宣称本模板已实现数据准入控制或已阻止不合规数据写入试运行链。** 运行时 fail-closed 导入控制应另立独立卡实现，不得混入本模板。
-- **不是 3C 放行凭证** — 填写完成的清单是 3C 阶段（数据导入授权）的必要输入，但不是充分条件。3C 必须在 Research Lead 真实签署资料到位并经独立 Codex 验收后方可启动（见 [§6. 3C 硬停止条款](#6-3c-硬停止条款)）。
+- **不是 3C 放行凭证** — 填写完成的清单是 3C 阶段（数据导入授权）的必要输入，但不是充分条件。3C 必须在 Research Lead 真实签署资料到位、Codex 对绑定计划一致性验收 PASS、Steering Committee 书面放行后方可启动（见 [§6. 3C 硬停止条款](#6-3c-硬停止条款)）。
 - **不自动放行** — 即使模板所有行已填写、所有签署栏已签字，也不自动放行 3C；必须等待独立的 Codex 验收通过。
 
-通过 3A 自动化准入预检（[HFB-DAT-0301](0301_Data_Standard_Specification.md)）的数据库状态是必要的，但对**人工研究资料**而言不充分 — Research Lead 须确认每条来源的学术可靠性、版权合规性和版本权威性。
+通过 3A-pre 只读基线/模型可表达性检查（[HFB-DAT-0301](0301_Data_Standard_Specification.md)）确认数据库 Schema 无模型缺口是进入 3B 的必要条件，但 3A-pre 不要求数据阈值 PASS。3A-post 的阈值验收发生在 3C 受控导入完成后。
 
 **涵盖来源类型**：
 
@@ -78,8 +78,8 @@ Research Lead 填写每项来源时须遵守以下原则：
 2. **授权明确** — 须注明版权状态或使用授权依据（公有领域、CC 许可证、机构授权、合理使用声明）。
 3. **版本确定** — 古籍版本须标明版本学特征（刊刻年代、藏板、序跋信息）；研究文献须包含版本/印次。
 4. **范围明确** — 须指定精确导入范围（全卷/选篇/摘要），避免"全库导入"式模糊声明。
-5. **证据链完整** — 每项来源登记后须能在 HFB 数据模型中建立 `SourceRef → Evidence → Citation` 完整证据绑定链，并在清单中逐条说明绑定方式（见 §3 表格）。
-6. **N/A 使用限制** — `N/A` 仅可用于确实不适用的字段，且必须在该字段单元格内写明原因。**严禁**使用 `N/A` 绕过以下核心要求：来源标识、版权/授权依据、精确导入范围、审核签署、或 `SourceRef → Evidence → Citation` 证据链绑定说明。任何核心字段填写 `N/A` 而无合理原因的条目，视为未完成。
+5. **证据链绑定计划明确** — 每项来源登记时须在 §3 表格中逐条填写 `SourceRef → Evidence → Citation` 绑定计划（见 §3.4 字段语义），作为导入前可审计的规划依据。计划须包含：外部来源标识、拟绑定范围、预期 Passage 定位规则或待创建对象、预期绑定数量。**真正的运行时链验证（逐条以实际数据库记录核实 `SourceRef.url`、`Evidence.source_ref_id`、`Evidence.source_passage_id`、`Citation.evidence_id` 的同链绑定）发生在 3C-post，不在 3B 阶段。** 禁止在 3B 阶段把尚未创建的 source_ref_id、evidence_id、citation_id 当作已验证事实。
+6. **N/A 使用限制** — `N/A` 仅可用于确实不适用的字段，且必须在该字段单元格内写明原因。**严禁**使用 `N/A` 绕过以下核心要求：来源标识、版权/授权依据、精确导入范围、审核签署、或 `SourceRef → Evidence → Citation` 绑定计划。任何核心字段填写 `N/A` 而无合理原因的条目，视为未完成。
 
 ---
 
@@ -91,7 +91,7 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 ### 3.1 古籍版本
 
-| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定说明 | 风险说明 | 审核人 | 审核日期 |
+| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定计划 | 风险说明 | 审核人 | 审核日期 |
 |---|---|---|---|---|---|---|---|---|
 | CV-01 | | | | | | | | |
 | CV-02 | | | | | | | | |
@@ -101,7 +101,7 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 ### 3.2 研究文献
 
-| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定说明 | 风险说明 | 审核人 | 审核日期 |
+| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定计划 | 风险说明 | 审核人 | 审核日期 |
 |---|---|---|---|---|---|---|---|---|
 | DOC-01 | | | | | | | | |
 | DOC-02 | | | | | | | | |
@@ -111,7 +111,7 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 ### 3.3 馆藏资料
 
-| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定说明 | 风险说明 | 审核人 | 审核日期 |
+| # | 来源 URI / 馆藏标识 | 版权/授权依据 | 版本标识 | 导入范围 | SourceRef → Evidence → Citation 绑定计划 | 风险说明 | 审核人 | 审核日期 |
 |---|---|---|---|---|---|---|---|---|
 | HOLD-01 | | | | | | | | |
 | HOLD-02 | | | | | | | | |
@@ -125,7 +125,7 @@ Research Lead 填写每项来源时须遵守以下原则：
 | **版权/授权依据** | 确立使用和导入该来源的法律依据 | 须引用具体授权条款，如「公有领域（作者逝世超过 100 年）」「CC BY 4.0」「机构授权书编号 XXX」「合理使用（学术研究目的，限于元数据+摘要）」 |
 | **版本标识** | 版本学/文献学唯一标识 | 古籍：刊刻年代、藏板、序跋、行款；研究文献：出版社、版次、ISBN/ISSN |
 | **导入范围** | 该来源拟导入 HFB 的精确数据范围 | 须明确到卷/篇/条级别，如「全卷 12 卷（卷1-12）」「选篇（仅小兒病证相关条文）」「元数据+摘要」 |
-| **SourceRef → Evidence → Citation 绑定说明** | 该来源导入后在 HFB 数据模型中逐条建立完整证据绑定链的具体方式 | 须逐条说明三层绑定：(1) `SourceRef` 指向哪个外部来源 URI，创建几条 SourceRef 记录；(2) `Evidence` 绑定到哪个 Passage（或待创建的新 Passage），`source_ref_id` 和 `source_passage_id` 如何对应；(3) `Citation` 如何通过 `evidence_id` 引用上述 Evidence。格式示例：「SourceRef(url=来源URI) → Evidence(source_ref_id=SR-XX, source_passage_id=P-XX) → Citation(evidence_id=E-XX)，共 N 条 Citation」 |
+| **SourceRef → Evidence → Citation 绑定计划** | 该来源导入后在 HFB 数据模型中逐条建立完整证据绑定链的**预先规划**（导入前可审计，非已验证事实） | 须逐条说明三层绑定规划：(1) `SourceRef` 指向哪个外部来源 URI，计划创建几条 SourceRef 记录；(2) `Evidence` 绑定到哪个 Passage（或待创建的新 Passage），`source_ref_id` 和 `source_passage_id` 计划如何对应；(3) `Citation` 计划通过 `evidence_id` 引用上述 Evidence。格式示例：「SourceRef(url=来源URI) → Evidence(source_ref_id=SR-XX, source_passage_id=P-XX) → Citation(evidence_id=E-XX)，计划 N 条 Citation」。**导入前禁止填写实际的 `source_ref_id`/`evidence_id`/`citation_id` 数据库记录值**（这些记录在 3C 导入后才存在）。真正的运行时链验证发生在 3C-post 阶段，由 Codex 以实际数据库记录逐条核实。 |
 | **风险说明** | 该来源已知或潜在的数据质量/合规风险 | 须如实记录已知风险，如编码不一致、避讳改字、版本间异文、版权边界模糊等。无已知风险填写「暂无」并注明是基于何种核查 |
 | **审核人** | 负责审核该条来源的 Research Lead 真实姓名 | 签字人须对上述所有字段的准确性承担审核责任 |
 | **审核日期** | 审核完成日期 | ISO 8601 格式（YYYY-MM-DD） |
@@ -170,12 +170,33 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 以下条款构成 3C 阶段的**硬停止条件**。在全部条件满足之前，3C 处于**冻结状态**，禁止开始任何导入操作。
 
+### 6.0 阶段顺序（唯一）
+
+准入流水线的阶段顺序是唯一的。任一阶段未完成，不得进入下一阶段：
+
+```
+3A-pre PASS （导入前只读基线/模型可表达性检查 — 不要求数据阈值 PASS）
+  ↓
+3B 真实资料到位 + 逐条填写完成 + 逐条签署完成 + 逐条绑定计划填写
+  ↓
+Codex 对绑定计划一致性验收 PASS （对照 §3 表格逐条审计，不接受任何占位 ID 或示例数据）
+  ↓
+Steering Committee 书面放行
+  ↓
+3C 受控导入 （逐来源执行，严格限定在已审核清单范围内）
+  ↓
+3A-post PASS （导入后阈值验收 — 所有阈值 + Evidence 链覆盖门槛必须满足）
+  ↓
+Codex 逐条真实链验收 PASS （以实际数据库记录核实每条 SourceRef.url → Evidence.source_ref_id → Evidence.source_passage_id → Citation.evidence_id 同链绑定，不接受模板文字、占位 ID、示例数据或汇总计数替代）
+```
+
 ### 6.1 前置条件（逐条检查）
 
+- [ ] **3A-pre PASS** — 目标数据库的模型可表达性已通过只读基线检查（`data_admission_check.py` 返回退出码 0 或 1，即无 `BLOCKED_SCHEMA_GAP`）。3A-pre **不要求**数据阈值 PASS。
 - [ ] **真实资料到位** — Research Lead 已提供每项来源的真实、可追溯、已授权的版本/文献/馆藏资料。此条件不可通过示例数据、占位数据或模拟来源满足。
 - [ ] **逐条填写完成** — §3 清单中所有来源行的所有必填字段已由 Research Lead 完整填写，无空白单元格。`N/A` 使用符合 §2 第 6 条限制且已注明原因。
 - [ ] **逐条签署完成** — §4 审核签署表中 Research Lead 已真实签署（姓名 + 日期）。技术负责人已确认技术可行性并签署。
-- [ ] **证据链逐条可验证** — 每条来源的 `SourceRef → Evidence → Citation` 绑定说明已在 §3 表格中逐条填写，可被独立审计追踪。
+- [ ] **逐条绑定计划可审计** — 每条来源的 `SourceRef → Evidence → Citation` 绑定计划已在 §3 表格中逐条填写（外部来源标识、拟绑定范围、预期 Passage 定位规则或待创建对象、预期绑定数量）。计划内容可被独立审计追踪，不含任何占位数据库 ID。真正的运行时链验证发生在 3C-post。
 - [ ] **版权/授权逐条核实** — 每条来源的版权状态或授权依据已记录在案，无"待确认"或空白授权声明。
 
 ### 6.2 冻结状态下的禁令
@@ -191,9 +212,14 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 即使 §6.1 全部条件满足、§4 签署完成，本模板的完成**不自动放行 3C**。3C 放行须额外满足：
 
-1. **独立 Codex 验收通过** — 由非 Research Lead 的独立审核人（Codex 验收流程）逐条验证清单内容与原始来源的一致性。
+1. **独立 Codex 对绑定计划一致性验收 PASS** — 由非 Research Lead 的独立审核人（Codex 验收流程）逐条核查 §3 表格中每条来源的绑定计划是否与 §2 准入原则一致、是否明确指定外部来源标识、拟绑定范围、预期 Passage 定位规则或待创建对象、预期绑定数量。Codex 在此阶段不接受任何占位数据库 ID、示例数据或未定义的外部来源引用。**此阶段不要求实际数据库记录已存在。**
 2. **技术可行性确认** — 技术负责人确认每条来源的导入路径在技术上可行且不与现有数据冲突。
-3. **明确放行决定** — Project Steering Committee 或授权代表基于 Codex 验收报告做出明确书面放行决定。
+3. **明确放行决定** — Project Steering Committee 或授权代表基于 Codex 对绑定计划的验收报告做出明确书面放行决定。
+
+**3C 导入完成后的独立验证**（不在本模板签署范围内，但为完整生命周期的后续门禁）：
+
+4. **3A-post PASS** — 导入完成后运行 `scripts/data_admission_check.py`，所有阈值和 Evidence 链覆盖门槛必须同时满足。任一阈值 FAIL 即停止后续放行。
+5. **Codex 逐条真实链验收 PASS** — Codex 使用实际数据库记录逐条验证每条获准导入来源的 `SourceRef.url → Evidence.source_ref_id → Evidence.source_passage_id → Citation.evidence_id` 同链绑定，不接受模板文字、占位 ID、示例数据或汇总计数替代逐条链证据。
 
 ### 6.4 违规处理
 
@@ -203,15 +229,17 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 ## 7. 后续步骤
 
-以下步骤仅在 [§6. 3C 硬停止条款](#6-3c-硬停止条款) 全部前置条件满足且独立 Codex 验收通过后方可执行：
+以下步骤严格按照 §6.0 定义的阶段顺序执行。禁止跳过或重排：
 
-1. Research Lead 完成本模板所有必填字段填写。
-2. Research Lead 与 Project Steering Committee 进行审核签署（§4）。
-3. 独立 Codex 验收通过，Project Steering Committee 做出明确放行决定。
-4. **放行后**，技术负责人根据已审核清单执行数据导入脚本，逐一创建 `SourceRef → Evidence → Citation` 绑定链。
-5. 导入完成后运行 `scripts/data_admission_check.py` 重新验证 3A 准入阈值。
+1. **3A-pre** — 运行 `scripts/data_admission_check.py` 对目标数据库执行只读基线/模型可表达性检查，确认无 `BLOCKED_SCHEMA_GAP`（退出码 0 或 1 即可，不要求数据阈值 PASS）。
+2. **3B 填写与签署** — Research Lead 完成本模板所有必填字段填写（§3），Research Lead 与技术负责人签署（§4），风险汇总（§5）。
+3. **Codex 绑定计划验收** — 独立 Codex 对 §3 绑定计划逐条一致性验收 PASS。
+4. **Steering Committee 书面放行** — 基于 Codex 验收报告做出明确书面放行决定。
+5. **3C 受控导入** — 放行后，技术负责人根据已审核清单执行数据导入脚本，逐一创建 `SourceRef → Evidence → Citation` 绑定链。导入严格限定在已审核清单范围内。
+6. **3A-post 阈值验收** — 导入完成后运行 `scripts/data_admission_check.py`，所有阈值和 Evidence 链覆盖门槛必须 PASS。任一阈值 FAIL 即停止后续放行。
+7. **Codex 逐条真实链验收** — Codex 以实际数据库记录逐条核实每条获准导入来源的 `SourceRef.url → Evidence.source_ref_id → Evidence.source_passage_id → Citation.evidence_id` 同链绑定。不接受模板文字、占位 ID、示例数据或汇总计数替代逐条链证据。
 
-**注意**：步骤 4-5 仅在 Codex 验收放行后执行。在放行前，禁止执行任何导入脚本或写入操作。
+**注意**：步骤 5-7 仅在步骤 1-4 全部完成（含 Steering Committee 书面放行）后方可执行。
 
 ---
 
@@ -219,5 +247,6 @@ Research Lead 填写每项来源时须遵守以下原则：
 
 | 版本 | 日期 | 变更 |
 |---|---|---|
+| v0.2.0 | 2026-07-30 | **时序与证据状态修复** — (1) 新增 §6.0 阶段顺序唯一管线 `3A-pre → 3B → Codex 绑定计划验收 → Steering Committee 放行 → 3C → 3A-post → Codex 逐条真实链验收`；(2) 将 §2.5/§3/§6.1 中「证据链逐条可验证」改为导入前可审计的「逐条绑定计划」，明确真正的运行时链验证在 3C-post；(3) §3.4 字段语义改为绑定计划，禁止在导入前填写尚未创建的数据库 ID；(4) §6.3 拆分为放行前验收（绑定计划一致性）+ 导入后独立验证（3A-post + Codex 逐条真实链）；(5) §7 重写为七步顺序流程；(6) §1 更新 3A 引用为 3A-pre。对应的 0301 v1.1 新增 3A-pre/3A-post 双阶段定义。未声称运行时拦截或 3C 放行。 |
 | v0.1.1 | 2026-07-30 | 逻辑修复 — 合并 Citation/Evidence 为单列绑定说明；新增 N/A 使用限制（§2.6）；新增 §6 3C 硬停止条款（前置条件、冻结禁令、放行条件、违规处理）；明确模板无运行时拦截能力、不自动放行 3C；强调所有来源行/姓名/签署日期留空 |
 | v0.1.0 | 2026-07-30 | 初稿 — Phase 3B 人工研究资料来源准入清单模板，所有字段留空，待 Research Lead 填写 |
