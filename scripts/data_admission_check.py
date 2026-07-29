@@ -234,6 +234,11 @@ def _evaluate(counts: Dict[str, Any]) -> Dict[str, Any]:
             "min": 20,
             "actual": counts["literature_or_collections"],
         },
+        "approved_rag_documents": {
+            "min": 20,
+            "actual": counts["approved_rag_documents"],
+            "filter": "review_status=approved, source_url non-empty, rag_enabled=true",
+        },
     }
 
     all_met = True
@@ -288,11 +293,60 @@ def _evaluate(counts: Dict[str, Any]) -> Dict[str, Any]:
             }
         )
 
-    # Evidence-bound passages — informational only (not a threshold)
+    rd = thresholds["approved_rag_documents"]
+    if rd["actual"] < rd["min"]:
+        all_met = False
+        failures.append(
+            {
+                "threshold": "approved_rag_documents",
+                "required": rd["min"],
+                "actual": rd["actual"],
+                "filter": rd["filter"],
+            }
+        )
+
+    # Evidence-bound passages — hard gate, not informational
+    ebp = counts["evidence_bound_passages"]
+    using_chapters = counts["chapters"] >= 3
+    using_passages = counts["alignable_passages"] >= 100
+
+    if using_chapters:
+        ebp_required = 1
+    elif using_passages:
+        ebp_required = 100
+    else:
+        # chapters_or_alignable_passages already failed; evidence gate is moot
+        # but we still report the gap
+        ebp_required = None
+
+    if ebp_required is not None and ebp < ebp_required:
+        all_met = False
+        path_label = (
+            "chapters-path (chapters>=3 → evidence_bound_passages>=1)"
+            if using_chapters
+            else "passages-path (alignable_passages>=100 → evidence_bound_passages>=100)"
+        )
+        failures.append(
+            {
+                "threshold": "evidence_bound_passages",
+                "required": ebp_required,
+                "actual": ebp,
+                "path": path_label,
+                "definition": "Passages with Citation→Evidence→SourceRef chain, "
+                "SourceRef.url non-empty",
+            }
+        )
+
     evidence_bound_info = {
-        "evidence_bound_passages": counts["evidence_bound_passages"],
-        "note": "Passages with Citation → Evidence → SourceRef chain. "
-        "Informational only — not a threshold gate.",
+        "evidence_bound_passages": ebp,
+        "required_min": ebp_required,
+        "path": (
+            "chapters"
+            if using_chapters
+            else "passages"
+            if using_passages
+            else "neither"
+        ),
     }
 
     return {

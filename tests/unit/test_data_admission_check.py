@@ -142,6 +142,7 @@ def _make_counts(**overrides) -> dict:
         "documents_total": 0,
         "literature_or_collections": 0,
         "evidence_bound_passages": 0,
+        "approved_rag_documents": 0,
     }
     defaults.update(overrides)
     return defaults
@@ -155,6 +156,8 @@ def test_evaluate_all_pass():
         chapters=5,
         alignable_passages=200,
         literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
     )
     result = _evaluate(counts)
     assert result["all_met"] is True
@@ -169,6 +172,8 @@ def test_evaluate_fail_threshold_persons():
         chapters=10,
         alignable_passages=500,
         literature_or_collections=50,
+        evidence_bound_passages=100,
+        approved_rag_documents=30,
     )
     result = _evaluate(counts)
     assert result["all_met"] is False
@@ -183,6 +188,8 @@ def test_evaluate_fail_threshold_classical_versions():
         chapters=5,
         alignable_passages=200,
         literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
     )
     result = _evaluate(counts)
     assert result["all_met"] is False
@@ -223,12 +230,97 @@ def test_evaluate_fail_literature():
         chapters=5,
         alignable_passages=200,
         literature_or_collections=10,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
     )
     result = _evaluate(counts)
     assert result["all_met"] is False
     assert any(
         f["threshold"] == "literature_or_collections" for f in result["failures"]
     )
+
+
+# ====================================================================
+# 2b. New hard-gate tests — evidence_bound_passages + approved_rag_documents
+# ====================================================================
+
+
+def test_evaluate_fail_approved_rag_documents_zero():
+    """approved_rag_documents == 0 must fail even if all other thresholds met."""
+    counts = _make_counts(
+        persons=15,
+        approved_classical_versions=3,
+        chapters=5,
+        alignable_passages=200,
+        literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=0,
+    )
+    result = _evaluate(counts)
+    assert result["all_met"] is False
+    assert any(f["threshold"] == "approved_rag_documents" for f in result["failures"])
+
+
+def test_evaluate_fail_evidence_bound_passages_zero_chapters_path():
+    """0 evidence-bound passages + chapters-path: chapters>=3 → requires >=1, fails."""
+    counts = _make_counts(
+        persons=15,
+        approved_classical_versions=2,
+        chapters=5,
+        alignable_passages=0,
+        literature_or_collections=30,
+        evidence_bound_passages=0,
+        approved_rag_documents=25,
+    )
+    result = _evaluate(counts)
+    assert result["all_met"] is False
+    assert any(f["threshold"] == "evidence_bound_passages" for f in result["failures"])
+
+
+def test_evaluate_fail_evidence_bound_passages_insufficient_passages_path():
+    """99 evidence-bound passages + passages-path: >=100 aligns → requires >=100, fails."""
+    counts = _make_counts(
+        persons=15,
+        approved_classical_versions=2,
+        chapters=2,
+        alignable_passages=150,
+        literature_or_collections=30,
+        evidence_bound_passages=99,
+        approved_rag_documents=25,
+    )
+    result = _evaluate(counts)
+    assert result["all_met"] is False
+    assert any(f["threshold"] == "evidence_bound_passages" for f in result["failures"])
+
+
+def test_evaluate_pass_evidence_bound_chapters_path_minimal():
+    """Chapters path: chapters>=3, evidence_bound >=1 → evidence gate passes."""
+    counts = _make_counts(
+        persons=15,
+        approved_classical_versions=2,
+        chapters=5,
+        alignable_passages=50,
+        literature_or_collections=30,
+        evidence_bound_passages=1,
+        approved_rag_documents=25,
+    )
+    result = _evaluate(counts)
+    assert result["all_met"] is True
+
+
+def test_evaluate_pass_evidence_bound_passages_path_minimal():
+    """Passages path: alignable>=100, evidence_bound >=100 → evidence gate passes."""
+    counts = _make_counts(
+        persons=15,
+        approved_classical_versions=2,
+        chapters=2,
+        alignable_passages=150,
+        literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
+    )
+    result = _evaluate(counts)
+    assert result["all_met"] is True
 
 
 # ====================================================================
@@ -246,6 +338,8 @@ def test_verdict_pass_no_gaps_all_thresholds_met():
         chapters=5,
         alignable_passages=200,
         literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
     )
     result = _evaluate(counts)
     if gaps:
@@ -266,6 +360,8 @@ def test_verdict_blocked_schema_gap():
         chapters=50,
         alignable_passages=5000,
         literature_or_collections=200,
+        evidence_bound_passages=1000,
+        approved_rag_documents=100,
     )
     result = _evaluate(counts)
     if gaps:
@@ -286,6 +382,8 @@ def test_verdict_fail_threshold():
         chapters=1,
         alignable_passages=10,
         literature_or_collections=5,
+        evidence_bound_passages=0,
+        approved_rag_documents=0,
     )
     result = _evaluate(counts)
     if gaps:
@@ -367,6 +465,8 @@ def test_json_output_contains_required_keys():
         chapters=5,
         alignable_passages=200,
         literature_or_collections=30,
+        evidence_bound_passages=100,
+        approved_rag_documents=25,
     )
     result = _evaluate(counts)
     gaps: list = []

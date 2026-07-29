@@ -33,7 +33,10 @@ const i18n = createI18n({
 
 const router = createRouter({
   history: createWebHistory(),
-  routes: [],
+  routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/library/:id', component: { template: '<div />' } },
+  ],
 });
 
 const globalPlugins = { plugins: [i18n, router] };
