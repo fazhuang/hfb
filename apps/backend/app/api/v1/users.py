@@ -22,15 +22,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.middleware.auth import get_current_user, require_permission
-from app.repositories.user import UserRepository, RoleRepository
+from app.repositories.user import RoleRepository, UserRepository
 from app.schemas.user import (
-    UserCreate,
-    UserUpdate,
-    UserBrief,
-    UserResponse,
-    RoleCreate,
     RoleBrief,
+    RoleCreate,
     RoleResponse,
+    UserBrief,
+    UserCreate,
+    UserResponse,
+    UserUpdate,
 )
 from app.services.auth_service import hash_password
 from app.utils.response import api_response

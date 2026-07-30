@@ -3,18 +3,19 @@ Tests for ClassicalVersion model, schemas, validation, CRUD, and route-level sof
 """
 from __future__ import annotations
 
-import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from datetime import UTC
 
-from main import app as fastapi_app
-from app.models.classical_version import ClassicalVersion
+import pytest
 from app.db.base import BaseModel
+from app.models.classical_version import ClassicalVersion
 from app.schemas.classical_version import (
+    ClassicalVersionBrief,
     ClassicalVersionCreate,
     ClassicalVersionUpdate,
-    ClassicalVersionBrief,
 )
+from httpx import ASGITransport, AsyncClient
+from main import app as fastapi_app
+from sqlalchemy import select
 
 from tests.conftest_db import db_session  # noqa: F401
 
@@ -34,8 +35,7 @@ def _auth_headers(user_id: str = "test-user-1") -> dict:
 
 
 async def _seed_user_with_perms(session, user_id, username, permission_codes, is_superuser=False):
-    from app.models.user import User, Role, Permission
-    from app.models.user import user_role, role_permission
+    from app.models.user import Permission, Role, User, role_permission, user_role
 
     user = User(
         id=user_id, username=username, email=f"{username}@test.com",
@@ -137,7 +137,7 @@ class TestClassicalVersionSchemas:
 
     def test_brief_from_attributes(self):
         import uuid
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         cv = ClassicalVersion(
             id=str(uuid.uuid4()),
@@ -148,7 +148,7 @@ class TestClassicalVersionSchemas:
             repository="上海图书馆",
             public_domain_status="confirmed_public_domain",
             review_status="approved",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
         brief = ClassicalVersionBrief.model_validate(cv)
         assert brief.work_title == "针灸甲乙经"
@@ -302,13 +302,15 @@ class TestClassicalVersionDeleteIsSoftDelete:
     """DELETE /api/v1/admin/classical-versions/{id} must soft-delete, not hard-delete."""
 
     async def test_superuser_delete_is_soft_delete(self, db_session):
-        from app.middleware import auth as auth_mod
-        from app.db.database import get_session
-        from app.services.auth_service import AuthService
-        from app.services.auth_service import decode_token, create_access_token
-
         # Seed
         from app.api.v1.classical_versions import ClassicalVersionService
+        from app.db.database import get_session
+        from app.middleware import auth as auth_mod
+        from app.services.auth_service import (
+            AuthService,
+            create_access_token,
+            decode_token,
+        )
         svc = ClassicalVersionService(db_session)
         obj = await svc.create(ClassicalVersionCreate(
             work_title="针灸甲乙经",
@@ -368,7 +370,7 @@ class TestClassicalVersionDeleteIsSoftDelete:
         fetched = await svc.get_by_id(created_id)
         assert fetched is None, "soft-deleted row must not be visible via get_by_id"
 
-        items, total = await svc.list()
+        _items, total = await svc.list()
         assert total == 0, "soft-deleted row must not appear in list"
 
 
@@ -381,10 +383,13 @@ class TestClassicalVersionPublicDomainRequired:
     """public_domain_status is required — no default."""
 
     async def test_missing_public_domain_status_422(self, db_session):
-        from app.middleware import auth as auth_mod
         from app.db.database import get_session
-        from app.services.auth_service import AuthService
-        from app.services.auth_service import decode_token, create_access_token
+        from app.middleware import auth as auth_mod
+        from app.services.auth_service import (
+            AuthService,
+            create_access_token,
+            decode_token,
+        )
 
         token = create_access_token("test-user-1")
 

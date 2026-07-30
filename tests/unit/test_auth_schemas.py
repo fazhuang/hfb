@@ -2,15 +2,14 @@
 Tests for user/role/permission Pydantic schemas.
 """
 import pytest
-from pydantic import ValidationError
-
 from app.schemas.user import (
     LoginRequest,
     RegisterRequest,
+    RoleCreate,
     UserCreate,
     UserUpdate,
-    RoleCreate,
 )
+from pydantic import ValidationError
 
 
 class TestLoginSchema:

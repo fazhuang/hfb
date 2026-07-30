@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 # ============================================================
 # Request
 # ============================================================
@@ -96,7 +95,7 @@ class EvidenceRAGResponse(BaseModel):
     evidence: list[EvidenceBoundChunk] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def enforce_evidence_contract(self) -> "EvidenceRAGResponse":
+    def enforce_evidence_contract(self) -> EvidenceRAGResponse:
         if not self.refusal:
             errors: list[str] = []
             if not self.answer:

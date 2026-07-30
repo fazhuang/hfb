@@ -11,7 +11,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.institution import InstitutionType, InstitutionStatus
+from app.models.institution import InstitutionStatus, InstitutionType
 
 _VALID_TYPES = frozenset(t.value for t in InstitutionType)
 

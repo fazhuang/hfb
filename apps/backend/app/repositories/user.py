@@ -3,10 +3,9 @@ User repository — data access for users, roles, permissions.
 """
 from __future__ import annotations
 
-
 from sqlalchemy import select
 
-from app.models.user import User, Role, Permission
+from app.models.user import Permission, Role, User
 from app.repositories.base import BaseRepository
 
 

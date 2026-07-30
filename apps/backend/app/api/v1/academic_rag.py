@@ -18,6 +18,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.logging import get_logger
 from app.db.database import get_session
 from app.middleware.auth import require_permission
 from app.schemas.academic_rag import (
@@ -26,8 +27,6 @@ from app.schemas.academic_rag import (
     AcademicRAGResponse,
 )
 from app.services.academic_rag_service import AcademicRAGService
-
-from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/academic-rag", tags=["Academic RAG"])

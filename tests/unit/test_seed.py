@@ -2,7 +2,7 @@
 Tests for seed data fixtures structure (Sprint 3 scope).
 """
 
-from app.db.seed import SEED_PERSONS, SEED_DOCUMENTS
+from app.db.seed import SEED_DOCUMENTS, SEED_PERSONS
 
 
 class TestSeedData:

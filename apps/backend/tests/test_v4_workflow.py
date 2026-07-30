@@ -6,10 +6,9 @@ and the workflow-loop logic from research.py.
 """
 from __future__ import annotations
 
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import pytest
-
 
 # =============================================================================
 # Fixtures and helpers
@@ -262,7 +261,6 @@ class TestCitationIntegrity:
             ),
         ]
         # Convert evidence dicts to snapshot entries so trace_ids are stable
-        from app.services.trace_lineage import make_trace_id
 
         snapshot = [_make_snapshot_entry(doc_id=e["document_id"], chunk_id=e["chunk_id"],
                                           claim_text=e["claim_text"], citation_text=e["citation_text"])
@@ -295,7 +293,7 @@ class TestCitationIntegrity:
             ResearchWorkflowService,
         )
 
-        evidence = [
+        [
             _make_evidence_trace(doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"),
             _make_evidence_trace(doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"),
         ]
@@ -322,11 +320,10 @@ class TestSessionIsolation:
         This is tested at the conceptual level — the ResearchWorkflowService reads
         from one session's workflow_state JSON column.
         """
-        from app.services.research_workflow_service import ResearchWorkflowService
 
         # Two distinct session IDs
-        sid_a = uuid4()
-        sid_b = uuid4()
+        uuid4()
+        uuid4()
 
         # Simulate the isolation contract: if we were to mock WorkspaceService,
         # get_session(id_a).workflow_state would only contain runs stored with id_a.
@@ -358,6 +355,7 @@ class TestSessionIsolation:
         """
         # Verify _build_retrieval_snapshot does not rely on any module-global state
         import inspect
+
         from app.services.research_workflow_service import _build_retrieval_snapshot
 
         src = inspect.getsource(_build_retrieval_snapshot)
@@ -395,6 +393,7 @@ class TestNoSourceRefRowFailClosed:
         This is the correct fail-closed contract.  No mock, no pseudo ID.
         """
         from unittest.mock import AsyncMock
+
         from app.services.research_workflow_service import _build_retrieval_snapshot
 
         doc_id = "doc-no-sourceref-row"
@@ -451,6 +450,7 @@ class TestNoSourceRefRowFailClosed:
     async def test_real_sourceref_id_present_when_row_exists(self):
         """When a SourceRef row exists, its real id flows into snapshot."""
         from unittest.mock import AsyncMock
+
         from app.services.research_workflow_service import _build_retrieval_snapshot
 
         doc_id = "doc-has-sourceref"
@@ -555,6 +555,7 @@ class TestSourceRefIdentity:
     async def test_same_title_different_url_produces_distinct_rows(self):
         """Two documents with the same title but different URLs get separate SourceRef rows."""
         from unittest.mock import AsyncMock
+
         from app.services.ingestion import IngestionService
 
         calls = []
@@ -590,10 +591,10 @@ class TestSourceRefIdentity:
     @pytest.mark.asyncio
     async def test_repeat_ingest_same_url_is_idempotent(self):
         """Ingesting the same URL twice returns the same SourceRef id."""
-        from unittest.mock import AsyncMock
-        from app.services.ingestion import IngestionService
-
         import uuid
+        from unittest.mock import AsyncMock
+
+        from app.services.ingestion import IngestionService
         existing_id = str(uuid.uuid4())
 
         mock_db = AsyncMock()
@@ -623,6 +624,7 @@ class TestSourceRefIdentity:
     async def test_same_title_different_page_location_no_url_distinct(self):
         """No URL: same title + different page_location → distinct rows."""
         from unittest.mock import AsyncMock
+
         from app.services.ingestion import IngestionService
 
         calls = []
@@ -658,6 +660,7 @@ class TestSourceRefIdentity:
     async def test_no_url_no_page_location_returns_none(self):
         """Without URL or page_location there is no identity → returns None."""
         from unittest.mock import AsyncMock
+
         from app.services.ingestion import IngestionService
 
         mock_db = AsyncMock()

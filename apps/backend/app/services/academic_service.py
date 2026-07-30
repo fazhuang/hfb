@@ -14,8 +14,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,8 +27,8 @@ from app.schemas.academic import (
     CitationRef,
     EducationConcept,
     EvidenceTrace,
-    ReproducibilityMetadata,
     ReportSection,
+    ReproducibilityMetadata,
     ResearchSubQuestion,
     SynthesisTheme,
     UnsupportedClaimVerdict,
@@ -37,8 +39,6 @@ from app.services.generation_proof import (
     VerifiedClaim,
 )
 from app.services.generation_service import _normalize_whitespace
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -565,14 +565,14 @@ class AcademicService:
     # 1. ACADEMIC REPORT GENERATOR
     # ==================================================================
 
-    _REPORT_DECOMPOSE_PATTERNS: dict[str, list[str]] = {
+    _REPORT_DECOMPOSE_PATTERNS: ClassVar[dict[str, list[str]]] = {
         "literature_review": ["文献来源与版本", "核心内容概述", "学术价值与影响"],
         "research_summary": ["研究背景", "主要发现", "关键证据"],
         "thematic_analysis": ["主题梳理", "文本证据", "跨文献关联"],
         "historical_interpretation": ["历史背景", "文献记载", "后世影响与评价"],
     }
 
-    _REPORT_TITLES: dict[str, str] = {
+    _REPORT_TITLES: ClassVar[dict[str, str]] = {
         "literature_review": "文献综述",
         "research_summary": "研究摘要",
         "thematic_analysis": "主题分析",
@@ -597,7 +597,7 @@ class AcademicService:
         for section_heading in sections:
             sub_query = f"{query} —— {section_heading}"
             retrieval_q = build_academic_retrieval_query(sub_query)
-            proof, verdict, gate_passed, fail_reason = await self._run_gated_proof(
+            proof, verdict, gate_passed, _fail_reason = await self._run_gated_proof(
                 gate_query=sub_query,
                 top_k=top_k,
                 retrieval_query=retrieval_q,
@@ -772,7 +772,7 @@ class AcademicService:
         themes = self._cluster_claims_by_concept(claims)
 
         for theme in themes:
-            doc_ids_set = set(c.document_id for c in theme.claims)
+            doc_ids_set = {c.document_id for c in theme.claims}
             if len(doc_ids_set) >= 2:
                 theme.cross_document_refs = sorted(doc_ids_set)
 
@@ -796,7 +796,7 @@ class AcademicService:
             corpus_records=_build_corpus_records_from_proof(proof),
         )
 
-    _CONCEPT_KEYWORDS: list[str] = [
+    _CONCEPT_KEYWORDS: ClassVar[list[str]] = [
         "经络",
         "针灸",
         "穴位",
@@ -862,7 +862,7 @@ class AcademicService:
                     seen.add(key)
                     deduped.append(AcademicService._verified_claim_to_trace(vc))
 
-            doc_count = len(set(vc.document_id for vc in theme_claims))
+            doc_count = len({vc.document_id for vc in theme_claims})
             desc = (
                 f"来自{doc_count}篇文献中关于「{theme_name}」的原文证据"
                 if doc_count >= 2
@@ -879,7 +879,7 @@ class AcademicService:
     # 3. RESEARCH ASSISTANT MODE (P0-3: gate-first, P0-4: hypothesis from corpus)
     # ==================================================================
 
-    _RESEARCH_DECOMPOSE_PATTERNS: list[tuple[str, str, str]] = [
+    _RESEARCH_DECOMPOSE_PATTERNS: ClassVar[list[tuple[str, str, str]]] = [
         ("定义与概念", "什么是{query}？", "{query} 定义 概念"),
         ("历史与来源", "{query}的历史渊源是什么？", "{query} 历史 来源"),
         ("内容与结构", "{query}包含哪些内容？", "{query} 内容 结构"),
@@ -901,7 +901,7 @@ class AcademicService:
 
         # Run retrieval for original query
         retrieval_q = build_academic_retrieval_query(query)
-        proof, original_verdict, _, fail_reason = await self._run_gated_proof(
+        proof, original_verdict, _, _fail_reason = await self._run_gated_proof(
             gate_query=query,
             top_k=top_k,
             retrieval_query=retrieval_q,
@@ -955,9 +955,9 @@ class AcademicService:
 
             (
                 sub_proof,
-                sub_verdict,
+                _sub_verdict,
                 sub_gate_passed,
-                sub_fail_reason,
+                _sub_fail_reason,
             ) = await self._run_gated_proof(
                 gate_query=sub_display,
                 top_k=top_k,
@@ -1076,9 +1076,7 @@ class AcademicService:
             logger.exception("Failed to persist research citations")
 
         # Determine gate verdict for response
-        gate_verdict = (
-            original_verdict if not original_verdict.is_supported else original_verdict
-        )
+        gate_verdict = original_verdict
 
         return finalize_academic_response(
             AcademicResponse(
@@ -1317,7 +1315,7 @@ def finalize_academic_response(
 
     # Extract cited chunk IDs from evidence traces
     cited_ids = list(dict.fromkeys(t.chunk_id for t in response.evidence_trace))
-    doc_ids = sorted(set(t.document_id for t in response.evidence_trace))
+    doc_ids = sorted({t.document_id for t in response.evidence_trace})
 
     repro.ordered_cited_chunk_ids = cited_ids
     repro.source_document_ids = doc_ids

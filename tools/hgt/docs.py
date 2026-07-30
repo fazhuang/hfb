@@ -1,7 +1,8 @@
+from .reporter import append_report, write_audit_report
 from .scanner import scan_docs
-from .reporter import write_audit_report, append_report
 from .upgrader import scaffold_docs
 from .validator import validate_scan
+
 
 def inventory(args):
     result = scan_docs()

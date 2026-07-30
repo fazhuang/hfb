@@ -26,8 +26,8 @@ os.chdir(_backend_dir)
 
 
 async def main():
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from sqlalchemy import text
 
     await init_database()
 
@@ -89,7 +89,7 @@ async def main():
 
         pdf_doc_id = None
         if pdf_docs:
-            pdf_doc_id, title, blob, checksum, source_url, cs, ab = pdf_docs[0]
+            pdf_doc_id, _title, blob, checksum, source_url, cs, ab = pdf_docs[0]
             has_checksum = bool(checksum)
             check("2b. Document has content_checksum", has_checksum, checksum[:16] if has_checksum else "missing")
 
@@ -176,14 +176,14 @@ async def main():
             fact_num += 1
             parts = []
 
-            rel_id = rel[0][:8] if rel[0] else "?"
+            rel[0][:8] if rel[0] else "?"
             rel_type = rel[1]
             source_uri = rel[3] or ""
             doc_id = rel[4]
             chunk_id = rel[5]
             version_id = rel[6]
             passage_id = rel[7]
-            claim_text = rel[8] or "?"
+            rel[8] or "?"
             evidence_quote = rel[9] or ""
 
             # 1. Chunk exists, has page_number, content
@@ -221,7 +221,7 @@ async def main():
                 )
                 d_row = r.fetchone()
                 if d_row:
-                    doc_title = d_row[0]
+                    d_row[0]
                     has_blob = d_row[1]
                     doc_ok = True
                     parts.append(f"doc_ok(blob={has_blob})")
@@ -424,7 +424,7 @@ async def main():
             )
         )
         for i, row in enumerate(r.fetchall(), 1):
-            cit_id, quote, ev_id, ev_level, p_id, p_text, v_id, v_name, sr_url = row
+            cit_id, _quote, _ev_id, ev_level, p_id, _p_text, _v_id, v_name, sr_url = row
             print(f"  [{i}] citation={cit_id[:12]} → evidence(LEVEL_{ev_level}) → "
                   f"passage={p_id[:12] if p_id else '?'} → "
                   f"version={v_name or '?'} → "

@@ -1,24 +1,23 @@
 """Unit tests for TCM RAG package."""
 
 import pytest
-
-from tcm_kg.models import Node, Edge
 from tcm_kg.builder import KGBuilder
-from tcm_tei.models import (
-    Document,
-    TextVersion,
-    Paragraph,
-    Sentence,
-    Token,
-)
+from tcm_kg.models import Edge, Node
 from tcm_rag.models import (
-    KGPath,
-    TextHit,
-    EvidenceChain,
     CitationPath,
+    EvidenceChain,
+    KGPath,
     SearchResult,
+    TextHit,
 )
 from tcm_rag.pipeline import RAGPipeline
+from tcm_tei.models import (
+    Document,
+    Paragraph,
+    Sentence,
+    TextVersion,
+    Token,
+)
 
 
 class TestKGPath:

@@ -18,7 +18,6 @@ import hashlib
 import json
 import logging
 import os
-import signal
 import sys
 import tempfile
 import time
@@ -31,10 +30,10 @@ sys.path.insert(0, str(BACKEND_DIR))
 
 logging.disable(logging.CRITICAL)
 
-from datetime import datetime, timezone
-from sqlalchemy import text
-from app.db.database import async_session_factory
+from datetime import UTC, datetime
 
+from app.db.database import async_session_factory
+from sqlalchemy import text
 
 PHASE_TIMEOUT = 90  # seconds per phase
 QUERY = "《针灸甲乙经》的成书特点是什么？"
@@ -383,7 +382,7 @@ async def phase_b():
 
         try:
             # Perform withdraw
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             await session.execute(text(
                 "UPDATE versions SET withdrawn_at = :now, withdraw_reason = 'P2T1 test' WHERE id = :vid"
             ), {"now": now, "vid": version_id})
@@ -549,7 +548,7 @@ async def phase_c():
             "sql": "SELECT count(*) FROM source_refs WHERE is_deleted=false",
             "pass": n >= 1,
             "value": n,
-            "failure": f"SourceRefs table is empty — need at least 1" if n < 1 else "",
+            "failure": "SourceRefs table is empty — need at least 1" if n < 1 else "",
         })
         print(f"[C] C5_source_refs: {n} >= 1 {'PASS' if n >= 1 else 'FAIL'}", flush=True)
 
@@ -654,7 +653,7 @@ def parse_args():
 async def main():
     args = parse_args()
     timeout = args.timeout
-    phases_to_run = set(p.strip().upper() for p in args.phases.split(","))
+    phases_to_run = {p.strip().upper() for p in args.phases.split(",")}
 
     all_results: dict = {}
     # Track per-phase pass/fail — never allow contradiction
@@ -669,7 +668,7 @@ async def main():
             result = await with_timeout(phase_fn(), timeout)
             all_results[f"phase_{phase_label.lower()}"] = result
             phase_passed[phase_label] = result.get("all_pass", False)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             print(f"[{phase_label}] TIMEOUT after {timeout}s", flush=True)
             all_results[f"phase_{phase_label.lower()}"] = {
                 "error": f"timeout after {timeout}s", "all_pass": False,
@@ -678,7 +677,7 @@ async def main():
         except Exception as e:
             print(f"[{phase_label}] ERROR: {type(e).__name__}: {e}", flush=True)
             all_results[f"phase_{phase_label.lower()}"] = {
-                "error": f"{type(e).__name__}: {str(e)}", "all_pass": False,
+                "error": f"{type(e).__name__}: {e!s}", "all_pass": False,
             }
             phase_passed[phase_label] = False
 
@@ -700,7 +699,7 @@ async def main():
 
     output = {
         "p2t1_version": "2.0.0",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "phases_run": sorted(phases_to_run),
         "overall_pass": overall_pass,
         "phase_results": {k: phase_passed.get(k, False) for k in phases_to_run},

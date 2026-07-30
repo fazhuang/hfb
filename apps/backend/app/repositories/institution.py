@@ -7,7 +7,7 @@ Extends BaseRepository with:
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,6 +85,6 @@ class InstitutionRepository(BaseRepository[Institution]):
 
         instance.status = InstitutionStatus.deleted.value
         instance.is_deleted = True  # type: ignore[assignment]
-        instance.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        instance.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return True

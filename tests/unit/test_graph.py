@@ -6,18 +6,17 @@ Per HFB-PS-1707 Knowledge Graph Product Specification.
 
 from __future__ import annotations
 
+from datetime import UTC
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.graph import GRAPH_ENTITY_TYPES, GRAPH_RELATION_TYPES
 from app.models.person import Person
-from app.schemas.graph import EntityRelationCreate, RELATION_LABELS
+from app.schemas.graph import RELATION_LABELS, EntityRelationCreate
 from app.services.graph_service import GraphService, _entity_to_node, _make_label
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ============================================================
 # Unit: constants and label mapping
@@ -156,11 +155,11 @@ class TestGraphServiceAsync:
             evidence=ev,
         )
         # P0-2: must set complete verification audit fields
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         relation.evidence_status = "verified"
         relation.verified_by = "test-reviewer"
-        relation.verified_at = datetime.now(timezone.utc)
+        relation.verified_at = datetime.now(UTC)
         relation.claim_text = "测试关系"
         relation.evidence_source_uri = "https://ctext.org/test-source"
         await db_session.flush()
@@ -319,10 +318,10 @@ class TestGraphServiceAsync:
             evidence=ev,
         )
         rel.evidence_status = "verified"
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         rel.verified_by = "test-reviewer"
-        rel.verified_at = datetime.now(timezone.utc)
+        rel.verified_at = datetime.now(UTC)
         rel.claim_text = "作者测试编撰关联古籍"
         rel.evidence_source_uri = "https://ctext.org/test-find-path"
         await db_session.flush()

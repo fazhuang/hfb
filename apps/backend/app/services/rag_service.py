@@ -18,11 +18,11 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.search_service import SearchService, SearchParams, ENTITY_CONFIG
-from app.services.academic_service import build_academic_retrieval_query
 from app.models.book import Book
 from app.models.person import Person
 from app.models.version import Version
+from app.services.academic_service import build_academic_retrieval_query
+from app.services.search_service import ENTITY_CONFIG, SearchParams, SearchService
 
 
 class RAGService:

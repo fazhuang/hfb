@@ -2,8 +2,8 @@
 Tests for User, Role, Permission models.
 """
 
-from app.models.user import User, Role, Permission
 from app.db.base import BaseModel
+from app.models.user import Permission, Role, User
 
 
 class TestUserModel:

@@ -12,13 +12,12 @@ Verifies:
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-
-from main import app as fastapi_app
-from app.services.auth_service import create_access_token
 from app.models.classical_version import ClassicalVersion
+from app.services.auth_service import create_access_token
+from httpx import ASGITransport, AsyncClient
+from main import app as fastapi_app
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session  # noqa: F401
 
@@ -85,8 +84,7 @@ async def _seed_user(
     permission_codes: list[str],
     is_superuser: bool = False,
 ):
-    from app.models.user import User, Role, Permission
-    from app.models.user import user_role, role_permission
+    from app.models.user import Permission, Role, User, role_permission, user_role
 
     user = User(
         id=user_id,
@@ -306,7 +304,7 @@ class TestClassicalVersionSoftDelete:
             public_domain_status="unknown",
         ))
         await svc.soft_delete(obj.id)
-        items, total = await svc.list()
+        _items, total = await svc.list()
         assert total == 0
 
     async def test_deleted_not_found_by_id(self, db_session):

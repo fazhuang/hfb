@@ -21,8 +21,6 @@ import json
 import os
 import re
 import sys
-import uuid as uuid_mod
-from io import BytesIO
 
 # ---- setup ----
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
@@ -44,8 +42,8 @@ OCR_LANG = "chi_tra+chi_sim"
 
 def _preprocess_for_tesseract(image):
     """Apply P0 preprocessing pipeline to improve OCR accuracy."""
-    from PIL import Image, ImageFilter, ImageOps
     import numpy as np
+    from PIL import Image, ImageFilter, ImageOps
 
     img = image.convert("L")  # grayscale
     # Increase contrast
@@ -65,10 +63,11 @@ def ocr_all_pages(pdf_path: str) -> dict[int, str]:
 
     Returns: {pdf_page_number (1-indexed): ocr_text}
     """
+    import io
+
     import fitz  # PyMuPDF
     import pytesseract
     from PIL import Image
-    import io
 
     # Prevent DecompressionBombError for high-DPI scanned pages
     Image.MAX_IMAGE_PIXELS = None
@@ -177,8 +176,8 @@ def _lcs_length(a: str, b: str) -> int:
 
 
 async def main():
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from sqlalchemy import text
 
     print("=" * 60)
     print("P0 Phase 2 Task 1 — Citation Source Chain Repair")
@@ -193,7 +192,7 @@ async def main():
         print("\n--- Deliverable 2: Page Number Truth ---")
 
         # Verify PDF
-        pdf_sha = verify_pdf_checksum(PDF_CACHE)
+        verify_pdf_checksum(PDF_CACHE)
 
         # Get existing PDF document
         r = await session.execute(
@@ -307,12 +306,11 @@ async def main():
 
             # Parse note JSON for chunk_id
             chunk_id = None
-            note_doc_id = None
             if b["note"]:
                 try:
                     note = json.loads(b["note"])
                     chunk_id = note.get("chunk_id", "")
-                    note_doc_id = note.get("document_id", "")
+                    note.get("document_id", "")
                 except json.JSONDecodeError:
                     pass
 
@@ -456,7 +454,7 @@ async def main():
         print(f"  Found {len(facts)} facts to audit\n")
 
         for i, f in enumerate(facts[:5], 1):
-            cid, quote, note, ev_id, src_ref_id, src_url, doc_id, page_num, chunk_id, chunk_content, ver_id, ver_name = f
+            cid, quote, note, ev_id, src_ref_id, src_url, doc_id, page_num, chunk_id, _chunk_content, ver_id, ver_name = f
 
             # Get PDF OCR text for the page
             ocr_text = page_texts.get(int(page_num) if page_num else -1, "(not available)")

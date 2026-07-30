@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 # ============================================================
 # Request
 # ============================================================
@@ -143,7 +142,7 @@ class AcademicRAGResponse(BaseModel):
     output_sha256: str = Field(default="")
 
     @model_validator(mode="after")
-    def enforce_refusal_state_machine(self) -> "AcademicRAGResponse":
+    def enforce_refusal_state_machine(self) -> AcademicRAGResponse:
         """P0-1: Hard state machine — no shortcut success detection.
 
         refusal=False REQUIRES:

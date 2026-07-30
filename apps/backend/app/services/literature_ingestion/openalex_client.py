@@ -10,10 +10,13 @@ high per_page, Chinese-encoded URLs) trigger 403/1034 challenges.
 from __future__ import annotations
 
 import asyncio
+import logging
 
 import httpx
 
 from app.services.literature_ingestion import LiteratureItem, _http_client
+
+logger = logging.getLogger(__name__)
 
 _BASE = "https://api.openalex.org"
 _PAGE_SIZE = 10  # ponytail: 10 avoids Cloudflare rate-limit on per_page>10
@@ -104,7 +107,8 @@ def _first_str(inverted: dict) -> str:
                 ordered.append((pos, word))
         ordered.sort()
         return " ".join(w for _, w in ordered)[:500]
-    except Exception:
+    except (TypeError, ValueError, KeyError):
+        logger.debug("Failed to reconstruct abstract from inverted index", exc_info=True)
         return ""
 
 

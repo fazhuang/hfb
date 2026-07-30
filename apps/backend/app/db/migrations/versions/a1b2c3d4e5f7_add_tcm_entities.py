@@ -8,11 +8,10 @@ This migration creates the generic tcm_entities table for ontology types
 that don't have dedicated ORM models (herb, prescription, meridian, symptom).
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a1b2c3d4e5f7"

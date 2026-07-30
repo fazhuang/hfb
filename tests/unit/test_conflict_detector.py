@@ -1,8 +1,9 @@
 """Tests for ConflictDetector."""
 
 import pytest
-from app.services.conflict_detector import ConflictDetector
 from app.schemas.graph import EvidenceChainPath, EvidenceHop
+from app.services.conflict_detector import ConflictDetector
+
 from tests.conftest_db import db_session  # noqa: F401
 
 

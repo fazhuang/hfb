@@ -10,11 +10,10 @@ Changes:
   P0-6: ontology CHECK constraints on entity_relations + tcm_entities
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "p0p4p5p6_evidence_tei_ontology"
@@ -58,25 +57,25 @@ def upgrade() -> None:
     with op.batch_alter_table("entity_relations") as batch_op:
         batch_op.create_check_constraint(
             "ck_entity_relations_source_type",
-            f"source_entity_type IN {str(VALID_ENTITY_TYPES)}",
+            f"source_entity_type IN {VALID_ENTITY_TYPES!s}",
         )
         batch_op.create_check_constraint(
             "ck_entity_relations_target_type",
-            f"target_entity_type IN {str(VALID_ENTITY_TYPES)}",
+            f"target_entity_type IN {VALID_ENTITY_TYPES!s}",
         )
         batch_op.create_check_constraint(
             "ck_entity_relations_relation_type",
-            f"relation_type IN {str(VALID_RELATION_TYPES)}",
+            f"relation_type IN {VALID_RELATION_TYPES!s}",
         )
         batch_op.create_check_constraint(
             "ck_entity_relations_evidence_status",
-            f"evidence_status IN {str(VALID_EVIDENCE_STATUS)}",
+            f"evidence_status IN {VALID_EVIDENCE_STATUS!s}",
         )
 
     with op.batch_alter_table("tcm_entities") as batch_op:
         batch_op.create_check_constraint(
             "ck_tcm_entities_entity_type",
-            f"entity_type IN {str(VALID_ENTITY_TYPES)}",
+            f"entity_type IN {VALID_ENTITY_TYPES!s}",
         )
 
     # ---- P0-5: TEI hierarchy tables ----

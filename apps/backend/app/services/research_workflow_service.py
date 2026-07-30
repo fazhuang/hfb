@@ -8,7 +8,8 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+import math
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -18,8 +19,8 @@ from app.services.academic_service import AcademicService
 from app.services.trace_lineage import (
     InternalTraceRecord,
     build_internal_traces,
-    extract_trace_ids,
     extract_source_documents,
+    extract_trace_ids,
     make_trace_id,
 )
 from app.services.workspace_service import WorkspaceService
@@ -62,7 +63,7 @@ class ResearchWorkflowService:
             "result": {"themes": len(result.themes), "records": len(snapshot)},
             "snapshot": snapshot,
             "trace_ids": [r.trace_id for r in internal_traces],
-            "source_documents": sorted(set(r.document_id for r in internal_traces)),
+            "source_documents": sorted({r.document_id for r in internal_traces}),
             "internal_traces": internal_traces,
         }
 
@@ -98,7 +99,7 @@ class ResearchWorkflowService:
             "sections": sections,
             "evidence": evidence,
             "trace_ids": [r.trace_id for r in traces],
-            "source_documents": sorted(set(r.document_id for r in traces)),
+            "source_documents": sorted({r.document_id for r in traces}),
             "internal_traces": traces,
         }
 
@@ -127,7 +128,7 @@ class ResearchWorkflowService:
             "sections": report_sections,
             "evidence": evidence,
             "trace_ids": [r.trace_id for r in traces],
-            "source_documents": sorted(set(r.document_id for r in traces)),
+            "source_documents": sorted({r.document_id for r in traces}),
             "internal_traces": traces,
         }
 
@@ -163,7 +164,7 @@ class ResearchWorkflowService:
         return {
             "result": {"total_citations": len(citations), "citations": citations},
             "trace_ids": [c["trace_id"] for c in citations],
-            "source_documents": sorted(set(c["document_id"] for c in citations)),
+            "source_documents": sorted({c["document_id"] for c in citations}),
             "internal_traces": traces,
         }
 
@@ -175,7 +176,7 @@ class ResearchWorkflowService:
         self, topic: str, run_id: str, steps: list[Any],
         retrieval_snapshot: list[dict], synthesis_output: dict,
     ) -> str:
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         evidence = synthesis_output.get("evidence", [])
         sections = synthesis_output.get("sections", [])
         artifact_id = hashlib.sha256(
@@ -271,7 +272,7 @@ class ResearchWorkflowService:
             except (json.JSONDecodeError, TypeError):
                 existing = {}
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         runs: list[dict] = existing.get("runs", [])
 
         run_entry: dict[str, Any] = {
@@ -297,12 +298,12 @@ class ResearchWorkflowService:
             for tr in immutable_traces:
                 if hasattr(tr, 'to_dict'):
                     trace_dicts.append(tr.to_dict())
-            trace_ids = sorted(set(
+            trace_ids = sorted({
                 r.trace_id for r in immutable_traces if hasattr(r, 'trace_id')
-            ))
-            source_doc_ids = sorted(set(
+            })
+            source_doc_ids = sorted({
                 r.document_id for r in immutable_traces if hasattr(r, 'document_id')
-            ))
+            })
 
             # Build canonical traces from immutable trace dicts — single source of truth
             canonical_traces = canonicalize_traces(trace_dicts)
@@ -378,7 +379,7 @@ class ResearchWorkflowService:
                 "canonical_input_sha256": input_hash,
                 "canonical_output_sha256": output_hash,
                 "canonicalization_version": CANONICAL_VERSION,
-                "created_at": completed_at or datetime.now(timezone.utc).isoformat(),
+                "created_at": completed_at or datetime.now(UTC).isoformat(),
             }
             manifest_hash = canonical_sha256(manifest)
             manifest["manifest_sha256"] = manifest_hash
@@ -388,7 +389,7 @@ class ResearchWorkflowService:
         runs.append(run_entry)
         existing["runs"] = runs
         session.workflow_state = json.dumps(existing, ensure_ascii=False)
-        session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        session.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
 
     async def get_research_runs(self, session_id: UUID | str) -> list[dict]:
@@ -432,13 +433,13 @@ class ResearchWorkflowService:
                 "operations": comparison["operations"],
                 "similarity_ratio": comparison["similarity_ratio"],
             },
-            "configured_at": datetime.now(timezone.utc).isoformat(),
+            "configured_at": datetime.now(UTC).isoformat(),
         }
         research_session.workflow_state = json.dumps(state, ensure_ascii=False)
         research_session.active_entities = json.dumps(
             [str(source_passage_id), str(target_passage_id)], ensure_ascii=False,
         )
-        research_session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        research_session.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return state
 
@@ -494,7 +495,7 @@ class ResearchWorkflowService:
             f"- 对校本来源完整：{'是' if target['evidence_complete'] else '否'}",
             f"- 正式学术来源：{'是' if is_formal else '否（验证流程）'}",
             f"- 学术审核状态：{'已审核（正式引用）' if is_formal else '未审核（验证流程）'}", "",
-            f"生成时间：{datetime.now(timezone.utc).isoformat()}", ""])
+            f"生成时间：{datetime.now(UTC).isoformat()}", ""])
         return "\n".join(lines)
 
     @staticmethod
@@ -503,6 +504,7 @@ class ResearchWorkflowService:
 
     async def _load_evidence(self, passage_id: UUID | str) -> dict[str, Any]:
         from sqlalchemy import select as sql_select
+
         from app.models.book import Book as B
         from app.models.chapter import Chapter as Ch
         from app.models.passage import Passage as P
@@ -597,6 +599,7 @@ async def _build_retrieval_snapshot(
     source_ref_by_doc: dict[str, dict[str, str]] = {}
     if doc_ids:
         from sqlalchemy import select as sql_select
+
         from app.models.academic_evidence import SourceRef
 
         # First pass: try document:-scoped SourceRef entries
@@ -679,8 +682,8 @@ async def _build_retrieval_snapshot(
         })
 
     # Build InternalTraceRecords from real snapshot
-    from app.services.trace_lineage import TraceLineageError, make_trace_id as _make_tid
-    now = datetime.now(timezone.utc).isoformat()
+    from app.services.trace_lineage import TraceLineageError
+    now = datetime.now(UTC).isoformat()
     internal_traces: list[InternalTraceRecord] = []
     seen_tids: set[str] = set()
     for rec in snapshot:
@@ -697,7 +700,7 @@ async def _build_retrieval_snapshot(
                 f"TRACE_LINEAGE_INCOMPLETE: chunk {chk_id} not in retrieval_snapshot"
             )
         score = snap_entry.get("score", None)
-        if not isinstance(score, (int, float)) or score != score:
+        if not isinstance(score, (int, float)) or math.isnan(score):
             raise TraceLineageError(
                 f"TRACE_LINEAGE_INCOMPLETE: invalid score {score} for chunk {chk_id}"
             )
@@ -709,6 +712,7 @@ async def _build_retrieval_snapshot(
 
         # Query DB for passage_id
         from sqlalchemy import select as sql_select
+
         from app.models.document_chunk import DocumentChunk as DC
         chk_stmt = sql_select(DC.passage_id).where(
             DC.id == chk_id,

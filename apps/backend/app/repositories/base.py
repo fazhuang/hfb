@@ -5,10 +5,12 @@ All entity repositories inherit from this base.
 """
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from datetime import UTC
+from typing import Any, TypeVar
 from uuid import UUID
 
-from sqlalchemy import func, select, delete as sa_delete
+from sqlalchemy import delete as sa_delete
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import Base
@@ -16,7 +18,7 @@ from app.db.base import Base
 ModelT = TypeVar("ModelT", bound=Base)
 
 
-class BaseRepository(Generic[ModelT]):
+class BaseRepository[ModelT: Base]:
     """Generic async repository for CRUD operations."""
 
     model: type[ModelT]
@@ -151,10 +153,10 @@ class BaseRepository(Generic[ModelT]):
         instance = await self.get_by_id(id)
         if instance is None:
             return False
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         instance.is_deleted = True  # type: ignore[assignment]
-        instance.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        instance.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return True
 

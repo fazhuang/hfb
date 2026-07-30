@@ -2,17 +2,15 @@
 
 import json
 
-
-from tcm_tei.models import (
-    Token,
-    Sentence,
-    Paragraph,
-    TextVersion,
-    Document,
-)
 from tcm_tei.comparator import VersionComparator
+from tcm_tei.models import (
+    Document,
+    Paragraph,
+    Sentence,
+    TextVersion,
+    Token,
+)
 from tcm_tei.serializer import TEISerializer
-
 
 # --- Test Data Helpers ---
 

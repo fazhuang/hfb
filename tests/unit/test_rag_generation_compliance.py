@@ -8,14 +8,14 @@ pirated, unknown), even if rag_enabled=True. Compliant docs must carry provenanc
 from __future__ import annotations
 
 import json as _json
+from datetime import UTC
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest.fixture
@@ -67,11 +67,11 @@ async def _seed_doc_withdrawn(session, title, copyright_status, rag_enabled, con
 
     Returns (doc_id, chunk_id, doc_withdrawn_at).
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
     doc_id, chunk_id = await _seed_doc(session, title, copyright_status, rag_enabled, content, auth_basis, source_url)
     from app.models.document import Document as DocModel
     d = (await session.execute(select(DocModel).where(DocModel.id == doc_id))).scalar_one()
-    d.withdrawn_at = datetime.now(timezone.utc)
+    d.withdrawn_at = datetime.now(UTC)
     # pollute: soft-deleted=False, rag_enabled=True — withdrawn_at is the only guard
     d.is_deleted = False
     d.rag_enabled = True
@@ -328,9 +328,9 @@ class TestAuthorizationBasisGate:
     async def test_api_generate_public_domain_no_auth_refused(self, api_db_session):
         """POST /api/v1/ai/generate: public_domain + rag_enabled=True + no auth → refusal."""
         import httpx
+        from app.api.v1.ai import guard_ai_read
         from app.db.database import get_session
         from app.middleware.auth import get_current_user
-        from app.api.v1.ai import guard_ai_read
 
         await _seed_doc(api_db_session, "无授权公版", "public_domain", True,
                         "公版文献但没有授权依据的全文内容。",
@@ -367,9 +367,9 @@ class TestAuthorizationBasisGate:
     async def test_api_generate_license_type_only_allowed(self, api_db_session):
         """POST /api/v1/ai/generate: license_type alone → success."""
         import httpx
+        from app.api.v1.ai import guard_ai_read
         from app.db.database import get_session
         from app.middleware.auth import get_current_user
-        from app.api.v1.ai import guard_ai_read
 
         doc_id, _ = await _seed_doc(api_db_session, "许可公版", "public_domain", True,
                                      "授权公版文献的全文内容。",
@@ -505,9 +505,9 @@ class TestWithdrawnAtGate:
     async def test_api_generate_withdrawn_pollution_refused(self, api_db_session):
         """POST /api/v1/ai/generate: withdrawn doc → refusal envelope, results=[], citations=[]."""
         import httpx
+        from app.api.v1.ai import guard_ai_read
         from app.db.database import get_session
         from app.middleware.auth import get_current_user
-        from app.api.v1.ai import guard_ai_read
 
         await _seed_doc_withdrawn(api_db_session, "撤回文献", "public_domain", True,
                                    "已撤回但其他字段都合规的全文内容。",
@@ -544,9 +544,9 @@ class TestWithdrawnAtGate:
     async def test_api_generate_clean_withdrawn_none_allowed(self, api_db_session):
         """POST /api/v1/ai/generate: withdrawn_at=NULL → success with provenance."""
         import httpx
+        from app.api.v1.ai import guard_ai_read
         from app.db.database import get_session
         from app.middleware.auth import get_current_user
-        from app.api.v1.ai import guard_ai_read
 
         await _seed_doc(api_db_session, "正常公版", "public_domain", True,
                         "皇甫谧编撰《针灸甲乙经》，系统整理魏晋以前针灸学成就。",
@@ -670,9 +670,9 @@ class TestRetrievalServiceStrictCompliance:
 
 def _make_test_app():
     """Build a FastAPI test app with the v1 router."""
-    from fastapi import FastAPI
-    from app.middleware.request_id import RequestIDMiddleware
     from app.core.error_handlers import register_error_handlers
+    from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.add_middleware(RequestIDMiddleware)
@@ -685,7 +685,11 @@ def _make_test_app():
 @pytest.fixture
 async def api_db_session():
     """In-memory SQLite session for ASGI tests."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     engine = create_async_engine("sqlite+aiosqlite://", echo=False)
     async with engine.begin() as conn:
@@ -700,9 +704,9 @@ async def api_db_session():
 async def test_api_generate_commercial_refuses(api_db_session):
     """POST /api/v1/ai/generate with commercial_restricted → refusal."""
     import httpx
+    from app.api.v1.ai import guard_ai_read
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
-    from app.api.v1.ai import guard_ai_read
 
     await _seed_doc(api_db_session, "商业文献", "commercial_restricted", True,
               "这是一篇商业数据库全文内容，涉及皇甫谧研究。")
@@ -740,9 +744,9 @@ async def test_api_generate_commercial_refuses(api_db_session):
 async def test_api_generate_public_domain_succeeds_with_provenance(api_db_session):
     """POST /api/v1/ai/generate with public_domain → success + provenance."""
     import httpx
+    from app.api.v1.ai import guard_ai_read
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
-    from app.api.v1.ai import guard_ai_read
 
     await _seed_doc(api_db_session, "针灸甲乙经", "public_domain", True,
               "皇甫谧编撰《针灸甲乙经》，系统整理魏晋以前针灸学成就。",

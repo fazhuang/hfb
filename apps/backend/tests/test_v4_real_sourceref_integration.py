@@ -15,13 +15,14 @@ replay, no pseudo document:{id} IDs.
 """
 from __future__ import annotations
 
-import time
+import json
+import logging
 import uuid as _uuid
-from pathlib import Path
 
 import httpx
 import pytest
 
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Helpers (inlined — no import from test_critical_journeys to keep isolation)
@@ -278,8 +279,8 @@ class TestV4RealSourceRefBrowserClosure:
                         snap = manifest.get("retrieval_snapshot", [])
                         if snap:
                             captured_snapshot["first_entry"] = snap[0]
-                except Exception:
-                    pass
+                except (json.JSONDecodeError, TypeError, KeyError):
+                    logger.debug("Failed to parse workflow run response", exc_info=True)
 
         page.on("response", _on_response)
 
@@ -293,7 +294,7 @@ class TestV4RealSourceRefBrowserClosure:
         try:
             page.wait_for_selector(".ers-step", timeout=180000)
             has_evidence = True
-        except Exception:
+        except (TimeoutError, RuntimeError):
             has_evidence = False
 
         if not has_evidence:
@@ -412,10 +413,9 @@ class TestV4RealSourceRefBrowserClosure:
             # No link — the source_ref_url may be empty. Check it's not due
             # to a pseudo ID masking the real data.
             if captured_snapshot.get("first_entry"):
-                entry_sr_url = captured_snapshot["first_entry"].get("source_ref_url")
+                captured_snapshot["first_entry"].get("source_ref_url")
                 # OK: source_ref_url may be empty even with real SourceRef
                 # (ingestion with empty URL → title+page_location dedup → url="")
-                pass
 
         # ---- Phase 10: Snapshot contract ----
         # Access the runs API directly to verify the snapshot has real fields
@@ -452,7 +452,7 @@ class TestV4RealSourceRefBrowserClosure:
             # source_ref_url must be a safe string (may be empty)
             assert isinstance(sr_url, str), f"source_ref_url should be str, got {type(sr_url)}"
 
-        print(f"\n✓ SourceRef closure verified:")
+        print("\n✓ SourceRef closure verified:")
         print(f"  Run: {runs_data[0].get('run_id', '?')}")
         print(f"  Snapshot entries: {len(snap)}")
         if captured_snapshot.get("first_entry"):

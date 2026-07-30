@@ -6,16 +6,16 @@ PassageMapping — links equivalent passages across different versions.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Text, Integer, Boolean, ForeignKey
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
 
 if TYPE_CHECKING:
-    from app.models.version import Version
     from app.models.passage import Passage
+    from app.models.version import Version
 
 
 class VersionRelation(BaseModel):
@@ -49,18 +49,18 @@ class VersionRelation(BaseModel):
         nullable=False,
         comment="关系类型: derived_from, revised_from, corrected_by, annotated_by, compared_with, referenced_by",
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="关系说明"
     )
-    evidence: Mapped[Optional[str]] = mapped_column(
+    evidence: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="关系依据/证据"
     )
 
     # Relationships
-    source_version: Mapped["Version"] = relationship(
+    source_version: Mapped[Version] = relationship(
         "Version", foreign_keys=[source_version_id], lazy="selectin"
     )
-    target_version: Mapped["Version"] = relationship(
+    target_version: Mapped[Version] = relationship(
         "Version", foreign_keys=[target_version_id], lazy="selectin"
     )
 
@@ -99,7 +99,7 @@ class PassageMapping(BaseModel):
         nullable=False,
         comment="映射类型: equivalent(等同), variant(异文), missing(缺失), added(新增)",
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="映射说明"
     )
     is_verified: Mapped[bool] = mapped_column(
@@ -107,10 +107,10 @@ class PassageMapping(BaseModel):
     )
 
     # Relationships
-    source_passage: Mapped["Passage"] = relationship(
+    source_passage: Mapped[Passage] = relationship(
         "Passage", foreign_keys=[source_passage_id], lazy="selectin"
     )
-    target_passage: Mapped["Passage"] = relationship(
+    target_passage: Mapped[Passage] = relationship(
         "Passage", foreign_keys=[target_passage_id], lazy="selectin"
     )
 
@@ -139,7 +139,7 @@ class VersionDiff(BaseModel):
     diff_data: Mapped[str] = mapped_column(
         Text, nullable=False, comment="JSON-encoded diff result"
     )
-    diff_summary: Mapped[Optional[str]] = mapped_column(
+    diff_summary: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="差异摘要"
     )
     total_differences: Mapped[int] = mapped_column(

@@ -9,13 +9,17 @@ StructuredAIResponse { answer, evidence[], citations[], graph_context[] }.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from collections import deque
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Rate limiter
@@ -176,26 +180,27 @@ class AIService:
             "stream": True,
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            async with client.stream("POST", url, json=payload, headers=headers) as resp:
-                if resp.status_code != 200:
-                    body = await resp.aread()
-                    yield f"⚠️ AI 服务错误 (HTTP {resp.status_code}): {body.decode()[:200]}"
-                    return
+        async with httpx.AsyncClient(timeout=60.0) as client, \
+                client.stream("POST", url, json=payload, headers=headers) as resp:
+            if resp.status_code != 200:
+                body = await resp.aread()
+                yield f"⚠️ AI 服务错误 (HTTP {resp.status_code}): {body.decode()[:200]}"
+                return
 
-                async for line in resp.aiter_lines():
-                    if line.startswith("data: "):
-                        data = line[6:]
-                        if data == "[DONE]":
-                            break
-                        try:
-                            chunk = json.loads(data)
-                            delta = chunk.get("choices", [{}])[0].get("delta", {})
-                            content = delta.get("content", "")
-                            if content:
-                                yield content
-                        except (json.JSONDecodeError, KeyError, IndexError):
-                            continue
+            async for line in resp.aiter_lines():
+                if line.startswith("data: "):
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                        delta = chunk.get("choices", [{}])[0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            yield content
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        logger.warning("skipping malformed SSE chunk", exc_info=True)
+                        continue
 
     # ------------------------------------------------------------------
     # Summarize
@@ -312,7 +317,8 @@ class AIService:
                 if not content or not content.strip():
                     return None
                 return content.strip()
-        except Exception:
+        except (httpx.HTTPStatusError, httpx.ConnectError, json.JSONDecodeError, OSError):
+            logger.debug("AI structured completion failed", exc_info=True)
             return None
 
     async def _complete(self, messages: list[dict[str, str]]) -> str:

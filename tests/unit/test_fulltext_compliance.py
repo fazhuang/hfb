@@ -8,13 +8,12 @@ from __future__ import annotations
 import hashlib
 
 import pytest
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest.fixture
@@ -51,7 +50,7 @@ class TestCopyrightGateRejection:
 
     async def test_unknown_copyright_rejected_no_chunks(self, db_session):
         """copyright_status=unknown + text → rejected, 0 chunks."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError, match="copyright_status=unknown"):
@@ -88,7 +87,7 @@ class TestCopyrightGateRejection:
 
     async def test_forbidden_fulltext_rejected_no_chunks(self, db_session):
         """forbidden_fulltext=true + text → rejected, 0 chunks."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError, match="forbidden_fulltext"):
@@ -118,7 +117,7 @@ class TestCopyrightGateRejection:
 
     async def test_metadata_only_rejected_no_chunks(self, db_session):
         """metadata_only=true + text → rejected, 0 chunks."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError, match="metadata_only"):
@@ -143,7 +142,7 @@ class TestCopyrightGateRejection:
 
     async def test_missing_copyright_status_rejected(self, db_session):
         """No copyright_status → rejected (default-deny)."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError, match="copyright_status"):
@@ -155,7 +154,7 @@ class TestCopyrightGateRejection:
 
     async def test_in_copyright_rejected(self, db_session):
         """copyright_status=commercial_restricted → rejected."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError):
@@ -167,7 +166,7 @@ class TestCopyrightGateRejection:
 
     async def test_pirated_rejected(self, db_session):
         """copyright_status=pirated → rejected."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError):
@@ -291,7 +290,7 @@ class TestCopyrightGateSuccess:
 
     async def test_public_domain_without_authorization_basis_rejected(self, db_session):
         """public_domain requires authorization_basis or license_type."""
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError, match="authorization_basis"):
@@ -361,7 +360,7 @@ class TestAuditLogPersistence:
         assert a.result_entity_type == "document"
 
     async def test_audit_record_on_reject(self, db_session):
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError):
@@ -388,7 +387,7 @@ class TestAuditLogPersistence:
         assert "forbidden_fulltext" in a.reject_reason.lower()
 
     async def test_audit_record_on_skip(self, db_session):
-        from app.services.ingestion import IngestionService, FulltextRejectedError
+        from app.services.ingestion import FulltextRejectedError, IngestionService
 
         svc = IngestionService(db_session)
         with pytest.raises(FulltextRejectedError):

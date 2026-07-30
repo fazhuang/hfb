@@ -7,9 +7,7 @@ Each instance is typed by entity_type and carries structured properties as JSON.
 
 from __future__ import annotations
 
-from typing import Optional
-
-from sqlalchemy import JSON, String, Text, CheckConstraint
+from sqlalchemy import JSON, CheckConstraint, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
@@ -39,16 +37,16 @@ class TCMEntity(BaseModel):
     name: Mapped[str] = mapped_column(
         String(300), nullable=False, comment="Display name"
     )
-    name_zh: Mapped[Optional[str]] = mapped_column(
+    name_zh: Mapped[str | None] = mapped_column(
         String(300), nullable=True, comment="Chinese name"
     )
-    properties: Mapped[Optional[dict]] = mapped_column(
+    properties: Mapped[dict | None] = mapped_column(
         JSON, nullable=True, comment="Type-specific properties as JSON"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Description / biography / notes"
     )
-    external_ref: Mapped[Optional[str]] = mapped_column(
+    external_ref: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="External reference (Wikidata etc.)"
     )
 

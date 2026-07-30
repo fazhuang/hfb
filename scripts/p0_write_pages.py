@@ -5,12 +5,17 @@ Uses OCR character-overlap scoring + page_image_hash as verifiable fingerprint.
 Every assignment is honest about its method: "structural+ocr" or "char_overlap".
 """
 
-import asyncio, hashlib, io, json, re, sys
-from datetime import datetime, timezone
+import asyncio
+import hashlib
+import json
+import re
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
-import fitz, numpy as np
+import fitz
 from PIL import Image
+
 Image.MAX_IMAGE_PIXELS = None
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -47,7 +52,7 @@ def find_lcs(s1, s2):
         prev = curr
     if best_len == 0: return "", -1, -1
     start = best_end - best_len; sub = s1[start:best_end]; p2 = s2.find(sub)
-    return sub, start, p2 if p2 >= 0 else 0
+    return sub, start, max(p2, 0)
 
 def match_chunk_to_best_page(chunk_content, page_texts):
     """Return (best_page, method, score, page_image_hash, detail) or (None, ...)."""
@@ -161,6 +166,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "apps" / "backend"))
 from app.db.database import async_session_factory
 from sqlalchemy import text
 
+
 async def write_pages():
     async with async_session_factory() as s:
         # Load chunks
@@ -183,7 +189,7 @@ async def write_pages():
         # Match each chunk to best page
         results = []
         for ch in chunks:
-            pg, method, score, ihash, detail = match_chunk_to_best_page(ch["content"], page_texts)
+            pg, method, score, ihash, _detail = match_chunk_to_best_page(ch["content"], page_texts)
 
             # Get page image hash
             if pg and not ihash:
@@ -219,7 +225,7 @@ async def write_pages():
         print(f"{'='*90}")
         for r in results:
             snippet = chunks[r["chunk_index"]]["content"][:40] if r["chunk_index"] < len(chunks) else ""
-            print(f"{r['chunk_index']:3d}  {str(r['old_page']):>6s}  {str(r['new_page']):>6s}  "
+            print(f"{r['chunk_index']:3d}  {r['old_page']!s:>6s}  {r['new_page']!s:>6s}  "
                   f"{r['score']:7.3f}  {r['provenance']:22s}  "
                   f"{r['page_image_hash'][:12] if r['page_image_hash'] else 'N/A':>14s}  {snippet}")
 
@@ -254,7 +260,7 @@ async def write_pages():
             WHERE document_id = :did AND is_deleted = false
             GROUP BY page_number ORDER BY page_number
         """), {"did": PDF_DOC_ID})
-        print(f"\nFinal page_number distribution:")
+        print("\nFinal page_number distribution:")
         for row in r.fetchall():
             print(f"  page={row[0]}: {row[1]} chunks")
 
@@ -265,7 +271,7 @@ async def write_pages():
             WHERE dc.document_id = :did AND dc.is_deleted = false
             ORDER BY dc.chunk_index LIMIT 3
         """), {"did": PDF_DOC_ID})
-        print(f"\nSample metadata:")
+        print("\nSample metadata:")
         for row in r.fetchall():
             meta = json.loads(row[4]) if row[4] else {}
             print(f"  idx={row[1]} page={row[2]} ocr_conf={row[3]}")
@@ -280,7 +286,7 @@ results = asyncio.run(write_pages())
 # Save to artifact
 with open(OUTPUT / "p0_db_write_result.json", "w") as f:
     json.dump({
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": datetime.now(UTC).isoformat(),
         "pdf_sha256": PDF_SHA256,
         "chunks_updated": len(results),
         "results": [{k: v for k, v in r.items()} for r in results],

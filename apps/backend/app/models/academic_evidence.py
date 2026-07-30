@@ -4,10 +4,11 @@ Academic Evidence & Citation domain models.
 Provides SourceRef, Evidence, and Citation structures to anchor academic claims.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
-import enum
 
-from sqlalchemy import String, Text, ForeignKey, Enum, Index
+import enum
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Enum, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -28,10 +29,10 @@ class SourceRef(BaseModel):
     __tablename__ = "source_refs"
 
     title: Mapped[str] = mapped_column(String(500), nullable=False, comment="物理书名/文献名/论文名")
-    author: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="作者/编校者")
-    edition_info: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, comment="版本信息/出版社/刊刻年代")
-    page_location: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="文献内的定位：卷/页/行/栏")
-    url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True, comment="数字化链接/古籍库链接")
+    author: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="作者/编校者")
+    edition_info: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="版本信息/出版社/刊刻年代")
+    page_location: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="文献内的定位：卷/页/行/栏")
+    url: Mapped[str | None] = mapped_column(String(1000), nullable=True, comment="数字化链接/古籍库链接")
 
 
 class Evidence(BaseModel):
@@ -40,19 +41,19 @@ class Evidence(BaseModel):
 
     description: Mapped[str] = mapped_column(Text, nullable=False, comment="证据内容概述/考证逻辑")
     evidence_level: Mapped[EvidenceLevel] = mapped_column(Enum(EvidenceLevel), nullable=False, comment="学术证据力等级")
-    source_ref_id: Mapped[Optional[str]] = mapped_column(
+    source_ref_id: Mapped[str | None] = mapped_column(
         ForeignKey("source_refs.id", ondelete="RESTRICT"), nullable=True, comment="关联的物理文献来源"
     )
-    source_passage_id: Mapped[Optional[str]] = mapped_column(
+    source_passage_id: Mapped[str | None] = mapped_column(
         ForeignKey("passages.id", ondelete="SET NULL"), nullable=True, comment="关联的系统内数字文献段落"
     )
-    creator_id: Mapped[Optional[str]] = mapped_column(
+    creator_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, comment="创建录入人"
     )
 
     # 关系
-    source_ref: Mapped[Optional[SourceRef]] = relationship("SourceRef")
-    source_passage: Mapped[Optional[Passage]] = relationship("Passage")
+    source_ref: Mapped[SourceRef | None] = relationship("SourceRef")
+    source_passage: Mapped[Passage | None] = relationship("Passage")
 
 
 class Citation(BaseModel):
@@ -67,8 +68,8 @@ class Citation(BaseModel):
     evidence_id: Mapped[str] = mapped_column(
         ForeignKey("evidences.id", ondelete="CASCADE"), nullable=False, comment="支撑证据ID"
     )
-    quote_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="引用时的佐证原文")
-    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="引用时的考证评注")
+    quote_text: Mapped[str | None] = mapped_column(Text, nullable=True, comment="引用时的佐证原文")
+    note: Mapped[str | None] = mapped_column(Text, nullable=True, comment="引用时的考证评注")
 
     # 关系
     evidence: Mapped[Evidence] = relationship("Evidence")

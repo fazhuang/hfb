@@ -6,12 +6,10 @@ Per HFB-PS-1706 Unified Search Product Specification.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.person import Person
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.passage import Passage
+from app.models.person import Person
 from app.models.version import Version
 from app.schemas.search import (
     SearchParams,
@@ -19,15 +17,15 @@ from app.schemas.search import (
     SuggestItem,
 )
 from app.services.search_service import (
-    SearchService,
     ENTITY_CONFIG,
     SEARCHABLE_TYPES,
-    _make_snippet,
+    SearchService,
     _compute_score,
+    _make_snippet,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ============================================================
 # Unit: snippet and scoring

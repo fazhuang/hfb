@@ -5,7 +5,11 @@ Uses 150 dpi for speed.
 Writes page dict JSON to stdout for real-time progress.
 """
 
-import hashlib, json, os, sys, time
+import hashlib
+import json
+import os
+import sys
+import time
 
 PDF_PATH = "/Users/likeming/Sites/hfb/output/hfb_zhenjiu_jiayi_jing_v1.pdf"
 OUT_PATH = "/Users/likeming/Sites/hfb/output/hfb_pdf_ocr_pages.json"
@@ -23,8 +27,9 @@ sha = hashlib.sha256(raw).hexdigest()
 print(f"PDF SHA-256: {sha}")
 
 # Check embedded text first (fast path)
-from pypdf import PdfReader
 from io import BytesIO
+
+from pypdf import PdfReader
 
 reader = PdfReader(BytesIO(raw))
 texts = {}
@@ -48,7 +53,7 @@ if not need_ocr:
     sys.exit(0)
 
 # Use pdftoppm for faster rendering (single pages, lower dpi)
-import subprocess, tempfile
+import subprocess
 
 tmpdir = "/Users/likeming/Sites/hfb/output/ocr_tmp"
 os.makedirs(tmpdir, exist_ok=True)

@@ -38,7 +38,6 @@ class BaseException(Exception):
 
 class DomainException(BaseException):
     """Base for domain-level application exceptions."""
-    pass
 
 
 class ValidationException(DomainException):

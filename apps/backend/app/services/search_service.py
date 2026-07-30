@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from sqlalchemy import select, or_, func
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
@@ -28,10 +28,10 @@ from app.models.passage import Passage
 from app.models.person import Person
 from app.models.version import Version
 from app.schemas.search import (
-    SearchResultItem,
-    SearchResponse,
-    SuggestItem,
     SearchParams,
+    SearchResponse,
+    SearchResultItem,
+    SuggestItem,
 )
 
 # ---------------------------------------------------------------------------
@@ -426,7 +426,7 @@ class SearchService:
         are queryable. When ES/pgvector are wired, this will rebuild indices.
         """
         total = 0
-        for entity_type, config in ENTITY_CONFIG.items():
+        for config in ENTITY_CONFIG.values():
             model = config["model"]
             stmt = select(func.count()).select_from(
                 select(model.id).where(model.is_deleted.is_(False)).subquery()

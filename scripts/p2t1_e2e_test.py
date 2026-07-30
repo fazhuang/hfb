@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """P2T1 End-to-end workflow test via HTTP API against running backend."""
-import json, sys, urllib.request, urllib.error, time
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
 
 BASE = "http://localhost:8000"
 
@@ -81,7 +85,7 @@ citation_count = body.get("traceability", {}).get("citation_count", 0)
 log(f"Citation count: {citation_count}")
 
 # 6. Overall
-log(f"\n=== RESULT ===")
+log("\n=== RESULT ===")
 log(f"workflow_success: {success}")
 log(f"citation_count: {citation_count}")
 if success and citation_count > 0:

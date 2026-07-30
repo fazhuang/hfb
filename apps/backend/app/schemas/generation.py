@@ -10,7 +10,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ---------------------------------------------------------------------------
 # LLM output contract — strict Pydantic with extra="forbid"
 # ---------------------------------------------------------------------------

@@ -17,12 +17,15 @@ Usage:
   cd apps/backend && python ../../scripts/p0_definitive_pipeline.py
 """
 
-import asyncio, hashlib, io, json, os, re, sys, time, uuid as uuid_mod
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from difflib import SequenceMatcher
+import asyncio
+import hashlib
+import json
+import os
+import re
+import sys
+import uuid as uuid_mod
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 # ── Paths ──────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -108,7 +111,7 @@ def ocr_pages_if_needed(start: int = 1, end: int = 40, dpi: int = OCR_DPI):
             "n_lines": len(texts), "chinese_chars": chinese_chars(full_text),
             "total_chars": len(full_text),
             "page_content_hash": sha256_bytes(normalize(full_text).encode()),
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
         }
 
         if pg % 10 == 0:
@@ -180,8 +183,8 @@ async def run_pipeline(dry_run: bool = False):
     sys.path.insert(0, _backend_dir)
     os.chdir(_backend_dir)
 
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from sqlalchemy import text
 
     await init_database()
     print("Database connected.\n")
@@ -207,7 +210,7 @@ async def run_pipeline(dry_run: bool = False):
         ), {"did": TARGET_DOC_ID})
         doc = r.fetchone()
         if not doc or doc[3]:
-            print(f"ERROR: target document missing or deleted")
+            print("ERROR: target document missing or deleted")
             return
         print(f"    Target: {doc[1]} (blob present: {not doc[2]})")
 
@@ -232,7 +235,7 @@ async def run_pipeline(dry_run: bool = False):
             "SELECT p.id, p.content_text, p.\"order\" FROM passages p "
             "WHERE p.is_deleted=false ORDER BY p.\"order\""
         ))
-        passages = {row[2]: (row[0], row[1]) for row in r.fetchall()}
+        {row[2]: (row[0], row[1]) for row in r.fetchall()}
 
         # Get or create source_ref
         r = await session.execute(text(
@@ -411,7 +414,7 @@ async def run_pipeline(dry_run: bool = False):
 
         # Save audit artifact
         audit_doc = {
-            "generated_utc": datetime.now(timezone.utc).isoformat(),
+            "generated_utc": datetime.now(UTC).isoformat(),
             "pdf_sha256": PDF_SHA256,
             "all_pass": all_pass,
             "pass_count": sum(1 for f in facts_audit if f['match_result']),
@@ -496,7 +499,7 @@ async def run_pipeline(dry_run: bool = False):
             "WHERE document_id=:did AND is_deleted=false AND page_number IS NOT NULL "
             "GROUP BY page_number ORDER BY page_number",
         ), {"did": TARGET_DOC_ID})
-        print(f"\n  Page distribution (target doc):")
+        print("\n  Page distribution (target doc):")
         for pn, cnt in r.fetchall():
             print(f"    Page {pn}: {cnt} chunks")
 
@@ -508,7 +511,7 @@ async def run_pipeline(dry_run: bool = False):
             "WHERE er.is_deleted=false AND er.evidence_status='verified' "
             "AND dc.page_number IS NOT NULL"
         ))
-        print(f"\n  Verified entity_relations with page evidence:")
+        print("\n  Verified entity_relations with page evidence:")
         for row in r.fetchall():
             print(f"    pg={row[1]} | {row[2][:60] if row[2] else 'N/A'}")
 

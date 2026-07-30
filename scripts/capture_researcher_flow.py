@@ -1,5 +1,8 @@
 """Capture researcher browser flow screenshots for P0-5 verification."""
-import json, os, sys, time
+import json
+import os
+import time
+
 from playwright.sync_api import sync_playwright
 
 BASE = "http://localhost:5173"

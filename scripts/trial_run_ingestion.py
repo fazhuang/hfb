@@ -28,10 +28,14 @@ os.environ["PYTHONPATH"] = f"{_root}/apps/backend:{_root}/packages:{os.environ.g
 sys.path.insert(0, f"{_root}/apps/backend")
 sys.path.insert(0, f"{_root}/packages")
 
-# noqa: E402 — sys.path must precede application imports
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
-from app.db.base import Base  # noqa: E402
-from app.services.literature_ingestion.orchestrator import ingest, SOURCES  # noqa: E402
+
+from app.db.base import Base
+from app.services.literature_ingestion.orchestrator import SOURCES, ingest
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 # ============================================================================
 # Verified seed keywords — tested via live Crossref signal-check (2026-07-11).
@@ -130,10 +134,10 @@ async def _dry_run(
     args: argparse.Namespace,
 ) -> int:
     """Simulate ingestion — fetch from APIs, dedup in memory, report only."""
-    # noqa: E402 — deferred imports specific to dry-run path
-    from app.services.literature_ingestion import (  # noqa: E402
-        LiteratureItem,
+
+    from app.services.literature_ingestion import (
         IngestionJob,
+        LiteratureItem,
     )
 
     jobs: list[IngestionJob] = []

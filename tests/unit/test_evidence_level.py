@@ -3,6 +3,7 @@
 import pytest
 from app.models.graph import EntityRelation
 from app.services.graph_service import GraphService
+
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 
 

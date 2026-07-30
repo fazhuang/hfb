@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-import json
-
-import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 
+import pytest
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.passage import Passage
 from app.models.user import User
 from app.models.version import Version
-from app.models.workspace import ResearchSession
 from app.services.research_workflow_service import ResearchWorkflowService
 from app.services.workspace_service import WorkspaceService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session  # noqa: F401
 

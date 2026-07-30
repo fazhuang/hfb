@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -23,14 +24,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.schemas.generation import (
-    GroundedGenerationResponse,
-    GenerationMetadata,
-    LLMClaimsResponse,
     VALIDATION_ERROR_CODES,
+    GenerationMetadata,
+    GroundedGenerationResponse,
+    LLMClaimsResponse,
 )
 from app.services.ai_service import AIService
 from app.services.retrieval import RetrievalResult, RetrievalService
 
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Structured claims system prompt — LLM ONLY returns JSON, no free text
@@ -344,10 +346,9 @@ class GenerationPipeline:
         expected_claims = self._build_expected_claims(query, results, chunk_rank)
 
         # Step 4 — Advisory LLM call (non-blocking for factual output)
-        if self.ai.available:
-            if self.ai.check_rate_limit():
-                system_prompt, user_messages = self._build_prompt(query, results)
-                await self._generate_structured(system_prompt, user_messages)
+        if self.ai.available and self.ai.check_rate_limit():
+            system_prompt, user_messages = self._build_prompt(query, results)
+            await self._generate_structured(system_prompt, user_messages)
 
         # Step 5 — Convert to immutable CanonicalClaim
         canonical_claims_list = _expected_claims_to_canonical(
@@ -557,7 +558,7 @@ class GenerationPipeline:
 
         try:
             LLMClaimsResponse.model_validate(data)
-        except Exception:
+        except (ValueError, TypeError):
             return "INVALID_SCHEMA", False
 
         claims_obj = LLMClaimsResponse.model_validate(data)
@@ -632,7 +633,8 @@ class GenerationPipeline:
             if raw.startswith("⚠️") or "HTTP" in raw[:50]:
                 return None, "PROVIDER_ERROR"
             return raw, None
-        except Exception:
+        except (ValueError, TypeError, RuntimeError):
+            logger.debug("LLM structured generation failed", exc_info=True)
             return None, "PROVIDER_ERROR"
 
     def _mock_claims(self, system_prompt: str, messages: list[dict[str, str]]) -> str:

@@ -23,7 +23,7 @@ class PersonRepository(BaseRepository[Person]):
 
     async def get_by_dynasty(self, dynasty: str, page: int = 1, limit: int = 20):
         """List persons by dynasty."""
-        from sqlalchemy import select, func
+        from sqlalchemy import func, select
 
         stmt = select(Person).where(
             Person.dynasty == dynasty,

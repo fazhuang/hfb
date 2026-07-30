@@ -16,8 +16,9 @@ We test:
 """
 
 import sys
-import pytest
 from pathlib import Path
+
+import pytest
 
 # Make the script importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
@@ -26,7 +27,6 @@ from data_admission_check import (
     _check_schema_gaps,
     _evaluate,
 )
-
 
 # ====================================================================
 # Fake connection — exposes only execute(SELECT) + cursor description
@@ -515,7 +515,7 @@ def test_sqlite_uri_adds_readonly_mode():
     """Simulated connection construction: verify mode=ro is added."""
     # We don't actually call _connect (needs real file), but we test the
     # URI-rewriting logic: urlparse + mode=ro + immutable=1 injection.
-    from urllib.parse import urlparse, parse_qs
+    from urllib.parse import parse_qs, urlparse
 
     url = "sqlite:////tmp/test-db.sqlite"
     parsed = urlparse(url)
@@ -533,7 +533,7 @@ def test_sqlite_uri_adds_readonly_mode():
 def test_sqlite_refuses_writable_mode():
     """If mode=rw is present, check detection logic."""
     url = "sqlite:////tmp/test-db.sqlite?mode=rw"
-    from urllib.parse import urlparse, parse_qs
+    from urllib.parse import parse_qs, urlparse
 
     parsed = urlparse(url)
     qs = parse_qs(parsed.query)

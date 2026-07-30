@@ -9,14 +9,13 @@ import pytest
 
 from tests.conftest_db import db_session_persistent  # noqa: F401
 
-
 # =============================================================================
 # Importability
 # =============================================================================
 
 def test_backfill_script_importable():
     """P0: Script must import without ModuleNotFoundError."""
-    from scripts.backfill_passage import backfill, _normalize, _run_backfill
+    from scripts.backfill_passage import _normalize, _run_backfill, backfill
     assert backfill is not None
     assert _normalize is not None
     assert _run_backfill is not None
@@ -40,12 +39,12 @@ def test_normalize_whitespace():
 @pytest.mark.asyncio
 async def test_backfill_exact_match_unique(db_session_persistent):
     """P0: chunk with exact normalized match → mapped."""
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
     from scripts.backfill_passage import backfill
 
     book = Book(id="book-bf1", title="Test Book", source_url="http://x.com")
@@ -79,12 +78,12 @@ async def test_backfill_exact_match_unique(db_session_persistent):
 @pytest.mark.asyncio
 async def test_backfill_no_match_unresolved(db_session_persistent):
     """P0: chunk with zero candidate passages → unresolved."""
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
     from scripts.backfill_passage import backfill
 
     book = Book(id="book-bf2", title="TB2", source_url="http://x.com")
@@ -116,12 +115,12 @@ async def test_backfill_no_match_unresolved(db_session_persistent):
 @pytest.mark.asyncio
 async def test_backfill_multiple_candidates_ambiguous(db_session_persistent):
     """P0: chunk matches multiple passages → ambiguous, NOT mapped."""
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
     from scripts.backfill_passage import backfill
 
     book = Book(id="book-bf3", title="TB3", source_url="http://x.com")
@@ -161,12 +160,12 @@ async def test_backfill_multiple_candidates_ambiguous(db_session_persistent):
 @pytest.mark.asyncio
 async def test_backfill_dry_run_no_write(db_session_persistent):
     """P0: dry-run must not modify database."""
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
     from scripts.backfill_passage import backfill
 
     book = Book(id="book-bf4", title="TB4", source_url="http://x.com")
@@ -200,12 +199,12 @@ async def test_backfill_dry_run_no_write(db_session_persistent):
 @pytest.mark.asyncio
 async def test_backfill_second_run_no_new(db_session_persistent):
     """P0: second execution maps zero new chunks."""
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
     from scripts.backfill_passage import backfill
 
     book = Book(id="book-bf5", title="TB5", source_url="http://x.com")

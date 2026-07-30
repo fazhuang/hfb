@@ -14,21 +14,21 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from main import app as fastapi_app
 from app.models.book import Book
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.graph import EntityRelation
 from app.models.passage import Passage
 from app.models.person import Person
+from app.models.user import Permission, Role, User
 from app.models.version import Version
-from app.models.user import User, Role, Permission
 from app.schemas.graph import GraphEvidence
 from app.services.auth_service import create_access_token
 from app.services.graph_service import GraphService
+from httpx import ASGITransport, AsyncClient
+from main import app as fastapi_app
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from tests.conftest_db import db_session  # noqa: F401
 
 
@@ -142,7 +142,8 @@ async def _seed_user(
         session.add(role)
         await session.flush()
 
-        from app.models.user import user_role as ur_table, role_permission as rp_table
+        from app.models.user import role_permission as rp_table
+        from app.models.user import user_role as ur_table
 
         await session.execute(
             ur_table.insert().values(user_id=user.id, role_id=role.id)
@@ -487,8 +488,8 @@ class TestHTTPVerifyRelation:
         db_session.add(v2)
         await db_session.flush()
 
-        from app.models.passage import Passage as P
         from app.models.chapter import Chapter
+        from app.models.passage import Passage as P
 
         ch2 = Chapter(
             id="chap-mismatch", book_id=seed["book"].id, title="卷二", order=2
@@ -955,9 +956,9 @@ class TestTreatsEvidencePolicy:
     async def _seed_tcm_entities(self, db_session: AsyncSession) -> dict:
         """Seed herb + symptom entities and supporting graph structure."""
         from app.models.tcm_entity import TCMEntity
-        from app.models.user import User, Role, Permission
-        from app.models.user import user_role as ur_table
+        from app.models.user import Permission, Role, User
         from app.models.user import role_permission as rp_table
+        from app.models.user import user_role as ur_table
 
         # Reviewer
         reviewer = User(

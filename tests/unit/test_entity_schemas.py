@@ -2,16 +2,16 @@
 Tests for entity Pydantic schemas — Book, Version, Chapter, Passage, Paper, Image.
 """
 import pytest
-from pydantic import ValidationError
-
 from app.schemas.entities import (
-    BookCreate, BookUpdate,
-    VersionCreate,
+    BookCreate,
+    BookUpdate,
     ChapterCreate,
-    PassageCreate,
-    PaperCreate,
     ImageCreate,
+    PaperCreate,
+    PassageCreate,
+    VersionCreate,
 )
+from pydantic import ValidationError
 
 
 class TestBookSchema:

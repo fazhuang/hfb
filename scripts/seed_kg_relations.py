@@ -3,8 +3,9 @@
 Seed verified EntityRelations for the Huangfu Mi KG.
 Creates the data backbone needed for P0-1, P0-2, P0-5.
 """
-import asyncio, os, sys, re, hashlib
-from datetime import datetime, timezone
+import asyncio
+import os
+import sys
 
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
 _backend_dir = os.path.abspath(_backend_dir)
@@ -12,8 +13,8 @@ sys.path.insert(0, _backend_dir)
 os.chdir(_backend_dir)
 
 from app.db.database import async_session_factory
-from app.services.graph_service import GraphService
 from app.schemas.graph import GraphEvidence
+from app.services.graph_service import GraphService
 from sqlalchemy import text
 
 # Evidence data — chunk_id -> passage_id mapping is already correct in DB

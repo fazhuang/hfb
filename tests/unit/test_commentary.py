@@ -2,6 +2,7 @@
 
 import pytest
 from app.models.commentary import Commentary
+
 from tests.conftest_db import db_session  # noqa: F401
 
 

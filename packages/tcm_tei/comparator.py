@@ -7,9 +7,9 @@ identifying variants, insertions, and deletions.
 from __future__ import annotations
 
 from tcm_tei.models import (
-    TextVersion,
     Paragraph,
     Sentence,
+    TextVersion,
     Variant,
 )
 

@@ -10,12 +10,11 @@ Changes:
   - Downgrade: drop FK, restore VARCHAR(100) without FK
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy import text
-
 
 # revision identifiers, used by Alembic.
 revision: str = "p0_1_verified_by_fk"

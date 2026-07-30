@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """P0 AcademicRAG Withdraw Verification — pure output, no SQL logging."""
-import asyncio, sys, os, logging
+import asyncio
+import logging
+import os
+import sys
+
 sys.path.insert(0, '.')
 os.chdir('.')
 logging.disable(logging.CRITICAL)  # suppress all sqlalchemy noise
@@ -9,6 +13,7 @@ from app.db.database import async_session_factory, init_database
 from app.services.academic_rag_service import AcademicRAGService
 from app.services.ingestion import IngestionService
 from sqlalchemy import text
+
 
 async def main():
     await init_database()
@@ -60,7 +65,7 @@ async def main():
             "SELECT count(*) FROM citations c JOIN evidences e ON e.id=c.evidence_id "
             "LEFT JOIN source_refs sr ON sr.id=e.source_ref_id "
             "WHERE c.is_deleted=false AND sr.id IS NULL"))
-        print(f"\nrestored_doc withdrawn_at=NULL rag_enabled=true")
+        print("\nrestored_doc withdrawn_at=NULL rag_enabled=true")
         print(f"final_null_sr={r.scalar()}")
 
 asyncio.run(main())

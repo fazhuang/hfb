@@ -10,14 +10,12 @@ P0: History/Runs traceability carries real trace IDs, not empty placeholders.
 from __future__ import annotations
 
 import json
+import uuid
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from tests.conftest_db import db_session_persistent  # noqa: F401
-
-import uuid
-
 
 # ==========================================================================
 # Helpers
@@ -74,10 +72,10 @@ def _seed_chunks_with_passage(db, doc_id: str, title: str, dynasty: str,
 
 
 def _seed_passage_with_lineage(db, passage_id: str, content: str, version_name: str = "宋本"):
-    from app.models.passage import Passage
-    from app.models.version import Version
     from app.models.book import Book
     from app.models.chapter import Chapter
+    from app.models.passage import Passage
+    from app.models.version import Version
     book = Book(id=f"book-{passage_id}", title="针灸甲乙经", source_url="http://example.com")
     db.add(book)
     version = Version(id=f"ver-{passage_id}", book_id=book.id, version_name=version_name,
@@ -92,8 +90,8 @@ def _seed_passage_with_lineage(db, passage_id: str, content: str, version_name: 
 
 
 async def _read_query_history_internal(db, session_id: str):
-    from sqlalchemy import select
     from app.models.workspace import QueryHistory
+    from sqlalchemy import select
     stmt = select(QueryHistory).where(QueryHistory.session_id == str(session_id)).order_by(QueryHistory.created_at.desc())
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -106,8 +104,8 @@ async def _read_query_history_internal(db, session_id: str):
 
 def test_internal_trace_record_all_fields_required():
     """P0: InternalTraceRecord rejects construction with any empty/missing field."""
-    from pydantic import ValidationError
     from app.services.trace_lineage import InternalTraceRecord, make_trace_id
+    from pydantic import ValidationError
 
     valid_tid = make_trace_id("doc-1", "chk-1")
 
@@ -215,8 +213,8 @@ def test_internal_trace_record_all_fields_required():
 
 
 def test_traceability_block_query_id_min_length():
-    from pydantic import ValidationError
     from app.schemas.v4 import V4TraceabilityBlock
+    from pydantic import ValidationError
     with pytest.raises(ValidationError):
         V4TraceabilityBlock(query_id="", trace_ids=[], citation_count=0, source_documents=[])
 
@@ -235,8 +233,8 @@ def test_trace_id_is_uuidv5_not_32bit_truncation():
 
 
 def test_visualization_schema_rejects_empty():
-    from pydantic import ValidationError
     from app.schemas.v4 import VisualizationEdge, VisualizationNode
+    from pydantic import ValidationError
     with pytest.raises(ValidationError):
         VisualizationEdge(source="a", target="b", type="co_occurrence", weight=0.5, evidence_ids=[])
     with pytest.raises(ValidationError):
@@ -380,14 +378,15 @@ async def test_workflow_downstream_passes_same_traces(db_session_persistent):
 @pytest.mark.asyncio
 async def test_resolver_strict_missing_passage_fails(db_session_persistent):
     """P0: resolve_trace_lineage has no optional mode — strict by default."""
-    from app.services.trace_lineage import (
-        make_trace_id, resolve_trace_lineage, TraceLineageError,
-    )
-
     # Seed chunk without passage_id
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
-    from app.models.workspace import ResearchSession, QueryHistory
+    from app.models.workspace import QueryHistory, ResearchSession
+    from app.services.trace_lineage import (
+        TraceLineageError,
+        make_trace_id,
+        resolve_trace_lineage,
+    )
 
     doc = Document(id="v4-doc-str", title="strict test", dynasty="汉", copyright_status="public_domain", authorization_basis="test seed", rag_enabled=True)
     db_session_persistent.add(doc)
@@ -421,10 +420,12 @@ async def test_resolver_strict_missing_passage_fails(db_session_persistent):
 @pytest.mark.asyncio
 async def test_resolver_with_passage_succeeds(db_session_persistent):
     """P0: Full lineage resolves when passage link exists."""
+    from app.models.workspace import QueryHistory, ResearchSession
     from app.services.trace_lineage import (
-        make_trace_id, resolve_trace_lineage, InternalTraceRecord,
+        InternalTraceRecord,
+        make_trace_id,
+        resolve_trace_lineage,
     )
-    from app.models.workspace import ResearchSession, QueryHistory
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-res", "环周不休。")
     doc_id, chunk_ids = _seed_chunks_with_passage(
@@ -509,8 +510,8 @@ async def test_workflow_e2e_with_passage(db_session_persistent):
 @pytest.mark.asyncio
 async def test_visualization_session_bound(db_session_persistent):
     """P0: visualization query_id maps to a real QueryHistory entry."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-vs", "针灸和经络是中医核心概念。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-vs", "针灸甲乙经", "晋",
@@ -588,8 +589,8 @@ async def test_history_traceability_carries_real_trace_ids(db_session_persistent
 @pytest.mark.asyncio
 async def test_timeline_uses_structured_time_not_regex(db_session_persistent):
     """P0: Timeline nodes should use Version era/year, not regex on citation text."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     # Content without explicit dynasty patterns in quote, with passage but no Version era/year
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-tlv", "无年代文本。")
@@ -625,8 +626,8 @@ async def test_timeline_uses_structured_time_not_regex(db_session_persistent):
 @pytest.mark.asyncio
 async def test_citation_graph_excludes_hierarchy_cooccurrence(db_session_persistent):
     """P0: Citation graph has only citation type edges."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-cit2", "针灸和经络密切相关。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-cit2", "test", "宋",
@@ -661,8 +662,8 @@ async def test_citation_graph_excludes_hierarchy_cooccurrence(db_session_persist
 @pytest.mark.asyncio
 async def test_citation_graph_has_edges_with_evidence(db_session_persistent):
     """P0 Phase 1: Citation graph with real evidence produces non-empty edges."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-cit3", "针灸和经络密切相关。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-cit3a", "文献A", "晋",
@@ -707,8 +708,8 @@ async def test_citation_graph_has_edges_with_evidence(db_session_persistent):
 @pytest.mark.asyncio
 async def test_citation_graph_empty_without_evidence(db_session_persistent):
     """P0 Phase 1: Empty graph when no evidence exists for concepts."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     # No chunks seeded — concepts won't appear in any chunk content
     _seed_passage_with_lineage(db_session_persistent, "passage-cit4", "无关内容。")
@@ -807,9 +808,8 @@ def test_v4_routes_no_orm_imports():
         tree = ast.parse(source)
         imports = set()
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module:
-                    imports.add(node.module)
+            if isinstance(node, ast.ImportFrom) and node.module:
+                imports.add(node.module)
         for imp in imports:
             assert not imp.startswith("app.models"), f"{fpath} imports ORM models: {imp}"
         for call in ["session.execute", "session.add", "db.flush"]:
@@ -851,8 +851,8 @@ async def test_passage_mapping_stats(db_session_persistent):
 
 def test_snapshot_preserves_real_score():
     """P0: _snapshot_to_dicts passes through real score=0.83 exactly."""
-    from app.services.retrieval import RetrievalResult
     from app.services.generation_proof import _snapshot_to_dicts
+    from app.services.retrieval import RetrievalResult
 
     rr = RetrievalResult(
         chunk_id="chk-1", document_id="doc-1", document_title="T",
@@ -867,8 +867,8 @@ def test_snapshot_preserves_real_score():
 
 def test_snapshot_real_score_0_0_preserved():
     """P0: Real score=0.0 from RetrievalResult is allowed."""
-    from app.services.retrieval import RetrievalResult
     from app.services.generation_proof import _snapshot_to_dicts
+    from app.services.retrieval import RetrievalResult
 
     rr = RetrievalResult(
         chunk_id="chk-1", document_id="doc-1", document_title="T",
@@ -898,6 +898,7 @@ def test_snapshot_missing_score_fails():
 def test_snapshot_nan_score_fails():
     """P0: NaN score → ValueError."""
     import math
+
     from app.services.generation_proof import _snapshot_to_dicts
 
     class FakeRR:
@@ -913,6 +914,7 @@ def test_snapshot_nan_score_fails():
 def test_snapshot_inf_score_fails():
     """P0: Inf score → ValueError."""
     import math
+
     from app.services.generation_proof import _snapshot_to_dicts
 
     class FakeRR:
@@ -963,8 +965,8 @@ def test_snapshot_score_out_of_range_fails():
 @pytest.mark.asyncio
 async def test_visualization_query_history_has_full_traces(db_session_persistent):
     """P0: visualization saves full InternalTraceRecord in result_summary, not just trace_ids."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
     from app.models.workspace import QueryHistory
     from sqlalchemy import select as sql_select
 
@@ -1017,11 +1019,11 @@ async def test_visualization_query_history_has_full_traces(db_session_persistent
 @pytest.mark.asyncio
 async def test_visualization_concept_source_documents_real_ids(db_session_persistent):
     """P0: concept source_documents in node metadata are real document IDs, not counts."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-viz-sd", "测试。")
-    doc_id, chunk_ids = _seed_chunks_with_passage(
+    _doc_id, _chunk_ids = _seed_chunks_with_passage(
         db_session_persistent, "v4-doc-vizsd", "甲乙", "晋",
         passage_id=pid, prefix="v4-chk-vizsd",
     )
@@ -1059,14 +1061,13 @@ async def test_visualization_concept_source_documents_real_ids(db_session_persis
 @pytest.mark.asyncio
 async def test_timeline_no_document_dynasty_fallback(db_session_persistent):
     """P0: Document.dynasty has value but Version has no time → timeline node NOT generated."""
-    from app.services.trace_lineage import resolve_time_evidence
-
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.document import Document
     from app.models.document_chunk import DocumentChunk
     from app.models.passage import Passage
     from app.models.version import Version
-    from app.models.book import Book
-    from app.models.chapter import Chapter
+    from app.services.trace_lineage import resolve_time_evidence
 
     # Set up: passage → version WITHOUT era/year, but document WITH dynasty
     book = Book(id="book-tl2", title="TL Book", source_url="http://x.com")
@@ -1102,8 +1103,8 @@ async def test_timeline_no_document_dynasty_fallback(db_session_persistent):
 @pytest.mark.asyncio
 async def test_graph_provenance_score_is_null_not_zero(db_session_persistent):
     """P0 Phase 2: Graph traces have retrieval_score=None, not 0.0."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
     from app.models.workspace import QueryHistory
     from sqlalchemy import select as sql_select
 
@@ -1145,8 +1146,8 @@ async def test_graph_provenance_score_is_null_not_zero(db_session_persistent):
 @pytest.mark.asyncio
 async def test_retrieval_trace_missing_score_fails(db_session_persistent):
     """P0 Phase 2: retrieval provenance without score fails."""
-    from pydantic import ValidationError
     from app.services.trace_lineage import InternalTraceRecord, make_trace_id
+    from pydantic import ValidationError
 
     tid = make_trace_id("doc-1", "chk-1")
     with pytest.raises(ValidationError):
@@ -1161,8 +1162,8 @@ async def test_retrieval_trace_missing_score_fails(db_session_persistent):
 @pytest.mark.asyncio
 async def test_graph_trace_with_score_fails(db_session_persistent):
     """P0 Phase 2: graph provenance with score fails."""
-    from pydantic import ValidationError
     from app.services.trace_lineage import InternalTraceRecord, make_trace_id
+    from pydantic import ValidationError
 
     tid = make_trace_id("doc-1", "chk-1")
     with pytest.raises(ValidationError):
@@ -1224,8 +1225,6 @@ async def test_graph_mode_saves_query_history(db_session_persistent):
 async def test_graph_mode_sqlite_lineage_with_expanding_bind(db_session_persistent):
     """T1: graph mode query works on SQLite — expanding bind replaces ANY(:ids)."""
     from app.api.v4.research import router as research_router
-    from app.models.workspace import QueryHistory
-    from sqlalchemy import select as sql_select
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-t1a", "经络针灸。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-t1a", "甲乙", "晋",
@@ -1261,7 +1260,7 @@ async def test_graph_mode_evidence_lineage_nonempty_on_sqlite(db_session_persist
     from app.api.v4.research import router as research_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-t1b", "经络针灸甲乙经。")
-    doc_id, chunk_ids = _seed_chunks_with_passage(
+    _doc_id, chunk_ids = _seed_chunks_with_passage(
         db_session_persistent, "v4-doc-t1b", "甲乙", "晋",
         passage_id=pid, prefix="v4-chk-t1b")
     await db_session_persistent.flush()
@@ -1318,8 +1317,8 @@ async def test_graph_mode_evidence_lineage_nonempty_on_sqlite(db_session_persist
 @pytest.mark.asyncio
 async def test_visualization_api_citation_count_matches_query_history(db_session_persistent):
     """P0 Phase 3: API traceability citation_count == QueryHistory.citation_count."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
     from app.models.workspace import QueryHistory
     from sqlalchemy import select as sql_select
 
@@ -1360,8 +1359,8 @@ async def test_visualization_api_citation_count_matches_query_history(db_session
 @pytest.mark.asyncio
 async def test_visualization_empty_graph_saves_query_history(db_session_persistent):
     """P0 Phase 3: Empty graph still creates QueryHistory with evidence_status=empty."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
     from app.models.workspace import QueryHistory
     from sqlalchemy import select as sql_select
 
@@ -1564,7 +1563,9 @@ def test_canonical_payload_includes_full_content_not_counts():
 async def test_replay_twice_produces_byte_identical_canonical_output(db_session_persistent):
     """P0 Phase 4: Same manifest replayed twice produces identical canonical hash."""
     from app.services.research_workflow_service import (
-        ResearchWorkflowService, _build_canonical_payload, canonical_sha256,
+        ResearchWorkflowService,
+        _build_canonical_payload,
+        canonical_sha256,
     )
     from app.services.trace_lineage import InternalTraceRecord, make_trace_id
 
@@ -1611,8 +1612,8 @@ async def test_replay_twice_produces_byte_identical_canonical_output(db_session_
             synthesis_evidence=all_evidence,
             report_sections=rep_out.get("sections", []),
             citations=cit_out.get("result", {}).get("citations", []),
-            trace_ids=sorted(set(r.trace_id for r in frozen_traces)),
-            source_document_ids=sorted(set(r.document_id for r in frozen_traces)),
+            trace_ids=sorted({r.trace_id for r in frozen_traces}),
+            source_document_ids=sorted({r.document_id for r in frozen_traces}),
         )
         return canonical_sha256(payload)
 
@@ -1625,7 +1626,9 @@ async def test_replay_twice_produces_byte_identical_canonical_output(db_session_
 async def test_replay_modified_snapshot_produces_mismatch(db_session_persistent):
     """P0 Phase 4: Modifying snapshot quote produces different canonical output hash."""
     from app.services.research_workflow_service import (
-        ResearchWorkflowService, _build_canonical_payload, canonical_sha256,
+        ResearchWorkflowService,
+        _build_canonical_payload,
+        canonical_sha256,
     )
     from app.services.trace_lineage import InternalTraceRecord, make_trace_id
 
@@ -1665,8 +1668,8 @@ async def test_replay_modified_snapshot_produces_mismatch(db_session_persistent)
             synthesis_evidence=all_evidence,
             report_sections=rep_out.get("sections", []),
             citations=cit_out.get("result", {}).get("citations", []),
-            trace_ids=sorted(set(r.trace_id for r in frozen_traces)),
-            source_document_ids=sorted(set(r.document_id for r in frozen_traces)),
+            trace_ids=sorted({r.trace_id for r in frozen_traces}),
+            source_document_ids=sorted({r.document_id for r in frozen_traces}),
         )
         return canonical_sha256(payload)
 
@@ -1755,7 +1758,10 @@ def test_canonicalize_trace_score_method_kind_changes_result():
 
 def test_canonicalize_trace_graph_score_null_stable():
     """Graph provenance with score=None serializes stably."""
-    from app.services.research_workflow_service import canonicalize_trace, canonical_json_bytes
+    from app.services.research_workflow_service import (
+        canonical_json_bytes,
+        canonicalize_trace,
+    )
 
     t = {"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
          "passage_id": "p1", "provenance_kind": "graph",
@@ -1771,8 +1777,10 @@ def test_canonicalize_trace_graph_score_null_stable():
 def test_canonical_traces_enter_all_hash_domains():
     """canonicalize_traces output changes each hash domain."""
     from app.services.research_workflow_service import (
-        canonicalize_traces, _build_input_payload,
-        _build_canonical_payload, canonical_sha256,
+        _build_canonical_payload,
+        _build_input_payload,
+        canonical_sha256,
+        canonicalize_traces,
     )
 
     traces = [{"trace_id": "a", "document_id": "d1", "chunk_id": "c1",
@@ -1897,8 +1905,8 @@ async def test_replay_api_tampered_passage_id_fails(db_session_persistent):
         run_id = runs[0]["run_id"]
 
         # Tamper passage_id in manifest directly via DB
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -1942,8 +1950,8 @@ async def test_replay_api_tampered_retrieval_score_fails(db_session_persistent):
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -1985,8 +1993,8 @@ async def test_replay_api_tampered_retrieval_method_fails(db_session_persistent)
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2028,8 +2036,8 @@ async def test_replay_api_delete_passage_id_fails(db_session_persistent):
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2071,8 +2079,8 @@ async def test_replay_api_non_uuidv5_trace_id_fails(db_session_persistent):
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2148,8 +2156,8 @@ async def test_replay_api_manifest_sha256_tamper_fails(db_session_persistent):
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2191,8 +2199,8 @@ async def test_replay_api_quote_tamper_fails(db_session_persistent):
         runs = (await client.get(f"/api/v4/research/session/{sid}/runs")).json()["data"]["runs"]
         run_id = runs[0]["run_id"]
 
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == sid)
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2254,10 +2262,11 @@ _MANIFEST_TAMPER_PARAMS = [
 @pytest.mark.parametrize("mode,replacement,expected", _MANIFEST_TAMPER_PARAMS)
 async def test_replay_api_manifest_sha256_required(db_session_persistent, mode, replacement, expected):
     """Parameterized: delete/empty/null/short/non-hex/wrong manifest_sha256 → fail."""
-    from app.api.v4.research import router as research_router
-    from sqlalchemy import select as sql_select
-    from app.models.workspace import ResearchSession
     import json as _json
+
+    from app.api.v4.research import router as research_router
+    from app.models.workspace import ResearchSession
+    from sqlalchemy import select as sql_select
 
     pid = _seed_passage_with_lineage(db_session_persistent, f"passage-{mode}", "经络。")
     _seed_chunks_with_passage(db_session_persistent, f"v4-doc-{mode}", "文献", "晋",
@@ -2317,8 +2326,8 @@ async def test_replay_api_manifest_sha256_required(db_session_persistent, mode, 
 @pytest.mark.asyncio
 async def test_visualization_auto_session_returns_session_id(db_session_persistent):
     """Test A: No session_id → auto-creates, returns traceability.session_id."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-viz-auto", "经络。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-viz-auto", "文献", "晋",
@@ -2344,8 +2353,8 @@ async def test_visualization_auto_session_returns_session_id(db_session_persiste
         assert len(tb["session_id"]) > 0
 
         # Verify session exists in DB
-        from sqlalchemy import select as sql_select
         from app.models.workspace import ResearchSession
+        from sqlalchemy import select as sql_select
         stmt = sql_select(ResearchSession).where(ResearchSession.id == tb["session_id"])
         sess_result = await db_session_persistent.execute(stmt)
         session_obj = sess_result.scalar_one_or_none()
@@ -2364,8 +2373,8 @@ async def test_visualization_auto_session_returns_session_id(db_session_persiste
 @pytest.mark.asyncio
 async def test_visualization_explicit_session_returns_same_id(db_session_persistent):
     """Test B: Explicit session_id → returns same session_id, no extra session created."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     pid = _seed_passage_with_lineage(db_session_persistent, "passage-viz-exp", "经络。")
     _seed_chunks_with_passage(db_session_persistent, "v4-doc-viz-exp", "文献", "晋",
@@ -2384,8 +2393,9 @@ async def test_visualization_explicit_session_returns_same_id(db_session_persist
         sid = r1.json()["data"]["session_id"]
 
         # Count sessions before viz request
-        from sqlalchemy import select as sql_select, func
         from app.models.workspace import ResearchSession
+        from sqlalchemy import func
+        from sqlalchemy import select as sql_select
         stmt = sql_select(func.count()).select_from(ResearchSession).where(
             ResearchSession.user_id == "test-user-id",
         )
@@ -2408,8 +2418,8 @@ async def test_visualization_explicit_session_returns_same_id(db_session_persist
 @pytest.mark.asyncio
 async def test_visualization_other_user_session_returns_404(db_session_persistent):
     """Test C: Other user's session → 404."""
-    from app.api.v4.visualization import router as viz_router
     from app.api.v4.research import router as research_router
+    from app.api.v4.visualization import router as viz_router
 
     app = _build_app(viz_router, research_router)
     _setup_auth_overrides(app, db_session_persistent)

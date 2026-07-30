@@ -30,15 +30,15 @@ _backend_dir = str(_project_root / "apps" / "backend")
 if _backend_dir not in sys.path:
     sys.path.insert(0, _backend_dir)
 
-from tcm_ontology import EntityType, EntityRegistry, SchemaLoader  # noqa: E402
-from tcm_tei import (  # noqa: E402
-    Token,
-    Sentence,
-    Paragraph,
-    TextVersion,
+from tcm_ontology import EntityRegistry, EntityType, SchemaLoader
+from tcm_tei import (
     Document,
-    VersionComparator,
+    Paragraph,
+    Sentence,
     TEISerializer,
+    TextVersion,
+    Token,
+    VersionComparator,
 )
 
 EXIT = 0
@@ -92,7 +92,7 @@ reg.validate(
 )
 print("皇甫谧 实体验证通过 ✓")
 
-from app.models.graph import GRAPH_ENTITY_TYPES, GRAPH_RELATION_TYPES  # noqa: E402
+from app.models.graph import GRAPH_ENTITY_TYPES, GRAPH_RELATION_TYPES
 
 canonical = {et.value.lower() for et in EntityType}
 for ct in ("person", "text", "herb", "prescription", "meridian", "symptom"):
@@ -121,10 +121,10 @@ sep("验收 2: Knowledge Graph — Production GraphService 多跳查询 + verify
 
 async def _seed_reviewer(session):
     """P0-3: seed a reviewer user + role + permission for verify_relation."""
-    from app.models.user import User, Role  # noqa: E402
-    from app.models.user import Permission as PermModel  # noqa: E402
-    from app.models.user import user_role as ur_table  # noqa: E402
-    from app.models.user import role_permission as rp_table  # noqa: E402
+    from app.models.user import Permission as PermModel
+    from app.models.user import Role, User
+    from app.models.user import role_permission as rp_table
+    from app.models.user import user_role as ur_table
 
     reviewer = User(
         id="demo-reviewer",
@@ -156,21 +156,21 @@ async def _seed_reviewer(session):
 
 
 async def demo_kg():
+    from app.db.base import Base
+    from app.models.book import Book
+    from app.models.chapter import Chapter
+    from app.models.document import Document
+    from app.models.document_chunk import DocumentChunk
+    from app.models.passage import Passage
+    from app.models.person import Person
+    from app.models.version import Version
+    from app.schemas.graph import GraphEvidence
+    from app.services.graph_service import GraphService
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
         async_sessionmaker,
         create_async_engine,
-    )  # noqa: E402
-    from app.db.base import Base  # noqa: E402
-    from app.models.person import Person  # noqa: E402
-    from app.models.book import Book  # noqa: E402
-    from app.models.document import Document  # noqa: E402
-    from app.models.document_chunk import DocumentChunk  # noqa: E402
-    from app.models.version import Version  # noqa: E402
-    from app.models.passage import Passage  # noqa: E402
-    from app.models.chapter import Chapter  # noqa: E402
-    from app.services.graph_service import GraphService  # noqa: E402
-    from app.schemas.graph import GraphEvidence  # noqa: E402
+    )
 
     engine = create_async_engine("sqlite+aiosqlite://", echo=False)
     async with engine.begin() as conn:
@@ -510,26 +510,26 @@ async def demo_academic_rag_http():
     P0-1 fix: seed, dependency_overrides, HTTP requests ALL inside the same
     session context. Use StaticPool for shared in-memory SQLite.
     """
+    from app.db.base import Base
+    from app.db.database import get_session
+    from app.middleware import auth as auth_mod
+    from app.models.book import Book
+    from app.models.chapter import Chapter
+    from app.models.document import Document
+    from app.models.document_chunk import DocumentChunk
+    from app.models.passage import Passage
+    from app.models.person import Person
+    from app.models.version import Version
+    from app.schemas.graph import GraphEvidence
+    from app.services.graph_service import GraphService
+    from httpx import ASGITransport, AsyncClient
+    from main import app as fastapi_app
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
         async_sessionmaker,
         create_async_engine,
-    )  # noqa: E402
-    from sqlalchemy.pool import StaticPool  # noqa: E402
-    from app.db.base import Base  # noqa: E402
-    from app.models.person import Person  # noqa: E402
-    from app.models.book import Book  # noqa: E402
-    from app.models.document import Document  # noqa: E402
-    from app.models.document_chunk import DocumentChunk  # noqa: E402
-    from app.models.version import Version  # noqa: E402
-    from app.models.passage import Passage  # noqa: E402
-    from app.models.chapter import Chapter  # noqa: E402
-    from app.services.graph_service import GraphService  # noqa: E402
-    from app.schemas.graph import GraphEvidence  # noqa: E402
-    from main import app as fastapi_app  # noqa: E402
-    from app.db.database import get_session  # noqa: E402
-    from app.middleware import auth as auth_mod  # noqa: E402
-    from httpx import ASGITransport, AsyncClient  # noqa: E402
+    )
+    from sqlalchemy.pool import StaticPool
 
     # Use StaticPool so the same in-memory SQLite connection is shared
     engine = create_async_engine(
@@ -831,21 +831,21 @@ sep("验收 5: Refusal Demo — Chunks exist but NO verified source path")
 
 async def demo_refusal():
     """P0-1: Demonstrate refusal when chunks match but no verified KG path."""
+    from app.db.base import Base
+    from app.db.database import get_session
+    from app.middleware import auth as auth_mod
+    from app.models.book import Book
+    from app.models.document import Document
+    from app.models.document_chunk import DocumentChunk
+    from app.models.person import Person
+    from httpx import ASGITransport, AsyncClient
+    from main import app as fastapi_app
     from sqlalchemy.ext.asyncio import (
         AsyncSession,
         async_sessionmaker,
         create_async_engine,
-    )  # noqa: E402
-    from sqlalchemy.pool import StaticPool  # noqa: E402
-    from app.db.base import Base  # noqa: E402
-    from app.models.person import Person  # noqa: E402
-    from app.models.book import Book  # noqa: E402
-    from app.models.document import Document  # noqa: E402
-    from app.models.document_chunk import DocumentChunk  # noqa: E402
-    from main import app as fastapi_app  # noqa: E402
-    from app.db.database import get_session  # noqa: E402
-    from app.middleware import auth as auth_mod  # noqa: E402
-    from httpx import ASGITransport, AsyncClient  # noqa: E402
+    )
+    from sqlalchemy.pool import StaticPool
 
     engine = create_async_engine(
         "sqlite+aiosqlite://",

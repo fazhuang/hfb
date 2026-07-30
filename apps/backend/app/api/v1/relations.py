@@ -6,7 +6,7 @@ Per academic_implementation_manual.md Step 3.3.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -142,7 +142,7 @@ async def calculate_relation_confidence(
         },
         ensure_ascii=False,
     )
-    confidence.last_calculated_at = datetime.now(timezone.utc)
+    confidence.last_calculated_at = datetime.now(UTC)
     await session.commit()
 
     return score

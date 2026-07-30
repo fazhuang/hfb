@@ -7,20 +7,25 @@ deterministic paragraph-based chunking, full-text compliance gate (Context 21).
 from __future__ import annotations
 
 import hashlib
+import logging
+from datetime import UTC
 from io import BytesIO
 from typing import BinaryIO
 from uuid import uuid4
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.academic_evidence import SourceRef
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
-from app.models.academic_evidence import SourceRef
 from app.repositories.document import DocumentRepository
 from app.services.chunking import chunk_text
+
+logger = logging.getLogger(__name__)
 
 # Whitelist: allowed metadata keys that can be stored on the Document model.
 # Prevents mass-assignment of internal fields (is_deleted, deleted_at, etc.)
@@ -164,9 +169,7 @@ class IngestionService:
         mf = metadata.get("forbidden_fulltext")
         if cs == "forbidden_fulltext":
             return True
-        if mf is True or str(mf).lower() == "true":
-            return True
-        return False
+        return bool(mf is True or str(mf).lower() == "true")
 
     # ------------------------------------------------------------------
     # Audit logging
@@ -256,8 +259,9 @@ class IngestionService:
         if passage_id is not None:
             if not passage_id.strip():
                 raise ValueError("passage_id must be non-empty when provided")
-            from app.models.passage import Passage
             from sqlalchemy import select as sql_select
+
+            from app.models.passage import Passage
             p_stmt = sql_select(Passage.id).where(
                 Passage.id == passage_id.strip(),
                 Passage.is_deleted.is_(False),
@@ -395,7 +399,7 @@ class IngestionService:
                 total_chars=len(stripped),
                 checksum=checksum,
             )
-        except Exception:
+        except (SQLAlchemyError, ValueError, OSError):
             # Roll back: remove the parent document (already flushed)
             await self._write_audit(
                 action="skip",
@@ -509,7 +513,7 @@ class IngestionService:
         if reader.is_encrypted:
             try:
                 reader.decrypt("")
-            except Exception:
+            except PdfReadError:
                 raise PDFExtractionError(
                     "PDF is encrypted and cannot be decrypted with empty password"
                 )
@@ -520,7 +524,7 @@ class IngestionService:
         for i, page in enumerate(reader.pages, start=1):
             try:
                 t = page.extract_text()
-            except Exception:
+            except PdfReadError:
                 t = None
             if t and t.strip():
                 page_data.append((i, t.strip()))
@@ -546,7 +550,7 @@ class IngestionService:
 
         # Set ocr_confidence from OCR mix if not explicitly provided
         if ocr_confidence is None and ocr_pages:
-            text_pages = len(reader.pages) - len(ocr_pages)
+            len(reader.pages) - len(ocr_pages)
             ocr_ratio = len(ocr_pages) / max(len(reader.pages), 1)
             if ocr_ratio > 0.8:
                 ocr_confidence = 0.65  # mostly OCR
@@ -661,7 +665,7 @@ class IngestionService:
                 total_chars=sum(len(t) for t, _ in all_chunk_data),
                 checksum=checksum,
             )
-        except Exception:
+        except (SQLAlchemyError, ValueError, OSError):
             # Roll back: remove the parent document
             await self._write_audit(
                 action="skip",
@@ -690,7 +694,7 @@ class IngestionService:
         text: str,
         passage_id: str,
         max_chunk_chars: int = 1000,
-    ) -> "AppendResult":
+    ) -> AppendResult:
         """Append passage-bound chunks to an existing document.
 
         Wraps all work inside a SQLAlchemy savepoint (begin_nested).
@@ -701,8 +705,10 @@ class IngestionService:
         and rag_enabled is set to False — re-review is required before
         RAG retrieval can use the new content.
         """
-        from datetime import datetime, timezone
-        from sqlalchemy import select as _sel, func as _func, text as _text
+        from datetime import datetime
+
+        from sqlalchemy import func as _func
+        from sqlalchemy import select as _sel
 
         stripped = text.strip()
         if not stripped:
@@ -858,7 +864,7 @@ class IngestionService:
             new_checksum = hashlib.sha256(all_text.encode("utf-8")).hexdigest()
 
             # 9. Update document: content, checksum, review status, rag
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             doc.content_text = all_text
             doc.content_checksum = new_checksum
             doc.review_status = "pending"
@@ -896,7 +902,7 @@ class IngestionService:
                 last_chunk_index=next_index + len(chunk_ids) - 1,
                 content_checksum=new_checksum,
             )
-        except Exception:
+        except (SQLAlchemyError, ValueError):
             await sp.rollback()
             raise
 
@@ -917,11 +923,12 @@ class IngestionService:
         DocumentChunk.is_deleted, so the content becomes invisible to all
         retrieval paths.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from sqlalchemy import update as sql_update
 
         # Soft-delete the document
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         doc_stmt = (
             sql_update(Document)
             .where(Document.id == document_id)
@@ -1046,7 +1053,9 @@ class IngestionService:
 
         from urllib.parse import urlparse, urlunparse
         from uuid import uuid4
-        from sqlalchemy import select as _select, and_
+
+        from sqlalchemy import and_
+        from sqlalchemy import select as _select
 
         # --- normalise URL for stable dedup ----------------------------------
         norm_url = ""
@@ -1059,12 +1068,11 @@ class IngestionService:
                 norm_url = urlunparse(
                     (p.scheme.lower(), p.netloc.lower(), path, p.params, p.query, "")
                 )
-            except Exception:
+            except (ValueError, TypeError):
                 norm_url = raw
 
         loc = (page_location or "").strip()
 
-        from app.models.academic_evidence import SourceRef
 
         if norm_url:
             # URL is the stable identity
@@ -1147,7 +1155,7 @@ class IngestionService:
             # Try empty password (many academic PDFs use this)
             try:
                 reader.decrypt("")
-            except Exception:
+            except PdfReadError:
                 raise PDFExtractionError(
                     "PDF is encrypted and cannot be decrypted with empty password"
                 )
@@ -1156,7 +1164,7 @@ class IngestionService:
         for page in reader.pages:
             try:
                 t = page.extract_text()
-            except Exception:
+            except PdfReadError:
                 continue
             if t:
                 parts.append(t)
@@ -1177,8 +1185,8 @@ class IngestionService:
         Empty pages are omitted from the result.
         """
         try:
-            from pdf2image import convert_from_bytes
             import pytesseract
+            from pdf2image import convert_from_bytes
         except ImportError as e:
             raise PDFExtractionError(
                 f"OCR requires pdf2image and pytesseract: {e}"
@@ -1203,7 +1211,7 @@ class IngestionService:
                 continue
             try:
                 text = pytesseract.image_to_string(img, lang=lang, config="--psm 6")
-            except Exception:
+            except (OSError, RuntimeError):
                 text = ""
             if text and text.strip():
                 result[pg] = text

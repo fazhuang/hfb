@@ -14,29 +14,54 @@ DELETE /api/v1/{resource}/{id}
 # turns ``body`` into an unresolved string and FastAPI treats it as a query
 # parameter instead of a JSON request body.
 
+import logging
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import require_permission, get_current_user
+from app.middleware.auth import get_current_user, require_permission
 from app.schemas.entities import (
-    BookCreate, BookUpdate, BookBrief, BookResponse,
-    VersionCreate, VersionUpdate, VersionBrief, VersionResponse,
-    ChapterCreate, ChapterUpdate, ChapterBrief, ChapterResponse,
-    PassageCreate, PassageUpdate, PassageBrief, PassageResponse,
-    PaperCreate, PaperUpdate, PaperBrief, PaperResponse,
-    ImageCreate, ImageBrief, ImageResponse,
+    BookBrief,
+    BookCreate,
+    BookResponse,
+    BookUpdate,
+    ChapterBrief,
+    ChapterCreate,
+    ChapterResponse,
+    ChapterUpdate,
+    ImageBrief,
+    ImageCreate,
+    ImageResponse,
+    PaperBrief,
+    PaperCreate,
+    PaperResponse,
+    PaperUpdate,
+    PassageBrief,
+    PassageCreate,
+    PassageResponse,
+    PassageUpdate,
+    VersionBrief,
+    VersionCreate,
+    VersionResponse,
+    VersionUpdate,
 )
 from app.services.entities import (
-    BookService, VersionService, ChapterService,
-    PassageService, PaperService, ImageService,
+    BookService,
+    ChapterService,
+    ImageService,
+    PaperService,
+    PassageService,
+    VersionService,
 )
 from app.utils.response import api_response
 
 router = APIRouter(tags=["Domain Entities"])
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # CRUD helper factory
@@ -179,10 +204,15 @@ _make_crud("image", ImageService, ImageCreate, ImageCreate, ImageBrief, ImageRes
 # Person & Document — wire existing models to API
 # ============================================================
 
-from app.schemas.person import PersonCreate, PersonBrief, PersonResponse  # noqa: E402
-from app.schemas.document import DocumentCreate, DocumentBrief, DocumentResponse, DocumentUpdate  # noqa: E402
-from app.services.person_service import PersonService  # noqa: E402
-from app.services.document_service import DocumentService  # noqa: E402
+from app.schemas.document import (
+    DocumentBrief,
+    DocumentCreate,
+    DocumentResponse,
+    DocumentUpdate,
+)
+from app.schemas.person import PersonBrief, PersonCreate, PersonResponse
+from app.services.document_service import DocumentService
+from app.services.person_service import PersonService
 
 
 class _PersonCreateOverride(PersonCreate):
@@ -202,11 +232,13 @@ _make_crud("person", PersonService, _PersonCreateOverride, _PersonCreateOverride
 # Document is hand-wired (not via _make_crud) because we need extra filter params
 # on the list endpoint that the factory doesn't support.
 
-from sqlalchemy import select as sql_select, func  # noqa: E402
-from app.models.document import Document  # noqa: E402
-from app.models.document_chunk import DocumentChunk  # noqa: E402
-from app.models.academic_evidence import Citation, Evidence  # noqa: E402
-from app.models.workspace import ResearchSession  # noqa: E402
+from sqlalchemy import func
+from sqlalchemy import select as sql_select
+
+from app.models.academic_evidence import Citation, Evidence
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.workspace import ResearchSession
 
 document_guard_read = require_permission("document", "read")
 document_guard_create = require_permission("document", "create")
@@ -402,7 +434,8 @@ async def get_document_stats(
             .where(DocumentChunk.document_id == str(item_id))
         )
         total_chunks = (await session.execute(chunk_count_q)).scalar() or 0
-    except Exception:
+    except (SQLAlchemyError, ValueError):
+        logger.debug("Failed to count document chunks", exc_info=True)
         total_chunks = 0
 
     # Chunks with OCR (ocr_confidence IS NOT NULL)
@@ -416,7 +449,8 @@ async def get_document_stats(
             )
         )
         ocr_chunks = (await session.execute(ocr_chunk_count_q)).scalar() or 0
-    except Exception:
+    except (SQLAlchemyError, ValueError):
+        logger.debug("Failed to count OCR chunks", exc_info=True)
         ocr_chunks = 0
 
     # Average OCR confidence
@@ -430,7 +464,8 @@ async def get_document_stats(
             )
         )
         avg_ocr_confidence = (await session.execute(avg_ocr_q)).scalar()
-    except Exception:
+    except (SQLAlchemyError, ValueError):
+        logger.debug("Failed to compute avg OCR confidence", exc_info=True)
         avg_ocr_confidence = None
 
     # Citation count for this document
@@ -443,7 +478,8 @@ async def get_document_stats(
             .where(DocumentChunk.document_id == str(item_id))
         )
         citation_count = (await session.execute(citation_count_q)).scalar() or 0
-    except Exception:
+    except (SQLAlchemyError, ValueError):
+        logger.debug("Failed to count citations", exc_info=True)
         citation_count = 0
 
     # Evidence count
@@ -455,7 +491,8 @@ async def get_document_stats(
             .where(DocumentChunk.document_id == str(item_id))
         )
         evidence_count = (await session.execute(evidence_count_q)).scalar() or 0
-    except Exception:
+    except (SQLAlchemyError, ValueError):
+        logger.debug("Failed to count evidence", exc_info=True)
         evidence_count = 0
 
     return api_response(data={
@@ -565,7 +602,7 @@ async def get_document_reader(
     ]
 
     # ---- Linked passages (with translation) via DocumentChunk.passage_id ----
-    from app.models.passage import Passage  # noqa: E402
+    from app.models.passage import Passage
 
     passage_ids_q = (
         sql_select(DocumentChunk.passage_id)
@@ -727,9 +764,9 @@ async def get_document_reader(
 # Test-only: seed reader data (Citation + Evidence linked to chunks)
 # ============================================================
 
-import os  # noqa: E402
+import os
 
-from pydantic import BaseModel as PydanticBaseModel  # noqa: E402
+from pydantic import BaseModel as PydanticBaseModel
 
 
 class _TestSeedReaderDataRequest(PydanticBaseModel):
@@ -760,11 +797,12 @@ async def _test_seed_reader_data(
     if os.environ.get("SEED_TEST_DATA") != "1":
         raise HTTPException(status_code=404, detail="Not found")
 
-    import uuid as _uuid_mod  # noqa: E402
-    from app.models.user import User  # noqa: E402
-    from app.models.passage import Passage  # noqa: E402
-    from app.models.academic_evidence import EvidenceLevel  # noqa: E402
-    from app.services.auth_service import hash_password  # noqa: E402
+    import uuid as _uuid_mod
+
+    from app.models.academic_evidence import EvidenceLevel
+    from app.models.passage import Passage
+    from app.models.user import User
+    from app.services.auth_service import hash_password
 
     # ---- 1. Create or get user ----
     user_stmt = sql_select(User).where(User.username == body.username)
@@ -818,9 +856,9 @@ async def _test_seed_reader_data(
 
     if body.with_passage:
         # ---- 4. Create Book → Version → Chapter → Passage ----
-        from app.models.book import Book  # noqa: E402
-        from app.models.version import Version  # noqa: E402
-        from app.models.chapter import Chapter  # noqa: E402
+        from app.models.book import Book
+        from app.models.chapter import Chapter
+        from app.models.version import Version
 
         book = Book(id=str(_uuid_mod.uuid4()), title=f"E2E书-{_uuid_mod.uuid4().hex[:6]}", dynasty="汉")
         session.add(book)
@@ -901,7 +939,7 @@ async def _test_seed_reader_data(
 
         orphan_evidence = Evidence(
             id=str(_uuid_mod.uuid4()),
-            description=f"E2E unanchored evidence (no chunk link)",
+            description="E2E unanchored evidence (no chunk link)",
             evidence_level=EvidenceLevel.LEVEL_2,
             source_passage_id=orphan_passage.id,
         )

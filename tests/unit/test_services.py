@@ -2,16 +2,14 @@
 Tests for the service layer validation hooks (Sprint 3 scope).
 """
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.services.document_service import DocumentService
-from app.services.person_service import PersonService
 from app.schemas.document import DocumentCreate
 from app.schemas.person import PersonCreate
+from app.services.document_service import DocumentService
+from app.services.person_service import PersonService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # conftest_db.py fixtures must be imported — not auto-discovered by pytest
 from tests.conftest_db import db_session  # noqa: F401
-
 
 
 class TestDocumentService:

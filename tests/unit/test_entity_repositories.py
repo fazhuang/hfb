@@ -3,18 +3,17 @@ Tests for entity repositories — CRUD + search for Phase 3 models.
 """
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.version import Version
 from app.repositories.entities import (
     BookRepository,
-    VersionRepository,
-    PassageRepository,
-    PaperRepository,
     ImageRepository,
+    PaperRepository,
+    PassageRepository,
+    VersionRepository,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 

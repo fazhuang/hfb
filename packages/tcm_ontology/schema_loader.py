@@ -7,9 +7,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 
-from tcm_ontology.entity_type import ENTITY_SCHEMA, EntitySchema, EntityType, RelationDef
+from tcm_ontology.entity_type import (
+    ENTITY_SCHEMA,
+    EntitySchema,
+    EntityType,
+    RelationDef,
+)
 
 
 class SchemaLoader:
@@ -44,7 +49,7 @@ class SchemaLoader:
     """
 
     # Map JSON-LD type prefixes to EntityType
-    _TYPE_MAP: dict[str, EntityType] = {
+    _TYPE_MAP: ClassVar[dict[str, EntityType]] = {
         "tcm:Person": EntityType.PERSON,
         "tcm:Text": EntityType.TEXT,
         "tcm:Herb": EntityType.HERB,

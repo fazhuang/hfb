@@ -7,25 +7,25 @@ from typing import Any
 
 from app.repositories.entities import (
     BookRepository,
-    VersionRepository,
     ChapterRepository,
-    PassageRepository,
-    PaperRepository,
     ImageRepository,
+    PaperRepository,
+    PassageRepository,
+    VersionRepository,
 )
 from app.schemas.entities import (
     BookCreate,
     BookResponse,
-    VersionCreate,
-    VersionResponse,
     ChapterCreate,
     ChapterResponse,
-    PassageCreate,
-    PassageResponse,
-    PaperCreate,
-    PaperResponse,
     ImageCreate,
     ImageResponse,
+    PaperCreate,
+    PaperResponse,
+    PassageCreate,
+    PassageResponse,
+    VersionCreate,
+    VersionResponse,
 )
 from app.services.base import BaseService
 

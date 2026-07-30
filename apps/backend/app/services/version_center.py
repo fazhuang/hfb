@@ -15,11 +15,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.version import Version
-from app.models.version_relation import VersionRelation, PassageMapping, VersionDiff
-from app.models.passage import Passage
 from app.models.commentary import Commentary
-from app.repositories.entities import VersionRepository, PassageRepository
+from app.models.passage import Passage
+from app.models.version import Version
+from app.models.version_relation import PassageMapping, VersionDiff, VersionRelation
+from app.repositories.entities import PassageRepository, VersionRepository
 from app.schemas.commentary import CommentaryCreate, CommentaryResponse
 
 

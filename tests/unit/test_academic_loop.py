@@ -9,22 +9,21 @@ calculate_relation_confidence.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.api.v1.relations import calculate_relation_confidence
 from app.models import (
     Book,
-    Version,
     Chapter,
     Passage,
+    Version,
 )
-from app.models.version_criticism import Sentence, Token, Variant, VariantType
-from app.models.academic_evidence import SourceRef, Evidence, EvidenceLevel
+from app.models.academic_evidence import Evidence, EvidenceLevel, SourceRef
 from app.models.academic_relation import (
     AcademicEntity,
     AcademicEntityType,
     AcademicRelation,
 )
-from app.api.v1.relations import calculate_relation_confidence
+from app.models.version_criticism import Sentence, Token, Variant, VariantType
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session  # noqa: F401
 
@@ -488,14 +487,23 @@ async def test_confidence_no_conflict_structured_log(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_passage_detail_includes_sentences(db_session: AsyncSession):
     """GET /api/v1/passages/{id}/detail returns sentences/tokens/variants."""
-    from sqlalchemy import select as _sel
     from app.models.book import Book as B
     from app.models.chapter import Chapter as C
     from app.models.passage import Passage as P
     from app.models.version import Version as V
     from app.models.version_criticism import (
-        Sentence as S, Token as T, Variant as Var, VariantType,
+        Sentence as S,
     )
+    from app.models.version_criticism import (
+        Token as T,
+    )
+    from app.models.version_criticism import (
+        Variant as Var,
+    )
+    from app.models.version_criticism import (
+        VariantType,
+    )
+    from sqlalchemy import select as _sel
 
     book = B(id="bk-detail-1", title="测试书", dynasty="唐")
     db_session.add(book)

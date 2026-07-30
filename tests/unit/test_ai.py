@@ -7,16 +7,14 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.person import Person
 from app.models.book import Book
+from app.models.person import Person
 from app.services.ai_service import AIService, RateLimiter
 from app.services.rag_service import RAGService
 from app.services.workspace_service import WorkspaceService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ============================================================
 # Rate Limiter

@@ -18,10 +18,11 @@ BACKEND_DIR = SCRIPT_DIR.parent / "apps" / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
 import logging
+
 logging.disable(logging.CRITICAL)
 
-from sqlalchemy import text
 from app.db.database import async_session_factory
+from sqlalchemy import text
 
 
 async def verify_one(citation_id: str) -> dict:

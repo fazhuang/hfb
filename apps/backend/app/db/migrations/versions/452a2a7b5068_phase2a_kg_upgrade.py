@@ -8,17 +8,16 @@ Revision ID: 452a2a7b5068
 Revises: p0_1_verified_by_fk
 Create Date: 2026-07-05 02:15:44.740636
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers
 revision: str = "452a2a7b5068"
-down_revision: Union[str, None] = "p0_1_verified_by_fk"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "p0_1_verified_by_fk"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

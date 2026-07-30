@@ -3,7 +3,7 @@ Document repository — data access for documents (文献).
 """
 from __future__ import annotations
 
-from sqlalchemy import and_, or_, select, func
+from sqlalchemy import and_, func, or_, select
 
 from app.models.document import Document
 from app.repositories.base import BaseRepository

@@ -8,10 +8,9 @@ Run via: python -m app.db.seed
 """
 from __future__ import annotations
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.document import Document
 from app.models.person import Person
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ============================================================
 # Sample People (人物)

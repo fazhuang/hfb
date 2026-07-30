@@ -24,10 +24,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
-from typing import Any, Dict, List
-from urllib.parse import urlparse, parse_qs
-
+from datetime import UTC, datetime
+from typing import Any
+from urllib.parse import parse_qs, urlparse
 
 # ---------------------------------------------------------------------------
 # JSON output helpers
@@ -106,11 +105,11 @@ def _connect(database_url: str):
 
 def _check_schema_gaps(
     conn,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Return a list of schema gaps — required bindings the current model
     cannot express.
     """
-    gaps: List[Dict[str, str]] = []
+    gaps: list[dict[str, str]] = []
 
     # Passage → Citation → Evidence → SourceRef chain:
     #   Evidence.source_passage_id → Passage.id  ✓ (Foreign Key exists)
@@ -142,9 +141,9 @@ def _check_schema_gaps(
 # ---------------------------------------------------------------------------
 
 
-def _counts(conn) -> Dict[str, Any]:
+def _counts(conn) -> dict[str, Any]:
     """Execute all read-only SELECT count queries and return results."""
-    counts: Dict[str, Any] = {}
+    counts: dict[str, Any] = {}
 
     # Persons — raw count only
     cur = conn.execute("SELECT COUNT(*) AS n FROM persons")
@@ -216,7 +215,7 @@ def _counts(conn) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _evaluate(counts: Dict[str, Any]) -> Dict[str, Any]:
+def _evaluate(counts: dict[str, Any]) -> dict[str, Any]:
     """Evaluate counts against thresholds and return verdict + details."""
     thresholds = {
         "approved_classical_versions": {
@@ -242,7 +241,7 @@ def _evaluate(counts: Dict[str, Any]) -> Dict[str, Any]:
     }
 
     all_met = True
-    failures: List[Dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
 
     cv = thresholds["approved_classical_versions"]
     if cv["actual"] < cv["min"]:
@@ -397,7 +396,7 @@ def main() -> None:
         result = _evaluate(counts)
 
         # 4. Verdict
-        checked_at = datetime.now(timezone.utc).isoformat()
+        checked_at = datetime.now(UTC).isoformat()
 
         if gaps:
             verdict = "BLOCKED_SCHEMA_GAP"

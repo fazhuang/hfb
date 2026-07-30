@@ -12,15 +12,13 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from app.db.base import Base
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-
-from app.db.base import Base
-from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
-
 
 # ============================================================
 # Fixtures
@@ -41,9 +39,9 @@ async def app_db_session():
 
 def _make_test_app():
     """Build a FastAPI test app matching the real v1 router structure."""
-    from fastapi import FastAPI
     from app.core.error_handlers import register_error_handlers
     from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.add_middleware(RequestIDMiddleware)
@@ -91,8 +89,8 @@ class TestAPIContract:
 
     async def test_openapi_response_schema_is_fully_strict(self):
         """OpenAPI defines the frozen response and forbids extra object fields."""
-        from fastapi import FastAPI
         from app.api.v1.day2_search import router as search_router
+        from fastapi import FastAPI
 
         app = FastAPI()
         app.include_router(search_router, prefix="/api/v1")

@@ -24,12 +24,22 @@ Artifacts (output/):
   p0_provenance_report.txt     — Human-readable report
 """
 
-import argparse, asyncio, hashlib, io, json, os, re, sys, time
-from datetime import datetime, timezone
+import argparse
+import asyncio
+import hashlib
+import io
+import json
+import re
+import sys
+import time
+from datetime import UTC, datetime
 from pathlib import Path
 
-import fitz, numpy as np, pytesseract
+import fitz
+import numpy as np
+import pytesseract
 from PIL import Image
+
 Image.MAX_IMAGE_PIXELS = None
 
 # ── Paths ──────────────────────────────────────────────
@@ -120,7 +130,7 @@ def fingerprint_all_pages():
         fps[pg] = sha256_bytes(mat.tobytes("png"))
     doc.close()
     with open(ARTIFACT_FINGERPRINTS, "w") as f:
-        json.dump({"pdf_sha256": PDF_SHA256, "generated_utc": datetime.now(timezone.utc).isoformat(),
+        json.dump({"pdf_sha256": PDF_SHA256, "generated_utc": datetime.now(UTC).isoformat(),
                    "pages": {str(k): v for k, v in fps.items()}}, f, ensure_ascii=False, indent=2)
     return fps
 
@@ -158,7 +168,7 @@ def ocr_one_page(pg):
         "ocr_text": clean, "ocr_confidence": mean_conf,
         "chinese_chars": chinese_chars(clean),
         "page_content_hash": sha256_bytes(normalize(clean).encode()),
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": datetime.now(UTC).isoformat(),
     }
 
 def ocr_pages(start=1, end=None):
@@ -206,7 +216,7 @@ def ocr_pages(start=1, end=None):
                     "ocr_confidence": pd.get("ocr_avg_confidence", 0.90) or 0.90,
                     "chinese_chars": sum(1 for c in clean if "one" <= c <= "nine" or "一" <= c <= "鿿"),
                     "page_content_hash": sha256_bytes(normalize(clean).encode()),
-                    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                    "timestamp_utc": datetime.now(UTC).isoformat(),
                 }
         with open(ARTIFACT_OCR, "w") as f:
             json.dump(existing, f, ensure_ascii=False, indent=2)
@@ -233,11 +243,12 @@ def ocr_pages(start=1, end=None):
 async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False):
     """All DB operations in one async function — single event loop."""
     sys.path.insert(0, str(PROJECT_ROOT / "apps" / "backend"))
+    import uuid as uuid_mod
+
     from app.db.database import async_session_factory
     from app.services.academic_rag_service import AcademicRAGService
     from app.services.ingestion import IngestionService
     from sqlalchemy import text
-    import uuid as uuid_mod
 
     results = {"chunks": [], "mapping": {}, "facts": [], "withdraw": None}
 
@@ -292,7 +303,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
         # 4. Build text payload
         chunks_data = [] # (content, passage_id, page_number)
         for p in all_passages:
-            p_id, p_text, p_order, p_chapter, p_version = p
+            p_id, p_text, _p_order, _p_chapter, _p_version = p
             chunks_data.append((p_text, p_id, None)) # page_number MUST be None
 
         full_text = "\n\n".join(c for c, _, _ in chunks_data)
@@ -371,15 +382,11 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
                 true_page = 4
             elif "凡刺之法" in content:
                 true_page = 7
-            elif "349个腧穴" in content:
-                true_page = 8
-            elif "经脉理论" in content:
+            elif "349个腧穴" in content or "经脉理论" in content:
                 true_page = 8
             elif "九针" in content:
                 true_page = 7
-            elif "官耳者" in content:
-                true_page = 8
-            elif "刺深" in content:
+            elif "官耳者" in content or "刺深" in content:
                 true_page = 8
             else:
                 true_page = min(10, idx + 1)
@@ -523,7 +530,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
 
         updated = 0
         for rel in relations:
-            rel_id, rel_type, claim_text, evidence_quote, passage_id = rel
+            rel_id, _rel_type, _claim_text, _evidence_quote, passage_id = rel
             if passage_id and passage_id in chunk_map:
                 chunk_id = chunk_map[passage_id]
                 await session.execute(
@@ -706,12 +713,12 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
         for ch in chunks:
             m = mapping.get(ch["id"], {}); old = ch.get("old_page"); new = m.get("page_number")
             tag = "✓" if m.get("verified") else ("?" if m.get("uncertain") else "✗")
-            print(f"  {tag} idx={ch['chunk_index']:2d}  old={str(old):>4s} → new={str(new):>4s}  "
+            print(f"  {tag} idx={ch['chunk_index']:2d}  old={old!s:>4s} → new={new!s:>4s}  "
                   f"score={m.get('score',0):.3f}  {m.get('method','?'):20s}")
 
         # Save match artifact
         with open(ARTIFACT_MATCH, "w") as f:
-            json.dump({"pdf_sha256": PDF_SHA256, "generated_utc": datetime.now(timezone.utc).isoformat(),
+            json.dump({"pdf_sha256": PDF_SHA256, "generated_utc": datetime.now(UTC).isoformat(),
                        "summary": {"verified": ver, "uncertain": unc, "nulled": nil, "total": len(chunks)},
                        "mappings": {c: {k: v for k, v in i.items() if k != "alternatives"}
                                     for c, i in mapping.items()}}, f, ensure_ascii=False, indent=2)
@@ -798,7 +805,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
         print(f"\n{'='*80}\nRESULT: {p}/{len(facts)} match_result=true\n{'='*80}")
 
         with open(ARTIFACT_AUDIT, "w") as f:
-            json.dump({"generated_utc": datetime.now(timezone.utc).isoformat(), "pdf_sha256": PDF_SHA256,
+            json.dump({"generated_utc": datetime.now(UTC).isoformat(), "pdf_sha256": PDF_SHA256,
                        "all_pass": p == len(facts), "pass_count": p, "total": len(facts), "facts": facts},
                       f, ensure_ascii=False, indent=2)
 
@@ -809,7 +816,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             if dry_run:
                 r = await s.execute(text("SELECT page_number FROM document_chunks WHERE id=:c AND is_deleted=false"), {"c": cid})
                 old = (r.fetchone() or [None])[0]
-                print(f"  [{'?' if info.get('uncertain',True) else '✓'}] old={str(old):>4s} → new={str(new_pg):>4s}  score={score:.3f}")
+                print(f"  [{'?' if info.get('uncertain',True) else '✓'}] old={old!s:>4s} → new={new_pg!s:>4s}  score={score:.3f}")
             else:
                 await s.execute(text("UPDATE document_chunks SET page_number=:p, ocr_confidence=:c, page_image_hash=:ih WHERE id=:id AND is_deleted=false"),
                                 {"id": cid, "p": new_pg, "c": score, "ih": info.get("page_image_hash")})
@@ -828,8 +835,8 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             # 1. NORMAL STATUS: BEFORE Delete / Withdraw
             print(f"\n{'─'*60}\n1. NORMAL STATUS: BEFORE Delete / Withdraw\n{QUESTION}\n{'─'*60}")
             before = await svc.answer(QUESTION)
-            b_docs = set(c.document_id for c in before.citations)
-            b_chunks = set(c.chunk_id for c in before.citations)
+            {c.document_id for c in before.citations}
+            {c.chunk_id for c in before.citations}
             print(f"  citations={len(before.citations)}  refusal={before.refusal}")
             for c in before.citations:
                 print(f"    doc={c.document_id[:18]}... chunk={c.chunk_id[:18]}... quote={c.exact_quote[:50]}...")
@@ -845,7 +852,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             async with async_session_factory() as s_del:
                 svc_del = AcademicRAGService(s_del)
                 del_resp = await svc_del.answer(QUESTION)
-                del_docs = set(c.document_id for c in del_resp.citations)
+                del_docs = {c.document_id for c in del_resp.citations}
                 print(f"  AFTER DELETE: citations={len(del_resp.citations)}  refusal={del_resp.refusal}")
                 del_ok = del_resp.refusal and (PDF_DOC_ID not in del_docs)
                 print(f"  RESULT (DELETE): {'✓ PASS' if del_ok else '✗ FAIL'}")
@@ -869,7 +876,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             async with async_session_factory() as s_wdv:
                 svc_wdv = AcademicRAGService(s_wdv)
                 wdv_resp = await svc_wdv.answer(QUESTION)
-                wdv_docs = set(c.document_id for c in wdv_resp.citations)
+                wdv_docs = {c.document_id for c in wdv_resp.citations}
                 print(f"  AFTER WITHDRAW VERSION: citations={len(wdv_resp.citations)}  refusal={wdv_resp.refusal}")
                 wdv_ok = wdv_resp.refusal and (PDF_DOC_ID not in wdv_docs)
                 print(f"  RESULT (WITHDRAW VERSION): {'✓ PASS' if wdv_ok else '✗ FAIL'}")
@@ -890,7 +897,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             async with async_session_factory() as s_wd:
                 svc_wd = AcademicRAGService(s_wd)
                 wd_resp = await svc_wd.answer(QUESTION)
-                wd_docs = set(c.document_id for c in wd_resp.citations)
+                wd_docs = {c.document_id for c in wd_resp.citations}
                 print(f"  AFTER WITHDRAW DOCUMENT: citations={len(wd_resp.citations)}  refusal={wd_resp.refusal}")
                 wd_ok = wd_resp.refusal and (PDF_DOC_ID not in wd_docs)
                 print(f"  RESULT (WITHDRAW DOCUMENT): {'✓ PASS' if wd_ok else '✗ FAIL'}")
@@ -903,7 +910,7 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
             print("  (Baseline restored to is_deleted=false)")
 
             wd = {
-                "test_utc": datetime.now(timezone.utc).isoformat(),
+                "test_utc": datetime.now(UTC).isoformat(),
                 "question": QUESTION,
                 "document_id": PDF_DOC_ID,
                 "version_id": pdf_version_id,
@@ -948,28 +955,28 @@ def generate_report(results):
     lines = [
         "="*80,
         "P0 PDF PAGE-LEVEL PROVENANCE REPORT",
-        f"Generated: {datetime.now(timezone.utc).isoformat()}",
+        f"Generated: {datetime.now(UTC).isoformat()}",
         "="*80, "",
         "1. PDF",
         f"   Path: {PDF}",
         f"   SHA-256: {PDF_SHA256}",
         f"   Pages: {fitz.open(str(PDF)).page_count}", "",
         "2. Page Fingerprints",
-        f"   All 78 pages have unique SHA-256 image hashes",
+        "   All 78 pages have unique SHA-256 image hashes",
         f"   File: {ARTIFACT_FINGERPRINTS}", "",
         "3. OCR",
         f"   Engine: tesseract {tesseract_version()}",
         f"   Model: {OCR_LANG} (vertical Chinese)",
         f"   DPI: {OCR_DPI}, PSM: {OCR_PSM}",
-        f"   Confidence: 30-47% (1601 woodblock limitation)", "",
+        "   Confidence: 30-47% (1601 woodblock limitation)", "",
         "4. Chunk-to-Page Matching",
         f"   Verified (score >= 0.8): {sum(1 for v in mapping.values() if v['verified'])}",
         f"   Uncertain: {sum(1 for v in mapping.values() if v.get('uncertain',True) and v['page_number'] is not None)}",
         f"   NULL: {sum(1 for v in mapping.values() if v['page_number'] is None)}",
-        f"   Note: OCR accuracy limitation → all assignments uncertain", "",
+        "   Note: OCR accuracy limitation → all assignments uncertain", "",
         "5. Five-Fact Audit",
         f"   Match result: {sum(1 for f in facts if f['match_result'])}/{len(facts)}",
-        f"   Note: OCR cannot reliably match text on 1601 woodblock", "",
+        "   Note: OCR cannot reliably match text on 1601 woodblock", "",
         "6. Withdraw Test",
         f"   Success: {wd.get('verification',{}).get('success','N/A')}",
         f"   Withdrawn doc still cited: {wd.get('verification',{}).get('withdrawn_doc_still_cited','N/A')}", "",

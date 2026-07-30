@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -32,9 +32,9 @@ from app.services.dashboard_service import DashboardService
 from app.services.graph_service import GraphService
 from app.services.research_workflow_service import ResearchWorkflowService
 from app.services.trace_lineage import (
+    TraceLineageError,
     build_internal_traces,
     extract_source_documents,
-    TraceLineageError,
 )
 from app.services.workspace_service import WorkspaceService
 
@@ -165,7 +165,8 @@ async def execute_research_query(
         all_chunk_ids = _walk_collect(result)
         lineage_map: dict[str, dict] = {}
         if all_chunk_ids:
-            from sqlalchemy import bindparam, text as sa_text
+            from sqlalchemy import bindparam
+            from sqlalchemy import text as sa_text
             ids_param = bindparam("ids", expanding=True)
             lineage_result = await db.execute(sa_text(
                 "SELECT dc.id, dc.passage_id, p.version_id, "
@@ -217,8 +218,8 @@ async def execute_research_query(
             )
 
         # Build graph-provenance traces (via GraphEvidence objects)
-        from app.services.trace_lineage import build_viz_traces
         from app.schemas.graph import GraphEvidence
+        from app.services.trace_lineage import build_viz_traces
         evidence_traces = [
             GraphEvidence(
                 document_id=e.get("document_id", ""),
@@ -242,7 +243,7 @@ async def execute_research_query(
                 traceability=None,
             )
         trace_ids = [r.trace_id for r in internal_records]
-        source_docs = sorted(set(r.document_id for r in internal_records))
+        source_docs = sorted({r.document_id for r in internal_records})
     else:
         mode_map = {
             "report": academic.generate_report,
@@ -279,7 +280,7 @@ async def execute_research_query(
                 traceability=None,
             )
         trace_ids = [r.trace_id for r in internal_records]
-        source_docs = sorted(set(r.document_id for r in internal_records))
+        source_docs = sorted({r.document_id for r in internal_records})
 
     qh = await ws.create_query_history(
         session_id=body.session_id,
@@ -344,7 +345,7 @@ async def execute_research_workflow(
 
     rwf = ResearchWorkflowService(db)
     run_id = str(uuid4())
-    run_started_at = datetime.now(timezone.utc).isoformat()
+    run_started_at = datetime.now(UTC).isoformat()
     steps: list[V4WorkflowStep] = []
     workflow_failed = False
     error_code: str | None = None
@@ -448,9 +449,8 @@ async def execute_research_workflow(
                 workflow_failed = True
                 error_code = "NO_EVIDENCE"
 
-        except Exception as exc:
-            logger.exception("Workflow step %s failed for session %s — %s: %s",
-                           step_name, body.session_id, type(exc).__name__, str(exc))
+        except (ValueError, RuntimeError):
+            logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
             workflow_failed = True
             error_code = "WORKFLOW_STEP_FAILED"
             # P2T1: structured error for client — diagnostics in server log only
@@ -481,7 +481,7 @@ async def execute_research_workflow(
     artifact_id = run_id  # same as run_id for traceability
 
     # Persist ResearchRun
-    run_completed_at = datetime.now(timezone.utc).isoformat()
+    run_completed_at = datetime.now(UTC).isoformat()
     await rwf.persist_research_run(
         session_id=body.session_id,
         run_id=run_id,
@@ -581,7 +581,7 @@ async def get_session_query_history(
                         if doc_id:
                             source_docs_all.add(doc_id)
             except (json.JSONDecodeError, TypeError):
-                pass
+                logger.debug("Failed to parse query history result_summary", exc_info=True)
 
         history.append({
             "query_id": qh.id,
@@ -1012,8 +1012,11 @@ async def replay_research_run(
 
     # Step 4: Parse and strictly validate all traces — no defaults, no skipping
     from app.services.research_workflow_service import (
-        _build_corpus_payload, _build_input_payload, _build_canonical_payload,
-        canonical_sha256, canonicalize_traces,
+        _build_canonical_payload,
+        _build_corpus_payload,
+        _build_input_payload,
+        canonical_sha256,
+        canonicalize_traces,
     )
     from app.services.trace_lineage import InternalTraceRecord
 
@@ -1070,7 +1073,7 @@ async def replay_research_run(
                 timestamp=td["timestamp"],
             )
             frozen_traces.append(rec)
-        except Exception as e:
+        except (TypeError, ValueError) as e:
             return V4ApiEnvelope(
                 success=False,
                 data={
@@ -1101,8 +1104,8 @@ async def replay_research_run(
             entry.setdefault("passage_id", trace_passage_map[tid])
         snapshot_for_corpus.append(entry)
 
-    trace_ids_frozen = sorted(set(r.trace_id for r in frozen_traces))
-    source_doc_ids_frozen = sorted(set(r.document_id for r in frozen_traces))
+    trace_ids_frozen = sorted({r.trace_id for r in frozen_traces})
+    source_doc_ids_frozen = sorted({r.document_id for r in frozen_traces})
 
     recomputed_corpus = canonical_sha256(_build_corpus_payload(snapshot_for_corpus))
     recomputed_input = canonical_sha256(_build_input_payload(
@@ -1146,7 +1149,7 @@ async def replay_research_run(
         cit_out = rwf.execute_citation_export_from_evidence(
             topic, syn_out.get("evidence", []), internal_traces=frozen_traces,
         )
-    except Exception as e:
+    except RuntimeError as e:
         return V4ApiEnvelope(
             success=False,
             data={"error": "REPLAY_EXECUTION_FAILED", "detail": str(e)},
@@ -1174,8 +1177,8 @@ async def replay_research_run(
         synthesis_evidence=all_evidence,
         report_sections=report_sections_for_hash,
         citations=cit_out.get("result", {}).get("citations", []),
-        trace_ids=sorted(set(r.trace_id for r in frozen_traces)),
-        source_document_ids=sorted(set(r.document_id for r in frozen_traces)),
+        trace_ids=sorted({r.trace_id for r in frozen_traces}),
+        source_document_ids=sorted({r.document_id for r in frozen_traces}),
         canonical_traces=canonical_traces,
     )
     replay_output_sha256 = canonical_sha256(replay_payload)
@@ -1183,8 +1186,8 @@ async def replay_research_run(
 
     matched = replay_output_sha256 == original_output_sha256
 
-    replay_trace_ids = sorted(set(r.trace_id for r in frozen_traces))
-    replay_source_docs = sorted(set(r.document_id for r in frozen_traces))
+    replay_trace_ids = sorted({r.trace_id for r in frozen_traces})
+    replay_source_docs = sorted({r.document_id for r in frozen_traces})
 
     return V4ApiEnvelope(
         success=matched,
@@ -1259,7 +1262,7 @@ async def seed_research_run(
 
     run_id = str(uuid4())
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     default_steps = [
         {"name": "topic_selection", "status": "completed", "result": {}, "trace_ids": []},
         {"name": "literature_retrieval", "status": "completed", "result": {}, "trace_ids": []},
@@ -1336,7 +1339,7 @@ async def seed_research_run(
     }
 
     # Persist into session workflow_state
-    rwf = ResearchWorkflowService(db)
+    ResearchWorkflowService(db)
     session_model = await ws.get_session(body.session_id)
     existing_state: dict[str, Any] = {}
     if session_model and session_model.workflow_state:

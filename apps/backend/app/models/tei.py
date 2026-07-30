@@ -11,18 +11,16 @@ where appropriate. DB CHECK constraints enforce domain boundaries.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Integer,
     String,
     Text,
-    Integer,
-    ForeignKey,
-    CheckConstraint,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import text as sa_text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
 
@@ -49,7 +47,7 @@ class TextSentence(BaseModel):
         Integer, nullable=False, comment="Sentence order within passage"
     )
     text: Mapped[str] = mapped_column(Text, nullable=False, comment="Sentence text")
-    xml_id: Mapped[Optional[str]] = mapped_column(
+    xml_id: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="TEI xml:id attribute"
     )
 
@@ -88,16 +86,16 @@ class TextToken(BaseModel):
     text: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="Token surface form"
     )
-    lemma: Mapped[Optional[str]] = mapped_column(
+    lemma: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Lemma/base form"
     )
-    pos: Mapped[Optional[str]] = mapped_column(
+    pos: Mapped[str | None] = mapped_column(
         String(20), nullable=True, comment="Part of speech tag"
     )
-    start_offset: Mapped[Optional[int]] = mapped_column(
+    start_offset: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Character offset start in sentence"
     )
-    end_offset: Mapped[Optional[int]] = mapped_column(
+    end_offset: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="Character offset end in sentence"
     )
 
@@ -134,34 +132,34 @@ class TextualVariant(BaseModel):
     target_version_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("versions.id"), nullable=False, comment="目标版本 ID"
     )
-    source_passage_id: Mapped[Optional[str]] = mapped_column(
+    source_passage_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("passages.id"), nullable=True, comment="源段落 ID"
     )
-    target_passage_id: Mapped[Optional[str]] = mapped_column(
+    target_passage_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("passages.id"), nullable=True, comment="目标段落 ID"
     )
-    source_sentence_id: Mapped[Optional[str]] = mapped_column(
+    source_sentence_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("text_sentences.id"), nullable=True, comment="源句子 ID"
     )
-    target_sentence_id: Mapped[Optional[str]] = mapped_column(
+    target_sentence_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("text_sentences.id"),
         nullable=True,
         comment="目标句子 ID",
     )
-    location: Mapped[Optional[str]] = mapped_column(
+    location: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="异文位置描述"
     )
-    lemma: Mapped[Optional[str]] = mapped_column(
+    lemma: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="词条/引理"
     )
     reading: Mapped[str] = mapped_column(Text, nullable=False, comment="异文内容")
-    variant_type: Mapped[Optional[str]] = mapped_column(
+    variant_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         comment="异文类型: substitution, addition, deletion, transposition",
     )
-    apparatus: Mapped[Optional[str]] = mapped_column(
+    apparatus: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="校勘记原文"
     )
     verification_status: Mapped[str] = mapped_column(

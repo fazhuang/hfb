@@ -10,9 +10,9 @@ may be linked to a specific Version for version-aware content.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer, Text, ForeignKey
+from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -31,21 +31,21 @@ class Passage(BaseModel):
     chapter_id: Mapped[str] = mapped_column(
         ForeignKey("chapters.id", ondelete="CASCADE"), nullable=False, index=True, comment="所属章节 ID"
     )
-    version_id: Mapped[Optional[str]] = mapped_column(
+    version_id: Mapped[str | None] = mapped_column(
         ForeignKey("versions.id", ondelete="SET NULL"), nullable=True, comment="所属版本 ID (版本特定文本)"
     )
     content_text: Mapped[str] = mapped_column(Text, nullable=False, comment="条文正文")
-    translation: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="现代汉语翻译")
-    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="注释")
+    translation: Mapped[str | None] = mapped_column(Text, nullable=True, comment="现代汉语翻译")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True, comment="注释")
     order: Mapped[int] = mapped_column(Integer, default=0, server_default="0", nullable=False, comment="排序")
-    tags: Mapped[Optional[str]] = mapped_column(
+    tags: Mapped[str | None] = mapped_column(
         String(1000), nullable=True, comment="标签 (逗号分隔)"
     )
 
     # Relationships
-    chapter: Mapped["Chapter"] = relationship("Chapter", lazy="selectin")
-    version: Mapped[Optional["Version"]] = relationship("Version", lazy="selectin")
-    sentences: Mapped[list["Sentence"]] = relationship(
+    chapter: Mapped[Chapter] = relationship("Chapter", lazy="selectin")
+    version: Mapped[Version | None] = relationship("Version", lazy="selectin")
+    sentences: Mapped[list[Sentence]] = relationship(
         "Sentence", back_populates="passage", cascade="all, delete-orphan", lazy="selectin"
     )
 

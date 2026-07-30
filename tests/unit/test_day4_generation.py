@@ -18,21 +18,19 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from sqlalchemy import select
-
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.generation_service import (
+    STRUCTURED_CLAIMS_SYSTEM_PROMPT,
     GenerationPipeline,
     _detect_prompt_injection_chunk,
     _is_substring,
     _normalize_whitespace,
-    STRUCTURED_CLAIMS_SYSTEM_PROMPT,
 )
-from app.services.retrieval import RetrievalService, RetrievalResult
+from app.services.retrieval import RetrievalResult, RetrievalService
+from sqlalchemy import select
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ============================================================
 # Helpers
@@ -403,9 +401,9 @@ async def test_db_secondary_verification_rejects_deleted_document(db_session) ->
 
 def _make_test_app():
     """Build a FastAPI test app with the v1 router for Day 4 testing."""
-    from fastapi import FastAPI
-    from app.middleware.request_id import RequestIDMiddleware
     from app.core.error_handlers import register_error_handlers
+    from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.add_middleware(RequestIDMiddleware)
@@ -418,8 +416,12 @@ def _make_test_app():
 @pytest.fixture
 async def generate_db_session():
     """In-memory SQLite session for ASGI test."""
-    from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
     from app.db.base import Base
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     engine = create_async_engine("sqlite+aiosqlite://", echo=False)
     async with engine.begin() as conn:
@@ -437,9 +439,9 @@ async def test_api_generate_endpoint_contract(generate_db_session) -> None:
     Tests the ASGI endpoint through httpx with real router + auth override.
     """
     import httpx
+    from app.api.v1.ai import guard_ai_read
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
-    from app.api.v1.ai import guard_ai_read
 
     # Seed data
     d = Document(title="针灸甲乙经", dynasty="西晋", rag_enabled=True,
@@ -492,9 +494,9 @@ async def test_api_generate_endpoint_contract(generate_db_session) -> None:
 async def _seeded_app_and_client(generate_db_session):
     """Seed DB, build app with overrides, return (app, client)."""
     import httpx
+    from app.api.v1.ai import guard_ai_read
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
-    from app.api.v1.ai import guard_ai_read
 
     d = Document(title="针灸甲乙经", dynasty="西晋", rag_enabled=True, copyright_status="public_domain", authorization_basis="public domain — ancient work")
     generate_db_session.add(d)
@@ -532,11 +534,12 @@ async def _seeded_app_and_client(generate_db_session):
 @pytest.mark.anyio
 async def test_asgi_fenced_json_is_ignored(_seeded_app_and_client) -> None:
     """Fenced JSON from LLM is silently ignored — server deterministic output prevails."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
 
-    app, client = _seeded_app_and_client
+    from app.services.ai_service import AIService
+
+    _app, client = _seeded_app_and_client
 
     fenced = '```json\n{"claims":[{"citation":"[doc:0]","quote":"皇甫谧编撰《针灸甲乙经》。"}]}\n```'
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
@@ -559,11 +562,12 @@ async def test_asgi_fenced_json_is_ignored(_seeded_app_and_client) -> None:
 @pytest.mark.anyio
 async def test_asgi_json_with_prefix_is_ignored(_seeded_app_and_client) -> None:
     """JSON with prefix is silently ignored."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
 
-    app, client = _seeded_app_and_client
+    from app.services.ai_service import AIService
+
+    _app, client = _seeded_app_and_client
 
     prefix = '根据资料：\n{"claims":[{"citation":"[doc:0]","quote":"皇甫谧编撰《针灸甲乙经》。"}]}'
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
@@ -583,11 +587,12 @@ async def test_asgi_json_with_prefix_is_ignored(_seeded_app_and_client) -> None:
 @pytest.mark.anyio
 async def test_asgi_json_with_suffix_is_ignored(_seeded_app_and_client) -> None:
     """JSON with suffix is silently ignored."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
 
-    app, client = _seeded_app_and_client
+    from app.services.ai_service import AIService
+
+    _app, client = _seeded_app_and_client
 
     suffix = '{"claims":[{"citation":"[doc:0]","quote":"皇甫谧编撰《针灸甲乙经》。"}]}\n以上仅供参考。'
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
@@ -607,10 +612,11 @@ async def test_asgi_json_with_suffix_is_ignored(_seeded_app_and_client) -> None:
 @pytest.mark.anyio
 async def test_asgi_two_json_objects_are_ignored(_seeded_app_and_client) -> None:
     """Two JSON objects are silently ignored."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
+    from unittest.mock import AsyncMock, PropertyMock, patch
+
     from app.services.ai_service import AIService
 
-    app, client = _seeded_app_and_client
+    _app, client = _seeded_app_and_client
 
     two = '{"claims":[{"citation":"[doc:0]","quote":"皇甫谧编撰《针灸甲乙经》。"}]} {"claims":[]}'
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
@@ -628,11 +634,12 @@ async def test_asgi_two_json_objects_are_ignored(_seeded_app_and_client) -> None
 @pytest.mark.anyio
 async def test_asgi_natural_language_is_ignored(_seeded_app_and_client) -> None:
     """Free text is silently ignored."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
 
-    app, client = _seeded_app_and_client
+    from app.services.ai_service import AIService
+
+    _app, client = _seeded_app_and_client
 
     nl = "皇甫谧是西晋著名医学家，编撰了针灸甲乙经。"
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
@@ -652,10 +659,11 @@ async def test_asgi_natural_language_is_ignored(_seeded_app_and_client) -> None:
 @pytest.mark.anyio
 async def test_asgi_provider_error_does_not_block(_seeded_app_and_client) -> None:
     """Provider error is recorded but server deterministic output still serves."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
+    from unittest.mock import AsyncMock, PropertyMock, patch
+
     from app.services.ai_service import AIService
 
-    app, client = _seeded_app_and_client
+    _app, client = _seeded_app_and_client
 
     with patch.object(AIService, 'available', new_callable=PropertyMock, return_value=True), \
          patch.object(AIService, 'complete_structured', new_callable=AsyncMock) as mock:
@@ -675,9 +683,9 @@ async def test_asgi_provider_error_does_not_block(_seeded_app_and_client) -> Non
 async def _injection_seeded_app(generate_db_session):
     """Like _seeded_app_and_client but also seeds an injection-content chunk."""
     import httpx
+    from app.api.v1.ai import guard_ai_read
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
-    from app.api.v1.ai import guard_ai_read
     from app.models.document_chunk import DocumentChunk as DCDB
 
     # Seed clean document + chunks
@@ -722,11 +730,12 @@ async def _injection_seeded_app(generate_db_session):
 @pytest.mark.anyio
 async def test_asgi_prompt_injection_in_chunk_refused(_injection_seeded_app) -> None:
     """Injection chunk in retrieval + valid claim with injection quote = refusal."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
 
-    app, client, clean_cid, clean_did, inject_cid, inject_did = _injection_seeded_app
+    from app.services.ai_service import AIService
+
+    _app, client, _clean_cid, _clean_did, inject_cid, inject_did = _injection_seeded_app
 
     # Mock complete_structured to return a valid claim citing the injection chunk
     inject_claim = _json.dumps({
@@ -952,8 +961,8 @@ async def test_extra_json_fields_are_rejected(db_session) -> None:
 
     # Claim with extra field
     extra = {"claims": [{"citation": f"[{chunk.document_id}:{chunk.id}]", "quote": "皇甫谧编撰《针灸甲乙经》。", "explanation": "extra"}]}
-    from app.schemas.generation import LLMClaimsResponse
     import pydantic
+    from app.schemas.generation import LLMClaimsResponse
     try:
         LLMClaimsResponse.model_validate(extra)
         assert False, "Extra fields should be rejected"
@@ -972,8 +981,8 @@ async def test_extra_json_fields_are_rejected(db_session) -> None:
 @pytest.mark.asyncio
 async def test_empty_claims_are_rejected(db_session) -> None:
     """Empty claims list must be rejected."""
-    from app.schemas.generation import LLMClaimsResponse
     import pydantic
+    from app.schemas.generation import LLMClaimsResponse
     try:
         LLMClaimsResponse.model_validate({"claims": []})
         assert False, "Empty claims should fail validation"
@@ -1035,9 +1044,10 @@ async def test_ab_ba_full_response_equality(db_session) -> None:
         ]),
     ])
 
-    from unittest.mock import AsyncMock, patch
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, patch
+
+    from app.services.ai_service import AIService
 
     # Build fake claims — AB and BA versions
     chunks = (await db_session.execute(
@@ -1111,9 +1121,10 @@ async def test_ab_ba_full_response_equality(db_session) -> None:
 @pytest.mark.asyncio
 async def test_ab_a_full_response_equality(db_session) -> None:
     """LLM returns [A,B] vs [A] — server output changes nonetheless."""
-    from unittest.mock import AsyncMock, patch
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, patch
+
+    from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
         ("针灸甲乙经", "西晋", [
@@ -1168,9 +1179,10 @@ async def test_ab_a_full_response_equality(db_session) -> None:
 @pytest.mark.asyncio
 async def test_empty_llm_claims_do_not_change_output(db_session) -> None:
     """LLM returns empty claims — server deterministic output unchanged."""
-    from unittest.mock import AsyncMock, patch
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, patch
+
+    from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
         ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
@@ -1212,9 +1224,10 @@ async def test_empty_llm_claims_do_not_change_output(db_session) -> None:
 @pytest.mark.asyncio
 async def test_provider_timeout_does_not_change_output(db_session) -> None:
     """Provider timeout → server deterministic output unchanged."""
-    from unittest.mock import AsyncMock, patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import AsyncMock, PropertyMock, patch
+
+    from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
         ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
@@ -1246,9 +1259,10 @@ async def test_provider_timeout_does_not_change_output(db_session) -> None:
 @pytest.mark.asyncio
 async def test_rate_limit_does_not_change_output(db_session) -> None:
     """Rate limit → server deterministic output unchanged."""
-    from unittest.mock import patch, PropertyMock
-    from app.services.ai_service import AIService
     import json as _json
+    from unittest.mock import PropertyMock, patch
+
+    from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
         ("针灸甲乙经", "西晋", ["皇甫谧编撰《针灸甲乙经》。"]),
@@ -1285,6 +1299,7 @@ async def test_five_runs_are_byte_identical(db_session) -> None:
     not gated on real LLM reproducibility (which DeepSeek cannot guarantee).
     """
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [
@@ -1326,6 +1341,7 @@ async def test_five_runs_are_byte_identical(db_session) -> None:
 async def test_citations_include_only_used_chunks(db_session) -> None:
     """citations list must only include chunks actually cited — must not skip."""
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     await _seed_chunks(db_session, [

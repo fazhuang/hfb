@@ -3,12 +3,8 @@ HFB Backend Application — FastAPI entry point.
 
 皇甫谧数字人文平台
 """
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api import health, ready, version
 from app.api.v1 import router as v1_router
@@ -19,6 +15,9 @@ from app.core.error_handlers import register_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.db.database import close_database, init_database
 from app.middleware.request_id import RequestIDMiddleware
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 logger = get_logger(__name__)
 

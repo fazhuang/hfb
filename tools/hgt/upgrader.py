@@ -1,5 +1,6 @@
-from .config import DOCS_ROOT, ARCHIVE_DIR, KNOWN_RENAMES, KNOWN_DUPLICATE_LEGACY_FILES
+from .config import ARCHIVE_DIR, DOCS_ROOT, KNOWN_DUPLICATE_LEGACY_FILES, KNOWN_RENAMES
 from .utils import archive_file
+
 
 def scaffold_docs(root=DOCS_ROOT) -> list[str]:
     actions = []

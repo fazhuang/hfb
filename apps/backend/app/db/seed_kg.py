@@ -1,12 +1,15 @@
 """Seed verified EntityRelations for the Huangfu Mi KG backbone."""
-import asyncio, sys, os
+import asyncio
+import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-from app.db.database import async_session_factory
-from app.services.graph_service import GraphService
-from app.schemas.graph import GraphEvidence
-from sqlalchemy import text
 import uuid as uuid_mod
+
+from app.db.database import async_session_factory
+from app.schemas.graph import GraphEvidence
+from app.services.graph_service import GraphService
+from sqlalchemy import text
 
 
 async def main():
@@ -24,7 +27,7 @@ async def main():
 
         r = await session.execute(text(
             "SELECT id FROM documents WHERE title='针灸甲乙经' AND is_deleted=false LIMIT 1"))
-        jiayi_doc_id = r.scalar_one()
+        r.scalar_one()
 
         r = await session.execute(text(
             "SELECT id FROM versions WHERE is_deleted=false"))

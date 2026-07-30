@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from tcm_kg.models import Node, Edge
+from tcm_kg.models import Edge, Node
 
 
 class GraphStore:

@@ -17,15 +17,11 @@ Direct assignment of evidence_status is FORBIDDEN.
 from __future__ import annotations
 
 import uuid
+from datetime import UTC
 from typing import Any
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from main import app as fastapi_app
 from app.models.book import Book
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -35,8 +31,12 @@ from app.models.tei import TextSentence, TextToken, TextualVariant
 from app.models.version import Version
 from app.schemas.graph import GraphEvidence
 from app.services.graph_service import GraphService
-from tests.conftest_db import db_session  # noqa: F401
+from httpx import ASGITransport, AsyncClient
+from main import app as fastapi_app
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from tests.conftest_db import db_session  # noqa: F401
 
 # ============================================================
 # Helpers
@@ -657,9 +657,9 @@ class TestVerifiedProvenanceCompleteness:
         rel.claim_text = "皇甫谧编撰《针灸甲乙经》"
         rel.evidence_source_uri = f"document:{ev.document_id}"  # pseudo URI
         rel.verified_by = "test-reviewer"
-        from datetime import datetime, timezone
+        from datetime import datetime
 
-        rel.verified_at = datetime.now(timezone.utc)
+        rel.verified_at = datetime.now(UTC)
         await db_session.flush()
 
         paths = await svc.find_paths(
@@ -1850,12 +1850,14 @@ class TestTEIApparatusXML:
         """Generated TEI XML must contain critical apparatus tags."""
         from packages.tcm_tei import (
             Document as TEIDocument,
-            TextVersion,
+        )
+        from packages.tcm_tei import (
             Paragraph,
             Sentence,
+            TEISerializer,
+            TextVersion,
             Token,
             VersionComparator,
-            TEISerializer,
         )
 
         doc = TEIDocument(
@@ -2289,11 +2291,11 @@ class TestDBTamperMustBeExcluded:
         assert rel.evidence_status == "unverified"
 
         # Tamper: directly set all fields to "verified" via DB
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         rel.evidence_status = "verified"
         rel.verified_by = "test-reviewer"  # real reviewer from conftest
-        rel.verified_at = datetime.now(timezone.utc)
+        rel.verified_at = datetime.now(UTC)
         rel.claim_text = "针灸甲乙经以素问为编纂来源"
         rel.evidence_source_uri = "https://ctext.org/jinshu/huangfu-mi-zhuan"
         rel.evidence_version_id = ents["v_song"].id
@@ -2363,11 +2365,11 @@ class TestDBTamperMustBeExcluded:
             description="针灸甲乙经编纂依据素问",
             evidence=ev2,
         )
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         r2.evidence_status = "verified"
         r2.verified_by = "test-reviewer"
-        r2.verified_at = datetime.now(timezone.utc)
+        r2.verified_at = datetime.now(UTC)
         r2.claim_text = "针灸甲乙经以素问为编纂来源"
         r2.evidence_source_uri = "https://ctext.org/jinshu/huangfu-mi-zhuan"
         r2.evidence_version_id = ents["v_song"].id

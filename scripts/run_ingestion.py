@@ -16,10 +16,14 @@ os.environ["PYTHONPATH"] = f"{_root}/apps/backend:{_root}/packages:{os.environ.g
 sys.path.insert(0, f"{_root}/apps/backend")
 sys.path.insert(0, f"{_root}/packages")
 
-# noqa: E402 — sys.path manipulation must precede imports
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine  # noqa: E402
-from app.db.base import Base  # noqa: E402
-from app.services.literature_ingestion.orchestrator import ingest, SOURCES  # noqa: E402
+
+from app.db.base import Base
+from app.services.literature_ingestion.orchestrator import SOURCES, ingest
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 # Verified seed keywords — tested via live Crossref signal-check (2026-07-11).
 # Keep 14 terms; each was checked for >=5 results with reasonable precision.
@@ -94,8 +98,11 @@ async def main() -> int:
 
 async def _dry_run(queries, sources, args):
     """Fetch from APIs, dedup in memory, report — no DB writes."""
-    # noqa: E402 — deferred imports for dry-run path
-    from app.services.literature_ingestion import LiteratureItem, IngestionJob  # noqa: E402
+
+    from app.services.literature_ingestion import (
+        IngestionJob,
+        LiteratureItem,
+    )
 
     jobs = []
     all_unique: dict[str, LiteratureItem] = {}

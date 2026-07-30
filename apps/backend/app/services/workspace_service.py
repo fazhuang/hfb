@@ -6,13 +6,18 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.workspace import CitationCollection, QueryHistory, ResearchNote, ResearchSession
+from app.models.workspace import (
+    CitationCollection,
+    QueryHistory,
+    ResearchNote,
+    ResearchSession,
+)
 
 
 class WorkspaceService:
@@ -70,7 +75,7 @@ class WorkspaceService:
         if context_notes is not None:
             session.context_notes = context_notes
 
-        session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        session.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return session
 
@@ -91,14 +96,14 @@ class WorkspaceService:
             except json.JSONDecodeError:
                 history = []
 
-        history.append({"role": role, "content": content, "timestamp": datetime.now(timezone.utc).isoformat()})
+        history.append({"role": role, "content": content, "timestamp": datetime.now(UTC).isoformat()})
 
         # Keep last 100 messages
         if len(history) > 100:
             history = history[-100:]
 
         session.chat_history = json.dumps(history, ensure_ascii=False)
-        session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        session.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return session
 
@@ -116,7 +121,7 @@ class WorkspaceService:
         if session is None:
             return False
         session.is_deleted = True  # type: ignore[assignment]
-        session.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        session.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return True
 
@@ -172,7 +177,7 @@ class WorkspaceService:
         if tags is not None:
             note.tags = tags
 
-        note.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        note.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return note
 
@@ -183,7 +188,7 @@ class WorkspaceService:
         if note is None:
             return False
         note.is_deleted = True  # type: ignore[assignment]
-        note.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        note.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return True
 

@@ -13,11 +13,10 @@ Changes:
   P0-6: server_default fixed to use sa.text("'unverified'") — no extra quotes
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "p0_final_tei_fk_compiled_from"
@@ -45,7 +44,7 @@ def upgrade() -> None:
         batch_op.drop_constraint("ck_entity_relations_relation_type")
         batch_op.create_check_constraint(
             "ck_entity_relations_relation_type",
-            f"relation_type IN {str(VALID_RELATION_TYPES)}",
+            f"relation_type IN {VALID_RELATION_TYPES!s}",
         )
 
     # ---- P0-6: Fix server_default for evidence_status ----
@@ -129,11 +128,11 @@ def upgrade() -> None:
         )
         batch_op.create_check_constraint(
             "ck_textual_variants_verification_status",
-            f"verification_status IN {str(VALID_EVIDENCE_STATUS)}",
+            f"verification_status IN {VALID_EVIDENCE_STATUS!s}",
         )
         batch_op.create_check_constraint(
             "ck_textual_variants_variant_type",
-            f"variant_type IS NULL OR variant_type IN {str(VALID_VARIANT_TYPES)}",
+            f"variant_type IS NULL OR variant_type IN {VALID_VARIANT_TYPES!s}",
         )
 
     # Fix any existing '''unverified''' values in entity_relations
@@ -197,5 +196,5 @@ def downgrade() -> None:
         batch_op.drop_constraint("ck_entity_relations_relation_type")
         batch_op.create_check_constraint(
             "ck_entity_relations_relation_type",
-            f"relation_type IN {str(('authored', 'compiled', 'commented_on', 'cited_in', 'studied', 'compared', 'referenced', 'related_to', 'contains', 'treats', 'corresponds_to'))}",
+            f"relation_type IN {('authored', 'compiled', 'commented_on', 'cited_in', 'studied', 'compared', 'referenced', 'related_to', 'contains', 'treats', 'corresponds_to')!s}",
         )

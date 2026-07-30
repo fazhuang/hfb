@@ -3,11 +3,10 @@ Version Center tests — lineage, comparison, diff, passage mapping.
 """
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.services.version_center import VersionComparisonService
-from app.models.version import Version
 from app.models.passage import Passage
+from app.models.version import Version
+from app.services.version_center import VersionComparisonService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 

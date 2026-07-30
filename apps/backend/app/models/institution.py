@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import enum
 
-from sqlalchemy import String, Text, CheckConstraint
+from sqlalchemy import CheckConstraint, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.core.exceptions import ValidationException

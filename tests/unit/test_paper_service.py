@@ -2,10 +2,9 @@
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 from app.services.paper_service import PaperService
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest_asyncio.fixture
@@ -21,8 +20,10 @@ async def db_session():
 
     async with async_session() as session:
         # Pre-seed reviewer user + role for verify_relation
-        from app.models.user import User, Role, Permission as PermModel
-        from app.models.user import user_role as ur_table, role_permission as rp_table
+        from app.models.user import Permission as PermModel
+        from app.models.user import Role, User
+        from app.models.user import role_permission as rp_table
+        from app.models.user import user_role as ur_table
 
         reviewer = User(
             id="test-reviewer",
@@ -137,8 +138,8 @@ async def test_paper_service_excludes_tampered_relation(db_session):
     from app.models.passage import Passage
     from app.models.person import Person
     from app.models.version import Version
-    from app.services.graph_service import GraphService
     from app.schemas.graph import GraphEvidence
+    from app.services.graph_service import GraphService
 
     # Seed entities
     person = Person(id="p-ps-1", name="作者")

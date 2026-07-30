@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-from pathlib import Path
-from collections import defaultdict
-import re
 import datetime
+import re
+from collections import defaultdict
+from pathlib import Path
 
 ROOT = Path("docs")
 
@@ -22,10 +22,10 @@ def main():
         text = f.read_text(encoding="utf-8", errors="ignore")
         if not text.startswith("---"):
             missing_header.append(str(f))
-        m = re.search(r"^document_id:\s*(.+)$", text, re.M)
+        m = re.search(r"^document_id:\s*(.+)$", text, re.MULTILINE)
         if m:
             doc_ids[m.group(1).strip()].append(str(f))
-        t = re.search(r"^title:\s*(.+)$", text, re.M)
+        t = re.search(r"^title:\s*(.+)$", text, re.MULTILINE)
         if t:
             titles[t.group(1).strip()].append(str(f))
 

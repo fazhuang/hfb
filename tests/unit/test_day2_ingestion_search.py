@@ -15,20 +15,19 @@ from __future__ import annotations
 import io
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
 from app.db.base import Base
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.chunking import chunk_text
 from app.services.ingestion import (
-    IngestionService,
     FulltextRejectedError,
+    IngestionService,
     PDFExtractionError,
 )
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # Context 21: compliance metadata for all ingestion calls.
 # All callers must pass copyright_status + authorization_basis.
@@ -518,9 +517,9 @@ class TestCitation:
 
 def _make_test_app():
     """Build a FastAPI test app matching the real v1 router structure."""
-    from fastapi import FastAPI
     from app.core.error_handlers import register_error_handlers
     from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.add_middleware(RequestIDMiddleware)
@@ -730,7 +729,6 @@ class TestAppendPassage:
     async def test_append_passage_to_existing_document(self, app_db_session):
         """Ingest passage A, then append passage B → same document, two
         distinct passage_ids, chunk_index continues, checksum changes."""
-        from app.db.database import get_session
 
         # Ingest initial document with passage A
         svc = IngestionService(app_db_session)
@@ -779,9 +777,9 @@ class TestAppendPassage:
             assert ch.chunk_index == i, f"chunk_index gap: expected {i}, got {ch.chunk_index}"
 
         # Verify two distinct passage_ids exist on this document
-        passage_ids = list(set(
+        passage_ids = list({
             ch.passage_id for ch in all_chunks if ch.passage_id
-        ))
+        })
         assert len(passage_ids) >= 2, f"Expected >=2 distinct passage_ids, got {len(passage_ids)}: {passage_ids}"
 
         # Verify document checksum updated
@@ -793,7 +791,6 @@ class TestAppendPassage:
 
     async def test_append_resets_review_and_rag(self, app_db_session):
         """After append, review_status → pending and rag_enabled → False."""
-        from app.db.database import get_session
 
         svc = IngestionService(app_db_session)
         r1 = await svc.ingest_text(
@@ -933,9 +930,13 @@ class TestAppendPassage:
         )
         await app_db_session.flush()
 
-        from app.models.user import Role, Permission as PermModel
-        from app.models.user import user_role as ur, role_permission as rp
-        from sqlalchemy import select as sa, and_, delete as sa_del
+        from app.models.user import Permission as PermModel
+        from app.models.user import Role
+        from app.models.user import role_permission as rp
+        from app.models.user import user_role as ur
+        from sqlalchemy import and_
+        from sqlalchemy import delete as sa_del
+        from sqlalchemy import select as sa
 
         # Ensure document:update permission is granted to Researcher role
         researcher_role = (await app_db_session.execute(
@@ -1035,7 +1036,6 @@ class TestAppendPassage:
         )
         doc_id = r1.document_id
         original_checksum = r1.checksum
-        original_chunk_count = r1.chunk_count
 
         # Set doc to approved so we can verify it stays unchanged
         doc = (await app_db_session.execute(
@@ -1188,11 +1188,12 @@ class TestAppendPassage:
 def _make_passage(db_session, title: str, order: int) -> str:
     """Create a minimal Passage and return its id."""
     from uuid import uuid4
+
+    from app.models.book import Book
+    from app.models.chapter import Chapter
     from app.models.passage import Passage
     from app.models.person import Person
-    from app.models.book import Book
     from app.models.version import Version
-    from app.models.chapter import Chapter
 
     # Quick entity chain
     person = Person(id=str(uuid4()), name="测试作者")

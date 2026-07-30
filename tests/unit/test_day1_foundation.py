@@ -21,11 +21,6 @@ Run with: uv run pytest tests/unit/test_day1_foundation.py -v
 from __future__ import annotations
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-
 from app.core.exceptions import (
     BaseException,
     DomainException,
@@ -47,8 +42,11 @@ from app.db.base import Base
 from app.models.institution import Institution, InstitutionStatus
 from app.repositories.institution import InstitutionRepository
 from app.schemas.institution import InstitutionCreate, InstitutionUpdate
+from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError as PydanticValidationError
-
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 # ============================================================
 # STATUS MACHINE
@@ -196,7 +194,7 @@ class TestInstitutionRepository:
         repo = InstitutionRepository(db_session)
         await repo.create(name="A", type="archive")
         await repo.create(name="B", type="institution")
-        items, total = await repo.get_all(page=1, limit=10)
+        _items, total = await repo.get_all(page=1, limit=10)
         assert total >= 2
 
     async def test_update(self, db_session):
@@ -382,12 +380,11 @@ class TestExceptionNames:
 
 def _make_test_app():
     """Build a FastAPI test app with RequestID middleware outermost."""
-    from fastapi import FastAPI, Query
-    from fastapi.middleware.cors import CORSMiddleware
-
     from app.core.error_handlers import register_error_handlers
     from app.core.exceptions import NotFoundException, ValidationException
     from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI, Query
+    from fastapi.middleware.cors import CORSMiddleware
 
     app = FastAPI(debug=False)
     # CORS and TrustedHost must be added BEFORE RequestID so
@@ -538,10 +535,9 @@ class TestErrorHandlersViaHTTP:
 class TestRequestID:
     @pytest.fixture(autouse=True)
     def _app(self):
-        from fastapi import FastAPI
-
         from app.core.error_handlers import register_error_handlers
         from app.middleware.request_id import RequestIDMiddleware
+        from fastapi import FastAPI
 
         app = FastAPI(debug=False)
         app.add_middleware(RequestIDMiddleware)

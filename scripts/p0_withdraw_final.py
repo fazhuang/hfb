@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """P0 AcademicRAG Withdraw test — output to /tmp/p0-out/."""
-import asyncio, sys, os, logging
+import asyncio
+import logging
+import os
+import sys
+
 os.chdir("/Users/likeming/Sites/hfb/apps/backend")
 sys.path.insert(0, ".")
 logging.disable(logging.CRITICAL)

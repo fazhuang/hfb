@@ -2,9 +2,9 @@
 Tests for Document and Person models (Sprint 3 scope).
 """
 
+from app.db.base import BaseModel, SoftDeleteMixin, TimestampMixin
 from app.models.document import Document
 from app.models.person import Person
-from app.db.base import BaseModel, TimestampMixin, SoftDeleteMixin
 
 
 class TestDocumentModel:

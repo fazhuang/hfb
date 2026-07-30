@@ -9,10 +9,10 @@ Example: 北宋刻本, 南宋刻本, 日本刊本 of 针灸甲乙经
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Optional
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, String, Text, ForeignKey
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -30,13 +30,13 @@ class Version(BaseModel):
         ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True, comment="所属书籍 ID"
     )
     version_name: Mapped[str] = mapped_column(String(300), nullable=False, comment="版本名称")
-    era: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, comment="朝代/时期")
-    year: Mapped[Optional[int]] = mapped_column(nullable=True, comment="版本年份")
-    repository: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, comment="收藏机构")
-    shelf_mark: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="索书号")
-    editor: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, comment="编者/校注者")
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="版本描述")
-    source_url: Mapped[Optional[str]] = mapped_column(String(2000), nullable=True, comment="来源链接")
+    era: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="朝代/时期")
+    year: Mapped[int | None] = mapped_column(nullable=True, comment="版本年份")
+    repository: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="收藏机构")
+    shelf_mark: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="索书号")
+    editor: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="编者/校注者")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="版本描述")
+    source_url: Mapped[str | None] = mapped_column(String(2000), nullable=True, comment="来源链接")
 
     # ------------------------------------------------------------------
     # Academic credibility fields (P2T1)
@@ -48,21 +48,21 @@ class Version(BaseModel):
         server_default="false",
         comment="是否为正式学术可引用来源",
     )
-    rights_statement: Mapped[Optional[str]] = mapped_column(
+    rights_statement: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="权利/授权依据"
     )
-    persistent_identifier: Mapped[Optional[str]] = mapped_column(
+    persistent_identifier: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="稳定可核验标识"
     )
-    withdrawn_at: Mapped[Optional[datetime]] = mapped_column(
+    withdrawn_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="撤回时间"
     )
-    withdraw_reason: Mapped[Optional[str]] = mapped_column(
+    withdraw_reason: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="撤回原因"
     )
 
     # Relationships
-    book: Mapped["Book"] = relationship("Book", back_populates="versions")
+    book: Mapped[Book] = relationship("Book", back_populates="versions")
 
     @property
     def is_withdrawn(self) -> bool:
@@ -88,7 +88,7 @@ class Version(BaseModel):
 
     def withdraw(self, reason: str = "未说明") -> None:
         """Withdraw this version — sets withdrawn_at and reason."""
-        self.withdrawn_at = datetime.now(timezone.utc)
+        self.withdrawn_at = datetime.now(UTC)
         self.withdraw_reason = reason
 
     def restore(self) -> None:

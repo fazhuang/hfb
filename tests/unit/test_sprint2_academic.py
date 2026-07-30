@@ -22,8 +22,6 @@ import json
 import re
 
 import pytest
-from sqlalchemy import select
-
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.academic_service import (
@@ -42,9 +40,9 @@ from app.services.generation_service import (
     _normalize_whitespace,
 )
 from app.services.retrieval import RetrievalService
+from sqlalchemy import select
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ============================================================
 # Helpers
@@ -311,6 +309,7 @@ async def test_same_subject_different_fact_not_bound(db_session):
 async def test_report_claim_count_matches_citation_count(db_session):
     """P0-1 C: claim count == citation count == evidence count."""
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     await _seed_chunks(
@@ -570,6 +569,7 @@ async def test_education_levels_rank_based_not_length_based(db_session):
     )
 
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     with patch.object(
@@ -623,6 +623,7 @@ async def test_reproducibility_hash_covers_full_artifact(db_session):
     )
 
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     with patch.object(
@@ -699,6 +700,7 @@ async def test_reproducibility_deduped_cited_ids(db_session):
     )
 
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     with patch.object(
@@ -722,9 +724,9 @@ async def test_reproducibility_deduped_cited_ids(db_session):
 
 
 def _make_test_app_v2():
-    from fastapi import FastAPI
-    from app.middleware.request_id import RequestIDMiddleware
     from app.core.error_handlers import register_error_handlers
+    from app.middleware.request_id import RequestIDMiddleware
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.add_middleware(RequestIDMiddleware)
@@ -773,12 +775,12 @@ async def test_openapi_schema_has_strict_v2_response():
 
 @pytest.fixture
 async def v2_db_session():
-    from sqlalchemy.ext.asyncio import (
-        create_async_engine,
-        async_sessionmaker,
-        AsyncSession,
-    )
     from app.db.base import Base
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     engine = create_async_engine("sqlite+aiosqlite://", echo=False)
     async with engine.begin() as conn:
@@ -944,14 +946,14 @@ async def test_v2_extra_fields_rejected(v2_db_session):
 async def test_report_invalid_type_returns_422():
     """P0-2: Invalid report_type must return 422."""
     import httpx
-    from sqlalchemy.ext.asyncio import (
-        create_async_engine,
-        async_sessionmaker,
-        AsyncSession,
-    )
     from app.db.base import Base
     from app.db.database import get_session
     from app.middleware.auth import get_current_user
+    from sqlalchemy.ext.asyncio import (
+        AsyncSession,
+        async_sessionmaker,
+        create_async_engine,
+    )
 
     engine = create_async_engine("sqlite+aiosqlite://", echo=False)
     async with engine.begin() as conn:
@@ -1061,6 +1063,7 @@ async def test_sprint1_strict_json_still_enforced(db_session):
 async def test_v1_generate_determinism_unchanged(db_session):
     """V1 generate() must remain byte-identical across runs."""
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     await _seed_chunks(
@@ -1321,6 +1324,7 @@ async def test_hypothesis_exact_trace(db_session):
 async def test_full_artifact_hash_success_all_modules(db_session):
     """P0-6 E: Recompute output hash for successful responses across modules."""
     from unittest.mock import PropertyMock, patch
+
     from app.services.ai_service import AIService
 
     await _seed_chunks(
@@ -1504,7 +1508,7 @@ async def test_refusal_with_retrieval_has_nonempty_corpus_hash(db_session):
         db_session,
         [("针灸甲乙经", "西晋", [chunk_content])],
     )
-    doc = list(docs.values())[0]
+    doc = next(iter(docs.values()))
 
     # Get the actual chunk_id from DB
     from app.models.document_chunk import DocumentChunk

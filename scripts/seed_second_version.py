@@ -44,7 +44,7 @@ async def main():
             "SELECT id FROM users WHERE email='admin@huangfumi.org' AND is_deleted=false"
         ))
         admin_row = r.fetchone()
-        admin_id = admin_row[0] if admin_row else None
+        admin_row[0] if admin_row else None
 
         # Get existing version for reference
         r = await session.execute(text(

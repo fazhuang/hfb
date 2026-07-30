@@ -28,7 +28,6 @@ import re
 import sys
 import uuid as uuid_mod
 from difflib import SequenceMatcher
-from io import BytesIO
 from typing import Any
 
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
@@ -96,8 +95,8 @@ def _ocr_pages_with_paddle(img_array) -> str:
 def generate_ocr_artifacts(pdf_path: str, output_path: str) -> dict[int, str]:
     """Run PaddleOCR on all pages of the PDF. Returns {page_number: ocr_text}."""
 
-    from pdf2image import convert_from_bytes
     from paddleocr import PaddleOCR
+    from pdf2image import convert_from_bytes
 
     print("\n" + "=" * 60)
     print("Running PaddleOCR on all 78 pages (this will take several minutes)...")
@@ -278,8 +277,8 @@ async def ensure_columns(session) -> None:
 
 
 async def main():
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from sqlalchemy import text
 
     print("=" * 60)
     print("P0 Correct Import — OCR-verified PDF page-level evidence")
@@ -550,7 +549,7 @@ async def main():
 
         er_updated = 0
         for rel in relations:
-            rel_id, er_passage_id, old_chunk_id, old_doc_id, rel_type, claim = rel
+            rel_id, er_passage_id, _old_chunk_id, _old_doc_id, rel_type, claim = rel
             passage_key = str(er_passage_id)
 
             if passage_key not in chunk_by_passage:
@@ -597,7 +596,7 @@ async def main():
         print("-" * 95)
 
         for row in chunk_rows:
-            chunk_id, passage_id, chunk_idx, chunk_content, current_pg, passage_text, passage_order, chapter_id = row
+            chunk_id, passage_id, _chunk_idx, chunk_content, _current_pg, passage_text, passage_order, _chapter_id = row
             mr = match_results.get(str(passage_id))
             if mr is None:
                 continue

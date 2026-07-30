@@ -27,10 +27,10 @@ from app.schemas.v4 import (
 )
 from app.services.graph_service import GraphService
 from app.services.trace_lineage import (
+    TraceLineageError,
     build_viz_traces,
     extract_source_documents,
     make_trace_id,
-    TraceLineageError,
 )
 from app.services.workspace_service import WorkspaceService
 
@@ -363,11 +363,11 @@ async def generate_visualization_graph(
     if internal_traces:
         evidence_ids = [r.trace_id for r in internal_traces]
     else:
-        evidence_ids = sorted(set(
+        evidence_ids = sorted({
             make_trace_id(t.document_id, t.chunk_id)
             for t in all_evidence_traces
             if hasattr(t, 'document_id') and hasattr(t, 'chunk_id')
-        ))
+        })
 
     source_docs = extract_source_documents(all_evidence_traces)
     dedup_citation_count = len(evidence_ids)
@@ -406,17 +406,16 @@ async def generate_visualization_graph(
 def _extract_time_evidence(c) -> dict | None:
     """Extract era/year from a CrossDocumentClaim's evidence. Returns None if absent."""
     meta = {}
-    if hasattr(c, 'evidence') and c.evidence:
-        if hasattr(c.evidence, 'exact_quote'):
-            # Heuristic: scan for dynasty/year patterns in evidence quote
-            import re
-            quote = c.evidence.exact_quote
-            era_match = re.search(r'(战国|秦|汉|三国|晋|南北朝|隋|唐|宋|辽|金|元|明|清)', quote)
-            if era_match:
-                meta["era"] = era_match.group(1)
-            year_match = re.search(r'(\d{1,4})年', quote)
-            if year_match:
-                meta["year"] = year_match.group(1) + "年"
-            if meta:
-                return meta
+    if hasattr(c, 'evidence') and c.evidence and hasattr(c.evidence, 'exact_quote'):
+        # Heuristic: scan for dynasty/year patterns in evidence quote
+        import re
+        quote = c.evidence.exact_quote
+        era_match = re.search(r'(战国|秦|汉|三国|晋|南北朝|隋|唐|宋|辽|金|元|明|清)', quote)
+        if era_match:
+            meta["era"] = era_match.group(1)
+        year_match = re.search(r'(\d{1,4})年', quote)
+        if year_match:
+            meta["year"] = year_match.group(1) + "年"
+        if meta:
+            return meta
     return None

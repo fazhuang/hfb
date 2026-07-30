@@ -31,7 +31,6 @@ class PersonBase(BaseModel):
 class PersonCreate(PersonBase):
     """Schema for creating a new person."""
 
-    pass
 
 
 class PersonBrief(BaseModel):

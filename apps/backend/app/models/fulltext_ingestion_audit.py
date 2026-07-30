@@ -6,11 +6,10 @@ must produce a durable DB record.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import String, Text, DateTime, JSON
+from sqlalchemy import JSON, DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -28,7 +27,7 @@ class FulltextIngestionAudit(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
         nullable=False,
     )
 
@@ -46,62 +45,62 @@ class FulltextIngestionAudit(Base):
     )
 
     # -- Source identity --
-    source_url: Mapped[Optional[str]] = mapped_column(
+    source_url: Mapped[str | None] = mapped_column(
         String(2000), nullable=True, comment="来源 URL"
     )
-    source_name: Mapped[Optional[str]] = mapped_column(
+    source_name: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="摄入来源名称"
     )
 
     # -- Copyright & authorization --
-    copyright_status: Mapped[Optional[str]] = mapped_column(
+    copyright_status: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="版权状态"
     )
-    authorization_basis: Mapped[Optional[str]] = mapped_column(
+    authorization_basis: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="授权依据"
     )
-    license_type: Mapped[Optional[str]] = mapped_column(
+    license_type: Mapped[str | None] = mapped_column(
         String(100), nullable=True, comment="许可类型"
     )
 
     # -- Review --
-    review_status: Mapped[Optional[str]] = mapped_column(
+    review_status: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="审核状态"
     )
-    reviewed_by: Mapped[Optional[str]] = mapped_column(
+    reviewed_by: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="审核人 user ID"
     )
-    reviewed_at: Mapped[Optional[DateTime]] = mapped_column(
+    reviewed_at: Mapped[DateTime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="审核时间"
     )
 
     # -- Content identity --
-    checksum: Mapped[Optional[str]] = mapped_column(
+    checksum: Mapped[str | None] = mapped_column(
         String(64), nullable=True, comment="SHA-256 of full-text content"
     )
 
     # -- Result entity --
-    result_entity_type: Mapped[Optional[str]] = mapped_column(
+    result_entity_type: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="结果实体类型 (document/chunk/paper)"
     )
-    result_entity_id: Mapped[Optional[str]] = mapped_column(
+    result_entity_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="结果实体 ID"
     )
 
     # -- Reason --
-    reject_reason: Mapped[Optional[str]] = mapped_column(
+    reject_reason: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="拒绝/跳过原因"
     )
-    skipped_reason: Mapped[Optional[str]] = mapped_column(
+    skipped_reason: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="跳过原因"
     )
 
     # -- Actor --
-    actor_id: Mapped[Optional[str]] = mapped_column(
+    actor_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="操作人 user ID"
     )
 
     # -- Extra context --
-    details: Mapped[Optional[dict]] = mapped_column(
+    details: Mapped[dict | None] = mapped_column(
         JSON, nullable=True, comment="自由格式上下文 (title 等)"
     )

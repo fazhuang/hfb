@@ -5,21 +5,25 @@ Per MVP Chapter 8 — Dashboard and Admin Panel.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from sqlalchemy import select, func, desc
+from sqlalchemy import desc, func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book
+from app.models.document import Document
+from app.models.graph import EntityRelation
+from app.models.image import Image
+from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
-from app.models.version import Version
-from app.models.paper import Paper
-from app.models.image import Image
-from app.models.document import Document
 from app.models.user import User
-from app.models.graph import EntityRelation
-from app.models.workspace import ResearchSession, ResearchNote
+from app.models.version import Version
+from app.models.workspace import ResearchNote, ResearchSession
+
+logger = logging.getLogger(__name__)
 
 
 class DashboardService:
@@ -136,8 +140,8 @@ class DashboardService:
             )
             result = await self.session.execute(stmt)
             sessions_count = result.scalar_one()
-        except Exception:
-            pass
+        except SQLAlchemyError:
+            logger.debug("Failed to count research sessions", exc_info=True)
 
         try:
             stmt = select(func.count()).select_from(
@@ -145,8 +149,8 @@ class DashboardService:
             )
             result = await self.session.execute(stmt)
             notes_count = result.scalar_one()
-        except Exception:
-            pass
+        except SQLAlchemyError:
+            logger.debug("Failed to count research notes", exc_info=True)
 
         return {
             "version": settings.VERSION,

@@ -4,10 +4,9 @@ Tests for repository layer using in-memory SQLite.
 Requires: pytest-asyncio, aiosqlite
 """
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.repositories.document import DocumentRepository
 from app.repositories.person import PersonRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import conftest_db fixtures (must be imported — conftest_db.py is not auto-discovered)
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
@@ -132,7 +131,7 @@ class TestPersonRepository:
         await repo.create(name="李时珍", dynasty="明", birth_year=1518)
         await repo.create(name="扁鹊", dynasty="东汉", birth_year=None)
 
-        items, total = await repo.get_by_dynasty("东汉")
+        _items, total = await repo.get_by_dynasty("东汉")
         assert total == 2
 
 

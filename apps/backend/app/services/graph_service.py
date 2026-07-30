@@ -19,10 +19,11 @@ import hashlib
 import json
 import re
 from collections import deque
+from datetime import UTC
 from typing import Any, Literal
 from uuid import UUID
 
-from sqlalchemy import select, or_, and_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,10 +38,10 @@ from app.models.graph import (
     SELF_LOOP_ALLOWED_TYPES,
     EntityRelation,
 )
-from app.models.passage import Passage  # noqa: F401
+from app.models.passage import Passage
 from app.models.person import Person
 from app.models.tcm_entity import TCMEntity
-from app.models.user import User, Role, Permission
+from app.models.user import Permission, Role, User
 from app.models.version import Version
 from app.schemas.graph import (
     RELATION_LABELS,
@@ -1088,7 +1089,7 @@ class GraphService:
         Rejects: nonexistent users, deleted users, deactivated users,
                  users without graph.review or admin permission.
         """
-        from app.models.user import user_role, role_permission
+        from app.models.user import role_permission, user_role
 
         # User exists, not deleted, is active
         user_stmt = select(User).where(
@@ -1228,7 +1229,7 @@ class GraphService:
 
         Raises ValueError if any check fails.
         """
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         # 1. Fetch relation
         if isinstance(relation_id, str) and not relation_id.startswith("er:"):
@@ -1346,7 +1347,7 @@ class GraphService:
 
         # --- All checks passed — write verification ---
         er.evidence_status = "verified"
-        er.verified_at = datetime.now(timezone.utc)
+        er.verified_at = datetime.now(UTC)
         er.verified_by = verified_by
         er.claim_text = claim_text
         er.evidence_version_id = evidence_version_id or None
@@ -1510,8 +1511,8 @@ class GraphService:
                 continue
             adjacency.setdefault(edge.source_id, []).append((edge.target_id, edge))
             adjacency.setdefault(edge.target_id, []).append((edge.source_id, edge))
-        for nid in adjacency:
-            adjacency[nid].sort(key=lambda x: x[0])
+        for edges in adjacency.values():
+            edges.sort(key=lambda x: x[0])
 
         queue: deque[tuple[str, list[str], list[str]]] = deque()
         queue.append((source_node_id, [source_node_id], []))
@@ -1572,8 +1573,8 @@ class GraphService:
                 continue
             adjacency.setdefault(edge.source_id, []).append((edge.target_id, edge))
             adjacency.setdefault(edge.target_id, []).append((edge.source_id, edge))
-        for nid in adjacency:
-            adjacency[nid].sort(key=lambda x: x[0])
+        for edges in adjacency.values():
+            edges.sort(key=lambda x: x[0])
 
         paths_found: list[PathResult] = []
         queue: deque[tuple[str, list[str], list[str]]] = deque()
@@ -1698,10 +1699,9 @@ class GraphService:
                 next_id = edge.target_entity_id
 
                 # Check if we reached the target (if target specified)
-                if target_type and target_id:
-                    if next_type == target_type and next_id == target_id:
-                        paths.append(self._build_evidence_path(new_list, validated))
-                        continue
+                if target_type and target_id and next_type == target_type and next_id == target_id:
+                    paths.append(self._build_evidence_path(new_list, validated))
+                    continue
 
                 queue.append((next_type, next_id, new_list))
 
@@ -1809,10 +1809,9 @@ class GraphService:
         all_edges, node_lookup = await self._collect_all_edges()
         subgraph_edges: list[GraphEdge] = []
         for edge in all_edges:
-            if edge.source_id in all_node_ids and edge.target_id in all_node_ids:
-                if edge.id not in all_edge_ids:
-                    subgraph_edges.append(edge)
-                    all_edge_ids.add(edge.id)
+            if edge.source_id in all_node_ids and edge.target_id in all_node_ids and edge.id not in all_edge_ids:
+                subgraph_edges.append(edge)
+                all_edge_ids.add(edge.id)
 
         all_edges_out = neighbor_result.edges + subgraph_edges
         subgraph_nodes = sorted(
@@ -1903,10 +1902,10 @@ class GraphService:
         relation = result.scalar_one_or_none()
         if relation is None:
             return False
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         relation.is_deleted = True  # type: ignore[assignment]
-        relation.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        relation.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
         return True
 
@@ -1924,7 +1923,7 @@ class GraphService:
         if not concept_labels:
             return ConceptGraph(nodes=[], edges=[])
 
-        labels = sorted(set(label.strip() for label in concept_labels if label.strip()))
+        labels = sorted({label.strip() for label in concept_labels if label.strip()})
         if not labels:
             return ConceptGraph(nodes=[], edges=[])
 
@@ -1952,7 +1951,7 @@ class GraphService:
         for lbl in active_labels:
             chunks = concept_chunks[lbl]
             concept_id = _stable_hash(lbl)
-            doc_ids = sorted(set(c.document_id for c in chunks))
+            doc_ids = sorted({c.document_id for c in chunks})
             chunk_ids = sorted(c.id for c in chunks)
             evidence: list[GraphEvidence] = []
             for c in chunks:
@@ -1989,8 +1988,8 @@ class GraphService:
         for i in range(len(active_labels)):
             for j in range(i + 1, len(active_labels)):
                 a, b = active_labels[i], active_labels[j]
-                a_chunks = set(c.id for c in concept_chunks[a])
-                b_chunks = set(c.id for c in concept_chunks[b])
+                a_chunks = {c.id for c in concept_chunks[a]}
+                b_chunks = {c.id for c in concept_chunks[b]}
                 shared_chunk_ids = sorted(a_chunks & b_chunks)
                 if not shared_chunk_ids:
                     continue
@@ -2117,12 +2116,10 @@ class GraphService:
             a_after = sentence.rfind(a)
             b_after = sentence.rfind(b)
 
-            if a_before < marker_start and b_after >= marker_end:
-                if a_before >= 0 and b_after >= marker_end:
-                    return "a_narrower"
-            if b_before < marker_start and a_after >= marker_end:
-                if b_before >= 0 and a_after >= marker_end:
-                    return "b_narrower"
+            if a_before >= 0 and a_before < marker_start and b_after >= marker_end:
+                return "a_narrower"
+            if b_before >= 0 and b_before < marker_start and a_after >= marker_end:
+                return "b_narrower"
 
         for pat in broader_markers:
             match = pat.search(sentence)
@@ -2136,12 +2133,10 @@ class GraphService:
             a_after = sentence.rfind(a)
             b_after = sentence.rfind(b)
 
-            if b_before < marker_start and a_after >= marker_end:
-                if b_before >= 0 and a_after >= marker_end:
-                    return "a_narrower"
-            if a_before < marker_start and b_after >= marker_end:
-                if a_before >= 0 and b_after >= marker_end:
-                    return "b_narrower"
+            if b_before >= 0 and b_before < marker_start and a_after >= marker_end:
+                return "a_narrower"
+            if a_before >= 0 and a_before < marker_start and b_after >= marker_end:
+                return "b_narrower"
 
         return None
 
@@ -2243,7 +2238,7 @@ class GraphService:
             return CrossDocumentAnalysis(topic=topic, status="insufficient_evidence")
 
         supporting: list[CrossDocumentClaim] = []
-        doc_ids = sorted(set(c.document_id for c in chunks))
+        doc_ids = sorted({c.document_id for c in chunks})
         evidence_traces: list[GraphEvidence] = []
 
         for c in chunks:
@@ -2343,7 +2338,7 @@ class GraphService:
     async def intelligence(self, query: str) -> dict[str, Any]:
         """Unified knowledge intelligence — deterministic, evidence-bound."""
         raw_concepts = re.findall(r"[一-鿿]{2,}", query)
-        concepts = sorted(set(c.strip() for c in raw_concepts if c.strip()))
+        concepts = sorted({c.strip() for c in raw_concepts if c.strip()})
         if not concepts:
             concepts = [query.strip()]
 

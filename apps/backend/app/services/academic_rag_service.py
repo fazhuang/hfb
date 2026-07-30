@@ -19,7 +19,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
@@ -32,8 +32,8 @@ from app.schemas.academic_rag import (
     AcademicKGPath,
     AcademicRAGResponse,
 )
-from app.services.graph_service import GraphService
 from app.services.citation_persistence import CitationPersistenceService
+from app.services.graph_service import GraphService
 
 logger = logging.getLogger(__name__)
 
@@ -542,10 +542,9 @@ class AcademicRAGService:
             for edge in neighbors.edges:
                 target_node = None
                 for n in neighbors.neighbors:
-                    if n.id == edge.target_id or n.id == edge.source_id:
-                        if n.id != start_node.id:
-                            target_node = n
-                            break
+                    if (n.id == edge.target_id or n.id == edge.source_id) and n.id != start_node.id:
+                        target_node = n
+                        break
                 if target_node is None:
                     continue
 
@@ -675,8 +674,7 @@ class AcademicRAGService:
                 from sqlalchemy import text
                 # P2T1: edge.relation_id is "er:{uuid}" — strip "er:" prefix for DB lookup
                 raw_rid = edge.relation_id
-                if raw_rid.startswith("er:"):
-                    raw_rid = raw_rid[3:]
+                raw_rid = raw_rid.removeprefix("er:")
                 # Query-time deep physical verification of the evidence path
                 r_check = await self.session.execute(text("""
                     SELECT er.id

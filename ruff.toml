@@ -4,9 +4,11 @@
 [lint]
 # Per-file rule overrides
 [lint.per-file-ignores]
-"tests/**/*.py" = ["S101", "S301", "N802", "F811"]          # allow assert/fixture-naming/fixture-redef in tests
 "apps/backend/migrations/**/*.py" = ["F401", "F811"] # migrations have their own rules
-"scripts/**/*.py" = ["T201"]                          # allow print in scripts
+"scripts/**/*.py" = ["T201", "BLE001", "EXE001", "S110", "E722", "PLW1510", "ASYNC230", "RUF059", "SIM113", "UP031", "DTZ005"]  # allow patterns common in scripts
+"tests/**/*.py" = ["S101", "S301", "N802", "F811", "BLE001", "S110", "B017", "RUF012", "RUF059", "SIM102", "PLW1510"]  # allow patterns common in tests
+"hfb_docs_upgrade_package/**/*.py" = ["BLE001", "EXE001", "S110", "DTZ005"]
+"tools/**/*.py" = ["DTZ005"]  # allow tz-naive datetime in CLI tools
 
 [format]
 # Additional format settings beyond pyproject.toml

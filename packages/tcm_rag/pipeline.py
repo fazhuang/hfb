@@ -5,15 +5,16 @@ from __future__ import annotations
 import re
 
 from tcm_kg.models import Edge
-from tcm_kg.store import GraphStore
 from tcm_kg.query import GraphQuery
+from tcm_kg.store import GraphStore
 from tcm_tei.models import Document
+
 from tcm_rag.models import (
-    KGPath,
-    TextHit,
-    EvidenceChain,
     CitationPath,
+    EvidenceChain,
+    KGPath,
     SearchResult,
+    TextHit,
 )
 
 

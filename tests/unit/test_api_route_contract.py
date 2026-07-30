@@ -30,7 +30,7 @@ def test_no_double_v1_prefix_in_openapi(openapi_paths):
     double_prefix_paths = [p for p in openapi_paths if "/api/v1/api/v1/" in p]
 
     assert double_prefix_paths == [], (
-        f"Double-prefix routes found in OpenAPI:\n"
+        "Double-prefix routes found in OpenAPI:\n"
         + "\n".join(double_prefix_paths)
         + f"\n\nFull path list ({len(openapi_paths)} total):\n"
         + json.dumps(openapi_paths, indent=2, ensure_ascii=False)
@@ -66,7 +66,7 @@ def test_classical_versions_routes_under_v1(openapi_paths):
     """Classical versions must be at /api/v1/, not /api/."""
     legacy = [
         p for p in openapi_paths
-        if p.startswith("/api/classical") or p.startswith("/api/admin/classical")
+        if p.startswith(("/api/classical", "/api/admin/classical"))
     ]
     assert legacy == [], (
         f"Classical versions routes must not be at /api/ prefix (no version). "

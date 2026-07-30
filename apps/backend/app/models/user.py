@@ -6,13 +6,10 @@ HFB-SEC-0702 Security Standard Chapter 4-5
 """
 from __future__ import annotations
 
-from typing import Optional
-
-from sqlalchemy import String, Boolean, Text, Table, Column, ForeignKey
+from sqlalchemy import Boolean, Column, ForeignKey, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import BaseModel, Base
-
+from app.db.base import Base, BaseModel
 
 # ------------------------------------------------------------------
 # Association tables (many-to-many)
@@ -54,10 +51,10 @@ class User(BaseModel):
     hashed_password: Mapped[str] = mapped_column(
         String(255), nullable=False, comment="bcrypt 哈希密码"
     )
-    display_name: Mapped[Optional[str]] = mapped_column(
+    display_name: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="显示名称"
     )
-    affiliation: Mapped[Optional[str]] = mapped_column(
+    affiliation: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="所属机构"
     )
     is_active: Mapped[bool] = mapped_column(
@@ -68,7 +65,7 @@ class User(BaseModel):
     )
 
     # Relationships
-    roles: Mapped[list["Role"]] = relationship(
+    roles: Mapped[list[Role]] = relationship(
         "Role",
         secondary=user_role,
         lazy="selectin",
@@ -95,7 +92,7 @@ class Role(BaseModel):
     name: Mapped[str] = mapped_column(
         String(100), unique=True, nullable=False, comment="角色名称"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="角色描述"
     )
     is_system: Mapped[bool] = mapped_column(
@@ -103,13 +100,13 @@ class Role(BaseModel):
     )
 
     # Relationships
-    users: Mapped[list["User"]] = relationship(
+    users: Mapped[list[User]] = relationship(
         "User",
         secondary=user_role,
         lazy="selectin",
         back_populates="roles",
     )
-    permissions: Mapped[list["Permission"]] = relationship(
+    permissions: Mapped[list[Permission]] = relationship(
         "Permission",
         secondary=role_permission,
         lazy="selectin",
@@ -140,12 +137,12 @@ class Permission(BaseModel):
     action: Mapped[str] = mapped_column(
         String(100), nullable=False, comment="操作 (create, read, update, delete, export, publish, review, approve)"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="权限描述"
     )
 
     # Relationships
-    roles: Mapped[list["Role"]] = relationship(
+    roles: Mapped[list[Role]] = relationship(
         "Role",
         secondary=role_permission,
         lazy="selectin",

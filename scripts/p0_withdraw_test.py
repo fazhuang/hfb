@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """P0 AcademicRAG Withdraw verification — one-shot script, no intermediate files."""
-import asyncio, json, os, sys
+import asyncio
+import os
+import sys
 
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
 _backend_dir = os.path.abspath(_backend_dir)
@@ -30,8 +32,8 @@ async def run_rag(session, query: str) -> dict:
 
 
 async def main():
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from sqlalchemy import text
 
     await init_database()
 

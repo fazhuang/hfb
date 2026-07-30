@@ -18,7 +18,7 @@ router = APIRouter(prefix="/rag", tags=["Evidence-Bound RAG"])
 )
 async def evidence_query(
     body: EvidenceRAGRequest,
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_session),  # noqa: B008
 ) -> EvidenceRAGResponse:
     """Retrieve rag_enabled=true chunks with full evidence provenance."""
     svc = EvidenceRAGService(session)

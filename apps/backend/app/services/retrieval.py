@@ -13,18 +13,16 @@ metadata_only, forbidden_fulltext, pirated, unknown) are excluded.
 from __future__ import annotations
 
 import logging
-
 from dataclasses import dataclass, field
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
-
 
 # Copyright statuses allowed for retrieval when strict_compliance=True
 _COMPLIANT_COPYRIGHT_STATUSES = frozenset({

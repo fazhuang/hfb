@@ -5,19 +5,19 @@ with citation paths for scholarly TCM research.
 """
 
 from tcm_rag.models import (
-    KGPath,
-    TextHit,
-    EvidenceChain,
     CitationPath,
+    EvidenceChain,
+    KGPath,
     SearchResult,
+    TextHit,
 )
 from tcm_rag.pipeline import RAGPipeline
 
 __all__ = [
-    "KGPath",
-    "TextHit",
-    "EvidenceChain",
     "CitationPath",
-    "SearchResult",
+    "EvidenceChain",
+    "KGPath",
     "RAGPipeline",
+    "SearchResult",
+    "TextHit",
 ]

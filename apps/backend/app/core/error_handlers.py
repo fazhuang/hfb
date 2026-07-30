@@ -12,22 +12,21 @@ Registered on the FastAPI application in main.py.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
+from app.core.exceptions import DomainException
+from app.core.logging import get_logger
+from app.core.status_machine import InvalidStatusTransitionError
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.core.exceptions import DomainException
-from app.core.logging import get_logger
-from app.core.status_machine import InvalidStatusTransitionError
-
 logger = get_logger(__name__)
 
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _get_request_id(request: Request) -> str:

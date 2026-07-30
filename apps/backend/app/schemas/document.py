@@ -8,7 +8,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 COPYRIGHT_STATUSES = frozenset({
     "public_domain",
     "open_access",
@@ -50,7 +49,6 @@ class DocumentBase(BaseModel):
 class DocumentCreate(DocumentBase):
     """Schema for creating a new document."""
 
-    pass
 
 
 class DocumentUpdate(BaseModel):

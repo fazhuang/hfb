@@ -13,10 +13,10 @@ from __future__ import annotations
 from fastapi import APIRouter
 
 from app.api.v1.academic_rag import router as academic_rag_router
-from app.api.v1.classical_versions import router as classical_versions_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.ai import ai_router, workspace_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.classical_versions import router as classical_versions_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.day2_search import router as day2_search_router
 from app.api.v1.entities import router as entities_router

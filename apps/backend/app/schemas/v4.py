@@ -5,10 +5,9 @@ Sprint 4 P0: min_length constraints on trace_ids/evidence_ids.
 """
 from __future__ import annotations
 
-from typing import Literal, Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-
 
 # ---------------------------------------------------------------------------
 # Request models

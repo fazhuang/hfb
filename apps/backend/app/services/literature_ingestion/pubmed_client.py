@@ -6,9 +6,14 @@ https://europepmc.org/RestfulWebService
 
 from __future__ import annotations
 
+import json
+import logging
+
 import httpx
 
 from app.services.literature_ingestion import LiteratureItem, _http_client
+
+logger = logging.getLogger(__name__)
 
 _PUBMED_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 _EUROPE_PMC_BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest"
@@ -29,7 +34,7 @@ async def search(
     client = http_client or _http_client()
     try:
         return await _search_europe_pmc(client, query, page, per_page)
-    except Exception:
+    except (httpx.HTTPStatusError, httpx.ConnectError, json.JSONDecodeError):
         return await _search_pubmed(client, query, page, per_page)
     finally:
         if http_client is None:
@@ -184,6 +189,4 @@ def _parse_pubmed_xml(xml_text: str) -> list[LiteratureItem]:
 def _check_epmc_oa(result: dict) -> bool:
     if result.get("isOpenAccess") == "Y":
         return True
-    if result.get("openAccess") is True:
-        return True
-    return False
+    return result.get("openAccess") is True

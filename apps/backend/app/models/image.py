@@ -6,8 +6,6 @@ and other visual resources tied to domain entities.
 """
 from __future__ import annotations
 
-from typing import Optional
-
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -26,10 +24,10 @@ class Image(BaseModel):
         String(36), nullable=False, index=True, comment="关联实体 ID"
     )
     url: Mapped[str] = mapped_column(String(2000), nullable=False, comment="图片 URL")
-    caption: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="图片说明")
-    source: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, comment="图片来源")
-    license_info: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, comment="授权信息")
-    order: Mapped[Optional[int]] = mapped_column(nullable=True, comment="排序")
+    caption: Mapped[str | None] = mapped_column(Text, nullable=True, comment="图片说明")
+    source: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="图片来源")
+    license_info: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="授权信息")
+    order: Mapped[int | None] = mapped_column(nullable=True, comment="排序")
 
     def __repr__(self) -> str:
         return f"<Image id={self.id} entity={self.related_entity_type}:{self.related_entity_id}>"

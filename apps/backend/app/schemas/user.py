@@ -3,11 +3,13 @@ Auth-related Pydantic schemas — login, register, token, user CRUD.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
 # Auth — Login / Register / Token
@@ -88,7 +90,7 @@ class UserResponse(UserBase):
     id: UUID
     created_at: datetime | None = None
     updated_at: datetime | None = None
-    roles: list["RoleBrief"] = Field(default_factory=list)
+    roles: list[RoleBrief] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -99,8 +101,8 @@ class UserResponse(UserBase):
         try:
             if v is not None and hasattr(v, "__iter__") and not isinstance(v, (str, bytes)):
                 return list(v)  # type: ignore[arg-type]
-        except Exception:
-            pass
+        except (AttributeError, TypeError, RuntimeError):
+            logger.debug("Failed to iterate roles in field validator", exc_info=True)
         return []
 
 
@@ -129,7 +131,7 @@ class RoleResponse(RoleBase):
     id: UUID
     is_system: bool
     created_at: datetime | None = None
-    permissions: list["PermissionBrief"] = Field(default_factory=list)
+    permissions: list[PermissionBrief] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

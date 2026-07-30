@@ -38,7 +38,7 @@ async def _check_postgres() -> ServiceStatus:
             latency_ms=latency,
             error=result.get("error"),
         )
-    except Exception as e:
+    except (OSError, ConnectionError, RuntimeError) as e:
         return ServiceStatus(name="PostgreSQL", healthy=False, error=str(e))
 
 
@@ -47,6 +47,7 @@ async def _check_redis() -> ServiceStatus:
     t0 = __import__("time").time()
     try:
         import redis.asyncio as aioredis
+
         from app.core.config import settings
 
         r = aioredis.from_url(settings.redis_url, socket_connect_timeout=3)
@@ -57,7 +58,7 @@ async def _check_redis() -> ServiceStatus:
             healthy=True,
             latency_ms=round((__import__("time").time() - t0) * 1000, 2),
         )
-    except Exception as e:
+    except (OSError, ConnectionError, RuntimeError) as e:
         return ServiceStatus(name="Redis", healthy=False, error=str(e))
 
 
@@ -66,6 +67,7 @@ async def _check_elasticsearch() -> ServiceStatus:
     t0 = __import__("time").time()
     try:
         from elasticsearch import AsyncElasticsearch
+
         from app.core.config import settings
 
         es = AsyncElasticsearch(
@@ -79,7 +81,7 @@ async def _check_elasticsearch() -> ServiceStatus:
             healthy=True,
             latency_ms=round((__import__("time").time() - t0) * 1000, 2),
         )
-    except Exception as e:
+    except (OSError, ConnectionError, RuntimeError) as e:
         return ServiceStatus(name="Elasticsearch", healthy=False, error=str(e))
 
 
@@ -88,6 +90,7 @@ async def _check_minio() -> ServiceStatus:
     t0 = __import__("time").time()
     try:
         from minio import Minio
+
         from app.core.config import settings
 
         client = Minio(
@@ -103,7 +106,7 @@ async def _check_minio() -> ServiceStatus:
             healthy=True,
             latency_ms=latency,
         )
-    except Exception as e:
+    except (OSError, ConnectionError, RuntimeError) as e:
         return ServiceStatus(name="MinIO", healthy=False, error=str(e))
 
 

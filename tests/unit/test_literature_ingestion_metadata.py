@@ -4,9 +4,7 @@ Test literature metadata ingestion — client behavior and result normalization.
 
 from __future__ import annotations
 
-
 from app.services.literature_ingestion import LiteratureItem
-
 
 # ---------------------------------------------------------------------------
 # LiteratureItem normalization

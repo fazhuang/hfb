@@ -8,6 +8,7 @@ GET  /api/v1/auth/me
 """
 from __future__ import annotations
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,15 +17,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.database import get_session
 from app.middleware.auth import get_auth_service, get_current_user
+from app.repositories.user import UserRepository
 from app.schemas.user import (
     LoginRequest,
-    RegisterRequest,
     RefreshRequest,
+    RegisterRequest,
     UserResponse,
 )
 from app.services.auth_service import AuthService
-from app.repositories.user import UserRepository
 from app.utils.response import api_response
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -37,8 +40,8 @@ def _user_to_dict(user: object) -> dict:
         if raw_roles is not None and hasattr(raw_roles, "__iter__") and not isinstance(raw_roles, (str, bytes)):
             for r in raw_roles:
                 roles.append({"id": getattr(r, "id", ""), "name": getattr(r, "name", ""), "description": getattr(r, "description", None)})
-    except Exception:
-        pass
+    except (AttributeError, TypeError, RuntimeError):
+        logger.debug("Error iterating user roles", exc_info=True)
 
     return {
         "id": getattr(user, "id", ""),

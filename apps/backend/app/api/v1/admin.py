@@ -4,13 +4,14 @@ Admin API — document review, withdraw, ingestion audit, source policies.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel as _PydanticBaseModel
-from sqlalchemy import select as sql_select, func
+from sqlalchemy import func
+from sqlalchemy import select as sql_select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
@@ -18,9 +19,9 @@ from app.middleware.auth import get_current_user, require_permission
 from app.models.document import Document
 from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
 from app.schemas.document import (
+    REVIEW_STATUSES,
     DocumentReviewRequest,
     DocumentWithdrawRequest,
-    REVIEW_STATUSES,
 )
 from app.services.ingestion import IngestionService
 from app.utils.response import api_response
@@ -63,7 +64,7 @@ async def review_document(
             status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
         )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     doc.review_status = body.review_status
     doc.reviewed_by = user_id
     doc.reviewed_at = now
@@ -207,8 +208,8 @@ async def list_ingestion_tasks(
 # Source Policies
 # ============================================================
 
-from app.models.source_policy import SourcePolicy  # noqa: E402
-from app.schemas.source_policy import (  # noqa: E402
+from app.models.source_policy import SourcePolicy
+from app.schemas.source_policy import (
     SourcePolicyCreate,
     SourcePolicyResponse,
     SourcePolicyUpdate,

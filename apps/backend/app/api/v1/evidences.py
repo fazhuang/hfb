@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.middleware.auth import require_permission
-from app.models.academic_evidence import SourceRef, Evidence, EvidenceLevel
+from app.models.academic_evidence import Evidence, EvidenceLevel, SourceRef
 from app.utils.response import api_response
 
 router = APIRouter(tags=["Evidences"])
@@ -89,8 +89,9 @@ async def create_evidence(
 
     # 3. Validate source_passage exists if provided
     if body.source_passage_id:
-        from app.models.passage import Passage
         from sqlalchemy import select as _select
+
+        from app.models.passage import Passage
 
         pass_stmt = _select(Passage).where(
             Passage.id == body.source_passage_id,

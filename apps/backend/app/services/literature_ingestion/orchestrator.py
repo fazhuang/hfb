@@ -4,26 +4,29 @@ Literature ingestion orchestrator — query all sources, deduplicate, persist.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
+import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.models.paper import Paper
 from app.services.literature_ingestion import (
     IngestionJob,
     LiteratureItem,
-    filter_new_items,
-)
-from app.services.literature_ingestion import (
-    openalex_client,
-    crossref_client,
     core_client,
-    pubmed_client,
+    crossref_client,
+    filter_new_items,
     internet_archive_client,
+    openalex_client,
+    pubmed_client,
 )
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 SOURCES = {
     "openalex": openalex_client.search,
@@ -48,7 +51,7 @@ MAX_PAGES = 3  # ponytail: cap pages to avoid runaway API bills
 
 
 async def ingest(
-    session: "AsyncSession",
+    session: AsyncSession,
     queries: list[str] | None = None,
     sources: list[str] | None = None,
     max_pages: int = MAX_PAGES,
@@ -76,7 +79,7 @@ async def ingest(
         try:
             from app.services.source_whitelist import get_whitelist
             wl = get_whitelist()
-        except Exception:
+        except (OSError, ValueError):
             # ponytail: if whitelist file is missing, default-deny everything.
             # This guards against accidental production runs without policy.
             wl = None
@@ -119,7 +122,7 @@ async def ingest(
                     continue
 
                 await _run_one_source(session, searcher, query, max_pages, job)
-            except Exception as e:
+            except (SQLAlchemyError, ValueError, RuntimeError) as e:
                 job.error_count += 1
                 job.errors.append(f"{type(e).__name__}: {e}")
             job.finish()
@@ -129,7 +132,7 @@ async def ingest(
 
 
 async def _run_one_source(
-    session: "AsyncSession",
+    session: AsyncSession,
     searcher,
     query: str,
     max_pages: int,
@@ -140,8 +143,8 @@ async def _run_one_source(
 
     for page in range(1, max_pages + 1):
         try:
-            items, total = await searcher(query, page=page)
-        except Exception as e:
+            items, _total = await searcher(query, page=page)
+        except (httpx.HTTPStatusError, httpx.ConnectError, RuntimeError) as e:
             job.error_count += 1
             job.errors.append(f"Page {page}: {type(e).__name__}: {e}")
             continue
@@ -166,7 +169,7 @@ async def _run_one_source(
 
 
 async def _save_items(
-    session: "AsyncSession",
+    session: AsyncSession,
     items: list[LiteratureItem],
     job: IngestionJob,
 ) -> None:
@@ -223,13 +226,13 @@ async def _save_items(
             )
             session.add(paper)
             added += 1
-        except Exception as e:
+        except (SQLAlchemyError, ValueError) as e:
             job.error_count += 1
             job.errors.append(f"Save {item.title[:80]}: {type(e).__name__}: {e}")
 
     try:
         await session.flush()
-    except Exception as e:
+    except SQLAlchemyError as e:
         job.error_count += 1
         job.errors.append(f"Flush failed: {type(e).__name__}: {e}")
     job.new_added = added

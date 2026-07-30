@@ -21,13 +21,12 @@ from pathlib import Path
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from sqlalchemy import select, update  # noqa: E402
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
-from sqlalchemy.orm import sessionmaker  # noqa: E402
-
-from app.models.document_chunk import DocumentChunk  # noqa: E402
-from app.models.document import Document  # noqa: E402
-from app.models.passage import Passage  # noqa: E402
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.passage import Passage
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
 
 
 async def backfill(db: AsyncSession | None = None, dry_run: bool = False) -> dict:

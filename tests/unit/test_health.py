@@ -1,8 +1,9 @@
 """
 Tests for backend health and readiness API endpoints.
 """
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 
 
@@ -112,7 +113,7 @@ def _all_healthy():
 
 
 def _one_down(failing):
-    return [_svc(n, False if n == failing else True, "connection failed" if n == failing else None) for n in ALL_REQUIRED]
+    return [_svc(n, n != failing, "connection failed" if n == failing else None) for n in ALL_REQUIRED]
 
 
 def _missing_service():

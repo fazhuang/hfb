@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.person import Person
 from app.models.book import Book
+from app.models.person import Person
 from app.services.dashboard_service import DashboardService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 

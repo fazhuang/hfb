@@ -17,14 +17,14 @@ Only relations backed by actual corpus chunks are created as active.
 from __future__ import annotations
 
 import re
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import UTC
 
 from app.models.book import Book
 from app.models.document_chunk import DocumentChunk
 from app.models.graph import EntityRelation
 from app.models.person import Person
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def seed_graph(session: AsyncSession) -> dict[str, int]:
@@ -37,7 +37,7 @@ async def seed_graph(session: AsyncSession) -> dict[str, int]:
 
     Returns counts of operations.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     counts: dict[str, int] = {"entity_relations_created": 0, "orphan_relations_deleted": 0}
 
@@ -50,7 +50,7 @@ async def seed_graph(session: AsyncSession) -> dict[str, int]:
     )
     orphan_result = await session.execute(orphan_stmt)
     orphans = orphan_result.scalars().all()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for orphan in orphans:
         orphan.is_deleted = True  # type: ignore[assignment]
         orphan.deleted_at = now  # type: ignore[assignment]

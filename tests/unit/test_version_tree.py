@@ -12,12 +12,10 @@ from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.passage import Passage
 from app.models.version import Version
-from app.models.version_relation import VersionDiff
-from app.models.version_relation import VersionRelation
-from app.services.version_center import compute_distance_matrix
-from app.services.version_center import compute_version_tree
-from tests.conftest_db import db_session  # noqa: F401
+from app.models.version_relation import VersionDiff, VersionRelation
+from app.services.version_center import compute_distance_matrix, compute_version_tree
 
+from tests.conftest_db import db_session  # noqa: F401
 
 # ── helpers ──────────────────────────────────────────────────────────
 
@@ -165,7 +163,7 @@ async def test_cycle_terminates_no_duplicate_edges(db_session):
     tree = await compute_version_tree(db_session, v_a)
     edge_count = len(tree["tree"])
     dedup_count = len(
-        set((e["parent_id"], e["child_id"], e["relation_type"]) for e in tree["tree"])
+        {(e["parent_id"], e["child_id"], e["relation_type"]) for e in tree["tree"]}
     )
     assert edge_count == dedup_count, (
         f"Duplicate edges: {edge_count} raw, {dedup_count} unique"
@@ -314,7 +312,7 @@ async def test_cycle_in_long_chain_terminates_no_duplicates(db_session):
     # Must terminate and contain all unique edges
     edge_count = len(tree["tree"])
     dedup_count = len(
-        set((e["parent_id"], e["child_id"], e["relation_type"]) for e in tree["tree"])
+        {(e["parent_id"], e["child_id"], e["relation_type"]) for e in tree["tree"]}
     )
     assert edge_count == dedup_count, (
         f"Duplicate edges in cyclic chain: {edge_count} raw, {dedup_count} unique"

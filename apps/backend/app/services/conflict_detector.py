@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.graph import EntityRelation
 from app.schemas.graph import EvidenceChainPath
 
-
 # TCM incompatibility pairs: herbs that must not be combined
 _EIGHTEEN_ANTAGONISMS: set[frozenset[str]] = frozenset({
     frozenset({"甘草", "甘遂"}),
@@ -144,10 +143,8 @@ class ConflictDetector:
         for path in paths:
             for hop in path.hops:
                 for etype in [hop.source_type, hop.target_type]:
-                    if etype == "herb":
-                        # citation often contains herb name
-                        if hop.citation:
-                            herb_names.add(hop.citation)
+                    if etype == "herb" and hop.citation:
+                        herb_names.add(hop.citation)
 
         # Check for incompatibility pairs
         for pair in _EIGHTEEN_ANTAGONISMS:

@@ -11,12 +11,11 @@ Covers:
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest.fixture
@@ -439,8 +438,8 @@ class TestRefusalNoFabrication:
 
     async def test_response_schema_validates(self, seeded_session):
         """EvidenceRAGResponse passes its own model_validator."""
-        from app.services.evidence_rag_service import EvidenceRAGService
         from app.schemas.evidence_rag import EvidenceRAGResponse as Resp
+        from app.services.evidence_rag_service import EvidenceRAGService
 
         svc = EvidenceRAGService(seeded_session)
         resp = await svc.query("针灸")

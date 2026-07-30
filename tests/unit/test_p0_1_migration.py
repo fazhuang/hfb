@@ -14,7 +14,6 @@ from pathlib import Path
 
 import pytest
 
-
 BACKEND = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
 
 

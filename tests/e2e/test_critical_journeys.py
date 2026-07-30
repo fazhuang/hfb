@@ -14,19 +14,18 @@ Run:
 """
 from __future__ import annotations
 
-import os
 import json
+import os
 import socket
 import subprocess
 import sys
 import time
 import uuid as _uuid
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
-import pytest
 import httpx
-from urllib.parse import urlparse, parse_qs
-
+import pytest
 
 # ============================================================
 # Helpers
@@ -2146,14 +2145,14 @@ class TestCrossProjectIsolation:
         hq_b = b.get("history_query", "")
         if hq_b and hq_b != "N/A":
             assert page.locator(f"text={hq_b}").count() == 0, (
-                f"B's history query should not appear in A's workflow view"
+                "B's history query should not appear in A's workflow view"
             )
 
         # B's run ID should NOT be in DOM
         run_b = b.get("run_id", "")
         if run_b and run_b != "N/A":
             assert page.locator(f"text={run_b}").count() == 0, (
-                f"B's run ID should not appear in A's workflow view"
+                "B's run ID should not appear in A's workflow view"
             )
 
         # At least one session API call must have been made and returned 404
@@ -3388,10 +3387,10 @@ class TestResearchResultPageE2E:
 
         t1, t2 = same_doc_traces[0], same_doc_traces[1]
         assert t1["document_id"] == t2["document_id"], (
-            f"Two traces must have SAME document_id for this regression test"
+            "Two traces must have SAME document_id for this regression test"
         )
         assert t1["passage_id"] != t2["passage_id"], (
-            f"Two traces must have DIFFERENT passage_ids"
+            "Two traces must have DIFFERENT passage_ids"
         )
 
         import sys
@@ -3466,7 +3465,7 @@ class TestResearchResultPageE2E:
 
         # ---- Step 8: Cross-trace no-serialization ----
         assert verified[0]["document_id"] == verified[1]["document_id"], (
-            f"Both must share the same document_id"
+            "Both must share the same document_id"
         )
         assert verified[0]["passage_id"] != verified[1]["passage_id"], (
             f"Passage_ids must differ: "
@@ -4544,7 +4543,6 @@ class TestResearchReportsPageE2E:
     ):
         """User B must not see User A's reports."""
         frontend_url, _ = live_servers
-        ua = reports_user_a
         ub = reports_user_b
         _login_via_ui(page, frontend_url, ub["username"], ub["password"])
 
@@ -4864,7 +4862,7 @@ class TestLibraryCrossUserIsolation:
         b_abstract = b.get("doc", {}).get("abstract", "")
         if b_abstract:
             assert page.locator(f"text={b_abstract}").count() == 0, (
-                f"User A should NOT see B's doc abstract"
+                "User A should NOT see B's doc abstract"
             )
         body = (page.locator('body').first.text_content() or "")
         assert "统计" not in body or "分块数量" not in body, (

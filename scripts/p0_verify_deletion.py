@@ -17,7 +17,6 @@ Usage:
 import asyncio
 import os
 import sys
-import uuid as uuid_mod
 
 _backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
 _backend_dir = os.path.abspath(_backend_dir)
@@ -33,11 +32,11 @@ TEST_TEXT = """
 
 
 async def main():
-    from sqlalchemy import text
     from app.db.database import async_session_factory, init_database
+    from app.services.evidence_rag_service import EvidenceRAGService
     from app.services.ingestion import IngestionService
     from app.services.retrieval import RetrievalService
-    from app.services.evidence_rag_service import EvidenceRAGService
+    from sqlalchemy import text
 
     await init_database()
 

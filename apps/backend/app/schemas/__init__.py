@@ -15,19 +15,24 @@ Future entities (Sprint 4+):
 """
 from __future__ import annotations
 
-from app.schemas.document import DocumentBase, DocumentCreate, DocumentResponse, DocumentBrief
-from app.schemas.person import PersonBase, PersonCreate, PersonResponse, PersonBrief
-from app.schemas.common import PaginationParams, PaginatedResponse
+from app.schemas.common import PaginatedResponse, PaginationParams
+from app.schemas.document import (
+    DocumentBase,
+    DocumentBrief,
+    DocumentCreate,
+    DocumentResponse,
+)
+from app.schemas.person import PersonBase, PersonBrief, PersonCreate, PersonResponse
 
 __all__ = [
     "DocumentBase",
+    "DocumentBrief",
     "DocumentCreate",
     "DocumentResponse",
-    "DocumentBrief",
+    "PaginatedResponse",
+    "PaginationParams",
     "PersonBase",
+    "PersonBrief",
     "PersonCreate",
     "PersonResponse",
-    "PersonBrief",
-    "PaginationParams",
-    "PaginatedResponse",
 ]

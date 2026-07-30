@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 
-from sqlalchemy import select, or_
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
@@ -202,14 +202,13 @@ class EvidenceRAGService:
         # Defense-in-depth: PDF-backed chunks without page_number should have
         # been excluded at the SQL layer, but if one leaks through, downgrade
         # to "reference" and log a warning so we can investigate.
-        if doc is not None and getattr(doc, "raw_pdf_blob", None) is not None:
-            if chunk.page_number is None:
-                evidence_weight = "reference"
-                logger.warning(
-                    "PDF-backed chunk %s (doc %s) has no page_number — "
-                    "defense-in-depth downgrade to reference",
-                    chunk.id, chunk.document_id,
-                )
+        if doc is not None and getattr(doc, "raw_pdf_blob", None) is not None and chunk.page_number is None:
+            evidence_weight = "reference"
+            logger.warning(
+                "PDF-backed chunk %s (doc %s) has no page_number — "
+                "defense-in-depth downgrade to reference",
+                chunk.id, chunk.document_id,
+            )
 
         # Build citation string
         citation = self._build_citation(title, chunk, source_url)

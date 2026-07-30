@@ -13,10 +13,9 @@ import logging
 import math
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -59,9 +58,7 @@ def _is_valid_score(value: float) -> bool:
         return False
     if math.isnan(value) or math.isinf(value):
         return False
-    if value < 0.0 or value > 1.0:
-        return False
-    return True
+    return not (value < 0.0 or value > 1.0)
 
 
 # =============================================================================
@@ -93,7 +90,7 @@ class InternalTraceRecord(BaseModel):
     timestamp: str = Field(..., min_length=1)
 
     @model_validator(mode="after")
-    def validate_all(self) -> "InternalTraceRecord":
+    def validate_all(self) -> InternalTraceRecord:
         # trace_id must be valid UUIDv5
         if not _is_valid_uuidv5(self.trace_id):
             raise ValueError(f"trace_id must be UUIDv5, got: {self.trace_id}")
@@ -171,7 +168,7 @@ async def build_internal_traces(
             "cannot construct InternalTraceRecord with fabricated defaults"
         )
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     records: list[InternalTraceRecord] = []
     seen: set[str] = set()
 
@@ -283,7 +280,7 @@ async def build_viz_traces(
 
     Sprint 4 P0: Fails if any chunk has no passage_id.
     """
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     records: list[InternalTraceRecord] = []
     seen: set[str] = set()
 
@@ -350,10 +347,10 @@ def extract_trace_ids(evidence_traces: list) -> list[str]:
 
 def extract_source_documents(evidence_traces: list) -> list[str]:
     """Extract deduplicated, sorted document IDs from evidence traces."""
-    return sorted(set(
+    return sorted({
         t.document_id for t in evidence_traces
         if hasattr(t, 'document_id') and t.document_id
-    ))
+    })
 
 
 # =============================================================================
@@ -363,7 +360,6 @@ def extract_source_documents(evidence_traces: list) -> list[str]:
 
 class TraceLineageError(Exception):
     """Raised when trace lineage resolution fails."""
-    pass
 
 
 @dataclass(frozen=True, slots=True)

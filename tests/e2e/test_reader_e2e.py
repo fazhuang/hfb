@@ -18,9 +18,8 @@ Requirements:
     l. 422 → ErrorState "请求参数错误" (real browser)
     m. 500 → ErrorState "服务器错误" (real browser)
 """
-import pytest
 import httpx
-
+import pytest
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -523,7 +522,7 @@ class TestReaderE2E:
         self, live_servers, library_test_users, page,
     ):
         """R3. backend original_chunks must NOT contain any ocr_confidence IS NOT NULL chunks."""
-        frontend_url, backend_port = live_servers
+        _frontend_url, backend_port = live_servers
         a = library_test_users["user_a"]
         doc_id = a["doc"].get("id")
         assert doc_id

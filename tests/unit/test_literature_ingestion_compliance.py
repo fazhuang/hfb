@@ -7,11 +7,10 @@ from __future__ import annotations
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 from app.services.literature_ingestion import IngestionJob, LiteratureItem
 from app.services.literature_ingestion.orchestrator import _save_items
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest_asyncio.fixture
@@ -160,14 +159,15 @@ class TestNoFullTextDownload:
 
     def test_client_search_returns_metadata_only(self):
         """All client search() functions return LiteratureItem list — never raw text."""
-        from app.services.literature_ingestion import (
-            openalex_client,
-            crossref_client,
-            core_client,
-            pubmed_client,
-            internet_archive_client,
-        )
         import inspect
+
+        from app.services.literature_ingestion import (
+            core_client,
+            crossref_client,
+            internet_archive_client,
+            openalex_client,
+            pubmed_client,
+        )
 
         for mod in (openalex_client, crossref_client, core_client, pubmed_client, internet_archive_client):
             sig = inspect.signature(mod.search)
@@ -177,12 +177,13 @@ class TestNoFullTextDownload:
     def test_clients_never_request_pdf_or_fulltext_urls(self):
         """No client sends requests to PDF/full-text/download endpoints."""
         import inspect
+
         from app.services.literature_ingestion import (
-            openalex_client,
-            crossref_client,
             core_client,
-            pubmed_client,
+            crossref_client,
             internet_archive_client,
+            openalex_client,
+            pubmed_client,
         )
 
         clients = [openalex_client, crossref_client, core_client, pubmed_client, internet_archive_client]
@@ -197,6 +198,7 @@ class TestNoFullTextDownload:
     def test_core_client_uses_work_url_not_download_url(self):
         """CORE source_url must be the work/detail page, not downloadUrl."""
         import inspect
+
         from app.services.literature_ingestion import core_client
 
         source = inspect.getsource(core_client)

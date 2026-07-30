@@ -7,9 +7,9 @@ from typing import Any
 
 from tcm_tei.models import (
     Document,
-    TextVersion,
     Paragraph,
     Sentence,
+    TextVersion,
     Token,
     Variant,
 )
@@ -67,7 +67,7 @@ class TEISerializer:
                 # First reading is lemma
                 readings = list(var.readings.items())
                 if readings:
-                    first_label, first_text = readings[0]
+                    _first_label, first_text = readings[0]
                     parts.append(f"          <lem>{_escape_xml(first_text)}</lem>")
                 for label, text in readings[1:]:
                     parts.append(f'          <rdg wit="{_escape_xml(label)}">{_escape_xml(text)}</rdg>')

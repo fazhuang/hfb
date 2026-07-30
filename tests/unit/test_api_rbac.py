@@ -14,20 +14,17 @@ ASGI stack — to verify that:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from typing import Any
 
 import pytest
+from app.models.user import Permission, Role, User, role_permission, user_role
+from app.services.auth_service import AuthService
+from app.services.dashboard_service import DashboardService
+from app.services.graph_service import GraphService
+from app.services.search_service import SearchParams, SearchService
+from app.services.workspace_service import WorkspaceService
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.services.auth_service import AuthService
-from app.services.graph_service import GraphService
-from app.services.search_service import SearchService, SearchParams
-from app.services.dashboard_service import DashboardService
-from app.services.workspace_service import WorkspaceService
-from app.models.user import User, Role, Permission
-from app.models.user import user_role, role_permission
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 
@@ -81,7 +78,8 @@ async def four_users(db_session: AsyncSession):
     await session.flush()
 
     async def _grant(role: Role, codes: list[str]) -> None:
-        from sqlalchemy import select as sa, and_
+        from sqlalchemy import and_
+        from sqlalchemy import select as sa
 
         for code in codes:
             p = perms.get(code)
@@ -103,7 +101,8 @@ async def four_users(db_session: AsyncSession):
         await session.flush()
 
     async def _add_role(user: User, role: Role) -> None:
-        from sqlalchemy import select as sa, and_
+        from sqlalchemy import and_
+        from sqlalchemy import select as sa
 
         ex = await session.execute(
             sa(user_role).where(
@@ -247,10 +246,10 @@ class TestGraphServiceRBAC:
         assert isinstance(nodes, list)
 
     async def test_admin_can_create_relation(self, four_users):
-        from app.models.person import Person
         from app.models.book import Book
         from app.models.document import Document
         from app.models.document_chunk import DocumentChunk
+        from app.models.person import Person
         from app.schemas.graph import GraphEvidence
 
         session = four_users["session"]
@@ -400,14 +399,13 @@ class TestWorkspaceApiIsolation:
         """
         import json
 
-        from fastapi import FastAPI
-
-        from app.db.database import get_session
         from app.api.v1.ai import workspace_router
         from app.api.v4.research import router as v4_research_router
+        from app.db.database import get_session
         from app.models.workspace import CitationCollection, QueryHistory
         from app.services.auth_service import AuthService, create_access_token
         from app.services.workspace_service import WorkspaceService
+        from fastapi import FastAPI
 
         db = db_session_persistent
         auth_svc = AuthService(db)
@@ -1026,7 +1024,6 @@ class TestWorkspaceApiIsolation:
 
     async def test_export_empty_run_report_rejected(self, isolation_app, db_session_persistent):
         """Run with empty markdown → 409 conflict."""
-        import json as _json
 
         transport = ASGITransport(app=isolation_app["app"])
 
@@ -1097,10 +1094,11 @@ class TestDocumentCrossProjectIsolation:
         self, db_session_persistent: AsyncSession,
     ):
         """User B's document list must exclude User A's session-scoped docs."""
-        from app.models.user import User
-        from app.models.document import Document
-        from app.models.workspace import ResearchSession
         import uuid as _uuid
+
+        from app.models.document import Document
+        from app.models.user import User
+        from app.models.workspace import ResearchSession
 
         # Create two users
         ua = User(
@@ -1138,12 +1136,12 @@ class TestDocumentCrossProjectIsolation:
         repo = DocumentRepository(db_session_persistent)
 
         # A's list should include the doc
-        items_a, total_a = await repo.search_query("", user_id=ua.id, limit=100)
+        items_a, _total_a = await repo.search_query("", user_id=ua.id, limit=100)
         titles_a = {d.title for d in items_a}
         assert "A's Project Doc" in titles_a
 
         # B's list must NOT include A's session-scoped doc
-        items_b, total_b = await repo.search_query("", user_id=ub.id, limit=100)
+        items_b, _total_b = await repo.search_query("", user_id=ub.id, limit=100)
         titles_b = {d.title for d in items_b}
         assert "A's Project Doc" not in titles_b
 
@@ -1153,8 +1151,9 @@ class TestDocumentCrossProjectIsolation:
     ):
         """Session-scoped doc stores session_id correctly for API guard to enforce."""
         import uuid as _uuid
-        from app.models.user import User
+
         from app.models.document import Document
+        from app.models.user import User
         from app.models.workspace import ResearchSession
         from app.services.document_service import DocumentService
 
@@ -1199,9 +1198,10 @@ class TestDocumentCrossProjectIsolation:
     ):
         """Session ID is stored correctly for stats endpoint to enforce isolation."""
         import uuid as _uuid
+
         from app.models.document import Document
-        from app.models.workspace import ResearchSession
         from app.models.user import User
+        from app.models.workspace import ResearchSession
 
         ua = User(
             id=str(_uuid.uuid4()), username="cps-a", email="cpsa@test",
@@ -1241,6 +1241,7 @@ class TestDocumentCrossProjectIsolation:
     ):
         """Documents with session_id=NULL must be visible to all authenticated users."""
         import uuid as _uuid
+
         from app.models.document import Document
         from app.models.user import User
         from app.repositories.document import DocumentRepository
@@ -1305,21 +1306,22 @@ class TestAppendPassageRBACParity:
         """
         import uuid as _uuid
 
-        from fastapi import FastAPI
-
         from app.db.database import get_session
-        from app.models.user import User, Role, Permission as PermModel
-        from app.models.user import user_role as ur, role_permission as rp
-        from app.models.document import Document
-        from app.models.workspace import ResearchSession
-        from app.models.person import Person
         from app.models.book import Book
-        from app.models.version import Version
         from app.models.chapter import Chapter
+        from app.models.document import Document
         from app.models.passage import Passage
+        from app.models.person import Person
+        from app.models.user import Permission as PermModel
+        from app.models.user import Role
+        from app.models.user import role_permission as rp
+        from app.models.user import user_role as ur
+        from app.models.version import Version
+        from app.models.workspace import ResearchSession
         from app.services.auth_service import AuthService, create_access_token
-
-        from sqlalchemy import select as sa, and_
+        from fastapi import FastAPI
+        from sqlalchemy import and_
+        from sqlalchemy import select as sa
 
         db = db_session_persistent
         auth_svc = AuthService(db)

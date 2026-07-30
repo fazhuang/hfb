@@ -10,11 +10,11 @@ from __future__ import annotations
 import os
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.core.config import settings
 from app.core.logging import get_logger
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 logger = get_logger(__name__)
 
@@ -51,7 +51,7 @@ async def init_database() -> None:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
         logger.info("database_connected host=%s db=%s", settings.POSTGRES_HOST, settings.POSTGRES_DB)
-    except Exception as e:
+    except SQLAlchemyError as e:
         logger.error("database_connection_failed error=%s", str(e))
         raise
 
@@ -68,7 +68,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except SQLAlchemyError:
             await session.rollback()
             raise
 
@@ -88,7 +88,7 @@ async def check_database_health() -> dict:
                 "database": settings.POSTGRES_DB,
                 "latency_ms": latency_ms,
             }
-    except Exception as e:
+    except SQLAlchemyError as e:
         return {
             "status": "disconnected",
             "host": settings.POSTGRES_HOST,

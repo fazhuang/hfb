@@ -14,13 +14,16 @@ Usage:
   cd apps/backend && python ../../scripts/p0_fix_evidence_quotes.py
 """
 
-import asyncio, re, sys, os
+import asyncio
+import os
+import re
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "apps", "backend"))
 os.chdir(os.path.join(os.path.dirname(__file__), "..", "apps", "backend"))
 
-from sqlalchemy import text
 from app.db.database import async_session_factory, init_database
-
+from sqlalchemy import text
 
 # For each fact, a quote from the assigned page's OCR text that
 # supports the claim and appears as a contiguous substring in the chunk.
@@ -81,7 +84,7 @@ async def main():
                 overlap = len(set(nq) & set(nc)) / max(1, len(set(nq)))
                 print(f"  Fact {i+1}: WARNING - quote not exact in chunk (overlap={overlap:.1%})")
                 if overlap < 0.7:
-                    print(f"    SKIP - overlap too low")
+                    print("    SKIP - overlap too low")
                     continue
 
             await s.execute(text(
@@ -91,10 +94,10 @@ async def main():
             print(f"  Fact {i+1} (pg {pg}): {claim[:50] if claim else 'N/A'}...")
             print(f"    Old: {str(old_quote)[:80] if old_quote else 'None'}...")
             print(f"    New: {new_quote[:80]}...")
-            print(f"    Verified in chunk: OK")
+            print("    Verified in chunk: OK")
 
         await s.commit()
-        print(f"\nCommitted. All 5 entity_relations updated with OCR-verifiable quotes.")
+        print("\nCommitted. All 5 entity_relations updated with OCR-verifiable quotes.")
 
     # Verify the fix works with AcademicRAG
     async with async_session_factory() as s:

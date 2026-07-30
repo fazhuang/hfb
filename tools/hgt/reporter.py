@@ -1,6 +1,8 @@
 import datetime
+
 from .config import REPORT_FILES
 from .utils import write_text
+
 
 def render_audit_report(result) -> str:
     lines = []

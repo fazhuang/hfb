@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -93,7 +93,7 @@ class PaperService:
 
         return {
             "paper_id": paper_id,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "query": {
                 "source_type": source_type,
                 "source_id": source_id,
@@ -184,7 +184,7 @@ class PaperService:
                 "max_hops": max_hops,
                 "relation_types": relation_types,
             },
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "evidence_level_distribution": {
                 "L2": sum(1 for p in paths for h in p.hops if h.evidence_level == 2),
                 "L3": sum(1 for p in paths for h in p.hops if h.evidence_level == 3),

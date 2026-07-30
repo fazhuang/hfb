@@ -14,14 +14,20 @@ are rejected or idempotently returned.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import String, Text, DateTime, Integer, Index, CheckConstraint, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy import text as sa_text
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
-
 
 # Canonical entity types for the graph (ontology-aligned)
 GRAPH_ENTITY_TYPES = {
@@ -160,7 +166,7 @@ class EntityRelation(BaseModel):
     relation_type: Mapped[str] = mapped_column(
         String(50), nullable=False, comment="关系类型"
     )
-    description: Mapped[Optional[str]] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="关系说明"
     )
     evidence_level: Mapped[int] = mapped_column(
@@ -169,30 +175,30 @@ class EntityRelation(BaseModel):
         comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据"
     )
     # Deprecated free-text evidence — kept for backward compat, NOT used in P0 validation
-    evidence: Mapped[Optional[str]] = mapped_column(
+    evidence: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="[DEPRECATED] 自由文本证据 — 不再用于验证"
     )
     # Sprint 3 P0: structured corpus evidence
-    evidence_document_id: Mapped[Optional[str]] = mapped_column(
+    evidence_document_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="证据来源 document ID"
     )
-    evidence_chunk_id: Mapped[Optional[str]] = mapped_column(
+    evidence_chunk_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="证据来源 chunk ID"
     )
-    evidence_quote: Mapped[Optional[str]] = mapped_column(
+    evidence_quote: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="chunk 中的确切引用文本"
     )
-    evidence_citation: Mapped[Optional[str]] = mapped_column(
+    evidence_citation: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="格式化引用 [document_id:chunk_id]"
     )
     # P0-4: Extended evidence provenance and verification fields
-    evidence_version_id: Mapped[Optional[str]] = mapped_column(
+    evidence_version_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="证据来源 version ID"
     )
-    evidence_passage_id: Mapped[Optional[str]] = mapped_column(
+    evidence_passage_id: Mapped[str | None] = mapped_column(
         String(36), nullable=True, comment="证据来源 passage ID"
     )
-    evidence_source_uri: Mapped[Optional[str]] = mapped_column(
+    evidence_source_uri: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="稳定来源 URI 或馆藏信息"
     )
     evidence_status: Mapped[str] = mapped_column(
@@ -202,16 +208,16 @@ class EntityRelation(BaseModel):
         server_default=sa_text("'unverified'"),
         comment="证据状态: unverified, verified, rejected",
     )
-    claim_text: Mapped[Optional[str]] = mapped_column(
+    claim_text: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="该关系所支持的具体学术论断"
     )
-    verified_by: Mapped[Optional[str]] = mapped_column(
+    verified_by: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         comment="校核人用户ID (FK to users)",
     )
-    verified_at: Mapped[Optional[datetime]] = mapped_column(
+    verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="校核时间"
     )
 

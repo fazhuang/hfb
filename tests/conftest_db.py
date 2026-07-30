@@ -7,42 +7,45 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from app.db.base import Base
 
 # Import all models to ensure they are registered on Base.metadata
 from app.models import (
-    ClassicalVersion,  # noqa: F401
-    Document,  # noqa: F401
-    DocumentChunk,  # noqa: F401
-    Commentary,  # noqa: F401
-    Person,  # noqa: F401
     Book,  # noqa: F401
     Chapter,  # noqa: F401
+    ClassicalVersion,  # noqa: F401
+    Commentary,  # noqa: F401
+    Document,  # noqa: F401
+    DocumentChunk,  # noqa: F401
+    EntityRelation,  # noqa: F401
     Image,  # noqa: F401
     Paper,  # noqa: F401
     Passage,  # noqa: F401
-    Version,  # noqa: F401
     Permission,  # noqa: F401
-    EntityRelation,  # noqa: F401
+    Person,  # noqa: F401
+    Version,  # noqa: F401
+)
+from app.models.academic_evidence import (  # noqa: F401
+    Citation,
+    Evidence,
+    SourceRef,
 )
 from app.models.institution import Institution  # noqa: F401
 from app.models.tcm_entity import TCMEntity  # noqa: F401
 from app.models.tei import TextSentence, TextToken, TextualVariant  # noqa: F401
-from app.models.user import User  # noqa: F401
-from app.models.version_relation import VersionRelation, PassageMapping, VersionDiff  # noqa: F401
+from app.models.user import User
+from app.models.version_relation import (  # noqa: F401
+    PassageMapping,
+    VersionDiff,
+    VersionRelation,
+)
 from app.models.workspace import (  # noqa: F401
-    ResearchSession,  # noqa: F401
-    ResearchNote,  # noqa: F401
-    QueryHistory,  # noqa: F401
-    CitationCollection,  # noqa: F401
+    CitationCollection,
+    QueryHistory,
+    ResearchNote,
+    ResearchSession,
 )
-from app.models.academic_evidence import (  # noqa: F401
-    SourceRef,  # noqa: F401
-    Evidence,  # noqa: F401
-    Citation,  # noqa: F401
-)
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 
 @pytest_asyncio.fixture
@@ -71,11 +74,11 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session() as session:
         # P0-5: pre-seed test user for FK-dependent tests (ResearchSession etc.)
+        from app.models.book import Book
+        from app.models.chapter import Chapter
         from app.models.passage import Passage
         from app.models.person import Person as PersonModel
-        from app.models.chapter import Chapter
         from app.models.version import Version
-        from app.models.book import Book
 
         # Seed FK chain for Passage-dependent tests (Commentary etc.)
         test_book = Book(id="test-book-1", title="Test Book")
@@ -113,9 +116,10 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         await session.flush()
 
         # P0-3: pre-seed reviewer user + role + permission for verify_relation tests
-        from app.models.user import Role, Permission as PermModel
-        from app.models.user import user_role as ur_table
+        from app.models.user import Permission as PermModel
+        from app.models.user import Role
         from app.models.user import role_permission as rp_table
+        from app.models.user import user_role as ur_table
 
         reviewer = User(
             id="test-reviewer",

@@ -5,24 +5,24 @@ Hierarchy: Document → TextVersion → Paragraph → Sentence → Token
 Supports variant (异文) tracking and version comparison.
 """
 
-from tcm_tei.models import (
-    Token,
-    Sentence,
-    Paragraph,
-    Variant,
-    TextVersion,
-    Document,
-)
 from tcm_tei.comparator import VersionComparator
+from tcm_tei.models import (
+    Document,
+    Paragraph,
+    Sentence,
+    TextVersion,
+    Token,
+    Variant,
+)
 from tcm_tei.serializer import TEISerializer
 
 __all__ = [
-    "Token",
-    "Sentence",
-    "Paragraph",
-    "Variant",
-    "TextVersion",
     "Document",
-    "VersionComparator",
+    "Paragraph",
+    "Sentence",
     "TEISerializer",
+    "TextVersion",
+    "Token",
+    "Variant",
+    "VersionComparator",
 ]

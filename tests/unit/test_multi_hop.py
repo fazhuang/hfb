@@ -15,8 +15,8 @@ from app.models.person import Person
 from app.models.version import Version
 from app.schemas.graph import GraphEvidence
 from app.services.graph_service import GraphService
-from tests.conftest_db import db_session  # noqa: F401
 
+from tests.conftest_db import db_session  # noqa: F401
 
 # ── helpers ──────────────────────────────────────────────────────────
 

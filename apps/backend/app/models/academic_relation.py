@@ -4,14 +4,25 @@ Academic Knowledge Graph domain models.
 Provides AcademicEntity, AcademicRelation, and RelationConfidence for structured scholarship.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
-import enum
-from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, ForeignKey, Enum, Float, Boolean, DateTime, Table, Column
+import enum
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import BaseModel, Base
+from app.db.base import Base, BaseModel
 
 if TYPE_CHECKING:
     from app.models.academic_evidence import Evidence
@@ -31,7 +42,7 @@ class AcademicEntity(BaseModel):
 
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True, index=True, comment="实体名称")
     entity_type: Mapped[AcademicEntityType] = mapped_column(Enum(AcademicEntityType), nullable=False, comment="实体类型")
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="定义与说明")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="定义与说明")
 
 
 # 关系证据的多对多关联表
@@ -54,7 +65,7 @@ class AcademicRelation(BaseModel):
         ForeignKey("academic_entities.id", ondelete="CASCADE"), nullable=False, comment="靶实体ID"
     )
     relation_type: Mapped[str] = mapped_column(String(100), nullable=False, comment="关系类型，如 'TREAT' (主治), 'LOCATE_AT' (定位)")
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="命题关系阐述")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="命题关系阐述")
 
     # 关系
     source_entity: Mapped[AcademicEntity] = relationship("AcademicEntity", foreign_keys=[source_entity_id])
@@ -73,11 +84,11 @@ class RelationConfidence(BaseModel):
     )
     calculated_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False, comment="计算得到的可信度评分 (0.00-1.00)")
     logic_checked: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, comment="是否通过医学知识逻辑校验（无明显悖论）")
-    calculation_log: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="可信度计算的来源因子权重明细")
+    calculation_log: Mapped[str | None] = mapped_column(Text, nullable=True, comment="可信度计算的来源因子权重明细")
     last_calculated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
         comment="最后计算更新时间"
     )

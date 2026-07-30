@@ -9,13 +9,10 @@ Contract:
 
 from __future__ import annotations
 
-import json
-
 import pytest
 from sqlalchemy import text
 
 from tests.conftest_db import db_session_persistent  # noqa: F401
-
 
 # ==========================================================================
 # Seed helpers
@@ -44,7 +41,7 @@ async def _seed_document(db, doc_id: str, title: str = "测试书籍") -> str:
     return doc_id
 
 
-async def _seed_version(db, ver_id: str, book_id: str = None,
+async def _seed_version(db, ver_id: str, book_id: str | None = None,
                          is_formal: bool = True, withdrawn: bool = False) -> str:
     """Create a Version and return its id. Requires a Book first."""
     if book_id is None:
@@ -114,7 +111,7 @@ async def test_persist_citation_three_table_fk_join(db_session_persistent):
     """T2: After persist, citations.evidence_id → evidences.source_ref_id → source_refs.id JOIN succeeds."""
     from app.services.citation_persistence import CitationPersistenceService
 
-    sr_id = await _seed_source_ref(db_session_persistent, "sr-join-1", url="http://example.com/src")
+    await _seed_source_ref(db_session_persistent, "sr-join-1", url="http://example.com/src")
     doc_id = await _seed_document(db_session_persistent, "doc-join-1")
     ver_id = await _seed_version(db_session_persistent, "ver-join-1", is_formal=True)
     pid = await _seed_passage(db_session_persistent, "passage-join-1", ver_id)
@@ -227,7 +224,7 @@ async def test_withdrawn_version_blocks_citation(db_session_persistent):
     to SourceRef must fail."""
     from app.services.citation_persistence import CitationPersistenceService
 
-    sr_id = await _seed_source_ref(db_session_persistent, "sr-wd-1", url="http://example.com/wd")
+    await _seed_source_ref(db_session_persistent, "sr-wd-1", url="http://example.com/wd")
     doc_id = await _seed_document(db_session_persistent, "doc-wd-1")
     ver_id = await _seed_version(db_session_persistent, "ver-wd-1", is_formal=True, withdrawn=True)
     pid = await _seed_passage(db_session_persistent, "passage-wd-1", ver_id)
@@ -248,11 +245,11 @@ async def test_withdrawn_version_blocks_citation(db_session_persistent):
     # depending on implementation. What matters: the 3-table JOIN with
     # withdrawn check must not return rows for withdrawn versions.
     try:
-        count = await svc.persist_academic_rag_citations(
+        await svc.persist_academic_rag_citations(
             [FakeCitation()], query="经络"
         )
     except Exception:
-        count = 0
+        pass
 
     # Now verify: any citation referencing a withdrawn version's passage
     # must fail the full FK-chain JOIN (or not exist)
@@ -285,7 +282,7 @@ async def test_backfill_missing_source_refs(db_session_persistent):
     """T2: backfill_missing_source_refs should assign SourceRef to orphan Evidence rows."""
     from app.services.citation_persistence import CitationPersistenceService
 
-    sr_id = await _seed_source_ref(db_session_persistent, "sr-bf-1", url="http://example.com/bf")
+    await _seed_source_ref(db_session_persistent, "sr-bf-1", url="http://example.com/bf")
     doc_id = await _seed_document(db_session_persistent, "doc-bf-1")
 
     # Insert an Evidence row with NULL source_ref_id (simulating old bad data)

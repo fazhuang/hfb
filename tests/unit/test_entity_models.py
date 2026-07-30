@@ -2,13 +2,13 @@
 Tests for Phase 3 entity models — Book, Version, Chapter, Passage, Paper, Image.
 """
 
-from app.models.book import Book
-from app.models.version import Version
-from app.models.chapter import Chapter
-from app.models.passage import Passage
-from app.models.paper import Paper
-from app.models.image import Image
 from app.db.base import BaseModel
+from app.models.book import Book
+from app.models.chapter import Chapter
+from app.models.image import Image
+from app.models.paper import Paper
+from app.models.passage import Passage
+from app.models.version import Version
 
 
 class TestBookModel:

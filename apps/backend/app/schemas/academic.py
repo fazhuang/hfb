@@ -15,7 +15,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ---------------------------------------------------------------------------
 # Evidence trace — every output claim traceable to source chunk (P0-1)
 # ---------------------------------------------------------------------------

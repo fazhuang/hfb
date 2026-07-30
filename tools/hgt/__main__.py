@@ -1,6 +1,7 @@
 import argparse
-from . import __version__
-from . import docs
+
+from . import __version__, docs
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="hgt", description="HFB Governance Toolkit")

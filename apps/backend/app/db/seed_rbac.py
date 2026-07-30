@@ -6,17 +6,16 @@ Per 1704 Ch.5 — resource × action permissions.
 """
 from __future__ import annotations
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.user import (
-    User,
-    Role,
     Permission,
+    Role,
+    User,
     role_permission,
     user_role,
 )
 from app.services.auth_service import hash_password
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ============================================================
 # Default Permissions — resource × action

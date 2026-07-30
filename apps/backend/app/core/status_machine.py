@@ -9,9 +9,6 @@ Deleted is terminal.  Pure functions — no framework, no DB dependency.
 """
 from __future__ import annotations
 
-from typing import FrozenSet
-
-
 # ---------------------------------------------------------------------------
 # Day 1 state machine (draft → active → archived → deleted)
 # ---------------------------------------------------------------------------
@@ -23,7 +20,7 @@ _VALID_TRANSITIONS: dict[str, frozenset[str]] = {
     "deleted":  frozenset(),  # terminal
 }
 
-_STATES: FrozenSet[str] = frozenset(_VALID_TRANSITIONS.keys())
+_STATES: frozenset[str] = frozenset(_VALID_TRANSITIONS.keys())
 
 
 def is_valid_state(state: str) -> bool:

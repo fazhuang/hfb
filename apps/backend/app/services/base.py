@@ -3,7 +3,7 @@ Generic service base with validation hooks.
 """
 from __future__ import annotations
 
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +15,7 @@ SchemaCreate = TypeVar("SchemaCreate")
 SchemaResponse = TypeVar("SchemaResponse")
 
 
-class BaseService(Generic[Repo, SchemaCreate, SchemaResponse]):
+class BaseService[Repo: BaseRepository[Any], SchemaCreate, SchemaResponse]:
     """Generic service layer with validation hooks.
 
     Subclasses override _validate_create / _validate_update

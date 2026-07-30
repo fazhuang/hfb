@@ -8,9 +8,7 @@ character offset range. Self-referential parent_id enables commentary chains.
 
 from __future__ import annotations
 
-from typing import Optional
-
-from sqlalchemy import String, Text, Integer, CheckConstraint, ForeignKey
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import BaseModel
@@ -48,13 +46,13 @@ class Commentary(BaseModel):
         index=True,
         comment="所注段落 ID",
     )
-    version_id: Mapped[Optional[str]] = mapped_column(
+    version_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("versions.id", ondelete="SET NULL"),
         nullable=True,
         comment="所注版本 ID（夹注可能无版本信息）",
     )
-    author_id: Mapped[Optional[str]] = mapped_column(
+    author_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("persons.id", ondelete="SET NULL"),
         nullable=True,
@@ -77,20 +75,20 @@ class Commentary(BaseModel):
         nullable=False,
         comment="注文内容",
     )
-    target_position_start: Mapped[Optional[int]] = mapped_column(
+    target_position_start: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="段落中起始字符偏移"
     )
-    target_position_end: Mapped[Optional[int]] = mapped_column(
+    target_position_end: Mapped[int | None] = mapped_column(
         Integer, nullable=True, comment="段落中结束字符偏移"
     )
-    parent_id: Mapped[Optional[str]] = mapped_column(
+    parent_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("commentaries.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="自引用 — 回应另一条注疏",
     )
-    relation_type: Mapped[Optional[str]] = mapped_column(
+    relation_type: Mapped[str | None] = mapped_column(
         String(20),
         nullable=True,
         comment="supplements | refutes | expands | annotates | interprets",

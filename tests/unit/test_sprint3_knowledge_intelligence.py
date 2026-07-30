@@ -41,10 +41,9 @@ import json
 import os
 import subprocess
 import sys
+from datetime import UTC
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.book import Book
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -60,9 +59,9 @@ from app.services.graph_service import (
     _stable_hash,
     _validate_graph_evidence,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ===================================================================
 # Helpers
@@ -148,10 +147,10 @@ class TestEvidenceValidation:
     async def test_document_deleted_rejected(self, db_session: AsyncSession) -> None:
         ents = await _setup_test_entities(db_session)
         d, c = ents["document"], ents["chunk"]
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         d.is_deleted = True  # type: ignore[assignment]
-        d.deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        d.deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await db_session.flush()
         err = await _validate_graph_evidence(
             db_session, d.id, c.id, "测试人物编撰测试古籍。", f"[{d.id}:{c.id}]"
@@ -289,19 +288,19 @@ class TestOpenAPIStrictSchemas:
     def test_all_graph_envelopes_have_extra_forbid(self) -> None:
         """All Graph envelope schemas have extra='forbid'."""
         from app.schemas.graph import (
+            ConceptGraph,
+            GraphCreateRelationEnvelope,
+            GraphDeleteEnvelope,
             GraphEntitiesEnvelope,
             GraphNeighborsEnvelope,
-            GraphPathEnvelope,
-            GraphSubgraphEnvelope,
-            GraphCreateRelationEnvelope,
-            GraphRelationsEnvelope,
-            GraphDeleteEnvelope,
-            IntelligenceEnvelope,
             GraphNode,
-            Subgraph,
-            PathResult,
+            GraphPathEnvelope,
+            GraphRelationsEnvelope,
+            GraphSubgraphEnvelope,
+            IntelligenceEnvelope,
             NeighborResult,
-            ConceptGraph,
+            PathResult,
+            Subgraph,
         )
 
         schemas = [
@@ -851,10 +850,10 @@ class TestFKEdgesExcluded:
             "person", p.id, "book", b.id, "authored", evidence=ev
         )
         rel.evidence_status = "verified"
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         rel.verified_by = "test-reviewer"
-        rel.verified_at = datetime.now(timezone.utc)
+        rel.verified_at = datetime.now(UTC)
         rel.claim_text = "作者测试2编撰关联古籍2"
         rel.evidence_source_uri = "https://ctext.org/test-source2"
         await db_session.flush()
@@ -936,10 +935,10 @@ class TestRelationsFiltering:
             evidence=ev,
         )
         # Soft-delete the source entity
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         ents["person"].is_deleted = True  # type: ignore[assignment]
-        ents["person"].deleted_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+        ents["person"].deleted_at = datetime.now(UTC)  # type: ignore[assignment]
         await db_session.flush()
         validated = await svc.get_validated_relations_for_entity(
             "person", ents["person"].id
@@ -1214,9 +1213,9 @@ class TestHTTPDeterminism:
         await db_session_persistent.flush()
 
         # Build a real FastAPI app with the graph router
-        from fastapi import FastAPI
         from app.api.v1.graph import router as graph_router
         from app.db.database import get_session
+        from fastapi import FastAPI
 
         app = FastAPI()
 

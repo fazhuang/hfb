@@ -2,11 +2,10 @@
 Tests for Pydantic schemas — validation edge cases (Sprint 3 scope).
 """
 import pytest
-from pydantic import ValidationError
-
-from app.schemas.document import DocumentCreate
-from app.schemas.person import PersonCreate, PersonBrief
 from app.schemas.common import PaginationParams
+from app.schemas.document import DocumentCreate
+from app.schemas.person import PersonBrief, PersonCreate
+from pydantic import ValidationError
 
 
 class TestDocumentSchema:

@@ -4,10 +4,11 @@ Version Criticism (版本学) domain models.
 Includes Sentence, Token, and Variant for precise textual collation.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List
-import enum
 
-from sqlalchemy import String, Integer, Text, ForeignKey, Enum, Index
+import enum
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -28,7 +29,7 @@ class Sentence(BaseModel):
 
     # 关系
     passage: Mapped[Passage] = relationship("Passage", back_populates="sentences")
-    tokens: Mapped[List[Token]] = relationship("Token", back_populates="sentence", cascade="all, delete-orphan")
+    tokens: Mapped[list[Token]] = relationship("Token", back_populates="sentence", cascade="all, delete-orphan")
 
 
 class Token(BaseModel):
@@ -71,12 +72,12 @@ class Variant(BaseModel):
     base_token_id: Mapped[str] = mapped_column(
         ForeignKey("tokens.id", ondelete="CASCADE"), nullable=False, index=True, comment="基准版本的Token ID"
     )
-    compare_token_id: Mapped[Optional[str]] = mapped_column(
+    compare_token_id: Mapped[str | None] = mapped_column(
         ForeignKey("tokens.id", ondelete="CASCADE"), nullable=True, index=True, comment="比对版本的Token ID"
     )
     variant_type: Mapped[VariantType] = mapped_column(Enum(VariantType), nullable=False, comment="异文类型")
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="校勘记/校勘说明")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="校勘记/校勘说明")
 
     # 关系
     base_token: Mapped[Token] = relationship("Token", foreign_keys=[base_token_id], back_populates="variants_as_base")
-    compare_token: Mapped[Optional[Token]] = relationship("Token", foreign_keys=[compare_token_id], back_populates="variants_as_compare")
+    compare_token: Mapped[Token | None] = relationship("Token", foreign_keys=[compare_token_id], back_populates="variants_as_compare")

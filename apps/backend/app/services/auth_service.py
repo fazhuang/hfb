@@ -11,7 +11,7 @@ Per:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
@@ -20,9 +20,8 @@ import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.user import User, Role, Permission
-from app.repositories.user import UserRepository, RoleRepository, PermissionRepository
-
+from app.models.user import Permission, Role, User
+from app.repositories.user import PermissionRepository, RoleRepository, UserRepository
 
 # ------------------------------------------------------------------
 # Password hashing
@@ -71,7 +70,7 @@ def create_access_token(
     """Create a signed JWT access token."""
     import uuid as _uuid
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": user_id,
         "iat": now,
@@ -88,7 +87,7 @@ def create_refresh_token(user_id: str) -> str:
     """Create a long-lived refresh token."""
     import uuid as _uuid
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": user_id,
         "iat": now,
@@ -163,8 +162,10 @@ class AuthService:
             await seed_rbac(self.session)
             default_role = await self.role_repo.get_by_name("Researcher")
         if default_role:
+            from sqlalchemy import and_
+            from sqlalchemy import select as sa_select
+
             from app.models.user import user_role
-            from sqlalchemy import select as sa_select, and_
 
             existing = await self.session.execute(
                 sa_select(user_role).where(
@@ -212,7 +213,8 @@ class AuthService:
         MissingGreenlet errors in test environments (pexpect/ASGI transport).
         """
         from sqlalchemy import select as sa_select
-        from app.models.user import user_role, role_permission
+
+        from app.models.user import role_permission, user_role
 
         user_exists = await self.user_repo.get_by_id(user_id)
         if user_exists is None:

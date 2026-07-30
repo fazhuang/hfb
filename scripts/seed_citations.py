@@ -3,7 +3,10 @@
 Seed citations and source_refs from verified entity_relations.
 One-shot: populates the DB tables that Codex checks for citation/source provenance.
 """
-import asyncio, os, sys, uuid as uuid_mod
+import asyncio
+import os
+import sys
+import uuid as uuid_mod
 
 backend_dir = os.path.join(os.path.dirname(__file__), "..", "apps", "backend")
 sys.path.insert(0, backend_dir)
@@ -87,7 +90,7 @@ async def main():
             seen_sources: set[str] = set()
             count = 0
             for rel in relations:
-                (er_id, rel_type, doc_id, chunk_id, quote, citation,
+                (er_id, rel_type, doc_id, _chunk_id, quote, _citation,
                  version_id, passage_id, source_uri, claim_text) = rel
 
                 if source_uri and source_uri not in seen_sources:

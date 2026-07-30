@@ -15,19 +15,19 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
+from app.middleware.auth import get_current_user, require_permission
 from app.schemas.chunk_search import (
+    AppendPassageRequest,
+    AppendPassageResponse,
+    IngestTextRequest,
+    Metadata,
     SearchRequest,
     SearchResponse,
     SearchResult,
-    Metadata,
-    IngestTextRequest,
-    AppendPassageRequest,
-    AppendPassageResponse,
 )
-from app.services.ingestion import IngestionService, IngestionError
+from app.services.ingestion import IngestionError, IngestionService
 from app.services.retrieval import RetrievalService
 from app.utils.response import api_response
-from app.middleware.auth import get_current_user, require_permission
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
@@ -198,9 +198,10 @@ async def append_passage(
         # Ownership check: only the document uploader (or null owner =
         # system-seeded doc) may append.  research:update permission is
         # a gate; ownership is a per-document enforcement.
-        from app.repositories.document import DocumentRepository
-        from app.models.workspace import ResearchSession
         from fastapi import HTTPException
+
+        from app.models.workspace import ResearchSession
+        from app.repositories.document import DocumentRepository
         doc = await DocumentRepository(session).get_by_id(document_id)
         if doc is None or doc.is_deleted:
             raise HTTPException(status_code=404, detail="Document not found")

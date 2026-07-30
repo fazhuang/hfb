@@ -25,25 +25,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.middleware.auth import (
-    require_permission,
-    require_any_permission,
     get_current_user,
+    require_any_permission,
+    require_permission,
 )
 from app.schemas.graph import (
     EntityRelationCreate,
     EntityRelationResponse,
+    GraphCreateRelationEnvelope,
+    GraphDeleteEnvelope,
     GraphEntitiesEnvelope,
     GraphNeighborsEnvelope,
     GraphPathEnvelope,
-    GraphSubgraphEnvelope,
-    GraphCreateRelationEnvelope,
     GraphRelationsEnvelope,
-    GraphDeleteEnvelope,
+    GraphSubgraphEnvelope,
     IntelligenceEnvelope,
     IntelligenceRequest,
     IntelligenceResponse,
-    VerifyRelationRequest,
     VerifyRelationEnvelope,
+    VerifyRelationRequest,
 )
 from app.services.graph_service import GraphService
 

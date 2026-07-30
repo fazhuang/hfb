@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Ingest new OCR pages (26-50) as chunks on the PDF-backed document."""
-import asyncio, hashlib, json, os, re, sys, uuid as uuid_mod
+import asyncio
+import json
+import os
+import sys
+import uuid as uuid_mod
 
 PROJECT_ROOT = "/Users/likeming/Sites/hfb"
 sys.path.insert(0, f"{PROJECT_ROOT}/apps/backend")
 os.chdir(f"{PROJECT_ROOT}/apps/backend")
 
-from sqlalchemy import text
 from app.db.database import async_session_factory, init_database
+from sqlalchemy import text
 
 OCR_CACHE = f"{PROJECT_ROOT}/output/p0_paddleocr_artifacts.json"
 TARGET_DOC_ID = "30c1e030-847d-4e52-9acc-d03f7b397d1a"

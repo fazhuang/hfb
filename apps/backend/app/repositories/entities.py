@@ -4,11 +4,11 @@ Repositories for Book, Version, Chapter, Passage, Paper, Image entities.
 from __future__ import annotations
 
 from app.models.book import Book
-from app.models.version import Version
 from app.models.chapter import Chapter
-from app.models.passage import Passage
-from app.models.paper import Paper
 from app.models.image import Image
+from app.models.paper import Paper
+from app.models.passage import Passage
+from app.models.version import Version
 from app.repositories.base import BaseRepository
 
 

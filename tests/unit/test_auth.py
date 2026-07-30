@@ -2,17 +2,16 @@
 Tests for auth service — password hashing, JWT, login, permissions.
 """
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.repositories.user import PermissionRepository, RoleRepository, UserRepository
 from app.services.auth_service import (
-    hash_password,
-    verify_password,
+    AuthService,
     create_access_token,
     create_refresh_token,
     decode_token,
-    AuthService,
+    hash_password,
+    verify_password,
 )
-from app.repositories.user import UserRepository, RoleRepository, PermissionRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 
@@ -85,7 +84,7 @@ class TestAuthService:
         assert u is None
 
         # Wrong username
-        u, a, r = await svc.authenticate("nonexistent", "pass123")
+        u, _a, _r = await svc.authenticate("nonexistent", "pass123")
         assert u is None
 
     @pytest.mark.asyncio
@@ -107,12 +106,12 @@ class TestAuthService:
         svc = AuthService(db_session)
         await svc.register("rtest", "rtest@test.com", "pass123")
 
-        u, access, refresh = await svc.authenticate("rtest", "pass123")
+        _u, access, refresh = await svc.authenticate("rtest", "pass123")
         assert refresh is not None
 
         tokens = svc.refresh_access_token(refresh)
         assert tokens is not None
-        new_access, new_refresh = tokens
+        new_access, _new_refresh = tokens
         assert new_access != access
         payload = decode_token(new_access)
         assert payload["type"] == "access"
@@ -121,7 +120,7 @@ class TestAuthService:
     async def test_refresh_rejects_access_token(self, db_session: AsyncSession):
         svc = AuthService(db_session)
         await svc.register("rtest2", "rtest2@test.com", "pass123")
-        u, access, refresh = await svc.authenticate("rtest2", "pass123")
+        _u, access, _refresh = await svc.authenticate("rtest2", "pass123")
 
         # Using access token as refresh → should fail
         result = svc.refresh_access_token(access)
@@ -164,8 +163,8 @@ class TestAuthService:
         await db_session.flush()
 
         # Reload user with eager-loaded roles+permissions
-        from sqlalchemy import select as sa_select
         from app.models.user import User
+        from sqlalchemy import select as sa_select
         stmt = sa_select(User).where(User.id == user.id)
         result = await db_session.execute(stmt)
         user_fresh = result.scalar_one()

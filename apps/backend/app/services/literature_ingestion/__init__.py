@@ -6,7 +6,7 @@ from open-access sources. Never downloads full text. Always records source_url.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
@@ -60,7 +60,7 @@ class LiteratureItem:
         return " ".join(title.lower().split())
 
     @classmethod
-    def try_create(cls, **kwargs: object) -> "LiteratureItem | None":
+    def try_create(cls, **kwargs: object) -> LiteratureItem | None:
         """Create a LiteratureItem, returning None if validation fails."""
         try:
             return cls(**kwargs)  # type: ignore[arg-type]
@@ -89,10 +89,10 @@ class IngestionJob:
     finished_at: str = ""
 
     def start(self) -> None:
-        self.started_at = datetime.now(timezone.utc).isoformat()
+        self.started_at = datetime.now(UTC).isoformat()
 
     def finish(self) -> None:
-        self.finished_at = datetime.now(timezone.utc).isoformat()
+        self.finished_at = datetime.now(UTC).isoformat()
         # ponytail: success = no errors at all. Partial = error_count > 0.
         self.success = self.error_count == 0
 
@@ -121,15 +121,16 @@ def _http_client(timeout: float = 15.0) -> httpx.AsyncClient:
 # ---------------------------------------------------------------------------
 
 async def filter_new_items(
-    session: "AsyncSession",
+    session: AsyncSession,
     items: list[LiteratureItem],
 ) -> list[LiteratureItem]:
     """Filter out items already in the DB (by DOI or normalized title+year match)."""
     if not items:
         return []
 
-    from app.models.paper import Paper
     from sqlalchemy import func, or_, select
+
+    from app.models.paper import Paper
 
     # Collect candidate keys
     dois = [i.doi.lower().strip() for i in items if i.doi]

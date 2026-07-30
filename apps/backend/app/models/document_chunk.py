@@ -8,9 +8,9 @@ Sprint 4 P0: passage_id FK enables trace_id → chunk → document → passage �
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Integer, String, Text, ForeignKey, Index, Float, JSON
+from sqlalchemy import JSON, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ class DocumentChunk(BaseModel):
         index=True,
         comment="Parent document ID",
     )
-    passage_id: Mapped[Optional[str]] = mapped_column(
+    passage_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("passages.id", ondelete="SET NULL"),
         nullable=True,
@@ -107,12 +107,12 @@ class DocumentChunk(BaseModel):
     )
 
     # Relationship back to parent document
-    document: Mapped["Document"] = relationship(
+    document: Mapped[Document] = relationship(
         "Document",
         lazy="selectin",
     )
     # Sprint 4 P0: lineage resolution
-    passage: Mapped[Optional["Passage"]] = relationship(
+    passage: Mapped[Passage | None] = relationship(
         "Passage",
         lazy="selectin",
     )

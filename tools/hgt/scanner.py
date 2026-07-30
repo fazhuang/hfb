@@ -1,9 +1,10 @@
-from pathlib import Path
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 
 from .config import DOCS_ROOT, KNOWN_DUPLICATE_LEGACY_FILES
-from .utils import read_text, extract_yaml_value, has_yaml_header
+from .utils import extract_yaml_value, has_yaml_header, read_text
+
 
 @dataclass
 class ScanResult:

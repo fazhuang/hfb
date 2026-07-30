@@ -16,6 +16,13 @@ Core entities:
 """
 from __future__ import annotations
 
+from app.models.academic_evidence import Citation, Evidence, EvidenceLevel, SourceRef
+from app.models.academic_relation import (
+    AcademicEntity,
+    AcademicEntityType,
+    AcademicRelation,
+    RelationConfidence,
+)
 from app.models.book import Book
 from app.models.chapter import Chapter
 from app.models.classical_version import ClassicalVersion
@@ -31,13 +38,20 @@ from app.models.passage import Passage
 from app.models.person import Person
 from app.models.source_policy import SourcePolicy
 from app.models.tcm_entity import TCMEntity  # noqa: F401 — Phase 3 TCM ontology
-from app.models.tei import TextSentence, TextToken, TextualVariant  # noqa: F401 — Phase 4 TEI
-from app.models.user import User, Role, Permission
+from app.models.tei import (  # noqa: F401 — Phase 4 TEI
+    TextSentence,
+    TextToken,
+    TextualVariant,
+)
+from app.models.user import Permission, Role, User
 from app.models.version import Version
-from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection
 from app.models.version_criticism import Sentence, Token, Variant, VariantType
-from app.models.academic_evidence import SourceRef, Evidence, Citation, EvidenceLevel
-from app.models.academic_relation import AcademicEntity, AcademicRelation, RelationConfidence, AcademicEntityType
+from app.models.workspace import (
+    CitationCollection,
+    QueryHistory,
+    ResearchNote,
+    ResearchSession,
+)
 
 __all__ = [
     "AcademicEntity",
@@ -59,8 +73,8 @@ __all__ = [
     "Institution",
     "Paper",
     "Passage",
-    "Person",
     "Permission",
+    "Person",
     "QueryHistory",
     "RelationConfidence",
     "ResearchNote",

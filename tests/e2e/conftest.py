@@ -14,9 +14,8 @@ import time
 import uuid as _uuid
 from pathlib import Path
 
-import pytest
 import httpx
-
+import pytest
 
 # ============================================================
 # Helpers

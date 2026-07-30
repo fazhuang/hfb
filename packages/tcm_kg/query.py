@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from tcm_kg.models import Node, Edge, Subgraph
+from tcm_kg.models import Edge, Node, Subgraph
 from tcm_kg.store import GraphStore
 
 

@@ -11,11 +11,11 @@ It performs safe normalization helpers:
 5. Runs inventory report
 """
 
-from pathlib import Path
-import shutil
 import datetime
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 ROOT = Path("docs")
 ARCHIVE = ROOT / "_archive" / "legacy"
