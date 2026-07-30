@@ -174,11 +174,11 @@ const mockEdge = {
   },
 };
 
-const MOCK_SEARCH_RESPONSE = (nodes: unknown[]) => ({
+const MOCK_SEARCH_RESPONSE = (nodes: Array<unknown>) => ({
   data: { success: true, data: nodes, message: 'ok' },
 });
 
-const MOCK_NEIGHBORS_RESPONSE = (center: unknown, neighbors: unknown[], edges: unknown[]) => ({
+const MOCK_NEIGHBORS_RESPONSE = (center: unknown, neighbors: Array<unknown>, edges: Array<unknown>) => ({
   data: {
     success: true,
     data: { center, neighbors, edges },

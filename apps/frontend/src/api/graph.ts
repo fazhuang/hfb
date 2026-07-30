@@ -42,13 +42,13 @@ export interface GraphEdgeData {
 
 export interface NeighborResult {
   center: GraphNodeData;
-  neighbors: GraphNodeData[];
-  edges: GraphEdgeData[];
+  neighbors: Array<GraphNodeData>;
+  edges: Array<GraphEdgeData>;
 }
 
 export interface Subgraph {
-  nodes: GraphNodeData[];
-  edges: GraphEdgeData[];
+  nodes: Array<GraphNodeData>;
+  edges: Array<GraphEdgeData>;
 }
 
 interface ApiEnvelope<T> {
@@ -85,10 +85,10 @@ export const ENTITY_TYPE_ICONS: Record<string, string> = {
  */
 export async function searchEntities(
   q: string,
-  types: string[],
+  types: Array<string>,
   limit = 20,
-): Promise<GraphNodeData[]> {
-  const { data } = await api.get<ApiEnvelope<GraphNodeData[]>>('/api/v1/graph/entities', {
+): Promise<Array<GraphNodeData>> {
+  const { data } = await api.get<ApiEnvelope<Array<GraphNodeData>>>('/api/v1/graph/entities', {
     params: { q: q.trim(), types: types.join(','), limit },
   });
   return data.data ?? [];

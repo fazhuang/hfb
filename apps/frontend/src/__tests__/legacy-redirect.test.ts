@@ -39,7 +39,7 @@ vi.mock('@/api/client', () => ({
 // ---------------------------------------------------------------------------
 const SESSION_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
 
-function sessionsResponse(ids: string[] = [SESSION_ID]) {
+function sessionsResponse(ids: Array<string> = [SESSION_ID]) {
   return {
     data: {
       data: ids.map((id) => ({

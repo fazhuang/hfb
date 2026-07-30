@@ -13,7 +13,6 @@
  */
 
 import { test, expect } from '@playwright/test';
-import path from 'path';
 
 const BASE = 'http://127.0.0.1:5173';
 const API = 'http://127.0.0.1:8000';
@@ -340,7 +339,7 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
       if (href!.startsWith('/')) {
         // Internal route — navigate and verify page loads
-        const navPromise = page.goto(`${BASE}${href}`);
+        page.goto(`${BASE}${href}`);
         // Don't fail on navigation — just verify we don't land on an error page
         await page.waitForTimeout(3_000);
         const bodyText = await page.textContent('body') || '';

@@ -146,7 +146,7 @@ export function useVersionComparison(projectId: () => string) {
 
   // ---- Passage search ----
   const query = ref('');
-  const searchResults = ref<PassageSearchResult[]>([]);
+  const searchResults = ref<Array<PassageSearchResult>>([]);
   const searching = ref(false);
   const searched = ref(false);
 
@@ -235,7 +235,7 @@ export function useVersionComparison(projectId: () => string) {
       const { data } = await api.get('/api/v1/search', {
         params: { q: query.value.trim(), types: 'passage', limit: 50 },
       });
-      searchResults.value = (data.data?.items ?? []) as PassageSearchResult[];
+      searchResults.value = (data.data?.items ?? []) as Array<PassageSearchResult>;
     } catch (err: unknown) {
       error.value = classifyError(err).message;
     } finally {
@@ -337,7 +337,7 @@ export function useVersionComparison(projectId: () => string) {
   async function restoreLatestWorkflow() {
     try {
       const { data } = await api.get('/api/v1/workspace/sessions');
-      const sessions = (data.data ?? []) as VersionComparisonSession[];
+      const sessions = (data.data ?? []) as Array<VersionComparisonSession>;
       for (const s of sessions.slice(0, 10)) {
         try {
           const response = await api.get(
