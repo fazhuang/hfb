@@ -66,3 +66,4 @@ Dockerfile text eol=lf
 pnpm-lock.yaml binary
 poetry.lock binary
 uv.lock binary
+*.txt text eol=lf
