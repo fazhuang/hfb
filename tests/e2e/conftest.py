@@ -47,7 +47,7 @@ def _run_backend(port: int) -> subprocess.Popen:
     """Start the FastAPI backend on the given port with SQLite override."""
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
     env = os.environ.copy()
-    env["DATABASE_URL"] = "sqlite+aiosqlite://"
+    env["DATABASE_URL"] = "sqlite+aiosqlite:///file::memory:?cache=shared&check_same_thread=False"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
     proc = subprocess.Popen(
         [
