@@ -26,9 +26,9 @@ from sqlalchemy.orm import sessionmaker
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.models.document import Document  # noqa: E402
-from app.models.document_chunk import DocumentChunk  # noqa: E402
-from app.models.passage import Passage  # noqa: E402
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.passage import Passage
 
 
 async def backfill(db: AsyncSession | None = None, dry_run: bool = False) -> dict:
