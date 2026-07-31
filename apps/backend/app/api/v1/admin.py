@@ -204,16 +204,16 @@ async def list_ingestion_tasks(
     return api_response(data={"items": items, "total": total})
 
 
-# ============================================================
-# Source Policies
-# ============================================================
-
 from app.models.source_policy import SourcePolicy
 from app.schemas.source_policy import (
     SourcePolicyCreate,
     SourcePolicyResponse,
     SourcePolicyUpdate,
 )
+
+# ============================================================
+# Source Policies
+# ============================================================
 
 
 @router.get(

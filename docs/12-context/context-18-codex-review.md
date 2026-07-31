@@ -1,7 +1,7 @@
 # Codex Review: context-18 Claude 现状报告验收
 
-**被审计文件:** `docs/12-context/context-18-huangfu-mi-literature-ingestion-audit.md`  
-**审计日期:** 2026-07-10  
+**被审计文件:** `docs/12-context/context-18-huangfu-mi-literature-ingestion-audit.md`
+**审计日期:** 2026-07-10
 **审计对象:** Claude 生成的“皇甫谧专题文献采集入库”现状审计报告
 
 ## 结论

@@ -151,6 +151,9 @@ scripts/p0_e2e_verify.js
 # --- Stale duplicate directory (root-level only) ---
 /backend/
 
+# --- Deprecated docs-upgrade package (scripts already applied at root) ---
+hfb_docs_upgrade_package/
+
 # --- Misc ---
 *.bak
 *.orig

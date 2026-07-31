@@ -1,8 +1,8 @@
 # Context 21: 全文入库合规机制 Codex 验收
 
-**验收日期:** 2026-07-10  
-**验收范围:** 当前工作区 `/Users/likeming/Sites/hfb`  
-**HEAD:** `5a09c0c`  
+**验收日期:** 2026-07-10
+**验收范围:** 当前工作区 `/Users/likeming/Sites/hfb`
+**HEAD:** `5a09c0c`
 **结论:** **BLOCK_RELEASE**
 
 ## 总结

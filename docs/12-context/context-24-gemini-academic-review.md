@@ -1,7 +1,7 @@
 # 皇甫谧与《针灸甲乙经》专题文献采集入库模块学术与工程审查报告
 
-**审查日期:** 2026-07-10  
-**审查版本/HEAD:** `5a09c0c`  
+**审查日期:** 2026-07-10
+**审查版本/HEAD:** `5a09c0c`
 **文档路径:** [context-24-gemini-academic-review.md](file:///Users/likeming/Sites/hfb/docs/12-context/context-24-gemini-academic-review.md)
 
 ---

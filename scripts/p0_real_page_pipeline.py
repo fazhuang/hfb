@@ -590,8 +590,8 @@ async def run_db_pipeline(page_texts, page_fps, dry_run=True, do_withdraw=False)
                 await session.execute(
                     text("""
                     INSERT INTO document_chunks (
-                        id, document_id, chunk_index, content, token_count, page_number, 
-                        paragraph_index, ocr_confidence, evidence_weight, page_image_hash, 
+                        id, document_id, chunk_index, content, token_count, page_number,
+                        paragraph_index, ocr_confidence, evidence_weight, page_image_hash,
                         ocr_engine_version, match_method, quote_bbox, is_deleted
                     ) VALUES (
                         :id, :did, :idx, :content, :tokens, :pg, :para, :ocr,

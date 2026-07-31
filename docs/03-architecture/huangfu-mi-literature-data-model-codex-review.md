@@ -1,7 +1,7 @@
 # Codex Re-Review: 皇甫谧专题文献库数据模型设计再次验收
 
-**被审计文件:** `docs/03-data/huangfu-mi-literature-data-model.md`  
-**审计日期:** 2026-07-10  
+**被审计文件:** `docs/03-data/huangfu-mi-literature-data-model.md`
+**审计日期:** 2026-07-10
 **审计对象:** Claude 修订后的数据模型设计草案 v1.1
 
 ## 结论

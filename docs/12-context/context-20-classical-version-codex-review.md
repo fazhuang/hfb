@@ -1,7 +1,7 @@
 # Context 20: 古籍版本模块 Codex 验收
 
-**验收日期:** 2026-07-10  
-**验收对象:** 古籍版本目录模块 `ClassicalVersion`、API、迁移、RBAC、测试覆盖  
+**验收日期:** 2026-07-10
+**验收对象:** 古籍版本目录模块 `ClassicalVersion`、API、迁移、RBAC、测试覆盖
 **结论:** **BLOCK_RELEASE**
 
 ## 结论摘要

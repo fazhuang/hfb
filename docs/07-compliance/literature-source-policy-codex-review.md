@@ -1,8 +1,8 @@
 # Codex Review: 文献采集来源白名单合规审计
 
-**被审计文件:** `backend/app/config/source_whitelist.yaml`、`docs/07-compliance/literature-source-policy.md`  
-**关联设计:** `docs/03-data/huangfu-mi-literature-data-model.md`  
-**审计日期:** 2026-07-10  
+**被审计文件:** `backend/app/config/source_whitelist.yaml`、`docs/07-compliance/literature-source-policy.md`
+**关联设计:** `docs/03-data/huangfu-mi-literature-data-model.md`
+**审计日期:** 2026-07-10
 **审计范围:** 来源分类、商业数据库限制、盗版站禁止、人工审核、非法下载逻辑、平台学术可信度要求
 
 ## 结论
@@ -58,7 +58,7 @@
 
 ## 上线门禁建议
 
-**当前白名单政策:** PASS  
+**当前白名单政策:** PASS
 **作为运行时强制门禁:** NOT YET PROVEN
 
 在实现外部采集功能前，必须新增并验证以下门禁：

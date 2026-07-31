@@ -15,15 +15,29 @@ DELETE /api/v1/{resource}/{id}
 # parameter instead of a JSON request body.
 
 import logging
+import os
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel as PydanticBaseModel
+from sqlalchemy import func
+from sqlalchemy import select as sql_select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
 from app.middleware.auth import get_current_user, require_permission
+from app.models.academic_evidence import Citation, Evidence
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.workspace import ResearchSession
+from app.schemas.document import (
+    DocumentBrief,
+    DocumentCreate,
+    DocumentResponse,
+    DocumentUpdate,
+)
 from app.schemas.entities import (
     BookBrief,
     BookCreate,
@@ -49,6 +63,8 @@ from app.schemas.entities import (
     VersionResponse,
     VersionUpdate,
 )
+from app.schemas.person import PersonBrief, PersonCreate, PersonResponse
+from app.services.document_service import DocumentService
 from app.services.entities import (
     BookService,
     ChapterService,
@@ -57,6 +73,7 @@ from app.services.entities import (
     PassageService,
     VersionService,
 )
+from app.services.person_service import PersonService
 from app.utils.response import api_response
 
 router = APIRouter(tags=["Domain Entities"])
@@ -248,16 +265,6 @@ _make_crud("image", ImageService, ImageCreate, ImageCreate, ImageBrief, ImageRes
 # Person & Document — wire existing models to API
 # ============================================================
 
-from app.schemas.document import (
-    DocumentBrief,
-    DocumentCreate,
-    DocumentResponse,
-    DocumentUpdate,
-)
-from app.schemas.person import PersonBrief, PersonCreate, PersonResponse
-from app.services.document_service import DocumentService
-from app.services.person_service import PersonService
-
 
 class _PersonCreateOverride(PersonCreate):
     pass
@@ -283,13 +290,6 @@ _make_crud(
 # Document is hand-wired (not via _make_crud) because we need extra filter params
 # on the list endpoint that the factory doesn't support.
 
-from sqlalchemy import func
-from sqlalchemy import select as sql_select
-
-from app.models.academic_evidence import Citation, Evidence
-from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
-from app.models.workspace import ResearchSession
 
 document_guard_read = require_permission("document", "read")
 document_guard_create = require_permission("document", "create")
@@ -873,10 +873,6 @@ async def get_document_reader(
 # ============================================================
 # Test-only: seed reader data (Citation + Evidence linked to chunks)
 # ============================================================
-
-import os
-
-from pydantic import BaseModel as PydanticBaseModel
 
 
 class _TestSeedReaderDataRequest(PydanticBaseModel):

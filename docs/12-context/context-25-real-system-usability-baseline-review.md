@@ -1,7 +1,7 @@
 # 皇甫谧数字人文平台 — Phase 2 Task 1 再次验收
 
-验收日期：2026-07-15（Asia/Shanghai）  
-验收基线：`HEAD=cbdb448d58bbb4df5f82b41e61b8da7a15cda6a9`；worktree 非干净。  
+验收日期：2026-07-15（Asia/Shanghai）
+验收基线：`HEAD=cbdb448d58bbb4df5f82b41e61b8da7a15cda6a9`；worktree 非干净。
 原则：Evidence First / Reality First。未由本轮命令、HTTP、SQL、脚本输出或真实浏览器直接证明的事项均标记 **Evidence Missing**。
 
 ## 1. 最终结论
@@ -57,7 +57,7 @@ POST /api/v4/research/workflow → net::ERR_ABORTED
 页面 alert：timeout of 10000ms exceeded
 ```
 
-浏览器快照：`.playwright-cli/page-2026-07-14T20-21-33-304Z.yml`。  
+浏览器快照：`.playwright-cli/page-2026-07-14T20-21-33-304Z.yml`。
 错误截图：`.playwright-cli/page-2026-07-14T20-25-29-311Z.png`。
 
 后端真实完成需 14.15 秒，已超过浏览器的 10 秒客户端超时。故普通用户不能在页面完成“提出问题 → 查看回答 → 验证 Citation → 保存笔记 → 生成研究报告 → 导出成果”。该流程失败。
@@ -92,7 +92,7 @@ source_ref_url: null
 
 ## 6. 文献采集、后台能力与页面矩阵
 
-文献采集的创建任务、下载、解析、OCR、写库、索引、进入 RAG 的连续运行证据：**Evidence Missing**。  
+文献采集的创建任务、下载、解析、OCR、写库、索引、进入 RAG 的连续运行证据：**Evidence Missing**。
 版本管理、全文审核、OCR、Citation、Evidence、Groundedness、Research Assistant、Knowledge Synthesis、Academic Report、Education Mode、Knowledge Intelligence、Visualization、Research Workflow 的逐项 A/B/C/D 真实操作矩阵：除本报告已记录的后端工作流成功和浏览器工作流失败外，均为 **Evidence Missing**。
 
 ## 7. P0 / P1 / P2 复核

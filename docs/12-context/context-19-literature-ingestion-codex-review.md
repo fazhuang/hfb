@@ -1,8 +1,8 @@
 # Context 19: 文献元数据采集器 Codex 再次验收
 
-**验收日期:** 2026-07-10  
-**验收对象:** `apps/backend/app/services/literature_ingestion/`、`scripts/run_ingestion.py`、`tests/unit/test_literature_ingestion_*.py`、`backend/pyproject.toml`  
-**必须测试命令:** `cd backend && uv run pytest`  
+**验收日期:** 2026-07-10
+**验收对象:** `apps/backend/app/services/literature_ingestion/`、`scripts/run_ingestion.py`、`tests/unit/test_literature_ingestion_*.py`、`backend/pyproject.toml`
+**必须测试命令:** `cd backend && uv run pytest`
 **结论:** **PASS**
 
 ## 结论摘要
