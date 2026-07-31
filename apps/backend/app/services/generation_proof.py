@@ -260,22 +260,22 @@ def _snapshot_to_dicts(snapshot: dict) -> dict[str, dict]:
     for chk_id, rr in snapshot.items():
         # Score must be present and valid
         if not hasattr(rr, "score"):
-            raise TypeError(
+            raise ValueError(
                 f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} missing score"
             )
         score = rr.score
         if not isinstance(score, (int, float)):
-            raise TypeError(
+            raise ValueError(  # noqa: TRY004 (data validation, not type check)
                 f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score is "
                 f"not a number: {type(score).__name__}"
             )
         if math.isnan(score) or math.isinf(score):
-            raise TypeError(
+            raise ValueError(
                 f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score is "
                 f"{'NaN' if math.isnan(score) else 'Inf'}"
             )
         if score < 0.0 or score > 1.0:
-            raise TypeError(
+            raise ValueError(
                 f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} score "
                 f"{score} out of range [0.0, 1.0]"
             )
@@ -285,7 +285,7 @@ def _snapshot_to_dicts(snapshot: dict) -> dict[str, dict]:
         if hasattr(rr, "metadata") and isinstance(rr.metadata, dict):
             method = rr.metadata.get("retrieval_method", "")
         if not method or not method.strip():
-            raise TypeError(
+            raise ValueError(
                 f"RETRIEVAL_METADATA_INCOMPLETE: chunk {chk_id} missing "
                 f"or empty retrieval_method"
             )
