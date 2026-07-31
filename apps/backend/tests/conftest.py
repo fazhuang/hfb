@@ -11,4 +11,4 @@ in the directory tree, never across sibling branches.
 We import them explicitly so that test collection finds them.
 """
 
-from tests.e2e.conftest import live_servers, library_test_users  # noqa: F401, E402
+from tests.e2e.conftest import library_test_users, live_servers  # noqa: F401
