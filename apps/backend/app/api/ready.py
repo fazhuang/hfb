@@ -3,8 +3,12 @@ Readiness endpoint — checks all infrastructure dependencies.
 
 Returns HTTP 200 when all required services are healthy.
 Returns HTTP 503 when any required service is unhealthy.
+
+In testing mode (TESTING=1) only PostgreSQL is required; Redis, ES, MinIO
+are skipped so E2E subprocess backends can pass readiness without real infra.
 """
 
+import os
 from typing import Any
 
 from fastapi import APIRouter, Response
@@ -16,7 +20,11 @@ router = APIRouter()
 
 # Required services whose health determines platform readiness.
 # Non-required services (e.g. Post-MVP) are checked but don't block readiness.
-REQUIRED_SERVICES = {"PostgreSQL", "Redis", "Elasticsearch", "MinIO"}
+# In testing mode only the database is mandatory.
+if os.environ.get("TESTING") == "1":
+    REQUIRED_SERVICES: set[str] = {"PostgreSQL"}
+else:
+    REQUIRED_SERVICES = {"PostgreSQL", "Redis", "Elasticsearch", "MinIO"}
 
 
 @router.get("/ready")
