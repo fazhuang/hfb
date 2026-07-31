@@ -125,7 +125,8 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """Parse CORS_ORIGINS from JSON string to list."""
         try:
-            return json.loads(self.CORS_ORIGINS)
+            origin_list: list[str] = json.loads(self.CORS_ORIGINS)
+            return origin_list
         except (json.JSONDecodeError, TypeError):
             return ["http://localhost:5173"]
 

@@ -5,6 +5,8 @@ Returns HTTP 200 when all required services are healthy.
 Returns HTTP 503 when any required service is unhealthy.
 """
 
+from typing import Any
+
 from fastapi import APIRouter, Response
 
 from app.startup.check_infrastructure import run_health_checks
@@ -18,7 +20,7 @@ REQUIRED_SERVICES = {"PostgreSQL", "Redis", "Elasticsearch", "MinIO"}
 
 
 @router.get("/ready")
-async def readiness_check(response: Response) -> dict:
+async def readiness_check(response: Response) -> dict[str, Any]:
     """Readiness probe — checks database, Redis, ES, MinIO connectivity.
 
     HTTP 200: all required services healthy.

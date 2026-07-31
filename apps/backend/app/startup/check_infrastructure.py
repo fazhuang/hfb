@@ -125,7 +125,7 @@ async def run_health_checks() -> InfrastructureStatus:
     services: list[ServiceStatus] = []
     all_healthy = True
     for r in results:
-        if isinstance(r, Exception):
+        if isinstance(r, BaseException):
             svc = ServiceStatus(name="Unknown", healthy=False, error=str(r))
             all_healthy = False
         else:

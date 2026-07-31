@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import AsyncGenerator
+from typing import Any
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -22,7 +23,7 @@ logger = get_logger(__name__)
 # Allow DATABASE_URL env override for testing with SQLite
 _db_url = os.environ.get("DATABASE_URL", settings.database_url)
 
-_engine_kwargs: dict = {}
+_engine_kwargs: dict[str, int | bool] = {}
 if _db_url.startswith("postgresql"):
     _engine_kwargs = {"pool_size": 10, "max_overflow": 20, "pool_pre_ping": True}
 
@@ -79,7 +80,7 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-async def check_database_health() -> dict:
+async def check_database_health() -> dict[str, Any]:
     """Return database health status."""
     try:
         async with engine.begin() as conn:

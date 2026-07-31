@@ -1,6 +1,6 @@
-"""
-Health check endpoint.
-"""
+"""Health check endpoint."""
+
+from typing import Any
 
 from fastapi import APIRouter
 
@@ -10,6 +10,6 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def health_check() -> dict:
+async def health_check() -> dict[str, Any]:
     """Basic health check — returns ok if the service is running."""
     return api_response(data={"status": "healthy"}, message="Service is running")
