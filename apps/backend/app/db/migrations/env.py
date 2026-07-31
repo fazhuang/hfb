@@ -14,14 +14,6 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-# Alembic Config object
-config = context.config
-
-# Set up Python logging
-if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-# Import all models so Alembic can detect them
 import app.models  # noqa: F401
 from app.core.config import settings
 from app.db.base import Base
@@ -30,6 +22,13 @@ from app.models.version_relation import (  # noqa: F401
     VersionDiff,
     VersionRelation,
 )
+
+# Alembic Config object
+config = context.config
+
+# Set up Python logging
+if config.config_file_name is not None:
+    fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 

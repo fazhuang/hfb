@@ -25,6 +25,12 @@ from app.schemas.document import (
 )
 from app.services.ingestion import IngestionService
 from app.utils.response import api_response
+from app.models.source_policy import SourcePolicy
+from app.schemas.source_policy import (
+    SourcePolicyCreate,
+    SourcePolicyResponse,
+    SourcePolicyUpdate,
+)
 
 router = APIRouter(tags=["Admin"])
 
@@ -203,13 +209,6 @@ async def list_ingestion_tasks(
 
     return api_response(data={"items": items, "total": total})
 
-
-from app.models.source_policy import SourcePolicy
-from app.schemas.source_policy import (
-    SourcePolicyCreate,
-    SourcePolicyResponse,
-    SourcePolicyUpdate,
-)
 
 # ============================================================
 # Source Policies
