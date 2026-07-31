@@ -10,8 +10,9 @@ KNOWN_DUPLICATE_LEGACY_FILES = [
 ]
 
 KNOWN_RENAMES = {
-    DOCS_ROOT / "03-data" / "0302_Ontology_Specification.md.md":
-    DOCS_ROOT / "03-data" / "0302_Ontology_Specification.md",
+    DOCS_ROOT / "03-data" / "0302_Ontology_Specification.md.md": DOCS_ROOT
+    / "03-data"
+    / "0302_Ontology_Specification.md",
 }
 
 REPORT_FILES = {

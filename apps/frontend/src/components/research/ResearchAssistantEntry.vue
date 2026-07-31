@@ -2,9 +2,7 @@
   <aside class="rae-sidebar" aria-labelledby="rae-heading">
     <h2 id="rae-heading" class="rae-heading">AI 研究助手</h2>
 
-    <p class="rae-description">
-      输入研究问题，进入研究工作流进行系统研究。
-    </p>
+    <p class="rae-description">输入研究问题，进入研究工作流进行系统研究。</p>
 
     <form class="rae-form" @submit.prevent="onSubmit">
       <label for="rae-question-input" class="sr-only">研究问题</label>
@@ -17,18 +15,12 @@
         :disabled="submitting"
         autocomplete="off"
       />
-      <button
-        type="submit"
-        class="rae-submit-btn"
-        :disabled="!question || submitting"
-      >
+      <button type="submit" class="rae-submit-btn" :disabled="!question || submitting">
         开始研究
       </button>
     </form>
 
-    <p class="rae-hint">
-      问题将通过安全机制传入研究流程，不会直接调用 AI。
-    </p>
+    <p class="rae-hint">问题将通过安全机制传入研究流程，不会直接调用 AI。</p>
   </aside>
 </template>
 

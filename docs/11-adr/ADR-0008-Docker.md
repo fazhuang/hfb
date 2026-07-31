@@ -1,14 +1,14 @@
 ---
-title: "ADR-0008 Docker"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "infrastructure"
+title: 'ADR-0008 Docker'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'infrastructure'
 related:
-  - "ADR-0009-Monorepo"
-  - "docs/05-development/00_Development_Specification.md"
+  - 'ADR-0009-Monorepo'
+  - 'docs/05-development/00_Development_Specification.md'
 ---
 
 # ADR-0008: 选择 Docker 作为部署方案
@@ -34,12 +34,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| Docker Compose | 简单、一键启动、适合中小规模 | 单机限制、不如 K8s 灵活 | — |
-| Kubernetes | 生产级、自动扩展 | 复杂度过高、V1 阶段不需要 | 过度设计 |
-| 直接部署 | 零容器开销 | 环境不一致、新成员上手慢、多版本管理困难 | 不符合 AI Native 要求 |
-| Podman | 无守护进程、Red Hat 生态 | 社区生态小于 Docker、Compose 兼容性不完全 | Docker 更通用 |
+| 方案           | 优点                         | 缺点                                      | 放弃原因              |
+| -------------- | ---------------------------- | ----------------------------------------- | --------------------- |
+| Docker Compose | 简单、一键启动、适合中小规模 | 单机限制、不如 K8s 灵活                   | —                     |
+| Kubernetes     | 生产级、自动扩展             | 复杂度过高、V1 阶段不需要                 | 过度设计              |
+| 直接部署       | 零容器开销                   | 环境不一致、新成员上手慢、多版本管理困难  | 不符合 AI Native 要求 |
+| Podman         | 无守护进程、Red Hat 生态     | 社区生态小于 Docker、Compose 兼容性不完全 | Docker 更通用         |
 
 ## Consequences
 

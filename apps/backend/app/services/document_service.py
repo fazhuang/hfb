@@ -1,6 +1,7 @@
 """
 Document service — business logic for documents (文献).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -10,7 +11,9 @@ from app.schemas.document import DocumentCreate, DocumentResponse
 from app.services.base import BaseService
 
 
-class DocumentService(BaseService[DocumentRepository, DocumentCreate, DocumentResponse]):
+class DocumentService(
+    BaseService[DocumentRepository, DocumentCreate, DocumentResponse]
+):
     """Service for document operations."""
 
     repository_class = DocumentRepository

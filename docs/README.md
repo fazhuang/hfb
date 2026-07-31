@@ -15,6 +15,7 @@ related_documents:
 ---
 
 # Documentation Center
+
 ## 皇甫谧数字人文平台文档中心
 
 > 本目录是《皇甫谧数字人文与中医经典智能研究平台》的统一文档中心。
@@ -58,3 +59,4 @@ related_documents:
 16-research-framework
 
 17-Platform-Specifications
+```

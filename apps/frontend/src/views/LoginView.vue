@@ -32,7 +32,11 @@
 
           <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
 
-          <button type="submit" class="login-btn" :disabled="auth.loading || !username || !password">
+          <button
+            type="submit"
+            class="login-btn"
+            :disabled="auth.loading || !username || !password"
+          >
             <span v-if="auth.loading" class="spinner"></span>
             {{ auth.loading ? t('auth.loggingIn') : t('auth.login') }}
           </button>
@@ -262,7 +266,9 @@ async function handleLogin(): Promise<void> {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 768px) {

@@ -17,13 +17,13 @@
 
 五标签页视图：
 
-| 标签页 | 图标 | 数据源 | 功能 |
-|---|---|---|---|
-| **资料** | 📄 | `GET /api/v1/documents` | 分页文献列表，含搜索、朝代/分类标签，点击跳转 `/literature/:id` |
-| **版本** | 🏛️ | `GET /api/classical-versions` | 分页古籍版本列表，含搜索、馆藏机构标签，点击跳转 `/versions/:id` |
-| **笔记** | 📝 | `GET /api/v1/workspace/sessions/:id/notes` | 跨会话笔记网格，含快速记录输入框、会话筛选器，支持删除 |
-| **报告** | 📊 | `GET /api/v4/research/session/:id/runs` | 研究报告运行记录列表，含步骤状态徽章、报告片段预览、"查看详情"链接 |
-| **研究助手** | 🤖 | `POST /api/v1/ai/chat`（SSE 流） + `GET /api/v1/search`（证据） | 双面板：聊天及会话管理 + 证据面板。支持建议提示词、会话创建/切换 |
+| 标签页       | 图标 | 数据源                                                          | 功能                                                               |
+| ------------ | ---- | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **资料**     | 📄   | `GET /api/v1/documents`                                         | 分页文献列表，含搜索、朝代/分类标签，点击跳转 `/literature/:id`    |
+| **版本**     | 🏛️   | `GET /api/classical-versions`                                   | 分页古籍版本列表，含搜索、馆藏机构标签，点击跳转 `/versions/:id`   |
+| **笔记**     | 📝   | `GET /api/v1/workspace/sessions/:id/notes`                      | 跨会话笔记网格，含快速记录输入框、会话筛选器，支持删除             |
+| **报告**     | 📊   | `GET /api/v4/research/session/:id/runs`                         | 研究报告运行记录列表，含步骤状态徽章、报告片段预览、"查看详情"链接 |
+| **研究助手** | 🤖   | `POST /api/v1/ai/chat`（SSE 流） + `GET /api/v1/search`（证据） | 双面板：聊天及会话管理 + 证据面板。支持建议提示词、会话创建/切换   |
 
 ### 路由
 
@@ -36,13 +36,13 @@
 
 ## 修改的文件
 
-| 文件 | 改动内容 |
-|---|---|
-| `apps/frontend/src/router/index.ts` | 新增 `research/workspace` 路由（第 100 行之后） |
-| `apps/frontend/src/i18n/locales/zh-CN.ts` | 扩展 `researchEntry` + 新增 `researchWorkspace` 命名空间 |
-| `apps/frontend/src/i18n/locales/en.ts` | 扩展 `researchEntry` + 新增 `researchWorkspace` 命名空间（英文） |
-| `apps/frontend/src/components/layout/AppNavbar.vue` | 导航"工作台"链接至 `/research/workspace`（原 `/workspace`） |
-| `apps/frontend/src/views/ResearchHomeView.vue` | 研究工具网格新增"统一研究主页"卡片（突出样式） |
+| 文件                                                | 改动内容                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| `apps/frontend/src/router/index.ts`                 | 新增 `research/workspace` 路由（第 100 行之后）                  |
+| `apps/frontend/src/i18n/locales/zh-CN.ts`           | 扩展 `researchEntry` + 新增 `researchWorkspace` 命名空间         |
+| `apps/frontend/src/i18n/locales/en.ts`              | 扩展 `researchEntry` + 新增 `researchWorkspace` 命名空间（英文） |
+| `apps/frontend/src/components/layout/AppNavbar.vue` | 导航"工作台"链接至 `/research/workspace`（原 `/workspace`）      |
+| `apps/frontend/src/views/ResearchHomeView.vue`      | 研究工具网格新增"统一研究主页"卡片（突出样式）                   |
 
 ## 架构说明
 
@@ -67,6 +67,7 @@
 ## 定义完成
 
 当以下各项全部满足时，本 context 视为完成：
+
 1. `ResearchWorkspaceView.vue` 存在且可通过 `/research/workspace` 访问（需认证）
 2. 五个标签页（资料、版本、笔记、报告、研究助手）均可切换，各自从实时 API 加载数据
 3. 导航栏上的"工作台"链接指向 `/research/workspace`

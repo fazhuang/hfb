@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Digital Textual Criticism Research Framework
+
 ## 数字校勘研究框架
 
 > 本框架定义《皇甫谧数字人文与中医经典智能研究平台》关于数字校勘（Digital Textual Criticism）的总体研究体系。
@@ -495,6 +496,6 @@ Digital Collation Twin。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，建立平台数字校勘研究框架（Digital Textual Criticism Research Framework），作为原创研究方法论体系的重要组成部分。 |
+| Version | Date       | Description                                                                                                                |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，建立平台数字校勘研究框架（Digital Textual Criticism Research Framework），作为原创研究方法论体系的重要组成部分。 |

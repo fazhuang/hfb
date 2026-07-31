@@ -1,18 +1,18 @@
 ---
-title: "ADR-0010 AI Native"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Documentation Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "documentation"
+title: 'ADR-0010 AI Native'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Documentation Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'documentation'
 related:
-  - "ADR-0001-FastAPI"
-  - "ADR-0002-Vue3"
-  - "ADR-0003-PostgreSQL"
-  - "ADR-0009-Monorepo"
-  - "docs/13-machine/README.md"
-  - "docs/README.md"
+  - 'ADR-0001-FastAPI'
+  - 'ADR-0002-Vue3'
+  - 'ADR-0003-PostgreSQL'
+  - 'ADR-0009-Monorepo'
+  - 'docs/13-machine/README.md'
+  - 'docs/README.md'
 ---
 
 # ADR-0010: 建立 AI Native 文档体系
@@ -27,13 +27,13 @@ related:
 
 皇甫谧数字人文平台的项目文档需要被 5 种 AI 模型同时读取和理解：
 
-| AI | 角色 | 需要的文档格式 |
-|---|---|---|
-| Claude | 开发执行 | Markdown（结构化） |
-| Codex | 文档审计 | Markdown + 规则清单 |
-| Gemini | UI 学术评审 | Markdown + 设计规范 |
-| GPT | 通用协助 | Markdown |
-| DeepResearch | 文献调研 | Markdown + 引用 |
+| AI           | 角色        | 需要的文档格式      |
+| ------------ | ----------- | ------------------- |
+| Claude       | 开发执行    | Markdown（结构化）  |
+| Codex        | 文档审计    | Markdown + 规则清单 |
+| Gemini       | UI 学术评审 | Markdown + 设计规范 |
+| GPT          | 通用协助    | Markdown            |
+| DeepResearch | 文献调研    | Markdown + 引用     |
 
 传统文档是给人读的。AI Native 文档是同时给人读和给 AI 读的——机器可解析、语义清晰、交叉引用完整。
 
@@ -51,12 +51,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| AI Native (本方案) | AI 可直接理解、减少上下文浪费、跨模型兼容 | 初始建设成本高 | — |
-| 纯 Markdown | 简单 | AI 读取效率低、需多次上下文切换、无结构索引 | 不满足 5 模型协作需求 |
-| 数据库存储文档 | 查询灵活 | 文档不可 Git 版本控制、门槛高 | 不满足 AI 透明性要求 |
-| Wiki 系统 | 协作方便 | 不可自动化审计、不可 AI 批量读取 | 不满足 CI/CD 集成需求 |
+| 方案               | 优点                                      | 缺点                                        | 放弃原因              |
+| ------------------ | ----------------------------------------- | ------------------------------------------- | --------------------- |
+| AI Native (本方案) | AI 可直接理解、减少上下文浪费、跨模型兼容 | 初始建设成本高                              | —                     |
+| 纯 Markdown        | 简单                                      | AI 读取效率低、需多次上下文切换、无结构索引 | 不满足 5 模型协作需求 |
+| 数据库存储文档     | 查询灵活                                  | 文档不可 Git 版本控制、门槛高               | 不满足 AI 透明性要求  |
+| Wiki 系统          | 协作方便                                  | 不可自动化审计、不可 AI 批量读取            | 不满足 CI/CD 集成需求 |
 
 ## Consequences
 

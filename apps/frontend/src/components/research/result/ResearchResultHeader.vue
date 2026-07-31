@@ -4,11 +4,7 @@
       <nav class="rrh-breadcrumbs" aria-label="面包屑导航">
         <router-link :to="backToWorkspace" class="rrh-breadcrumb-link">← 返回工作区</router-link>
         <span class="rrh-breadcrumb-sep">/</span>
-        <router-link
-          v-if="session"
-          :to="backToWorkflow"
-          class="rrh-breadcrumb-link"
-        >
+        <router-link v-if="session" :to="backToWorkflow" class="rrh-breadcrumb-link">
           返回研究流程
         </router-link>
         <span v-if="session" class="rrh-breadcrumb-sep">/</span>

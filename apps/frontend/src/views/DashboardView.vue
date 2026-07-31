@@ -3,7 +3,10 @@
     <h1 class="dashboard-title">{{ t('dashboard.title') }}</h1>
 
     <!-- Step-guide bar for new users -->
-    <div v-if="auth.isAuthenticated && !researchStore.hasActiveResearch && allStatsZero" class="step-guide">
+    <div
+      v-if="auth.isAuthenticated && !researchStore.hasActiveResearch && allStatsZero"
+      class="step-guide"
+    >
       <span class="sg-title">{{ t('onboarding.stepGuideTitle') }}</span>
       <div class="sg-steps">
         <router-link :to="{ name: 'research-project-list' }" class="sg-step sg-step--active">
@@ -28,9 +31,13 @@
       <div class="rec-content">
         <span class="rec-icon">🔬</span>
         <div class="rec-text">
-          <span class="rec-label" v-if="researchStore.hasActiveResearch">{{ t('nav.currentResearch') }}</span>
+          <span class="rec-label" v-if="researchStore.hasActiveResearch">{{
+            t('nav.currentResearch')
+          }}</span>
           <span class="rec-label" v-else>{{ t('researchEntry.startNew') }}</span>
-          <span class="rec-desc" v-if="researchStore.hasActiveResearch">{{ researchStore.currentTopic?.name }}</span>
+          <span class="rec-desc" v-if="researchStore.hasActiveResearch">{{
+            researchStore.currentTopic?.name
+          }}</span>
           <span class="rec-desc" v-else>{{ t('researchEntry.startNewDesc') }}</span>
         </div>
       </div>
@@ -66,7 +73,9 @@
       <span class="onboarding-icon">📊</span>
       <p class="onboarding-text">{{ t('onboarding.dashboardAllZero') }}</p>
       <p class="onboarding-sub">{{ t('onboarding.dashboardAllZeroHint') }}</p>
-      <router-link :to="{ name: 'research-project-list' }" class="onboarding-link">{{ t('onboarding.startExplore') }} →</router-link>
+      <router-link :to="{ name: 'research-project-list' }" class="onboarding-link"
+        >{{ t('onboarding.startExplore') }} →</router-link
+      >
     </div>
 
     <!-- Charts Row -->
@@ -93,7 +102,10 @@
           <div v-for="c in categoryData.slice(0, 8)" :key="c.name" class="bar-row">
             <span class="bar-label">{{ c.name }}</span>
             <div class="bar-track">
-              <div class="bar-fill bar-fill--green" :style="{ width: barWidth(c.count, maxCategory) }"></div>
+              <div
+                class="bar-fill bar-fill--green"
+                :style="{ width: barWidth(c.count, maxCategory) }"
+              ></div>
             </div>
             <span class="bar-count">{{ c.count }}</span>
           </div>
@@ -171,17 +183,25 @@ const dynastyData = ref<{ name: string; count: number }[]>([]);
 const categoryData = ref<{ name: string; count: number }[]>([]);
 const systemInfo = ref<Record<string, unknown>>({});
 
-const maxDynasty = computed(() => Math.max(...dynastyData.value.map(d => d.count), 1));
-const maxCategory = computed(() => Math.max(...categoryData.value.map(c => c.count), 1));
+const maxDynasty = computed(() => Math.max(...dynastyData.value.map((d) => d.count), 1));
+const maxCategory = computed(() => Math.max(...categoryData.value.map((c) => c.count), 1));
 
-const allStatsZero = computed(() => statCards.value.length > 0 && statCards.value.every(c => c.value === 0));
+const allStatsZero = computed(
+  () => statCards.value.length > 0 && statCards.value.every((c) => c.value === 0),
+);
 
 function barWidth(count: number, max: number): string {
   return `${Math.round((count / max) * 100)}%`;
 }
 
 function getActivityIcon(type: string): string {
-  const icons: Record<string, string> = { person: '👤', book: '📚', passage: '📜', version: '📖', paper: '📄' };
+  const icons: Record<string, string> = {
+    person: '👤',
+    book: '📚',
+    passage: '📜',
+    version: '📖',
+    paper: '📄',
+  };
   return icons[type] || '📌';
 }
 
@@ -189,8 +209,15 @@ function formatTime(ts: string | null): string {
   if (!ts) return '';
   try {
     const d = new Date(ts);
-    return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch { return ''; }
+    return d.toLocaleDateString('zh-CN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
 }
 
 async function loadDashboard() {

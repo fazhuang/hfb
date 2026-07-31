@@ -12,15 +12,15 @@
 
 The old ResearchWorkspaceView (`apps/frontend/src/views/ResearchWorkspaceView.vue`) was a 2200+ line 7-tab monolithic component covering:
 
-| Tab | Capability | Disposition |
-|-----|-----------|-------------|
-| Materials | Document/version listing with search | → Library Search (not workspace) |
-| Versions | Classical version browsing | → Library Search (not workspace) |
-| Notes | Quick-note CRUD with session filter | → Workspace sidebar "Recent Notes" |
-| Reports | V4 workflow run listing, step trace, report preview | → Workspace "Recent Reports" |
-| Research | Inline version comparison workflow | → Standalone `/research/:projectId/workflow` |
-| V4 Research | Full V4 workflow (topic → 5-step → report + citations + export) | → Research Workflow + Research Result pages |
-| Assistant | SSE streaming AI chat, evidence sidebar, citation save | → Future: dedicated AI Assistant page |
+| Tab         | Capability                                                      | Disposition                                  |
+| ----------- | --------------------------------------------------------------- | -------------------------------------------- |
+| Materials   | Document/version listing with search                            | → Library Search (not workspace)             |
+| Versions    | Classical version browsing                                      | → Library Search (not workspace)             |
+| Notes       | Quick-note CRUD with session filter                             | → Workspace sidebar "Recent Notes"           |
+| Reports     | V4 workflow run listing, step trace, report preview             | → Workspace "Recent Reports"                 |
+| Research    | Inline version comparison workflow                              | → Standalone `/research/:projectId/workflow` |
+| V4 Research | Full V4 workflow (topic → 5-step → report + citations + export) | → Research Workflow + Research Result pages  |
+| Assistant   | SSE streaming AI chat, evidence sidebar, citation save          | → Future: dedicated AI Assistant page        |
 
 ### Related Legacy Views
 
@@ -58,6 +58,7 @@ Always shows "开始新研究". Receives shared runs data from the parent page �
 ### 3. Recent Activity (RecentResearchActivity)
 
 **API**: `GET /api/v4/research/session/{session_id}/history?limit=5`
+
 - Supports `?limit=` query parameter — we request exactly 5
 - Sorted by `created_at DESC` on server
 - Returns `PublicHistoryEntry[]` — never exposes internal trace data
@@ -70,6 +71,7 @@ Receives shared runs data from the parent page — does NOT make its own API cal
 **Label**: "最近研究运行" (not "最近报告"). Runs are not always reports; only completed runs with `report_generation` completed are displayed. Only runs with real `run_id` and `report_generation: completed` get a "查看" link.
 
 **API**: `GET /api/v4/research/session/{session_id}/runs` — called ONCE by the parent page, shared via props.
+
 - Does NOT support limit — returns all runs
 - Client-side filter: only runs with `report_generation` step completed
 - Client-side sort by `completed_at DESC`; missing `completed_at` placed last
@@ -80,6 +82,7 @@ Receives shared runs data from the parent page — does NOT make its own API cal
 ### 5. Recent Notes (RecentNotes)
 
 **API**: `GET /api/v1/workspace/sessions/{session_id}/notes`
+
 - Hard-coded limit 50 on server
 - Sorted by `created_at DESC` on server
 - Client-side truncation to 5
@@ -88,6 +91,7 @@ Receives shared runs data from the parent page — does NOT make its own API cal
 ### 6. Research Resources (ResearchResources)
 
 **API**: `GET /api/v1/workspace/sessions/{session_id}/citations`
+
 - Hard-coded limit 100 on server
 - Sorted by `created_at DESC` on server
 - Client-side `session_id` filter + truncation to 5
@@ -108,16 +112,17 @@ Receives shared runs data from the parent page — does NOT make its own API cal
 
 ## Data Sorting Strategy
 
-| Section | Backend Sort | Backend Limit? | Client Action |
-|---------|-------------|----------------|---------------|
-| Recent Activity | `created_at DESC` | Yes (`?limit=5`) | Safety `.slice(0,5)` |
-| Recent Runs | None (storage order) | No | Filter to `report_generation:completed`, sort by `completed_at DESC` (missing last), take 5 |
-| Recent Notes | `created_at DESC` | Hard 50 | Take first 5 |
-| Research Resources | `created_at DESC` | Hard 100 | Filter by session_id, take 5 |
+| Section            | Backend Sort         | Backend Limit?   | Client Action                                                                               |
+| ------------------ | -------------------- | ---------------- | ------------------------------------------------------------------------------------------- |
+| Recent Activity    | `created_at DESC`    | Yes (`?limit=5`) | Safety `.slice(0,5)`                                                                        |
+| Recent Runs        | None (storage order) | No               | Filter to `report_generation:completed`, sort by `completed_at DESC` (missing last), take 5 |
+| Recent Notes       | `created_at DESC`    | Hard 50          | Take first 5                                                                                |
+| Research Resources | `created_at DESC`    | Hard 100         | Filter by session_id, take 5                                                                |
 
 ### Shared Runs Strategy
 
 The Workspace page calls `GET /api/v4/research/session/{id}/runs` exactly once and passes the result to both `ContinueResearchCard` (for error display + retry) and `RecentReports` (for display). The two child components do NOT make independent API calls. Retry from either component triggers the page-level `loadRuns()` once.
+
 ## Session Isolation
 
 All data sources are strictly scoped to `ResearchSession.id`:
@@ -133,17 +138,18 @@ All data sources are strictly scoped to `ResearchSession.id`:
 
 ### Page-Level
 
-| State | Trigger | Display |
-|-------|---------|---------|
-| Loading | Initial mount, route change | LoadingState "正在加载工作区..." |
-| Success | Session loaded | Full workspace with all sections |
-| Not Found | 404 from session API | EmptyState "课题不存在" + link to list |
-| Permission Denied | 403 from session API | ErrorState "权限不足" + retry |
-| Error | Network/other failure | ErrorState with message + retry |
+| State             | Trigger                     | Display                                |
+| ----------------- | --------------------------- | -------------------------------------- |
+| Loading           | Initial mount, route change | LoadingState "正在加载工作区..."       |
+| Success           | Session loaded              | Full workspace with all sections       |
+| Not Found         | 404 from session API        | EmptyState "课题不存在" + link to list |
+| Permission Denied | 403 from session API        | ErrorState "权限不足" + retry          |
+| Error             | Network/other failure       | ErrorState with message + retry        |
 
 ### Block-Level (each section independently)
 
 Each child component (ContinueResearchCard, RecentResearchActivity, RecentReports, RecentNotes, ResearchResources) manages its own:
+
 - Loading state
 - Empty state
 - Error state with independent retry
@@ -169,18 +175,18 @@ All use `projectId` = `ResearchSession.id`.
 
 The following capabilities from the old workspace are intentionally NOT migrated:
 
-| Capability | Reason |
-|-----------|--------|
-| Materials/Versions tabs | Belongs in Library Search, not research workspace |
-| Inline AI chat (SSE streaming) | Future: dedicated AI Assistant page under `/research/:projectId/assistant` |
-| Evidence sidebar with graph preview | Future: AI Assistant page |
-| Citation save to collection | Currently no UI — backend API exists (`POST /api/v1/workspace/sessions/{id}/citations`) |
-| Inline note editor | Future: Notes page under research |
-| V4 workflow inline execution | Moved to standalone ResearchWorkflowPage |
-| Version comparison inline | Moved to standalone ResearchWorkflowPage |
-| Education & Visualization modes | Future: Knowledge Explorer or dedicated pages |
-| Run replay with hash comparison | Moved to ResearchResultPage |
-| Report markdown export | Future: ResearchResultPage |
+| Capability                          | Reason                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| Materials/Versions tabs             | Belongs in Library Search, not research workspace                                       |
+| Inline AI chat (SSE streaming)      | Future: dedicated AI Assistant page under `/research/:projectId/assistant`              |
+| Evidence sidebar with graph preview | Future: AI Assistant page                                                               |
+| Citation save to collection         | Currently no UI — backend API exists (`POST /api/v1/workspace/sessions/{id}/citations`) |
+| Inline note editor                  | Future: Notes page under research                                                       |
+| V4 workflow inline execution        | Moved to standalone ResearchWorkflowPage                                                |
+| Version comparison inline           | Moved to standalone ResearchWorkflowPage                                                |
+| Education & Visualization modes     | Future: Knowledge Explorer or dedicated pages                                           |
+| Run replay with hash comparison     | Moved to ResearchResultPage                                                             |
+| Report markdown export              | Future: ResearchResultPage                                                              |
 
 ---
 
@@ -228,51 +234,38 @@ Tests  197 passed (197)
 
 #### Warning Analysis
 
-| Warning | Source | Count | Verdict |
-|---------|--------|-------|---------|
+| Warning                                              | Source                          | Count       | Verdict                                                                                            |
+| ---------------------------------------------------- | ------------------------------- | ----------- | -------------------------------------------------------------------------------------------------- |
 | `ExperimentalWarning: localStorage is not available` | Node.js (vitest worker threads) | 5-7 per run | Not our code — Node.js experimental flag for `--localstorage-file`. Does not affect test behavior. |
 
 No other warnings appear in test output.
 
 ### New Tests Added (43 tests in research-workspace.test.ts)
 
-1-2. Loads ResearchSession, fetches with correct projectId
-3. No fake context_notes when missing
+1-2. Loads ResearchSession, fetches with correct projectId 3. No fake context_notes when missing
 4-5. Navigation links correct
-6-9. Section isolation (each section receives projectId)
-12. ContinueResearchCard renders
-14. Section failure does not block page
-18. Not Found for missing session
-19. 403 shows error
-20. Page-level retry
-22. No internal technical fields
-23. AI entry does not call AI API
-24. No fixed IDs in links
-25. No project_id in types
-26. projectId === ResearchSession.id
-27. Race condition guard
-28. No state writes after unmount
-29. Page refresh recovery
-30. Session detail fetched once
-31. No duplicate concurrent requests
-+ ContinueResearchCard: 5 component tests
-+ RecentResearchActivity: 2 limit tests
-+ RecentReports: 2 limit + sort tests
-+ RecentNotes: 1 limit test
-+ ResearchResources: 2 session isolation tests
-+ ResearchAssistantEntry: 5 functional tests
-+ Domain mapping: 2 type contract tests
+6-9. Section isolation (each section receives projectId) 12. ContinueResearchCard renders 14. Section failure does not block page 18. Not Found for missing session 19. 403 shows error 20. Page-level retry 22. No internal technical fields 23. AI entry does not call AI API 24. No fixed IDs in links 25. No project_id in types 26. projectId === ResearchSession.id 27. Race condition guard 28. No state writes after unmount 29. Page refresh recovery 30. Session detail fetched once 31. No duplicate concurrent requests
+
+- ContinueResearchCard: 5 component tests
+- RecentResearchActivity: 2 limit tests
+- RecentReports: 2 limit + sort tests
+- RecentNotes: 1 limit test
+- ResearchResources: 2 session isolation tests
+- ResearchAssistantEntry: 5 functional tests
+- Domain mapping: 2 type contract tests
 
 ---
 
 ## File Changes
 
 ### Modified
+
 - `apps/frontend/src/pages/research/ResearchWorkspacePage.vue` — Replaced stub with full implementation
 - `apps/frontend/src/types/research.ts` — Added `ResearchCitationSummary` and `toCitationSummary`
 - `docs/20-product/2007-page-disposition.md` — Updated workspace entry
 
 ### Added
+
 - `apps/frontend/src/components/research/ContinueResearchCard.vue`
 - `apps/frontend/src/components/research/RecentResearchActivity.vue`
 - `apps/frontend/src/components/research/RecentReports.vue`
@@ -283,6 +276,7 @@ No other warnings appear in test output.
 - `docs/20-product/2013-research-workspace-migration.md` (this file)
 
 ### Not Modified (Preserved)
+
 - All old views (ResearchWorkspaceView.vue, V4ResearchView.vue, ResearchHomeView.vue, ResearchWorkflowView.vue)
 - All old routes
 - All backend files
@@ -297,14 +291,14 @@ Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py
 
 ### TestApiRBAC — Workspace API Isolation (24 tests, 24 passed, real JWT auth chain)
 
-| Group | Count | Pass | Principle |
-|-------|-------|------|-----------|
-| RBAC permission checks (direct service) | 6 | 6 | Admin/Researcher/Visitor/nonexistent user |
-| GraphService RBAC | 3 | 3 | Search, create relation, neighbors |
-| SearchService RBAC | 2 | 2 | Search + suggest |
-| DashboardService RBAC | 1 | 1 | Overview |
-| Workspace isolation (service layer) | 2 | 2 | Cross-user session create/delete |
-| Workspace API isolation | 24 | 24 | 2 users × 5 endpoints × 2 directions (own + cross) + 2 known-UUID cross-verification + 2 no-data-leak |
+| Group                                   | Count | Pass | Principle                                                                                             |
+| --------------------------------------- | ----- | ---- | ----------------------------------------------------------------------------------------------------- |
+| RBAC permission checks (direct service) | 6     | 6    | Admin/Researcher/Visitor/nonexistent user                                                             |
+| GraphService RBAC                       | 3     | 3    | Search, create relation, neighbors                                                                    |
+| SearchService RBAC                      | 2     | 2    | Search + suggest                                                                                      |
+| DashboardService RBAC                   | 1     | 1    | Overview                                                                                              |
+| Workspace isolation (service layer)     | 2     | 2    | Cross-user session create/delete                                                                      |
+| Workspace API isolation                 | 24    | 24   | 2 users × 5 endpoints × 2 directions (own + cross) + 2 known-UUID cross-verification + 2 no-data-leak |
 
 **Auth chain:** Real `AuthService.register()` → real JWT access tokens via `create_access_token()` → `Authorization: Bearer <token>` headers on all requests. No overrides of `get_current_user`, `get_auth_service`, or permission guards. Only `get_session` is overridden to use in-memory SQLite.
 
@@ -314,10 +308,10 @@ Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py
 
 ### Additional RBAC Tests (36 tests, 36 passed)
 
-| File | Count | Coverage |
-|------|-------|----------|
-| `test_p0_2_http_verify.py` | 32 | Auth registration, login, token refresh, source URI validation, TREATS evidence policy |
-| `test_classical_versions_rbac.py` | 26 | Classical version CRUD RBAC, soft-delete verification |
+| File                              | Count | Coverage                                                                               |
+| --------------------------------- | ----- | -------------------------------------------------------------------------------------- |
+| `test_p0_2_http_verify.py`        | 32    | Auth registration, login, token refresh, source URI validation, TREATS evidence policy |
+| `test_classical_versions_rbac.py` | 26    | Classical version CRUD RBAC, soft-delete verification                                  |
 
 ### Total RBAC + Workspace Isolation: 100 tests, 100 passed
 
@@ -335,20 +329,21 @@ Full suite: `tests/unit/test_api_rbac.py` + `tests/unit/test_p0_2_http_verify.py
 
 **Screenshots/traces:** Written to `/tmp` on failure only; never committed to the source tree.
 
-| Test | Result | Assertion |
-|------|--------|-----------|
-| `test_a_workspace_loads` | ✅ PASS | Own workspace: correct `<h1>` title, no "课题不存在", session API 200 captured |
-| `test_a_project_detail_loads` | ✅ PASS | Own project detail shows "开始研究" |
-| `test_switch_own_projects_no_residue` | ✅ PASS | Navigate A1→A2 within same page: A2 title visible, A1 title/note/citation/history/run ID ALL absent from DOM, A2 data present |
-| `test_cross_user_workspace_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workspace` → "课题不存在" visible, session API returns 404 (captured), B's title NOT in DOM, B's note NOT in DOM |
-| `test_cross_user_project_blocked` | ✅ PASS | A visits B's `/research/{B_id}` → access-denied state, B's note/citation NOT in DOM, session API returns 404 (captured) |
-| `test_cross_user_workflow_blocked` | ✅ PASS | A visits B's `/research/{B_id}/workflow` → "课题不存在", session API 404 captured (proves workflow page actually requests session), B's title/history query/run ID ALL absent from DOM |
+| Test                                  | Result  | Assertion                                                                                                                                                                              |
+| ------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `test_a_workspace_loads`              | ✅ PASS | Own workspace: correct `<h1>` title, no "课题不存在", session API 200 captured                                                                                                         |
+| `test_a_project_detail_loads`         | ✅ PASS | Own project detail shows "开始研究"                                                                                                                                                    |
+| `test_switch_own_projects_no_residue` | ✅ PASS | Navigate A1→A2 within same page: A2 title visible, A1 title/note/citation/history/run ID ALL absent from DOM, A2 data present                                                          |
+| `test_cross_user_workspace_blocked`   | ✅ PASS | A visits B's `/research/{B_id}/workspace` → "课题不存在" visible, session API returns 404 (captured), B's title NOT in DOM, B's note NOT in DOM                                        |
+| `test_cross_user_project_blocked`     | ✅ PASS | A visits B's `/research/{B_id}` → access-denied state, B's note/citation NOT in DOM, session API returns 404 (captured)                                                                |
+| `test_cross_user_workflow_blocked`    | ✅ PASS | A visits B's `/research/{B_id}/workflow` → "课题不存在", session API 404 captured (proves workflow page actually requests session), B's title/history query/run ID ALL absent from DOM |
 
 **Two consecutive runs both pass identically.**
 
 ### CI Chromium Installation
 
 In `.github/workflows/test.yml`:
+
 ```yaml
 - name: Install Chromium for browser E2E
   run: uv run python -m playwright install chromium --with-deps
@@ -382,13 +377,13 @@ CI does not depend on pre-installed browsers, running services, or existing data
 
 **Breakdown:**
 
-| Directory | Tests | Status |
-|-----------|-------|--------|
-| `apps/backend/tests/` | 12 | 12 passed |
-| `tests/unit/` | ~955 | ~954 passed, 1 failed (`test_query_unmapped_passage_fail_closed`) |
-| `tests/e2e/` | 25 | 19 skipped (no --browser), 6 require --browser chromium |
-| `tests/integration/` | ~41 | All passed |
-| `scripts/p2t1_e2e_test.py` | 0 | Excluded via `norecursedirs = scripts` in pytest.ini |
+| Directory                  | Tests | Status                                                            |
+| -------------------------- | ----- | ----------------------------------------------------------------- |
+| `apps/backend/tests/`      | 12    | 12 passed                                                         |
+| `tests/unit/`              | ~955  | ~954 passed, 1 failed (`test_query_unmapped_passage_fail_closed`) |
+| `tests/e2e/`               | 25    | 19 skipped (no --browser), 6 require --browser chromium           |
+| `tests/integration/`       | ~41   | All passed                                                        |
+| `scripts/p2t1_e2e_test.py` | 0     | Excluded via `norecursedirs = scripts` in pytest.ini              |
 
 **scripts/p2t1_e2e_test.py exclusion:** Previously collected by pytest (triggering `SystemExit: 0` during collection). Now excluded via `norecursedirs` in `pytest.ini` — the script still exists but is no longer treated as a test file. No file deletion was needed.
 

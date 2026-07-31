@@ -2,9 +2,7 @@
   <section class="rqs-step" aria-labelledby="rqs-heading">
     <h2 id="rqs-heading" class="rqs-heading">第一步：研究问题</h2>
 
-    <p class="rqs-description">
-      请输入您的研究问题。系统将自动检索相关文献并生成研究报告。
-    </p>
+    <p class="rqs-description">请输入您的研究问题。系统将自动检索相关文献并生成研究报告。</p>
 
     <form class="rqs-form" @submit.prevent="$emit('next')">
       <div class="rqs-field">
@@ -26,11 +24,7 @@
       </div>
 
       <div class="rqs-actions">
-        <button
-          type="submit"
-          class="rqs-submit-btn"
-          :disabled="disabled || !question.trim()"
-        >
+        <button type="submit" class="rqs-submit-btn" :disabled="disabled || !question.trim()">
           下一步：文献选择
         </button>
       </div>

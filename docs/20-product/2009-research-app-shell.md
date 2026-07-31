@@ -18,28 +18,28 @@ Document the new unified researcher application shell — `ResearchAppLayout` wi
 
 Vertical sidebar layout replacing the old top-navbar `DefaultLayout` for researcher pages.
 
-| Feature | Detail |
-|---------|--------|
-| **Brand** | "皇甫谧数字人文平台" with 📜 icon, links to `/` |
-| **Sidebar** | Fixed left rail, 240px default, collapsible to 64px |
-| **Navigation** | Contains `<ResearchPrimaryNav />` |
-| **Project badge** | Placeholder "当前项目" indicator in sidebar footer |
-| **User area** | Avatar initial + display name from auth store |
-| **Content** | `<router-view />` for child page rendering |
-| **Collapse** | Toggle button in sidebar footer |
-| **Responsive** | At ≤768px, sidebar overlays; collapsed state hides off-canvas |
+| Feature           | Detail                                                        |
+| ----------------- | ------------------------------------------------------------- |
+| **Brand**         | "皇甫谧数字人文平台" with 📜 icon, links to `/`               |
+| **Sidebar**       | Fixed left rail, 240px default, collapsible to 64px           |
+| **Navigation**    | Contains `<ResearchPrimaryNav />`                             |
+| **Project badge** | Placeholder "当前项目" indicator in sidebar footer            |
+| **User area**     | Avatar initial + display name from auth store                 |
+| **Content**       | `<router-view />` for child page rendering                    |
+| **Collapse**      | Toggle button in sidebar footer                               |
+| **Responsive**    | At ≤768px, sidebar overlays; collapsed state hides off-canvas |
 
 ### `components/layout/ResearchPrimaryNav.vue`
 
 Vertical primary navigation with four research modules + separated Administration.
 
-| Nav Item | Target Route | Icon |
-|----------|-------------|------|
-| Research | `/research` | 🔬 |
-| Library | `/library` | 📚 |
-| Knowledge | `/knowledge` | 🔗 |
-| Reports | `/reports` | 📊 |
-| Administration | `/admin/literature-review` | ⚙️ |
+| Nav Item       | Target Route               | Icon |
+| -------------- | -------------------------- | ---- |
+| Research       | `/research`                | 🔬   |
+| Library        | `/library`                 | 📚   |
+| Knowledge      | `/knowledge`               | 🔗   |
+| Reports        | `/reports`                 | 📊   |
+| Administration | `/admin/literature-review` | ⚙️   |
 
 **Active state**: Walks `route.matched` for `meta.section` — supports deep sub-routes. `/research/123/workflow` correctly activates "Research".
 
@@ -49,12 +49,12 @@ Vertical primary navigation with four research modules + separated Administratio
 
 Unified page header for all researcher pages.
 
-| Prop | Type | Required | Description |
-|------|------|----------|-------------|
-| `title` | `string` | Yes | Page title (rendered as `<h1>`) |
-| `description` | `string` | No | Subtitle text below title |
-| `breadcrumbs` | `Breadcrumb[]` | No | Array of `{ label, to? }` — last item rendered as current |
-| `actions` (slot) | — | No | Right-aligned action buttons |
+| Prop             | Type           | Required | Description                                               |
+| ---------------- | -------------- | -------- | --------------------------------------------------------- |
+| `title`          | `string`       | Yes      | Page title (rendered as `<h1>`)                           |
+| `description`    | `string`       | No       | Subtitle text below title                                 |
+| `breadcrumbs`    | `Breadcrumb[]` | No       | Array of `{ label, to? }` — last item rendered as current |
+| `actions` (slot) | —              | No       | Right-aligned action buttons                              |
 
 No store bindings, no API calls — pure presentational component.
 
@@ -62,16 +62,16 @@ No store bindings, no API calls — pure presentational component.
 
 ## New Target Routes (under ResearchAppLayout)
 
-| Route | Component | Section |
-|-------|-----------|---------|
-| `/research` | `ProjectListPage` | research |
-| `/research/:projectId` | `ProjectDetailPage` | research |
-| `/research/:projectId/workspace` | `ResearchWorkspacePage` | research |
-| `/research/:projectId/workflow` | `ResearchWorkflowPage` | research |
-| `/research/:projectId/result/:runId` | `ResearchResultPage` | research |
-| `/library` | `LibrarySearchPage` (placeholder) | library |
-| `/knowledge` | `KnowledgeExplorerPage` (placeholder) | knowledge |
-| `/reports` | `ReportListPage` (placeholder) | reports |
+| Route                                | Component                             | Section   |
+| ------------------------------------ | ------------------------------------- | --------- |
+| `/research`                          | `ProjectListPage`                     | research  |
+| `/research/:projectId`               | `ProjectDetailPage`                   | research  |
+| `/research/:projectId/workspace`     | `ResearchWorkspacePage`               | research  |
+| `/research/:projectId/workflow`      | `ResearchWorkflowPage`                | research  |
+| `/research/:projectId/result/:runId` | `ResearchResultPage`                  | research  |
+| `/library`                           | `LibrarySearchPage` (placeholder)     | library   |
+| `/knowledge`                         | `KnowledgeExplorerPage` (placeholder) | knowledge |
+| `/reports`                           | `ReportListPage` (placeholder)        | reports   |
 
 All new routes set `meta: { section: '<module>', requiresAuth: true }`.
 
@@ -81,11 +81,11 @@ All new routes set `meta: { section: '<module>', requiresAuth: true }`.
 
 Three minimal placeholder pages created for modules not yet rebuilt:
 
-| File | Route | Content |
-|------|-------|---------|
-| `pages/library/LibrarySearchPage.vue` | `/library` | "功能迁移中" message |
+| File                                        | Route        | Content              |
+| ------------------------------------------- | ------------ | -------------------- |
+| `pages/library/LibrarySearchPage.vue`       | `/library`   | "功能迁移中" message |
 | `pages/knowledge/KnowledgeExplorerPage.vue` | `/knowledge` | "功能迁移中" message |
-| `pages/reports/ReportListPage.vue` | `/reports` | "功能迁移中" message |
+| `pages/reports/ReportListPage.vue`          | `/reports`   | "功能迁移中" message |
 
 All three use `ResearchAppLayout` + `ResearchPageHeader`. Zero business logic, zero API calls.
 
@@ -116,13 +116,13 @@ The Administration nav item points to `/admin/literature-review` — the most st
 
 The 5 research pages previously had inline title structures. They now use `ResearchPageHeader`:
 
-| Page | Old | New |
-|------|-----|-----|
-| `ProjectListPage` | `<h1>Project List</h1>` + inline styles | `<ResearchPageHeader title="Research" />` |
-| `ProjectDetailPage` | `<h1>Project Header</h1>` | `<ResearchPageHeader title="项目详情" :breadcrumbs="[...]" />` |
-| `ResearchWorkspacePage` | `<h1>Research Header</h1>` | `<ResearchPageHeader title="研究工作台" :breadcrumbs="[...]" />` |
-| `ResearchWorkflowPage` | `<h1>Research Workflow</h1>` | `<ResearchPageHeader title="研究流程" :breadcrumbs="[...]" />` |
-| `ResearchResultPage` | `<h1>Report Header</h1>` | `<ResearchPageHeader title="研究结果" :breadcrumbs="[...]" />` |
+| Page                    | Old                                     | New                                                              |
+| ----------------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| `ProjectListPage`       | `<h1>Project List</h1>` + inline styles | `<ResearchPageHeader title="Research" />`                        |
+| `ProjectDetailPage`     | `<h1>Project Header</h1>`               | `<ResearchPageHeader title="项目详情" :breadcrumbs="[...]" />`   |
+| `ResearchWorkspacePage` | `<h1>Research Header</h1>`              | `<ResearchPageHeader title="研究工作台" :breadcrumbs="[...]" />` |
+| `ResearchWorkflowPage`  | `<h1>Research Workflow</h1>`            | `<ResearchPageHeader title="研究流程" :breadcrumbs="[...]" />`   |
+| `ResearchResultPage`    | `<h1>Report Header</h1>`                | `<ResearchPageHeader title="研究结果" :breadcrumbs="[...]" />`   |
 
 ---
 
@@ -134,11 +134,11 @@ The new `ResearchAppLayout` routes for `/research` are defined **before** the le
 
 ## Responsive Handling
 
-| Breakpoint | Behavior |
-|------------|----------|
-| >768px | Fixed 240px sidebar, scrollable content area |
-| ≤768px | Sidebar overlays content, collapsible (default collapsed on mobile via user toggle) |
-| All | Page content switches from `padding: 24px 32px` to `padding: 16px 20px` |
+| Breakpoint | Behavior                                                                            |
+| ---------- | ----------------------------------------------------------------------------------- |
+| >768px     | Fixed 240px sidebar, scrollable content area                                        |
+| ≤768px     | Sidebar overlays content, collapsible (default collapsed on mobile via user toggle) |
+| All        | Page content switches from `padding: 24px 32px` to `padding: 16px 20px`             |
 
 No animation/transition beyond sidebar width change.
 
@@ -161,6 +161,7 @@ No animation/transition beyond sidebar width change.
 All 21 tests pass + all 39 existing tests pass = **60/60 total tests passing**.
 
 Test coverage:
+
 1. ✅ Four research modules displayed in nav
 2. ✅ Dashboard/Workspace/Graph NOT in nav
 3. ✅ `/research` activates Research nav
@@ -173,6 +174,7 @@ Test coverage:
 10. ✅ All 5 research pages loadable via routes
 
 Additional:
+
 - Administration separator exists
 - Collapsed state hides labels but preserves icons
 - `meta.section` propagates correctly through matched routes
@@ -185,6 +187,7 @@ Additional:
 ## Files Modified / Created
 
 ### New files (11)
+
 ```
 apps/frontend/src/layouts/ResearchAppLayout.vue
 apps/frontend/src/components/layout/ResearchPrimaryNav.vue
@@ -197,6 +200,7 @@ docs/20-product/2009-research-app-shell.md
 ```
 
 ### Modified files (6)
+
 ```
 apps/frontend/src/router/index.ts                       — add ResearchAppLayout routes
 apps/frontend/src/pages/research/ProjectListPage.vue     — adopt ResearchPageHeader
@@ -207,6 +211,7 @@ apps/frontend/src/pages/research/ResearchResultPage.vue  — adopt ResearchPageH
 ```
 
 ### NOT modified
+
 - `views/` — all 22 old view files untouched
 - `AppNavbar.vue` — untouched
 - `DefaultLayout.vue` — untouched

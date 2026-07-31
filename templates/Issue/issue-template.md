@@ -1,6 +1,6 @@
 ---
-name: "[DESCRIPTIVE TITLE]"
-about: "[Brief description]"
+name: '[DESCRIPTIVE TITLE]'
+about: '[Brief description]'
 title: '[TYPE] '
 labels: ''
 assignees: ''

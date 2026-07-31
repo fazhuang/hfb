@@ -110,9 +110,7 @@ export function useResearchReports() {
   let reqSeq = 0;
 
   // ---- Derived ----
-  const totalPages = computed(() =>
-    Math.max(1, Math.ceil(total.value / limit.value)),
-  );
+  const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
 
   const statusFilterLabel = computed(() => STATUS_FILTER_LABELS[statusFilter.value]);
 
@@ -174,30 +172,21 @@ export function useResearchReports() {
 
     try {
       // Real backend export endpoint with session/run authorization
-      const response = await api.get(
-        `/api/v4/research/session/${sessionId}/runs/${runId}/export`,
-        { responseType: 'blob', params: { format: 'markdown' } },
-      );
+      const response = await api.get(`/api/v4/research/session/${sessionId}/runs/${runId}/export`, {
+        responseType: 'blob',
+        params: { format: 'markdown' },
+      });
 
       // Extract filename from Content-Disposition header
       const disposition =
         (response.headers as Record<string, string>)?.['content-disposition'] || '';
       const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
-      const filename =
-        filenameMatch?.[1] || `hfb-research-report-${runId.slice(0, 8)}.md`;
+      const filename = filenameMatch?.[1] || `hfb-research-report-${runId.slice(0, 8)}.md`;
 
       // Verify MIME type
       const blob = response.data as Blob;
-      const allowedTypes = [
-        'text/markdown',
-        'text/plain',
-        'application/octet-stream',
-      ];
-      if (
-        blob.type &&
-        !allowedTypes.some((t) => blob.type.startsWith(t)) &&
-        blob.type !== ''
-      ) {
+      const allowedTypes = ['text/markdown', 'text/plain', 'application/octet-stream'];
+      if (blob.type && !allowedTypes.some((t) => blob.type.startsWith(t)) && blob.type !== '') {
         exportError.value = '导出文件格式异常，请重试。';
         return false;
       }

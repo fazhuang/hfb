@@ -144,49 +144,107 @@ class TestGraphQuery:
         """Build: 皇甫谧 → authored → 针灸甲乙经 → treats → 方剂 → treats → 症候"""
         store = GraphStore()
 
-        store.add_node(Node(
-            id="person_huangfumi",
-            type="Person",
-            properties={"name": "皇甫谧", "name_zh": "皇甫谧", "dynasty": "魏晋"},
-        ))
-        store.add_node(Node(
-            id="text_zhenjiu",
-            type="Text",
-            properties={"title": "针灸甲乙经", "title_zh": "鍼灸甲乙經", "category": "针灸"},
-        ))
-        store.add_node(Node(
-            id="prescription_baihu",
-            type="Prescription",
-            properties={"name": "白虎汤", "name_zh": "白虎湯"},
-        ))
-        store.add_node(Node(
-            id="prescription_guizhi",
-            type="Prescription",
-            properties={"name": "桂枝汤", "name_zh": "桂枝湯"},
-        ))
-        store.add_node(Node(
-            id="symptom_fever",
-            type="Symptom",
-            properties={"name": "发热", "name_zh": "發熱", "category": "热证"},
-        ))
-        store.add_node(Node(
-            id="herb_gancao",
-            type="Herb",
-            properties={"name": "甘草", "latin_name": "Glycyrrhiza uralensis"},
-        ))
+        store.add_node(
+            Node(
+                id="person_huangfumi",
+                type="Person",
+                properties={"name": "皇甫谧", "name_zh": "皇甫谧", "dynasty": "魏晋"},
+            )
+        )
+        store.add_node(
+            Node(
+                id="text_zhenjiu",
+                type="Text",
+                properties={
+                    "title": "针灸甲乙经",
+                    "title_zh": "鍼灸甲乙經",
+                    "category": "针灸",
+                },
+            )
+        )
+        store.add_node(
+            Node(
+                id="prescription_baihu",
+                type="Prescription",
+                properties={"name": "白虎汤", "name_zh": "白虎湯"},
+            )
+        )
+        store.add_node(
+            Node(
+                id="prescription_guizhi",
+                type="Prescription",
+                properties={"name": "桂枝汤", "name_zh": "桂枝湯"},
+            )
+        )
+        store.add_node(
+            Node(
+                id="symptom_fever",
+                type="Symptom",
+                properties={"name": "发热", "name_zh": "發熱", "category": "热证"},
+            )
+        )
+        store.add_node(
+            Node(
+                id="herb_gancao",
+                type="Herb",
+                properties={"name": "甘草", "latin_name": "Glycyrrhiza uralensis"},
+            )
+        )
 
-        store.add_edge(Edge("person_huangfumi", "text_zhenjiu", "authored",
-                             weight=1.0, source_ref="《晋书·皇甫谧传》"))
-        store.add_edge(Edge("text_zhenjiu", "prescription_guizhi", "contains",
-                             weight=0.95, source_ref="《针灸甲乙经·卷七》"))
-        store.add_edge(Edge("text_zhenjiu", "prescription_baihu", "contains",
-                             weight=0.85, source_ref="《针灸甲乙经·卷七》"))
-        store.add_edge(Edge("prescription_baihu", "symptom_fever", "treats",
-                             weight=0.9, source_ref="《伤寒论》"))
-        store.add_edge(Edge("prescription_baihu", "herb_gancao", "contains",
-                             weight=1.0, source_ref="《伤寒论》"))
-        store.add_edge(Edge("prescription_guizhi", "symptom_fever", "treats",
-                             weight=0.8, source_ref="《伤寒论》"))
+        store.add_edge(
+            Edge(
+                "person_huangfumi",
+                "text_zhenjiu",
+                "authored",
+                weight=1.0,
+                source_ref="《晋书·皇甫谧传》",
+            )
+        )
+        store.add_edge(
+            Edge(
+                "text_zhenjiu",
+                "prescription_guizhi",
+                "contains",
+                weight=0.95,
+                source_ref="《针灸甲乙经·卷七》",
+            )
+        )
+        store.add_edge(
+            Edge(
+                "text_zhenjiu",
+                "prescription_baihu",
+                "contains",
+                weight=0.85,
+                source_ref="《针灸甲乙经·卷七》",
+            )
+        )
+        store.add_edge(
+            Edge(
+                "prescription_baihu",
+                "symptom_fever",
+                "treats",
+                weight=0.9,
+                source_ref="《伤寒论》",
+            )
+        )
+        store.add_edge(
+            Edge(
+                "prescription_baihu",
+                "herb_gancao",
+                "contains",
+                weight=1.0,
+                source_ref="《伤寒论》",
+            )
+        )
+        store.add_edge(
+            Edge(
+                "prescription_guizhi",
+                "symptom_fever",
+                "treats",
+                weight=0.8,
+                source_ref="《伤寒论》",
+            )
+        )
 
         return store
 
@@ -254,12 +312,8 @@ class TestGraphQuery:
         q = GraphQuery(populated_store)
         sub = q.expand("prescription_baihu", relation="treats", max_hops=1)
         # 白虎汤 → treats → 发热 only (contains → 甘草 filtered out)
-        has_symptom = any(
-            n.type == "Symptom" for n in sub.nodes.values()
-        )
-        has_herb = any(
-            n.type == "Herb" for n in sub.nodes.values()
-        )
+        has_symptom = any(n.type == "Symptom" for n in sub.nodes.values())
+        has_herb = any(n.type == "Herb" for n in sub.nodes.values())
         assert has_symptom
         assert not has_herb
 
@@ -321,13 +375,26 @@ class TestKGBuilder:
         assert path[0].source_ref == "《三国志·华佗传》"
 
     def test_merge(self) -> None:
-        store = KGBuilder.from_triples([
-            (Node("a", "Person", {"name": "A"}), "authored", Node("b", "Text", {"title": "B"})),
-        ])
+        store = KGBuilder.from_triples(
+            [
+                (
+                    Node("a", "Person", {"name": "A"}),
+                    "authored",
+                    Node("b", "Text", {"title": "B"}),
+                ),
+            ]
+        )
         assert store.node_count == 2
 
-        KGBuilder.merge(store, [
-            (Node("a", "Person", {"name": "A"}), "authored", Node("c", "Text", {"title": "C"})),
-        ])
+        KGBuilder.merge(
+            store,
+            [
+                (
+                    Node("a", "Person", {"name": "A"}),
+                    "authored",
+                    Node("c", "Text", {"title": "C"}),
+                ),
+            ],
+        )
         assert store.node_count == 3
         assert store.edge_count == 2

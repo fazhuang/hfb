@@ -7,6 +7,7 @@ P0: document graph: one node per unique document, edges only with shared evidenc
 P0: evidence_ids from trace registry, not raw chunk_ids.
 P0: saves QueryHistory with full InternalTraceRecord for strict resolver.
 """
+
 from __future__ import annotations
 
 import json
@@ -90,30 +91,36 @@ def _convert_concept_to_viz(cg) -> VisualizationGraph:
             if tid not in seen:
                 seen.add(tid)
                 trace_ids.append(tid)
-        nodes.append(VisualizationNode(
-            id=n.concept_id,
-            type="concept",
-            label=n.display_label,
-            metadata={
-                "normalized_label": n.normalized_label,
-                "source_documents": ", ".join(n.source_document_ids) if n.source_document_ids else "",
-                "source_document_count": str(len(n.source_document_ids)),
-                "source_chunk_count": str(len(n.source_chunk_ids)),
-            },
-            trace_ids=trace_ids,
-        ))
+        nodes.append(
+            VisualizationNode(
+                id=n.concept_id,
+                type="concept",
+                label=n.display_label,
+                metadata={
+                    "normalized_label": n.normalized_label,
+                    "source_documents": ", ".join(n.source_document_ids)
+                    if n.source_document_ids
+                    else "",
+                    "source_document_count": str(len(n.source_document_ids)),
+                    "source_chunk_count": str(len(n.source_chunk_ids)),
+                },
+                trace_ids=trace_ids,
+            )
+        )
 
     global_max_evidence = max((len(e.evidence) for e in cg.edges), default=1)
     edges = []
     for e in cg.edges:
         evidence_ids = _evidence_to_ids(e.evidence)
-        edges.append(VisualizationEdge(
-            source=e.source_concept_id,
-            target=e.target_concept_id,
-            type=_relation_to_viz_type(e.relation_type),
-            weight=_compute_weight(len(e.evidence), global_max_evidence),
-            evidence_ids=evidence_ids,
-        ))
+        edges.append(
+            VisualizationEdge(
+                source=e.source_concept_id,
+                target=e.target_concept_id,
+                type=_relation_to_viz_type(e.relation_type),
+                weight=_compute_weight(len(e.evidence), global_max_evidence),
+                evidence_ids=evidence_ids,
+            )
+        )
 
     return VisualizationGraph(nodes=nodes, edges=edges)
 
@@ -135,17 +142,21 @@ def _build_citation_graph(cg) -> VisualizationGraph:
             if tid not in seen_tids:
                 seen_tids.add(tid)
                 trace_ids.append(tid)
-        concept_nodes.append(VisualizationNode(
-            id=n.concept_id,
-            type="concept",
-            label=n.display_label,
-            metadata={
-                "normalized_label": n.normalized_label,
-                "source_documents": ", ".join(n.source_document_ids) if n.source_document_ids else "",
-                "source_document_count": str(len(n.source_document_ids)),
-            },
-            trace_ids=trace_ids,
-        ))
+        concept_nodes.append(
+            VisualizationNode(
+                id=n.concept_id,
+                type="concept",
+                label=n.display_label,
+                metadata={
+                    "normalized_label": n.normalized_label,
+                    "source_documents": ", ".join(n.source_document_ids)
+                    if n.source_document_ids
+                    else "",
+                    "source_document_count": str(len(n.source_document_ids)),
+                },
+                trace_ids=trace_ids,
+            )
+        )
 
     # 2. Build document nodes — one per unique document with evidence
     doc_evidence: dict[str, list] = {}  # document_id -> list of (concept_id, evidence)
@@ -195,18 +206,17 @@ def _build_citation_graph(cg) -> VisualizationGraph:
 
             if edge_key not in seen_edge_keys:
                 seen_edge_keys.add(edge_key)
-                edges.append(VisualizationEdge(
-                    source=concept_id,
-                    target=doc_id,
-                    type="citation",
-                    weight=_compute_weight(len(ev_list)),
-                    evidence_ids=evidence_ids,
-                ))
+                edges.append(
+                    VisualizationEdge(
+                        source=concept_id,
+                        target=doc_id,
+                        type="citation",
+                        weight=_compute_weight(len(ev_list)),
+                        evidence_ids=evidence_ids,
+                    )
+                )
 
     return VisualizationGraph(nodes=all_nodes, edges=edges)
-
-
-
 
 
 @router.post(
@@ -243,7 +253,9 @@ async def generate_visualization_graph(
     # Verify session ownership
     research_session = await ws.get_session(resolved_session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     gs = GraphService(db)
     graph: VisualizationGraph
@@ -277,18 +289,24 @@ async def generate_visualization_graph(
             tid = make_trace_id(c.document_id, c.chunk_id)
             time_meta = _extract_time_evidence(c)
             if time_meta:
-                nodes.append(VisualizationNode(
-                    id=f"tl-{c.document_id}-{i}",
-                    type="document",
-                    label=f"{c.document_id}: {c.claim_text[:40]}",
-                    metadata={
-                        "document_id": c.document_id,
-                        "era": time_meta.get("era", ""),
-                        "year": time_meta.get("year", ""),
-                        "quote": (c.evidence.exact_quote[:80] if hasattr(c, 'evidence') and c.evidence else ""),
-                    },
-                    trace_ids=[tid],
-                ))
+                nodes.append(
+                    VisualizationNode(
+                        id=f"tl-{c.document_id}-{i}",
+                        type="document",
+                        label=f"{c.document_id}: {c.claim_text[:40]}",
+                        metadata={
+                            "document_id": c.document_id,
+                            "era": time_meta.get("era", ""),
+                            "year": time_meta.get("year", ""),
+                            "quote": (
+                                c.evidence.exact_quote[:80]
+                                if hasattr(c, "evidence") and c.evidence
+                                else ""
+                            ),
+                        },
+                        trace_ids=[tid],
+                    )
+                )
                 trace_ids_seen.add(tid)
 
         graph = VisualizationGraph(nodes=nodes, edges=[])
@@ -331,17 +349,16 @@ async def generate_visualization_graph(
                 did_b, info_b = doc_list[j]
                 shared = info_a["chunk_ids"] & info_b["chunk_ids"]
                 if shared:
-                    evidence_ids = [
-                        make_trace_id(did_a, cid)
-                        for cid in shared
-                    ]
-                    edges.append(VisualizationEdge(
-                        source=did_a,
-                        target=did_b,
-                        type="similarity",
-                        weight=_compute_weight(len(shared)),
-                        evidence_ids=evidence_ids,
-                    ))
+                    evidence_ids = [make_trace_id(did_a, cid) for cid in shared]
+                    edges.append(
+                        VisualizationEdge(
+                            source=did_a,
+                            target=did_b,
+                            type="similarity",
+                            weight=_compute_weight(len(shared)),
+                            evidence_ids=evidence_ids,
+                        )
+                    )
 
         graph = VisualizationGraph(nodes=nodes, edges=edges)
 
@@ -363,11 +380,13 @@ async def generate_visualization_graph(
     if internal_traces:
         evidence_ids = [r.trace_id for r in internal_traces]
     else:
-        evidence_ids = sorted({
-            make_trace_id(t.document_id, t.chunk_id)
-            for t in all_evidence_traces
-            if hasattr(t, 'document_id') and hasattr(t, 'chunk_id')
-        })
+        evidence_ids = sorted(
+            {
+                make_trace_id(t.document_id, t.chunk_id)
+                for t in all_evidence_traces
+                if hasattr(t, "document_id") and hasattr(t, "chunk_id")
+            }
+        )
 
     source_docs = extract_source_documents(all_evidence_traces)
     dedup_citation_count = len(evidence_ids)
@@ -376,14 +395,19 @@ async def generate_visualization_graph(
         session_id=resolved_session_id,
         query_text=f"viz-{graph_type}-{'-'.join(topic_labels)[:32]}",
         query_type="visualization",
-        result_summary=json.dumps({
-            "graph_type": graph_type,
-            "traces": [r.to_dict() for r in internal_traces],
-            "node_count": len(graph.nodes),
-            "edge_count": len(graph.edges),
-            "source_documents": source_docs,
-            "evidence_status": "empty" if len(graph.edges) == 0 and len(graph.nodes) == 0 else "ok",
-        }, ensure_ascii=False),
+        result_summary=json.dumps(
+            {
+                "graph_type": graph_type,
+                "traces": [r.to_dict() for r in internal_traces],
+                "node_count": len(graph.nodes),
+                "edge_count": len(graph.edges),
+                "source_documents": source_docs,
+                "evidence_status": "empty"
+                if len(graph.edges) == 0 and len(graph.nodes) == 0
+                else "ok",
+            },
+            ensure_ascii=False,
+        ),
         citation_count=dedup_citation_count,
     )
 
@@ -406,14 +430,17 @@ async def generate_visualization_graph(
 def _extract_time_evidence(c) -> dict | None:
     """Extract era/year from a CrossDocumentClaim's evidence. Returns None if absent."""
     meta = {}
-    if hasattr(c, 'evidence') and c.evidence and hasattr(c.evidence, 'exact_quote'):
+    if hasattr(c, "evidence") and c.evidence and hasattr(c.evidence, "exact_quote"):
         # Heuristic: scan for dynasty/year patterns in evidence quote
         import re
+
         quote = c.evidence.exact_quote
-        era_match = re.search(r'(战国|秦|汉|三国|晋|南北朝|隋|唐|宋|辽|金|元|明|清)', quote)
+        era_match = re.search(
+            r"(战国|秦|汉|三国|晋|南北朝|隋|唐|宋|辽|金|元|明|清)", quote
+        )
         if era_match:
             meta["era"] = era_match.group(1)
-        year_match = re.search(r'(\d{1,4})年', quote)
+        year_match = re.search(r"(\d{1,4})年", quote)
         if year_match:
             meta["year"] = year_match.group(1) + "年"
         if meta:

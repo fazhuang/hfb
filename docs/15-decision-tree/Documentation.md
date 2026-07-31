@@ -1,10 +1,10 @@
 ---
-title: "Decision Tree — Documentation"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Documentation Architect"
-last_updated: "2026-06-24"
-related_adr: ["ADR-0010"]
+title: 'Decision Tree — Documentation'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Documentation Architect'
+last_updated: '2026-06-24'
+related_adr: ['ADR-0010']
 ---
 
 # Decision Tree — Documentation

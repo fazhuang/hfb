@@ -8,6 +8,7 @@ Output: JSON-per-line, one object per citation ID.
   {"status": "FK_OK", "citation_id": "...", "evidence_id": "...", "source_ref_id": "...", "source_url": "...", "document_title": "...", "version_name": "..."}
   {"status": "FK_MISS", "citation_id": "..."}
 """
+
 import asyncio
 import json
 import sys
@@ -27,7 +28,8 @@ from sqlalchemy import text
 
 async def verify_one(citation_id: str) -> dict:
     async with async_session_factory() as session:
-        r = await session.execute(text("""
+        r = await session.execute(
+            text("""
             SELECT c.id, e.id as evidence_id, sr.id as source_ref_id, sr.url,
                    d.title, v.version_name
             FROM citations c
@@ -37,7 +39,9 @@ async def verify_one(citation_id: str) -> dict:
             LEFT JOIN passages p ON e.source_passage_id = p.id AND p.is_deleted = false
             LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted = false
             WHERE c.is_deleted = false AND c.id = :cid
-        """), {"cid": citation_id})
+        """),
+            {"cid": citation_id},
+        )
         row = r.fetchone()
         if row:
             return {
@@ -54,7 +58,10 @@ async def verify_one(citation_id: str) -> dict:
 
 async def main():
     if len(sys.argv) < 2:
-        print("Usage: uv run python scripts/t4_fk_verify.py <citation_id> [...]", file=sys.stderr)
+        print(
+            "Usage: uv run python scripts/t4_fk_verify.py <citation_id> [...]",
+            file=sys.stderr,
+        )
         sys.exit(2)
 
     for cid in sys.argv[1:]:

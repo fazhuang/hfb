@@ -73,27 +73,12 @@
   "python.analysis.typeCheckingMode": "strict",
   "python.analysis.autoImportCompletions": true,
   "python.testing.pytestEnabled": true,
-  "python.testing.pytestArgs": [
-    "tests",
-    "-v"
-  ],
+  "python.testing.pytestArgs": ["tests", "-v"],
   "python.testing.unittestEnabled": false,
-  "mypy-type-checker.args": [
-    "--config-file=pyproject.toml"
-  ],
+  "mypy-type-checker.args": ["--config-file=pyproject.toml"],
   "eslint.useFlatConfig": true,
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "i18n-ally.localesPaths": [
-    "apps/frontend/locales"
-  ],
-  "conventionalCommits.scopes": [
-    "backend",
-    "frontend",
-    "packages",
-    "docs",
-    "docker",
-    "ci",
-    "infra"
-  ]
+  "i18n-ally.localesPaths": ["apps/frontend/locales"],
+  "conventionalCommits.scopes": ["backend", "frontend", "packages", "docs", "docker", "ci", "infra"]
 }

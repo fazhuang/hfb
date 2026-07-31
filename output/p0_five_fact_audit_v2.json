@@ -21,12 +21,7 @@
         "page": 4,
         "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
         "source_quote": "乃撰集三部使事類相从...至為十二卷...玄晏先生皇甫谧撰次",
-        "ocr_evidence_keywords": [
-          "撰集三部",
-          "玄晏先生",
-          "十二卷",
-          "黄帝内經"
-        ],
+        "ocr_evidence_keywords": ["撰集三部", "玄晏先生", "十二卷", "黄帝内經"],
         "match_method": "ocr_keyword_lcs",
         "match_confidence": "high",
         "ocr_engine": "paddleocr-PP-OCRv4",
@@ -54,12 +49,7 @@
         "page": 4,
         "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
         "source_quote": "黄帝内經十八卷今有鍼經九卷素问九卷二九十八卷即内經也...明堂孔穴鍼灸治要...至為十二卷",
-        "ocr_evidence_keywords": [
-          "素问九卷",
-          "鍼經九卷",
-          "明堂孔穴",
-          "十二卷"
-        ],
+        "ocr_evidence_keywords": ["素问九卷", "鍼經九卷", "明堂孔穴", "十二卷"],
         "match_method": "ocr_keyword_lcs",
         "match_confidence": "high",
         "ocr_engine": "paddleocr-PP-OCRv4",
@@ -87,11 +77,7 @@
         "page": 4,
         "page_image_hash": "ff6e7df8994f9dfe8bfe7e1c78427273",
         "source_quote": "使事類相从...除其重複...其精要",
-        "ocr_evidence_keywords": [
-          "使事類相从",
-          "除其重複",
-          "精要"
-        ],
+        "ocr_evidence_keywords": ["使事類相从", "除其重複", "精要"],
         "match_method": "ocr_keyword_lcs",
         "match_confidence": "very_high",
         "ocr_engine": "paddleocr-PP-OCRv4",
@@ -119,11 +105,7 @@
         "page": 7,
         "page_image_hash": "ed388774fae740b54ba8cf7302824710",
         "source_quote": "鍼灸甲乙經卷之一...凡刺之法必先本於神血脉營氣精神此五藏之所藏",
-        "ocr_evidence_keywords": [
-          "鍼灸甲乙經卷之一",
-          "凡刺之法",
-          "血脉營氣精神"
-        ],
+        "ocr_evidence_keywords": ["鍼灸甲乙經卷之一", "凡刺之法", "血脉營氣精神"],
         "match_method": "ocr_keyword_lcs",
         "match_confidence": "medium",
         "ocr_engine": "paddleocr-PP-OCRv4",
@@ -151,12 +133,7 @@
         "page": 8,
         "page_image_hash": "9b528f25b6cc9c1ac3643f81394a11a8",
         "source_quote": "肝藏血血舍魂...心藏脉脉舍神...脾藏營營舍意...肺藏氣氣舍魄...是故五藏主藏精",
-        "ocr_evidence_keywords": [
-          "肝藏血血舍魂",
-          "心藏脉脉舍神",
-          "脾藏營",
-          "肺藏氣"
-        ],
+        "ocr_evidence_keywords": ["肝藏血血舍魂", "心藏脉脉舍神", "脾藏營", "肺藏氣"],
         "match_method": "ocr_keyword_lcs",
         "match_confidence": "high",
         "ocr_engine": "paddleocr-PP-OCRv4",

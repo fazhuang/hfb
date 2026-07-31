@@ -8,12 +8,12 @@
 
 Phase 0 只读补充审计的四维验收线按合约规定如下，本报告的 R1–R4 结论严格按此映射：
 
-| 维度 | 合约规定 | 审计内容 |
-|------|----------|----------|
-| **R1** | Git 状态 + 只读性 | 记录 `git status --short`、`git rev-parse HEAD`、`git rev-parse origin/master`、commit log；确认工作树清洁且 Phase 0 全程未产生任何代码修改 |
-| **R2** | Router 归属审计 | 对 `apps/frontend/src/router/index.ts` 逐行审计：确认修改内容、所属 commit、是否在 Task 012 范围内、变更性质（格式化 / 行为变更 / 历史遗留）、是否改变路由拓扑或权限 |
-| **R3** | 完整检查（Type Check + Unit Tests + Build + E2E） | 在当前原始 HEAD 上，不加任何代码修改，执行 `vue-tsc --noEmit`、`vitest run`、`vite build`、Task 012 专项 Playwright、Task 011 核心回归 Playwright，记录当次完整日志 |
-| **R4** | 报告完整性 | 审计报告自身是否包含全部必要条目：Baseline、HEAD、Router diff、Router commit attribution、changed-files 清单、R1–R4 结论、Type Check / Tests / Build / E2E 结果、问题列表（含影响等级）、建议修复范围、禁止修改范围。报告提交后 `git status --short` 为空 |
+| 维度   | 合约规定                                          | 审计内容                                                                                                                                                                                                                                                  |
+| ------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R1** | Git 状态 + 只读性                                 | 记录 `git status --short`、`git rev-parse HEAD`、`git rev-parse origin/master`、commit log；确认工作树清洁且 Phase 0 全程未产生任何代码修改                                                                                                               |
+| **R2** | Router 归属审计                                   | 对 `apps/frontend/src/router/index.ts` 逐行审计：确认修改内容、所属 commit、是否在 Task 012 范围内、变更性质（格式化 / 行为变更 / 历史遗留）、是否改变路由拓扑或权限                                                                                      |
+| **R3** | 完整检查（Type Check + Unit Tests + Build + E2E） | 在当前原始 HEAD 上，不加任何代码修改，执行 `vue-tsc --noEmit`、`vitest run`、`vite build`、Task 012 专项 Playwright、Task 011 核心回归 Playwright，记录当次完整日志                                                                                       |
+| **R4** | 报告完整性                                        | 审计报告自身是否包含全部必要条目：Baseline、HEAD、Router diff、Router commit attribution、changed-files 清单、R1–R4 结论、Type Check / Tests / Build / E2E 结果、问题列表（含影响等级）、建议修复范围、禁止修改范围。报告提交后 `git status --short` 为空 |
 
 ## Git State Snapshot (R1)
 
@@ -21,10 +21,10 @@ Phase 0 只读补充审计的四维验收线按合约规定如下，本报告的
 
 本报告严格区分两个基线：
 
-| 基线 | 含义 | 哈希 | 说明 |
-|------|------|------|------|
-| **被测代码基线** | Task 012 最终代码收敛点，全部 E2E/UT/Build 在此执行 | `4a6f7e7cdf4072a018a22280811e3d068cad3ae2` | `fix: Task 012 — overflow...`（Task 012 最终 commit） |
-| **Phase 0 文档前基线** | Phase 0 docs-only commit 之前的 HEAD | `ac03e95d4cbae6a3472b06744b8835da0f269349` | `docs: Phase 0 — Task 012 supplemental audit report`（前次报告提交） |
+| 基线                   | 含义                                                | 哈希                                       | 说明                                                                 |
+| ---------------------- | --------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| **被测代码基线**       | Task 012 最终代码收敛点，全部 E2E/UT/Build 在此执行 | `4a6f7e7cdf4072a018a22280811e3d068cad3ae2` | `fix: Task 012 — overflow...`（Task 012 最终 commit）                |
+| **Phase 0 文档前基线** | Phase 0 docs-only commit 之前的 HEAD                | `ac03e95d4cbae6a3472b06744b8835da0f269349` | `docs: Phase 0 — Task 012 supplemental audit report`（前次报告提交） |
 
 ### 审计前（本次审计开始时）
 
@@ -67,16 +67,16 @@ e0955d1 fix: Task 012 — definitive: sidebar stays in-flow at all widths; overf
 
 ### 只读性确认
 
-| 检查项 | 结论 |
-|--------|------|
-| 修改过源码文件 | ❌ 否 |
-| 修改过测试文件 | ❌ 否 |
-| 修改过 Router | ❌ 否 |
-| 修改过 API | ❌ 否 |
-| 修改过布局 | ❌ 否 |
-| 修改过 CSS | ❌ 否 |
-| 执行过 git stash / rebase / reset | ❌ 否 |
-| 执行过 git amend / force push | ❌ 否 |
+| 检查项                                                     | 结论  |
+| ---------------------------------------------------------- | ----- |
+| 修改过源码文件                                             | ❌ 否 |
+| 修改过测试文件                                             | ❌ 否 |
+| 修改过 Router                                              | ❌ 否 |
+| 修改过 API                                                 | ❌ 否 |
+| 修改过布局                                                 | ❌ 否 |
+| 修改过 CSS                                                 | ❌ 否 |
+| 执行过 git stash / rebase / reset                          | ❌ 否 |
+| 执行过 git amend / force push                              | ❌ 否 |
 | 仅新增/修改 docs/20-product/TASK_012_SUPPLEMENTAL_AUDIT.md | ✅ 是 |
 
 ## Router Attribution Audit (R2)
@@ -105,12 +105,14 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
 该 commit 在 `export default router` 之前新增两个 `router.afterEach` 钩子（+21 行，0 行删除）：
 
 1. **Document title hook（lines 311–317）**
+
    ```ts
    router.afterEach((to) => {
      const pageTitle = (to.meta.title as string) || '';
      document.title = pageTitle ? `${pageTitle} · HFB` : '皇甫谧数字人文平台';
    });
    ```
+
    每次导航后同步 `document.title`。注释标注 "Scroll behavior — Reset scroll to top" 但代码中未实现 scroll 逻辑。
 
 2. **Focus management hook（lines 319–329）**
@@ -118,7 +120,9 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
    router.afterEach(() => {
      requestAnimationFrame(() => {
        const main = document.querySelector<HTMLElement>('[data-main-content]');
-       if (main) { main.focus({ preventScroll: true }); }
+       if (main) {
+         main.focus({ preventScroll: true });
+       }
      });
    });
    ```
@@ -126,14 +130,14 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
 
 ### Commit Attribution
 
-| 属性 | 值 |
-|------|-----|
-| **修改所属 commit** | `bd5de45`（Task 012 首 commit） |
-| **是否在 Task 012 提交范围** | ✅ 是 |
-| **变更性质** | 行为变更 — 新增两个 `afterEach` 副作用钩子；非格式化；非历史遗留 |
-| **是否改变路由拓扑** | ❌ 否 — 所有 `path` / `name` / `redirect` / `children` 定义未变 |
-| **是否改变权限** | ❌ 否 — `beforeEach` auth guard 未变（lines 270–309 untouched） |
-| **是否改变导航后副作用** | ✅ 是 — 每次导航后 `document.title` 被重写，焦点被移至 `[data-main-content]`（若存在）。`afterEach` 不拦截或重定向导航，仅在导航完成后执行次级副作用 |
+| 属性                         | 值                                                                                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **修改所属 commit**          | `bd5de45`（Task 012 首 commit）                                                                                                                      |
+| **是否在 Task 012 提交范围** | ✅ 是                                                                                                                                                |
+| **变更性质**                 | 行为变更 — 新增两个 `afterEach` 副作用钩子；非格式化；非历史遗留                                                                                     |
+| **是否改变路由拓扑**         | ❌ 否 — 所有 `path` / `name` / `redirect` / `children` 定义未变                                                                                      |
+| **是否改变权限**             | ❌ 否 — `beforeEach` auth guard 未变（lines 270–309 untouched）                                                                                      |
+| **是否改变导航后副作用**     | ✅ 是 — 每次导航后 `document.title` 被重写，焦点被移至 `[data-main-content]`（若存在）。`afterEach` 不拦截或重定向导航，仅在导航完成后执行次级副作用 |
 
 ### Router 结论
 
@@ -152,10 +156,10 @@ $ git log --oneline bd5de45..HEAD -- apps/frontend/src/router/index.ts
 
 `router.afterEach` 焦点管理依赖 `[data-main-content]` 属性。该属性在 Task 012 中新增于两个布局：
 
-| 布局 | 文件 | 元素 |
-|------|------|------|
+| 布局              | 文件                                              | 元素                                                        |
+| ----------------- | ------------------------------------------------- | ----------------------------------------------------------- |
 | ResearchAppLayout | `apps/frontend/src/layouts/ResearchAppLayout.vue` | `<div class="ral-content" data-main-content tabindex="-1">` |
-| DefaultLayout | `apps/frontend/src/components/layout/AppMain.vue` | `<main class="app-main" data-main-content tabindex="-1">` |
+| DefaultLayout     | `apps/frontend/src/components/layout/AppMain.vue` | `<main class="app-main" data-main-content tabindex="-1">`   |
 
 当前所有路由均通过这两个布局之一渲染，因此 `[data-main-content]` 在所有路由上均可被 querySelector 命中。当前状态安全。
 
@@ -219,28 +223,28 @@ $ npx playwright test --config playwright.config.ts src/e2e/task012-interaction-
 
 当次执行完整摘要（2026-07-24 05:19–05:23 UTC）：
 
-| 测试类别 | 覆盖范围 | 结果 |
-|----------|----------|------|
-| Keyboard Navigation — ProjectList | Tab/Shift+Tab, Enter/Space on create button | ✅ 16/16 |
-| Keyboard Navigation — ProjectDetail | Enter on item, more-actions menu Enter/Escape | ✅ 8/8 |
-| Keyboard Navigation — Reports | List items keyboard-reachable | ✅ 4/4 |
-| Keyboard Navigation — Library | Tab search→filter→doc list, Enter on card | ✅ 8/8 |
-| Keyboard Navigation — Reader | Paragraph buttons, back button focusable | ✅ 8/8 |
-| Keyboard Navigation — Workflow | Question input keyboard reachable | ✅ 4/4 |
-| Focus — CreateProjectDialog | Auto-focus, Tab trap, Escape, Cancel restore | ✅ 16/16 |
-| Focus — DeleteProjectDialog | alertdialog, Escape, Cancel focus restore | ✅ 8/8 |
-| Focus — EditProjectDialog | Auto-focus title, Escape restore to triggerEl | ✅ 4/4 |
-| Responsive — no overflow | 4 viewports × 4 pages | ✅ 16/16 |
-| Responsive — project detail overflow | 4 viewports | ✅ 4/4 |
-| 200% Zoom | ProjectList, Library, Reports, Reader | ✅ 16/16 |
-| A11y — Form Labels | Library, ProjectList, CreateProjectDialog | ✅ 12/12 |
-| A11y — Dialog Roles | Create (dialog+aria-modal), Delete (alertdialog) | ✅ 8/8 |
-| A11y — Status Badges | icon child present (color independence) | ✅ 4/4 |
-| A11y — Reduced Motion | ProjectList, Library, Reports | ✅ 12/12 |
-| A11y — Focus Visible | global `:focus-visible` rule exists | ✅ 4/4 |
-| A11y — Content Overflow | Reader long text no horizontal overflow | ✅ 4/4 |
-| Cross-page focus behavior | Library→Reader→Back | ✅ 4/4 |
-| Workflow keyboard accessibility | Workflow page load + question input | ✅ 4/4 |
+| 测试类别                             | 覆盖范围                                         | 结果     |
+| ------------------------------------ | ------------------------------------------------ | -------- |
+| Keyboard Navigation — ProjectList    | Tab/Shift+Tab, Enter/Space on create button      | ✅ 16/16 |
+| Keyboard Navigation — ProjectDetail  | Enter on item, more-actions menu Enter/Escape    | ✅ 8/8   |
+| Keyboard Navigation — Reports        | List items keyboard-reachable                    | ✅ 4/4   |
+| Keyboard Navigation — Library        | Tab search→filter→doc list, Enter on card        | ✅ 8/8   |
+| Keyboard Navigation — Reader         | Paragraph buttons, back button focusable         | ✅ 8/8   |
+| Keyboard Navigation — Workflow       | Question input keyboard reachable                | ✅ 4/4   |
+| Focus — CreateProjectDialog          | Auto-focus, Tab trap, Escape, Cancel restore     | ✅ 16/16 |
+| Focus — DeleteProjectDialog          | alertdialog, Escape, Cancel focus restore        | ✅ 8/8   |
+| Focus — EditProjectDialog            | Auto-focus title, Escape restore to triggerEl    | ✅ 4/4   |
+| Responsive — no overflow             | 4 viewports × 4 pages                            | ✅ 16/16 |
+| Responsive — project detail overflow | 4 viewports                                      | ✅ 4/4   |
+| 200% Zoom                            | ProjectList, Library, Reports, Reader            | ✅ 16/16 |
+| A11y — Form Labels                   | Library, ProjectList, CreateProjectDialog        | ✅ 12/12 |
+| A11y — Dialog Roles                  | Create (dialog+aria-modal), Delete (alertdialog) | ✅ 8/8   |
+| A11y — Status Badges                 | icon child present (color independence)          | ✅ 4/4   |
+| A11y — Reduced Motion                | ProjectList, Library, Reports                    | ✅ 12/12 |
+| A11y — Focus Visible                 | global `:focus-visible` rule exists              | ✅ 4/4   |
+| A11y — Content Overflow              | Reader long text no horizontal overflow          | ✅ 4/4   |
+| Cross-page focus behavior            | Library→Reader→Back                              | ✅ 4/4   |
+| Workflow keyboard accessibility      | Workflow page load + question input              | ✅ 4/4   |
 
 ✅ **PASS — 184/184。零 failure、零 skip、零 fixme。全部 184 项在 4 viewport（Mobile 375×812 / Tablet 768×1024 / Desktop 1280×800 / Wide 1440×900）上通过。**
 
@@ -256,17 +260,17 @@ $ npx playwright test --config playwright.config.ts src/e2e/task011-navigation-c
 
 当次执行完整摘要（2026-07-24 05:23–05:27 UTC）：
 
-| Block | 描述 | 结果 |
-|-------|------|------|
-| A | Sequential navigation chain (A1–A4) | ✅ 16/16 |
-| B | Library → Reader → Library round-trip (B1–B3) | ✅ 12/12 |
-| C | Browser navigation — Back / Forward / Refresh (C1–C3) | ✅ 12/12 |
-| D | Logged-in Deep Link (D1–D3) | ✅ 12/12 |
-| E | Unauthenticated Deep Link → login redirect → restore (E1–E3) | ✅ 12/12 |
-| F | Primary Nav active state (F1–F4) | ✅ 16/16 |
-| G | Breadcrumb behavior (G1–G3) | ✅ 12/12 |
-| H | Back-navigation buttons (H1–H3) | ✅ 12/12 |
-| I | Cross-project isolation (I1–I3) | ✅ 12/12 |
+| Block | 描述                                                         | 结果     |
+| ----- | ------------------------------------------------------------ | -------- |
+| A     | Sequential navigation chain (A1–A4)                          | ✅ 16/16 |
+| B     | Library → Reader → Library round-trip (B1–B3)                | ✅ 12/12 |
+| C     | Browser navigation — Back / Forward / Refresh (C1–C3)        | ✅ 12/12 |
+| D     | Logged-in Deep Link (D1–D3)                                  | ✅ 12/12 |
+| E     | Unauthenticated Deep Link → login redirect → restore (E1–E3) | ✅ 12/12 |
+| F     | Primary Nav active state (F1–F4)                             | ✅ 16/16 |
+| G     | Breadcrumb behavior (G1–G3)                                  | ✅ 12/12 |
+| H     | Back-navigation buttons (H1–H3)                              | ✅ 12/12 |
+| I     | Cross-project isolation (I1–I3)                              | ✅ 12/12 |
 
 ✅ **PASS — 116/116。零 failure。**
 
@@ -274,13 +278,13 @@ $ npx playwright test --config playwright.config.ts src/e2e/task011-navigation-c
 
 ### R3 总结
 
-| 检查 | 命令 | 结果 |
-|------|------|------|
-| Type Check | `npx vue-tsc --noEmit` | ✅ 零错误 |
-| Unit Tests | `npx vitest run` | ✅ 371/371 (14 files, 8.92s) |
-| Build | `npx vite build` | ✅ 4.23s (363 modules) |
+| 检查         | 命令                                                             | 结果                                 |
+| ------------ | ---------------------------------------------------------------- | ------------------------------------ |
+| Type Check   | `npx vue-tsc --noEmit`                                           | ✅ 零错误                            |
+| Unit Tests   | `npx vitest run`                                                 | ✅ 371/371 (14 files, 8.92s)         |
+| Build        | `npx vite build`                                                 | ✅ 4.23s (363 modules)               |
 | Task 012 E2E | `npx playwright test ... task012-interaction-responsive.spec.ts` | ✅ 184/184 (4.3m, 0 fail/skip/fixme) |
-| Task 011 E2E | `npx playwright test ... task011-navigation-consistency.spec.ts` | ✅ 116/116 (3.6m, 0 fail) |
+| Task 011 E2E | `npx playwright test ... task011-navigation-consistency.spec.ts` | ✅ 116/116 (3.6m, 0 fail)            |
 
 ## Changed Files (47 files)
 
@@ -338,36 +342,36 @@ docs/TASK_012_COMPLETION_REPORT.md                               +180 new
 
 分类：
 
-| 类别 | 计数 |
-|------|------|
-| 新增文件 | 2（Task 012 E2E spec + 完成报告） |
-| 核心架构 | 4（router, ResearchAppLayout, AppMain, main.css） |
-| 组件 | 30 |
-| 页面 | 8 |
-| E2E 修改 | 1（Task 011 spec +24 lines） |
-| 单元测试修改 | 1（research-app-shell.test.ts ±4 lines） |
-| 视图 | 1（SearchView.vue） |
+| 类别         | 计数                                              |
+| ------------ | ------------------------------------------------- |
+| 新增文件     | 2（Task 012 E2E spec + 完成报告）                 |
+| 核心架构     | 4（router, ResearchAppLayout, AppMain, main.css） |
+| 组件         | 30                                                |
+| 页面         | 8                                                 |
+| E2E 修改     | 1（Task 011 spec +24 lines）                      |
+| 单元测试修改 | 1（research-app-shell.test.ts ±4 lines）          |
+| 视图         | 1（SearchView.vue）                               |
 
 ## Issues
 
-| # | 影响等级 | 文件 | 详情 |
-|---|----------|------|------|
-| P1 | **Low** | `apps/frontend/src/router/index.ts` L311–312 | `afterEach` #1 注释写 "Reset scroll to top" 但代码仅设置 `document.title`，未实现 `window.scrollTo` |
-| P2 | **Low** | `apps/frontend/src/layouts/ResearchAppLayout.vue` L65–66 | `onMounted(() => {})` 和 `onBeforeUnmount(() => {})` 空调用，历史迭代残留 |
-| P3 | **Style** | `apps/frontend/src/router/index.ts` L313, L322 | 两个 `afterEach` 可合并为单个钩子 |
-| P4 | **Flake** | `apps/frontend/src/e2e/task011-navigation-consistency.spec.ts:214` | 本次 116/116 全绿（含 B2），前序 run 中 B2 Tablet viewport 出现过 1 次 Page crashed，重跑即过，判定为间歇性 CI 资源竞争 |
-| P5 | **None** | `apps/frontend/src/components/layout/ResearchPrimaryNav.vue` | `sr-only` 类在 Task 012 前已存在；Task 012 仅改变使用方式（`v-if`→`:class`），此为 Task 011 nav reachability 的关键修复 |
-| P6 | **Medium** | `apps/frontend/src/layouts/ResearchAppLayout.vue` | `ral-mobile-toggle`（`position:fixed; z-index:300`）与 sidebar（始终 in-flow）的定位交叉是有意设计但需文档标注 |
+| #   | 影响等级   | 文件                                                               | 详情                                                                                                                    |
+| --- | ---------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| P1  | **Low**    | `apps/frontend/src/router/index.ts` L311–312                       | `afterEach` #1 注释写 "Reset scroll to top" 但代码仅设置 `document.title`，未实现 `window.scrollTo`                     |
+| P2  | **Low**    | `apps/frontend/src/layouts/ResearchAppLayout.vue` L65–66           | `onMounted(() => {})` 和 `onBeforeUnmount(() => {})` 空调用，历史迭代残留                                               |
+| P3  | **Style**  | `apps/frontend/src/router/index.ts` L313, L322                     | 两个 `afterEach` 可合并为单个钩子                                                                                       |
+| P4  | **Flake**  | `apps/frontend/src/e2e/task011-navigation-consistency.spec.ts:214` | 本次 116/116 全绿（含 B2），前序 run 中 B2 Tablet viewport 出现过 1 次 Page crashed，重跑即过，判定为间歇性 CI 资源竞争 |
+| P5  | **None**   | `apps/frontend/src/components/layout/ResearchPrimaryNav.vue`       | `sr-only` 类在 Task 012 前已存在；Task 012 仅改变使用方式（`v-if`→`:class`），此为 Task 011 nav reachability 的关键修复 |
+| P6  | **Medium** | `apps/frontend/src/layouts/ResearchAppLayout.vue`                  | `ral-mobile-toggle`（`position:fixed; z-index:300`）与 sidebar（始终 in-flow）的定位交叉是有意设计但需文档标注          |
 
 影响分布：0 Critical / 0 High / 1 Medium / 3 Low / 1 Style / 1 None。
 
 ## Allowed vs Forbidden Modification Scope
 
-| 文件 | 允许范围 | 禁止范围 |
-|------|----------|----------|
-| `apps/frontend/src/router/index.ts` | P1 注释修正 / scroll 实现；P3 钩子合并 | ❌ 路由定义、beforeEach guard |
-| `apps/frontend/src/layouts/ResearchAppLayout.vue` | P2 移除空 lifecycle hooks | ❌ sidebar in-flow、data-main-content、mobile-toggle、响应式断点 |
-| 其他 45 个文件 | ❌ 禁止修改 | N/A |
+| 文件                                              | 允许范围                               | 禁止范围                                                         |
+| ------------------------------------------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| `apps/frontend/src/router/index.ts`               | P1 注释修正 / scroll 实现；P3 钩子合并 | ❌ 路由定义、beforeEach guard                                    |
+| `apps/frontend/src/layouts/ResearchAppLayout.vue` | P2 移除空 lifecycle hooks              | ❌ sidebar in-flow、data-main-content、mobile-toggle、响应式断点 |
+| 其他 45 个文件                                    | ❌ 禁止修改                            | N/A                                                              |
 
 全局禁止：
 
@@ -382,12 +386,12 @@ docs/TASK_012_COMPLETION_REPORT.md                               +180 new
 
 ## Summary
 
-| 检查项 | 结果 |
-|--------|------|
-| R1: Git 状态 + 只读性 | ✅ **PASS** — 工作树 clean，Phase 0 全程未修改代码 |
-| R2: Router 归属审计 | ✅ **PASS** — `bd5de45` 新增 2 个 `afterEach` 钩子（+21 lines），不改变路由拓扑与权限，仅改变导航后副作用。在 Task 012 范围内，非格式化、非历史遗留。结论：不改变 path/name/redirect/children 或 beforeEach 权限；但 bd5de45 新增 afterEach，改变所有导航后的 title/focus 副作用 |
-| R3: Type Check + Unit Tests + Build + E2E 复验 | ✅ **PASS** — Type Check clean / 371 UT / Build 4.23s / Task 012 专项 184/184（零 fail/skip/fixme）/ Task 011 回归 116/116。全部用真实后端 (`127.0.0.1:8000`, health=200) + 真实种子数据 + `researcher` 账号复验 |
-| R4: 报告完整性 | ✅ **PASS** — 包含 Baseline、HEAD、Router diff、commit attribution、47-file 清单、R1–R4 逐项结论、6 项问题（含影响等级）、修复/禁止范围。提交后 `git status --short` 为空 |
+| 检查项                                         | 结果                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1: Git 状态 + 只读性                          | ✅ **PASS** — 工作树 clean，Phase 0 全程未修改代码                                                                                                                                                                                                                               |
+| R2: Router 归属审计                            | ✅ **PASS** — `bd5de45` 新增 2 个 `afterEach` 钩子（+21 lines），不改变路由拓扑与权限，仅改变导航后副作用。在 Task 012 范围内，非格式化、非历史遗留。结论：不改变 path/name/redirect/children 或 beforeEach 权限；但 bd5de45 新增 afterEach，改变所有导航后的 title/focus 副作用 |
+| R3: Type Check + Unit Tests + Build + E2E 复验 | ✅ **PASS** — Type Check clean / 371 UT / Build 4.23s / Task 012 专项 184/184（零 fail/skip/fixme）/ Task 011 回归 116/116。全部用真实后端 (`127.0.0.1:8000`, health=200) + 真实种子数据 + `researcher` 账号复验                                                                 |
+| R4: 报告完整性                                 | ✅ **PASS** — 包含 Baseline、HEAD、Router diff、commit attribution、47-file 清单、R1–R4 逐项结论、6 项问题（含影响等级）、修复/禁止范围。提交后 `git status --short` 为空                                                                                                        |
 
 **Phase 0 只读补充审计：PASS（以 R1–R4 全绿为准）。**
 

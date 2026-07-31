@@ -10,9 +10,9 @@ Migrated `ReportListPage` from placeholder to a real research report history lis
 
 ## Routes
 
-| Route | Page | Component |
-|-------|------|-----------|
-| `/reports` | Report List | `pages/reports/ReportListPage.vue` |
+| Route                                | Page            | Component                                        |
+| ------------------------------------ | --------------- | ------------------------------------------------ |
+| `/reports`                           | Report List     | `pages/reports/ReportListPage.vue`               |
 | `/research/:projectId/result/:runId` | Research Result | `pages/research/ResearchResultPage.vue` (frozen) |
 
 ## Domain Mapping
@@ -25,12 +25,14 @@ runId = ResearchRun.id
 ## Files Changed
 
 ### Backend (1 file)
+
 - `apps/backend/app/api/v4/research.py`
   - Added `GET /api/v4/research/reports` — aggregates runs across all user sessions
   - Helper `_derive_run_status()` — derives run_status from step_execution_trace
   - Helper `_derive_report_status()` — derives report_status from trace + output_artifacts
 
 ### Frontend (7 files)
+
 - `apps/frontend/src/composables/useResearchReports.ts` — NEW: data orchestration, fetch, pagination, status filter, export, race protection
 - `apps/frontend/src/pages/reports/ReportListPage.vue` — Replaced placeholder with full implementation
 - `apps/frontend/src/components/reports/ResearchReportsToolbar.vue` — NEW: status filter dropdown
@@ -39,6 +41,7 @@ runId = ResearchRun.id
 - `apps/frontend/src/components/reports/ResearchReportStatusBadge.vue` — NEW: dual-mode status badge
 
 ### Tests (2 files)
+
 - `apps/frontend/src/__tests__/research-reports-page.test.ts` — NEW: 20 unit tests
 - `tests/e2e/test_critical_journeys.py` — Added `TestResearchReportsPageE2E` class: 7 E2E tests + 2 fixtures
 
@@ -49,26 +52,30 @@ runId = ResearchRun.id
 Aggregates research runs across all of the current user's sessions.
 
 **Parameters:**
+
 - `page` (int, default 1)
 - `limit` (int, default 20)
 - `status` (str, optional): filter by report_status
 
 **Response:**
+
 ```json
 {
   "success": true,
   "data": {
-    "items": [{
-      "session_id": "uuid",
-      "session_title": "Research Session Title",
-      "run_id": "uuid",
-      "topic": "Research Question",
-      "run_status": "completed|failed|running|pending",
-      "report_status": "ready|missing|failed|pending",
-      "created_at": "ISO8601",
-      "completed_at": "ISO8601|null",
-      "workflow_type": "full_research_flow"
-    }],
+    "items": [
+      {
+        "session_id": "uuid",
+        "session_title": "Research Session Title",
+        "run_id": "uuid",
+        "topic": "Research Question",
+        "run_status": "completed|failed|running|pending",
+        "report_status": "ready|missing|failed|pending",
+        "created_at": "ISO8601",
+        "completed_at": "ISO8601|null",
+        "workflow_type": "full_research_flow"
+      }
+    ],
     "total": 5,
     "page": 1,
     "limit": 20
@@ -79,12 +86,14 @@ Aggregates research runs across all of the current user's sessions.
 ## Status Derivation
 
 ### run_status
+
 - Any step `failed` → `failed`
 - Any step `running` or `pending` → `running`
 - All steps `completed` → `completed`
 - No steps → `pending`
 
 ### report_status
+
 - `report_generation` step `failed` → `failed`
 - `report_generation` step missing or `pending`/`running` → `pending`
 - `report_generation` completed but `output_artifacts.markdown` empty → `missing`
@@ -99,6 +108,7 @@ Aggregates research runs across all of the current user's sessions.
 ## States
 
 ### Page States
+
 - `loading` — during API fetch
 - `empty` — no reports at all
 - `empty-filtered` — no results for current status filter (with clear-filter action)
@@ -106,6 +116,7 @@ Aggregates research runs across all of the current user's sessions.
 - `error` — API failure (with retry)
 
 ### Report States
+
 - `run pending` — workflow not started
 - `run running` — workflow in progress
 - `run failed` — workflow step failed
@@ -131,6 +142,7 @@ Aggregates research runs across all of the current user's sessions.
 ## Test Coverage
 
 ### Frontend Unit (20 tests)
+
 - B1: Page states (loading, empty, error, ready) — 4 tests
 - B2: Status display (run/report badges, view link visibility, export button visibility) — 4 tests
 - B3: Navigation (real session_id/run_id in links, multi-session links) — 2 tests
@@ -141,6 +153,7 @@ Aggregates research runs across all of the current user's sessions.
 - B8: Contract (correct API endpoint, no project_id, real IDs) — 3 tests
 
 ### E2E Browser (7 tests)
+
 - Real login + report list loads with own reports
 - View report link uses real session_id/run_id
 - Click view → navigate to frozen ResearchResultPage
@@ -150,6 +163,7 @@ Aggregates research runs across all of the current user's sessions.
 - New user sees empty state
 
 ### Frozen Tests (all passing)
+
 - Frontend: 303→323 tests (12 files, all passing)
 - RBAC: 31/31 PASS (TestWorkspaceApiIsolation)
 - CrossProjectIsolation: 6/6 PASS

@@ -31,10 +31,7 @@
       </article>
     </div>
 
-    <div
-      v-if="comparison && comparison.comparison.operations.length"
-      class="vc-diff-table-wrap"
-    >
+    <div v-if="comparison && comparison.comparison.operations.length" class="vc-diff-table-wrap">
       <table class="vc-diff-table">
         <thead>
           <tr>
@@ -44,11 +41,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(op, idx) in comparison.comparison.operations"
-            :key="idx"
-          >
-            <td><span class="vc-diff-type">{{ op.op }}</span></td>
+          <tr v-for="(op, idx) in comparison.comparison.operations" :key="idx">
+            <td>
+              <span class="vc-diff-type">{{ op.op }}</span>
+            </td>
             <td>{{ op.source_text || '—' }}</td>
             <td>{{ op.target_text || '—' }}</td>
           </tr>

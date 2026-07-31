@@ -32,11 +32,13 @@ tags:
 ## 前置条件
 
 ### 环境
+
 - Python 3.13+
 - 网络可访问 OpenAlex、Crossref、CORE、PubMed、Internet Archive
 - `.env` 中配置了 `CONTACT_EMAIL`
 
 ### 可选但推荐
+
 - `.env` 中配置 `CORE_API_KEY`（否则 CORE 可能返回 429）
 - 独立的 trial 数据库（默认为 `trial_ingestion.db` SQLite，与生产隔离）
 
@@ -67,6 +69,7 @@ python3 scripts/trial_run_ingestion.py --json > trial_result.json
 ```
 
 Dry-run 模式会：
+
 - 从每个来源拉取元数据
 - 在内存中执行去重
 - 打印汇总报告和样本条目
@@ -76,12 +79,12 @@ Dry-run 模式会：
 
 关注以下指标：
 
-| 指标 | 健康值 | 需关注 |
-|------|--------|--------|
-| Jobs OK 率 | ≥ 80% | < 70% |
-| 去重率 | 20-60% | < 5%（可能重复采集） |
-| 单源错误率 | < 20% | > 30% |
-| 唯一记录数 | > 50 | < 20（关键词需调整） |
+| 指标       | 健康值 | 需关注               |
+| ---------- | ------ | -------------------- |
+| Jobs OK 率 | ≥ 80%  | < 70%                |
+| 去重率     | 20-60% | < 5%（可能重复采集） |
+| 单源错误率 | < 20%  | > 30%                |
+| 唯一记录数 | > 50   | < 20（关键词需调整） |
 
 ### 步骤 4：Live 写入（可选，需确认）
 
@@ -113,25 +116,25 @@ sqlite3 trial_ingestion.db "SELECT title, source, year FROM papers LIMIT 10;"
 
 试运行使用 15 个种子关键词，分 3 组：
 
-| 组 | 术语 | 目的 |
-|----|------|---------|
-| **核心精确** | 皇甫谧、针灸甲乙经、Huangfu Mi、Zhenjiu Jiayi Jing | 高精度，验证主要目标 |
-| **英文扩展** | A-B Classic of Acupuncture、Jiayi Jing、Huangfu Mi acupuncture | 西方学术文献召回 |
-| **中文扩展** | 甲乙经 针灸、皇甫谧 医学、皇甫谧 文献 | 中文学术文献召回 |
-| **相关交叉** | 黄帝内经 针灸、王焘 外台秘要 针灸、孙思邈 千金要方 针灸、张仲景 伤寒论 针灸 | 相关文献广度 |
-| **学科框架** | early Chinese medical literature acupuncture | 中医文献学框架 |
+| 组           | 术语                                                                        | 目的                 |
+| ------------ | --------------------------------------------------------------------------- | -------------------- |
+| **核心精确** | 皇甫谧、针灸甲乙经、Huangfu Mi、Zhenjiu Jiayi Jing                          | 高精度，验证主要目标 |
+| **英文扩展** | A-B Classic of Acupuncture、Jiayi Jing、Huangfu Mi acupuncture              | 西方学术文献召回     |
+| **中文扩展** | 甲乙经 针灸、皇甫谧 医学、皇甫谧 文献                                       | 中文学术文献召回     |
+| **相关交叉** | 黄帝内经 针灸、王焘 外台秘要 针灸、孙思邈 千金要方 针灸、张仲景 伤寒论 针灸 | 相关文献广度         |
+| **学科框架** | early Chinese medical literature acupuncture                                | 中医文献学框架       |
 
 ## 速率限制与错误处理
 
 ### 已知行为
 
-| 来源 | 限制 | 表现 |
-|------|------|------|
-| OpenAlex | 10 req/s 匿名 | 偶发 403 Cloudflare 拦截（已内置重试） |
-| Crossref | 50 req/s | Polite pool，一般稳定 |
-| CORE | 无 API key 时受限 | 中文查询 429，需配置 `CORE_API_KEY` |
-| PubMed | 3 req/s（无 key） | 稳定，Europe PMC 优先 |
-| Internet Archive | 无明确限制 | 皇甫谧主题通常返回 0 结果 |
+| 来源             | 限制              | 表现                                   |
+| ---------------- | ----------------- | -------------------------------------- |
+| OpenAlex         | 10 req/s 匿名     | 偶发 403 Cloudflare 拦截（已内置重试） |
+| Crossref         | 50 req/s          | Polite pool，一般稳定                  |
+| CORE             | 无 API key 时受限 | 中文查询 429，需配置 `CORE_API_KEY`    |
+| PubMed           | 3 req/s（无 key） | 稳定，Europe PMC 优先                  |
+| Internet Archive | 无明确限制        | 皇甫谧主题通常返回 0 结果              |
 
 ### 故障排查
 

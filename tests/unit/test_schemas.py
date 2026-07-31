@@ -1,6 +1,7 @@
 """
 Tests for Pydantic schemas — validation edge cases (Sprint 3 scope).
 """
+
 import pytest
 from app.schemas.common import PaginationParams
 from app.schemas.document import DocumentCreate
@@ -37,14 +38,16 @@ class TestPersonSchema:
             PersonCreate(name="")
 
     def test_brief_from_attributes(self):
-        p = PersonBrief.model_validate({
-            "id": "00000000-0000-0000-0000-000000000001",
-            "name": "测试",
-            "name_zh": None,
-            "dynasty": "汉",
-            "birth_year": None,
-            "death_year": None,
-        })
+        p = PersonBrief.model_validate(
+            {
+                "id": "00000000-0000-0000-0000-000000000001",
+                "name": "测试",
+                "name_zh": None,
+                "dynasty": "汉",
+                "birth_year": None,
+                "death_year": None,
+            }
+        )
         assert p.name == "测试"
 
 

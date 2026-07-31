@@ -1,5 +1,5 @@
 ---
-title: "[ARCHIVED] Project Constitution (Legacy)"
+title: '[ARCHIVED] Project Constitution (Legacy)'
 document_id: HFB-ARCH-GOV-0002
 version: 0.1.0
 status: Retired
@@ -79,13 +79,13 @@ superseded_by:
 
 ## 5. 质量门禁
 
-| # | 条件 | 阻塞级别 |
-|---|---|---|
-| 1 | Codex 审计无 Critical 问题 | 阻塞合并 |
-| 2 | 新 API 有完整文档 | 阻塞合并 |
-| 3 | 数据库变更附 ER 图 | 阻塞合并 |
-| 4 | UI 变更通过 Gemini 学术评审 | 阻塞合并（UI 相关） |
-| 5 | 无未解决的 Review 意见 | 阻塞合并 |
+| #   | 条件                        | 阻塞级别            |
+| --- | --------------------------- | ------------------- |
+| 1   | Codex 审计无 Critical 问题  | 阻塞合并            |
+| 2   | 新 API 有完整文档           | 阻塞合并            |
+| 3   | 数据库变更附 ER 图          | 阻塞合并            |
+| 4   | UI 变更通过 Gemini 学术评审 | 阻塞合并（UI 相关） |
+| 5   | 无未解决的 Review 意见      | 阻塞合并            |
 
 ## 6. 禁止事项
 

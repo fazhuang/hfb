@@ -75,9 +75,12 @@ const lineage = computed((): LineageState => {
 
 const badgeClass = computed(() => {
   switch (lineage.value.status) {
-    case 'full': return 'els-badge--full';
-    case 'partial': return 'els-badge--partial';
-    case 'minimal': return 'els-badge--minimal';
+    case 'full':
+      return 'els-badge--full';
+    case 'partial':
+      return 'els-badge--partial';
+    case 'minimal':
+      return 'els-badge--minimal';
   }
 });
 

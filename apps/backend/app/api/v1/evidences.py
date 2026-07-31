@@ -23,6 +23,7 @@ router = APIRouter(tags=["Evidences"])
 # Schemas
 # ---------------------------------------------------------------------------
 
+
 class SourceRefPayload(BaseModel):
     """Optional SourceRef payload embedded in evidence creation."""
 
@@ -37,7 +38,9 @@ class SourceRefPayload(BaseModel):
 class EvidenceCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
     description: str = Field(...)
-    evidence_level: str = Field(..., description="LEVEL_1 | LEVEL_2 | LEVEL_3 | LEVEL_4")
+    evidence_level: str = Field(
+        ..., description="LEVEL_1 | LEVEL_2 | LEVEL_3 | LEVEL_4"
+    )
     source_ref: SourceRefPayload | None = None
     source_passage_id: str | None = None
 

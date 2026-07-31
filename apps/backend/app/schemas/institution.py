@@ -4,6 +4,7 @@ Institution Pydantic schemas — Create, Update, Response.
 Type field validated against InstitutionType enum.
 Name field requires non-empty, non-whitespace content.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

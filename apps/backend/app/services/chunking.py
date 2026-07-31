@@ -4,6 +4,7 @@ Paragraph-based text chunking — deterministic, no ML required.
 Produces contiguous, non-overlapping chunks split on paragraph boundaries.
 If a single paragraph exceeds max_chars, falls back to fixed-size splitting.
 """
+
 from __future__ import annotations
 
 
@@ -141,4 +142,4 @@ def _split_long_paragraph(text: str, max_chars: int) -> list[str]:
 
 def _char_split(text: str, max_chars: int) -> list[str]:
     """Last resort: split by fixed character count."""
-    return [text[i:i + max_chars] for i in range(0, len(text), max_chars)]
+    return [text[i : i + max_chars] for i in range(0, len(text), max_chars)]

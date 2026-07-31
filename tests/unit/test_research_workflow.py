@@ -309,14 +309,24 @@ async def test_replay_hash_not_weakened_by_empty_traces(
     ]
 
     await wf.persist_research_run(
-        session_id=session.id, run_id="run-hash-a", topic="Topic A",
-        workflow_type="full_research_flow", steps=[],
-        output_artifacts={}, retrieval_snapshot=snapshot, immutable_traces=[],
+        session_id=session.id,
+        run_id="run-hash-a",
+        topic="Topic A",
+        workflow_type="full_research_flow",
+        steps=[],
+        output_artifacts={},
+        retrieval_snapshot=snapshot,
+        immutable_traces=[],
     )
     await wf.persist_research_run(
-        session_id=session.id, run_id="run-hash-b", topic="Topic B",
-        workflow_type="full_research_flow", steps=[],
-        output_artifacts={}, retrieval_snapshot=snapshot, immutable_traces=[],
+        session_id=session.id,
+        run_id="run-hash-b",
+        topic="Topic B",
+        workflow_type="full_research_flow",
+        steps=[],
+        output_artifacts={},
+        retrieval_snapshot=snapshot,
+        immutable_traces=[],
     )
 
     runs = await wf.get_research_runs(session.id)

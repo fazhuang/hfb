@@ -11,6 +11,7 @@ Sprint 3 P0: Adds structured corpus evidence columns to entity_relations.
   - evidence_citation: formatted citation [document_id:chunk_id]
 Also adds a dedup index.
 """
+
 from __future__ import annotations
 
 from collections.abc import Sequence

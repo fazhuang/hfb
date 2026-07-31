@@ -89,18 +89,22 @@ async def db_session() -> AsyncGenerator[AsyncSession, None]:
         )
         session.add(test_chapter)
         await session.flush()
-        test_version = Version(id="test-version-1", book_id=test_book.id, version_name="Test Version")
+        test_version = Version(
+            id="test-version-1", book_id=test_book.id, version_name="Test Version"
+        )
         session.add(test_version)
         await session.flush()
 
         for pid in ("pass-test-1", "pass-test-2", "pass-test-3"):
-            session.add(Passage(
-                id=pid,
-                chapter_id=test_chapter.id,
-                version_id=test_version.id,
-                content_text=f"Passage {pid}",
-                order=int(pid[-1]),
-            ))
+            session.add(
+                Passage(
+                    id=pid,
+                    chapter_id=test_chapter.id,
+                    version_id=test_version.id,
+                    content_text=f"Passage {pid}",
+                    order=int(pid[-1]),
+                )
+            )
         for pid_obj in ("person-test-1", "person-test-2", "person-test-3"):
             session.add(PersonModel(id=pid_obj, name=f"Person {pid_obj}"))
         await session.flush()

@@ -14,6 +14,6 @@ priority: P1
 
 跨系统或影响多角色的架构变更在此评审。RFC 状态遵循 `draft → review → accepted → implemented → retired`；接受后涉及架构取舍的部分由 ADR 固化。
 
-| # | RFC | 状态 | 说明 |
-| --- | --- | --- | --- |
+| #    | RFC                                                                                    | 状态  | 说明                                         |
+| ---- | -------------------------------------------------------------------------------------- | ----- | -------------------------------------------- |
 | 0001 | [Research Passport and quality gates](RFC-0001-Research-Passport-and-Quality-Gates.md) | Draft | 研究运行持久化、人工关口、证据审计与动态权限 |

@@ -1,6 +1,7 @@
 """
 Repositories for Book, Version, Chapter, Passage, Paper, Image entities.
 """
+
 from __future__ import annotations
 
 from app.models.book import Book

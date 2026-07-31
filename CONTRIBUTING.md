@@ -68,18 +68,21 @@ claude
 ## Coding Standards
 
 ### Python
+
 - Use `ruff` for linting and formatting
 - Type hints required for all function signatures
 - Follow `mypy` strict mode
 - 120 character line limit
 
 ### TypeScript / Vue
+
 - Use `eslint` flat config
 - `prettier` for formatting
 - Vue 3 Composition API with `<script setup lang="ts">`
 - 100 character line limit
 
 ### Markdown
+
 - UTF-8 encoding
 - LF line endings
 - Chinese and English bilingual where appropriate

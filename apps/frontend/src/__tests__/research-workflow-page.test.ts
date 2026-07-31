@@ -47,13 +47,13 @@ vi.mock('@/api/client', () => ({
 // Constants — valid UUID v4 required by guardId()
 // ---------------------------------------------------------------------------
 const PROJECT_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
-const OTHER_ID   = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
+const OTHER_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 
-const SESSION_URL   = `/api/v1/workspace/sessions/${PROJECT_ID}`;
-const RUNS_URL      = `/api/v4/research/session/${PROJECT_ID}/runs`;
+const SESSION_URL = `/api/v1/workspace/sessions/${PROJECT_ID}`;
+const RUNS_URL = `/api/v4/research/session/${PROJECT_ID}/runs`;
 const OTHER_RUNS_URL = `/api/v4/research/session/${OTHER_ID}/runs`;
-const STORAGE_KEY   = `hfb.research.${PROJECT_ID}.pending-question`;
-const OTHER_KEY     = `hfb.research.${OTHER_ID}.pending-question`;
+const STORAGE_KEY = `hfb.research.${PROJECT_ID}.pending-question`;
+const OTHER_KEY = `hfb.research.${OTHER_ID}.pending-question`;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -64,17 +64,43 @@ function makeRouter() {
     routes: [
       { path: '/', component: { template: '<div/>' }, name: 'home' },
       { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
-      { path: '/research/:projectId', component: { template: '<div/>' }, name: 'research-project-detail' },
-      { path: '/research/:projectId/workspace', component: { template: '<div/>' }, name: 'research-project-workspace' },
-      { path: '/research/:projectId/workflow', component: { template: '<div/>' }, name: 'research-project-workflow' },
-      { path: '/research/:projectId/result/:runId', component: { template: '<div/>' }, name: 'research-project-result' },
+      {
+        path: '/research/:projectId',
+        component: { template: '<div/>' },
+        name: 'research-project-detail',
+      },
+      {
+        path: '/research/:projectId/workspace',
+        component: { template: '<div/>' },
+        name: 'research-project-workspace',
+      },
+      {
+        path: '/research/:projectId/workflow',
+        component: { template: '<div/>' },
+        name: 'research-project-workflow',
+      },
+      {
+        path: '/research/:projectId/result/:runId',
+        component: { template: '<div/>' },
+        name: 'research-project-result',
+      },
     ],
   });
   return router;
 }
 
 function sessionResponse(id = PROJECT_ID, title = '经络研究') {
-  return { data: { data: { id, title, context_notes: null, created_at: '2026-07-01T00:00:00', updated_at: '2026-07-15T00:00:00' } } };
+  return {
+    data: {
+      data: {
+        id,
+        title,
+        context_notes: null,
+        created_at: '2026-07-01T00:00:00',
+        updated_at: '2026-07-15T00:00:00',
+      },
+    },
+  };
 }
 
 function otherSessionResponse() {
@@ -92,10 +118,19 @@ function workflowSuccessResponse(runId = 'run-001', topic = '经络') {
           { name: 'topic_selection', status: 'completed', result: { topic, sub_questions: 3 } },
           { name: 'literature_retrieval', status: 'completed', result: { themes: 2, records: 5 } },
           { name: 'evidence_synthesis', status: 'completed', result: { sections: 2, claims: 5 } },
-          { name: 'report_generation', status: 'completed', result: { sections: 2, title: `研究报告：${topic}` } },
+          {
+            name: 'report_generation',
+            status: 'completed',
+            result: { sections: 2, title: `研究报告：${topic}` },
+          },
           { name: 'citation_export', status: 'completed', result: { total_citations: 3 } },
         ],
-        traceability: { query_id: runId, trace_ids: ['tid-1', 'tid-2', 'tid-3'], citation_count: 3, source_documents: ['doc-01'] },
+        traceability: {
+          query_id: runId,
+          trace_ids: ['tid-1', 'tid-2', 'tid-3'],
+          citation_count: 3,
+          source_documents: ['doc-01'],
+        },
       },
       message: 'ok',
     },
@@ -106,35 +141,75 @@ function runsResponse(runId = 'run-001', topic = '经络') {
   return {
     data: {
       data: {
-        runs: [{
-          run_id: runId,
-          topic,
-          completed_at: '2026-07-17T10:00:00',
-          step_execution_trace: [
-            { name: 'topic_selection', status: 'completed' },
-            { name: 'literature_retrieval', status: 'completed' },
-            { name: 'evidence_synthesis', status: 'completed' },
-            { name: 'report_generation', status: 'completed' },
-            { name: 'citation_export', status: 'completed' },
-          ],
-          output_artifacts: {
-            markdown: `# 研究报告：${topic}\n\n检索快照记录数: 1\n综合证据条数: 1\n报告段落数: 1`,
-            artifact_id: 'abc123def456',
-            citations: [
-              { trace_id: 'tid-1', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: '经络者，所以行血气而营阴阳。' },
+        runs: [
+          {
+            run_id: runId,
+            topic,
+            completed_at: '2026-07-17T10:00:00',
+            step_execution_trace: [
+              { name: 'topic_selection', status: 'completed' },
+              { name: 'literature_retrieval', status: 'completed' },
+              { name: 'evidence_synthesis', status: 'completed' },
+              { name: 'report_generation', status: 'completed' },
+              { name: 'citation_export', status: 'completed' },
             ],
+            output_artifacts: {
+              markdown: `# 研究报告：${topic}\n\n检索快照记录数: 1\n综合证据条数: 1\n报告段落数: 1`,
+              artifact_id: 'abc123def456',
+              citations: [
+                {
+                  trace_id: 'tid-1',
+                  citation_text: '[doc-01:chk-01]',
+                  document_id: 'doc-01',
+                  quote: '经络者，所以行血气而营阴阳。',
+                },
+              ],
+            },
+            replay_manifest: {
+              retrieval_snapshot: [
+                {
+                  trace_id: 'tid-1',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-01',
+                  claim_text: '经络是人体运行气血的通道',
+                  quote: '经络者，所以行血气而营阴阳。',
+                  citation_text: '[doc-01:chk-01]',
+                  source_ref_title: '针灸甲乙经',
+                  source_ref_url: 'https://example.com/ref1',
+                  source_ref_id: 'src-ref-001',
+                },
+                {
+                  trace_id: 'tid-2',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-02',
+                  claim_text: '经脉为里，支而横者为络',
+                  quote: '经脉为里，支而横者为络。',
+                  citation_text: '[doc-01:chk-02]',
+                },
+              ],
+              traces: [
+                {
+                  trace_id: 'tid-1',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-01',
+                  passage_id: 'passage-01',
+                  provenance_kind: 'retrieval',
+                  retrieval_score: 0.95,
+                  retrieval_method: 'ili_keyword_search',
+                },
+                {
+                  trace_id: 'tid-2',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-02',
+                  passage_id: 'passage-02',
+                  provenance_kind: 'retrieval',
+                  retrieval_score: 0.88,
+                  retrieval_method: 'ili_keyword_search',
+                },
+              ],
+            },
           },
-          replay_manifest: {
-            retrieval_snapshot: [
-              { trace_id: 'tid-1', document_id: 'doc-01', chunk_id: 'chk-01', claim_text: '经络是人体运行气血的通道', quote: '经络者，所以行血气而营阴阳。', citation_text: '[doc-01:chk-01]', source_ref_title: '针灸甲乙经', source_ref_url: 'https://example.com/ref1', source_ref_id: 'src-ref-001' },
-              { trace_id: 'tid-2', document_id: 'doc-01', chunk_id: 'chk-02', claim_text: '经脉为里，支而横者为络', quote: '经脉为里，支而横者为络。', citation_text: '[doc-01:chk-02]' },
-            ],
-            traces: [
-              { trace_id: 'tid-1', document_id: 'doc-01', chunk_id: 'chk-01', passage_id: 'passage-01', provenance_kind: 'retrieval', retrieval_score: 0.95, retrieval_method: 'ili_keyword_search' },
-              { trace_id: 'tid-2', document_id: 'doc-01', chunk_id: 'chk-02', passage_id: 'passage-02', provenance_kind: 'retrieval', retrieval_score: 0.88, retrieval_method: 'ili_keyword_search' },
-            ],
-          },
-        }],
+        ],
       },
     },
   };
@@ -144,18 +219,28 @@ function noEvidenceRunsResponse() {
   return {
     data: {
       data: {
-        runs: [{
-          run_id: 'run-empty', topic: 'xyz', completed_at: '2026-07-17T10:00:00',
-          step_execution_trace: [
-            { name: 'topic_selection', status: 'completed' },
-            { name: 'literature_retrieval', status: 'completed', result: { themes: 0, records: 0 } },
-            { name: 'evidence_synthesis', status: 'pending' },
-            { name: 'report_generation', status: 'pending' },
-            { name: 'citation_export', status: 'pending' },
-          ],
-          output_artifacts: { markdown: '# 研究报告：xyz\n\n检索快照记录数: 0\n综合证据条数: 0\n报告段落数: 0' },
-          replay_manifest: null,
-        }],
+        runs: [
+          {
+            run_id: 'run-empty',
+            topic: 'xyz',
+            completed_at: '2026-07-17T10:00:00',
+            step_execution_trace: [
+              { name: 'topic_selection', status: 'completed' },
+              {
+                name: 'literature_retrieval',
+                status: 'completed',
+                result: { themes: 0, records: 0 },
+              },
+              { name: 'evidence_synthesis', status: 'pending' },
+              { name: 'report_generation', status: 'pending' },
+              { name: 'citation_export', status: 'pending' },
+            ],
+            output_artifacts: {
+              markdown: '# 研究报告：xyz\n\n检索快照记录数: 0\n综合证据条数: 0\n报告段落数: 0',
+            },
+            replay_manifest: null,
+          },
+        ],
       },
     },
   };
@@ -177,7 +262,13 @@ describe('ResearchWorkflowPage', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     mockGet.mockImplementation(async (url: string) => {
-      if (url === SESSION_URL && !url.includes('/runs') && !url.includes('/notes') && !url.includes('/citations') && !url.includes('/history')) {
+      if (
+        url === SESSION_URL &&
+        !url.includes('/runs') &&
+        !url.includes('/notes') &&
+        !url.includes('/citations') &&
+        !url.includes('/history')
+      ) {
         return sessionResponse();
       }
       return { data: { data: {} } };
@@ -195,7 +286,12 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -208,7 +304,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('projectId equals ResearchSession.id in API calls', async () => {
     mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -221,7 +322,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('renders step navigation with 5 steps', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -239,7 +345,12 @@ describe('ResearchWorkflowPage', () => {
     sessionStorage.setItem(STORAGE_KEY, '针灸甲乙经中的经络理论');
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -255,7 +366,12 @@ describe('ResearchWorkflowPage', () => {
     sessionStorage.setItem(OTHER_KEY, 'other question');
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -271,7 +387,12 @@ describe('ResearchWorkflowPage', () => {
     sessionStorage.setItem(STORAGE_KEY, 'test question');
 
     mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -287,7 +408,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('prevents moving to selection with empty question', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
@@ -311,21 +437,32 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     expect(mockPost).toHaveBeenCalledWith(
       '/api/v4/research/workflow',
-      expect.objectContaining({ session_id: PROJECT_ID, topic: '经络', workflow_type: 'full_research_flow' }),
+      expect.objectContaining({
+        session_id: PROJECT_ID,
+        topic: '经络',
+        workflow_type: 'full_research_flow',
+      }),
       expect.objectContaining({ timeout: 120000 }),
     );
   });
@@ -339,18 +476,26 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
     await flushPromises();
 
-    const wfCall = mockPost.mock.calls.find((c: Array<any>) => c[0] === '/api/v4/research/workflow');
+    const wfCall = mockPost.mock.calls.find(
+      (c: Array<any>) => c[0] === '/api/v4/research/workflow',
+    );
     expect(wfCall).toBeTruthy();
     expect(wfCall![1].session_id).toBe(PROJECT_ID);
   });
@@ -368,11 +513,17 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
@@ -382,7 +533,9 @@ describe('ResearchWorkflowPage', () => {
     await btn.trigger('click');
     await flushPromises();
 
-    const wfCalls = mockPost.mock.calls.filter((c: Array<any>) => c[0] === '/api/v4/research/workflow');
+    const wfCalls = mockPost.mock.calls.filter(
+      (c: Array<any>) => c[0] === '/api/v4/research/workflow',
+    );
     expect(wfCalls.length).toBe(1);
   });
 
@@ -402,11 +555,17 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
@@ -416,9 +575,12 @@ describe('ResearchWorkflowPage', () => {
     await btn.trigger('click');
     // Immediately click again (no await in between) — should be blocked by function-level guard
     await btn.trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
-    const wfCalls = mockPost.mock.calls.filter((c: Array<any>) => c[0] === '/api/v4/research/workflow');
+    const wfCalls = mockPost.mock.calls.filter(
+      (c: Array<any>) => c[0] === '/api/v4/research/workflow',
+    );
     expect(wfCalls.length).toBe(1);
   });
 
@@ -430,11 +592,17 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
@@ -450,7 +618,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('does not display fake percentage progress', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
     await flushPromises();
@@ -460,7 +633,8 @@ describe('ResearchWorkflowPage', () => {
   it('does not display staged loading messages based on elapsed time', async () => {
     // AnalysisPendingState should NOT show "正在检索文献" / "正在综合证据" / "正在生成研究报告"
     // It should show a single unified message
-    const { default: Aps } = await import('@/components/research/workflow/AnalysisPendingState.vue');
+    const { default: Aps } =
+      await import('@/components/research/workflow/AnalysisPendingState.vue');
     const wrapper = mount(Aps, {
       props: { active: true },
       global: { plugins: [i18n] },
@@ -478,7 +652,8 @@ describe('ResearchWorkflowPage', () => {
   });
 
   it('does not use setInterval for backend step inference in AnalysisPendingState', async () => {
-    const { default: Aps } = await import('@/components/research/workflow/AnalysisPendingState.vue');
+    const { default: Aps } =
+      await import('@/components/research/workflow/AnalysisPendingState.vue');
     const wrapper = mount(Aps, {
       props: { active: true },
       global: { plugins: [i18n] },
@@ -491,7 +666,10 @@ describe('ResearchWorkflowPage', () => {
   // 6. Evidence/Citation mapping
   // =========================================================================
 
-  async function mountAndRunWorkflow(runsFn: typeof runsResponse | typeof noEvidenceRunsResponse = runsResponse, question = '经络') {
+  async function mountAndRunWorkflow(
+    runsFn: typeof runsResponse | typeof noEvidenceRunsResponse = runsResponse,
+    question = '经络',
+  ) {
     mockPost.mockResolvedValueOnce(workflowSuccessResponse());
     mockGet.mockImplementation(async (url: string) => {
       if (url === SESSION_URL) return sessionResponse();
@@ -500,16 +678,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue(question);
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     return wrapper;
   }
 
@@ -595,14 +780,19 @@ describe('ResearchWorkflowPage', () => {
     const wrapper = await mountAndRunWorkflow();
 
     const actionBtns = wrapper.findAll('.ers-action-btn');
-    if (actionBtns.length > 0) { await actionBtns[0]!.trigger('click'); await nextTick(); }
+    if (actionBtns.length > 0) {
+      await actionBtns[0]!.trigger('click');
+      await nextTick();
+    }
 
     const link = wrapper.find(`a[href="/research/${PROJECT_ID}/result/run-001"]`);
     expect(link.exists()).toBe(true);
   });
 
   it('does not allow navigation when run_id is missing', async () => {
-    mockPost.mockResolvedValueOnce({ data: { success: true, data: { session_id: PROJECT_ID, steps: [] }, message: 'ok' } });
+    mockPost.mockResolvedValueOnce({
+      data: { success: true, data: { session_id: PROJECT_ID, steps: [] }, message: 'ok' },
+    });
     mockGet.mockImplementation(async (url: string) => {
       if (url === SESSION_URL) return sessionResponse();
       if (url === RUNS_URL) return { data: { data: { runs: [] } } };
@@ -610,16 +800,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     expect(wrapper.html()).not.toContain('/result/');
   });
@@ -648,15 +845,36 @@ describe('ResearchWorkflowPage', () => {
                   output_artifacts: {
                     markdown: '# 旧报告\n\n旧内容',
                     citations: [
-                      { trace_id: 'old-tid', citation_text: '[old-doc:old-chk]', document_id: 'old-doc', quote: '旧条文' },
+                      {
+                        trace_id: 'old-tid',
+                        citation_text: '[old-doc:old-chk]',
+                        document_id: 'old-doc',
+                        quote: '旧条文',
+                      },
                     ],
                   },
                   replay_manifest: {
                     retrieval_snapshot: [
-                      { trace_id: 'old-tid', document_id: 'old-doc', chunk_id: 'old-chk', claim_text: '旧证据', quote: '旧条文', citation_text: '[old-doc:old-chk]', source_ref_title: '旧书名' },
+                      {
+                        trace_id: 'old-tid',
+                        document_id: 'old-doc',
+                        chunk_id: 'old-chk',
+                        claim_text: '旧证据',
+                        quote: '旧条文',
+                        citation_text: '[old-doc:old-chk]',
+                        source_ref_title: '旧书名',
+                      },
                     ],
                     traces: [
-                      { trace_id: 'old-tid', document_id: 'old-doc', chunk_id: 'old-chk', passage_id: 'old-passage', provenance_kind: 'retrieval', retrieval_score: 0.5, retrieval_method: 'test' },
+                      {
+                        trace_id: 'old-tid',
+                        document_id: 'old-doc',
+                        chunk_id: 'old-chk',
+                        passage_id: 'old-passage',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.5,
+                        retrieval_method: 'test',
+                      },
                     ],
                   },
                 },
@@ -668,15 +886,36 @@ describe('ResearchWorkflowPage', () => {
                     markdown: '# 研究报告：经络\n\n新证据内容',
                     artifact_id: 'abc123',
                     citations: [
-                      { trace_id: 'new-tid', citation_text: '[new-doc:new-chk]', document_id: 'new-doc', quote: '新条文' },
+                      {
+                        trace_id: 'new-tid',
+                        citation_text: '[new-doc:new-chk]',
+                        document_id: 'new-doc',
+                        quote: '新条文',
+                      },
                     ],
                   },
                   replay_manifest: {
                     retrieval_snapshot: [
-                      { trace_id: 'new-tid', document_id: 'new-doc', chunk_id: 'new-chk', claim_text: '新证据', quote: '新条文', citation_text: '[new-doc:new-chk]', source_ref_title: '新书名' },
+                      {
+                        trace_id: 'new-tid',
+                        document_id: 'new-doc',
+                        chunk_id: 'new-chk',
+                        claim_text: '新证据',
+                        quote: '新条文',
+                        citation_text: '[new-doc:new-chk]',
+                        source_ref_title: '新书名',
+                      },
                     ],
                     traces: [
-                      { trace_id: 'new-tid', document_id: 'new-doc', chunk_id: 'new-chk', passage_id: 'new-passage', provenance_kind: 'retrieval', retrieval_score: 0.9, retrieval_method: 'test' },
+                      {
+                        trace_id: 'new-tid',
+                        document_id: 'new-doc',
+                        chunk_id: 'new-chk',
+                        passage_id: 'new-passage',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.9,
+                        retrieval_method: 'test',
+                      },
                     ],
                   },
                 },
@@ -689,16 +928,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     const html = wrapper.html();
     // Should show NEW evidence, not old
@@ -722,26 +968,49 @@ describe('ResearchWorkflowPage', () => {
         return {
           data: {
             data: {
-              runs: [{
-                run_id: 'run-history',
-                topic: '历史课题',
-                completed_at: '2026-06-01T00:00:00',
-                output_artifacts: {
-                  markdown: '# 历史报告\n\n历史内容',
-                  artifact_id: 'hist-art',
-                  citations: [
-                    { trace_id: 'hist-tid', citation_text: '[hist-doc]', document_id: 'hist-doc', quote: '历史条文' },
-                  ],
+              runs: [
+                {
+                  run_id: 'run-history',
+                  topic: '历史课题',
+                  completed_at: '2026-06-01T00:00:00',
+                  output_artifacts: {
+                    markdown: '# 历史报告\n\n历史内容',
+                    artifact_id: 'hist-art',
+                    citations: [
+                      {
+                        trace_id: 'hist-tid',
+                        citation_text: '[hist-doc]',
+                        document_id: 'hist-doc',
+                        quote: '历史条文',
+                      },
+                    ],
+                  },
+                  replay_manifest: {
+                    retrieval_snapshot: [
+                      {
+                        trace_id: 'hist-tid',
+                        document_id: 'hist-doc',
+                        chunk_id: 'hist-chk',
+                        claim_text: '历史证据',
+                        quote: '历史条文',
+                        citation_text: '[hist-doc]',
+                        source_ref_title: '历史书名',
+                      },
+                    ],
+                    traces: [
+                      {
+                        trace_id: 'hist-tid',
+                        document_id: 'hist-doc',
+                        chunk_id: 'hist-chk',
+                        passage_id: 'hist-passage',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.7,
+                        retrieval_method: 'test',
+                      },
+                    ],
+                  },
                 },
-                replay_manifest: {
-                  retrieval_snapshot: [
-                    { trace_id: 'hist-tid', document_id: 'hist-doc', chunk_id: 'hist-chk', claim_text: '历史证据', quote: '历史条文', citation_text: '[hist-doc]', source_ref_title: '历史书名' },
-                  ],
-                  traces: [
-                    { trace_id: 'hist-tid', document_id: 'hist-doc', chunk_id: 'hist-chk', passage_id: 'hist-passage', provenance_kind: 'retrieval', retrieval_score: 0.7, retrieval_method: 'test' },
-                  ],
-                },
-              }],
+              ],
             },
           },
         };
@@ -750,16 +1019,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     const html = wrapper.html();
     // Must NOT display historical report content
@@ -781,26 +1057,49 @@ describe('ResearchWorkflowPage', () => {
         return {
           data: {
             data: {
-              runs: [{
-                run_id: 'run-no-md',
-                topic: '经络',
-                completed_at: null,
-                output_artifacts: {
-                  markdown: '',  // Empty markdown
-                  artifact_id: '',
-                  citations: [
-                    { trace_id: 'tid-x', citation_text: '[doc:chk]', document_id: 'doc-x', quote: '条文' },
-                  ],
+              runs: [
+                {
+                  run_id: 'run-no-md',
+                  topic: '经络',
+                  completed_at: null,
+                  output_artifacts: {
+                    markdown: '', // Empty markdown
+                    artifact_id: '',
+                    citations: [
+                      {
+                        trace_id: 'tid-x',
+                        citation_text: '[doc:chk]',
+                        document_id: 'doc-x',
+                        quote: '条文',
+                      },
+                    ],
+                  },
+                  replay_manifest: {
+                    retrieval_snapshot: [
+                      {
+                        trace_id: 'tid-x',
+                        document_id: 'doc-x',
+                        chunk_id: 'chk-x',
+                        claim_text: '证据',
+                        quote: '条文',
+                        citation_text: '[doc:chk]',
+                        source_ref_title: '书名',
+                      },
+                    ],
+                    traces: [
+                      {
+                        trace_id: 'tid-x',
+                        document_id: 'doc-x',
+                        chunk_id: 'chk-x',
+                        passage_id: 'passage-x',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.8,
+                        retrieval_method: 'test',
+                      },
+                    ],
+                  },
                 },
-                replay_manifest: {
-                  retrieval_snapshot: [
-                    { trace_id: 'tid-x', document_id: 'doc-x', chunk_id: 'chk-x', claim_text: '证据', quote: '条文', citation_text: '[doc:chk]', source_ref_title: '书名' },
-                  ],
-                  traces: [
-                    { trace_id: 'tid-x', document_id: 'doc-x', chunk_id: 'chk-x', passage_id: 'passage-x', provenance_kind: 'retrieval', retrieval_score: 0.8, retrieval_method: 'test' },
-                  ],
-                },
-              }],
+              ],
             },
           },
         };
@@ -809,16 +1108,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     // Should be in evidence step (the goToReport function requires non-empty markdown)
     expect(wrapper.find('.ers-step').exists()).toBe(true);
@@ -861,12 +1167,42 @@ describe('ResearchWorkflowPage', () => {
                   },
                   replay_manifest: {
                     retrieval_snapshot: [
-                      { trace_id: 'h1', document_id: 'h1', chunk_id: 'h1', claim_text: '历史1', quote: 'h1q', citation_text: 'h1' },
-                      { trace_id: 'h2', document_id: 'h2', chunk_id: 'h2', claim_text: '历史2', quote: 'h2q', citation_text: 'h2' },
+                      {
+                        trace_id: 'h1',
+                        document_id: 'h1',
+                        chunk_id: 'h1',
+                        claim_text: '历史1',
+                        quote: 'h1q',
+                        citation_text: 'h1',
+                      },
+                      {
+                        trace_id: 'h2',
+                        document_id: 'h2',
+                        chunk_id: 'h2',
+                        claim_text: '历史2',
+                        quote: 'h2q',
+                        citation_text: 'h2',
+                      },
                     ],
                     traces: [
-                      { trace_id: 'h1', document_id: 'h1', chunk_id: 'h1', passage_id: 'hp1', provenance_kind: 'retrieval', retrieval_score: 0.5, retrieval_method: 'test' },
-                      { trace_id: 'h2', document_id: 'h2', chunk_id: 'h2', passage_id: 'hp2', provenance_kind: 'retrieval', retrieval_score: 0.5, retrieval_method: 'test' },
+                      {
+                        trace_id: 'h1',
+                        document_id: 'h1',
+                        chunk_id: 'h1',
+                        passage_id: 'hp1',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.5,
+                        retrieval_method: 'test',
+                      },
+                      {
+                        trace_id: 'h2',
+                        document_id: 'h2',
+                        chunk_id: 'h2',
+                        passage_id: 'hp2',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.5,
+                        retrieval_method: 'test',
+                      },
                     ],
                   },
                 },
@@ -882,10 +1218,25 @@ describe('ResearchWorkflowPage', () => {
                   },
                   replay_manifest: {
                     retrieval_snapshot: [
-                      { trace_id: 'c1', document_id: 'c1', chunk_id: 'c1', claim_text: '当前1', quote: 'c1q', citation_text: 'c1' },
+                      {
+                        trace_id: 'c1',
+                        document_id: 'c1',
+                        chunk_id: 'c1',
+                        claim_text: '当前1',
+                        quote: 'c1q',
+                        citation_text: 'c1',
+                      },
                     ],
                     traces: [
-                      { trace_id: 'c1', document_id: 'c1', chunk_id: 'c1', passage_id: 'cp1', provenance_kind: 'retrieval', retrieval_score: 0.9, retrieval_method: 'test' },
+                      {
+                        trace_id: 'c1',
+                        document_id: 'c1',
+                        chunk_id: 'c1',
+                        passage_id: 'cp1',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.9,
+                        retrieval_method: 'test',
+                      },
                     ],
                   },
                 },
@@ -898,16 +1249,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('当前');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     const html = wrapper.html();
     // Only current evidence
@@ -938,25 +1296,48 @@ describe('ResearchWorkflowPage', () => {
         return {
           data: {
             data: {
-              runs: [{
-                run_id: 'run-B',
-                topic: '课题B',
-                completed_at: '2026-07-18T00:00:00',
-                output_artifacts: {
-                  markdown: '# 课题B报告',
-                  citations: [
-                    { trace_id: 'tb', citation_text: '[b-doc]', document_id: 'b-doc', quote: 'B条文' },
-                  ],
+              runs: [
+                {
+                  run_id: 'run-B',
+                  topic: '课题B',
+                  completed_at: '2026-07-18T00:00:00',
+                  output_artifacts: {
+                    markdown: '# 课题B报告',
+                    citations: [
+                      {
+                        trace_id: 'tb',
+                        citation_text: '[b-doc]',
+                        document_id: 'b-doc',
+                        quote: 'B条文',
+                      },
+                    ],
+                  },
+                  replay_manifest: {
+                    retrieval_snapshot: [
+                      {
+                        trace_id: 'tb',
+                        document_id: 'b-doc',
+                        chunk_id: 'b-chk',
+                        claim_text: 'B证据',
+                        quote: 'B条文',
+                        citation_text: '[b-doc]',
+                        source_ref_title: 'B书名',
+                      },
+                    ],
+                    traces: [
+                      {
+                        trace_id: 'tb',
+                        document_id: 'b-doc',
+                        chunk_id: 'b-chk',
+                        passage_id: 'b-passage',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.5,
+                        retrieval_method: 'test',
+                      },
+                    ],
+                  },
                 },
-                replay_manifest: {
-                  retrieval_snapshot: [
-                    { trace_id: 'tb', document_id: 'b-doc', chunk_id: 'b-chk', claim_text: 'B证据', quote: 'B条文', citation_text: '[b-doc]', source_ref_title: 'B书名' },
-                  ],
-                  traces: [
-                    { trace_id: 'tb', document_id: 'b-doc', chunk_id: 'b-chk', passage_id: 'b-passage', provenance_kind: 'retrieval', retrieval_score: 0.5, retrieval_method: 'test' },
-                  ],
-                },
-              }],
+              ],
             },
           },
         };
@@ -965,11 +1346,17 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('课题A');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
@@ -978,7 +1365,8 @@ describe('ResearchWorkflowPage', () => {
     await wrapper.find('.dss-submit-btn').trigger('click');
     // Immediately switch to B
     await router.push(`/research/${OTHER_ID}/workflow`);
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     // A's response should NOT pollute B
     const html = wrapper.html();
@@ -988,7 +1376,8 @@ describe('ResearchWorkflowPage', () => {
 
     // Restore route for subsequent tests
     await router.push(`/research/${PROJECT_ID}/workflow`);
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
   });
 
   it('Session A→B switch: stale runs response does not update B', async () => {
@@ -1002,25 +1391,43 @@ describe('ResearchWorkflowPage', () => {
         return {
           data: {
             data: {
-              runs: [{
-                run_id: 'run-B',
-                topic: '课题B',
-                completed_at: '2026-07-18T00:00:00',
-                output_artifacts: {
-                  markdown: '# 课题B报告',
-                  citations: [
-                    { trace_id: 'tb', citation_text: '[b]', document_id: 'b-doc', quote: 'B条' },
-                  ],
+              runs: [
+                {
+                  run_id: 'run-B',
+                  topic: '课题B',
+                  completed_at: '2026-07-18T00:00:00',
+                  output_artifacts: {
+                    markdown: '# 课题B报告',
+                    citations: [
+                      { trace_id: 'tb', citation_text: '[b]', document_id: 'b-doc', quote: 'B条' },
+                    ],
+                  },
+                  replay_manifest: {
+                    retrieval_snapshot: [
+                      {
+                        trace_id: 'tb',
+                        document_id: 'b-doc',
+                        chunk_id: 'b-chk',
+                        claim_text: 'B证据',
+                        quote: 'B条',
+                        citation_text: '[b]',
+                        source_ref_title: 'B书',
+                      },
+                    ],
+                    traces: [
+                      {
+                        trace_id: 'tb',
+                        document_id: 'b-doc',
+                        chunk_id: 'b-chk',
+                        passage_id: 'b-pass',
+                        provenance_kind: 'retrieval',
+                        retrieval_score: 0.5,
+                        retrieval_method: 'test',
+                      },
+                    ],
+                  },
                 },
-                replay_manifest: {
-                  retrieval_snapshot: [
-                    { trace_id: 'tb', document_id: 'b-doc', chunk_id: 'b-chk', claim_text: 'B证据', quote: 'B条', citation_text: '[b]', source_ref_title: 'B书' },
-                  ],
-                  traces: [
-                    { trace_id: 'tb', document_id: 'b-doc', chunk_id: 'b-chk', passage_id: 'b-pass', provenance_kind: 'retrieval', retrieval_score: 0.5, retrieval_method: 'test' },
-                  ],
-                },
-              }],
+              ],
             },
           },
         };
@@ -1029,16 +1436,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('课题B');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     const html = wrapper.html();
     // B should show B content
@@ -1049,7 +1463,8 @@ describe('ResearchWorkflowPage', () => {
 
     // Restore route for subsequent tests
     await router.push(`/research/${PROJECT_ID}/workflow`);
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
   });
 
   // =========================================================================
@@ -1057,7 +1472,10 @@ describe('ResearchWorkflowPage', () => {
   // =========================================================================
 
   it('timeout recovery path validates token before updating state', async () => {
-    mockPost.mockRejectedValueOnce({ code: 'ECONNABORTED', message: 'timeout of 120000ms exceeded' });
+    mockPost.mockRejectedValueOnce({
+      code: 'ECONNABORTED',
+      message: 'timeout of 120000ms exceeded',
+    });
     // No run_id is set on timeout — runs endpoint returns empty runs
     mockGet.mockImplementation(async (url: string) => {
       if (url === SESSION_URL) return sessionResponse();
@@ -1066,16 +1484,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     // Should show timeout error with "可能已完成处理" hint
     expect(wrapper.html()).toContain('可能已完成处理');
@@ -1097,16 +1522,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     return wrapper;
   }
 
@@ -1143,7 +1575,10 @@ describe('ResearchWorkflowPage', () => {
       if (url === RUNS_URL) return { data: { data: { runs: [] } } };
       return { data: { data: {} } };
     });
-    const wrapper = await mountAndSubmitWithError({ code: 'ECONNABORTED', message: 'timeout of 120000ms exceeded' });
+    const wrapper = await mountAndSubmitWithError({
+      code: 'ECONNABORTED',
+      message: 'timeout of 120000ms exceeded',
+    });
     expect(wrapper.html()).toContain('可能已完成处理');
   });
 
@@ -1159,16 +1594,23 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('经络');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
     await wrapper.find('.dss-submit-btn').trigger('click');
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
 
     expect(wrapper.find('.rwf-error-banner').exists()).toBe(true);
 
@@ -1185,11 +1627,17 @@ describe('ResearchWorkflowPage', () => {
 
   it('step navigation uses aria-current on current step', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     expect(wrapper.find('[aria-current="step"]').exists()).toBe(true);
   });
 
@@ -1206,7 +1654,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('does not render project_id in DOM', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
     await flushPromises();
@@ -1215,7 +1668,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('does not create temporary runId', async () => {
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
     await flushPromises();
@@ -1239,11 +1697,17 @@ describe('ResearchWorkflowPage', () => {
     });
 
     const wrapper = mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
 
-    await flushPromises(); await nextTick();
+    await flushPromises();
+    await nextTick();
     await wrapper.find('#rqs-input').setValue('敏感研究问题');
     await wrapper.find('form.rqs-form').trigger('submit');
     await nextTick();
@@ -1253,7 +1717,7 @@ describe('ResearchWorkflowPage', () => {
     expect(router.currentRoute.value.fullPath).not.toContain('敏感研究问题');
 
     const sensitiveLogs = consoleSpy.mock.calls.filter((call: Array<any>) =>
-      call.some((arg: any) => typeof arg === 'string' && arg.includes('敏感研究问题'))
+      call.some((arg: any) => typeof arg === 'string' && arg.includes('敏感研究问题')),
     );
     expect(sensitiveLogs.length).toBe(0);
 
@@ -1266,7 +1730,12 @@ describe('ResearchWorkflowPage', () => {
 
   it('calls session detail API exactly once on mount', async () => {
     mount(
-      { template: '<ResearchWorkflowPage />', components: { ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default } },
+      {
+        template: '<ResearchWorkflowPage />',
+        components: {
+          ResearchWorkflowPage: (await import('@/pages/research/ResearchWorkflowPage.vue')).default,
+        },
+      },
       { global: { plugins: [router, createPinia(), i18n] } },
     );
     await flushPromises();
@@ -1283,7 +1752,10 @@ describe('ResearchWorkflowPage', () => {
     const wrapper = await mountAndRunWorkflow();
 
     const goToReportBtns = wrapper.findAll('.ers-action-btn');
-    if (goToReportBtns.length > 0) { await goToReportBtns[0]!.trigger('click'); await nextTick(); }
+    if (goToReportBtns.length > 0) {
+      await goToReportBtns[0]!.trigger('click');
+      await nextTick();
+    }
 
     expect(wrapper.find('.rrs-step').exists()).toBe(true);
 

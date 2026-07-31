@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Documentation Rules
+
 ## 项目文档强制规范
 
 > 所有项目文档的强制规范。本文档是 Constitution 的可执行附件。
@@ -68,24 +69,24 @@ tags:
 
 **document_id 命名规则**：
 
-| 前缀 | 域 | 示例 |
-|---|---|---|
-| HFB-GOV- | Governance | HFB-GOV-0001 |
-| HFB-PS- | Platform Specifications | HFB-PS-1709 |
-| HFB-RF- | Research Framework | HFB-RF-1601 |
-| HFB-ARC- | Architecture | HFB-ARC-0201 |
-| HFB-DAT- | Data | HFB-DAT-0301 |
-| HFB-AI- | AI | HFB-AI-0401 |
-| HFB-DEV- | Development | HFB-DEV-0501 |
-| HFB-UI- | UI | HFB-UI-0601 |
-| HFB-SEC- | Security | HFB-SEC-0701 |
-| HFB-DOM- | Domain | HFB-DOM-0801 |
-| HFB-PRM- | Prompt | HFB-PRM-0001 |
-| HFB-DGM- | Diagram | HFB-DGM-0001 |
-| HFB-ADR- | ADR | HFB-ADR-0001 |
-| HFB-TPL- | Template | HFB-TPL-0001 |
-| HFB-DOC- | Meta Documentation | HFB-DOC-INDEX |
-| HFB-ARCH- | Archived | HFB-ARCH-GOV-0001 |
+| 前缀      | 域                      | 示例              |
+| --------- | ----------------------- | ----------------- |
+| HFB-GOV-  | Governance              | HFB-GOV-0001      |
+| HFB-PS-   | Platform Specifications | HFB-PS-1709       |
+| HFB-RF-   | Research Framework      | HFB-RF-1601       |
+| HFB-ARC-  | Architecture            | HFB-ARC-0201      |
+| HFB-DAT-  | Data                    | HFB-DAT-0301      |
+| HFB-AI-   | AI                      | HFB-AI-0401       |
+| HFB-DEV-  | Development             | HFB-DEV-0501      |
+| HFB-UI-   | UI                      | HFB-UI-0601       |
+| HFB-SEC-  | Security                | HFB-SEC-0701      |
+| HFB-DOM-  | Domain                  | HFB-DOM-0801      |
+| HFB-PRM-  | Prompt                  | HFB-PRM-0001      |
+| HFB-DGM-  | Diagram                 | HFB-DGM-0001      |
+| HFB-ADR-  | ADR                     | HFB-ADR-0001      |
+| HFB-TPL-  | Template                | HFB-TPL-0001      |
+| HFB-DOC-  | Meta Documentation      | HFB-DOC-INDEX     |
+| HFB-ARCH- | Archived                | HFB-ARCH-GOV-0001 |
 
 **README.md 豁免** — 目录索引文件（README.md）不强制要求 YAML header。
 
@@ -130,8 +131,8 @@ tags:
 ```markdown
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本   | 日期       | 变更 |
+| ------ | ---------- | ---- |
 | v0.1.0 | YYYY-MM-DD | 初稿 |
 ```
 
@@ -187,16 +188,16 @@ tags:
 
 本项目文档按以下层级组织，编号靠前者优先级更高：
 
-| 层级 | 目录 | 作用 |
-|---|---|---|
-| **Level 0** | `00-governance/` | 项目治理 — 章程、宪章、治理制度、AI 协议 |
-| **Level 1** | `17-Platform-Specifications/` | 产品规格 — 产品实现最高依据 |
-| **Level 2** | `16-research-framework/` | 研究框架 — 学术方向最高依据 |
-| **Level 3** | `02-architecture/` | 技术架构 |
-| **Level 4** | `03-data/` `04-ai/` `05-development/` `06-ui/` `07-security/` | 领域规范 |
-| **Level 5** | `08-domain/` `11-adr/` | 领域模型与决策记录 |
-| **Level 6** | `09-prompts/` `10-diagrams/` `12-context/` | 执行工具与上下文 |
-| **Level 7** | `templates/` `_archive/` | 模板与存档 |
+| 层级        | 目录                                                          | 作用                                     |
+| ----------- | ------------------------------------------------------------- | ---------------------------------------- |
+| **Level 0** | `00-governance/`                                              | 项目治理 — 章程、宪章、治理制度、AI 协议 |
+| **Level 1** | `17-Platform-Specifications/`                                 | 产品规格 — 产品实现最高依据              |
+| **Level 2** | `16-research-framework/`                                      | 研究框架 — 学术方向最高依据              |
+| **Level 3** | `02-architecture/`                                            | 技术架构                                 |
+| **Level 4** | `03-data/` `04-ai/` `05-development/` `06-ui/` `07-security/` | 领域规范                                 |
+| **Level 5** | `08-domain/` `11-adr/`                                        | 领域模型与决策记录                       |
+| **Level 6** | `09-prompts/` `10-diagrams/` `12-context/`                    | 执行工具与上下文                         |
+| **Level 7** | `templates/` `_archive/`                                      | 模板与存档                               |
 
 ### 冲突裁决
 
@@ -209,7 +210,7 @@ tags:
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本   | 日期       | 变更                                                                                                       |
+| ------ | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | v1.0.0 | 2026-06-25 | 正式发布 — 新增YAML元数据规范(§1)、文档层级与最高依据(§10)；补充document_id命名规则；明确17/16系列的优先级 |
-| v0.1.0 | 2026-06-24 | 初稿 |
+| v0.1.0 | 2026-06-24 | 初稿                                                                                                       |

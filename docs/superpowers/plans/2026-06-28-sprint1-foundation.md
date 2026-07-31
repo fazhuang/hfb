@@ -24,6 +24,7 @@
 ### Task 1: Security & XSS Hardening Commit
 
 **Files:**
+
 - Modify: `apps/backend/app/api/v1/graph.py:30-32` (remove guard_read — already diffed)
 - Modify: `apps/backend/app/api/v1/search.py:26` (remove guard_read — already diffed)
 - Modify: `apps/backend/app/api/v1/dashboard.py:18-20` (remove guard_read — already diffed)
@@ -38,6 +39,7 @@
 - Create: `tests/unit/test_guest_access.py`
 
 **Interfaces:**
+
 - Consumes: Existing JWT auth middleware, existing API route structure
 - Produces: `sanitizeHtml(dirty: string): string`, `escapeHtml(text: string): string` — exported from `@hfb/utils`
 
@@ -82,12 +84,14 @@ Expected: ruff passes, guest access tests pass, health tests pass.
 ### Task 2: AI Structured Response Enhancement Commit
 
 **Files:**
+
 - Modify: `apps/backend/app/api/v1/ai.py` (evidence-gated endpoints, `_enrich_graph_context`, `depth=1`→`max_depth=1` fix)
 - Modify: `apps/backend/app/schemas/ai_response.py` (add `refused`, `refusal_reason`, `build_with_graph`)
 - Modify: `apps/backend/app/services/ai_service.py` (empty-text guard + system prompts)
 - Modify: `tests/unit/test_ai.py` (add 3 new test classes: Builder, Enrichment, Integration)
 
 **Interfaces:**
+
 - Consumes: `GraphService.get_neighbors(entity_type, entity_id, max_depth=1)` → `NeighborResult`
 - Consumes: `RAGService.retrieve(query, top_k=5)` → `list[dict]`
 - Produces: `_enrich_graph_context(response: StructuredAIResponse, session: AsyncSession) -> StructuredAIResponse`
@@ -135,6 +139,7 @@ git commit -m "feat: AI evidence gate and structured response enrichment
 ### Task 3: Entity Schema Expansion & CRUD Factory Commit
 
 **Files:**
+
 - Modify: `apps/backend/app/schemas/__init__.py` (export Book, Version, Chapter, Passage, Paper, Image schemas)
 - Modify: `apps/backend/app/api/v1/entities.py` (remove `from __future__ import annotations`, add `_rebuild_schemas()` after route registration)
 - Modify: `apps/backend/app/db/database.py` (import all models before `create_all`)
@@ -142,6 +147,7 @@ git commit -m "feat: AI evidence gate and structured response enrichment
 - Modify: `apps/backend/app/services/rag_service.py` (update docstring — keyword retrieval, vector not yet implemented)
 
 **Interfaces:**
+
 - Consumes: Entity schemas from `app/schemas/entities.py` (BookCreate, BookUpdate, BookBrief, BookResponse, etc.)
 - Produces: CRUD routes for 8 entity types via `_make_crud()` factory: person, document, book, version, chapter, passage, paper, image
 - Produces: `_rebuild_schemas()` — resolves ForwardRef from dynamic route factory closures
@@ -196,6 +202,7 @@ git commit -m "feat: expand entity schemas to 8 types, fix CRUD factory ForwardR
 ### Task 4: Docker & DevOps Commit
 
 **Files:**
+
 - Modify: `docker-compose.dev.yml` (add host overrides, fix uvicorn target)
 - Modify: `docker-compose.prod.yml` (add host overrides)
 - Modify: `docker/dev/Dockerfile.backend` (WORKDIR → /app/apps/backend, uvicorn main:app)
@@ -206,6 +213,7 @@ git commit -m "feat: expand entity schemas to 8 types, fix CRUD factory ForwardR
 - Create: `scripts/setup-db.sh` (PostgreSQL init script)
 
 **Interfaces:**
+
 - Consumes: `.env` variables (unchanged)
 - Produces: `bash scripts/dev.sh --backend-only` starts backend only
 - Produces: `bash scripts/dev.sh --postgres` uses PostgreSQL
@@ -249,10 +257,12 @@ git commit -m "fix: Docker/DevOps — container hostnames, dev script, monitorin
 ### Task 5: Frontend Version Center & Router Commit
 
 **Files:**
+
 - Create: `apps/frontend/src/views/VersionCenterView.vue` (234 lines — version detail + lineage)
 - Modify: `apps/frontend/src/router/index.ts` (add `/versions/:id` route)
 
 **Interfaces:**
+
 - Consumes: `GET /api/v1/versions/{id}` → VersionDetail
 - Consumes: `GET /api/v1/versions/{id}/lineage` → lineage list
 - Consumes: `GET /api/v1/books/{id}` → BookBrief (for parent book link)
@@ -276,12 +286,14 @@ git commit -m "feat: Version Center detail page with lineage display
 ### Task 6: E2E Test Framework & Infrastructure Commit
 
 **Files:**
+
 - Modify: `tests/e2e/test_critical_journeys.py` (rewrite with seeded_data fixture, browser detection, idempotent seed)
 - Create: `tests/e2e/conftest.py` (e2e marker registration)
 - Modify: `eslint.config.mjs` (exclude .venv, disable incompatible rules)
 - Modify: `tests/unit/test_health.py` (precise service assertions)
 
 **Interfaces:**
+
 - Consumes: Backend on `http://127.0.0.1:{port}`, Frontend on `http://127.0.0.1:{port}`
 - Produces: `seeded_data` fixture → `{frontend_url, backend_port, access_token, refresh_token, person, book, version}`
 
@@ -314,29 +326,33 @@ git commit -m "test: E2E framework rewrite, eslint config, health test precision
 ### Task 7: CI PostgreSQL Parity
 
 **Files:**
+
 - Modify: `.github/workflows/test.yml` (run unit tests against PostgreSQL)
 
 **Interfaces:**
+
 - Consumes: GitHub Actions services (PostgreSQL pgvector)
 - Produces: CI test job runs against PostgreSQL, not SQLite
 
 - [ ] **Step 1: Modify test.yml to use PostgreSQL instead of SQLite**
 
 In `.github/workflows/test.yml`, replace:
+
 ```yaml
-              - name: Run unit tests
-                run: pytest tests/unit -v --tb=short
-                env:
-                  TESTING: 1
+- name: Run unit tests
+  run: pytest tests/unit -v --tb=short
+  env:
+    TESTING: 1
 ```
 
 With:
+
 ```yaml
-              - name: Run unit tests
-                run: pytest tests/unit -v --tb=short
-                env:
-                  TESTING: 1
-                  DATABASE_URL: postgresql+asyncpg://hfb:test_password@localhost:5432/hfb_test
+- name: Run unit tests
+  run: pytest tests/unit -v --tb=short
+  env:
+    TESTING: 1
+    DATABASE_URL: postgresql+asyncpg://hfb:test_password@localhost:5432/hfb_test
 ```
 
 - [ ] **Step 2: Verify the workflow YAML is valid**
@@ -369,10 +385,12 @@ git commit -m "ci: run unit tests against PostgreSQL in CI
 ### Task 8: RBAC Seed Verification
 
 **Files:**
+
 - Modify: `tests/unit/test_seed.py` (add permission existence assertions)
 - Create: `tests/unit/test_rbac.py` (verify role-permission chain)
 
 **Interfaces:**
+
 - Consumes: `app.models.user` (Role, Permission, role_permission, user_role tables)
 - Consumes: `app.middleware.auth.require_permission` (dependency factory)
 - Produces: `test_default_roles_exist`, `test_researcher_has_read_permissions`, `test_admin_has_all_permissions`
@@ -387,6 +405,7 @@ Verify the role→permission chain works end-to-end.
 
 Per HFB-PS-1704: roles cascade, researcher inherits visitor→student→researcher.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -428,6 +447,7 @@ git commit -m "test: add RBAC role-permission chain verification
 ### Task 9: Uncommitted Infrastructure Files Commit
 
 **Files:**
+
 - Create: `CLAUDE.md` (agent instructions — already tracked as untracked)
 - Create: `apps/__init__.py` (monorepo package marker)
 - Create: `apps/backend/__init__.py`
@@ -441,6 +461,7 @@ git commit -m "test: add RBAC role-permission chain verification
 - Create: `tests/e2e/conftest.py`
 
 **Interfaces:**
+
 - Produces: `.agents/` directory structure for agent dispatch
 - Produces: `docs/agents/` documentation for issue triage workflow
 - Produces: Initial Alembic migration (all tables)
@@ -479,6 +500,7 @@ Expected: No `??` entries remaining (except `.agents/` if it's gitignored, and `
 ### Completion Checklist
 
 After all 9 tasks:
+
 - [ ] `git log --oneline -10` shows 9 new commits on top of `798ed3c`
 - [ ] `python3 -m ruff check .` passes with zero errors
 - [ ] `python3 -m pytest tests/unit/ -q` — 245+ passed

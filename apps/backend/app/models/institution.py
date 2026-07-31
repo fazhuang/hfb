@@ -8,6 +8,7 @@ Fields restricted per Day 1 spec:
   - id, name, type, location, description, status
   - created_at, updated_at (inherited from BaseModel)
 """
+
 from __future__ import annotations
 
 import enum
@@ -22,6 +23,7 @@ from app.db.base import BaseModel
 
 class InstitutionType(str, enum.Enum):
     """Valid institution types per Day 1 spec."""
+
     research = "research"
     university = "university"
     archive = "archive"
@@ -30,6 +32,7 @@ class InstitutionType(str, enum.Enum):
 
 class InstitutionStatus(str, enum.Enum):
     """Day 1 status machine states."""
+
     draft = "draft"
     active = "active"
     archived = "archived"
@@ -44,11 +47,11 @@ class Institution(BaseModel):
 
     __tablename__ = "institutions"
 
-    name: Mapped[str] = mapped_column(
-        String(300), nullable=False, comment="机构名称"
-    )
+    name: Mapped[str] = mapped_column(String(300), nullable=False, comment="机构名称")
     type: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="类型: research / university / archive / institution"
+        String(50),
+        nullable=False,
+        comment="类型: research / university / archive / institution",
     )
     location: Mapped[str | None] = mapped_column(
         String(300), nullable=True, comment="所在地"
@@ -107,7 +110,9 @@ class Institution(BaseModel):
             raise ValidationException("Institution name must not be null")
         stripped = value.strip()
         if not stripped:
-            raise ValidationException("Institution name must not be empty or whitespace-only")
+            raise ValidationException(
+                "Institution name must not be empty or whitespace-only"
+            )
         if len(stripped) > 300:
             raise ValidationException("Institution name exceeds maximum length of 300")
         return stripped

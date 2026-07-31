@@ -41,8 +41,7 @@ async def search(
     for w in msg.get("items", []):
         doi = w.get("DOI", "")
         authors = ", ".join(
-            a.get("given", "") + " " + a.get("family", "")
-            for a in w.get("author", [])
+            a.get("given", "") + " " + a.get("family", "") for a in w.get("author", [])
         )
         kw_list = w.get("subject", []) or []
         is_oa = _check_crossref_oa(w)
@@ -52,7 +51,7 @@ async def search(
             source_url=f"https://doi.org/{doi}" if doi else w.get("URL", ""),
             authors=authors.strip(),
             year=w.get("published-print", {}).get("date-parts", [[None]])[0][0]
-                 or w.get("created", {}).get("date-parts", [[None]])[0][0],
+            or w.get("created", {}).get("date-parts", [[None]])[0][0],
             abstract=_first_abstract(w),
             keywords=", ".join(kw_list),
             doi=doi,
@@ -72,6 +71,7 @@ def _first_abstract(work: dict) -> str:
         return ""
     # Strip HTML tags ponytail-style — just remove <…> and trim
     import re
+
     return re.sub(r"<[^>]+>", "", raw).strip()[:1000]
 
 

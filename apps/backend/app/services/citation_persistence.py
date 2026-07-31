@@ -148,14 +148,19 @@ class CitationPersistenceService:
             return 0
 
         # Batch check for existing citations with these doc_id + chunk_id pairs
-        existing_keys = await self._find_existing(unique_citations, get_doc_id, get_chunk_id)
+        existing_keys = await self._find_existing(
+            unique_citations, get_doc_id, get_chunk_id
+        )
         new_citations = [
-            c for c in unique_citations
+            c
+            for c in unique_citations
             if (get_doc_id(c), get_chunk_id(c)) not in existing_keys
         ]
 
         if not new_citations:
-            logger.debug("All %d citations already persisted, skipping", len(unique_citations))
+            logger.debug(
+                "All %d citations already persisted, skipping", len(unique_citations)
+            )
             return 0
 
         # T2: Wrap in a SAVEPOINT — if any citation fails (including SourceRef
@@ -259,7 +264,8 @@ class CitationPersistenceService:
             await self.session.flush()
             logger.info(
                 "Persisted %d new citations (out of %d unique inline citations)",
-                count, len(unique_citations),
+                count,
+                len(unique_citations),
             )
         except Exception:
             await savepoint.rollback()
@@ -381,7 +387,8 @@ class CitationPersistenceService:
         Returns the number of Evidence rows fixed.
         """
         # Find orphan Evidence rows
-        orphan_result = await self.session.execute(text("""
+        orphan_result = await self.session.execute(
+            text("""
             SELECT e.id as evidence_id,
                    e.source_passage_id,
                    c.target_id as doc_id
@@ -389,7 +396,8 @@ class CitationPersistenceService:
             LEFT JOIN citations c ON c.evidence_id = e.id AND c.is_deleted = false
             WHERE e.is_deleted = false
               AND (e.source_ref_id IS NULL OR e.source_ref_id = '')
-        """))
+        """)
+        )
         orphans = orphan_result.mappings().all()
         if not orphans:
             return 0
@@ -404,7 +412,8 @@ class CitationPersistenceService:
 
             # Strategy 1: use passage → version → book.source_url
             if source_passage_id:
-                sr_result = await self.session.execute(text("""
+                sr_result = await self.session.execute(
+                    text("""
                     SELECT sr.id
                     FROM source_refs sr
                     JOIN passages p ON sr.url = (
@@ -415,38 +424,48 @@ class CitationPersistenceService:
                     WHERE p.id = :pid
                       AND sr.is_deleted = false
                     LIMIT 1
-                """), {"pid": source_passage_id})
+                """),
+                    {"pid": source_passage_id},
+                )
                 sr_row = sr_result.fetchone()
                 if sr_row:
                     source_ref_id = sr_row[0]
 
             # Strategy 2: use doc_id → page_location match
             if source_ref_id is None and doc_id:
-                sr_result = await self.session.execute(text("""
+                sr_result = await self.session.execute(
+                    text("""
                     SELECT id FROM source_refs
                     WHERE page_location = :loc AND is_deleted = false
                     LIMIT 1
-                """), {"loc": f"document:{doc_id}"})
+                """),
+                    {"loc": f"document:{doc_id}"},
+                )
                 sr_row = sr_result.fetchone()
                 if sr_row:
                     source_ref_id = sr_row[0]
 
             # Strategy 3: pick any SourceRef as last resort
             if source_ref_id is None:
-                sr_result = await self.session.execute(text("""
+                sr_result = await self.session.execute(
+                    text("""
                     SELECT id FROM source_refs
                     WHERE is_deleted = false
                     LIMIT 1
-                """))
+                """)
+                )
                 sr_row = sr_result.fetchone()
                 if sr_row:
                     source_ref_id = sr_row[0]
 
             if source_ref_id is not None:
-                await self.session.execute(text("""
+                await self.session.execute(
+                    text("""
                     UPDATE evidences SET source_ref_id = :sr_id
                     WHERE id = :eid AND is_deleted = false
-                """), {"sr_id": source_ref_id, "eid": evidence_id})
+                """),
+                    {"sr_id": source_ref_id, "eid": evidence_id},
+                )
                 fixed += 1
 
         if fixed > 0:

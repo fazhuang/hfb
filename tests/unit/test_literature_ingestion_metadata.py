@@ -10,6 +10,7 @@ from app.services.literature_ingestion import LiteratureItem
 # LiteratureItem normalization
 # ---------------------------------------------------------------------------
 
+
 class TestLiteratureItem:
     def test_dedup_key_uses_doi_when_present(self):
         item = LiteratureItem(
@@ -75,6 +76,7 @@ class TestLiteratureItem:
 # ---------------------------------------------------------------------------
 # IngestionJob state machine
 # ---------------------------------------------------------------------------
+
 
 class TestIngestionJob:
     def test_success_when_no_errors(self):

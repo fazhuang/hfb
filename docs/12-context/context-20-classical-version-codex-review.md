@@ -17,15 +17,15 @@
 
 ## 验收矩阵
 
-| 验收项 | 结论 | 证据 |
-|---|---:|---|
-| 普通用户是否不能新增、编辑、删除 | PASS | 路由探针：普通用户 `POST /api/admin/classical-versions` = 403，`PATCH /api/admin/classical-versions/{id}` = 403；源码中写接口均挂载 `require_admin` / `require_superuser`。 |
-| 管理员是否可以新增、编辑 | PASS | 路由探针：管理员 `POST` = 201，`PATCH` = 200；源码中新增和编辑路由均依赖 `require_admin`。 |
-| 删除是否为软删除 | **FAIL** | 删除路由调用 `svc.hard_delete(version_id)`；路由探针中超级用户删除返回 200 后，直接查表结果为 `row_after_super_delete='absent'`。 |
-| 版本是否必须有来源 | PASS | `ClassicalVersionCreate.source_url` 为必填字段；路由探针中缺少 `source_url` 的创建请求返回 422；服务层 `_validate_create()` 也拒绝空 `source_url`。 |
-| 公共领域状态是否必填 | PARTIAL | 数据库和模型为 `nullable=False`，但 schema 给 `public_domain_status` 默认值 `unknown`，路由探针中未显式传入也可创建成功。因此“字段非空”成立，“必须人工显式填写”不成立。 |
-| 是否支持人工审核状态 | PASS | schema 定义 `pending_review / under_review / approved / rejected`；迁移有 `ck_classical_versions_review_status`；服务层 create/update 均校验 `review_status`。 |
-| 是否有测试覆盖 | PASS | `tests/unit/test_classical_versions.py` 与 `tests/unit/test_classical_versions_rbac.py` 存在，专项测试命令通过：`28 passed in 4.21s`。 |
+| 验收项                           |     结论 | 证据                                                                                                                                                                        |
+| -------------------------------- | -------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 普通用户是否不能新增、编辑、删除 |     PASS | 路由探针：普通用户 `POST /api/admin/classical-versions` = 403，`PATCH /api/admin/classical-versions/{id}` = 403；源码中写接口均挂载 `require_admin` / `require_superuser`。 |
+| 管理员是否可以新增、编辑         |     PASS | 路由探针：管理员 `POST` = 201，`PATCH` = 200；源码中新增和编辑路由均依赖 `require_admin`。                                                                                  |
+| 删除是否为软删除                 | **FAIL** | 删除路由调用 `svc.hard_delete(version_id)`；路由探针中超级用户删除返回 200 后，直接查表结果为 `row_after_super_delete='absent'`。                                           |
+| 版本是否必须有来源               |     PASS | `ClassicalVersionCreate.source_url` 为必填字段；路由探针中缺少 `source_url` 的创建请求返回 422；服务层 `_validate_create()` 也拒绝空 `source_url`。                         |
+| 公共领域状态是否必填             |  PARTIAL | 数据库和模型为 `nullable=False`，但 schema 给 `public_domain_status` 默认值 `unknown`，路由探针中未显式传入也可创建成功。因此“字段非空”成立，“必须人工显式填写”不成立。     |
+| 是否支持人工审核状态             |     PASS | schema 定义 `pending_review / under_review / approved / rejected`；迁移有 `ck_classical_versions_review_status`；服务层 create/update 均校验 `review_status`。              |
+| 是否有测试覆盖                   |     PASS | `tests/unit/test_classical_versions.py` 与 `tests/unit/test_classical_versions_rbac.py` 存在，专项测试命令通过：`28 passed in 4.21s`。                                      |
 
 ## 关键源码证据
 

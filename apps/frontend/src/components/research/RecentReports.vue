@@ -6,12 +6,7 @@
     <LoadingState v-if="loading" message="正在加载..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      title="加载失败"
-      @retry="$emit('retry')"
-    />
+    <ErrorState v-else-if="error" :message="error" title="加载失败" @retry="$emit('retry')" />
 
     <!-- Empty -->
     <EmptyState
@@ -28,7 +23,7 @@
           <h3 class="rr-title">{{ run.topic || '未命名研究' }}</h3>
           <div class="rr-steps">
             <span
-              v-for="step in (run.step_execution_trace || [])"
+              v-for="step in run.step_execution_trace || []"
               :key="step.name"
               class="rr-step-badge"
               :class="'rr-step--' + step.status"
@@ -133,9 +128,7 @@ function hasReportArtifact(run: RunItem): boolean {
   if (trace.length === 0) return false;
   // Show runs with completed report_generation OR any completed step
   // (matches ProjectReports behavior where all runs are shown)
-  return trace.some(
-    (s) => s.status === 'completed',
-  );
+  return trace.some((s) => s.status === 'completed');
 }
 
 /** Result route exists when run_id is truthy and has at least one completed step. */
@@ -152,7 +145,7 @@ const displayRuns = computed(() => {
     const da = a.completed_at ?? '';
     const db = b.completed_at ?? '';
     if (!da && !db) return 0;
-    if (!da && db) return 1;  // a has no time → a after b
+    if (!da && db) return 1; // a has no time → a after b
     if (da && !db) return -1; // b has no time → b after a
     return db.localeCompare(da); // DESC
   });

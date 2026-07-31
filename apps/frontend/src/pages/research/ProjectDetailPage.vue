@@ -4,10 +4,7 @@
     <ResearchPageHeader
       :title="pageTitle"
       :description="project?.context_notes ?? undefined"
-      :breadcrumbs="[
-        { label: 'Research', to: '/research' },
-        { label: pageTitle },
-      ]"
+      :breadcrumbs="[{ label: 'Research', to: '/research' }, { label: pageTitle }]"
     >
       <template #actions>
         <!-- Continue Research -->
@@ -39,18 +36,8 @@
             aria-label="更多操作"
             @keydown.escape="showMoreMenu = false"
           >
-            <button
-              class="pdp-more-item"
-              role="menuitem"
-              @click="onEdit"
-            >
-              编辑课题
-            </button>
-            <button
-              class="pdp-more-item pdp-more-item--danger"
-              role="menuitem"
-              @click="onDelete"
-            >
+            <button class="pdp-more-item" role="menuitem" @click="onEdit">编辑课题</button>
+            <button class="pdp-more-item pdp-more-item--danger" role="menuitem" @click="onDelete">
               删除课题
             </button>
           </div>
@@ -60,10 +47,7 @@
 
     <div class="pdp-body">
       <!-- Loading -->
-      <LoadingState
-        v-if="loading"
-        message="正在加载课题信息..."
-      />
+      <LoadingState v-if="loading" message="正在加载课题信息..." />
 
       <!-- Page-level error -->
       <ErrorState
@@ -81,9 +65,7 @@
         icon="🔍"
       >
         <template #action>
-          <router-link to="/research" class="pdp-back-link">
-            返回研究课题列表
-          </router-link>
+          <router-link to="/research" class="pdp-back-link"> 返回研究课题列表 </router-link>
         </template>
       </EmptyState>
 
@@ -347,7 +329,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  z-index: var(--z-dropdown)0;
+  z-index: var(--z-dropdown) 0;
   overflow: hidden;
 }
 

@@ -24,7 +24,10 @@
           :class="{ 'nav-link--pulse': item.pulse }"
           active-class="nav-link--active"
           :title="item.pulse ? t('onboarding.pulseStartResearch') : undefined"
-          @click="menuOpen = false; showResearchPulse = false"
+          @click="
+            menuOpen = false;
+            showResearchPulse = false;
+          "
         >
           <span class="nav-icon">{{ item.icon }}</span>
           {{ t(item.labelKey) }}
@@ -56,7 +59,12 @@
       </div>
 
       <!-- Theme Toggle -->
-      <button class="theme-toggle" :aria-label="t('theme.dark')" :title="t('onboarding.themeTooltip')" @click="cycleTheme">
+      <button
+        class="theme-toggle"
+        :aria-label="t('theme.dark')"
+        :title="t('onboarding.themeTooltip')"
+        @click="cycleTheme"
+      >
         <span v-if="resolvedTheme === 'light'">☀️</span>
         <span v-else>🌙</span>
       </button>
@@ -87,7 +95,9 @@ const showResearchPulse = ref(auth.isAuthenticated && !researchStore.hasActiveRe
 
 onMounted(() => {
   if (showResearchPulse.value) {
-    setTimeout(() => { showResearchPulse.value = false; }, 5000); // 5 cycles ≈ 5s
+    setTimeout(() => {
+      showResearchPulse.value = false;
+    }, 5000); // 5 cycles ≈ 5s
   }
 });
 
@@ -99,14 +109,17 @@ interface NavItem {
 }
 
 const navItems = computed<NavItem[]>(() => {
-  const base: NavItem[] = [
-    { path: '/', icon: '🏠', labelKey: 'nav.home' },
-  ];
+  const base: NavItem[] = [{ path: '/', icon: '🏠', labelKey: 'nav.home' }];
 
   // Canonical research modules — only these four entries
   if (auth.isAuthenticated) {
     base.push(
-      { path: '/research', icon: '🔬', labelKey: 'nav.startResearch', pulse: showResearchPulse.value },
+      {
+        path: '/research',
+        icon: '🔬',
+        labelKey: 'nav.startResearch',
+        pulse: showResearchPulse.value,
+      },
       { path: '/library', icon: '📚', labelKey: 'nav.library' },
       { path: '/knowledge', icon: '🔗', labelKey: 'nav.knowledge' },
       { path: '/reports', icon: '📊', labelKey: 'nav.reports' },
@@ -130,9 +143,7 @@ const navItems = computed<NavItem[]>(() => {
     );
   }
   if (auth.canManageSourcePolicies) {
-    base.push(
-      { path: '/admin/source-policy', icon: '🔐', labelKey: 'nav.adminSourcePolicy' },
-    );
+    base.push({ path: '/admin/source-policy', icon: '🔐', labelKey: 'nav.adminSourcePolicy' });
   }
   return base;
 });
@@ -141,7 +152,10 @@ const locales = SUPPORTED_LOCALES;
 
 const resolvedTheme = computed(() => {
   if (theme.value === 'auto') {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
       return 'dark';
     }
     return 'light';
@@ -178,7 +192,7 @@ function cycleTheme() {
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
-  z-index: var(--z-dropdown)0;
+  z-index: var(--z-dropdown) 0;
   gap: var(--space-6);
 }
 
@@ -257,14 +271,28 @@ function cycleTheme() {
 }
 
 @keyframes navPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
 }
 
 @keyframes navPulseRing {
-  0% { opacity: 0; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.08); }
-  100% { opacity: 0; transform: scale(1.15); }
+  0% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
+  }
 }
 
 .nav-icon {

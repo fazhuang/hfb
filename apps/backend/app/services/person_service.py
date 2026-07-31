@@ -1,6 +1,7 @@
 """
 Person service — business logic for persons (人物).
 """
+
 from __future__ import annotations
 
 from typing import Any

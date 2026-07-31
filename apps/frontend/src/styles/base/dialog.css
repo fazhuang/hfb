@@ -28,10 +28,18 @@
 }
 
 /* ---- Sizes ---- */
-.hfb-dialog--sm { max-width: 400px; }
-.hfb-dialog--md { max-width: 520px; }
-.hfb-dialog--lg { max-width: 720px; }
-.hfb-dialog--xl { max-width: 960px; }
+.hfb-dialog--sm {
+  max-width: 400px;
+}
+.hfb-dialog--md {
+  max-width: 520px;
+}
+.hfb-dialog--lg {
+  max-width: 720px;
+}
+.hfb-dialog--xl {
+  max-width: 960px;
+}
 
 /* ---- Header ---- */
 .hfb-dialog__header {

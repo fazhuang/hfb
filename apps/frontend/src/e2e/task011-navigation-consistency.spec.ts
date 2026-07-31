@@ -53,7 +53,6 @@ async function expandSidebarIfNarrow(page: any) {
 // ─── Suite ───────────────────────────────────────────────────────────
 
 test.describe('Task 011 E2E — Research Navigation Consistency', () => {
-
   test.beforeAll(async ({ request }) => {
     // ── Authenticate ──
     const resp = await request.post(`${API}/api/v1/auth/login`, {
@@ -71,7 +70,10 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
     expect(sessionsResp.ok()).toBeTruthy();
     const sessionsBody = await sessionsResp.json();
     const sessions: Array<{ id: string }> = sessionsBody.data ?? [];
-    expect(sessions.length, 'Need at least 2 sessions with runs — test data missing').toBeGreaterThanOrEqual(2);
+    expect(
+      sessions.length,
+      'Need at least 2 sessions with runs — test data missing',
+    ).toBeGreaterThanOrEqual(2);
 
     let resolved = 0;
     let titleA = '';
@@ -103,7 +105,10 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
     }
     expect(sessionIdA, 'No session with runs found for project A — cannot proceed').toBeTruthy();
     expect(runIdA, 'No run found for project A — cannot proceed').toBeTruthy();
-    expect(sessionIdB, 'No session with a DIFFERENT title found for project B — need at least 2 sessions with distinct titles and runs').toBeTruthy();
+    expect(
+      sessionIdB,
+      'No session with a DIFFERENT title found for project B — need at least 2 sessions with distinct titles and runs',
+    ).toBeTruthy();
     expect(runIdB, 'No run found for project B — cannot proceed').toBeTruthy();
 
     // ── Resolve a document ID ──
@@ -122,7 +127,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('A — Sequential navigation chain', () => {
-
     test('A1. ProjectList → ProjectDetail via click', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research`);
@@ -134,11 +138,16 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await projectLink.click();
 
       // Should navigate to /research/:projectId
-      await page.waitForURL((url: URL) => {
-        const segs = url.pathname.split('/').filter(Boolean);
-        return segs[0] === 'research' && segs.length >= 2 && segs[1] !== '';
-      }, { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .pdp-body, .research-page').first()).toBeVisible();
+      await page.waitForURL(
+        (url: URL) => {
+          const segs = url.pathname.split('/').filter(Boolean);
+          return segs[0] === 'research' && segs.length >= 2 && segs[1] !== '';
+        },
+        { timeout: 10_000 },
+      );
+      await expect(
+        page.locator('.research-page-header, .pdp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('A2. ProjectDetail → Workspace via link', async ({ page }) => {
@@ -152,7 +161,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await wsLink.click();
 
       await page.waitForURL((url: URL) => url.pathname.includes('/workspace'), { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .rwp-body, .research-page').first()).toBeVisible();
+      await expect(
+        page.locator('.research-page-header, .rwp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('A3. Workspace → Workflow via link', async ({ page }) => {
@@ -166,7 +177,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await wfLink.click();
 
       await page.waitForURL((url: URL) => url.pathname.includes('/workflow'), { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
+      await expect(
+        page.locator('.research-page-header, .rwf-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('A4. Result → Reports via Primary Nav', async ({ page }) => {
@@ -183,8 +196,13 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(reportsLink).toBeVisible({ timeout: 10_000 });
       await reportsLink.click();
 
-      await page.waitForURL((url: URL) => url.pathname === '/reports' || url.pathname.startsWith('/reports'), { timeout: 10_000 });
-      await expect(page.locator('.reports-page, .rp-body, .rp-content').first()).toBeVisible({ timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname === '/reports' || url.pathname.startsWith('/reports'),
+        { timeout: 10_000 },
+      );
+      await expect(page.locator('.reports-page, .rp-body, .rp-content').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
   });
 
@@ -193,7 +211,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('B — Library → Reader → Library round-trip', () => {
-
     test('B1. ProjectDetail → Library via Primary Nav', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research/${sessionIdA}`);
@@ -207,8 +224,13 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(libraryLink).toBeVisible({ timeout: 10_000 });
       await libraryLink.click();
 
-      await page.waitForURL((url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'), { timeout: 10_000 });
-      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'),
+        { timeout: 10_000 },
+      );
+      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test('B2. Library → LibraryDetail → Reader via real click chain', async ({ page }) => {
@@ -216,14 +238,16 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       // Step 1: Start from the Library search page.
       await page.goto(`${BASE}/library`);
       await page.waitForLoadState('networkidle');
-      await expect(
-        page.locator('.lib-body, .lib-search-page, .library-page').first()
-      ).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Step 2: Click the first document card to go to LibraryDetail (/library/:id).
       // Each card is a <router-link class="lib-list-item">.
       const docCard = page.locator('.lib-list-item').first();
-      await expect(docCard, 'Must have at least one document in Library list').toBeVisible({ timeout: 10_000 });
+      await expect(docCard, 'Must have at least one document in Library list').toBeVisible({
+        timeout: 10_000,
+      });
 
       // Capture the doc ID from the card href for verification.
       const cardHref = await docCard.getAttribute('href');
@@ -232,16 +256,25 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       expect(cardDocId, 'Card href must contain a document ID').toBeTruthy();
 
       await docCard.click();
-      await page.waitForURL((url: URL) => url.pathname.startsWith('/library/') && url.pathname.split('/').length >= 3, { timeout: 10_000 });
-      await expect(page.locator('.lib-detail-page, .lib-detail-body').first()).toBeVisible({ timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname.startsWith('/library/') && url.pathname.split('/').length >= 3,
+        { timeout: 10_000 },
+      );
+      await expect(page.locator('.lib-detail-page, .lib-detail-body').first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Verify we're on the LibraryDetail page for the clicked document.
-      expect(page.url(), 'Must be on LibraryDetail page for the clicked document').toContain(`/library/${cardDocId}`);
+      expect(page.url(), 'Must be on LibraryDetail page for the clicked document').toContain(
+        `/library/${cardDocId}`,
+      );
 
       // Step 3: Click the "全文阅读" button on LibraryDetail to go to Reader.
       // LibraryDetailPage.openReader() now navigates to /reader/:id (canonical Task 009 route).
       const readBtn = page.locator('.lib-read-btn').first();
-      await expect(readBtn, '"全文阅读" button must be visible on LibraryDetail').toBeVisible({ timeout: 10_000 });
+      await expect(readBtn, '"全文阅读" button must be visible on LibraryDetail').toBeVisible({
+        timeout: 10_000,
+      });
       await readBtn.click();
 
       // Step 4: Must land on /reader/:id, NOT /literature/:id.
@@ -254,7 +287,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       // Step 5: Reader content must be visible with the real document.
       await expect(
         page.locator('.reader-page, .reader-body').first(),
-        'Reader page content must be visible'
+        'Reader page content must be visible',
       ).toBeVisible({ timeout: 10_000 });
     });
 
@@ -263,21 +296,33 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       // Start on the canonical Reader page (established in B2).
       await page.goto(`${BASE}/reader/${docId}`);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({
+        timeout: 10_000,
+      });
 
       // Verify the Reader page breadcrumb shows a Library link.
-      const breadcrumbLink = page.locator('.rph-breadcrumb-link, [class*="breadcrumb"] a').filter({ hasText: 'Library' }).first();
-      await expect(breadcrumbLink, 'Reader breadcrumb must have a Library link').toBeVisible({ timeout: 10_000 });
+      const breadcrumbLink = page
+        .locator('.rph-breadcrumb-link, [class*="breadcrumb"] a')
+        .filter({ hasText: 'Library' })
+        .first();
+      await expect(breadcrumbLink, 'Reader breadcrumb must have a Library link').toBeVisible({
+        timeout: 10_000,
+      });
 
       // Click the breadcrumb to return to Library.
       await breadcrumbLink.click();
-      await page.waitForURL((url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'), { timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'),
+        { timeout: 10_000 },
+      );
 
       // Must land on /library (not /literature, not /reader).
       const finalUrl = page.url();
       expect(finalUrl, 'Must return to /library').toMatch(/\/(library)(\/?$|\?|#)/);
 
-      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
   });
 
@@ -286,7 +331,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('C — Browser navigation (Back / Forward / Refresh)', () => {
-
     test('C1. Browser Back returns to previous page', async ({ page }) => {
       await login(page);
       // Navigate: ProjectDetail → Workspace
@@ -297,8 +341,12 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
 
       // Browser back → should return to ProjectDetail
       await page.goBack();
-      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .pdp-body, .research-page').first()).toBeVisible();
+      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, {
+        timeout: 10_000,
+      });
+      await expect(
+        page.locator('.research-page-header, .pdp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('C2. Browser Forward restores navigated-away page', async ({ page }) => {
@@ -314,7 +362,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       // Forward → back to Workspace
       await page.goForward();
       await page.waitForURL((url: URL) => url.pathname.includes('/workspace'), { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .rwp-body, .research-page').first()).toBeVisible();
+      await expect(
+        page.locator('.research-page-header, .rwp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('C3. Page Refresh preserves current page content', async ({ page }) => {
@@ -328,7 +378,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
 
       // Should still be on the same page with content loaded
       await expect(page).toHaveURL(new RegExp(`/research/${sessionIdA}`));
-      await expect(page.locator('.research-page-header, .pdp-body, .research-page').first()).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.locator('.research-page-header, .pdp-body, .research-page').first(),
+      ).toBeVisible({ timeout: 10_000 });
     });
   });
 
@@ -337,7 +389,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('D — Logged-in Deep Link', () => {
-
     test('D1. Deep link to Result renders directly when logged in', async ({ page }) => {
       await login(page);
       // Navigate directly to a result page
@@ -346,7 +397,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
 
       // Must render result content, not redirect to login
       await expect(page).toHaveURL(new RegExp(`/research/${sessionIdA}/result/${runIdA}`));
-      await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test('D2. Deep link to Workspace renders directly when logged in', async ({ page }) => {
@@ -355,7 +408,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.waitForLoadState('networkidle');
 
       await expect(page).toHaveURL(new RegExp(`/research/${sessionIdA}/workspace`));
-      await expect(page.locator('.research-page-header, .rwp-body, .research-page').first()).toBeVisible({ timeout: 10_000 });
+      await expect(
+        page.locator('.research-page-header, .rwp-body, .research-page').first(),
+      ).toBeVisible({ timeout: 10_000 });
     });
 
     test('D3. Deep link to Reader renders directly when logged in', async ({ page }) => {
@@ -364,7 +419,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.waitForLoadState('networkidle');
 
       await expect(page).toHaveURL(new RegExp(`/reader/${docId}`));
-      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
   });
 
@@ -373,25 +430,32 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('E — Unauthenticated Deep Link with login redirect', () => {
-
-    test('E1. Unauthenticated deep link redirects to login with redirect query', async ({ page }) => {
+    test('E1. Unauthenticated deep link redirects to login with redirect query', async ({
+      page,
+    }) => {
       // Clear any existing auth state
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
 
       // Should be redirected to /login with a redirect param
-      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), { timeout: 10_000 });
+      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), {
+        timeout: 10_000,
+      });
       const redirectParam = new URL(page.url()).searchParams.get('redirect');
       expect(redirectParam).toBeTruthy();
       expect(redirectParam).toContain(`/research/${sessionIdA}/result/${runIdA}`);
     });
 
-    test('E2. After login, redirected back to original deep link with route params preserved', async ({ page }) => {
+    test('E2. After login, redirected back to original deep link with route params preserved', async ({
+      page,
+    }) => {
       await page.goto(`${BASE}/research/${sessionIdA}/result/${runIdA}`);
       await page.waitForLoadState('networkidle');
 
       // Should be on login page
-      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), { timeout: 10_000 });
+      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), {
+        timeout: 10_000,
+      });
 
       // Perform login
       await page.fill('#username', 'researcher');
@@ -399,11 +463,18 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.click('button.login-btn');
 
       // Should be redirected back to the original deep link
-      await page.waitForURL((url: URL) => url.pathname.includes(`/research/${sessionIdA}/result/${runIdA}`), { timeout: 15_000 });
-      await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible({ timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname.includes(`/research/${sessionIdA}/result/${runIdA}`),
+        { timeout: 15_000 },
+      );
+      await expect(page.locator('.rpage-body, .research-page, .rrh-header').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
-    test('E3. Unauthenticated deep link with query params and hash preserved after login', async ({ page }) => {
+    test('E3. Unauthenticated deep link with query params and hash preserved after login', async ({
+      page,
+    }) => {
       // Target URL with real query parameter AND hash fragment.
       // The login redirect must preserve pathname + query + hash through the full round-trip.
       const targetPath = `/reader/${docId}`;
@@ -415,7 +486,9 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.waitForLoadState('networkidle');
 
       // Should redirect to login page.
-      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), { timeout: 10_000 });
+      await expect(page).toHaveURL((url: URL) => url.pathname.includes('/login'), {
+        timeout: 10_000,
+      });
 
       // Verify the redirect param contains the full target pathname, query, AND hash.
       const loginUrl = new URL(page.url());
@@ -431,20 +504,30 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.click('button.login-btn');
 
       // After login, must land on the exact original URL with pathname, query, AND hash preserved.
-      await page.waitForURL((url: URL) => {
-        return url.pathname.includes(targetPath) &&
-               url.search.includes(targetQuery) &&
-               url.hash.includes(targetHash);
-      }, { timeout: 15_000 });
+      await page.waitForURL(
+        (url: URL) => {
+          return (
+            url.pathname.includes(targetPath) &&
+            url.search.includes(targetQuery) &&
+            url.hash.includes(targetHash)
+          );
+        },
+        { timeout: 15_000 },
+      );
 
       // Precise final URL assertions.
       const finalUrl = new URL(page.url());
       expect(finalUrl.pathname, 'Final URL must preserve the exact pathname').toContain(targetPath);
-      expect(finalUrl.searchParams.get('highlight'), 'Final URL must preserve the query param').toBe('chunk-1');
+      expect(
+        finalUrl.searchParams.get('highlight'),
+        'Final URL must preserve the query param',
+      ).toBe('chunk-1');
       expect(finalUrl.hash, 'Final URL must preserve the hash fragment').toBe(`#${targetHash}`);
 
       // Reader content must be visible.
-      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.locator('.reader-page, .reader-body').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
   });
 
@@ -453,7 +536,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('F — Primary Navigation active state', () => {
-
     test('F1. Research page activates Research nav item', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research`);
@@ -502,7 +584,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('G — Breadcrumb behavior', () => {
-
     test('G1. Current page breadcrumb is not clickable', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/research/${sessionIdA}/workspace`);
@@ -529,8 +610,12 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await parentCrumb.click();
 
       // Should navigate to project detail
-      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .pdp-body, .research-page').first()).toBeVisible();
+      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, {
+        timeout: 10_000,
+      });
+      await expect(
+        page.locator('.research-page-header, .pdp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('G3. Result page breadcrumb navigates back to Workflow', async ({ page }) => {
@@ -539,12 +624,17 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await page.waitForLoadState('networkidle');
 
       // The ResearchResultHeader has breadcrumbs: 返回工作区 → 返回研究流程 → 研究结果
-      const workflowLink = page.locator('.rrh-breadcrumb-link').filter({ hasText: '返回研究流程' }).first();
+      const workflowLink = page
+        .locator('.rrh-breadcrumb-link')
+        .filter({ hasText: '返回研究流程' })
+        .first();
       await expect(workflowLink).toBeVisible({ timeout: 10_000 });
 
       await workflowLink.click();
       await page.waitForURL((url: URL) => url.pathname.includes('/workflow'), { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .rwf-body, .research-page').first()).toBeVisible();
+      await expect(
+        page.locator('.research-page-header, .rwf-body, .research-page').first(),
+      ).toBeVisible();
     });
   });
 
@@ -553,18 +643,25 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('H — Back-navigation buttons', () => {
-
     test('H1. Reader "返回 Library" navigates to Library', async ({ page }) => {
       await login(page);
       await page.goto(`${BASE}/reader/${docId}`);
       await page.waitForLoadState('networkidle');
 
-      const backBtn = page.locator('.reader-back-btn, button').filter({ hasText: /返回 Library|← 返回/ }).first();
+      const backBtn = page
+        .locator('.reader-back-btn, button')
+        .filter({ hasText: /返回 Library|← 返回/ })
+        .first();
       await expect(backBtn).toBeVisible({ timeout: 10_000 });
       await backBtn.click();
 
-      await page.waitForURL((url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'), { timeout: 10_000 });
-      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({ timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname === '/library' || url.pathname.startsWith('/library'),
+        { timeout: 10_000 },
+      );
+      await expect(page.locator('.lib-body, .lib-search-page, .library-page').first()).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test('H2. Workflow breadcrumb navigates to correct parent project detail', async ({ page }) => {
@@ -579,8 +676,12 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await lastBreadcrumbLink.click();
 
       // Should navigate to the project detail page
-      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, { timeout: 10_000 });
-      await expect(page.locator('.research-page-header, .pdp-body, .research-page').first()).toBeVisible();
+      await page.waitForURL((url: URL) => url.pathname === `/research/${sessionIdA}`, {
+        timeout: 10_000,
+      });
+      await expect(
+        page.locator('.research-page-header, .pdp-body, .research-page').first(),
+      ).toBeVisible();
     });
 
     test('H3. Result header "返回工作区" navigates to correct workspace', async ({ page }) => {
@@ -592,7 +693,10 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       await expect(wsLink).toBeVisible({ timeout: 10_000 });
       await wsLink.click();
 
-      await page.waitForURL((url: URL) => url.pathname.includes(`/research/${sessionIdA}/workspace`), { timeout: 10_000 });
+      await page.waitForURL(
+        (url: URL) => url.pathname.includes(`/research/${sessionIdA}/workspace`),
+        { timeout: 10_000 },
+      );
     });
   });
 
@@ -601,7 +705,6 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
   // ═══════════════════════════════════════════════════════════════════
 
   test.describe('I — Cross-project isolation', () => {
-
     test('I1. Navigating from project A to project B shows B content, not A', async ({ page }) => {
       await login(page);
 
@@ -627,9 +730,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       expect(titleTextB, 'Project B title must differ from project A').not.toBe(titleTextA);
 
       // Verify project A's title is NOT displayed on project B's page.
-      await expect(
-        page.locator('h1.rph-title').filter({ hasText: titleTextA! })
-      ).toHaveCount(0);
+      await expect(page.locator('h1.rph-title').filter({ hasText: titleTextA! })).toHaveCount(0);
 
       // URLs must differ (different project IDs).
       const urlB = page.url();
@@ -702,9 +803,7 @@ test.describe('Task 011 E2E — Research Navigation Consistency', () => {
       expect(titleTextB, 'Result B title must differ from result A').not.toBe(titleTextA);
 
       // Verify project A's title is NOT visible on result B's page.
-      await expect(
-        page.locator('h1.rrh-title').filter({ hasText: titleTextA! })
-      ).toHaveCount(0);
+      await expect(page.locator('h1.rrh-title').filter({ hasText: titleTextA! })).toHaveCount(0);
 
       const urlB = page.url();
       expect(urlB).toContain(sessionIdB);

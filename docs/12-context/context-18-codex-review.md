@@ -2,7 +2,7 @@
 
 **被审计文件:** `docs/12-context/context-18-huangfu-mi-literature-ingestion-audit.md`  
 **审计日期:** 2026-07-10  
-**审计对象:** Claude 生成的“皇甫谧专题文献采集入库”现状审计报告  
+**审计对象:** Claude 生成的“皇甫谧专题文献采集入库”现状审计报告
 
 ## 结论
 
@@ -12,14 +12,14 @@ Claude 报告基本满足本轮验收要求：有真实代码读取痕迹，识�
 
 ## 验收项
 
-| 验收项 | 结论 | 证据 |
-|---|---:|---|
-| 是否真实读取项目代码，而不是凭空推断 | PASS | 报告列出的 `Document.raw_pdf_blob`、`Document.content_text`、`Paper.full_text`、`Image.license_info`、`/api/v1/search/ingest`、`IngestionService`、`RetrievalService`、`VersionRelation`、TEI/校勘模型等均能在当前代码中对应到真实文件与字段。 |
-| 是否识别版权风险 | PASS | 报告第四章列出“全文无访问控制”“版权状态不可知”“缺乏数据治理红线执行”“许可证元数据碎片化”等风险，并把版权字段、访问级别、许可证、来源溯源列为阶段 0 高优先级。 |
-| 是否区分“元数据采集”和“全文采集” | PASS | 报告在外部数据源规划中区分 `CrossRef / OpenAlex — 现代学术论文元数据`、`国学大师 — 书目元数据`、`ctext.org / 维基文库 — 公版古籍全文`，并明确“学术论文元数据（摘要 + DOI，不含全文）”。 |
-| 是否明确商业数据库不可批量抓取全文 | PASS | 报告在红线中写明禁止“采集商业数据库受限全文（如 CNKI 付费全文、中华书局授权电子版）”。建议后续把措辞进一步加硬为“不得批量抓取、下载、缓存或入库商业数据库全文；仅允许按授权 API 获取元数据/摘要/DOI”。 |
-| 是否给出可执行的模块差距 | PASS | 报告给出模型、采集、OCR、权限、文件存储、外部数据源、审核工作流等差距，并落到 `IngestionBatch`、`IngestionTask`、`Holding`、`CopyrightAssertion`、`ProvenanceRecord`、`copyright_status`、`license`、`access_level`、`acquisition_method` 等具体模块/字段。 |
-| 是否没有越权修改代码 | PASS | `git status --short --untracked-files=all` 只显示两个未跟踪文档：本报告源文件和 `docs/academic_implementation_manual.md`；`git diff --name-only` 为空，未发现已跟踪代码变更。 |
+| 验收项                               | 结论 | 证据                                                                                                                                                                                                                                                        |
+| ------------------------------------ | ---: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 是否真实读取项目代码，而不是凭空推断 | PASS | 报告列出的 `Document.raw_pdf_blob`、`Document.content_text`、`Paper.full_text`、`Image.license_info`、`/api/v1/search/ingest`、`IngestionService`、`RetrievalService`、`VersionRelation`、TEI/校勘模型等均能在当前代码中对应到真实文件与字段。              |
+| 是否识别版权风险                     | PASS | 报告第四章列出“全文无访问控制”“版权状态不可知”“缺乏数据治理红线执行”“许可证元数据碎片化”等风险，并把版权字段、访问级别、许可证、来源溯源列为阶段 0 高优先级。                                                                                               |
+| 是否区分“元数据采集”和“全文采集”     | PASS | 报告在外部数据源规划中区分 `CrossRef / OpenAlex — 现代学术论文元数据`、`国学大师 — 书目元数据`、`ctext.org / 维基文库 — 公版古籍全文`，并明确“学术论文元数据（摘要 + DOI，不含全文）”。                                                                     |
+| 是否明确商业数据库不可批量抓取全文   | PASS | 报告在红线中写明禁止“采集商业数据库受限全文（如 CNKI 付费全文、中华书局授权电子版）”。建议后续把措辞进一步加硬为“不得批量抓取、下载、缓存或入库商业数据库全文；仅允许按授权 API 获取元数据/摘要/DOI”。                                                      |
+| 是否给出可执行的模块差距             | PASS | 报告给出模型、采集、OCR、权限、文件存储、外部数据源、审核工作流等差距，并落到 `IngestionBatch`、`IngestionTask`、`Holding`、`CopyrightAssertion`、`ProvenanceRecord`、`copyright_status`、`license`、`access_level`、`acquisition_method` 等具体模块/字段。 |
+| 是否没有越权修改代码                 | PASS | `git status --short --untracked-files=all` 只显示两个未跟踪文档：本报告源文件和 `docs/academic_implementation_manual.md`；`git diff --name-only` 为空，未发现已跟踪代码变更。                                                                               |
 
 ## 代码证据抽样
 

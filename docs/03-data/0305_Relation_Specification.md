@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Relation Specification
+
 ## 关系规范
 
 > 本文档定义平台所有实体之间关系（Relation）的统一标准。
@@ -60,19 +61,19 @@ Relation 是两个 Entity 之间具有明确语义的连接。
 
 所有 Relation 必须具有以下字段：
 
-| 字段 | 类型 | 必填 |
-|------|------|------|
-| id | UUID | √ |
-| relation_type | String | √ |
-| source_entity | UUID | √ |
-| target_entity | UUID | √ |
-| evidence_id | UUID | √ |
-| confidence | Decimal | √ |
-| status | Enum | √ |
-| created_at | Datetime | √ |
-| created_by | UUID | |
-| reviewed_by | UUID | |
-| version | Integer | √ |
+| 字段          | 类型     | 必填 |
+| ------------- | -------- | ---- |
+| id            | UUID     | √    |
+| relation_type | String   | √    |
+| source_entity | UUID     | √    |
+| target_entity | UUID     | √    |
+| evidence_id   | UUID     | √    |
+| confidence    | Decimal  | √    |
+| status        | Enum     | √    |
+| created_at    | Datetime | √    |
+| created_by    | UUID     |      |
+| reviewed_by   | UUID     |      |
+| version       | Integer  | √    |
 
 ---
 
@@ -246,12 +247,12 @@ AI 推理结果不能作为唯一证据。
 
 统一评分：
 
-| 分值 | 等级 |
-|------|------|
-| ≥0.95 | High |
-| 0.80～0.94 | Medium |
-| 0.60～0.79 | Low |
-| <0.60 | Candidate |
+| 分值       | 等级      |
+| ---------- | --------- |
+| ≥0.95      | High      |
+| 0.80～0.94 | Medium    |
+| 0.60～0.79 | Low       |
+| <0.60      | Candidate |
 
 Candidate 不允许进入正式知识库。
 
@@ -496,7 +497,7 @@ Relation Specification 是平台唯一关系标准。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一关系规范。 |
+| Version | Date       | Description                      |
+| ------- | ---------- | -------------------------------- |
+| 1.1.0   | 2026-06-25 | 更新related_documents            |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一关系规范。 |

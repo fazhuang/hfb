@@ -1,6 +1,7 @@
 """
 Document (文献) domain model.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -32,19 +33,37 @@ class Document(BaseModel):
     __tablename__ = "documents"
 
     title: Mapped[str] = mapped_column(String(500), nullable=False, comment="文献标题")
-    title_pinyin: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="标题拼音")
-    title_english: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="标题英文")
-    author_id: Mapped[str | None] = mapped_column(
-        ForeignKey("persons.id", ondelete="SET NULL"), nullable=True, comment="关联作者 ID (Person)"
+    title_pinyin: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="标题拼音"
     )
-    dynasty: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="朝代")
+    title_english: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="标题英文"
+    )
+    author_id: Mapped[str | None] = mapped_column(
+        ForeignKey("persons.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联作者 ID (Person)",
+    )
+    dynasty: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="朝代"
+    )
     year: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="成书年份")
-    category: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="分类 (针灸/本草/方剂/养生)")
+    category: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, comment="分类 (针灸/本草/方剂/养生)"
+    )
     abstract: Mapped[str | None] = mapped_column(Text, nullable=True, comment="摘要")
-    content_text: Mapped[str | None] = mapped_column(Text, nullable=True, comment="全文文本")
-    source_url: Mapped[str | None] = mapped_column(String(2000), nullable=True, comment="来源链接")
-    raw_pdf_blob: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True, comment="原始 PDF 文件的二进制内容")
-    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True, comment="页数")
+    content_text: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="全文文本"
+    )
+    source_url: Mapped[str | None] = mapped_column(
+        String(2000), nullable=True, comment="来源链接"
+    )
+    raw_pdf_blob: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True, comment="原始 PDF 文件的二进制内容"
+    )
+    page_count: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="页数"
+    )
     language: Mapped[str] = mapped_column(
         String(20), default="zh", server_default="zh", nullable=False, comment="语言"
     )
@@ -60,10 +79,14 @@ class Document(BaseModel):
         comment="版权状态: public_domain|open_access|licensed|user_uploaded_with_permission|unknown|metadata_only|forbidden_fulltext|commercial_restricted|pirated",
     )
     license_type: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="许可类型: CC-BY|CC-BY-NC|CC-BY-SA|CC0|custom"
+        String(100),
+        nullable=True,
+        comment="许可类型: CC-BY|CC-BY-NC|CC-BY-SA|CC0|custom",
     )
     authorization_basis: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="授权依据 (license URL / agreement ref / basis statement)"
+        String(200),
+        nullable=True,
+        comment="授权依据 (license URL / agreement ref / basis statement)",
     )
     review_status: Mapped[str] = mapped_column(
         String(50),
@@ -92,10 +115,14 @@ class Document(BaseModel):
         String(64), nullable=True, comment="原始 PDF blob 的 SHA-256 hash"
     )
     source_name: Mapped[str | None] = mapped_column(
-        String(200), nullable=True, comment="摄入来源名称 (openalex/crossref/user_upload/等)"
+        String(200),
+        nullable=True,
+        comment="摄入来源名称 (openalex/crossref/user_upload/等)",
     )
     session_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True, index=True,
+        String(36),
+        nullable=True,
+        index=True,
         comment="所属研究项目/会话 ID — NULL = 公共/系统文献，不归属特定项目",
     )
     uploaded_by: Mapped[str | None] = mapped_column(
@@ -121,9 +148,7 @@ class Document(BaseModel):
         "Person", foreign_keys=[author_id], lazy="selectin"
     )
 
-    __table_args__ = (
-        Index("idx_documents_pdf_sha256", "pdf_sha256"),
-    )
+    __table_args__ = (Index("idx_documents_pdf_sha256", "pdf_sha256"),)
 
     def __repr__(self) -> str:
         return f"<Document id={self.id} title={self.title!r}>"

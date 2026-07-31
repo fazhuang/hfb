@@ -1,4 +1,5 @@
 """Capture researcher browser flow screenshots for P0-5 verification."""
+
 import json
 import os
 import time
@@ -12,11 +13,13 @@ os.makedirs(OUT, exist_ok=True)
 
 results = []
 
+
 def snap(page, name):
     path = f"{OUT}/{name}.png"
     page.screenshot(path=path, full_page=True)
     results.append({"step": name, "path": path, "url": page.url})
     print(f"  ✓ {name} → {path}")
+
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
@@ -27,13 +30,13 @@ with sync_playwright() as p:
     t0 = time.time()
     page.goto(f"{BASE}/", wait_until="networkidle")
     snap(page, "01-public-home")
-    print(f"    home loaded in {time.time()-t0:.1f}s")
+    print(f"    home loaded in {time.time() - t0:.1f}s")
 
     # --- 2. Login as Researcher ---
     page.goto(f"{BASE}/login", wait_until="networkidle")
-    page.fill('#username', "researcher")
-    page.fill('#password', "researcher123")
-    page.click('button.login-btn')
+    page.fill("#username", "researcher")
+    page.fill("#password", "researcher123")
+    page.click("button.login-btn")
     page.wait_for_timeout(3000)
     snap(page, "02-researcher-login-dashboard")
     print(f"    logged in as researcher, current URL: {page.url}")
@@ -53,7 +56,9 @@ with sync_playwright() as p:
 
     # Try to find search field
     try:
-        search_input = page.locator('input[placeholder*="搜索"], input[placeholder*="search"], input[aria-label*="搜索"]').first
+        search_input = page.locator(
+            'input[placeholder*="搜索"], input[placeholder*="search"], input[aria-label*="搜索"]'
+        ).first
         if search_input.is_visible(timeout=3000):
             search_input.fill("针灸甲乙经")
             search_input.press("Enter")
@@ -68,7 +73,11 @@ with sync_playwright() as p:
 
     # Try to find a search/query input
     try:
-        for sel in ['input[placeholder*="研究"], input[placeholder*="查询"], textarea[placeholder*="问题"]', 'input[type="text"]', 'textarea']:
+        for sel in [
+            'input[placeholder*="研究"], input[placeholder*="查询"], textarea[placeholder*="问题"]',
+            'input[type="text"]',
+            "textarea",
+        ]:
             qinput = page.locator(sel).first
             if qinput.is_visible(timeout=2000):
                 qinput.fill("《针灸甲乙经》的成书特点是什么？")

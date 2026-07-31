@@ -1,9 +1,9 @@
 ---
-title: "Ontology Knowledge"
-version: "1.0"
-status: "Active"
-domain: "ontology"
-last_updated: "2026-06-24"
+title: 'Ontology Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'ontology'
+last_updated: '2026-06-24'
 ---
 
 # Ontology — 领域本体

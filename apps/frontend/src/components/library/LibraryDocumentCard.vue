@@ -4,11 +4,17 @@
     <div class="lib-item-meta">
       <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
       <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
-      <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{ doc.source_name }}</span>
+      <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{
+        doc.source_name
+      }}</span>
     </div>
     <div class="lib-item-badges">
-      <span class="lib-badge lib-badge-copyright">{{ COPYRIGHT_LABELS[doc.copyright_status] || doc.copyright_status }}</span>
-      <span class="lib-badge" :class="`lib-badge-review-${doc.review_status}`">{{ REVIEW_LABELS[doc.review_status] || doc.review_status }}</span>
+      <span class="lib-badge lib-badge-copyright">{{
+        COPYRIGHT_LABELS[doc.copyright_status] || doc.copyright_status
+      }}</span>
+      <span class="lib-badge" :class="`lib-badge-review-${doc.review_status}`">{{
+        REVIEW_LABELS[doc.review_status] || doc.review_status
+      }}</span>
       <span v-if="doc.rag_enabled" class="lib-badge lib-badge-rag">RAG</span>
       <span v-if="doc.withdrawn_at" class="lib-badge lib-badge-withdrawn">已撤回</span>
     </div>
@@ -36,7 +42,9 @@ function formatDate(iso: string): string {
   background: var(--color-navbar-bg, var(--color-surface));
   text-decoration: none;
   color: inherit;
-  transition: box-shadow var(--transition-base), border-color 0.15s;
+  transition:
+    box-shadow var(--transition-base),
+    border-color 0.15s;
   cursor: pointer;
 }
 
@@ -96,10 +104,22 @@ function formatDate(iso: string): string {
   color: var(--color-text-secondary);
 }
 
-.lib-badge-review-pending_review { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.lib-badge-review-under_review { background: var(--color-info-text); color: var(--color-accent-light); }
-.lib-badge-review-approved { background: var(--color-success-icon-bg); color: var(--color-success-text); }
-.lib-badge-review-rejected { background: var(--color-error-icon-bg); color: var(--color-error-text); }
+.lib-badge-review-pending_review {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.lib-badge-review-under_review {
+  background: var(--color-info-text);
+  color: var(--color-accent-light);
+}
+.lib-badge-review-approved {
+  background: var(--color-success-icon-bg);
+  color: var(--color-success-text);
+}
+.lib-badge-review-rejected {
+  background: var(--color-error-icon-bg);
+  color: var(--color-error-text);
+}
 
 .lib-badge-rag {
   background: var(--color-info-text);

@@ -16,6 +16,7 @@ related_documents:
 ---
 
 # Backend Development Standard
+
 ## 后端开发规范
 
 > 本规范定义平台后端开发的统一标准。
@@ -42,16 +43,16 @@ related_documents:
 
 统一采用：
 
-| 模块 | 技术 |
-|------|------|
-| Framework | FastAPI |
-| Python | 3.12+ |
-| ORM | SQLAlchemy 2.x |
-| Migration | Alembic |
-| Validation | Pydantic v2 |
-| Async | asyncio |
-| Testing | pytest |
-| Dependency | uv |
+| 模块       | 技术           |
+| ---------- | -------------- |
+| Framework  | FastAPI        |
+| Python     | 3.12+          |
+| ORM        | SQLAlchemy 2.x |
+| Migration  | Alembic        |
+| Validation | Pydantic v2    |
+| Async      | asyncio        |
+| Testing    | pytest         |
+| Dependency | uv             |
 
 未经 ADR，不得更换核心框架。
 
@@ -380,12 +381,12 @@ integrations/
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| API 响应 | ≤300ms |
-| DB 查询 | ≤100ms |
+| 指标     | 标准                  |
+| -------- | --------------------- |
+| API 响应 | ≤300ms                |
+| DB 查询  | ≤100ms                |
 | 并发支持 | ≥1000 QPS（架构目标） |
-| 启动时间 | ≤10 秒 |
+| 启动时间 | ≤10 秒                |
 
 ---
 
@@ -433,6 +434,6 @@ integrations/
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台后端开发统一规范。 |
+| Version | Date       | Description                          |
+| ------- | ---------- | ------------------------------------ |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台后端开发统一规范。 |

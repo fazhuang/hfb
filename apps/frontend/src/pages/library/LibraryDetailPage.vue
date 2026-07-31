@@ -6,28 +6,16 @@
       :breadcrumbs="breadcrumbs"
     >
       <template v-if="doc" #actions>
-        <button
-          class="lib-read-btn"
-          @click="openReader"
-        >
-          📖 全文阅读
-        </button>
+        <button class="lib-read-btn" @click="openReader">📖 全文阅读</button>
       </template>
     </ResearchPageHeader>
 
     <div class="lib-detail-body">
       <!-- Loading -->
-      <LoadingState
-        v-if="loading"
-        :message="t('common.loading')"
-      />
+      <LoadingState v-if="loading" :message="t('common.loading')" />
 
       <!-- Error -->
-      <ErrorState
-        v-else-if="error"
-        :message="error"
-        @retry="fetch"
-      />
+      <ErrorState v-else-if="error" :message="error" @retry="fetch" />
 
       <!-- Content -->
       <template v-else-if="doc">
@@ -35,8 +23,12 @@
         <div class="lib-detail-meta">
           <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
           <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
-          <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{ doc.source_name }}</span>
-          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{ doc.language }}</span>
+          <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{
+            doc.source_name
+          }}</span>
+          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{
+            doc.language
+          }}</span>
           <span v-if="doc.year" class="lib-meta-tag lib-meta-tag--source">{{ doc.year }}</span>
         </div>
 
@@ -46,7 +38,9 @@
           <div class="lib-compliance-grid">
             <div class="lib-field">
               <span class="lib-field-label">版权状态</span>
-              <span class="lib-badge lib-badge-copyright">{{ COPYRIGHT_LABELS[doc.copyright_status] || doc.copyright_status }}</span>
+              <span class="lib-badge lib-badge-copyright">{{
+                COPYRIGHT_LABELS[doc.copyright_status] || doc.copyright_status
+              }}</span>
             </div>
             <div class="lib-field">
               <span class="lib-field-label">许可类型</span>
@@ -58,7 +52,9 @@
             </div>
             <div class="lib-field">
               <span class="lib-field-label">审核状态</span>
-              <span class="lib-badge" :class="`lib-badge-review-${doc.review_status}`">{{ REVIEW_LABELS[doc.review_status] || doc.review_status }}</span>
+              <span class="lib-badge" :class="`lib-badge-review-${doc.review_status}`">{{
+                REVIEW_LABELS[doc.review_status] || doc.review_status
+              }}</span>
             </div>
             <div class="lib-field">
               <span class="lib-field-label">智能检索</span>
@@ -66,7 +62,8 @@
             </div>
           </div>
           <div v-if="doc.withdrawn_at" class="lib-withdrawn-alert" role="alert">
-            ⚠️ 该文献已于 {{ new Date(doc.withdrawn_at).toLocaleString('zh-CN') }} 撤回 — {{ doc.withdraw_reason || '未提供原因' }}
+            ⚠️ 该文献已于 {{ new Date(doc.withdrawn_at).toLocaleString('zh-CN') }} 撤回 —
+            {{ doc.withdraw_reason || '未提供原因' }}
           </div>
         </section>
 
@@ -83,18 +80,48 @@
         <section class="lib-panel">
           <h3>详细元数据</h3>
           <div class="lib-meta-grid">
-            <div class="lib-field"><span class="lib-field-label">拼音</span><span>{{ doc.title_pinyin || '—' }}</span></div>
-            <div class="lib-field"><span class="lib-field-label">英文</span><span>{{ doc.title_english || '—' }}</span></div>
-            <div class="lib-field"><span class="lib-field-label">页数</span><span>{{ doc.page_count || '—' }}</span></div>
-            <div class="lib-field"><span class="lib-field-label">版本</span><span class="lib-mono">版本信息不可用</span></div>
-            <div class="lib-field"><span class="lib-field-label">内容校验</span><span class="lib-mono">{{ doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—' }}</span></div>
+            <div class="lib-field">
+              <span class="lib-field-label">拼音</span><span>{{ doc.title_pinyin || '—' }}</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">英文</span><span>{{ doc.title_english || '—' }}</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">页数</span><span>{{ doc.page_count || '—' }}</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">版本</span><span class="lib-mono">版本信息不可用</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">内容校验</span
+              ><span class="lib-mono">{{
+                doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—'
+              }}</span>
+            </div>
             <div class="lib-field">
               <span class="lib-field-label">来源链接</span>
-              <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="lib-external-link">查看来源</a>
+              <a
+                v-if="safeSourceUrl"
+                :href="safeSourceUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="lib-external-link"
+                >查看来源</a
+              >
               <span v-else>—</span>
             </div>
-            <div class="lib-field"><span class="lib-field-label">创建时间</span><span>{{ doc.created_at ? new Date(doc.created_at).toLocaleString('zh-CN') : '—' }}</span></div>
-            <div class="lib-field"><span class="lib-field-label">更新时间</span><span>{{ doc.updated_at ? new Date(doc.updated_at).toLocaleString('zh-CN') : '—' }}</span></div>
+            <div class="lib-field">
+              <span class="lib-field-label">创建时间</span
+              ><span>{{
+                doc.created_at ? new Date(doc.created_at).toLocaleString('zh-CN') : '—'
+              }}</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">更新时间</span
+              ><span>{{
+                doc.updated_at ? new Date(doc.updated_at).toLocaleString('zh-CN') : '—'
+              }}</span>
+            </div>
           </div>
         </section>
 
@@ -278,10 +305,22 @@ onMounted(() => fetch());
   color: var(--color-text-secondary);
 }
 
-.lib-badge-review-pending_review { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.lib-badge-review-under_review { background: var(--color-info-bg); color: var(--color-info-text); }
-.lib-badge-review-approved { background: var(--color-success-bg); color: var(--color-success-text); }
-.lib-badge-review-rejected { background: var(--color-error-bg); color: var(--color-error-text); }
+.lib-badge-review-pending_review {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.lib-badge-review-under_review {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+.lib-badge-review-approved {
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+}
+.lib-badge-review-rejected {
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+}
 
 /* Withdrawn alert */
 .lib-withdrawn-alert {

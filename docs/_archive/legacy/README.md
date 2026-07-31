@@ -4,8 +4,8 @@
 
 ---
 
-| 文件 | 原始路径 | 归档日期 |
-|---|---|---|
-| [00-governance__00_Project_Charter__20260625014208.md](00-governance__00_Project_Charter__20260625014208.md) | `docs/00-governance/00_Project_Charter.md` | 2026-06-25 |
-| [00-governance__01_Project_Constitution__20260625014208.md](00-governance__01_Project_Constitution__20260625014208.md) | `docs/00-governance/01_Project_Constitution.md` | 2026-06-25 |
-| [07-security__00_Acceptance_Specification__20260625014208.md](07-security__00_Acceptance_Specification__20260625014208.md) | `docs/07-security/00_Acceptance_Specification.md` | 2026-06-25 |
+| 文件                                                                                                                       | 原始路径                                          | 归档日期   |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ---------- |
+| [00-governance**00_Project_Charter**20260625014208.md](00-governance__00_Project_Charter__20260625014208.md)               | `docs/00-governance/00_Project_Charter.md`        | 2026-06-25 |
+| [00-governance**01_Project_Constitution**20260625014208.md](00-governance__01_Project_Constitution__20260625014208.md)     | `docs/00-governance/01_Project_Constitution.md`   | 2026-06-25 |
+| [07-security**00_Acceptance_Specification**20260625014208.md](07-security__00_Acceptance_Specification__20260625014208.md) | `docs/07-security/00_Acceptance_Specification.md` | 2026-06-25 |

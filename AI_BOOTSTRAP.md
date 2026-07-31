@@ -46,6 +46,7 @@ Claude 在开始**任何代码开发**之前，必须按此顺序阅读：
 ```
 
 **关键约束**:
+
 - 所有代码必须先通过 `make lint` 再提交
 - Type hints 必须完整 (mypy strict)
 - 测试覆盖率目标: 业务逻辑 ≥80%，工具函数 ≥90%
@@ -69,6 +70,7 @@ Codex 在执行**代码审计**之前，必须按此顺序阅读：
 ```
 
 **审计维度** (来自 `docs/07-security/`):
+
 - OWASP Top 10
 - API 安全 (JWT、RBAC、Rate Limiting)
 - 数据安全 (加密、脱敏、审计日志)
@@ -95,6 +97,7 @@ Gemini 在执行**文档/设计评审**之前，必须按此顺序阅读：
 ```
 
 **评审维度**:
+
 - 文档一致性 — 与 Constitution/Blueprint/ADR 是否一致
 - 完整性 — 是否覆盖所需章节
 - 可实现性 — 技术方案是否可行
@@ -122,14 +125,14 @@ Gemini 在执行**文档/设计评审**之前，必须按此顺序阅读：
 
 ## 当前 Sprint 入口
 
-| 字段 | 值 |
-|------|-----|
-| **Sprint** | Sprint 0.2 |
-| **主题** | Repository Foundation |
-| **状态** | ✅ 完成 |
-| **入口文档** | `PROJECT_STATUS.md` |
-| **ROADMAP** | `ROADMAP.md` |
-| **机器清单** | `repo.manifest.json` |
+| 字段         | 值                    |
+| ------------ | --------------------- |
+| **Sprint**   | Sprint 0.2            |
+| **主题**     | Repository Foundation |
+| **状态**     | ✅ 完成               |
+| **入口文档** | `PROJECT_STATUS.md`   |
+| **ROADMAP**  | `ROADMAP.md`          |
+| **机器清单** | `repo.manifest.json`  |
 
 ### Sprint 0.2 产出
 
@@ -147,12 +150,12 @@ Gemini 在执行**文档/设计评审**之前，必须按此顺序阅读：
 
 ### 下一 Sprint
 
-| 字段 | 值 |
-|------|-----|
-| **Sprint** | Sprint 1 |
-| **主题** | Backend Core Infrastructure |
-| **目标** | FastAPI 项目骨架、数据库连接、健康检查端点 |
-| **状态** | 🔲 等待开始 |
+| 字段       | 值                                         |
+| ---------- | ------------------------------------------ |
+| **Sprint** | Sprint 1                                   |
+| **主题**   | Backend Core Infrastructure                |
+| **目标**   | FastAPI 项目骨架、数据库连接、健康检查端点 |
+| **状态**   | 🔲 等待开始                                |
 
 ---
 

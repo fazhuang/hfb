@@ -10,6 +10,7 @@ Covers:
   - API: POST /api/v1/search returns chunks/citations/metadata,
     no LLM fields
 """
+
 from __future__ import annotations
 
 import io
@@ -31,7 +32,10 @@ from sqlalchemy.orm import sessionmaker
 
 # Context 21: compliance metadata for all ingestion calls.
 # All callers must pass copyright_status + authorization_basis.
-_COMPLIANCE = {"copyright_status": "public_domain", "authorization_basis": "test fixture"}
+_COMPLIANCE = {
+    "copyright_status": "public_domain",
+    "authorization_basis": "test fixture",
+}
 
 
 _ingest = _COMPLIANCE  # ponytail: short alias for inline use below
@@ -209,14 +213,24 @@ class TestIngestion:
         assert result.chunk_count > 0
         assert result.total_chars > 0
 
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.title == "测试文献"
 
-        chunk_row = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == result.document_id)
-        )).scalars().all()
+        chunk_row = (
+            (
+                await db_session.execute(
+                    select(DocumentChunk).where(
+                        DocumentChunk.document_id == result.document_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
         assert len(chunk_row) == result.chunk_count
 
     async def test_ingest_stores_metadata(self, db_session):
@@ -226,9 +240,11 @@ class TestIngestion:
             text="内容内容内容。" * 30,
             metadata={"dynasty": "西晋", "category": "针灸", **_COMPLIANCE},
         )
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.dynasty == "西晋"
         assert doc.category == "针灸"
 
@@ -243,14 +259,24 @@ class TestIngestion:
         await db_session.flush()
 
         # Verify in same session
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.title == "持久化测试"
 
-        chunks = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == result.document_id)
-        )).scalars().all()
+        chunks = (
+            (
+                await db_session.execute(
+                    select(DocumentChunk).where(
+                        DocumentChunk.document_id == result.document_id
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
         assert len(chunks) == result.chunk_count
         # Each chunk has (document_id, chunk_index) unique
         seen = set()
@@ -276,9 +302,11 @@ class TestIngestion:
         assert result.chunk_count > 0
 
         # Verify extractable text is stored (not a placeholder)
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert "[PDF document" not in doc.content_text
         assert "Hello World" in doc.content_text
 
@@ -287,10 +315,14 @@ class TestIngestion:
         svc = IngestionService(db_session)
         pdf_bytes = _simple_pdf_bytes()
         file = io.BytesIO(pdf_bytes)
-        result = await svc.ingest_pdf(title="Trace PDF", file=file, metadata=_COMPLIANCE)
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        result = await svc.ingest_pdf(
+            title="Trace PDF", file=file, metadata=_COMPLIANCE
+        )
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         # source_url should contain the pdf reference
         assert doc.source_url is not None
         assert "pdf:" in doc.source_url
@@ -309,9 +341,9 @@ class TestIngestion:
             await svc.ingest_pdf(title="Encrypted", file=file, metadata=_COMPLIANCE)
 
         # Verify no document was created
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
         assert count == 0
 
     async def test_malformed_pdf_fails_cleanly(self, db_session):
@@ -321,9 +353,9 @@ class TestIngestion:
         with pytest.raises(PDFExtractionError):
             await svc.ingest_pdf(title="Bad PDF", file=file, metadata=_COMPLIANCE)
 
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
         assert count == 0
 
     # ---------- Transaction safety ----------
@@ -331,18 +363,20 @@ class TestIngestion:
     async def test_failed_chunking_rolls_back_document(self, db_session):
         """If chunk storage fails, the parent document must not remain."""
         svc = IngestionService(db_session)
-        original_count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        original_count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
 
         # Force failure by passing empty text (triggers ValueError)
         with pytest.raises(ValueError):
-            await svc.ingest_text(title="Should roll back", text="", metadata=_COMPLIANCE)
+            await svc.ingest_text(
+                title="Should roll back", text="", metadata=_COMPLIANCE
+            )
 
         # No new documents
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
         assert count == original_count
 
 
@@ -386,7 +420,9 @@ class TestRetrieval:
         from app.services.retrieval import RetrievalService
 
         svc = IngestionService(db_session)
-        await svc.ingest_text(title="test", text="some content here", metadata=_COMPLIANCE)
+        await svc.ingest_text(
+            title="test", text="some content here", metadata=_COMPLIANCE
+        )
 
         rsvc = RetrievalService(db_session)
         result = await rsvc.search(query="zzz_nonexistent_zzz", top_k=5)
@@ -435,7 +471,9 @@ class TestCitation:
         from app.services.retrieval import RetrievalService
 
         svc = IngestionService(db_session)
-        await svc.ingest_text(title="测试", text="段落一。\n\n段落二。\n\n段落三。", metadata=_COMPLIANCE)
+        await svc.ingest_text(
+            title="测试", text="段落一。\n\n段落二。\n\n段落三。", metadata=_COMPLIANCE
+        )
         rsvc = RetrievalService(db_session)
         search_result = await rsvc.search(query="段落", top_k=3)
 
@@ -460,19 +498,23 @@ class TestCitation:
         r = search_result.results[0]
 
         # citation's document_id → real Document
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == r.document_id)
-        )).scalar_one_or_none()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == r.document_id)
+            )
+        ).scalar_one_or_none()
         assert doc is not None
         assert doc.title == "溯源测试"
 
         # citation's chunk_id → real DocumentChunk
-        chunk = (await db_session.execute(
-            select(DocumentChunk).where(
-                DocumentChunk.id == r.chunk_id,
-                DocumentChunk.document_id == r.document_id,
+        chunk = (
+            await db_session.execute(
+                select(DocumentChunk).where(
+                    DocumentChunk.id == r.chunk_id,
+                    DocumentChunk.document_id == r.document_id,
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         assert chunk is not None
         assert "目标内容" in chunk.content
 
@@ -504,9 +546,11 @@ class TestCitation:
         # Citation format correct
         assert r.citation == f"[{r.document_id}:{r.chunk_id}]"
         # Document is traceable
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == r.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == r.document_id)
+            )
+        ).scalar_one()
         assert doc.title == "针灸甲乙经"
 
 
@@ -527,6 +571,7 @@ def _make_test_app():
 
     # Include the real v1 router (which includes day2_search_router)
     from app.api.v1 import router as v1_router
+
     app.include_router(v1_router)
 
     # Ensure the search endpoint exists at /api/v1/search
@@ -566,9 +611,11 @@ class TestSearchAPI:
         await app_db_session.flush()
 
         app = _make_test_app()
+
         # Override get_session to use our test session
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -603,8 +650,16 @@ class TestSearchAPI:
 
             # Each result has exactly 5 fields
             for result in body["results"]:
-                assert set(result.keys()) == {"chunk_id", "document_id", "content", "score", "citation"}
-                assert "metadata" not in result  # no per-result metadata in frozen contract
+                assert set(result.keys()) == {
+                    "chunk_id",
+                    "document_id",
+                    "content",
+                    "score",
+                    "citation",
+                }
+                assert (
+                    "metadata" not in result
+                )  # no per-result metadata in frozen contract
 
             # At least one result
             assert body["metadata"]["top_k"] == 5
@@ -621,12 +676,15 @@ class TestSearchAPI:
 
             # Determinism: same input → byte-identical JSON
             import json
+
             r2 = await c.post(
                 "/api/v1/search",
                 json={"query": "皇甫谧 针灸 经络", "top_k": 5},
             )
             assert r2.status_code == 200
-            assert json.dumps(body, sort_keys=True) == json.dumps(r2.json(), sort_keys=True)
+            assert json.dumps(body, sort_keys=True) == json.dumps(
+                r2.json(), sort_keys=True
+            )
 
     async def test_search_no_match_returns_empty_valid(self, app_db_session):
         """Empty results still return valid frozen contract structure."""
@@ -637,8 +695,10 @@ class TestSearchAPI:
         await app_db_session.flush()
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -673,8 +733,10 @@ class TestSearchAPI:
         await app_db_session.flush()
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -690,17 +752,21 @@ class TestSearchAPI:
 
             # Verify each citation traceable to DB
             for result in body["results"]:
-                doc = (await app_db_session.execute(
-                    select(Document).where(Document.id == result["document_id"])
-                )).scalar_one_or_none()
+                doc = (
+                    await app_db_session.execute(
+                        select(Document).where(Document.id == result["document_id"])
+                    )
+                ).scalar_one_or_none()
                 assert doc is not None, f"Document {result['document_id']} not found"
 
-                ch = (await app_db_session.execute(
-                    select(DocumentChunk).where(
-                        DocumentChunk.id == result["chunk_id"],
-                        DocumentChunk.document_id == result["document_id"],
+                ch = (
+                    await app_db_session.execute(
+                        select(DocumentChunk).where(
+                            DocumentChunk.id == result["chunk_id"],
+                            DocumentChunk.document_id == result["document_id"],
+                        )
                     )
-                )).scalar_one_or_none()
+                ).scalar_one_or_none()
                 assert ch is not None, f"Chunk {result['chunk_id']} not found"
 
                 # Citation format matches
@@ -743,12 +809,18 @@ class TestAppendPassage:
         original_chunk_count = r1.chunk_count
 
         # Verify initial state
-        chunks_before = list((await app_db_session.execute(
-            select(DocumentChunk).where(
-                DocumentChunk.document_id == doc_id,
-                DocumentChunk.is_deleted.is_(False),
-            ).order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks_before = list(
+            (
+                await app_db_session.execute(
+                    select(DocumentChunk)
+                    .where(
+                        DocumentChunk.document_id == doc_id,
+                        DocumentChunk.is_deleted.is_(False),
+                    )
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         assert len(chunks_before) == original_chunk_count
 
         # Append passage B to same document
@@ -767,25 +839,33 @@ class TestAppendPassage:
         assert r2.content_checksum != original_checksum
 
         # Verify chunk_index is continuous
-        all_chunks = list((await app_db_session.execute(
-            select(DocumentChunk).where(
-                DocumentChunk.document_id == doc_id,
-                DocumentChunk.is_deleted.is_(False),
-            ).order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        all_chunks = list(
+            (
+                await app_db_session.execute(
+                    select(DocumentChunk)
+                    .where(
+                        DocumentChunk.document_id == doc_id,
+                        DocumentChunk.is_deleted.is_(False),
+                    )
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         for i, ch in enumerate(all_chunks):
-            assert ch.chunk_index == i, f"chunk_index gap: expected {i}, got {ch.chunk_index}"
+            assert ch.chunk_index == i, (
+                f"chunk_index gap: expected {i}, got {ch.chunk_index}"
+            )
 
         # Verify two distinct passage_ids exist on this document
-        passage_ids = list({
-            ch.passage_id for ch in all_chunks if ch.passage_id
-        })
-        assert len(passage_ids) >= 2, f"Expected >=2 distinct passage_ids, got {len(passage_ids)}: {passage_ids}"
+        passage_ids = list({ch.passage_id for ch in all_chunks if ch.passage_id})
+        assert len(passage_ids) >= 2, (
+            f"Expected >=2 distinct passage_ids, got {len(passage_ids)}: {passage_ids}"
+        )
 
         # Verify document checksum updated
-        doc_after = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc_after = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         assert doc_after.content_checksum == r2.content_checksum
         assert doc_after.content_checksum != original_checksum
 
@@ -802,9 +882,9 @@ class TestAppendPassage:
         doc_id = r1.document_id
 
         # Simulate admin review → approved + rag_enabled
-        doc = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         doc.review_status = "approved"
         doc.rag_enabled = True
         await app_db_session.flush()
@@ -817,9 +897,9 @@ class TestAppendPassage:
             passage_id=psg_b,
         )
 
-        doc_after = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc_after = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         assert doc_after.review_status == "pending", (
             f"Expected pending, got {doc_after.review_status}"
         )
@@ -833,9 +913,9 @@ class TestAppendPassage:
         import uuid
 
         svc = IngestionService(app_db_session)
-        count_before = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_before = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
 
         with pytest.raises(ValueError, match="does not exist"):
             await svc.append_passage(
@@ -844,9 +924,9 @@ class TestAppendPassage:
                 passage_id=_make_passage(app_db_session, "不存在文件测试", 1),
             )
 
-        count_after = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_after = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count_before == count_after, "No chunks may be created on failure"
 
     async def test_append_nonexistent_passage_fails(self, app_db_session):
@@ -861,9 +941,9 @@ class TestAppendPassage:
             metadata=_COMPLIANCE,
             passage_id=_make_passage(app_db_session, "有效篇章", 1),
         )
-        count_before = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_before = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
 
         with pytest.raises(ValueError, match="does not exist"):
             await svc.append_passage(
@@ -872,9 +952,9 @@ class TestAppendPassage:
                 passage_id=str(uuid.uuid4()),
             )
 
-        count_after = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_after = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count_before == count_after, "No chunks may be created on failure"
 
     async def test_append_empty_text_fails(self, app_db_session):
@@ -886,9 +966,9 @@ class TestAppendPassage:
             metadata=_COMPLIANCE,
             passage_id=_make_passage(app_db_session, "空文本篇", 1),
         )
-        count_before = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_before = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
 
         with pytest.raises(ValueError, match="empty"):
             await svc.append_passage(
@@ -897,9 +977,9 @@ class TestAppendPassage:
                 passage_id=_make_passage(app_db_session, "空文本篇二", 2),
             )
 
-        count_after = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count_after = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count_before == count_after
 
     async def test_append_permission_required(self, app_db_session):
@@ -939,9 +1019,9 @@ class TestAppendPassage:
         from sqlalchemy import select as sa
 
         # Ensure document:update permission is granted to Researcher role
-        researcher_role = (await app_db_session.execute(
-            sa(Role).where(Role.name == "Researcher")
-        )).scalar_one_or_none()
+        researcher_role = (
+            await app_db_session.execute(sa(Role).where(Role.name == "Researcher"))
+        ).scalar_one_or_none()
         if researcher_role:
             # Remove no_perm from Researcher so they DON'T have document:update
             await app_db_session.execute(
@@ -951,33 +1031,48 @@ class TestAppendPassage:
             )
             await app_db_session.flush()
 
-        doc_upd = (await app_db_session.execute(
-            sa(PermModel).where(
-                and_(PermModel.resource == "document", PermModel.action == "update")
+        doc_upd = (
+            await app_db_session.execute(
+                sa(PermModel).where(
+                    and_(PermModel.resource == "document", PermModel.action == "update")
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         if doc_upd is None:
-            doc_upd = PermModel(resource="document", action="update", description="Update documents")
+            doc_upd = PermModel(
+                resource="document", action="update", description="Update documents"
+            )
             app_db_session.add(doc_upd)
             await app_db_session.flush()
 
         # Grant document:update to Researcher role
         if researcher_role and doc_upd:
-            ex_rp = (await app_db_session.execute(
-                sa(rp).where(
-                    and_(rp.c.role_id == researcher_role.id, rp.c.permission_id == doc_upd.id)
+            ex_rp = (
+                await app_db_session.execute(
+                    sa(rp).where(
+                        and_(
+                            rp.c.role_id == researcher_role.id,
+                            rp.c.permission_id == doc_upd.id,
+                        )
+                    )
                 )
-            )).first()
+            ).first()
             if ex_rp is None:
                 await app_db_session.execute(
-                    rp.insert().values(role_id=researcher_role.id, permission_id=doc_upd.id)
+                    rp.insert().values(
+                        role_id=researcher_role.id, permission_id=doc_upd.id
+                    )
                 )
             # Ensure owner has researcher role (already auto-assigned)
-            ex_ur = (await app_db_session.execute(
-                sa(ur).where(
-                    and_(ur.c.user_id == owner.id, ur.c.role_id == researcher_role.id)
+            ex_ur = (
+                await app_db_session.execute(
+                    sa(ur).where(
+                        and_(
+                            ur.c.user_id == owner.id, ur.c.role_id == researcher_role.id
+                        )
+                    )
                 )
-            )).first()
+            ).first()
             if ex_ur is None:
                 await app_db_session.execute(
                     ur.insert().values(user_id=owner.id, role_id=researcher_role.id)
@@ -988,8 +1083,10 @@ class TestAppendPassage:
         noperm_token = create_access_token(no_perm.id)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         psg_id_2 = _make_passage(app_db_session, "权限篇二", 2)
@@ -1038,16 +1135,16 @@ class TestAppendPassage:
         original_checksum = r1.checksum
 
         # Set doc to approved so we can verify it stays unchanged
-        doc = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         doc.review_status = "approved"
         doc.rag_enabled = True
         await app_db_session.flush()
 
-        chunk_count_before = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        chunk_count_before = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
 
         # Simulate a failure by monkey-patching _write_audit to raise
         # AFTER chunks have been flushed.  The savepoint must roll
@@ -1071,17 +1168,17 @@ class TestAppendPassage:
             svc._write_audit = original_audit
 
         # After rollback: no new chunks, same checksum, same review/rag
-        chunk_count_after = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        chunk_count_after = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert chunk_count_after == chunk_count_before, (
             f"Rollback must leave zero new chunks: "
             f"{chunk_count_before} → {chunk_count_after}"
         )
 
-        doc_after = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc_after = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         assert doc_after.review_status == "approved", (
             f"Review status must be unchanged after rollback: {doc_after.review_status}"
         )
@@ -1122,11 +1219,17 @@ class TestAppendPassage:
             passage_id=psg_b,
         )
 
-        audits = list((await app_db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.result_entity_id == r1.document_id,
-            ).order_by(FulltextIngestionAudit.created_at.desc())
-        )).scalars())
+        audits = list(
+            (
+                await app_db_session.execute(
+                    select(FulltextIngestionAudit)
+                    .where(
+                        FulltextIngestionAudit.result_entity_id == r1.document_id,
+                    )
+                    .order_by(FulltextIngestionAudit.created_at.desc())
+                )
+            ).scalars()
+        )
 
         append_audits = [a for a in audits if a.action == "append_passage"]
         assert len(append_audits) >= 1, "Must have at least one append_passage audit"
@@ -1153,15 +1256,15 @@ class TestAppendPassage:
         doc_id = r1.document_id
 
         # Manually set to forbidden
-        doc = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         doc.copyright_status = "forbidden_fulltext"
         await app_db_session.flush()
 
-        chunk_count_before = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        chunk_count_before = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         orig_checksum = doc.content_checksum
 
         with pytest.raises(FulltextRejectedError):
@@ -1171,13 +1274,13 @@ class TestAppendPassage:
                 passage_id=_make_passage(app_db_session, "禁止篇二", 2),
             )
 
-        chunk_count_after = (await app_db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        chunk_count_after = (
+            await app_db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert chunk_count_after == chunk_count_before
-        doc_after = (await app_db_session.execute(
-            select(Document).where(Document.id == doc_id)
-        )).scalar_one()
+        doc_after = (
+            await app_db_session.execute(select(Document).where(Document.id == doc_id))
+        ).scalar_one()
         assert doc_after.content_checksum == orig_checksum
         assert doc_after.review_status == doc.review_status
 

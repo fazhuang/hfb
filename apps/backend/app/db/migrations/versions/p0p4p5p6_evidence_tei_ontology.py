@@ -24,13 +24,28 @@ depends_on: str | Sequence[str] | None = None
 
 # Canonical ontology entity types for CHECK constraints
 VALID_ENTITY_TYPES = (
-    "person", "book", "version", "passage", "text",
-    "herb", "prescription", "meridian", "symptom",
+    "person",
+    "book",
+    "version",
+    "passage",
+    "text",
+    "herb",
+    "prescription",
+    "meridian",
+    "symptom",
 )
 VALID_RELATION_TYPES = (
-    "authored", "compiled", "commented_on", "cited_in",
-    "studied", "compared", "referenced", "related_to",
-    "contains", "treats", "corresponds_to",
+    "authored",
+    "compiled",
+    "commented_on",
+    "cited_in",
+    "studied",
+    "compared",
+    "referenced",
+    "related_to",
+    "contains",
+    "treats",
+    "corresponds_to",
 )
 VALID_EVIDENCE_STATUS = ("unverified", "verified", "rejected")
 
@@ -38,9 +53,15 @@ VALID_EVIDENCE_STATUS = ("unverified", "verified", "rejected")
 def upgrade() -> None:
     # ---- P0-4: entity_relations evidence provenance + claim + verification ----
     with op.batch_alter_table("entity_relations") as batch_op:
-        batch_op.add_column(sa.Column("evidence_version_id", sa.String(36), nullable=True))
-        batch_op.add_column(sa.Column("evidence_passage_id", sa.String(36), nullable=True))
-        batch_op.add_column(sa.Column("evidence_source_uri", sa.String(500), nullable=True))
+        batch_op.add_column(
+            sa.Column("evidence_version_id", sa.String(36), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("evidence_passage_id", sa.String(36), nullable=True)
+        )
+        batch_op.add_column(
+            sa.Column("evidence_source_uri", sa.String(500), nullable=True)
+        )
         batch_op.add_column(
             sa.Column(
                 "evidence_status",
@@ -51,7 +72,9 @@ def upgrade() -> None:
         )
         batch_op.add_column(sa.Column("claim_text", sa.Text, nullable=True))
         batch_op.add_column(sa.Column("verified_by", sa.String(100), nullable=True))
-        batch_op.add_column(sa.Column("verified_at", sa.DateTime(timezone=True), nullable=True))
+        batch_op.add_column(
+            sa.Column("verified_at", sa.DateTime(timezone=True), nullable=True)
+        )
 
     # ---- P0-6: ontology CHECK constraints ----
     with op.batch_alter_table("entity_relations") as batch_op:
@@ -87,12 +110,24 @@ def upgrade() -> None:
         sa.Column("order", sa.Integer, nullable=False),
         sa.Column("text", sa.Text, nullable=False),
         sa.Column("xml_id", sa.String(100), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
     )
-    op.create_index("ix_text_sentences_passage_order", "text_sentences", ["passage_id", "order"])
+    op.create_index(
+        "ix_text_sentences_passage_order", "text_sentences", ["passage_id", "order"]
+    )
 
     op.create_table(
         "text_tokens",
@@ -104,12 +139,24 @@ def upgrade() -> None:
         sa.Column("pos", sa.String(20), nullable=True),
         sa.Column("start_offset", sa.Integer, nullable=True),
         sa.Column("end_offset", sa.Integer, nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
     )
-    op.create_index("ix_text_tokens_sentence_order", "text_tokens", ["sentence_id", "order"])
+    op.create_index(
+        "ix_text_tokens_sentence_order", "text_tokens", ["sentence_id", "order"]
+    )
 
     op.create_table(
         "textual_variants",
@@ -125,9 +172,24 @@ def upgrade() -> None:
         sa.Column("reading", sa.Text, nullable=False),
         sa.Column("variant_type", sa.String(50), nullable=True),
         sa.Column("apparatus", sa.Text, nullable=True),
-        sa.Column("verification_status", sa.String(20), nullable=False, server_default="'unverified'"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "verification_status",
+            sa.String(20),
+            nullable=False,
+            server_default="'unverified'",
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
     )

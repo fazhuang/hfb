@@ -26,6 +26,7 @@
 **Decision**: ...
 
 **Action Items**:
+
 - [ ] @name: task description (due YYYY-MM-DD)
 
 ### Item 2: [Title]

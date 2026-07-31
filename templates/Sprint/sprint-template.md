@@ -5,6 +5,7 @@
 **Goal**: [One-sentence sprint goal]
 
 **Dates**:
+
 - Start: YYYY-MM-DD
 - End: YYYY-MM-DD
 - Review: YYYY-MM-DD
@@ -29,25 +30,25 @@
 
 ## Team
 
-| Role | Name | Allocation |
-|------|------|------------|
-| Product Owner | — | — |
-| Scrum Master | — | — |
-| Architect | — | — |
-| Developer | — | — |
+| Role          | Name | Allocation |
+| ------------- | ---- | ---------- |
+| Product Owner | —    | —          |
+| Scrum Master  | —    | —          |
+| Architect     | —    | —          |
+| Developer     | —    | —          |
 
 ## Stories
 
-| ID | Story | Points | Assignee | Status |
-|----|-------|--------|----------|--------|
-| HFB-001 | [Story title] | 3 | — | todo |
-| HFB-002 | [Story title] | 5 | — | todo |
+| ID      | Story         | Points | Assignee | Status |
+| ------- | ------------- | ------ | -------- | ------ |
+| HFB-001 | [Story title] | 3      | —        | todo   |
+| HFB-002 | [Story title] | 5      | —        | todo   |
 
 ## Risks
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| ... | Low/Med/High | Low/Med/High | ... |
+| Risk | Likelihood   | Impact       | Mitigation |
+| ---- | ------------ | ------------ | ---------- |
+| ...  | Low/Med/High | Low/Med/High | ...        |
 
 ## Definition of Done
 

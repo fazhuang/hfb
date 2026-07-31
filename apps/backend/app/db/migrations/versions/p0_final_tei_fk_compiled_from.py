@@ -26,13 +26,29 @@ depends_on: str | Sequence[str] | None = None
 
 
 VALID_ENTITY_TYPES = (
-    "person", "book", "version", "passage", "text",
-    "herb", "prescription", "meridian", "symptom",
+    "person",
+    "book",
+    "version",
+    "passage",
+    "text",
+    "herb",
+    "prescription",
+    "meridian",
+    "symptom",
 )
 VALID_RELATION_TYPES = (
-    "authored", "compiled", "compiled_from", "commented_on", "cited_in",
-    "studied", "compared", "referenced", "related_to",
-    "contains", "treats", "corresponds_to",
+    "authored",
+    "compiled",
+    "compiled_from",
+    "commented_on",
+    "cited_in",
+    "studied",
+    "compared",
+    "referenced",
+    "related_to",
+    "contains",
+    "treats",
+    "corresponds_to",
 )
 VALID_EVIDENCE_STATUS = ("unverified", "verified", "rejected")
 VALID_VARIANT_TYPES = ("substitution", "addition", "deletion", "transposition")
@@ -74,7 +90,9 @@ def upgrade() -> None:
     with op.batch_alter_table("text_sentences") as batch_op:
         batch_op.create_foreign_key(
             "fk_text_sentences_passage",
-            "passages", ["passage_id"], ["id"],
+            "passages",
+            ["passage_id"],
+            ["id"],
             ondelete="CASCADE",
         )
         # Unique: passage_id + order
@@ -87,7 +105,9 @@ def upgrade() -> None:
     with op.batch_alter_table("text_tokens") as batch_op:
         batch_op.create_foreign_key(
             "fk_text_tokens_sentence",
-            "text_sentences", ["sentence_id"], ["id"],
+            "text_sentences",
+            ["sentence_id"],
+            ["id"],
             ondelete="CASCADE",
         )
         batch_op.create_unique_constraint(
@@ -104,27 +124,39 @@ def upgrade() -> None:
     with op.batch_alter_table("textual_variants") as batch_op:
         batch_op.create_foreign_key(
             "fk_textual_variants_source_version",
-            "versions", ["source_version_id"], ["id"],
+            "versions",
+            ["source_version_id"],
+            ["id"],
         )
         batch_op.create_foreign_key(
             "fk_textual_variants_target_version",
-            "versions", ["target_version_id"], ["id"],
+            "versions",
+            ["target_version_id"],
+            ["id"],
         )
         batch_op.create_foreign_key(
             "fk_textual_variants_source_passage",
-            "passages", ["source_passage_id"], ["id"],
+            "passages",
+            ["source_passage_id"],
+            ["id"],
         )
         batch_op.create_foreign_key(
             "fk_textual_variants_target_passage",
-            "passages", ["target_passage_id"], ["id"],
+            "passages",
+            ["target_passage_id"],
+            ["id"],
         )
         batch_op.create_foreign_key(
             "fk_textual_variants_source_sentence",
-            "text_sentences", ["source_sentence_id"], ["id"],
+            "text_sentences",
+            ["source_sentence_id"],
+            ["id"],
         )
         batch_op.create_foreign_key(
             "fk_textual_variants_target_sentence",
-            "text_sentences", ["target_sentence_id"], ["id"],
+            "text_sentences",
+            ["target_sentence_id"],
+            ["id"],
         )
         batch_op.create_check_constraint(
             "ck_textual_variants_verification_status",

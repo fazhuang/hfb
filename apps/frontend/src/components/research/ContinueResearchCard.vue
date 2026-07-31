@@ -6,22 +6,12 @@
     <LoadingState v-if="loading" message="正在加载..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      title="加载失败"
-      @retry="$emit('retry')"
-    />
+    <ErrorState v-else-if="error" :message="error" title="加载失败" @retry="$emit('retry')" />
 
     <!-- Start New Research — always shown since no resume API exists -->
     <div v-else class="crc-empty">
-      <p class="crc-empty-text">
-        开始新的研究工作流，系统将自动检索文献并生成证据报告。
-      </p>
-      <router-link
-        :to="`/research/${projectId}/workflow`"
-        class="crc-start-btn"
-      >
+      <p class="crc-empty-text">开始新的研究工作流，系统将自动检索文献并生成证据报告。</p>
+      <router-link :to="`/research/${projectId}/workflow`" class="crc-start-btn">
         开始新研究
       </router-link>
     </div>

@@ -13,10 +13,7 @@
       <!-- ============================================================ -->
       <!-- Page-level states -->
       <!-- ============================================================ -->
-      <LoadingState
-        v-if="sessionLoading"
-        message="正在加载研究课题..."
-      />
+      <LoadingState v-if="sessionLoading" message="正在加载研究课题..." />
 
       <EmptyState
         v-else-if="notFound"
@@ -25,9 +22,7 @@
         icon="🔍"
       >
         <template #action>
-          <router-link to="/research" class="rwf-back-link">
-            返回研究课题列表
-          </router-link>
+          <router-link to="/research" class="rwf-back-link"> 返回研究课题列表 </router-link>
         </template>
       </EmptyState>
 
@@ -64,13 +59,7 @@
             <p class="rwf-error-banner-message">{{ submitError }}</p>
           </div>
           <div class="rwf-error-banner-actions">
-            <button
-              type="button"
-              class="rwf-error-retry-btn"
-              @click="retry"
-            >
-              返回修改
-            </button>
+            <button type="button" class="rwf-error-retry-btn" @click="retry">返回修改</button>
           </div>
         </div>
 
@@ -99,10 +88,7 @@
         <!-- ============================================================ -->
         <!-- Step 3: AI Analysis (submitting) -->
         <!-- ============================================================ -->
-        <AnalysisPendingState
-          v-else-if="stepState === 'submitting'"
-          :active="submitting"
-        />
+        <AnalysisPendingState v-else-if="stepState === 'submitting'" :active="submitting" />
 
         <!-- ============================================================ -->
         <!-- Step 4: Evidence Review -->
@@ -230,13 +216,20 @@ const pageTitle = computed(() => {
 // ---- Error title helper ----
 function errorTitleForCode(code: number): string {
   switch (code) {
-    case 400: return '输入错误';
-    case 401: return '未登录';
-    case 403: return '权限不足';
-    case 404: return '未找到';
-    case 409: return '状态冲突';
-    case 422: return '校验失败';
-    case 429: return '请求过多';
+    case 400:
+      return '输入错误';
+    case 401:
+      return '未登录';
+    case 403:
+      return '权限不足';
+    case 404:
+      return '未找到';
+    case 409:
+      return '状态冲突';
+    case 422:
+      return '校验失败';
+    case 429:
+      return '请求过多';
     default:
       if (code >= 500) return '服务端错误';
       return '请求失败';

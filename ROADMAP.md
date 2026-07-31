@@ -17,6 +17,7 @@ Sprint 13-16→ Production Readiness
 ## Sprint 0 — Foundation ✅
 
 ### Sprint 0.1 — Project Governance ✅
+
 - Project Charter & Constitution
 - Documentation structure
 - ADR process established
@@ -24,6 +25,7 @@ Sprint 13-16→ Production Readiness
 - Product roadmap v0
 
 ### Sprint 0.2 — Repository Foundation ✅
+
 - Monorepo scaffolding
 - GitHub community files
 - Git standards & pre-commit

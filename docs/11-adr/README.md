@@ -1,15 +1,15 @@
 ---
-title: "ADR Index"
-version: "1.1"
-status: "Active"
-owner: "Chief Documentation Architect"
-last_updated: "2026-06-25"
-domain: "architecture"
+title: 'ADR Index'
+version: '1.1'
+status: 'Active'
+owner: 'Chief Documentation Architect'
+last_updated: '2026-06-25'
+domain: 'architecture'
 related:
-  - "docs/02-architecture/0201_Technical_Blueprint.md"
-  - "docs/00-governance/0001-project-charter.md"
-  - "docs/15-decision-tree/README.md"
-  - "docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md"
+  - 'docs/02-architecture/0201_Technical_Blueprint.md'
+  - 'docs/00-governance/0001-project-charter.md'
+  - 'docs/15-decision-tree/README.md'
+  - 'docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md'
 ---
 
 # 11 ADR — Architecture Decision Records
@@ -34,18 +34,18 @@ related:
 
 ## 1. ADR 列表
 
-| # | ADR | 决策 | 状态 | MVP |
-|---|---|---|---|---|
-| 0001 | [FastAPI](ADR-0001-FastAPI.md) | 选择 FastAPI 作为 API 框架 | Accepted | ✅ |
-| 0002 | [Vue3](ADR-0002-Vue3.md) | 选择 Vue 3 作为前端框架 | Accepted | ✅ |
-| 0003 | [PostgreSQL](ADR-0003-PostgreSQL.md) | 选择 PostgreSQL 作为主数据库 | Accepted | ✅ |
-| 0004 | [Neo4j](ADR-0004-Neo4j.md) | 选择 Neo4j 作为图数据库 | Accepted | ❌ Post-MVP |
-| 0005 | [Elasticsearch](ADR-0005-Elasticsearch.md) | 选择 Elasticsearch 作为搜索引擎 | Accepted | ✅ |
-| 0006 | [GraphRAG](ADR-0006-GraphRAG.md) | 选择 GraphRAG 图推理架构 | Accepted | ❌ Post-MVP |
-| 0007 | [Milvus](ADR-0007-Milvus.md) | 选择 Milvus 作为向量数据库 | Accepted | ❌ Post-MVP |
-| 0008 | [Docker](ADR-0008-Docker.md) | 选择 Docker 作为部署方案 | Accepted | ✅ |
-| 0009 | [Monorepo](ADR-0009-Monorepo.md) | 选择 Monorepo 代码组织 | Accepted | ✅ |
-| 0010 | [AI Native](ADR-0010-AI-Native.md) | 建立 AI Native 文档体系 | Accepted | ✅ |
+| #    | ADR                                        | 决策                            | 状态     | MVP         |
+| ---- | ------------------------------------------ | ------------------------------- | -------- | ----------- |
+| 0001 | [FastAPI](ADR-0001-FastAPI.md)             | 选择 FastAPI 作为 API 框架      | Accepted | ✅          |
+| 0002 | [Vue3](ADR-0002-Vue3.md)                   | 选择 Vue 3 作为前端框架         | Accepted | ✅          |
+| 0003 | [PostgreSQL](ADR-0003-PostgreSQL.md)       | 选择 PostgreSQL 作为主数据库    | Accepted | ✅          |
+| 0004 | [Neo4j](ADR-0004-Neo4j.md)                 | 选择 Neo4j 作为图数据库         | Accepted | ❌ Post-MVP |
+| 0005 | [Elasticsearch](ADR-0005-Elasticsearch.md) | 选择 Elasticsearch 作为搜索引擎 | Accepted | ✅          |
+| 0006 | [GraphRAG](ADR-0006-GraphRAG.md)           | 选择 GraphRAG 图推理架构        | Accepted | ❌ Post-MVP |
+| 0007 | [Milvus](ADR-0007-Milvus.md)               | 选择 Milvus 作为向量数据库      | Accepted | ❌ Post-MVP |
+| 0008 | [Docker](ADR-0008-Docker.md)               | 选择 Docker 作为部署方案        | Accepted | ✅          |
+| 0009 | [Monorepo](ADR-0009-Monorepo.md)           | 选择 Monorepo 代码组织          | Accepted | ✅          |
+| 0010 | [AI Native](ADR-0010-AI-Native.md)         | 建立 AI Native 文档体系         | Accepted | ✅          |
 
 ## 2. ADR 依赖图
 
@@ -72,12 +72,12 @@ graph LR
 
 ## 3. ADR 状态说明
 
-| 状态 | 说明 |
-|---|---|
-| Proposed | 提案中，待决策 |
-| Accepted | 已接受，当前生效 |
+| 状态       | 说明                      |
+| ---------- | ------------------------- |
+| Proposed   | 提案中，待决策            |
+| Accepted   | 已接受，当前生效          |
 | Superseded | 被新的 ADR 取代，不再执行 |
-| Deprecated | 已废弃，但历史保留 |
+| Deprecated | 已废弃，但历史保留        |
 
 ## 4. ADR 模板
 

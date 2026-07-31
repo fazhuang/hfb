@@ -20,6 +20,7 @@ related_documents:
 ---
 
 # AI Engineering Standard
+
 ## AI 工程规范
 
 > 本文档定义《皇甫谧数字人文与中医经典智能研究平台》AI 子系统的总体工程规范。
@@ -126,16 +127,16 @@ Model Layer
 
 平台 AI 服务统一划分为：
 
-| 服务 | 职责 |
-|------|------|
-| Chat Service | 学术问答 |
-| Search Service | 智能检索 |
-| Citation Service | 引文生成 |
-| Summarization Service | 自动摘要 |
-| Comparison Service | 多版本比对 |
-| Recommendation Service | 文献推荐 |
-| Extraction Service | 信息抽取 |
-| Annotation Service | AI 标注 |
+| 服务                   | 职责       |
+| ---------------------- | ---------- |
+| Chat Service           | 学术问答   |
+| Search Service         | 智能检索   |
+| Citation Service       | 引文生成   |
+| Summarization Service  | 自动摘要   |
+| Comparison Service     | 多版本比对 |
+| Recommendation Service | 文献推荐   |
+| Extraction Service     | 信息抽取   |
+| Annotation Service     | AI 标注    |
 
 所有 AI 服务均为独立 Service。
 
@@ -361,13 +362,13 @@ Published
 
 平台目标：
 
-| 指标 | 标准 |
-|------|------|
-| 首次响应 | ≤3 秒 |
-| 检索成功率 | ≥95% |
-| 引文准确率 | ≥99% |
-| AI 可追溯率 | 100% |
-| Prompt 版本记录 | 100% |
+| 指标            | 标准  |
+| --------------- | ----- |
+| 首次响应        | ≤3 秒 |
+| 检索成功率      | ≥95%  |
+| 引文准确率      | ≥99%  |
+| AI 可追溯率     | 100%  |
+| Prompt 版本记录 | 100%  |
 
 ---
 
@@ -425,16 +426,16 @@ AI 能力上线流程：
 
 依据 [HFB-PS-1709 MVP](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md)：
 
-| Phase | Sprint | 内容 | 状态 |
-|---|---|---|---|
-| Phase 1 | Sprint 1~5 | 预留 AI 能力接口 | MVP |
-| Phase 2 | Sprint 6 | Embedding | MVP |
-| Phase 3 | Sprint 7 | OCR | MVP |
-| Phase 4 | Sprint 8 | RAG 第一版 | MVP |
-| Phase 5 | Sprint 9 | Knowledge Graph 基础 | MVP |
-| Phase 6 | Sprint 10 | GraphRAG | Post-MVP |
-| Phase 7 | Sprint 11 | Research Agent | Post-MVP |
-| Phase 8 | 后续 | Multi-Agent | Post-MVP |
+| Phase   | Sprint     | 内容                 | 状态     |
+| ------- | ---------- | -------------------- | -------- |
+| Phase 1 | Sprint 1~5 | 预留 AI 能力接口     | MVP      |
+| Phase 2 | Sprint 6   | Embedding            | MVP      |
+| Phase 3 | Sprint 7   | OCR                  | MVP      |
+| Phase 4 | Sprint 8   | RAG 第一版           | MVP      |
+| Phase 5 | Sprint 9   | Knowledge Graph 基础 | MVP      |
+| Phase 6 | Sprint 10  | GraphRAG             | Post-MVP |
+| Phase 7 | Sprint 11  | Research Agent       | Post-MVP |
+| Phase 8 | 后续       | Multi-Agent          | Post-MVP |
 
 MVP AI 能力范围参见 [HFB-PS-1705 AI Research Workspace](../17-Platform-Specifications/1705_AI_Research_Workspace_Specification.md)。
 
@@ -484,7 +485,7 @@ Agent
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 新增第十八章(MVP与上线约束)；更新第十七章为分阶段表格式；更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台 AI 工程最高规范。 |
+| Version | Date       | Description                                                                    |
+| ------- | ---------- | ------------------------------------------------------------------------------ |
+| 1.1.0   | 2026-06-25 | 新增第十八章(MVP与上线约束)；更新第十七章为分阶段表格式；更新related_documents |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台 AI 工程最高规范。                                           |

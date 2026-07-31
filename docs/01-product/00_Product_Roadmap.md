@@ -32,12 +32,12 @@ related_documents:
 
 本路线图受以下治理文档约束：
 
-| 依据 | document_id | 作用 |
-|---|---|---|
-| [MVP Implementation](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md) | HFB-PS-1709 | MVP 边界 — 做什么、不做什么 |
-| [Production Readiness](../17-Platform-Specifications/1710_Production_Readiness_Specification.md) | HFB-PS-1710 | 上线准入标准 |
-| [Project Charter](../00-governance/0001-project-charter.md) | HFB-GOV-0001 | 使命、愿景、范围 |
-| [Technical Blueprint](../02-architecture/0201_Technical_Blueprint.md) | HFB-ARC-0201 | 技术架构 |
+| 依据                                                                                             | document_id  | 作用                        |
+| ------------------------------------------------------------------------------------------------ | ------------ | --------------------------- |
+| [MVP Implementation](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md)     | HFB-PS-1709  | MVP 边界 — 做什么、不做什么 |
+| [Production Readiness](../17-Platform-Specifications/1710_Production_Readiness_Specification.md) | HFB-PS-1710  | 上线准入标准                |
+| [Project Charter](../00-governance/0001-project-charter.md)                                      | HFB-GOV-0001 | 使命、愿景、范围            |
+| [Technical Blueprint](../02-architecture/0201_Technical_Blueprint.md)                            | HFB-ARC-0201 | 技术架构                    |
 
 ## 2. MVP Sprint 规划
 

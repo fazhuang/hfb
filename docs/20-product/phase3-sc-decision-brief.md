@@ -13,9 +13,9 @@
 
 合同冻结日 2026-07-25（约五天前）将两项功能推迟至 `KnowledgeExplorerPage` 的后续 Sprint 实现，理由如下：
 
-| 功能 | 旧版位置 | 推迟去向 |
-|------|-----------|------|
-| 教育模式 — 主题 + 级别（初级/中级/高级） → 概念学习（段落 + 引用计数） | `V4ResearchView.vue` education 标签页 | KnowledgeExplorerPage 后续 Sprint |
+| 功能                                                                   | 旧版位置                                  | 推迟去向                          |
+| ---------------------------------------------------------------------- | ----------------------------------------- | --------------------------------- |
+| 教育模式 — 主题 + 级别（初级/中级/高级） → 概念学习（段落 + 引用计数） | `V4ResearchView.vue` education 标签页     | KnowledgeExplorerPage 后续 Sprint |
 | 可视化工作流 — graph_type 选择（概念/引用/时间线/文档） → 知识图谱渲染 | `V4ResearchView.vue` visualization 标签页 | KnowledgeExplorerPage 后续 Sprint |
 
 **自冻结以来规范前端方面没有任何变化**：
@@ -26,13 +26,13 @@
 
 ### 每个选项的发布影响
 
-| | 选项 1：保留为阻塞项 | 选项 2：从本版本发布范围排除 |
-|---|---|---|
-| `/knowledge` 用户体验 | 继续缺少教育模式与可视化工作流这两项能力；现有实体图谱浏览器不受影响 | 继续缺少教育模式与可视化工作流这两项能力；现有实体图谱浏览器不受影响 |
-| 旧版残留 | `V4ResearchView.vue` 保留在磁盘上；其路由已断开，标签页在规范知识页面中不可用 | `V4ResearchView.vue` 保留在磁盘上；是否可删除需等待其依赖图（遗留测试引用等）的单独回归评估 |
-| 后端端点 | `/api/v4/education/learn` + `/api/v4/visualization/graph` 保持孤儿状态 — 由决策 B 另行处理 | 与决策 B 正交 |
-| BLOCK_RELEASE | **持续**直到两项能力在 `KnowledgeExplorerPage` 中实现 | **移除**（假设已提供书面排除并定义用户可见边界） |
-| Sprint 范围 | 需要规范 UI 设计 + 实现 + 测试 | 教育 + 可视化不再属于 Phase 3 Sprint 范围 |
+|                       | 选项 1：保留为阻塞项                                                                       | 选项 2：从本版本发布范围排除                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `/knowledge` 用户体验 | 继续缺少教育模式与可视化工作流这两项能力；现有实体图谱浏览器不受影响                       | 继续缺少教育模式与可视化工作流这两项能力；现有实体图谱浏览器不受影响                        |
+| 旧版残留              | `V4ResearchView.vue` 保留在磁盘上；其路由已断开，标签页在规范知识页面中不可用              | `V4ResearchView.vue` 保留在磁盘上；是否可删除需等待其依赖图（遗留测试引用等）的单独回归评估 |
+| 后端端点              | `/api/v4/education/learn` + `/api/v4/visualization/graph` 保持孤儿状态 — 由决策 B 另行处理 | 与决策 B 正交                                                                               |
+| BLOCK_RELEASE         | **持续**直到两项能力在 `KnowledgeExplorerPage` 中实现                                      | **移除**（假设已提供书面排除并定义用户可见边界）                                            |
+| Sprint 范围           | 需要规范 UI 设计 + 实现 + 测试                                                             | 教育 + 可视化不再属于 Phase 3 Sprint 范围                                                   |
 
 ### 所需的 SC 决定
 
@@ -46,9 +46,9 @@
 
 两个端点无条件挂载（`main.py:80` → `app.api.v4.__init__`），并在每个环境中公开提供。
 
-| 端点 | 路由 | 方法 | 权限 | 有效调用方 |
-|------|------|------|------|------|
-| `education_learn` | `/api/v4/education/learn` | POST | `ai.read`（学生+） | 无 — 仅在已断开路由的 `V4ResearchView.vue:754` 中调用 |
+| 端点                           | 路由                          | 方法 | 权限               | 有效调用方                                            |
+| ------------------------------ | ----------------------------- | ---- | ------------------ | ----------------------------------------------------- |
+| `education_learn`              | `/api/v4/education/learn`     | POST | `ai.read`（学生+） | 无 — 仅在已断开路由的 `V4ResearchView.vue:754` 中调用 |
 | `generate_visualization_graph` | `/api/v4/visualization/graph` | POST | `ai.read`（学生+） | 无 — 仅在已断开路由的 `V4ResearchView.vue:792` 中调用 |
 
 **调用方详情**：
@@ -61,13 +61,13 @@
 
 ### 每个选项的发布影响
 
-| | 选项 1：保留为内部兼容 API | 选项 2：标记废弃 | 选项 3：纳入规范 UI |
-|---|---|---|---|
-| 端点状态 | Active、公开、无文档 | 已弃用，包含 sunset 日期 + 退出计划 | Active → 获得调用方 |
-| 安全性 | `ai.read` 授权仍有可发现端点，无消费 | sunset 后移除，缩小攻击面 | 与现状相同但合法 |
-| 前端工作 | 无 | 无（仅后端废弃头部 / OpenAPI 标记） | 在 KnowledgeExplorer 中构建教育 + 可视化标签页 |
-| 阻塞发布？ | 否 — 选项 1 明确声明端点有意保留 | 否 — 仅需声明即可发布；实际删除在后续进行 | **是** — 直到 UI 构建、测试并验证 |
-| 与决策 A 的关系 | 正交：端点保留且无 UI；需产品明确认可 | 正交：若决策 A 接受缺失调用方，保持端点不产生价值 | 若决策 A 选择选项 1（阻塞），成为依赖项 |
+|                 | 选项 1：保留为内部兼容 API            | 选项 2：标记废弃                                  | 选项 3：纳入规范 UI                            |
+| --------------- | ------------------------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| 端点状态        | Active、公开、无文档                  | 已弃用，包含 sunset 日期 + 退出计划               | Active → 获得调用方                            |
+| 安全性          | `ai.read` 授权仍有可发现端点，无消费  | sunset 后移除，缩小攻击面                         | 与现状相同但合法                               |
+| 前端工作        | 无                                    | 无（仅后端废弃头部 / OpenAPI 标记）               | 在 KnowledgeExplorer 中构建教育 + 可视化标签页 |
+| 阻塞发布？      | 否 — 选项 1 明确声明端点有意保留      | 否 — 仅需声明即可发布；实际删除在后续进行         | **是** — 直到 UI 构建、测试并验证              |
+| 与决策 A 的关系 | 正交：端点保留且无 UI；需产品明确认可 | 正交：若决策 A 接受缺失调用方，保持端点不产生价值 | 若决策 A 选择选项 1（阻塞），成为依赖项        |
 
 ### 所需的 SC 决定
 
@@ -77,17 +77,17 @@
 
 ## 相关性索引
 
-| 文件 / 位置 | 相关性 |
-|---|---|
-| `apps/frontend/src/pages/knowledge/KnowledgeExplorerPage.vue` | 决策 A：唯一的规范知识页面 — 不包含教育或可视化标签页 |
-| `apps/frontend/src/views/V4ResearchView.vue` | 决策 A+B：断开连接的旧版组件，包含两个延迟功能唯一的调用方 |
-| `apps/frontend/src/router/index.ts:169-181,237-240` | 决策 A：`/knowledge` 路由已激活 + `/v4/research-internal` → LegacyRedirect |
-| `apps/frontend/src/components/layout/ResearchPrimaryNav.vue:92-97` | 决策 A：任何已认证用户均可发现知识图谱 |
-| `apps/backend/app/api/v4/__init__.py` | 决策 B：两个端点均已上线并公开挂载 |
-| `apps/backend/app/api/v4/education.py` | 决策 B：`POST /learn`，`ai.read` 权限，无规范调用方 |
-| `apps/backend/app/api/v4/visualization.py` | 决策 B：`POST /graph`，`ai.read` 权限，无规范调用方 |
-| `docs/20-product/phase3-migration-contract.md §3` | 决策 A+B：合同推迟声明 — 2026-07-25 冻结，未修订 |
-| `docs/20-product/phase3-migration-contract.md §6` | 决策 A：合同仍读取为 BLOCK_RELEASE |
+| 文件 / 位置                                                        | 相关性                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| `apps/frontend/src/pages/knowledge/KnowledgeExplorerPage.vue`      | 决策 A：唯一的规范知识页面 — 不包含教育或可视化标签页                      |
+| `apps/frontend/src/views/V4ResearchView.vue`                       | 决策 A+B：断开连接的旧版组件，包含两个延迟功能唯一的调用方                 |
+| `apps/frontend/src/router/index.ts:169-181,237-240`                | 决策 A：`/knowledge` 路由已激活 + `/v4/research-internal` → LegacyRedirect |
+| `apps/frontend/src/components/layout/ResearchPrimaryNav.vue:92-97` | 决策 A：任何已认证用户均可发现知识图谱                                     |
+| `apps/backend/app/api/v4/__init__.py`                              | 决策 B：两个端点均已上线并公开挂载                                         |
+| `apps/backend/app/api/v4/education.py`                             | 决策 B：`POST /learn`，`ai.read` 权限，无规范调用方                        |
+| `apps/backend/app/api/v4/visualization.py`                         | 决策 B：`POST /graph`，`ai.read` 权限，无规范调用方                        |
+| `docs/20-product/phase3-migration-contract.md §3`                  | 决策 A+B：合同推迟声明 — 2026-07-25 冻结，未修订                           |
+| `docs/20-product/phase3-migration-contract.md §6`                  | 决策 A：合同仍读取为 BLOCK_RELEASE                                         |
 
 ---
 

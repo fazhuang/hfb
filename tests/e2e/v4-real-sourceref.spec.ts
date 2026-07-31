@@ -40,7 +40,6 @@ async function login(page: any) {
 // ─── Suite ───────────────────────────────────────────────────────────
 
 test.describe('V4 Real SourceRef — Browser Closure', () => {
-
   test.beforeAll(async ({ request }) => {
     // ── Authenticate ──
     const authResp = await request.post(`${API}/api/v1/auth/login`, {
@@ -77,8 +76,10 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     // Version
     const versionResp = await request.post(`${API}/api/v1/versions`, {
       data: {
-        book_id: bookId, version_name: 'SourceRef闭环保真本',
-        era: '验证数据', repository: 'SourceRef闭环保真库',
+        book_id: bookId,
+        version_name: 'SourceRef闭环保真本',
+        era: '验证数据',
+        repository: 'SourceRef闭环保真库',
         shelf_mark: `SR-CLOSURE-${uniqueSuffix}`,
         source_url: sourceUrl,
       },
@@ -98,9 +99,11 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     // Passage
     const passageResp = await request.post(`${API}/api/v1/passages`, {
       data: {
-        chapter_id: chapterId, version_id: versionId,
+        chapter_id: chapterId,
+        version_id: versionId,
         content_text: 'SrcRefClosure标识 黄帝问曰：余闻九针于夫子，众多博大。',
-        order: 1, tags: 'SourceRef闭环保真',
+        order: 1,
+        tags: 'SourceRef闭环保真',
       },
       headers: authHeaders,
     });
@@ -165,10 +168,9 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
     // ── Find the SourceRef that ingestion created ──
     // Verify it's real by fetching source-refs for this document
-    const srCheckResp = await request.get(
-      `${API}/api/v1/source-refs?document_id=${docId}`,
-      { headers: authHeaders },
-    );
+    const srCheckResp = await request.get(`${API}/api/v1/source-refs?document_id=${docId}`, {
+      headers: authHeaders,
+    });
     // If the dedicated endpoint doesn't exist, fall back to checking
     // via the research snapshot after workflow
     if (srCheckResp.ok()) {
@@ -208,10 +210,9 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     expect(runId).toBeTruthy();
 
     // ── Verify snapshot references via API ──
-    const runsResp = await request.get(
-      `${API}/api/v4/research/session/${sessionId}/runs`,
-      { headers: authHeaders },
-    );
+    const runsResp = await request.get(`${API}/api/v4/research/session/${sessionId}/runs`, {
+      headers: authHeaders,
+    });
     expect(runsResp.ok()).toBeTruthy();
     const runsBody = await runsResp.json();
     const runs = runsBody.data?.runs ?? [];
@@ -307,7 +308,7 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     const srcCard = page.locator('.esrc-card');
     await expect(srcCard.first()).toBeVisible({ timeout: 5_000 });
 
-    const srcCardText = await srcCard.first().textContent() || '';
+    const srcCardText = (await srcCard.first().textContent()) || '';
 
     // Must NOT show "缺少来源文献" (fail-closed) — we have a real SourceRef
     expect(srcCardText).not.toContain('缺少来源文献');
@@ -323,8 +324,8 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
     // Must display a real source_ref_id
     const sourceIdElements = page.locator('.esrc-field-code');
-    if (await sourceIdElements.count() > 0) {
-      const srcIdText = await sourceIdElements.first().textContent() || '';
+    if ((await sourceIdElements.count()) > 0) {
+      const srcIdText = (await sourceIdElements.first().textContent()) || '';
       expect(srcIdText).not.toContain('document:');
       // Should contain the SourceRef UUID (truncated)
       expect(srcIdText.length).toBeGreaterThan(0);
@@ -342,7 +343,7 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
         page.goto(`${BASE}${href}`);
         // Don't fail on navigation — just verify we don't land on an error page
         await page.waitForTimeout(3_000);
-        const bodyText = await page.textContent('body') || '';
+        const bodyText = (await page.textContent('body')) || '';
         // Should not show generic 404 or error
         expect(bodyText).not.toContain('404 Not Found');
       }

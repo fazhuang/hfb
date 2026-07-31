@@ -3,6 +3,7 @@ HFB Backend Application — FastAPI entry point.
 
 皇甫谧数字人文平台
 """
+
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 

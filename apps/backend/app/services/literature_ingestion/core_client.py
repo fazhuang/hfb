@@ -44,15 +44,15 @@ async def search(
     total = data.get("totalHits", 0)
     items: list[LiteratureItem] = []
     for w in data.get("results", []):
-        authors = ", ".join(
-            a.get("name", "") for a in w.get("authors", [])
-        )
+        authors = ", ".join(a.get("name", "") for a in w.get("authors", []))
         kw = ", ".join(w.get("subjects", []) or [])
         doi = w.get("doi", "") or ""
         item = LiteratureItem.try_create(
             title=w.get("title", ""),
             source="core",
-            source_url=f"https://core.ac.uk/works/{w.get('id', '')}" if w.get("id") else "",
+            source_url=f"https://core.ac.uk/works/{w.get('id', '')}"
+            if w.get("id")
+            else "",
             authors=authors,
             year=w.get("yearPublished"),
             abstract=w.get("abstract", "") or "",
@@ -60,7 +60,9 @@ async def search(
             doi=doi,
             journal=w.get("publisher", "") or "",
             is_open_access=bool(w.get("downloadUrl")),
-            language=w.get("language", {}).get("code", "en") if isinstance(w.get("language"), dict) else "en",
+            language=w.get("language", {}).get("code", "en")
+            if isinstance(w.get("language"), dict)
+            else "en",
         )
         if item is not None:
             items.append(item)

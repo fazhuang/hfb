@@ -1,17 +1,10 @@
 <template>
   <div class="reader-page">
     <!-- Loading -->
-    <LoadingState
-      v-if="loading"
-      message="正在加载全文..."
-    />
+    <LoadingState v-if="loading" message="正在加载全文..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      @retry="fetchReaderData"
-    />
+    <ErrorState v-else-if="error" :message="error" @retry="fetchReaderData" />
 
     <!-- Document not found -->
     <EmptyState
@@ -34,9 +27,7 @@
         :breadcrumbs="breadcrumbs"
       >
         <template #actions>
-          <button class="reader-back-btn" @click="backToLibrary">
-            ← 返回 Library
-          </button>
+          <button class="reader-back-btn" @click="backToLibrary">← 返回 Library</button>
         </template>
       </ResearchPageHeader>
 
@@ -45,7 +36,9 @@
         <div class="reader-meta-row">
           <span v-if="doc.dynasty" class="reader-meta-tag">{{ doc.dynasty }}</span>
           <span v-if="doc.category" class="reader-meta-tag">{{ doc.category }}</span>
-          <span v-if="doc.source_name" class="reader-meta-tag reader-meta-tag--source">{{ doc.source_name }}</span>
+          <span v-if="doc.source_name" class="reader-meta-tag reader-meta-tag--source">{{
+            doc.source_name
+          }}</span>
         </div>
 
         <!-- Section: Metadata -->
@@ -78,7 +71,14 @@
             </div>
             <div class="reader-field">
               <span class="reader-field-label">来源</span>
-              <a v-if="safeSourceUrl" :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="reader-external-link">查看来源</a>
+              <a
+                v-if="safeSourceUrl"
+                :href="safeSourceUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="reader-external-link"
+                >查看来源</a
+              >
               <span v-else>—</span>
             </div>
             <div class="reader-field">
@@ -106,10 +106,7 @@
         <section v-if="originalChunks.length > 0" class="reader-panel">
           <h3>原文</h3>
           <div class="reader-text-controls">
-            <button
-              class="reader-expand-btn"
-              @click="textExpanded = !textExpanded"
-            >
+            <button class="reader-expand-btn" @click="textExpanded = !textExpanded">
               {{ textExpanded ? '收起全文' : '展开全文' }}
             </button>
           </div>
@@ -153,7 +150,10 @@
               @click="scrollToChunk(chunk.id)"
             >
               <span class="reader-paragraph-label">
-                段 {{ chunk.paragraph_index != null ? chunk.paragraph_index + 1 : chunk.chunk_index + 1 }}
+                段
+                {{
+                  chunk.paragraph_index != null ? chunk.paragraph_index + 1 : chunk.chunk_index + 1
+                }}
               </span>
               <span class="reader-paragraph-preview">{{ chunkPreview(chunk.content) }}</span>
             </button>
@@ -164,8 +164,7 @@
         <section v-if="ocrChunks.length > 0" class="reader-panel">
           <h3>OCR 文本</h3>
           <p class="reader-section-hint">
-            OCR 分块: {{ ocrChunks.length }} 段 ·
-            平均可信度: {{ avgOcrConfidence }}%
+            OCR 分块: {{ ocrChunks.length }} 段 · 平均可信度: {{ avgOcrConfidence }}%
           </p>
           <div
             v-for="chunk in ocrChunks"
@@ -177,7 +176,9 @@
           >
             <div class="reader-ocr-chunk-header">
               <span class="reader-ocr-chunk-idx">#{{ chunk.chunk_index }}</span>
-              <span v-if="chunk.page_number" class="reader-ocr-chunk-page">页 {{ chunk.page_number }}</span>
+              <span v-if="chunk.page_number" class="reader-ocr-chunk-page"
+                >页 {{ chunk.page_number }}</span
+              >
               <span v-if="chunk.ocr_confidence != null" class="reader-ocr-chunk-confidence">
                 可信度 {{ (chunk.ocr_confidence * 100).toFixed(1) }}%
               </span>
@@ -237,12 +238,7 @@
             </div>
           </div>
         </section>
-        <EmptyState
-          v-else
-          title="暂无引文"
-          description="该文献尚未被任何研究引用。"
-          icon="📎"
-        />
+        <EmptyState v-else title="暂无引文" description="该文献尚未被任何研究引用。" icon="📎" />
 
         <!-- Section: Evidence -->
         <section v-if="evidences.length > 0" class="reader-panel">
@@ -254,9 +250,7 @@
             class="reader-evidence-item"
             :class="{ 'reader-highlight': highlightedEvidenceId === evidence.id }"
           >
-            <div class="reader-evidence-level">
-              证据等级: L{{ evidence.evidence_level }}
-            </div>
+            <div class="reader-evidence-level">证据等级: L{{ evidence.evidence_level }}</div>
             <div class="reader-evidence-desc">{{ evidence.description }}</div>
             <div v-if="evidence.source_passage_id" class="reader-evidence-passage">
               关联段落: {{ evidence.source_passage_id }}
@@ -273,12 +267,7 @@
             </div>
           </div>
         </section>
-        <EmptyState
-          v-else
-          title="暂无证据"
-          description="该文献尚未绑定学术论据。"
-          icon="🔍"
-        />
+        <EmptyState v-else title="暂无证据" description="该文献尚未绑定学术论据。" icon="🔍" />
       </div>
     </template>
   </div>
@@ -454,15 +443,11 @@ const safeSourceUrl = computed(() => {
 
 const avgOcrConfidence = computed(() => {
   if (ocrChunks.value.length === 0) return '—';
-  const total = ocrChunks.value.reduce(
-    (sum, c) => sum + (c.ocr_confidence ?? 0), 0,
-  );
+  const total = ocrChunks.value.reduce((sum, c) => sum + (c.ocr_confidence ?? 0), 0);
   return ((total / ocrChunks.value.length) * 100).toFixed(1);
 });
 
-const passagesWithTranslation = computed(() =>
-  passages.value.filter((p) => p.translation),
-);
+const passagesWithTranslation = computed(() => passages.value.filter((p) => p.translation));
 
 // ---- Data fetching ----
 
@@ -535,7 +520,9 @@ function highlightChunkIds(ids: string[]) {
   const set = new Set(ids);
   highlightedChunkIds.value = set;
   if (ids.length > 0) {
-    setTimeout(() => { highlightedChunkIds.value = new Set(); }, 3000);
+    setTimeout(() => {
+      highlightedChunkIds.value = new Set();
+    }, 3000);
   }
 }
 
@@ -552,7 +539,9 @@ function scrollToCitationAnchor(citation: ReaderCitation) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
-  setTimeout(() => { highlightedCitationId.value = null; }, 3000);
+  setTimeout(() => {
+    highlightedCitationId.value = null;
+  }, 3000);
 }
 
 function scrollToEvidenceAnchor(evidence: ReaderEvidence) {
@@ -567,7 +556,9 @@ function scrollToEvidenceAnchor(evidence: ReaderEvidence) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   });
-  setTimeout(() => { highlightedEvidenceId.value = null; }, 3000);
+  setTimeout(() => {
+    highlightedEvidenceId.value = null;
+  }, 3000);
 }
 
 // ---- URL anchor restore ----
@@ -768,7 +759,9 @@ watch(
   white-space: pre-wrap;
   overflow-wrap: break-word;
   word-break: break-word;
-  transition: background var(--transition-slow), border-color var(--transition-slow);
+  transition:
+    background var(--transition-slow),
+    border-color var(--transition-slow);
   border-radius: var(--radius-sm);
 }
 
@@ -843,7 +836,9 @@ watch(
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-page-bg);
-  transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  transition:
+    border-color var(--transition-slow),
+    box-shadow var(--transition-slow);
 }
 
 .reader-ocr-chunk-header {
@@ -884,7 +879,9 @@ watch(
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  transition:
+    border-color var(--transition-slow),
+    box-shadow var(--transition-slow);
 }
 
 .reader-translation-header {
@@ -923,7 +920,9 @@ watch(
   padding: var(--space-3-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  transition:
+    border-color var(--transition-slow),
+    box-shadow var(--transition-slow);
 }
 
 .reader-citation-quote {
@@ -957,7 +956,9 @@ watch(
   padding: var(--space-3-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+  transition:
+    border-color var(--transition-slow),
+    box-shadow var(--transition-slow);
 }
 
 .reader-evidence-level {

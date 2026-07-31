@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Prompt Engineering Guide
+
 ## Prompt 工程规范
 
 > 本文档规定《皇甫谧数字人文与中医经典智能研究平台》所有 Prompt 的设计、管理、版本控制、测试、发布及维护规范。
@@ -61,16 +62,16 @@ Prompt 与代码一样：
 
 平台 Prompt 分为八类。
 
-| 编号 | 类型 | 说明 |
-|------|------|------|
-| P01 | System Prompt | 系统角色 |
-| P02 | Workflow Prompt | 工作流 |
-| P03 | Retrieval Prompt | 检索 |
-| P04 | Analysis Prompt | 分析 |
-| P05 | Generation Prompt | 内容生成 |
-| P06 | Review Prompt | 审核 |
-| P07 | Evaluation Prompt | 评估 |
-| P08 | Agent Prompt | 智能体 |
+| 编号 | 类型              | 说明     |
+| ---- | ----------------- | -------- |
+| P01  | System Prompt     | 系统角色 |
+| P02  | Workflow Prompt   | 工作流   |
+| P03  | Retrieval Prompt  | 检索     |
+| P04  | Analysis Prompt   | 分析     |
+| P05  | Generation Prompt | 内容生成 |
+| P06  | Review Prompt     | 审核     |
+| P07  | Evaluation Prompt | 评估     |
+| P08  | Agent Prompt      | 智能体   |
 
 不得混用。
 
@@ -142,19 +143,19 @@ P-0404-0001
 
 所有 Prompt 必须包含：
 
-| 字段 | 必填 |
-|------|------|
-| Prompt ID | √ |
-| Name | √ |
-| Version | √ |
-| Author | √ |
-| Reviewer | √ |
-| Created Date | √ |
-| Updated Date | √ |
-| Applicable Model | √ |
-| Input Schema | √ |
-| Output Schema | √ |
-| Status | √ |
+| 字段             | 必填 |
+| ---------------- | ---- |
+| Prompt ID        | √    |
+| Name             | √    |
+| Version          | √    |
+| Author           | √    |
+| Reviewer         | √    |
+| Created Date     | √    |
+| Updated Date     | √    |
+| Applicable Model | √    |
+| Input Schema     | √    |
+| Output Schema    | √    |
+| Status           | √    |
 
 ---
 
@@ -388,12 +389,12 @@ Prompt：
 
 平台目标：
 
-| 指标 | 标准 |
-|------|------|
-| 执行成功率 | ≥95% |
-| 输出一致率 | ≥95% |
+| 指标            | 标准 |
+| --------------- | ---- |
+| 执行成功率      | ≥95% |
+| 输出一致率      | ≥95% |
 | Prompt 可复用率 | ≥90% |
-| Prompt 覆盖率 | 100% |
+| Prompt 覆盖率   | 100% |
 
 ---
 
@@ -442,7 +443,7 @@ Prompt Library 成为平台正式资产，与代码仓库同步管理。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台 Prompt 工程最高规范。 |
+| Version | Date       | Description                              |
+| ------- | ---------- | ---------------------------------------- |
+| 1.1.0   | 2026-06-25 | 更新related_documents                    |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台 Prompt 工程最高规范。 |

@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # GraphRAG Specification
+
 ## GraphRAG 技术规范
 
 > 本文档定义平台第二代 AI 检索架构——GraphRAG（Graph Retrieval-Augmented Generation）。
@@ -454,12 +455,12 @@ Rebuild Index
 
 要求：
 
-| 指标 | 标准 |
-|------|------|
-| 孤立 Node | <1% |
-| 无 Evidence Edge | 0 |
-| 重复 Node | 0 |
-| 重复 Edge | 0 |
+| 指标              | 标准 |
+| ----------------- | ---- |
+| 孤立 Node         | <1%  |
+| 无 Evidence Edge  | 0    |
+| 重复 Node         | 0    |
+| 重复 Edge         | 0    |
 | Citation Accuracy | ≥99% |
 
 ---
@@ -539,7 +540,7 @@ Ranking
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents；明确MVP阶段禁止引入 |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台 GraphRAG 技术规范。 |
+| Version | Date       | Description                                |
+| ------- | ---------- | ------------------------------------------ |
+| 1.1.0   | 2026-06-25 | 更新related_documents；明确MVP阶段禁止引入 |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台 GraphRAG 技术规范。     |

@@ -19,41 +19,41 @@ scope: Reduce to Minimum Viable Production Core
 
 ### 1.1 Over-Engineered Modules — IDENTIFIED & CUT
 
-| Module | Found In | Problem | Action |
-|--------|----------|---------|--------|
-| **Port/Adapter abstraction layer** | Sprint-0 plan §2.5–2.8 | 3 abstract interfaces + 3 adapter files for a codebase that already follows Service→Repository→Model layering with zero leakage | **CUT.** Don't create ports/. Don't create adapters/. Existing layer discipline is enforced by code review, not by ABC. |
-| **Structured JSON logging** | Sprint-0 plan §0.3.5 | Premature for MVP — adds structlog dependency, config complexity, and 3 new files for a problem that doesn't exist yet | **CUT.** Keep existing `app/core/logging.py`. Add `X-Request-ID` header propagation only (one middleware file). |
-| **Request access log middleware** | Sprint-0 plan §0.3.7 | Separate audit stream for HTTP access logs — 90-day retention, separate table design | **DEFER to Sprint 3.** Audit log is needed only for Published data lifecycle; HTTP access logging is an ops concern, not MVP. |
-| **BusinessAuditLog table** | Sprint-0 plan §3.1.8 | Full immutable audit log with before/after JSON snapshots, prompt_version, model_version | **DEFER to Sprint 2.** ReviewService needs it but ReviewService doesn't exist yet. Build it WITH ReviewService, not before. |
-| **Metadata table + 1:1 constraint** | Sprint-0 plan §3.1.6 | Separate metadata table every entity must 1:1 reference — a constraint with no consumer | **DEFER to Sprint 2.** No feature reads metadata. No user sees metadata. The constraint is a Production Gate, not a Sprint-0 deliverable. |
-| **Review queue table migration** | Sprint-0 plan §3.1.9 | Table for ReviewService that doesn't exist | **DEFER to Sprint 2.** Build with ReviewService. |
-| **Future service stubs (services/, knowledge_graph/, rag/, ai_pipeline/)** | Sprint-0 plan §1.2 | Empty directories with .gitkeep for Post-MVP services | **CUT.** Don't create directories for code that doesn't exist. Post-MVP can scaffold itself. |
-| **uuid6 dependency** | Sprint-0 plan §7.0.1 | UUID v7 library | **DEFER.** Current code uses string UUIDs via BaseModel. UUID v7 generation is needed only when we create entities programmatically from ingestion, not before. |
+| Module                                                                     | Found In               | Problem                                                                                                                         | Action                                                                                                                                                          |
+| -------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Port/Adapter abstraction layer**                                         | Sprint-0 plan §2.5–2.8 | 3 abstract interfaces + 3 adapter files for a codebase that already follows Service→Repository→Model layering with zero leakage | **CUT.** Don't create ports/. Don't create adapters/. Existing layer discipline is enforced by code review, not by ABC.                                         |
+| **Structured JSON logging**                                                | Sprint-0 plan §0.3.5   | Premature for MVP — adds structlog dependency, config complexity, and 3 new files for a problem that doesn't exist yet          | **CUT.** Keep existing `app/core/logging.py`. Add `X-Request-ID` header propagation only (one middleware file).                                                 |
+| **Request access log middleware**                                          | Sprint-0 plan §0.3.7   | Separate audit stream for HTTP access logs — 90-day retention, separate table design                                            | **DEFER to Sprint 3.** Audit log is needed only for Published data lifecycle; HTTP access logging is an ops concern, not MVP.                                   |
+| **BusinessAuditLog table**                                                 | Sprint-0 plan §3.1.8   | Full immutable audit log with before/after JSON snapshots, prompt_version, model_version                                        | **DEFER to Sprint 2.** ReviewService needs it but ReviewService doesn't exist yet. Build it WITH ReviewService, not before.                                     |
+| **Metadata table + 1:1 constraint**                                        | Sprint-0 plan §3.1.6   | Separate metadata table every entity must 1:1 reference — a constraint with no consumer                                         | **DEFER to Sprint 2.** No feature reads metadata. No user sees metadata. The constraint is a Production Gate, not a Sprint-0 deliverable.                       |
+| **Review queue table migration**                                           | Sprint-0 plan §3.1.9   | Table for ReviewService that doesn't exist                                                                                      | **DEFER to Sprint 2.** Build with ReviewService.                                                                                                                |
+| **Future service stubs (services/, knowledge_graph/, rag/, ai_pipeline/)** | Sprint-0 plan §1.2     | Empty directories with .gitkeep for Post-MVP services                                                                           | **CUT.** Don't create directories for code that doesn't exist. Post-MVP can scaffold itself.                                                                    |
+| **uuid6 dependency**                                                       | Sprint-0 plan §7.0.1   | UUID v7 library                                                                                                                 | **DEFER.** Current code uses string UUIDs via BaseModel. UUID v7 generation is needed only when we create entities programmatically from ingestion, not before. |
 
 ### 1.2 Premature Enterprise Abstractions — IDENTIFIED & CUT
 
-| Abstration | Problem | Action |
-|-----------|---------|--------|
+| Abstration                         | Problem                                                                                                                                                                        | Action                                                                                                                                                                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **8-way exception → HTTP mapping** | Sprint-0 plan §2.6: ValidationError→422, PermissionError→403, EntityNotFound→404, ConflictError→409, RateLimitError→429, AIProviderError→502, DatabaseError→503, Exception→500 | Existing code already handles errors. Don't build a taxonomy for errors that haven't occurred. **KEEP only:** the existing FastAPI exception handlers. Add ONE custom handler for `EntityNotFoundError` (used in services). |
-| **AUDIT_RETENTION_DAYS config** | Config for audit log retention when audit log table doesn't exist | **CUT.** Add when audit log is created. |
-| **Config file audit section** | New config namespace | **CUT.** No consumer exists. |
+| **AUDIT_RETENTION_DAYS config**    | Config for audit log retention when audit log table doesn't exist                                                                                                              | **CUT.** Add when audit log is created.                                                                                                                                                                                     |
+| **Config file audit section**      | New config namespace                                                                                                                                                           | **CUT.** No consumer exists.                                                                                                                                                                                                |
 
 ### 1.3 Post-MVP Leakage Into MVP — IDENTIFIED & CLEANED
 
-| Leakage | Location in Sprint-0 Plan | Fix |
-|---------|--------------------------|-----|
-| **Evidence + relation_evidence + citation tables** described as Sprint-0 migrations | §3.1.7 | These are Sprint-2 (used by ReviewService). Current MVP has NO ReviewService and NO Evidence enforcement. **MOVE to Sprint 2.** |
-| **6-pipeline AI skeleton** described as detailed design | §4.1–4.6 | OCR/NER/Relation/Graph/RAG/Research-Assistant all Post-MVP. Writing detailed process flows for Post-MVP work is architecture creep. **CUT all pipeline descriptions.** Keep only the 2-sentence summary: "Current MVP = ILIKE + LLM. Post-MVP = Text RAG + GraphRAG." |
-| **Node registry extension to 12 types** | §5.2 | GraphService currently handles 4 types. Expanding the doc-only registry before code needs it is aspirational. **KEEP current state as-is.** Expand when actual graph queries require it. |
-| **Edge name standardization** | §5.3 | Renaming graph.py short names to HFB-DAT-0305 standard names is a code change with no user impact. **DEFER to Sprint 1.** Do it when adding new relation types. |
-| **Graph update strategy (Post-MVP section)** | §5.5 | Detailed outbox pattern, sync worker design — all Post-MVP. **KEEP 1 paragraph.** Delete the detailed process flow. |
+| Leakage                                                                             | Location in Sprint-0 Plan | Fix                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Evidence + relation_evidence + citation tables** described as Sprint-0 migrations | §3.1.7                    | These are Sprint-2 (used by ReviewService). Current MVP has NO ReviewService and NO Evidence enforcement. **MOVE to Sprint 2.**                                                                                                                                       |
+| **6-pipeline AI skeleton** described as detailed design                             | §4.1–4.6                  | OCR/NER/Relation/Graph/RAG/Research-Assistant all Post-MVP. Writing detailed process flows for Post-MVP work is architecture creep. **CUT all pipeline descriptions.** Keep only the 2-sentence summary: "Current MVP = ILIKE + LLM. Post-MVP = Text RAG + GraphRAG." |
+| **Node registry extension to 12 types**                                             | §5.2                      | GraphService currently handles 4 types. Expanding the doc-only registry before code needs it is aspirational. **KEEP current state as-is.** Expand when actual graph queries require it.                                                                              |
+| **Edge name standardization**                                                       | §5.3                      | Renaming graph.py short names to HFB-DAT-0305 standard names is a code change with no user impact. **DEFER to Sprint 1.** Do it when adding new relation types.                                                                                                       |
+| **Graph update strategy (Post-MVP section)**                                        | §5.5                      | Detailed outbox pattern, sync worker design — all Post-MVP. **KEEP 1 paragraph.** Delete the detailed process flow.                                                                                                                                                   |
 
 ### 1.4 Duplicated Responsibilities
 
-| Duplication | Found In | Action |
-|-------------|----------|--------|
-| **Sprint 0 deliverable list + Execution Checklist** | §6 Sprint 0 table + §7 Phase checkboxes | Same content in two formats. **Keep §7 checkboxes only.** Delete §6 Sprint 0 deliverable table. |
-| **Production Gap Tracker** in Appendix | Duplicates HFB-ARC-0203 Appendix A risk register + Production Gap tracking | **DELETE.** Architecture doc already tracks this. Don't duplicate. |
+| Duplication                                         | Found In                                                                   | Action                                                                                          |
+| --------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Sprint 0 deliverable list + Execution Checklist** | §6 Sprint 0 table + §7 Phase checkboxes                                    | Same content in two formats. **Keep §7 checkboxes only.** Delete §6 Sprint 0 deliverable table. |
+| **Production Gap Tracker** in Appendix              | Duplicates HFB-ARC-0203 Appendix A risk register + Production Gap tracking | **DELETE.** Architecture doc already tracks this. Don't duplicate.                              |
 
 ---
 
@@ -192,16 +192,16 @@ What we DON'T build yet:
 
 ### Deliverables (8 tasks)
 
-| # | Task | Files Affected | Effort | Verifies |
-|---|------|---------------|--------|----------|
-| 1.1 | **Institution model + migration + API** | `models/institution.py`, `schemas/entities.py` (extend), `api/v1/entities.py` (extend or new route) | 0.5d | CRUD via API |
-| 1.2 | **Place model + migration + API** | `models/place.py`, `schemas/`, `api/v1/` | 0.5d | CRUD via API |
-| 1.3 | **Event model + migration + API** | `models/event.py`, `schemas/`, `api/v1/` | 0.5d | CRUD via API |
-| 1.4 | **Dynasty model + migration + API** | `models/dynasty.py`, `schemas/`, `api/v1/` | 0.5d | CRUD via API |
-| 1.5 | **ES integration into SearchService** | `services/search_service.py` (add ES backend path) | 1.5d | Search returns ES results with highlighting |
-| 1.6 | **Status lifecycle state machine** | `services/entities.py` (add state validation), `core/status_machine.py` (new) | 1d | Draft→Review→Published enforced; Draft→Published rejected |
-| 1.7 | **EntityNotFoundError + handler** | `core/exceptions.py` (new), `core/error_handlers.py` (new), `main.py` (register) | 0.5d | 404 on missing entity, unified envelope |
-| 1.8 | **X-Request-ID middleware** | `middleware/request_id.py` (new), `main.py` (register) | 0.5d | `X-Request-ID` in all responses |
+| #   | Task                                    | Files Affected                                                                                      | Effort | Verifies                                                  |
+| --- | --------------------------------------- | --------------------------------------------------------------------------------------------------- | ------ | --------------------------------------------------------- |
+| 1.1 | **Institution model + migration + API** | `models/institution.py`, `schemas/entities.py` (extend), `api/v1/entities.py` (extend or new route) | 0.5d   | CRUD via API                                              |
+| 1.2 | **Place model + migration + API**       | `models/place.py`, `schemas/`, `api/v1/`                                                            | 0.5d   | CRUD via API                                              |
+| 1.3 | **Event model + migration + API**       | `models/event.py`, `schemas/`, `api/v1/`                                                            | 0.5d   | CRUD via API                                              |
+| 1.4 | **Dynasty model + migration + API**     | `models/dynasty.py`, `schemas/`, `api/v1/`                                                          | 0.5d   | CRUD via API                                              |
+| 1.5 | **ES integration into SearchService**   | `services/search_service.py` (add ES backend path)                                                  | 1.5d   | Search returns ES results with highlighting               |
+| 1.6 | **Status lifecycle state machine**      | `services/entities.py` (add state validation), `core/status_machine.py` (new)                       | 1d     | Draft→Review→Published enforced; Draft→Published rejected |
+| 1.7 | **EntityNotFoundError + handler**       | `core/exceptions.py` (new), `core/error_handlers.py` (new), `main.py` (register)                    | 0.5d   | 404 on missing entity, unified envelope                   |
+| 1.8 | **X-Request-ID middleware**             | `middleware/request_id.py` (new), `main.py` (register)                                              | 0.5d   | `X-Request-ID` in all responses                           |
 
 **Total: ~5.5 engineering days**
 
@@ -236,50 +236,50 @@ What we DON'T build yet:
 
 ## 5. Post-MVP Deferred List
 
-| Item | Deferred To | Trigger |
-|------|------------|---------|
-| Neo4j deployment | Phase 2 | ADR-0004 upgraded to Active |
-| GraphRAG | Phase 2 | Neo4j deployed + ADR-0006 Active |
-| pgvector / Text RAG | Phase 2 | Embedding model selected + pgvector extension enabled |
-| Milvus | Phase 3 | >100K vectors |
-| OCR pipeline | Phase 2 | Multi-version corpus acquired |
-| NER pipeline | Phase 2 | TCM fine-tuned model available |
-| Relation extraction | Phase 2 | NER pipeline operational |
-| Literature review assistant | Phase 2 | Text RAG + GraphRAG operational |
-| Evidence chain assistant | Phase 2 | GraphRAG operational |
-| Version comparison assistant | Phase 2 | Multi-version data loaded |
-| Topic suggestion assistant | Phase 2 | Paper corpus >500 |
-| Teaching assistant | Phase 3 | Learning center built |
-| Academic audit assistant | Phase 3 | All assistants operational |
-| Evidence + Citation tables | Sprint 2 | Sprint 1 complete |
-| ReviewService | Sprint 2 | Evidence tables exist |
-| Metadata table | Sprint 2 | ReviewService exists (metadata is for published entities) |
-| BusinessAuditLog | Sprint 2 | ReviewService exists (audit tracks review actions) |
-| Port/Adapter interfaces | Never | Existing Service→Repository→Model layering is adequate |
-| Structured logging | Sprint 3 | Ops requirement emerges |
-| Audit log middleware | Sprint 3 | BusinessAuditLog established |
-| Learning center | Phase 2 | MVP delivered |
-| Full digital exhibition | Phase 2 | MVP delivered |
-| Institution/Place/Event/Dynasty API | Sprint 1 | THIS SPRINT |
+| Item                                | Deferred To | Trigger                                                   |
+| ----------------------------------- | ----------- | --------------------------------------------------------- |
+| Neo4j deployment                    | Phase 2     | ADR-0004 upgraded to Active                               |
+| GraphRAG                            | Phase 2     | Neo4j deployed + ADR-0006 Active                          |
+| pgvector / Text RAG                 | Phase 2     | Embedding model selected + pgvector extension enabled     |
+| Milvus                              | Phase 3     | >100K vectors                                             |
+| OCR pipeline                        | Phase 2     | Multi-version corpus acquired                             |
+| NER pipeline                        | Phase 2     | TCM fine-tuned model available                            |
+| Relation extraction                 | Phase 2     | NER pipeline operational                                  |
+| Literature review assistant         | Phase 2     | Text RAG + GraphRAG operational                           |
+| Evidence chain assistant            | Phase 2     | GraphRAG operational                                      |
+| Version comparison assistant        | Phase 2     | Multi-version data loaded                                 |
+| Topic suggestion assistant          | Phase 2     | Paper corpus >500                                         |
+| Teaching assistant                  | Phase 3     | Learning center built                                     |
+| Academic audit assistant            | Phase 3     | All assistants operational                                |
+| Evidence + Citation tables          | Sprint 2    | Sprint 1 complete                                         |
+| ReviewService                       | Sprint 2    | Evidence tables exist                                     |
+| Metadata table                      | Sprint 2    | ReviewService exists (metadata is for published entities) |
+| BusinessAuditLog                    | Sprint 2    | ReviewService exists (audit tracks review actions)        |
+| Port/Adapter interfaces             | Never       | Existing Service→Repository→Model layering is adequate    |
+| Structured logging                  | Sprint 3    | Ops requirement emerges                                   |
+| Audit log middleware                | Sprint 3    | BusinessAuditLog established                              |
+| Learning center                     | Phase 2     | MVP delivered                                             |
+| Full digital exhibition             | Phase 2     | MVP delivered                                             |
+| Institution/Place/Event/Dynasty API | Sprint 1    | THIS SPRINT                                               |
 
 ---
 
 ## 6. Summary of Cuts
 
-| Cut | From Sprint-0 Plan | Saving |
-|-----|-------------------|--------|
-| Port/Adapter layer (6 files) | §2.5–2.8 | ~300 lines, 6 files, 1 dependency |
-| Structured logging upgrade | §0.3.5 | structlog dep, 1 file rewrite, config complexity |
-| Request audit middleware | §0.3.7 | 1 file, 1 migration, 1 config section |
-| BusinessAuditLog table | §3.1.8 | 1 migration, 1 model, 1 API |
-| Metadata table | §3.1.6 | 1 migration, 1 model, 1 API, 1 constraint |
-| Review queue table | §3.1.9 | 1 migration, 1 model |
-| Evidence + Citation tables | §3.1.7 | 3 migrations, 3 models, 2 APIs |
-| Future service stubs (4 dirs) | §1.2 | 4 directories |
-| uuid6 dependency | §7.0.1 | 1 dependency |
-| 6-pipeline AI design docs | §4.1–4.6 | ~200 lines of premature design |
-| Edge name standardization | §5.3 | Code churn with zero user impact |
-| Production Gap Tracker duplicate | Appendix | ~20 lines |
-| Sprint 0 deliverable table (duplicate) | §6 | ~20 lines |
+| Cut                                    | From Sprint-0 Plan | Saving                                           |
+| -------------------------------------- | ------------------ | ------------------------------------------------ |
+| Port/Adapter layer (6 files)           | §2.5–2.8           | ~300 lines, 6 files, 1 dependency                |
+| Structured logging upgrade             | §0.3.5             | structlog dep, 1 file rewrite, config complexity |
+| Request audit middleware               | §0.3.7             | 1 file, 1 migration, 1 config section            |
+| BusinessAuditLog table                 | §3.1.8             | 1 migration, 1 model, 1 API                      |
+| Metadata table                         | §3.1.6             | 1 migration, 1 model, 1 API, 1 constraint        |
+| Review queue table                     | §3.1.9             | 1 migration, 1 model                             |
+| Evidence + Citation tables             | §3.1.7             | 3 migrations, 3 models, 2 APIs                   |
+| Future service stubs (4 dirs)          | §1.2               | 4 directories                                    |
+| uuid6 dependency                       | §7.0.1             | 1 dependency                                     |
+| 6-pipeline AI design docs              | §4.1–4.6           | ~200 lines of premature design                   |
+| Edge name standardization              | §5.3               | Code churn with zero user impact                 |
+| Production Gap Tracker duplicate       | Appendix           | ~20 lines                                        |
+| Sprint 0 deliverable table (duplicate) | §6                 | ~20 lines                                        |
 
 **Total removed from Sprint 0 plan: ~500 lines of planned code, 15+ files, 2 dependencies, 6+ migrations.**

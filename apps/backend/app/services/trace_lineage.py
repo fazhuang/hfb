@@ -6,6 +6,7 @@ lineage resolution (trace → chunk → document → passage → citation).
 All V4 routes (research, education, workflow, visualization) use this module.
 No per-file _make_trace_id copies.
 """
+
 from __future__ import annotations
 
 import json
@@ -112,7 +113,9 @@ class InternalTraceRecord(BaseModel):
         # retrieval_score semantics
         if self.provenance_kind == "retrieval":
             if self.retrieval_score is None:
-                raise ValueError("retrieval provenance requires a retrieval_score (0.0–1.0), got None")
+                raise ValueError(
+                    "retrieval provenance requires a retrieval_score (0.0–1.0), got None"
+                )
             if not _is_valid_score(self.retrieval_score):
                 raise ValueError(
                     f"retrieval_score must be 0.0–1.0, not NaN/Inf, got: {self.retrieval_score}"
@@ -176,7 +179,7 @@ async def build_internal_traces(
     checked_withdrawn: dict[str, bool] = {}
 
     # Batch-query all chunk passage_ids
-    chunk_ids = list({t.chunk_id for t in evidence_traces if hasattr(t, 'chunk_id')})
+    chunk_ids = list({t.chunk_id for t in evidence_traces if hasattr(t, "chunk_id")})
     passage_map: dict[str, str] = {}
     if chunk_ids:
         stmt = select(DocumentChunk.id, DocumentChunk.passage_id).where(
@@ -189,8 +192,8 @@ async def build_internal_traces(
             passage_map[row[0]] = pid
 
     for t in evidence_traces:
-        doc_id = t.document_id if hasattr(t, 'document_id') else ""
-        chk_id = t.chunk_id if hasattr(t, 'chunk_id') else ""
+        doc_id = t.document_id if hasattr(t, "document_id") else ""
+        chk_id = t.chunk_id if hasattr(t, "chunk_id") else ""
         if not doc_id or not chk_id:
             continue
 
@@ -237,12 +240,14 @@ async def build_internal_traces(
 
         # P2T1: Reject chunks whose passage version is withdrawn
         if passage_id not in checked_withdrawn:
-            v_stmt = select(Version.withdrawn_at).join(
-                Passage, Passage.version_id == Version.id
-            ).where(
-                Passage.id == passage_id,
-                Passage.is_deleted.is_(False),
-                Version.is_deleted.is_(False),
+            v_stmt = (
+                select(Version.withdrawn_at)
+                .join(Passage, Passage.version_id == Version.id)
+                .where(
+                    Passage.id == passage_id,
+                    Passage.is_deleted.is_(False),
+                    Version.is_deleted.is_(False),
+                )
             )
             v_result = await db.execute(v_stmt)
             v_row = v_result.one_or_none()
@@ -253,16 +258,18 @@ async def build_internal_traces(
                 f"a withdrawn version — cannot construct InternalTraceRecord for trace {tid}"
             )
 
-        records.append(InternalTraceRecord(
-            trace_id=tid,
-            document_id=doc_id,
-            chunk_id=chk_id,
-            passage_id=passage_id,
-            provenance_kind="retrieval",
-            retrieval_score=score,
-            retrieval_method=method,
-            timestamp=now,
-        ))
+        records.append(
+            InternalTraceRecord(
+                trace_id=tid,
+                document_id=doc_id,
+                chunk_id=chk_id,
+                passage_id=passage_id,
+                provenance_kind="retrieval",
+                retrieval_score=score,
+                retrieval_method=method,
+                timestamp=now,
+            )
+        )
 
     return records
 
@@ -285,7 +292,7 @@ async def build_viz_traces(
     seen: set[str] = set()
 
     # Batch-query all chunk passage_ids
-    chunk_ids = list({t.chunk_id for t in evidence_traces if hasattr(t, 'chunk_id')})
+    chunk_ids = list({t.chunk_id for t in evidence_traces if hasattr(t, "chunk_id")})
     passage_map: dict[str, str] = {}
     if chunk_ids:
         stmt = select(DocumentChunk.id, DocumentChunk.passage_id).where(
@@ -298,8 +305,8 @@ async def build_viz_traces(
             passage_map[row[0]] = pid
 
     for t in evidence_traces:
-        doc_id = t.document_id if hasattr(t, 'document_id') else ""
-        chk_id = t.chunk_id if hasattr(t, 'chunk_id') else ""
+        doc_id = t.document_id if hasattr(t, "document_id") else ""
+        chk_id = t.chunk_id if hasattr(t, "chunk_id") else ""
         if not doc_id or not chk_id:
             continue
 
@@ -315,16 +322,18 @@ async def build_viz_traces(
                 f"cannot construct InternalTraceRecord for trace {tid}"
             )
 
-        records.append(InternalTraceRecord(
-            trace_id=tid,
-            document_id=doc_id,
-            chunk_id=chk_id,
-            passage_id=passage_id,
-            provenance_kind="graph",
-            retrieval_score=None,  # graph-derived, not retrieval-scored
-            retrieval_method="graph_service",
-            timestamp=now,
-        ))
+        records.append(
+            InternalTraceRecord(
+                trace_id=tid,
+                document_id=doc_id,
+                chunk_id=chk_id,
+                passage_id=passage_id,
+                provenance_kind="graph",
+                retrieval_score=None,  # graph-derived, not retrieval-scored
+                retrieval_method="graph_service",
+                timestamp=now,
+            )
+        )
 
     return records
 
@@ -334,8 +343,8 @@ def extract_trace_ids(evidence_traces: list) -> list[str]:
     seen: set[str] = set()
     ids: list[str] = []
     for t in evidence_traces:
-        doc_id = t.document_id if hasattr(t, 'document_id') else ""
-        chk_id = t.chunk_id if hasattr(t, 'chunk_id') else ""
+        doc_id = t.document_id if hasattr(t, "document_id") else ""
+        chk_id = t.chunk_id if hasattr(t, "chunk_id") else ""
         if not doc_id or not chk_id:
             continue
         tid = make_trace_id(doc_id, chk_id)
@@ -347,10 +356,13 @@ def extract_trace_ids(evidence_traces: list) -> list[str]:
 
 def extract_source_documents(evidence_traces: list) -> list[str]:
     """Extract deduplicated, sorted document IDs from evidence traces."""
-    return sorted({
-        t.document_id for t in evidence_traces
-        if hasattr(t, 'document_id') and t.document_id
-    })
+    return sorted(
+        {
+            t.document_id
+            for t in evidence_traces
+            if hasattr(t, "document_id") and t.document_id
+        }
+    )
 
 
 # =============================================================================
@@ -365,6 +377,7 @@ class TraceLineageError(Exception):
 @dataclass(frozen=True, slots=True)
 class ResolvedTrace:
     """Fully resolved trace lineage."""
+
     trace_id: str
     chunk: DocumentChunk
     document: Document
@@ -561,7 +574,9 @@ async def passage_mapping_stats(db: AsyncSession) -> dict:
 
 
 async def resolve_time_evidence(
-    db: AsyncSession, document_id: str, chunk_id: str,
+    db: AsyncSession,
+    document_id: str,
+    chunk_id: str,
 ) -> dict | None:
     """Resolve era/year from Version for a chunk. Uses DB schema, not regex.
 

@@ -41,9 +41,12 @@ class PaperService:
         """
         # Phase 1: Evidence collection
         paths = await self.graph_svc.multi_hop_query(
-            source_type=source_type, source_id=source_id,
-            target_type=target_type, target_id=target_id,
-            min_evidence_level=min_evidence_level, max_hops=max_hops,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            min_evidence_level=min_evidence_level,
+            max_hops=max_hops,
             relation_types=relation_types,
         )
 
@@ -51,8 +54,12 @@ class PaperService:
         all_version_ids: set[str] = set()
         for path in paths:
             for hop in path.hops:
-                all_version_ids.add(hop.source_id if hop.source_type == "version" else "")
-                all_version_ids.add(hop.target_id if hop.target_type == "version" else "")
+                all_version_ids.add(
+                    hop.source_id if hop.source_type == "version" else ""
+                )
+                all_version_ids.add(
+                    hop.target_id if hop.target_type == "version" else ""
+                )
 
         all_version_ids.discard("")
 
@@ -69,11 +76,16 @@ class PaperService:
 
         # Phase 4: Assemble 8 modules
         modules = self._assemble_modules(
-            source_type=source_type, source_id=source_id,
-            target_type=target_type, target_id=target_id,
-            paths=paths, version_ids=all_version_ids,
-            conflicts=conflicts, min_evidence_level=min_evidence_level,
-            max_hops=max_hops, relation_types=relation_types,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            paths=paths,
+            version_ids=all_version_ids,
+            conflicts=conflicts,
+            min_evidence_level=min_evidence_level,
+            max_hops=max_hops,
+            relation_types=relation_types,
         )
 
         # Phase 5: Generate output
@@ -86,10 +98,14 @@ class PaperService:
             "max_hops": max_hops,
             "relation_types": relation_types,
         }
-        paper_json = json.dumps(paper_data, ensure_ascii=False, sort_keys=True, default=str)
+        paper_json = json.dumps(
+            paper_data, ensure_ascii=False, sort_keys=True, default=str
+        )
         paper_id = hashlib.sha256(paper_json.encode()).hexdigest()
 
-        markdown = self._render_markdown(modules, source_type, source_id, target_type, target_id)
+        markdown = self._render_markdown(
+            modules, source_type, source_id, target_type, target_id
+        )
 
         return {
             "paper_id": paper_id,
@@ -105,8 +121,16 @@ class PaperService:
         }
 
     def _assemble_modules(
-        self, source_type, source_id, target_type, target_id,
-        paths, version_ids, conflicts, min_evidence_level, max_hops,
+        self,
+        source_type,
+        source_id,
+        target_type,
+        target_id,
+        paths,
+        version_ids,
+        conflicts,
+        min_evidence_level,
+        max_hops,
         relation_types,
     ) -> dict:
         """Assemble 8 paper modules from evidence data."""
@@ -142,18 +166,24 @@ class PaperService:
         # Module 4: Evidence chains
         evidence_chains = []
         for path in paths:
-            chain = {"path_id": path.path_id, "hops": [], "total_confidence": path.total_confidence}
+            chain = {
+                "path_id": path.path_id,
+                "hops": [],
+                "total_confidence": path.total_confidence,
+            }
             for hop in path.hops:
-                chain["hops"].append({
-                    "source": f"{hop.source_type}:{hop.source_id}",
-                    "target": f"{hop.target_type}:{hop.target_id}",
-                    "relation": hop.relation_type,
-                    "evidence_level": hop.evidence_level,
-                    "confidence_score": hop.confidence_score,
-                    "citation": hop.citation,
-                    "exact_quote": hop.exact_quote,
-                    "source_uri": hop.source_uri,
-                })
+                chain["hops"].append(
+                    {
+                        "source": f"{hop.source_type}:{hop.source_id}",
+                        "target": f"{hop.target_type}:{hop.target_id}",
+                        "relation": hop.relation_type,
+                        "evidence_level": hop.evidence_level,
+                        "confidence_score": hop.confidence_score,
+                        "citation": hop.citation,
+                        "exact_quote": hop.exact_quote,
+                        "source_uri": hop.source_uri,
+                    }
+                )
             evidence_chains.append(chain)
 
         # Module 5: Variant appendix (placeholder — filled by TEI enricher)
@@ -178,8 +208,10 @@ class PaperService:
         # Module 8: Methodology
         methodology = {
             "query_parameters": {
-                "source_type": source_type, "source_id": source_id,
-                "target_type": target_type, "target_id": target_id,
+                "source_type": source_type,
+                "source_id": source_id,
+                "target_type": target_type,
+                "target_id": target_id,
                 "min_evidence_level": min_evidence_level,
                 "max_hops": max_hops,
                 "relation_types": relation_types,
@@ -222,8 +254,12 @@ class PaperService:
         # Abstract
         a = modules["abstract"]
         lines.append("## 摘要")
-        lines.append(f"共发现 **{a['path_count']}** 条证据路径，涉及 **{a['version_count']}** 个文献版本。")
-        lines.append(f"最高证据等级 **L{a['max_evidence_level']}**，平均置信度 **{a['avg_confidence']:.4f}**。")
+        lines.append(
+            f"共发现 **{a['path_count']}** 条证据路径，涉及 **{a['version_count']}** 个文献版本。"
+        )
+        lines.append(
+            f"最高证据等级 **L{a['max_evidence_level']}**，平均置信度 **{a['avg_confidence']:.4f}**。"
+        )
         lines.append("")
 
         # Literature Basis
@@ -237,8 +273,12 @@ class PaperService:
         for i, chain in enumerate(modules.get("evidence_chains", []), 1):
             lines.append(f"### 路径 {i} (置信度: {chain['total_confidence']:.4f})")
             for j, hop in enumerate(chain["hops"], 1):
-                lines.append(f"**跳步 {j}**: {hop['source']} --[{hop['relation']}]--> {hop['target']}")
-                lines.append(f"- 证据等级: L{hop['evidence_level']} (置信度: {hop['confidence_score']})")
+                lines.append(
+                    f"**跳步 {j}**: {hop['source']} --[{hop['relation']}]--> {hop['target']}"
+                )
+                lines.append(
+                    f"- 证据等级: L{hop['evidence_level']} (置信度: {hop['confidence_score']})"
+                )
                 lines.append(f"- 引用: {hop['citation']}")
                 if hop["exact_quote"]:
                     lines.append(f"- 原文: 「{hop['exact_quote']}」")
@@ -249,7 +289,9 @@ class PaperService:
 
         # Variant Appendix
         lines.append("## 异文附录")
-        lines.append("（无 L4 级别异文证据）" if not modules.get("variant_appendix") else "")
+        lines.append(
+            "（无 L4 级别异文证据）" if not modules.get("variant_appendix") else ""
+        )
         lines.append("")
 
         # Literature Review
@@ -261,7 +303,9 @@ class PaperService:
         lines.append("## 讨论与冲突检测")
         discussion = modules.get("discussion", {})
         for c in discussion.get("conflicts", []):
-            lines.append(f"- **[{c['type']}]** {c['description']} (严重度: {c['severity']})")
+            lines.append(
+                f"- **[{c['type']}]** {c['description']} (严重度: {c['severity']})"
+            )
         if not discussion.get("conflicts"):
             lines.append("未检测到证据冲突。")
         lines.append("")
@@ -273,7 +317,9 @@ class PaperService:
         lines.append(f"- 最低证据等级: L{m['query_parameters']['min_evidence_level']}")
         lines.append(f"- 最大跳数: {m['query_parameters']['max_hops']}")
         dist = m.get("evidence_level_distribution", {})
-        lines.append(f"- 证据等级分布: L2={dist.get('L2', 0)}, L3={dist.get('L3', 0)}, L4={dist.get('L4', 0)}")
+        lines.append(
+            f"- 证据等级分布: L2={dist.get('L2', 0)}, L3={dist.get('L3', 0)}, L4={dist.get('L4', 0)}"
+        )
         lines.append("")
 
         return "\n".join(lines)

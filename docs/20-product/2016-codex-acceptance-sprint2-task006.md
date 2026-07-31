@@ -8,14 +8,14 @@
 
 ## 1. 改动文件清单
 
-| 文件 | 改动类型 | 行数变化 | 所属批次 |
-|------|---------|---------|---------|
-| `apps/frontend/src/composables/useResearchResult.ts` | 修改 | ~+25/-10 | Batch 1 |
-| `apps/frontend/src/components/research/result/ResearchResultErrorState.vue` | 修改 | ~+16/-0 | Batch 1 |
-| `apps/frontend/src/__tests__/research-result-page.test.ts` | 修改 | ~+190/-5 | Batch 1-2 |
-| `tests/e2e/test_critical_journeys.py` | 修改 | ~+60/-100 | Batch 1-3 (E2E 修复) |
-| `docs/20-product/2015-research-result-migration.md` | 修改 | ~+8/-6 | Batch 3 |
-| `docs/20-product/2016-codex-acceptance-sprint2-task006.md` | 重写 | — | Batch 4 |
+| 文件                                                                        | 改动类型 | 行数变化  | 所属批次             |
+| --------------------------------------------------------------------------- | -------- | --------- | -------------------- |
+| `apps/frontend/src/composables/useResearchResult.ts`                        | 修改     | ~+25/-10  | Batch 1              |
+| `apps/frontend/src/components/research/result/ResearchResultErrorState.vue` | 修改     | ~+16/-0   | Batch 1              |
+| `apps/frontend/src/__tests__/research-result-page.test.ts`                  | 修改     | ~+190/-5  | Batch 1-2            |
+| `tests/e2e/test_critical_journeys.py`                                       | 修改     | ~+60/-100 | Batch 1-3 (E2E 修复) |
+| `docs/20-product/2015-research-result-migration.md`                         | 修改     | ~+8/-6    | Batch 3              |
+| `docs/20-product/2016-codex-acceptance-sprint2-task006.md`                  | 重写     | —         | Batch 4              |
 
 **总计**: 6 文件已修改（工作树内）
 
@@ -183,32 +183,33 @@ rg -n "Vue warn|No match found|Failed to resolve|RouterLink|Unhandled|Not implem
 
 ### 2.9 E2E 测试清单及真实数据边界
 
-| # | 测试 | 覆盖项 | 真实/状态 |
-|---|------|--------|----------|
-| 1 | `test_real_workflow_report_loads` | 真实 workflow → 报告、面包屑、标题、Citation marker、证据面板 | 真实 |
-| 2 | `test_real_workflow_citation_shows_evidence` | 真实 Citation 点击 → 真实 claim + quote | 真实 |
-| 3 | `test_real_workflow_citation_marker_clickable` | 真实 [N] marker 可点击 → 匹配 Citation 选中 | 真实 |
-| 4 | `test_real_workflow_lineage_displayed` | 真实 lineage badge + SourceRef card | 真实 |
-| 5 | `test_real_workflow_sourceref_link_routes` | **fail-closed 同一 trace 绑定**: manifest target trace → 精确 Citation 匹配(无 fallback) → Evidence detail trace_id 验证 → scoped SourceRef link(.eed-card .esrc-link--internal) → href path==/versions/{document_id} + query passage=={passage_id} → click 后 URL 精确匹配 → 无 javascript:/data: 链接 | 真实 |
-| 6 | `test_real_workflow_lineage_complete_or_partial` | 每个真实 Citation 均有 lineage badge | 真实 |
-| 7 | `test_export_markdown_real_browser_download` | Playwright `expect_download()` → filename (.md) + content + Content-Type + Content-Disposition | 真实 |
-| 8 | `test_export_disabled_when_no_report` | report-missing 状态 → 导出按钮 disabled | 状态 |
-| 9 | `test_export_no_double_click` | `el.click(); el.click()` 同步双击 → download_count==1 | 真实 |
-| 10 | `test_export_stale_after_route_switch` | 切换到 report-missing → 导出 disabled | 真实+状态 |
-| 11 | `test_cross_user_result_blocked` | User A 访问 B 的真实结果 → not-found, 无泄露 | 真实 |
-| 12 | `test_run_not_belonging_to_session_rejected` | 跨 Session run ID → rejected | 真实 |
-| 13 | `test_markdown_xss_script_not_executed` | 真实报告中无 `<script>`, onerror=, onclick= | 真实 |
-| 14 | `test_markdown_xss_javascript_url_not_active` | 真实报告中无 javascript: 链接 | 真实 |
-| 15 | `test_markdown_xss_no_iframe_svg` | 真实报告中无 iframe | 真实 |
-| 16 | `test_xss_script_no_executable_node` | 受控载荷: DOM 查询证实无真实 [onerror]/[onclick]/[onload] 元素, 无 <iframe>/<svg>, 正常文字渲染 | 状态 |
-| 17 | `test_xss_no_dangerous_href` | 受控载荷: javascript: source_ref_url → 非活动链接, Evidence card 无真实 <script> 元素, onerror= 属性检查 | 状态 |
-| 18 | `test_xss_no_navigation_or_script_execution` | 受控载荷: 遍历 XSS 报告 → 无导航、无 dialog | 状态 |
-| 19 | `test_withdrawn_source_no_internal_link` | no document_id → 无内部 /versions/ 链接, 无 javascript: 链接 | 状态 |
-| 20 | `test_withdrawn_source_no_malicious_sourceref_url` | javascript: source_ref_url → 非活动链接 | 状态 |
-| 21 | `test_route_switch_clears_stale_data` | 真实→report-missing 切换清除旧报告 | 真实+状态 |
-| 22 | `test_switch_from_error_to_ready_clears_error` | report-missing→真实 切换清除错误、显示报告 | 真实+状态 |
+| #   | 测试                                               | 覆盖项                                                                                                                                                                                                                                                                                                  | 真实/状态 |
+| --- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1   | `test_real_workflow_report_loads`                  | 真实 workflow → 报告、面包屑、标题、Citation marker、证据面板                                                                                                                                                                                                                                           | 真实      |
+| 2   | `test_real_workflow_citation_shows_evidence`       | 真实 Citation 点击 → 真实 claim + quote                                                                                                                                                                                                                                                                 | 真实      |
+| 3   | `test_real_workflow_citation_marker_clickable`     | 真实 [N] marker 可点击 → 匹配 Citation 选中                                                                                                                                                                                                                                                             | 真实      |
+| 4   | `test_real_workflow_lineage_displayed`             | 真实 lineage badge + SourceRef card                                                                                                                                                                                                                                                                     | 真实      |
+| 5   | `test_real_workflow_sourceref_link_routes`         | **fail-closed 同一 trace 绑定**: manifest target trace → 精确 Citation 匹配(无 fallback) → Evidence detail trace_id 验证 → scoped SourceRef link(.eed-card .esrc-link--internal) → href path==/versions/{document_id} + query passage=={passage_id} → click 后 URL 精确匹配 → 无 javascript:/data: 链接 | 真实      |
+| 6   | `test_real_workflow_lineage_complete_or_partial`   | 每个真实 Citation 均有 lineage badge                                                                                                                                                                                                                                                                    | 真实      |
+| 7   | `test_export_markdown_real_browser_download`       | Playwright `expect_download()` → filename (.md) + content + Content-Type + Content-Disposition                                                                                                                                                                                                          | 真实      |
+| 8   | `test_export_disabled_when_no_report`              | report-missing 状态 → 导出按钮 disabled                                                                                                                                                                                                                                                                 | 状态      |
+| 9   | `test_export_no_double_click`                      | `el.click(); el.click()` 同步双击 → download_count==1                                                                                                                                                                                                                                                   | 真实      |
+| 10  | `test_export_stale_after_route_switch`             | 切换到 report-missing → 导出 disabled                                                                                                                                                                                                                                                                   | 真实+状态 |
+| 11  | `test_cross_user_result_blocked`                   | User A 访问 B 的真实结果 → not-found, 无泄露                                                                                                                                                                                                                                                            | 真实      |
+| 12  | `test_run_not_belonging_to_session_rejected`       | 跨 Session run ID → rejected                                                                                                                                                                                                                                                                            | 真实      |
+| 13  | `test_markdown_xss_script_not_executed`            | 真实报告中无 `<script>`, onerror=, onclick=                                                                                                                                                                                                                                                             | 真实      |
+| 14  | `test_markdown_xss_javascript_url_not_active`      | 真实报告中无 javascript: 链接                                                                                                                                                                                                                                                                           | 真实      |
+| 15  | `test_markdown_xss_no_iframe_svg`                  | 真实报告中无 iframe                                                                                                                                                                                                                                                                                     | 真实      |
+| 16  | `test_xss_script_no_executable_node`               | 受控载荷: DOM 查询证实无真实 [onerror]/[onclick]/[onload] 元素, 无 <iframe>/<svg>, 正常文字渲染                                                                                                                                                                                                         | 状态      |
+| 17  | `test_xss_no_dangerous_href`                       | 受控载荷: javascript: source_ref_url → 非活动链接, Evidence card 无真实 <script> 元素, onerror= 属性检查                                                                                                                                                                                                | 状态      |
+| 18  | `test_xss_no_navigation_or_script_execution`       | 受控载荷: 遍历 XSS 报告 → 无导航、无 dialog                                                                                                                                                                                                                                                             | 状态      |
+| 19  | `test_withdrawn_source_no_internal_link`           | no document_id → 无内部 /versions/ 链接, 无 javascript: 链接                                                                                                                                                                                                                                            | 状态      |
+| 20  | `test_withdrawn_source_no_malicious_sourceref_url` | javascript: source_ref_url → 非活动链接                                                                                                                                                                                                                                                                 | 状态      |
+| 21  | `test_route_switch_clears_stale_data`              | 真实→report-missing 切换清除旧报告                                                                                                                                                                                                                                                                      | 真实+状态 |
+| 22  | `test_switch_from_error_to_ready_clears_error`     | report-missing→真实 切换清除错误、显示报告                                                                                                                                                                                                                                                              | 真实+状态 |
 
 **Fixture 分层**:
+
 - **真实 workflow fixtures**: 通过 `POST /api/v4/research/workflow` 生成 — 报告/Citation/Evidence/SourceRef 的真实性由此证明
 - **状态 seed fixtures**: 仅用于 pending/failed/missing/XSS-payload/withdrawn-source 状态 — 不得用于真实性断言
 
@@ -239,6 +240,7 @@ manifest target trace A
 **4. scoped SourceRef 定位** — 使用 `.eed-card .esrc-link--internal` 而非页面级 `.esrc-link--internal`，确保 SourceRef card 属于当前 selected Evidence detail
 
 **5. 保留所有精确断言**:
+
 - `href path == /versions/{document_id}`（非 startsWith）
 - `href query passage == {passage_id}`（精确匹配）
 - click 后 `pathname == /versions/{document_id}`
@@ -259,6 +261,7 @@ click URL passage: 1486e64c-...             ← 精确匹配
 ```
 
 ---
+
 ## 4. report-pending / report-failed 判定规则
 
 基于真实 `step_execution_trace` 中的 `report_generation` 步骤状态:

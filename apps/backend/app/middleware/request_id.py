@@ -5,6 +5,7 @@ Generates a UUID per request if not provided by the client.
 Validates inbound values; rejects control characters, newlines, and excessive length.
 Logs request_started / request_completed / request_failed with structured data.
 """
+
 from __future__ import annotations
 
 import re
@@ -47,14 +48,18 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        inbound = request.headers.get("X-Request-ID") or request.headers.get("x-request-id")
+        inbound = request.headers.get("X-Request-ID") or request.headers.get(
+            "x-request-id"
+        )
         request_id = _sanitize_request_id(inbound)
         request.state.request_id = request_id
 
         start = time.monotonic()
         logger.info(
             "request_started request_id=%s method=%s path=%s",
-            request_id, request.method, request.url.path,
+            request_id,
+            request.method,
+            request.url.path,
         )
 
         response: Response | None = None
@@ -64,15 +69,21 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
             elapsed_ms = round((time.monotonic() - start) * 1000, 2)
             logger.exception(
                 "request_failed request_id=%s method=%s path=%s elapsed_ms=%s",
-                request_id, request.method, request.url.path, elapsed_ms,
+                request_id,
+                request.method,
+                request.url.path,
+                elapsed_ms,
             )
             raise
         else:
             elapsed_ms = round((time.monotonic() - start) * 1000, 2)
             logger.info(
                 "request_completed request_id=%s method=%s path=%s status=%d elapsed_ms=%s",
-                request_id, request.method, request.url.path,
-                response.status_code, elapsed_ms,
+                request_id,
+                request.method,
+                request.url.path,
+                response.status_code,
+                elapsed_ms,
             )
         finally:
             if response is not None:

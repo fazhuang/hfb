@@ -11,17 +11,10 @@
       <LibrarySearchBar @search="onSearch" />
 
       <!-- Loading -->
-      <LoadingState
-        v-if="loading"
-        :message="t('common.loading')"
-      />
+      <LoadingState v-if="loading" :message="t('common.loading')" />
 
       <!-- Error -->
-      <ErrorState
-        v-else-if="error"
-        :message="error"
-        @retry="fetchPage(1)"
-      />
+      <ErrorState v-else-if="error" :message="error" @retry="fetchPage(1)" />
 
       <!-- Empty: no documents at all -->
       <EmptyState
@@ -45,18 +38,18 @@
 
       <!-- Document List -->
       <div v-else class="lib-list">
-        <LibraryDocumentCard
-          v-for="doc in items"
-          :key="doc.id"
-          :doc="doc"
-        />
+        <LibraryDocumentCard v-for="doc in items" :key="doc.id" :doc="doc" />
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="lib-pagination">
         <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
-        <span class="lib-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
-        <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">{{ t('common.next') }}</button>
+        <span class="lib-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`"
+          >{{ page }} / {{ totalPages }}</span
+        >
+        <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">
+          {{ t('common.next') }}
+        </button>
       </div>
     </div>
   </div>
@@ -94,20 +87,12 @@ const filters = ref<LibraryFilters>({
   sourceName: '',
 });
 
-const {
-  items,
-  total,
-  loading,
-  error,
-  page,
-  totalPages,
-  fetchPage,
-} = useLibraryList(filters);
+const { items, total, loading, error, page, totalPages, fetchPage } = useLibraryList(filters);
 
 const isSearchActive = computed(() => filters.value.query.trim().length > 0);
 
-const searchEmptyDescription = computed(() =>
-  `没有文献与 "${filters.value.query}" 匹配，请尝试其他关键词。`,
+const searchEmptyDescription = computed(
+  () => `没有文献与 "${filters.value.query}" 匹配，请尝试其他关键词。`,
 );
 
 function onSearch(f: { query: string; copyrightStatus: string; reviewStatus: string }) {

@@ -10,13 +10,16 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(defineProps<{
-  icon?: string;
-  title: string;
-  description?: string;
-}>(), {
-  icon: '📭',
-});
+withDefaults(
+  defineProps<{
+    icon?: string;
+    title: string;
+    description?: string;
+  }>(),
+  {
+    icon: '📭',
+  },
+);
 </script>
 
 <style scoped>

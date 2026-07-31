@@ -24,28 +24,28 @@ related_documents:
 
 ## 知识模型体系
 
-| # | 文档 | document_id | 状态 |
-|---|---|---|---|
-| 0801 | [Person](0801_Person_Knowledge_Model.md) | HFB-DOM-0801 | Approved |
-| 0802 | [Book](0802_Book_Knowledge_Model.md) | HFB-DOM-0802 | Approved |
-| 0803 | [Version](0803_Version_Knowledge_Model.md) | HFB-DOM-0803 | Approved |
-| 0804 | [Passage](0804_Passage_Knowledge_Model.md) | HFB-DOM-0804 | Approved |
-| 0805 | [Paper](0805_Paper_Knowledge_Model.md) | HFB-DOM-0805 | Approved |
-| 0806 | [Chronology](0806_Chronology_Knowledge_Model.md) | HFB-DOM-0806 | Approved |
-| 0807 | [Geography](0807_Geography_Knowledge_Model.md) | HFB-DOM-0807 | Approved |
+| #    | 文档                                                                | document_id  | 状态     |
+| ---- | ------------------------------------------------------------------- | ------------ | -------- |
+| 0801 | [Person](0801_Person_Knowledge_Model.md)                            | HFB-DOM-0801 | Approved |
+| 0802 | [Book](0802_Book_Knowledge_Model.md)                                | HFB-DOM-0802 | Approved |
+| 0803 | [Version](0803_Version_Knowledge_Model.md)                          | HFB-DOM-0803 | Approved |
+| 0804 | [Passage](0804_Passage_Knowledge_Model.md)                          | HFB-DOM-0804 | Approved |
+| 0805 | [Paper](0805_Paper_Knowledge_Model.md)                              | HFB-DOM-0805 | Approved |
+| 0806 | [Chronology](0806_Chronology_Knowledge_Model.md)                    | HFB-DOM-0806 | Approved |
+| 0807 | [Geography](0807_Geography_Knowledge_Model.md)                      | HFB-DOM-0807 | Approved |
 | 0808 | [Citation & Claim](0808_Academic_Citation_Claim_Knowledge_Model.md) | HFB-DOM-0808 | Approved |
-| 0809 | [Master Knowledge Graph](0809_Master_Knowledge_Graph_Model.md) | HFB-DOM-0809 | Approved |
+| 0809 | [Master Knowledge Graph](0809_Master_Knowledge_Graph_Model.md)      | HFB-DOM-0809 | Approved |
 
 ## Sprint 笔记
 
-| # | 文档 |
-|---|---|
+| #    | 文档                                                   |
+| ---- | ------------------------------------------------------ |
 | 0000 | [Sprint 0: Setup](sprint-notes/0000-sprint-0-setup.md) |
 
 ## 关联目录
 
-| 目录 | 关系 |
-|---|---|
-| [docs/03-data/](../03-data/) | 数据规范基础 |
-| [docs/16-research-framework/](../16-research-framework/) | 学术研究方向 |
+| 目录                                                               | 关系         |
+| ------------------------------------------------------------------ | ------------ |
+| [docs/03-data/](../03-data/)                                       | 数据规范基础 |
+| [docs/16-research-framework/](../16-research-framework/)           | 学术研究方向 |
 | [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品范围约束 |

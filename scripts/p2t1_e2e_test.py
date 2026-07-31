@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """P2T1 End-to-end workflow test via HTTP API against running backend."""
+
 import json
 import sys
 import time
@@ -34,8 +35,11 @@ log(f"Health: {status}")
 
 # 2. Login as researcher
 log("=== LOGIN ===")
-status, body = req("POST", "/api/v1/auth/login",
-                   {"username": "researcher", "password": "researcher123"})
+status, body = req(
+    "POST",
+    "/api/v1/auth/login",
+    {"username": "researcher", "password": "researcher123"},
+)
 token = body.get("data", {}).get("access_token", "") or body.get("access_token", "")
 log(f"Login: {status}, token={token[:20]}..." if token else f"Login: {status}")
 
@@ -45,9 +49,9 @@ if not token:
 
 # 3. Create research session
 log("=== CREATE SESSION ===")
-status, body = req("POST", "/api/v4/research/session",
-                   {"title": "P2T1 E2E Test"},
-                   token=token)
+status, body = req(
+    "POST", "/api/v4/research/session", {"title": "P2T1 E2E Test"}, token=token
+)
 log(f"Session: {status}, success={body.get('success')}")
 if body.get("success"):
     session_id = body.get("data", {}).get("session_id", "")
@@ -59,10 +63,12 @@ else:
 # 4. Execute research workflow
 log("=== EXECUTE WORKFLOW ===")
 TOPIC = "《针灸甲乙经》的成书特点是什么？"
-status, body = req("POST", "/api/v4/research/workflow",
-                   {"session_id": session_id, "topic": TOPIC,
-                    "workflow_type": "full_research_flow"},
-                   token=token)
+status, body = req(
+    "POST",
+    "/api/v4/research/workflow",
+    {"session_id": session_id, "topic": TOPIC, "workflow_type": "full_research_flow"},
+    token=token,
+)
 
 log(f"Workflow: {status}, success={body.get('success')}")
 success = body.get("success", False)
@@ -76,8 +82,7 @@ for step in steps:
 
 # 5. Get runs
 log("=== GET RUNS ===")
-status, body = req("GET", f"/api/v4/research/session/{session_id}/runs",
-                   token=token)
+status, body = req("GET", f"/api/v4/research/session/{session_id}/runs", token=token)
 log(f"Runs: {status}, success={body.get('success')}")
 runs = body.get("data", {}).get("runs", [])
 log(f"Run count: {len(runs)}")

@@ -22,29 +22,36 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  disabled?: boolean;
-  loading?: boolean;
-  type?: 'button' | 'submit' | 'reset';
-  block?: boolean;
-}>(), {
-  variant: 'primary',
-  size: 'md',
-  disabled: false,
-  loading: false,
-  type: 'button',
-  block: false,
-});
+const props = withDefaults(
+  defineProps<{
+    variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+    size?: 'sm' | 'md' | 'lg';
+    disabled?: boolean;
+    loading?: boolean;
+    type?: 'button' | 'submit' | 'reset';
+    block?: boolean;
+  }>(),
+  {
+    variant: 'primary',
+    size: 'md',
+    disabled: false,
+    loading: false,
+    type: 'button',
+    block: false,
+  },
+);
 
-const buttonClass = computed(() => [
-  'hfb-button',
-  `hfb-button--${props.variant}`,
-  `hfb-button--${props.size}`,
-  props.block ? 'hfb-button--block' : '',
-  props.loading ? 'hfb-button--loading' : '',
-].filter(Boolean).join(' '));
+const buttonClass = computed(() =>
+  [
+    'hfb-button',
+    `hfb-button--${props.variant}`,
+    `hfb-button--${props.size}`,
+    props.block ? 'hfb-button--block' : '',
+    props.loading ? 'hfb-button--loading' : '',
+  ]
+    .filter(Boolean)
+    .join(' '),
+);
 </script>
 
 <style scoped>

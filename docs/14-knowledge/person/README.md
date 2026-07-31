@@ -1,9 +1,9 @@
 ---
-title: "Person Knowledge"
-version: "1.0"
-status: "Active"
-domain: "person"
-last_updated: "2026-06-24"
+title: 'Person Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'person'
+last_updated: '2026-06-24'
 ---
 
 # Person — 人物知识

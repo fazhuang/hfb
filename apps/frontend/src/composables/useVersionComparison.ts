@@ -91,7 +91,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 function guardId(raw: string): string {
   const trimmed = raw.trim();
   if (!UUID_RE.test(trimmed)) {
-    throw new Error(`Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`);
+    throw new Error(
+      `Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`,
+    );
   }
   return trimmed;
 }
@@ -181,8 +183,8 @@ export function useVersionComparison(projectId: () => string) {
       Boolean(sourcePassage.value?.metadata.version_id) &&
       sourcePassage.value?.metadata.version_id === targetPassage.value?.metadata.version_id,
   );
-  const canCompare = computed(
-    () => Boolean(sourcePassage.value && targetPassage.value && !sameVersion.value),
+  const canCompare = computed(() =>
+    Boolean(sourcePassage.value && targetPassage.value && !sameVersion.value),
   );
 
   const currentStep = computed<number>(() => {
@@ -270,13 +272,10 @@ export function useVersionComparison(projectId: () => string) {
     message.value = '';
     try {
       const id = await ensureSession();
-      const { data } = await api.put(
-        `/api/v1/research/sessions/${id}/version-comparison`,
-        {
-          source_passage_id: sourcePassage.value.id,
-          target_passage_id: targetPassage.value.id,
-        },
-      );
+      const { data } = await api.put(`/api/v1/research/sessions/${id}/version-comparison`, {
+        source_passage_id: sourcePassage.value.id,
+        target_passage_id: targetPassage.value.id,
+      });
       comparison.value = data.data as ComparisonState;
       noteSaved.value = false;
       message.value = '比较完成。';
@@ -315,10 +314,9 @@ export function useVersionComparison(projectId: () => string) {
     exporting.value = true;
     error.value = '';
     try {
-      const response = await api.get(
-        `/api/v1/research/sessions/${sessionId.value}/export`,
-        { responseType: 'blob' },
-      );
+      const response = await api.get(`/api/v1/research/sessions/${sessionId.value}/export`, {
+        responseType: 'blob',
+      });
       const url = URL.createObjectURL(response.data as Blob);
       const link = document.createElement('a');
       link.href = url;
@@ -340,9 +338,7 @@ export function useVersionComparison(projectId: () => string) {
       const sessions = (data.data ?? []) as Array<VersionComparisonSession>;
       for (const s of sessions.slice(0, 10)) {
         try {
-          const response = await api.get(
-            `/api/v1/research/sessions/${s.id}/version-comparison`,
-          );
+          const response = await api.get(`/api/v1/research/sessions/${s.id}/version-comparison`);
           const comparisonData = response.data?.data;
           if (!comparisonData) continue;
           comparison.value = comparisonData as ComparisonState;

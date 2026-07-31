@@ -12,6 +12,7 @@ MVP approach (per HFB-ARC-0201 Chapter 5):
 
 Search entity types: person, book, version, passage, paper, document, image
 """
+
 from __future__ import annotations
 
 import math
@@ -43,7 +44,14 @@ ENTITY_CONFIG: dict[str, dict[str, Any]] = {
         "model": Person,
         "title_field": "name",
         "subtitle_field": "dynasty",
-        "search_fields": ["name", "name_pinyin", "courtesy_name", "pseudonym", "biography", "notable_works"],
+        "search_fields": [
+            "name",
+            "name_pinyin",
+            "courtesy_name",
+            "pseudonym",
+            "biography",
+            "notable_works",
+        ],
         "route_prefix": "/persons",
         "snippet_field": "biography",
         "meta_fields": ["dynasty", "birth_year", "death_year", "expertise"],
@@ -52,7 +60,13 @@ ENTITY_CONFIG: dict[str, dict[str, Any]] = {
         "model": Book,
         "title_field": "title",
         "subtitle_field": "dynasty",
-        "search_fields": ["title", "title_pinyin", "title_english", "abstract", "category"],
+        "search_fields": [
+            "title",
+            "title_pinyin",
+            "title_english",
+            "abstract",
+            "category",
+        ],
         "route_prefix": "/books",
         "snippet_field": "abstract",
         "meta_fields": ["dynasty", "category", "year", "language"],
@@ -79,7 +93,14 @@ ENTITY_CONFIG: dict[str, dict[str, Any]] = {
         "model": Paper,
         "title_field": "title",
         "subtitle_field": "journal",
-        "search_fields": ["title", "title_english", "authors", "journal", "abstract", "keywords"],
+        "search_fields": [
+            "title",
+            "title_english",
+            "authors",
+            "journal",
+            "abstract",
+            "keywords",
+        ],
         "route_prefix": None,
         "snippet_field": "abstract",
         "meta_fields": ["authors", "journal", "year", "doi"],
@@ -88,7 +109,13 @@ ENTITY_CONFIG: dict[str, dict[str, Any]] = {
         "model": Document,
         "title_field": "title",
         "subtitle_field": "dynasty",
-        "search_fields": ["title", "title_pinyin", "title_english", "abstract", "category"],
+        "search_fields": [
+            "title",
+            "title_pinyin",
+            "title_english",
+            "abstract",
+            "category",
+        ],
         "route_prefix": "/documents",
         "snippet_field": "abstract",
         "meta_fields": ["dynasty", "year", "category", "author_id"],
@@ -265,9 +292,10 @@ class SearchService:
         # When searching passages, join version and exclude withdrawn (soft-deleted) versions
         if entity_type == "passage" and hasattr(model, "version_id"):
             from app.models.version import Version as _Version
-            stmt = stmt.join(_Version, model.version_id == _Version.id, isouter=True).where(
-                or_(_Version.is_deleted.is_(False), _Version.is_deleted.is_(None))
-            )
+
+            stmt = stmt.join(
+                _Version, model.version_id == _Version.id, isouter=True
+            ).where(or_(_Version.is_deleted.is_(False), _Version.is_deleted.is_(None)))
 
         # Apply filters
         if params.dynasty:
@@ -292,13 +320,17 @@ class SearchService:
             # Build title
             title_val = getattr(obj, title_field, "")
             if entity_type == "passage":
-                title_val = str(title_val)[:60] + ("…" if len(str(title_val)) > 60 else "")
+                title_val = str(title_val)[:60] + (
+                    "…" if len(str(title_val)) > 60 else ""
+                )
 
             # Build snippet
             snippet = None
             if snippet_field:
                 snippet_val = getattr(obj, snippet_field, None)
-                snippet = _make_snippet(str(snippet_val) if snippet_val else None, query)
+                snippet = _make_snippet(
+                    str(snippet_val) if snippet_val else None, query
+                )
 
             # Build subtitle
             subtitle = None
@@ -310,7 +342,9 @@ class SearchService:
             for mf in meta_fields:
                 val = getattr(obj, mf, None)
                 if val is not None and val != "":
-                    metadata[mf] = str(val) if not isinstance(val, (int, float)) else val
+                    metadata[mf] = (
+                        str(val) if not isinstance(val, (int, float)) else val
+                    )
             if entity_type == "passage":
                 version = getattr(obj, "version", None)
                 chapter = getattr(obj, "chapter", None)

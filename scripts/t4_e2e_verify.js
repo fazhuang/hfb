@@ -41,9 +41,15 @@ function capturePath(label) {
 
 function record(url, title, text, apiCalls, success, screenshot, error) {
   const entry = {
-    step: ++step, url, title, text: (text || '').substring(0, 800),
-    apiCalls: apiCalls || [], success, screenshot,
-    error: error || null, timestamp: new Date().toISOString(),
+    step: ++step,
+    url,
+    title,
+    text: (text || '').substring(0, 800),
+    apiCalls: apiCalls || [],
+    success,
+    screenshot,
+    error: error || null,
+    timestamp: new Date().toISOString(),
   };
   evidence.push(entry);
   console.log(`[Step ${step}] ${success ? 'PASS' : 'FAIL'}: ${title}${error ? ' — ' + error : ''}`);
@@ -61,13 +67,22 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     if (url.includes('/api/') || url.includes('/health') || url.includes('/ready')) {
       try {
         const body = await resp.text();
-        apiResponses.push({ url, status: resp.status(), body: body.substring(0, 2000), ts: new Date().toISOString() });
-      } catch { /* ignore */ }
+        apiResponses.push({
+          url,
+          status: resp.status(),
+          body: body.substring(0, 2000),
+          ts: new Date().toISOString(),
+        });
+      } catch {
+        /* ignore */
+      }
     }
   });
 
   const consoleErrors = [];
-  page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') consoleErrors.push(msg.text());
+  });
 
   try {
     // ==================================================================
@@ -77,13 +92,16 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     let backendOk = false;
     try {
       const http = require('http');
-      const getUrl = (url) => new Promise((resolve, reject) => {
-        http.get(url, (res) => {
-          let data = '';
-          res.on('data', (c) => data += c);
-          res.on('end', () => resolve({ status: res.statusCode, body: data }));
-        }).on('error', reject);
-      });
+      const getUrl = (url) =>
+        new Promise((resolve, reject) => {
+          http
+            .get(url, (res) => {
+              let data = '';
+              res.on('data', (c) => (data += c));
+              res.on('end', () => resolve({ status: res.statusCode, body: data }));
+            })
+            .on('error', reject);
+        });
       const h = await getUrl(BACKEND + '/health');
       const r = await getUrl(BACKEND + '/ready');
       backendOk = h.status === 200 && r.status === 200;
@@ -91,8 +109,15 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     } catch (e) {
       console.log(`Backend probe failed: ${e.message}`);
     }
-    record(BACKEND + '/health', '', `backendOk=${backendOk}`, [], backendOk, null,
-      backendOk ? null : 'Backend health/ready probe failed');
+    record(
+      BACKEND + '/health',
+      '',
+      `backendOk=${backendOk}`,
+      [],
+      backendOk,
+      null,
+      backendOk ? null : 'Backend health/ready probe failed',
+    );
 
     // ==================================================================
     // Step 2: Login as researcher via browser
@@ -114,8 +139,14 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
       loginOk = true;
     }
     await page.screenshot({ path: capturePath('login'), fullPage: true });
-    record(page.url(), await page.title(), loginOk ? 'Authenticated' : 'Login failed',
-      apiResponses.slice(0, 5), loginOk, 't4-02-login.png');
+    record(
+      page.url(),
+      await page.title(),
+      loginOk ? 'Authenticated' : 'Login failed',
+      apiResponses.slice(0, 5),
+      loginOk,
+      't4-02-login.png',
+    );
 
     // ==================================================================
     // Step 3: Navigate to V4 Research Portal
@@ -127,7 +158,14 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     const v4Text = await page.textContent('body');
     await page.screenshot({ path: capturePath('v4-research'), fullPage: true });
     console.log(`V4 page visible text: ${v4Text.substring(0, 300)}`);
-    record(page.url(), await page.title(), v4Text.substring(0, 500), [], true, 't4-03-v4-research.png');
+    record(
+      page.url(),
+      await page.title(),
+      v4Text.substring(0, 500),
+      [],
+      true,
+      't4-03-v4-research.png',
+    );
 
     // ==================================================================
     // Step 4: Fill topic + click "Execute Research Workflow"
@@ -142,7 +180,9 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
         filled = true;
         console.log('Filled #v4-topic input');
       }
-    } catch (e) { console.log(`Fill failed: ${e.message}`); }
+    } catch (e) {
+      console.log(`Fill failed: ${e.message}`);
+    }
     await page.screenshot({ path: capturePath('topic-filled'), fullPage: true });
 
     let clicked = false;
@@ -153,9 +193,17 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
         clicked = true;
         console.log('Clicked v4-run-workflow');
       }
-    } catch (e) { console.log(`Click failed: ${e.message}`); }
-    record(page.url(), await page.title(),
-      `filled=${filled} clicked=${clicked}`, [], filled && clicked, 't4-04-topic.png');
+    } catch (e) {
+      console.log(`Click failed: ${e.message}`);
+    }
+    record(
+      page.url(),
+      await page.title(),
+      `filled=${filled} clicked=${clicked}`,
+      [],
+      filled && clicked,
+      't4-04-topic.png',
+    );
 
     // ==================================================================
     // Step 5: Wait for workflow result (up to 120s)
@@ -164,13 +212,22 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     let resultVisible = false;
     let resultText = '';
     try {
-      await page.waitForFunction(() => {
-        const t = document.body.textContent || '';
-        return t.includes('引用') || t.includes('citation') ||
-               t.includes('报告') || t.includes('report') ||
-               t.includes('工作流已完成') || t.includes('步骤') ||
-               t.includes('证据溯源') || t.includes('trace');
-      }, { timeout: 120000 });
+      await page.waitForFunction(
+        () => {
+          const t = document.body.textContent || '';
+          return (
+            t.includes('引用') ||
+            t.includes('citation') ||
+            t.includes('报告') ||
+            t.includes('report') ||
+            t.includes('工作流已完成') ||
+            t.includes('步骤') ||
+            t.includes('证据溯源') ||
+            t.includes('trace')
+          );
+        },
+        { timeout: 120000 },
+      );
       await page.waitForTimeout(2000);
       resultVisible = true;
       resultText = await page.textContent('body');
@@ -180,20 +237,36 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     }
     await page.screenshot({ path: capturePath('result'), fullPage: true });
     console.log(`Result text (first 500 chars):\n${resultText.substring(0, 500)}`);
-    record(page.url(), await page.title(),
+    record(
+      page.url(),
+      await page.title(),
       `resultVisible=${resultVisible}\n${resultText.substring(0, 500)}`,
-      apiResponses.slice(-10), true, 't4-05-result.png');
+      apiResponses.slice(-10),
+      true,
+      't4-05-result.png',
+    );
 
     // ==================================================================
     // Step 6: Expand citation → verify provenance fields
     // ==================================================================
     console.log('\n=== T4 Step 6: Expand Citation ===');
     let citationExpanded = false;
-    for (const sel of ['details.citation-detail summary', 'details summary', '[data-testid="citations-section"] details summary']) {
+    for (const sel of [
+      'details.citation-detail summary',
+      'details summary',
+      '[data-testid="citations-section"] details summary',
+    ]) {
       try {
         const el = await page.$(sel);
-        if (el) { await el.click(); citationExpanded = true; await page.waitForTimeout(1000); break; }
-      } catch { /* continue */ }
+        if (el) {
+          await el.click();
+          citationExpanded = true;
+          await page.waitForTimeout(1000);
+          break;
+        }
+      } catch {
+        /* continue */
+      }
     }
     await page.screenshot({ path: capturePath('citation-expanded'), fullPage: true });
     const citText = await page.textContent('body');
@@ -204,10 +277,17 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     const hasQuote = /原文|quote|经脉|经络|claim_text/.test(citText);
     const provenanceOk = hasSource || hasPage || hasVersion || hasQuote;
 
-    record(page.url(), await page.title(),
+    record(
+      page.url(),
+      await page.title(),
       `Expanded=${citationExpanded} Source=${hasSource} Page=${hasPage} Version=${hasVersion} Quote=${hasQuote}`,
-      [], provenanceOk, 't4-06-citation.png');
-    console.log(`Citation provenance: source=${hasSource} page=${hasPage} version=${hasVersion} quote=${hasQuote}`);
+      [],
+      provenanceOk,
+      't4-06-citation.png',
+    );
+    console.log(
+      `Citation provenance: source=${hasSource} page=${hasPage} version=${hasVersion} quote=${hasQuote}`,
+    );
 
     // ==================================================================
     // Step 7: Backend FK JOIN — verify citation IDs resolvable in real DB
@@ -223,7 +303,7 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
           const steps = wf?.data?.steps || [];
           for (const s of steps) {
             if (s.name === 'citation_export' && s.result?.citations) {
-              citationIds = s.result.citations.map(c => c.id).filter(Boolean);
+              citationIds = s.result.citations.map((c) => c.id).filter(Boolean);
               break;
             }
           }
@@ -242,7 +322,7 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
               const steps = run?.steps || [];
               for (const s of steps) {
                 if (s.name === 'citation_export' && s.result?.citations) {
-                  citationIds = s.result.citations.map(c => c.id).filter(Boolean);
+                  citationIds = s.result.citations.map((c) => c.id).filter(Boolean);
                   break;
                 }
               }
@@ -258,12 +338,17 @@ function record(url, title, text, apiCalls, success, screenshot, error) {
     const fkResults = [];
     let allFkOk = false;
     if (citationIds.length === 0) {
-      console.log('  WARNING: No citation IDs found in API responses; using DB citation IDs instead');
+      console.log(
+        '  WARNING: No citation IDs found in API responses; using DB citation IDs instead',
+      );
       // Fallback: any existing citation with a valid FK chain also qualifies
       const fallbackIds = [];
       try {
-        const fallbackResult = execFileSync('/Users/likeming/Sites/hfb/.venv/bin/python3', [
-          '-c', `
+        const fallbackResult = execFileSync(
+          '/Users/likeming/Sites/hfb/.venv/bin/python3',
+          [
+            '-c',
+            `
 import asyncio, sys, json
 sys.path.insert(0, 'apps/backend')
 import logging; logging.disable(logging.CRITICAL)
@@ -277,8 +362,15 @@ async def main():
         for row in r.fetchall():
             print(row[0])
 asyncio.run(main())
-`], { timeout: 15000, encoding: 'utf8', cwd: '/Users/likeming/Sites/hfb' });
-        fallbackResult.trim().split('\n').filter(Boolean).forEach(id => fallbackIds.push(id));
+`,
+          ],
+          { timeout: 15000, encoding: 'utf8', cwd: '/Users/likeming/Sites/hfb' },
+        );
+        fallbackResult
+          .trim()
+          .split('\n')
+          .filter(Boolean)
+          .forEach((id) => fallbackIds.push(id));
         console.log(`  Fallback citation IDs: ${fallbackIds.length}`);
         citationIds = fallbackIds;
       } catch (e) {
@@ -288,37 +380,57 @@ asyncio.run(main())
 
     if (citationIds.length > 0) {
       try {
-        const fkResult = execFileSync('/Users/likeming/Sites/hfb/.venv/bin/python3',
+        const fkResult = execFileSync(
+          '/Users/likeming/Sites/hfb/.venv/bin/python3',
           ['/Users/likeming/Sites/hfb/scripts/t4_fk_verify.py', ...citationIds.slice(0, 3)],
-          { timeout: 15000, encoding: 'utf8' });
+          { timeout: 15000, encoding: 'utf8' },
+        );
         const lines = fkResult.trim().split('\n').filter(Boolean);
         for (const line of lines) {
           const parsed = JSON.parse(line);
           fkResults.push(parsed);
-          console.log(`  ${parsed.status}: ${(parsed.citation_id || '').substring(0, 12)} → source_url=${(parsed.source_url || '').substring(0, 60)}`);
+          console.log(
+            `  ${parsed.status}: ${(parsed.citation_id || '').substring(0, 12)} → source_url=${(parsed.source_url || '').substring(0, 60)}`,
+          );
         }
       } catch (e) {
         console.log(`  FK verification error: ${e.message?.substring(0, 100)}`);
       }
     }
 
-    allFkOk = fkResults.length > 0 && fkResults.every(r => r.status === 'FK_OK');
+    allFkOk = fkResults.length > 0 && fkResults.every((r) => r.status === 'FK_OK');
 
-    const v4ApiCalls = apiResponses.filter(r =>
-      r.url.includes('/v4/research/') || r.url.includes('/v4/education/') || r.url.includes('/v4/visualization/')
+    const v4ApiCalls = apiResponses.filter(
+      (r) =>
+        r.url.includes('/v4/research/') ||
+        r.url.includes('/v4/education/') ||
+        r.url.includes('/v4/visualization/'),
     );
 
-    record(BACKEND, '',
+    record(
+      BACKEND,
+      '',
       `backendOk=${backendOk} v4Calls=${v4ApiCalls.length} citationIds=${citationIds.length} fkVerified=${allFkOk}`,
-      fkResults, backendOk && loginOk && provenanceOk && allFkOk, null,
-      !backendOk ? 'Backend not healthy' : (!loginOk ? 'Login failed' : (!provenanceOk ? 'No provenance fields visible' : (!allFkOk ? `FK verification failed: ${fkResults.filter(r => r.status !== 'FK_OK').length} missing` : null))));
+      fkResults,
+      backendOk && loginOk && provenanceOk && allFkOk,
+      null,
+      !backendOk
+        ? 'Backend not healthy'
+        : !loginOk
+          ? 'Login failed'
+          : !provenanceOk
+            ? 'No provenance fields visible'
+            : !allFkOk
+              ? `FK verification failed: ${fkResults.filter((r) => r.status !== 'FK_OK').length} missing`
+              : null,
+    );
 
     // ==================================================================
     // Final summary
     // ==================================================================
     console.log('\n=== T4 E2E Summary ===');
-    const passCount = evidence.filter(e => e.success).length;
-    const failCount = evidence.filter(e => !e.success).length;
+    const passCount = evidence.filter((e) => e.success).length;
+    const failCount = evidence.filter((e) => !e.success).length;
     console.log(`Steps: ${evidence.length} total, ${passCount} pass, ${failCount} fail`);
     if (consoleErrors.length > 0) {
       console.log(`Console errors: ${consoleErrors.length}`);
@@ -326,7 +438,6 @@ asyncio.run(main())
         console.log(`  ${err.substring(0, 200)}`);
       }
     }
-
   } catch (e) {
     console.error(`FATAL: ${e.message}`);
     record(page?.url() || '', '', '', [], false, null, `Fatal: ${e.message}`);
@@ -334,26 +445,35 @@ asyncio.run(main())
 
   // Write evidence JSON
   const evidencePath = path.join(OUTPUT_DIR, 't4-e2e-evidence.json');
-  fs.writeFileSync(evidencePath, JSON.stringify({
-    task: 'T4',
-    description: 'Real browser E2E — V4 research workflow with citation FK verification',
-    steps: evidence,
-    consoleErrors: consoleErrors.slice(0, 30),
-    apiResponses: apiResponses.slice(0, 50),
-    summary: {
-      total: evidence.length,
-      pass: evidence.filter(e => e.success).length,
-      fail: evidence.filter(e => !e.success).length,
-      allPass: evidence.every(e => e.success),
-    },
-    timestamp: new Date().toISOString(),
-  }, null, 2));
+  fs.writeFileSync(
+    evidencePath,
+    JSON.stringify(
+      {
+        task: 'T4',
+        description: 'Real browser E2E — V4 research workflow with citation FK verification',
+        steps: evidence,
+        consoleErrors: consoleErrors.slice(0, 30),
+        apiResponses: apiResponses.slice(0, 50),
+        summary: {
+          total: evidence.length,
+          pass: evidence.filter((e) => e.success).length,
+          fail: evidence.filter((e) => !e.success).length,
+          allPass: evidence.every((e) => e.success),
+        },
+        timestamp: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
 
   console.log(`\n[DONE] Evidence → ${evidencePath}`);
-  console.log(`Result: ${evidence.filter(e => e.success).length}/${evidence.length} steps passed`);
+  console.log(
+    `Result: ${evidence.filter((e) => e.success).length}/${evidence.length} steps passed`,
+  );
 
   await browser.close();
 
-  const allPass = evidence.every(e => e.success);
+  const allPass = evidence.every((e) => e.success);
   process.exit(allPass ? 0 : 1);
 })();

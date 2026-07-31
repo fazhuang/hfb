@@ -38,13 +38,16 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{
-  page: number;
-  totalPages: number;
-  disabled?: boolean;
-}>(), {
-  disabled: false,
-});
+const props = withDefaults(
+  defineProps<{
+    page: number;
+    totalPages: number;
+    disabled?: boolean;
+  }>(),
+  {
+    disabled: false,
+  },
+);
 
 defineEmits<{
   'update:page': [page: number];

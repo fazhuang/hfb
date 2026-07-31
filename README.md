@@ -75,6 +75,7 @@ uv run python ../../scripts/init_dev_baseline.py
 ```
 
 The baseline script creates:
+
 - RBAC roles, permissions, and an admin user (username `admin` / password `admin123`)
 - A researcher user (username `researcher` / password `researcher123`)
 - 《针灸甲乙经》book, version (明代刻本), chapters, and passages
@@ -165,14 +166,14 @@ Docker service names (`postgres`, `redis`, `elasticsearch`, `minio`).
 
 ## Credentials (Development)
 
-| Service        | User        | Password      | Notes                          |
-|----------------|-------------|---------------|--------------------------------|
-| PostgreSQL     | `hfb`       | `change-me`   | Database: `hfb`                |
-| Redis          | —           | —             | No password in dev             |
-| Elasticsearch  | —           | —             | Security disabled in dev       |
-| MinIO          | `minioadmin`| `minioadmin`  | Console on :9001               |
-| Admin Web UI   | `admin` | `admin123`     | Created by `init_dev_baseline.py` |
-| Researcher     | `researcher` | `researcher123` | Created by `init_dev_baseline.py` |
+| Service       | User         | Password        | Notes                             |
+| ------------- | ------------ | --------------- | --------------------------------- |
+| PostgreSQL    | `hfb`        | `change-me`     | Database: `hfb`                   |
+| Redis         | —            | —               | No password in dev                |
+| Elasticsearch | —            | —               | Security disabled in dev          |
+| MinIO         | `minioadmin` | `minioadmin`    | Console on :9001                  |
+| Admin Web UI  | `admin`      | `admin123`      | Created by `init_dev_baseline.py` |
+| Researcher    | `researcher` | `researcher123` | Created by `init_dev_baseline.py` |
 
 ## Docker Image Availability
 
@@ -202,15 +203,18 @@ host-native development path described above.
 ### "password authentication failed for user hfb"
 
 You are connecting to the wrong PostgreSQL instance. Check:
+
 ```bash
 lsof -i :5432
 docker ps --filter publish=5432
 ```
+
 Stop any conflicting containers or local PostgreSQL services.
 
 ### "ConnectionRefusedError" on port 5432/6379/9200/9000
 
 Docker services are not running:
+
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres redis elasticsearch minio
 ```
@@ -228,6 +232,7 @@ Use the default from Settings, or use `postgresql+asyncpg://` explicitly.
 ## API Documentation
 
 When the backend is running with `DEBUG=true`:
+
 - Swagger UI: http://127.0.0.1:8000/docs
 - ReDoc: http://127.0.0.1:8000/redoc
 

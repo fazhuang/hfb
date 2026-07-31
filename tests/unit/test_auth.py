@@ -1,6 +1,7 @@
 """
 Tests for auth service — password hashing, JWT, login, permissions.
 """
+
 import pytest
 from app.repositories.user import PermissionRepository, RoleRepository, UserRepository
 from app.services.auth_service import (
@@ -56,6 +57,7 @@ class TestJWT:
 
     def test_decode_invalid_token(self):
         import jwt as pyjwt
+
         with pytest.raises(pyjwt.PyJWTError):
             decode_token("not.a.valid.token")
 
@@ -142,6 +144,7 @@ class TestAuthService:
 
         # Insert into role_permission table directly to avoid lazy-load on SQLite
         from app.models.user import role_permission
+
         await db_session.execute(
             role_permission.insert().values(role_id=role.id, permission_id=p_read.id)
         )
@@ -157,6 +160,7 @@ class TestAuthService:
 
         # Insert into user_role table directly
         from app.models.user import user_role
+
         await db_session.execute(
             user_role.insert().values(user_id=user.id, role_id=role.id)
         )
@@ -165,6 +169,7 @@ class TestAuthService:
         # Reload user with eager-loaded roles+permissions
         from app.models.user import User
         from sqlalchemy import select as sa_select
+
         stmt = sa_select(User).where(User.id == user.id)
         result = await db_session.execute(stmt)
         user_fresh = result.scalar_one()
@@ -174,5 +179,15 @@ class TestAuthService:
         assert await svc.has_permission(user_fresh.id, "person", "write") is False
 
         # has_any_permission
-        assert await svc.has_any_permission(user_fresh.id, ("person", "read"), ("person", "write")) is True
-        assert await svc.has_any_permission(user_fresh.id, ("book", "read"), ("book", "write")) is False
+        assert (
+            await svc.has_any_permission(
+                user_fresh.id, ("person", "read"), ("person", "write")
+            )
+            is True
+        )
+        assert (
+            await svc.has_any_permission(
+                user_fresh.id, ("book", "read"), ("book", "write")
+            )
+            is False
+        )

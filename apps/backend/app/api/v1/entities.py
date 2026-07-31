@@ -129,8 +129,12 @@ def _make_crud(
         try:
             obj = await svc.create(body)
         except ValueError as exc:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
-        return api_response(data=resp_cls.model_validate(obj).model_dump(mode="json"), message="Created")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            )
+        return api_response(
+            data=resp_cls.model_validate(obj).model_dump(mode="json"), message="Created"
+        )
 
     @router.get(
         f"/{entity_name}s/{{item_id}}",
@@ -146,7 +150,9 @@ def _make_crud(
         svc = svc_cls(session)
         obj = await svc.get_by_id(item_id)
         if obj is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found"
+            )
         return api_response(data=resp_cls.model_validate(obj).model_dump(mode="json"))
 
     @router.patch(
@@ -168,8 +174,12 @@ def _make_crud(
         partial = update_schema(**updates)
         obj = await svc.update(item_id, partial)
         if obj is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found")
-        return api_response(data=resp_cls.model_validate(obj).model_dump(mode="json"), message="Updated")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found"
+            )
+        return api_response(
+            data=resp_cls.model_validate(obj).model_dump(mode="json"), message="Updated"
+        )
 
     @router.delete(
         f"/{entity_name}s/{{item_id}}",
@@ -184,7 +194,9 @@ def _make_crud(
         svc = svc_cls(session)
         ok = await svc.soft_delete(item_id)
         if not ok:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found"
+            )
         return api_response(data=None, message="Deleted")
 
 
@@ -192,10 +204,42 @@ def _make_crud(
 # Register CRUD routes for each entity
 # ============================================================
 
-_make_crud("book", BookService, BookCreate, BookUpdate, BookBrief, BookResponse, public_read=True)
-_make_crud("version", VersionService, VersionCreate, VersionUpdate, VersionBrief, VersionResponse, public_read=True)
-_make_crud("chapter", ChapterService, ChapterCreate, ChapterUpdate, ChapterBrief, ChapterResponse, public_read=True)
-_make_crud("passage", PassageService, PassageCreate, PassageUpdate, PassageBrief, PassageResponse, public_read=True)
+_make_crud(
+    "book",
+    BookService,
+    BookCreate,
+    BookUpdate,
+    BookBrief,
+    BookResponse,
+    public_read=True,
+)
+_make_crud(
+    "version",
+    VersionService,
+    VersionCreate,
+    VersionUpdate,
+    VersionBrief,
+    VersionResponse,
+    public_read=True,
+)
+_make_crud(
+    "chapter",
+    ChapterService,
+    ChapterCreate,
+    ChapterUpdate,
+    ChapterBrief,
+    ChapterResponse,
+    public_read=True,
+)
+_make_crud(
+    "passage",
+    PassageService,
+    PassageCreate,
+    PassageUpdate,
+    PassageBrief,
+    PassageResponse,
+    public_read=True,
+)
 _make_crud("paper", PaperService, PaperCreate, PaperUpdate, PaperBrief, PaperResponse)
 _make_crud("image", ImageService, ImageCreate, ImageCreate, ImageBrief, ImageResponse)
 
@@ -227,7 +271,14 @@ class _DocumentUpdateOverride(DocumentUpdate):
     pass
 
 
-_make_crud("person", PersonService, _PersonCreateOverride, _PersonCreateOverride, PersonBrief, PersonResponse)
+_make_crud(
+    "person",
+    PersonService,
+    _PersonCreateOverride,
+    _PersonCreateOverride,
+    PersonBrief,
+    PersonResponse,
+)
 
 # Document is hand-wired (not via _make_crud) because we need extra filter params
 # on the list endpoint that the factory doesn't support.
@@ -273,7 +324,9 @@ async def list_documents(
     if session_id is not None:
         owner_session = await session.get(ResearchSession, session_id)
         if owner_session is None or owner_session.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Access denied"
+            )
     svc = DocumentService(session)
     items, total = await svc.search(
         q,
@@ -311,7 +364,9 @@ async def create_document(
         create_data["uploaded_by"] = user_id
         # Cross-project isolation: verify user owns the session before scoping doc to it
         if create_data.get("session_id"):
-            owner_session = await session.get(ResearchSession, create_data["session_id"])
+            owner_session = await session.get(
+                ResearchSession, create_data["session_id"]
+            )
             if owner_session is None or owner_session.user_id != user_id:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -320,8 +375,13 @@ async def create_document(
         await svc._validate_create(create_data)
         obj = await svc.repo.create(**create_data)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
-    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"), message="Created")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+    return api_response(
+        data=DocumentResponse.model_validate(obj).model_dump(mode="json"),
+        message="Created",
+    )
 
 
 @router.get(
@@ -337,16 +397,24 @@ async def get_document(
     svc = DocumentService(session)
     obj = await svc.get_by_id(item_id)
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Ownership check: user can only read docs they own or system/public docs
     if obj.uploaded_by is not None and obj.uploaded_by != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Cross-project isolation: session-scoped docs require the owning session
     if obj.session_id is not None:
         owner_session = await session.get(ResearchSession, obj.session_id)
         if owner_session is None or owner_session.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"))
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
+    return api_response(
+        data=DocumentResponse.model_validate(obj).model_dump(mode="json")
+    )
 
 
 @router.patch(
@@ -364,10 +432,14 @@ async def update_document(
     # Fetch existing doc to check ownership
     existing = await svc.get_by_id(item_id)
     if existing is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Ownership check
     if existing.uploaded_by is not None and existing.uploaded_by != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     updates = body.model_dump(exclude_unset=True)
     # Cross-project isolation: verify user owns session before reassigning
     if updates.get("session_id") is not None:
@@ -383,8 +455,13 @@ async def update_document(
             updates["session_id"] = None
     obj = await svc.update(item_id, **updates)
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
-    return api_response(data=DocumentResponse.model_validate(obj).model_dump(mode="json"), message="Updated")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+    return api_response(
+        data=DocumentResponse.model_validate(obj).model_dump(mode="json"),
+        message="Updated",
+    )
 
 
 @router.delete(
@@ -399,7 +476,9 @@ async def delete_document(
     svc = DocumentService(session)
     ok = await svc.soft_delete(item_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     return api_response(data=None, message="Deleted")
 
 
@@ -416,15 +495,21 @@ async def get_document_stats(
     """Get citation, evidence, chunk, and OCR stats for a document."""
     doc = await session.get(Document, str(item_id))
     if doc is None or doc.is_deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Ownership check: user can only read docs they own or system/public docs
     if doc.uploaded_by is not None and doc.uploaded_by != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Cross-project isolation: session-scoped docs require the owning session
     if doc.session_id is not None:
         owner_session = await session.get(ResearchSession, doc.session_id)
         if owner_session is None or owner_session.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
 
     # Total chunks for this document
     try:
@@ -495,19 +580,24 @@ async def get_document_stats(
         logger.debug("Failed to count evidence", exc_info=True)
         evidence_count = 0
 
-    return api_response(data={
-        "total_chunks": total_chunks,
-        "ocr_chunks": ocr_chunks,
-        "ocr_text_available": ocr_chunks > 0,
-        "avg_ocr_confidence": float(avg_ocr_confidence) if avg_ocr_confidence is not None else None,
-        "citation_count": citation_count,
-        "evidence_count": evidence_count,
-    })
+    return api_response(
+        data={
+            "total_chunks": total_chunks,
+            "ocr_chunks": ocr_chunks,
+            "ocr_text_available": ocr_chunks > 0,
+            "avg_ocr_confidence": float(avg_ocr_confidence)
+            if avg_ocr_confidence is not None
+            else None,
+            "citation_count": citation_count,
+            "evidence_count": evidence_count,
+        }
+    )
 
 
 # ============================================================
 # /documents/{id}/reader — aggregated reader data
 # ============================================================
+
 
 def _resolve_citation_anchor(citation, all_chunk_objs: list) -> list:
     """Resolve a Citation to its anchor DocumentChunks.
@@ -522,7 +612,11 @@ def _resolve_citation_anchor(citation, all_chunk_objs: list) -> list:
     # If the citation targets a Passage, find chunks linked to that passage
     if citation.target_type == "Passage" and citation.target_id:
         target_id = str(citation.target_id)
-        matched = [ch for ch in all_chunk_objs if ch.passage_id and str(ch.passage_id) == target_id]
+        matched = [
+            ch
+            for ch in all_chunk_objs
+            if ch.passage_id and str(ch.passage_id) == target_id
+        ]
     return matched
 
 
@@ -530,7 +624,9 @@ def _resolve_evidence_anchor(evidence, all_chunk_objs: list) -> list:
     """Resolve Evidence to its anchor DocumentChunks via source_passage_id."""
     if evidence.source_passage_id:
         sid = str(evidence.source_passage_id)
-        return [ch for ch in all_chunk_objs if ch.passage_id and str(ch.passage_id) == sid]
+        return [
+            ch for ch in all_chunk_objs if ch.passage_id and str(ch.passage_id) == sid
+        ]
     return []
 
 
@@ -563,15 +659,21 @@ async def get_document_reader(
     svc = DocumentService(session)
     doc = await svc.get_by_id(item_id)
     if doc is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Ownership check
     if doc.uploaded_by is not None and doc.uploaded_by != user_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
     # Cross-project isolation
     if doc.session_id is not None:
         owner_session = await session.get(ResearchSession, doc.session_id)
         if owner_session is None or owner_session.user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+            )
 
     # Document detail
     doc_data = DocumentResponse.model_validate(doc).model_dump(mode="json")
@@ -616,9 +718,7 @@ async def get_document_reader(
     passages: list[dict] = []
     if pids:
         passages_q = (
-            sql_select(Passage)
-            .where(Passage.id.in_(pids))
-            .order_by(Passage.order)
+            sql_select(Passage).where(Passage.id.in_(pids)).order_by(Passage.order)
         )
         passage_objs = (await session.execute(passages_q)).scalars().all()
         passages = [
@@ -658,7 +758,9 @@ async def get_document_reader(
 
     # ---- Citations for this document ----
     # Get all passage_ids used by this document's chunks
-    doc_passage_ids: list[str] = list({str(c.passage_id) for c in all_chunk_objs if c.passage_id})
+    doc_passage_ids: list[str] = list(
+        {str(c.passage_id) for c in all_chunk_objs if c.passage_id}
+    )
 
     # 1. Anchored: Citations reachable via Evidence → Chunk.passage_id chain
     citation_q = (
@@ -681,9 +783,8 @@ async def get_document_reader(
     all_passage_ids_for_doc |= passages_set
 
     if all_passage_ids_for_doc:
-        extra_ev_q = (
-            sql_select(Evidence)
-            .where(Evidence.source_passage_id.in_(list(all_passage_ids_for_doc)))
+        extra_ev_q = sql_select(Evidence).where(
+            Evidence.source_passage_id.in_(list(all_passage_ids_for_doc))
         )
         extra_evs = (await session.execute(extra_ev_q)).scalars().all()
         extra_ev_ids = [e.id for e in extra_evs]
@@ -703,16 +804,20 @@ async def get_document_reader(
     citations = []
     for c in citation_objs:
         anchor_chunks = _resolve_citation_anchor(c, all_chunk_objs)
-        citations.append({
-            "id": c.id,
-            "quote_text": c.quote_text,
-            "note": c.note,
-            "target_type": c.target_type,
-            "target_id": c.target_id,
-            "evidence_id": c.evidence_id,
-            "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
-            "anchor_passage_ids": list({ch.passage_id for ch in anchor_chunks if ch.passage_id}),
-        })
+        citations.append(
+            {
+                "id": c.id,
+                "quote_text": c.quote_text,
+                "note": c.note,
+                "target_type": c.target_type,
+                "target_id": c.target_id,
+                "evidence_id": c.evidence_id,
+                "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
+                "anchor_passage_ids": list(
+                    {ch.passage_id for ch in anchor_chunks if ch.passage_id}
+                ),
+            }
+        )
 
     # ---- Evidence for this document ----
     # 1. Anchored: Evidence reachable via source_passage_id → Chunk.passage_id
@@ -728,9 +833,8 @@ async def get_document_reader(
     # 2. Unanchored: Evidence whose source_passage_id is in doc_passage_ids
     #    but has no chunks (no inner-join match) — these still belong to the doc
     if doc_passage_ids:
-        extra_ev_q = (
-            sql_select(Evidence)
-            .where(Evidence.source_passage_id.in_(doc_passage_ids))
+        extra_ev_q = sql_select(Evidence).where(
+            Evidence.source_passage_id.in_(doc_passage_ids)
         )
         extra_evs = (await session.execute(extra_ev_q)).scalars().all()
         for ev in extra_evs:
@@ -741,23 +845,29 @@ async def get_document_reader(
     evidences = []
     for e in evidence_objs:
         anchor_chunks = _resolve_evidence_anchor(e, all_chunk_objs)
-        evidences.append({
-            "id": e.id,
-            "description": e.description,
-            "evidence_level": int(e.evidence_level.value) if hasattr(e.evidence_level, 'value') else e.evidence_level,
-            "source_passage_id": e.source_passage_id,
-            "source_ref_id": e.source_ref_id,
-            "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
-        })
+        evidences.append(
+            {
+                "id": e.id,
+                "description": e.description,
+                "evidence_level": int(e.evidence_level.value)
+                if hasattr(e.evidence_level, "value")
+                else e.evidence_level,
+                "source_passage_id": e.source_passage_id,
+                "source_ref_id": e.source_ref_id,
+                "anchor_chunk_ids": [ch.id for ch in anchor_chunks],
+            }
+        )
 
-    return api_response(data={
-        "document": doc_data,
-        "ocr_chunks": ocr_chunks,
-        "passages": passages,
-        "original_chunks": original_chunks,
-        "citations": citations,
-        "evidences": evidences,
-    })
+    return api_response(
+        data={
+            "document": doc_data,
+            "ocr_chunks": ocr_chunks,
+            "passages": passages,
+            "original_chunks": original_chunks,
+            "citations": citations,
+            "evidences": evidences,
+        }
+    )
 
 
 # ============================================================
@@ -860,7 +970,11 @@ async def _test_seed_reader_data(
         from app.models.chapter import Chapter
         from app.models.version import Version
 
-        book = Book(id=str(_uuid_mod.uuid4()), title=f"E2E书-{_uuid_mod.uuid4().hex[:6]}", dynasty="汉")
+        book = Book(
+            id=str(_uuid_mod.uuid4()),
+            title=f"E2E书-{_uuid_mod.uuid4().hex[:6]}",
+            dynasty="汉",
+        )
         session.add(book)
         await session.flush()
 
@@ -884,7 +998,9 @@ async def _test_seed_reader_data(
         session.add(chapter)
         await session.flush()
 
-        passage_text = body.passage_text or (paragraphs[0] if paragraphs else "E2E passage text")
+        passage_text = body.passage_text or (
+            paragraphs[0] if paragraphs else "E2E passage text"
+        )
         passage = Passage(
             id=str(_uuid_mod.uuid4()),
             chapter_id=chapter.id,
@@ -969,8 +1085,13 @@ async def _test_seed_reader_data(
             "document_id": doc.id,
         },
         "chunks": [
-            {"id": c.id, "chunk_index": c.chunk_index, "content": c.content,
-             "paragraph_index": c.paragraph_index, "page_number": getattr(c, 'page_number', None)}
+            {
+                "id": c.id,
+                "chunk_index": c.chunk_index,
+                "content": c.content,
+                "paragraph_index": c.paragraph_index,
+                "page_number": getattr(c, "page_number", None),
+            }
             for c in chunks
         ],
         "passage_id": passage_id,

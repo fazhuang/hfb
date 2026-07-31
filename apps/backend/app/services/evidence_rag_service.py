@@ -13,6 +13,7 @@ Hard rules:
   - OCR confidence < 0.7 → evidence_weight="reference" (never "primary")
   - No evidence → refusal, never fabrication
 """
+
 from __future__ import annotations
 
 import logging
@@ -38,12 +39,14 @@ OCR_PRIMARY_THRESHOLD = 0.7
 
 # Copyright statuses allowed in evidence retrieval — keep local copy for
 # independent readability, _compliance_clauses is the authoritative gate.
-_COMPLIANT_COPYRIGHT_STATUSES = frozenset({
-    "public_domain",
-    "open_access",
-    "licensed",
-    "user_uploaded_with_permission",
-})
+_COMPLIANT_COPYRIGHT_STATUSES = frozenset(
+    {
+        "public_domain",
+        "open_access",
+        "licensed",
+        "user_uploaded_with_permission",
+    }
+)
 
 
 class EvidenceRAGService:
@@ -65,7 +68,8 @@ class EvidenceRAGService:
         keywords = self._tokenize(q)
         if not keywords:
             return EvidenceRAGResponse(
-                query=q, refusal=True,
+                query=q,
+                refusal=True,
                 refusal_reason="查询词无效，无法检索",
             )
 
@@ -73,7 +77,8 @@ class EvidenceRAGService:
         all_chunks = await self._retrieve_evidence_chunks(keywords)
         if not all_chunks:
             return EvidenceRAGResponse(
-                query=q, refusal=True,
+                query=q,
+                refusal=True,
                 refusal_reason="在已启用 RAG 的文档中未找到相关内容",
             )
 
@@ -88,7 +93,8 @@ class EvidenceRAGService:
 
         if not scored:
             return EvidenceRAGResponse(
-                query=q, refusal=True,
+                query=q,
+                refusal=True,
                 refusal_reason="未找到匹配的相关证据",
             )
 
@@ -102,9 +108,9 @@ class EvidenceRAGService:
 
         # P0: Persist citations to the citations database table (Codex requirement)
         try:
-            await CitationPersistenceService(self.session).persist_evidence_rag_citations(
-                citations, query=q
-            )
+            await CitationPersistenceService(
+                self.session
+            ).persist_evidence_rag_citations(citations, query=q)
         except Exception:
             logger.exception("Failed to persist evidence RAG citations")
 
@@ -131,9 +137,7 @@ class EvidenceRAGService:
         or license_type are excluded. The authoritative predicate is
         _compliance_clauses from retrieval.py.
         """
-        kw_filters = [
-            DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
-        ]
+        kw_filters = [DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords]
 
         stmt = (
             select(DocumentChunk)
@@ -157,7 +161,9 @@ class EvidenceRAGService:
                 ),
                 or_(*kw_filters),
             )
-            .limit(200)  # ponytail: reasonable upper bound, tune if real-world needs more
+            .limit(
+                200
+            )  # ponytail: reasonable upper bound, tune if real-world needs more
         )
         logger.debug(
             "Evidence RAG retrieval: PDF chunks require page_number IS NOT NULL"
@@ -187,7 +193,9 @@ class EvidenceRAGService:
 
         title = getattr(doc, "title", "") if doc else ""
         source_url = getattr(doc, "source_url", "") or ""
-        copyright_status = getattr(doc, "copyright_status", "unknown") if doc else "unknown"
+        copyright_status = (
+            getattr(doc, "copyright_status", "unknown") if doc else "unknown"
+        )
 
         # Determine evidence weight: OCR confidence < 0.7 → reference only
         ocr = chunk.ocr_confidence
@@ -196,18 +204,25 @@ class EvidenceRAGService:
             evidence_weight = "reference"
             logger.debug(
                 "OCR confidence %.2f below threshold %.2f for chunk %s — downgraded to reference",
-                ocr, OCR_PRIMARY_THRESHOLD, chunk.id,
+                ocr,
+                OCR_PRIMARY_THRESHOLD,
+                chunk.id,
             )
 
         # Defense-in-depth: PDF-backed chunks without page_number should have
         # been excluded at the SQL layer, but if one leaks through, downgrade
         # to "reference" and log a warning so we can investigate.
-        if doc is not None and getattr(doc, "raw_pdf_blob", None) is not None and chunk.page_number is None:
+        if (
+            doc is not None
+            and getattr(doc, "raw_pdf_blob", None) is not None
+            and chunk.page_number is None
+        ):
             evidence_weight = "reference"
             logger.warning(
                 "PDF-backed chunk %s (doc %s) has no page_number — "
                 "defense-in-depth downgrade to reference",
-                chunk.id, chunk.document_id,
+                chunk.id,
+                chunk.document_id,
             )
 
         # Build citation string
@@ -299,7 +314,9 @@ class EvidenceRAGService:
             parts.append("")
 
         if reference:
-            parts.append(f"参考证据（{len(reference)} 条，OCR 低可信度，不能作为强证据）：")
+            parts.append(
+                f"参考证据（{len(reference)} 条，OCR 低可信度，不能作为强证据）："
+            )
             for i, e in enumerate(reference, 1):
                 parts.append(f"  [R{i}] {e.citation}")
                 parts.append(f"       {e.content[:150]}...")
@@ -321,9 +338,7 @@ class EvidenceRAGService:
     @staticmethod
     def _tokenize(query: str) -> list[str]:
         """Split query on whitespace into non-empty, deduplicated keywords."""
-        return list(dict.fromkeys(
-            kw for kw in query.strip().split() if kw
-        ))
+        return list(dict.fromkeys(kw for kw in query.strip().split() if kw))
 
     # ------------------------------------------------------------------
     # Scoring — same deterministic formula as RetrievalService

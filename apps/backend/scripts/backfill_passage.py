@@ -9,6 +9,7 @@ Only maps chunks where:
 Reports: total, mapped_before, newly_mapped, unresolved, ambiguous, orphan_passage_ids.
 Repeatable: second run → newly_mapped=0.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -33,9 +34,13 @@ async def backfill(db: AsyncSession | None = None, dry_run: bool = False) -> dic
     """Run passage backfill. Returns stats dict."""
     close_db = db is None
     if db is None:
-        database_url = os.getenv("DATABASE_URL", "sqlite+aiosqlite:////tmp/hfb_backfill.db")
+        database_url = os.getenv(
+            "DATABASE_URL", "sqlite+aiosqlite:////tmp/hfb_backfill.db"
+        )
         engine = create_async_engine(database_url, echo=False)
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
         session = async_session()
     else:
         session = db
@@ -158,6 +163,7 @@ async def _run_backfill(session: AsyncSession, dry_run: bool = False) -> dict:
 def _normalize(s: str) -> str:
     """Normalize text for exact matching: collapse whitespace, strip."""
     import re
+
     return re.sub(r"\s+", " ", s).strip()
 
 

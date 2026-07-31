@@ -5,6 +5,7 @@ Current services (Sprint 3 scope):
   - DocumentService
   - PersonService
 """
+
 from __future__ import annotations
 
 from app.services.document_service import DocumentService

@@ -1,6 +1,7 @@
 """
 Tests for core configuration settings.
 """
+
 from app.core.config import Settings
 
 
@@ -33,7 +34,9 @@ class TestSettings:
         s1 = Settings(REDIS_HOST="redis.local", REDIS_PORT=6379, REDIS_DB=0)
         assert s1.redis_url == "redis://redis.local:6379/0"
 
-        s2 = Settings(REDIS_HOST="redis.local", REDIS_PORT=6380, REDIS_DB=1, REDIS_PASSWORD="abc")
+        s2 = Settings(
+            REDIS_HOST="redis.local", REDIS_PORT=6380, REDIS_DB=1, REDIS_PASSWORD="abc"
+        )
         assert "redis://:abc@redis.local:6380/1" in s2.redis_url
 
     def test_minio_url(self) -> None:

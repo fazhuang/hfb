@@ -137,7 +137,8 @@ async def passage_variants(
 
     stmt = select(TextualVariant).where(
         (
-            (TextualVariant.source_passage_id == passage_id) | (TextualVariant.target_passage_id == passage_id)
+            (TextualVariant.source_passage_id == passage_id)
+            | (TextualVariant.target_passage_id == passage_id)
         ),
         TextualVariant.is_deleted.is_(False),
     )
@@ -147,16 +148,18 @@ async def passage_variants(
     groups: dict[str, list] = defaultdict(list)
     for v in variants:
         key = v.lemma or v.location or "unknown"
-        groups[key].append({
-            "id": v.id,
-            "source_version_id": v.source_version_id,
-            "target_version_id": v.target_version_id,
-            "lemma": v.lemma,
-            "reading": v.reading,
-            "variant_type": v.variant_type,
-            "apparatus": v.apparatus,
-            "verification_status": v.verification_status,
-        })
+        groups[key].append(
+            {
+                "id": v.id,
+                "source_version_id": v.source_version_id,
+                "target_version_id": v.target_version_id,
+                "lemma": v.lemma,
+                "reading": v.reading,
+                "variant_type": v.variant_type,
+                "apparatus": v.apparatus,
+                "verification_status": v.verification_status,
+            }
+        )
     data = {"passage_id": passage_id, "groups": dict(groups)}
     return VersionTreeEnvelope(success=True, data=data, message="ok")
 
@@ -219,12 +222,16 @@ async def tei_apparatus(
 
     stmt = select(TextualVariant).where(
         (
-            (TextualVariant.source_version_id == source_version) & (TextualVariant.target_version_id == target_version)
-        ) | (
-            (TextualVariant.source_version_id == target_version) & (TextualVariant.target_version_id == source_version)
+            (TextualVariant.source_version_id == source_version)
+            & (TextualVariant.target_version_id == target_version)
+        )
+        | (
+            (TextualVariant.source_version_id == target_version)
+            & (TextualVariant.target_version_id == source_version)
         ),
         (
-            (TextualVariant.source_passage_id == passage_id) | (TextualVariant.target_passage_id == passage_id)
+            (TextualVariant.source_passage_id == passage_id)
+            | (TextualVariant.target_passage_id == passage_id)
         ),
         TextualVariant.is_deleted.is_(False),
     )
@@ -234,12 +241,19 @@ async def tei_apparatus(
     # All version IDs are UUIDs — structurally cannot contain quotes or markup.
     # Defense-in-depth: reject anything not matching the UUID pattern.
     import re as _re
-    if not _re.match(r'^[0-9a-f-]{36}$', source_version) or not _re.match(r'^[0-9a-f-]{36}$', target_version):
+
+    if not _re.match(r"^[0-9a-f-]{36}$", source_version) or not _re.match(
+        r"^[0-9a-f-]{36}$", target_version
+    ):
         raise HTTPException(status_code=400, detail="Invalid version ID format")
 
-    pass_stmt = select(Passage).where(Passage.id == passage_id, Passage.is_deleted.is_(False))
+    pass_stmt = select(Passage).where(
+        Passage.id == passage_id, Passage.is_deleted.is_(False)
+    )
     pass_result = await session.execute(pass_stmt)
-    _passage = pass_result.scalar_one_or_none()  # ponytail: fetch for existence, text not needed for XML
+    _passage = (
+        pass_result.scalar_one_or_none()
+    )  # ponytail: fetch for existence, text not needed for XML
 
     from xml.sax.saxutils import escape
 

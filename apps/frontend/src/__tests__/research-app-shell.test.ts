@@ -34,7 +34,11 @@ describe('ResearchPrimaryNav', () => {
           children: [
             { path: 'research', component: { template: '<div />' }, meta: { section: 'research' } },
             { path: 'library', component: { template: '<div />' }, meta: { section: 'library' } },
-            { path: 'knowledge', component: { template: '<div />' }, meta: { section: 'knowledge' } },
+            {
+              path: 'knowledge',
+              component: { template: '<div />' },
+              meta: { section: 'knowledge' },
+            },
             { path: 'reports', component: { template: '<div />' }, meta: { section: 'reports' } },
           ],
         },
@@ -164,7 +168,10 @@ describe('ResearchPageHeader', () => {
         { path: '/research/:id', component: { template: '<div />' } },
       ],
     });
-    return mount(component, { ...options, global: { ...(options.global as object || {}), plugins: [router] } });
+    return mount(component, {
+      ...options,
+      global: { ...((options.global as object) || {}), plugins: [router] },
+    });
   }
 
   it('renders the title prop correctly', () => {
@@ -254,11 +261,36 @@ describe('Research App Shell Routing', () => {
           path: '/',
           component: ResearchAppLayout,
           children: [
-            { path: 'research', name: 'research-project-list', component: ProjectListPage, meta: { section: 'research' } },
-            { path: 'research/:projectId', name: 'research-project-detail', component: ProjectDetailPage, meta: { section: 'research' } },
-            { path: 'research/:projectId/workspace', name: 'research-project-workspace', component: ResearchWorkspacePage, meta: { section: 'research' } },
-            { path: 'research/:projectId/workflow', name: 'research-project-workflow', component: ResearchWorkflowPage, meta: { section: 'research' } },
-            { path: 'research/:projectId/result/:runId', name: 'research-project-result', component: ResearchResultPage, meta: { section: 'research' } },
+            {
+              path: 'research',
+              name: 'research-project-list',
+              component: ProjectListPage,
+              meta: { section: 'research' },
+            },
+            {
+              path: 'research/:projectId',
+              name: 'research-project-detail',
+              component: ProjectDetailPage,
+              meta: { section: 'research' },
+            },
+            {
+              path: 'research/:projectId/workspace',
+              name: 'research-project-workspace',
+              component: ResearchWorkspacePage,
+              meta: { section: 'research' },
+            },
+            {
+              path: 'research/:projectId/workflow',
+              name: 'research-project-workflow',
+              component: ResearchWorkflowPage,
+              meta: { section: 'research' },
+            },
+            {
+              path: 'research/:projectId/result/:runId',
+              name: 'research-project-result',
+              component: ResearchResultPage,
+              meta: { section: 'research' },
+            },
           ],
         },
         { path: '/library', component: { template: '<div />' } },
@@ -272,9 +304,21 @@ describe('Research App Shell Routing', () => {
   const pageCases = [
     { name: 'research-project-list', path: '/research', component: ProjectListPage },
     { name: 'research-project-detail', path: '/research/123', component: ProjectDetailPage },
-    { name: 'research-project-workspace', path: '/research/123/workspace', component: ResearchWorkspacePage },
-    { name: 'research-project-workflow', path: '/research/123/workflow', component: ResearchWorkflowPage },
-    { name: 'research-project-result', path: '/research/123/result/run-1', component: ResearchResultPage },
+    {
+      name: 'research-project-workspace',
+      path: '/research/123/workspace',
+      component: ResearchWorkspacePage,
+    },
+    {
+      name: 'research-project-workflow',
+      path: '/research/123/workflow',
+      component: ResearchWorkflowPage,
+    },
+    {
+      name: 'research-project-result',
+      path: '/research/123/result/run-1',
+      component: ResearchResultPage,
+    },
   ];
 
   for (const { name, path } of pageCases) {

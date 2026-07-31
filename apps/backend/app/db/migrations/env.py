@@ -4,6 +4,7 @@ Alembic environment configuration.
 Uses the application's SQLAlchemy async engine and model metadata
 to generate migrations automatically.
 """
+
 import asyncio
 import os
 from logging.config import fileConfig

@@ -11,12 +11,12 @@
 
 系统当前无 `isNewUser` 标志。首次使用引导需基于以下四种状态设计：
 
-| 状态 | 识别条件 | 核心目标 |
-|------|---------|---------|
-| **匿名访客** | 无 token，未登录 | 传达平台价值，引导注册 |
-| **新注册用户** | 已登录，无研究课题，首次访问 Dashboard | 引导创建第一个研究课题 |
-| **有账户无课题** | 已登录，无活跃研究课题 | 展示可用工具，鼓励开始研究 |
-| **有课题用户** | 已登录，有活跃研究课题 | 直接进入研究，提供高效操作提示 |
+| 状态             | 识别条件                               | 核心目标                       |
+| ---------------- | -------------------------------------- | ------------------------------ |
+| **匿名访客**     | 无 token，未登录                       | 传达平台价值，引导注册         |
+| **新注册用户**   | 已登录，无研究课题，首次访问 Dashboard | 引导创建第一个研究课题         |
+| **有账户无课题** | 已登录，无活跃研究课题                 | 展示可用工具，鼓励开始研究     |
+| **有课题用户**   | 已登录，有活跃研究课题                 | 直接进入研究，提供高效操作提示 |
 
 ---
 
@@ -68,6 +68,7 @@
 **文件**: `apps/frontend/src/views/ResearchNewView.vue`（创建课题）
 
 研究课题（Research Topic）是整个平台的骨架概念：
+
 - 所有研究工具（版本比较、V4 工作流、工作台、AI 助手）围绕课题组织
 - 笔记、资料、报告、会话均归属于课题
 - 一个用户可有多个课题，但同时只有一个「活跃课题」
@@ -75,6 +76,7 @@
 **建议引导流程**（新用户登录后）:
 
 **步骤 1** — Dashboard 页顶部展示引导条：
+
 ```
 ✨ 欢迎来到皇甫谧数字人文平台！让我们开始吧 →
   [1. 创建研究课题] → [2. 探索研究工具] → [3. 记录研究笔记]
@@ -95,11 +97,13 @@
 **文件**: `apps/frontend/src/views/DashboardView.vue`
 
 **实施方案**: 当所有统计值均为 0 且用户无活跃研究课题时，在统计网格下方插播引导区：
+
 ```
 📊 这里还没有数据
 完成首次研究后，你的统计面板将显示平台内容概览。
 [开始探索 →]
 ```
+
 统计卡片本身仍显示（值为 0）供参考，引导区为追加区块。
 
 ---
@@ -110,8 +114,8 @@
 
 ### 4.1 功能未实现页（占位页） ✅ 已实施
 
-| 页面 | 路由 | 实施 |
-|------|------|------|
+| 页面          | 路由         | 实施                                                          |
+| ------------- | ------------ | ------------------------------------------------------------- |
 | DocumentsView | `/documents` | 改为 `type="coming-soon"`，描述「此功能正在建设中，敬请期待」 |
 
 PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分两种占位语义，当前仅 DocumentsView 使用 `coming-soon`。
@@ -121,6 +125,7 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 **文件**: `apps/frontend/src/views/SearchView.vue`
 
 **实施方案**: 无结果时追加操作建议：
+
 - 「尝试更短或更通用的关键词」
 - 「浏览古籍库查看完整书目」（router-link → `/books`）
 - 「浏览人物列表」（router-link → `/persons`）
@@ -128,18 +133,22 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 ### 4.3 研究工具空态 ✅ 部分已实施（P1）
 
 **版本比较页** (`/research`) — 无检索结果时：
+
 - ✅ 已追加：「试试换一个关键词，或从古籍库浏览版本全文」
 
 **研究工作台** (`/workspace`) — 无会话时：
+
 - ✅ 已追加：「点击 + 创建研究会话，在画布中组织你的研究资料」
 
 **统一研究主页** (`/research/workspace`) — 各标签页空态：
+
 - ✅ 资料：「或从文献管理导入」
 - ✅ 版本：「或浏览古籍版本库」
 - ✅ 笔记：「在研究过程中使用速记功能，笔记将自动汇聚于此」
 - ✅ 报告：「完成研究工作流后将自动生成报告」
 
 **知识图谱** (`/graph`) — 初始空态：
+
 - 已有「选择左侧实体开始图谱探索」，不修改。
 
 ### 4.4 数据列表中无条目
@@ -160,11 +169,11 @@ PlaceholderPage 新增可选 `type` prop（`'empty'` | `'coming-soon'`）区分�
 
 **实施方案**: 使用 `title` 属性实现轻量 tooltip（浏览器原生行为）：
 
-| 元素 | 位置 | 提示内容 |
-|------|------|---------|
-| 研究入口 CTA（脉动链接） | AppNavbar | 「点击这里开始你的第一次研究」 |
-| 语言切换器 | AppNavbar 右侧 | 「切换界面语言：中文 / English」 |
-| 主题切换器 | AppNavbar 右侧 | 「切换主题：浅色 / 深色 / 跟随系统」 |
+| 元素                     | 位置           | 提示内容                             |
+| ------------------------ | -------------- | ------------------------------------ |
+| 研究入口 CTA（脉动链接） | AppNavbar      | 「点击这里开始你的第一次研究」       |
+| 语言切换器               | AppNavbar 右侧 | 「切换界面语言：中文 / English」     |
+| 主题切换器               | AppNavbar 右侧 | 「切换主题：浅色 / 深色 / 跟随系统」 |
 
 Tooltip 通过 `title` 属性实现，始终悬浮可见（无 localStorage 首次标记），属于零成本轻量方案。
 
@@ -172,13 +181,13 @@ Tooltip 通过 `title` 属性实现，始终悬浮可见（无 localStorage 首�
 
 以下位置适合直接在界面中加入一行提示文字（灰色小字，已有模式 `entry-desc`）：
 
-| 位置 | 当前状态 | 建议 |
-|------|---------|------|
-| ResearchNewView 表单 | 有 subtitle | 已足够 |
-| V4ResearchView 主题输入 | 有 placeholder | 已足够 |
-| 版本比较检索框 | 有 placeholder | 已足够 |
-| Workspace AI 助手 | 有 `assistantHint` | 已有「向 AI 研究助手提问，基于知识库获取答案」 |
-| 图谱搜索 | 有 `emptyHint` | 已有「选择左侧实体开始图谱探索」 |
+| 位置                    | 当前状态           | 建议                                           |
+| ----------------------- | ------------------ | ---------------------------------------------- |
+| ResearchNewView 表单    | 有 subtitle        | 已足够                                         |
+| V4ResearchView 主题输入 | 有 placeholder     | 已足够                                         |
+| 版本比较检索框          | 有 placeholder     | 已足够                                         |
+| Workspace AI 助手       | 有 `assistantHint` | 已有「向 AI 研究助手提问，基于知识库获取答案」 |
+| 图谱搜索                | 有 `emptyHint`     | 已有「选择左侧实体开始图谱探索」               |
 
 **结论**: 当前系统对已有功能的操作提示覆盖较好。主要缺口在「新用户不知道从哪里开始」——通过第 3.2 节的引导条解决。
 
@@ -202,10 +211,12 @@ Tooltip 通过 `title` 属性实现，始终悬浮可见（无 localStorage 首�
 ## 六、不需要的内容
 
 ### 禁止新增「帮助中心」
+
 - 不新建独立的帮助页面、帮助中心或 FAQ 系统
 - 所有引导通过**内联提示**、**空态文案**、**tooltip** 和**引导条**实现
 
 ### 不修改的部分
+
 - 管理后台（`/admin/*`）不在引导范围内——管理员需具备专业知识
 - 现有 `researchEntry.toolsTitle` 及工具卡片已是有效的功能介绍，不需要改造
 
@@ -213,17 +224,17 @@ Tooltip 通过 `title` 属性实现，始终悬浮可见（无 localStorage 首�
 
 ## 七、实施优先级
 
-| 优先级 | 改动 | 状态 | 影响范围 |
-|--------|------|------|---------|
-| P0 | HomeView 增加 WelcomeHero 区块 | ✅ 完成 | HomeView.vue |
-| P0 | Dashboard 零统计引导文案 | ✅ 完成 | DashboardView.vue |
-| P0 | DocumentsView 改为「功能开发中」 | ✅ 完成 | DocumentsView.vue + PlaceholderPage.vue |
-| P1 | 搜索无结果增加操作建议 | ✅ 完成 | SearchView.vue |
-| P1 | 研究工具空态增加上下文提示 | ✅ 完成 | ResearchWorkflowView, WorkspaceView, ResearchWorkspaceView |
-| P1 | 新用户 Dashboard 步骤引导条 | ✅ 完成 | DashboardView.vue |
-| P2 | 导航栏「开始研究」脉动动画 | ✅ 完成 | AppNavbar.vue |
-| P2 | 关键元素 tooltip | ✅ 完成 | AppNavbar.vue (title 属性) |
-| P3 | 登录/注册页价值主张卡片 | ✅ 完成 | LoginView.vue, RegisterView.vue |
+| 优先级 | 改动                             | 状态    | 影响范围                                                   |
+| ------ | -------------------------------- | ------- | ---------------------------------------------------------- |
+| P0     | HomeView 增加 WelcomeHero 区块   | ✅ 完成 | HomeView.vue                                               |
+| P0     | Dashboard 零统计引导文案         | ✅ 完成 | DashboardView.vue                                          |
+| P0     | DocumentsView 改为「功能开发中」 | ✅ 完成 | DocumentsView.vue + PlaceholderPage.vue                    |
+| P1     | 搜索无结果增加操作建议           | ✅ 完成 | SearchView.vue                                             |
+| P1     | 研究工具空态增加上下文提示       | ✅ 完成 | ResearchWorkflowView, WorkspaceView, ResearchWorkspaceView |
+| P1     | 新用户 Dashboard 步骤引导条      | ✅ 完成 | DashboardView.vue                                          |
+| P2     | 导航栏「开始研究」脉动动画       | ✅ 完成 | AppNavbar.vue                                              |
+| P2     | 关键元素 tooltip                 | ✅ 完成 | AppNavbar.vue (title 属性)                                 |
+| P3     | 登录/注册页价值主张卡片          | ✅ 完成 | LoginView.vue, RegisterView.vue                            |
 
 ---
 
@@ -255,23 +266,23 @@ onboarding: {
 
 ## 附录：关键文件索引
 
-| 文件 | 用途 |
-|------|------|
-| `apps/frontend/src/views/HomeView.vue` | 首页，系统状态 + 研究入口 CTA |
-| `apps/frontend/src/views/DashboardView.vue` | Dashboard，统计数据 + 研究入口卡片 |
-| `apps/frontend/src/views/AboutView.vue` | 关于页面 |
-| `apps/frontend/src/views/LoginView.vue` | 登录表单 |
-| `apps/frontend/src/views/RegisterView.vue` | 注册表单 |
-| `apps/frontend/src/views/ResearchNewView.vue` | 创建研究课题表单 |
-| `apps/frontend/src/views/ResearchHomeView.vue` | 研究主页，工具选择面板 |
-| `apps/frontend/src/views/SearchView.vue` | 全局搜索 |
-| `apps/frontend/src/views/DocumentsView.vue` | 文献库占位页 |
-| `apps/frontend/src/views/GraphExplorerView.vue` | 知识图谱 |
-| `apps/frontend/src/components/common/PlaceholderPage.vue` | 通用占位页组件 |
-| `apps/frontend/src/components/common/EntityListPage.vue` | 通用实体列表页 |
-| `apps/frontend/src/components/common/DataTable.vue` | 通用数据表格 |
-| `apps/frontend/src/components/layout/AppNavbar.vue` | 导航栏 |
-| `apps/frontend/src/stores/auth.ts` | 认证状态（无 isNewUser 标志） |
-| `apps/frontend/src/stores/research.ts` | 研究课题状态 |
-| `apps/frontend/src/i18n/locales/zh-CN.ts` | 中文语言包 |
-| `apps/frontend/src/i18n/locales/en.ts` | 英文语言包 |
+| 文件                                                      | 用途                               |
+| --------------------------------------------------------- | ---------------------------------- |
+| `apps/frontend/src/views/HomeView.vue`                    | 首页，系统状态 + 研究入口 CTA      |
+| `apps/frontend/src/views/DashboardView.vue`               | Dashboard，统计数据 + 研究入口卡片 |
+| `apps/frontend/src/views/AboutView.vue`                   | 关于页面                           |
+| `apps/frontend/src/views/LoginView.vue`                   | 登录表单                           |
+| `apps/frontend/src/views/RegisterView.vue`                | 注册表单                           |
+| `apps/frontend/src/views/ResearchNewView.vue`             | 创建研究课题表单                   |
+| `apps/frontend/src/views/ResearchHomeView.vue`            | 研究主页，工具选择面板             |
+| `apps/frontend/src/views/SearchView.vue`                  | 全局搜索                           |
+| `apps/frontend/src/views/DocumentsView.vue`               | 文献库占位页                       |
+| `apps/frontend/src/views/GraphExplorerView.vue`           | 知识图谱                           |
+| `apps/frontend/src/components/common/PlaceholderPage.vue` | 通用占位页组件                     |
+| `apps/frontend/src/components/common/EntityListPage.vue`  | 通用实体列表页                     |
+| `apps/frontend/src/components/common/DataTable.vue`       | 通用数据表格                       |
+| `apps/frontend/src/components/layout/AppNavbar.vue`       | 导航栏                             |
+| `apps/frontend/src/stores/auth.ts`                        | 认证状态（无 isNewUser 标志）      |
+| `apps/frontend/src/stores/research.ts`                    | 研究课题状态                       |
+| `apps/frontend/src/i18n/locales/zh-CN.ts`                 | 中文语言包                         |
+| `apps/frontend/src/i18n/locales/en.ts`                    | 英文语言包                         |

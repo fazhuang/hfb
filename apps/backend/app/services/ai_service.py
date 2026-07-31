@@ -6,6 +6,7 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 Core rule: NO evidence → refuse to answer.  Every response is wrapped in
 StructuredAIResponse { answer, evidence[], citations[], graph_context[] }.
 """
+
 from __future__ import annotations
 
 import json
@@ -180,8 +181,10 @@ class AIService:
             "stream": True,
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client, \
-                client.stream("POST", url, json=payload, headers=headers) as resp:
+        async with (
+            httpx.AsyncClient(timeout=60.0) as client,
+            client.stream("POST", url, json=payload, headers=headers) as resp,
+        ):
             if resp.status_code != 200:
                 body = await resp.aread()
                 yield f"⚠️ AI 服务错误 (HTTP {resp.status_code}): {body.decode()[:200]}"
@@ -213,7 +216,10 @@ class AIService:
             return "⚠️ 请求过于频繁"
 
         messages = [
-            {"role": "user", "content": f"请用不超过{max_words}字概括以下文本的核心内容：\n\n{text}"},
+            {
+                "role": "user",
+                "content": f"请用不超过{max_words}字概括以下文本的核心内容：\n\n{text}",
+            },
         ]
         return await self._complete(messages)
 
@@ -228,7 +234,10 @@ class AIService:
             return "⚠️ 请求过于频繁"
 
         messages = [
-            {"role": "user", "content": f"请将以下文言文翻译为{target_lang}，保留原文的学术术语和结构：\n\n{text}"},
+            {
+                "role": "user",
+                "content": f"请将以下文言文翻译为{target_lang}，保留原文的学术术语和结构：\n\n{text}",
+            },
         ]
         return await self._complete(messages)
 
@@ -237,7 +246,11 @@ class AIService:
     # ------------------------------------------------------------------
 
     async def ai_compare(
-        self, source_text: str, target_text: str, source_label: str = "源版本", target_label: str = "目标版本"
+        self,
+        source_text: str,
+        target_text: str,
+        source_label: str = "源版本",
+        target_label: str = "目标版本",
     ) -> str:
         if not self.available:
             return _mock_compare(source_text, target_text, source_label, target_label)
@@ -301,7 +314,9 @@ class AIService:
             "model": self._model,
             "messages": full_messages,
             "max_tokens": self._max_tokens,
-            "temperature": temperature if temperature is not None else self._temperature,
+            "temperature": temperature
+            if temperature is not None
+            else self._temperature,
             "stream": False,
         }
         if seed is not None:
@@ -313,11 +328,18 @@ class AIService:
                 if resp.status_code != 200:
                     return None
                 data = resp.json()
-                content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                content = (
+                    data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                )
                 if not content or not content.strip():
                     return None
                 return content.strip()
-        except (httpx.HTTPStatusError, httpx.ConnectError, json.JSONDecodeError, OSError):
+        except (
+            httpx.HTTPStatusError,
+            httpx.ConnectError,
+            json.JSONDecodeError,
+            OSError,
+        ):
             logger.debug("AI structured completion failed", exc_info=True)
             return None
 
@@ -342,7 +364,9 @@ class AIService:
             "model": self._model,
             "messages": messages,
             "max_tokens": self._max_tokens,
-            "temperature": temperature if temperature is not None else self._temperature,
+            "temperature": temperature
+            if temperature is not None
+            else self._temperature,
             "stream": False,
         }
         if seed is not None:
@@ -364,7 +388,7 @@ class AIService:
 
 
 def _mock_summarize(text: str, max_words: int) -> str:
-    preview = text[:max_words // 2] + ("…" if len(text) > max_words // 2 else "")
+    preview = text[: max_words // 2] + ("…" if len(text) > max_words // 2 else "")
     return f"[摘要] {preview}\n\n---\n*🤖 AI 服务未配置，以上为文本截取*"
 
 
@@ -372,7 +396,9 @@ def _mock_translate(text: str, target_lang: str) -> str:
     return f"[翻译至{target_lang}] {text[:200]}{'…' if len(text) > 200 else ''}\n\n---\n*🤖 AI 服务未配置，以上为原文截取*"
 
 
-def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label: str) -> str:
+def _mock_compare(
+    source_text: str, target_text: str, src_label: str, tgt_label: str
+) -> str:
     from difflib import SequenceMatcher
 
     sm = SequenceMatcher(None, source_text, target_text)
@@ -385,7 +411,9 @@ def _mock_compare(source_text: str, target_text: str, src_label: str, tgt_label:
     ]
     for tag, i1, i2, j1, j2 in sm.get_opcodes():
         if tag == "replace":
-            report.append(f"  - 替换: 「{source_text[i1:i2]}」→「{target_text[j1:j2]}」")
+            report.append(
+                f"  - 替换: 「{source_text[i1:i2]}」→「{target_text[j1:j2]}」"
+            )
             changes += 1
         elif tag == "delete":
             report.append(f"  - 删除: 「{source_text[i1:i2]}」")

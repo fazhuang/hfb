@@ -13,6 +13,7 @@ Current entities (Sprint 3 scope):
 Future entities (Sprint 4+):
   - Book, Version, Chapter, Passage, Paper, Image, Place, Event, Concept
 """
+
 from __future__ import annotations
 
 from app.schemas.common import PaginatedResponse, PaginationParams

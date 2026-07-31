@@ -96,7 +96,9 @@ function makeRouter() {
 function setupDefaultMocks(overrides: Record<string, unknown> = {}) {
   mockApiGet.mockImplementation((url: string) => {
     if (url.includes('/api/v4/research/session/') && url.includes('/history')) {
-      return Promise.resolve({ data: { data: { session_id: 'session-1', history: [], total: 0 } } });
+      return Promise.resolve({
+        data: { data: { session_id: 'session-1', history: [], total: 0 } },
+      });
     }
     if (url.includes('/api/v4/research/session/') && url.includes('/runs')) {
       return Promise.resolve({ data: { data: { session_id: 'session-1', runs: [], total: 0 } } });
@@ -111,19 +113,14 @@ function setupDefaultMocks(overrides: Record<string, unknown> = {}) {
   });
 }
 
-async function mountPage(
-  projectId = 'session-1',
-  sessionOverride: Record<string, unknown> = {},
-) {
+async function mountPage(projectId = 'session-1', sessionOverride: Record<string, unknown> = {}) {
   const router = makeRouter();
   await router.push(`/research/${projectId}`);
   await router.isReady();
 
   setupDefaultMocks(sessionOverride);
 
-  const { default: ProjectDetailPage } = await import(
-    '@/pages/research/ProjectDetailPage.vue'
-  );
+  const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
   const wrapper = mount(ProjectDetailPage, {
     global: {
@@ -164,9 +161,7 @@ describe('ProjectDetailPage', () => {
   // -- 1: Load real ResearchSession via route projectId --
   it('loads ResearchSession by route projectId', async () => {
     const { wrapper } = await mountPage('session-1');
-    expect(mockApiGet).toHaveBeenCalledWith(
-      '/api/v1/workspace/sessions/session-1',
-    );
+    expect(mockApiGet).toHaveBeenCalledWith('/api/v1/workspace/sessions/session-1');
     expect(wrapper.text()).toContain('Test Research Project');
   });
 
@@ -223,9 +218,7 @@ describe('ProjectDetailPage', () => {
     const links = wrapper.findAll('a');
     const workspaceLink = links.find((l) => l.text().includes('继续研究'));
     expect(workspaceLink).toBeTruthy();
-    expect(workspaceLink!.attributes('href')).toBe(
-      '/research/session-1/workspace',
-    );
+    expect(workspaceLink!.attributes('href')).toBe('/research/session-1/workspace');
   });
 
   // -- 8: Not Found when session doesn't exist --
@@ -243,15 +236,16 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/nonexistent');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+          ResearchPageHeader: {
+            template: '<header><h1>{{ title }}</h1></header>',
+            props: ['title'],
+          },
           'router-link': { template: '<a><slot /></a>', props: ['to'] },
         },
       },
@@ -275,15 +269,16 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+          ResearchPageHeader: {
+            template: '<header><h1>{{ title }}</h1></header>',
+            props: ['title'],
+          },
           'router-link': { template: '<a><slot /></a>', props: ['to'] },
         },
       },
@@ -307,15 +302,16 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+          ResearchPageHeader: {
+            template: '<header><h1>{{ title }}</h1></header>',
+            props: ['title'],
+          },
           'router-link': { template: '<a><slot /></a>', props: ['to'] },
         },
       },
@@ -339,9 +335,7 @@ describe('ProjectDetailPage', () => {
     await retryBtn.trigger('click');
     await flushPromises();
     await nextTick();
-    expect(mockApiGet).toHaveBeenCalledWith(
-      '/api/v1/workspace/sessions/session-1',
-    );
+    expect(mockApiGet).toHaveBeenCalledWith('/api/v1/workspace/sessions/session-1');
   });
 
   // -- 11: Empty reports state --
@@ -378,7 +372,9 @@ describe('ProjectDetailPage', () => {
         return Promise.resolve({ data: { data: makeSession() } });
       }
       if (url.includes('/history')) {
-        return Promise.resolve({ data: { data: { session_id: 'session-1', history: [], total: 0 } } });
+        return Promise.resolve({
+          data: { data: { session_id: 'session-1', history: [], total: 0 } },
+        });
       }
       if (url.includes('/notes')) {
         return Promise.resolve({ data: { data: [] } });
@@ -390,15 +386,17 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template:
+              '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           'router-link': { template: '<a :href="to"><slot /></a>', props: ['to'] },
         },
       },
@@ -420,7 +418,9 @@ describe('ProjectDetailPage', () => {
         return Promise.resolve({ data: { data: makeSession() } });
       }
       if (url.includes('/history')) {
-        return Promise.resolve({ data: { data: { session_id: 'session-1', history: [], total: 0 } } });
+        return Promise.resolve({
+          data: { data: { session_id: 'session-1', history: [], total: 0 } },
+        });
       }
       if (url.includes('/runs')) {
         return Promise.resolve({ data: { data: { session_id: 'session-1', runs: [], total: 0 } } });
@@ -432,15 +432,17 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template:
+              '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           'router-link': { template: '<a :href="to"><slot /></a>', props: ['to'] },
         },
       },
@@ -474,15 +476,17 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template:
+              '<header><h1>{{ title }}</h1><div class="actions"><slot name="actions" /></div></header>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           'router-link': { template: '<a :href="to"><slot /></a>', props: ['to'] },
         },
       },
@@ -530,15 +534,16 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+          ResearchPageHeader: {
+            template: '<header><h1>{{ title }}</h1></header>',
+            props: ['title'],
+          },
           'router-link': { template: '<a><slot /></a>', props: ['to'] },
         },
       },
@@ -622,9 +627,7 @@ describe('ProjectDetailPage', () => {
     await flushPromises();
     await nextTick();
 
-    expect(mockApiDelete).toHaveBeenCalledWith(
-      '/api/v1/workspace/sessions/session-1',
-    );
+    expect(mockApiDelete).toHaveBeenCalledWith('/api/v1/workspace/sessions/session-1');
     expect(router.currentRoute.value.path).toBe('/research');
   });
 
@@ -643,15 +646,16 @@ describe('ProjectDetailPage', () => {
     await router.push('/research/session-1');
     await router.isReady();
 
-    const { default: ProjectDetailPage } = await import(
-      '@/pages/research/ProjectDetailPage.vue'
-    );
+    const { default: ProjectDetailPage } = await import('@/pages/research/ProjectDetailPage.vue');
 
     const wrapper = mount(ProjectDetailPage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<header><h1>{{ title }}</h1></header>', props: ['title'] },
+          ResearchPageHeader: {
+            template: '<header><h1>{{ title }}</h1></header>',
+            props: ['title'],
+          },
           'router-link': { template: '<a><slot /></a>', props: ['to'] },
         },
       },

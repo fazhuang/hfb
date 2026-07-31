@@ -1,16 +1,6 @@
 <template>
-  <div
-    v-if="open"
-    class="epd-backdrop"
-    @click.self="onCancel"
-    @keydown="onKeyDown"
-  >
-    <div
-      class="epd-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-label="编辑课题"
-    >
+  <div v-if="open" class="epd-backdrop" @click.self="onCancel" @keydown="onKeyDown">
+    <div class="epd-dialog" role="dialog" aria-modal="true" aria-label="编辑课题">
       <div class="epd-header">
         <h2 class="epd-title">编辑课题</h2>
       </div>
@@ -41,12 +31,7 @@
           ></textarea>
         </div>
 
-        <div
-          v-if="errorMessage"
-          class="epd-error"
-          role="alert"
-          aria-live="assertive"
-        >
+        <div v-if="errorMessage" class="epd-error" role="alert" aria-live="assertive">
           {{ errorMessage }}
         </div>
 
@@ -128,10 +113,7 @@ async function onSubmit() {
     emit('saved');
     emit('update:open', false);
   } catch (e: unknown) {
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '保存失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '保存失败';
     errorMessage.value = msg;
   } finally {
     submitting.value = false;
@@ -178,7 +160,7 @@ function onKeyDown(e: KeyboardEvent) {
 .epd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-dropdown)00;
+  z-index: var(--z-dropdown) 00;
   display: flex;
   align-items: center;
   justify-content: center;

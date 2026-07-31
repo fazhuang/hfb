@@ -4,6 +4,7 @@ session isolation.
 Targets ResearchWorkflowService step methods directly (pure functions)
 and the workflow-loop logic from research.py.
 """
+
 from __future__ import annotations
 
 from uuid import uuid4
@@ -13,6 +14,7 @@ import pytest
 # =============================================================================
 # Fixtures and helpers
 # =============================================================================
+
 
 def _make_evidence_trace(
     doc_id: str = "doc-01",
@@ -82,6 +84,7 @@ def _make_internal_trace(
 # Test 1: Evidence present → all 5 steps produce non-empty results
 # =============================================================================
 
+
 class TestWorkflowWithEvidence:
     """When snapshot and traces are non-empty, every step must produce >0 counts."""
 
@@ -109,7 +112,9 @@ class TestWorkflowWithEvidence:
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         output = svc.execute_evidence_synthesis_from_snapshot(
-            "经络", snapshot, internal_traces=traces,
+            "经络",
+            snapshot,
+            internal_traces=traces,
         )
         assert output["result"]["sections"] > 0
         assert output["result"]["claims"] > 0
@@ -129,7 +134,9 @@ class TestWorkflowWithEvidence:
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         synthesis = svc.execute_evidence_synthesis_from_snapshot(
-            "经络", snapshot, internal_traces=traces,
+            "经络",
+            snapshot,
+            internal_traces=traces,
         )
         report = svc.execute_report_from_synthesis("经络", synthesis)
         assert report["result"]["sections"] > 0
@@ -147,13 +154,17 @@ class TestWorkflowWithEvidence:
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         synthesis = svc.execute_evidence_synthesis_from_snapshot(
-            "经络", snapshot, internal_traces=traces,
+            "经络",
+            snapshot,
+            internal_traces=traces,
         )
         evidence = synthesis["evidence"]
         assert len(evidence) > 0, "Evidence must be non-empty for citation export test"
 
         citation_output = svc.execute_citation_export_from_evidence(
-            "经络", evidence, internal_traces=traces,
+            "经络",
+            evidence,
+            internal_traces=traces,
         )
         result = citation_output["result"]
         assert result["total_citations"] > 0
@@ -161,7 +172,9 @@ class TestWorkflowWithEvidence:
         for c in result["citations"]:
             assert c["trace_id"], f"Citation must have non-empty trace_id: {c}"
             assert c["document_id"], f"Citation must have non-empty document_id: {c}"
-            assert c["citation_text"], f"Citation must have non-empty citation_text: {c}"
+            assert c["citation_text"], (
+                f"Citation must have non-empty citation_text: {c}"
+            )
         assert len(citation_output["trace_ids"]) > 0
         assert len(citation_output["source_documents"]) > 0
 
@@ -169,6 +182,7 @@ class TestWorkflowWithEvidence:
 # =============================================================================
 # Test 2: No evidence → returns empty, not "success with zero counts"
 # =============================================================================
+
 
 class TestWorkflowNoEvidence:
     """When input is empty, step methods return empty/zero — NOT error disguised as success."""
@@ -181,7 +195,8 @@ class TestWorkflowNoEvidence:
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         output = svc.execute_evidence_synthesis_from_snapshot(
-            "unknown_topic", [],
+            "unknown_topic",
+            [],
         )
         assert output["result"]["sections"] == 0
         assert output["result"]["claims"] == 0
@@ -241,6 +256,7 @@ class TestWorkflowNoEvidence:
 # Test 3: Citation integrity — real trace_ids and document_ids from snapshot
 # =============================================================================
 
+
 class TestCitationIntegrity:
     """Every citation originates from the retrieval snapshot, never fabricated."""
 
@@ -252,26 +268,38 @@ class TestCitationIntegrity:
 
         evidence = [
             _make_evidence_trace(
-                doc_id="doc-A", chunk_id="chk-A",
-                claim_text="Claim A", citation_text="[doc-A:chk-A]",
+                doc_id="doc-A",
+                chunk_id="chk-A",
+                claim_text="Claim A",
+                citation_text="[doc-A:chk-A]",
             ),
             _make_evidence_trace(
-                doc_id="doc-B", chunk_id="chk-B",
-                claim_text="Claim B", citation_text="[doc-B:chk-B]",
+                doc_id="doc-B",
+                chunk_id="chk-B",
+                claim_text="Claim B",
+                citation_text="[doc-B:chk-B]",
             ),
         ]
         # Convert evidence dicts to snapshot entries so trace_ids are stable
 
-        snapshot = [_make_snapshot_entry(doc_id=e["document_id"], chunk_id=e["chunk_id"],
-                                          claim_text=e["claim_text"], citation_text=e["citation_text"])
-                    for e in evidence]
+        snapshot = [
+            _make_snapshot_entry(
+                doc_id=e["document_id"],
+                chunk_id=e["chunk_id"],
+                claim_text=e["claim_text"],
+                citation_text=e["citation_text"],
+            )
+            for e in evidence
+        ]
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         synthesis = svc.execute_evidence_synthesis_from_snapshot(
-            "test", snapshot,
+            "test",
+            snapshot,
         )
         cit_output = svc.execute_citation_export_from_evidence(
-            "test", synthesis["evidence"],
+            "test",
+            synthesis["evidence"],
         )
         result = cit_output["result"]
         assert result["total_citations"] == 2
@@ -285,7 +313,9 @@ class TestCitationIntegrity:
         assert "doc-B" in doc_ids
         # All citation_texts must be non-empty
         for c in citations:
-            assert c["citation_text"], f"Citation {c['trace_id']} has empty citation_text"
+            assert c["citation_text"], (
+                f"Citation {c['trace_id']} has empty citation_text"
+            )
 
     def test_citations_deduplicated_by_trace_id(self):
         """Duplicate trace_ids are merged into a single citation entry."""
@@ -294,15 +324,20 @@ class TestCitationIntegrity:
         )
 
         [
-            _make_evidence_trace(doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"),
-            _make_evidence_trace(doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"),
+            _make_evidence_trace(
+                doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"
+            ),
+            _make_evidence_trace(
+                doc_id="doc-A", chunk_id="chk-A", citation_text="[doc-A:chk-A]"
+            ),
         ]
         snapshot = [_make_snapshot_entry(doc_id="doc-A", chunk_id="chk-A")]
 
         svc = ResearchWorkflowService.__new__(ResearchWorkflowService)
         synthesis = svc.execute_evidence_synthesis_from_snapshot("test", snapshot)
         cit_output = svc.execute_citation_export_from_evidence(
-            "test", synthesis["evidence"],
+            "test",
+            synthesis["evidence"],
         )
         assert cit_output["result"]["total_citations"] == 1
 
@@ -310,6 +345,7 @@ class TestCitationIntegrity:
 # =============================================================================
 # Test 4: Session isolation — runs do not leak between sessions
 # =============================================================================
+
 
 class TestSessionIsolation:
     """Each ResearchSession owns its own workflow_state; runs must not bleed across."""
@@ -336,8 +372,16 @@ class TestSessionIsolation:
         # _snapshot_to_evidence_list is deterministic given the same input
         from app.services.research_workflow_service import _snapshot_to_evidence_list
 
-        snap_a = [_make_snapshot_entry(doc_id="doc-a", chunk_id="chk-a", claim_text="From session A")]
-        snap_b = [_make_snapshot_entry(doc_id="doc-b", chunk_id="chk-b", claim_text="From session B")]
+        snap_a = [
+            _make_snapshot_entry(
+                doc_id="doc-a", chunk_id="chk-a", claim_text="From session A"
+            )
+        ]
+        snap_b = [
+            _make_snapshot_entry(
+                doc_id="doc-b", chunk_id="chk-b", claim_text="From session B"
+            )
+        ]
 
         ev_a = _snapshot_to_evidence_list(snap_a)
         ev_b = _snapshot_to_evidence_list(snap_b)
@@ -413,13 +457,17 @@ class TestNoSourceRefRowFailClosed:
             class FakeResult:
                 def scalars(self):
                     return FakeScalars()
+
                 def all(self):
                     return []
+
                 def one_or_none(self):
                     return None
+
             class FakeScalars:
                 def all(self2):
-                    return []   # no SourceRef, no chunk->passage, no Document
+                    return []  # no SourceRef, no chunk->passage, no Document
+
             return FakeResult()
 
         mock_db = AsyncMock()
@@ -428,7 +476,9 @@ class TestNoSourceRefRowFailClosed:
         result = type("FakeResult", (), {"evidence_trace": [FakeEvidenceTrace]})()
 
         snapshot, _ = await _build_retrieval_snapshot(
-            mock_db, result, retrieval_snapshot=retrieval_snapshot,
+            mock_db,
+            result,
+            retrieval_snapshot=retrieval_snapshot,
         )
 
         assert len(snapshot) == 1
@@ -478,18 +528,23 @@ class TestNoSourceRefRowFailClosed:
 
         async def fake_execute(stmt):
             stmt_str = str(stmt)
+
             class FakeResult:
                 def scalars(self):
                     return FakeScalars()
+
                 def all(self):
                     return []
+
                 def one_or_none(self):
                     return None
+
             class FakeScalars:
                 def all(self2):
                     if "source_refs" in stmt_str.lower():
                         return [FakeSourceRef]
                     return []
+
             return FakeResult()
 
         mock_db = AsyncMock()
@@ -498,7 +553,9 @@ class TestNoSourceRefRowFailClosed:
         result = type("FakeResult", (), {"evidence_trace": [FakeEvidenceTrace]})()
 
         snapshot, _ = await _build_retrieval_snapshot(
-            mock_db, result, retrieval_snapshot=retrieval_snapshot,
+            mock_db,
+            result,
+            retrieval_snapshot=retrieval_snapshot,
         )
 
         assert len(snapshot) == 1
@@ -532,23 +589,29 @@ class TestSourceRefIdentity:
     def _fake_result(one_or_none_value):
         """Return a FakeResult-like object whose scalars() yields
         something with .all() → [] and .one_or_none() → one_or_none_value."""
+
         class FS:
             @staticmethod
             def all():
                 return []
+
             @staticmethod
             def one_or_none():
                 return one_or_none_value
+
         class FR:
             @staticmethod
             def scalars():
                 return FS
+
             @staticmethod
             def scalar_one_or_none():
                 return one_or_none_value
+
             @staticmethod
             def all():
                 return []
+
         return FR()
 
     @pytest.mark.asyncio
@@ -561,9 +624,7 @@ class TestSourceRefIdentity:
         calls = []
 
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock(
-            side_effect=lambda stmt: self._fake_result(None)
-        )
+        mock_db.execute = AsyncMock(side_effect=lambda stmt: self._fake_result(None))
         mock_db.flush = AsyncMock()
         mock_db.add = lambda obj: calls.append(obj)
 
@@ -595,6 +656,7 @@ class TestSourceRefIdentity:
         from unittest.mock import AsyncMock
 
         from app.services.ingestion import IngestionService
+
         existing_id = str(uuid.uuid4())
 
         mock_db = AsyncMock()
@@ -617,7 +679,9 @@ class TestSourceRefIdentity:
 
         assert id1 is not None
         assert id2 is not None
-        assert id1 == existing_id, f"First call should return existing id {existing_id}, got {id1}"
+        assert id1 == existing_id, (
+            f"First call should return existing id {existing_id}, got {id1}"
+        )
         assert id2 == existing_id, f"Second call should be idempotent, got {id2}"
 
     @pytest.mark.asyncio
@@ -630,9 +694,7 @@ class TestSourceRefIdentity:
         calls = []
 
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock(
-            side_effect=lambda stmt: self._fake_result(None)
-        )
+        mock_db.execute = AsyncMock(side_effect=lambda stmt: self._fake_result(None))
         mock_db.flush = AsyncMock()
         mock_db.add = lambda obj: calls.append(obj)
 
@@ -664,9 +726,7 @@ class TestSourceRefIdentity:
         from app.services.ingestion import IngestionService
 
         mock_db = AsyncMock()
-        mock_db.execute = AsyncMock(
-            side_effect=lambda stmt: self._fake_result(None)
-        )
+        mock_db.execute = AsyncMock(side_effect=lambda stmt: self._fake_result(None))
 
         result = await IngestionService._ensure_source_ref(
             mock_db,

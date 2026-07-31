@@ -23,18 +23,18 @@ related_documents:
 
 ## 目录
 
-| # | 文档 | document_id | 状态 | 作用 |
-|---|---|---|---|---|
+| #    | 文档                                               | document_id  | 状态     | 作用                 |
+| ---- | -------------------------------------------------- | ------------ | -------- | -------------------- |
 | 0201 | [Technical Blueprint](0201_Technical_Blueprint.md) | HFB-ARC-0201 | Approved | 平台唯一技术架构规范 |
 
 ## 关联目录
 
-| 目录 | 关系 |
-|---|---|
-| [docs/11-adr/](../11-adr/) | 技术决策记录 |
+| 目录                                                               | 关系             |
+| ------------------------------------------------------------------ | ---------------- |
+| [docs/11-adr/](../11-adr/)                                         | 技术决策记录     |
 | [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品实现最高依据 |
-| [docs/10-diagrams/](../10-diagrams/) | 架构图 |
-| [docs/15-decision-tree/](../15-decision-tree/) | 决策树 |
+| [docs/10-diagrams/](../10-diagrams/)                               | 架构图           |
+| [docs/15-decision-tree/](../15-decision-tree/)                     | 决策树           |
 
 ## 快速入口
 

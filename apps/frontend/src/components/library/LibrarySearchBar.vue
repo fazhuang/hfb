@@ -9,18 +9,34 @@
         :placeholder="t('common.search') + '...'"
         @keyup.enter="emitSearch"
       />
-      <button class="lib-search-btn" @click="emitSearch" aria-label="搜索">{{ t('common.search') }}</button>
+      <button class="lib-search-btn" @click="emitSearch" aria-label="搜索">
+        {{ t('common.search') }}
+      </button>
     </div>
     <div class="lib-filter-chips">
       <label for="lib-copyright-filter" class="sr-only">版权筛选</label>
-      <select id="lib-copyright-filter" v-model="copyrightStatus" class="lib-filter-select" @change="emitSearch">
+      <select
+        id="lib-copyright-filter"
+        v-model="copyrightStatus"
+        class="lib-filter-select"
+        @change="emitSearch"
+      >
         <option value="">— 版权 —</option>
-        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">{{ COPYRIGHT_LABELS[cs] || cs }}</option>
+        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">
+          {{ COPYRIGHT_LABELS[cs] || cs }}
+        </option>
       </select>
       <label for="lib-review-filter" class="sr-only">审核状态筛选</label>
-      <select id="lib-review-filter" v-model="reviewStatus" class="lib-filter-select" @change="emitSearch">
+      <select
+        id="lib-review-filter"
+        v-model="reviewStatus"
+        class="lib-filter-select"
+        @change="emitSearch"
+      >
         <option value="">— 审核 —</option>
-        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">{{ REVIEW_LABELS[rs] || rs }}</option>
+        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">
+          {{ REVIEW_LABELS[rs] || rs }}
+        </option>
       </select>
     </div>
   </div>
@@ -29,7 +45,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { COPYRIGHT_STATUSES, COPYRIGHT_LABELS, REVIEW_STATUSES, REVIEW_LABELS } from '@/types/library';
+import {
+  COPYRIGHT_STATUSES,
+  COPYRIGHT_LABELS,
+  REVIEW_STATUSES,
+  REVIEW_LABELS,
+} from '@/types/library';
 
 const { t } = useI18n();
 

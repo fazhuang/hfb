@@ -389,9 +389,7 @@ class TestWorkspaceApiIsolation:
     """
 
     @pytest.fixture
-    async def isolation_app(
-        self, db_session_persistent: AsyncSession
-    ):
+    async def isolation_app(self, db_session_persistent: AsyncSession):
         """Build the test app with a real JWT auth chain.
 
         Uses db_session_persistent for both seed-data creation and API
@@ -495,7 +493,10 @@ class TestWorkspaceApiIsolation:
                             {"name": "report_generation", "status": "completed"},
                             {"name": "citation_export", "status": "completed"},
                         ],
-                        "output_artifacts": {"markdown": "# Report A", "artifact_id": "art-a"},
+                        "output_artifacts": {
+                            "markdown": "# Report A",
+                            "artifact_id": "art-a",
+                        },
                         "replay_manifest": {
                             "retrieval_snapshot": [
                                 {
@@ -541,7 +542,10 @@ class TestWorkspaceApiIsolation:
                             {"name": "report_generation", "status": "completed"},
                             {"name": "citation_export", "status": "completed"},
                         ],
-                        "output_artifacts": {"markdown": "# Report B", "artifact_id": "art-b"},
+                        "output_artifacts": {
+                            "markdown": "# Report B",
+                            "artifact_id": "art-b",
+                        },
                         "replay_manifest": {
                             "retrieval_snapshot": [
                                 {
@@ -611,9 +615,7 @@ class TestWorkspaceApiIsolation:
         )
         return r.json()
 
-    async def _get_json_404(
-        self, client: Any, url: str
-    ) -> dict[str, Any]:
+    async def _get_json_404(self, client: Any, url: str) -> dict[str, Any]:
         """GET and expect 404, returning the parsed error body for leakage checks."""
         r = await client.get(url)
         assert r.status_code == 404, (
@@ -621,7 +623,9 @@ class TestWorkspaceApiIsolation:
         )
         return r.json()
 
-    def _assert_not_leaked(self, body: dict[str, Any], forbidden_terms: list[str]) -> None:
+    def _assert_not_leaked(
+        self, body: dict[str, Any], forbidden_terms: list[str]
+    ) -> None:
         """Verify the response body does not leak any forbidden terms."""
         body_str = json.dumps(body, ensure_ascii=False).lower()
         for term in forbidden_terms:
@@ -640,8 +644,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_can_read_own_session(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}",
@@ -650,8 +657,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_can_read_own_session(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}",
@@ -660,8 +670,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_cannot_read_b_session(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}",
@@ -670,8 +683,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_cannot_read_a_session(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}",
@@ -684,8 +700,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_can_read_own_notes(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}/notes",
@@ -696,8 +715,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_can_read_own_notes(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}/notes",
@@ -708,8 +730,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_cannot_read_b_notes(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}/notes",
@@ -718,8 +743,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_cannot_read_a_notes(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}/notes",
@@ -732,8 +760,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_can_read_own_citations(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}/citations",
@@ -744,8 +775,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_can_read_own_citations(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}/citations",
@@ -756,8 +790,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_cannot_read_b_citations(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}/citations",
@@ -766,8 +803,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_cannot_read_a_citations(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             await self._get_json(
                 client,
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}/citations",
@@ -780,8 +820,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_can_read_own_history(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v4/research/session/{isolation_app['session_a'].id}/history",
@@ -793,8 +836,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_can_read_own_history(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v4/research/session/{isolation_app['session_b'].id}/history",
@@ -806,8 +852,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_cannot_read_b_history(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_b'].id}/history"
             )
@@ -817,8 +866,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_cannot_read_a_history(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}/history"
             )
@@ -832,8 +884,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_can_read_own_runs(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v4/research/session/{isolation_app['session_a'].id}/runs",
@@ -845,8 +900,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_can_read_own_runs(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             body = await self._get_json(
                 client,
                 f"/api/v4/research/session/{isolation_app['session_b'].id}/runs",
@@ -858,8 +916,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_a_cannot_read_b_runs(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_b'].id}/runs"
             )
@@ -869,8 +930,11 @@ class TestWorkspaceApiIsolation:
 
     async def test_b_cannot_read_a_runs(self, isolation_app):
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}/runs"
             )
@@ -885,8 +949,11 @@ class TestWorkspaceApiIsolation:
     async def test_a_cannot_get_b_notes_via_known_uuid(self, isolation_app):
         """User A knows B's session UUID but still gets 404 for B's notes."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}/notes"
             )
@@ -897,8 +964,11 @@ class TestWorkspaceApiIsolation:
     async def test_b_cannot_get_a_citations_via_known_uuid(self, isolation_app):
         """User B knows A's session UUID but still gets 404 for A's citations."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "b")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "b"),
+        ) as client:
             r = await client.get(
                 f"/api/v1/workspace/sessions/{isolation_app['session_a'].id}/citations"
             )
@@ -913,8 +983,11 @@ class TestWorkspaceApiIsolation:
     async def test_404_does_not_leak_session_title(self, isolation_app):
         """404 response body must not contain the other user's session title."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}"
             )
@@ -925,8 +998,11 @@ class TestWorkspaceApiIsolation:
     async def test_404_does_not_leak_other_user_id(self, isolation_app):
         """404 response body must not contain the other user's user ID."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v1/workspace/sessions/{isolation_app['session_b'].id}"
             )
@@ -941,8 +1017,11 @@ class TestWorkspaceApiIsolation:
     async def test_export_own_session_own_run_succeeds(self, isolation_app):
         """Own session + own run: Markdown export succeeds with correct headers."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/run-a-001/export?format=markdown"
@@ -954,10 +1033,10 @@ class TestWorkspaceApiIsolation:
                 f"Expected text/markdown MIME, got {r.headers.get('content-type')}"
             )
             cd = r.headers.get("content-disposition", "")
-            assert 'attachment' in cd, (
+            assert "attachment" in cd, (
                 f"Expected Content-Disposition attachment, got {cd!r}"
             )
-            assert 'hfb-research-report-run-a-00.md' in cd, (
+            assert "hfb-research-report-run-a-00.md" in cd, (
                 f"Expected safe filename, got {cd!r}"
             )
             assert "# Report A" in r.text, (
@@ -967,8 +1046,11 @@ class TestWorkspaceApiIsolation:
     async def test_user_a_accesses_user_b_session_export_rejected(self, isolation_app):
         """User A accessing user B's session/run export → 404 (not leaked)."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_b'].id}"
                 f"/runs/run-b-001/export?format=markdown"
@@ -982,8 +1064,11 @@ class TestWorkspaceApiIsolation:
     async def test_own_session_other_users_run_rejected(self, isolation_app):
         """User A's session + User B's run_id → 404 (run not in session)."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/run-b-001/export?format=markdown"
@@ -995,8 +1080,11 @@ class TestWorkspaceApiIsolation:
     async def test_export_nonexistent_run_rejected(self, isolation_app):
         """Valid session but nonexistent run → 404."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/nonexistent-run/export?format=markdown"
@@ -1008,8 +1096,11 @@ class TestWorkspaceApiIsolation:
     async def test_export_unsupported_format_rejected(self, isolation_app):
         """Unsupported format → 400 with safe error message."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/run-a-001/export?format=pdf"
@@ -1022,37 +1113,46 @@ class TestWorkspaceApiIsolation:
                 f"Expected 'Unsupported' in detail, got {body}"
             )
 
-    async def test_export_empty_run_report_rejected(self, isolation_app, db_session_persistent):
+    async def test_export_empty_run_report_rejected(
+        self, isolation_app, db_session_persistent
+    ):
         """Run with empty markdown → 409 conflict."""
 
         transport = ASGITransport(app=isolation_app["app"])
 
         from app.services.workspace_service import WorkspaceService
+
         ws = WorkspaceService(db_session_persistent)
 
         s = await ws.get_session(isolation_app["session_a"].id)
         import json as _json2
+
         existing = _json2.loads(s.workflow_state or "{}")
         runs = existing.get("runs", [])
-        runs.append({
-            "run_id": "empty-run",
-            "session_id": str(isolation_app["session_a"].id),
-            "workflow_type": "full_research_flow",
-            "topic": "Empty Run",
-            "started_at": "2026-07-17T10:00:00+00:00",
-            "completed_at": "2026-07-17T10:05:00+00:00",
-            "step_execution_trace": [
-                {"name": "topic_selection", "status": "completed"},
-                {"name": "report_generation", "status": "completed"},
-            ],
-            "output_artifacts": {"markdown": ""},
-            "replay_manifest": {"retrieval_snapshot": [], "traces": []},
-        })
+        runs.append(
+            {
+                "run_id": "empty-run",
+                "session_id": str(isolation_app["session_a"].id),
+                "workflow_type": "full_research_flow",
+                "topic": "Empty Run",
+                "started_at": "2026-07-17T10:00:00+00:00",
+                "completed_at": "2026-07-17T10:05:00+00:00",
+                "step_execution_trace": [
+                    {"name": "topic_selection", "status": "completed"},
+                    {"name": "report_generation", "status": "completed"},
+                ],
+                "output_artifacts": {"markdown": ""},
+                "replay_manifest": {"retrieval_snapshot": [], "traces": []},
+            }
+        )
         s.workflow_state = _json2.dumps(existing, ensure_ascii=False)
         await db_session_persistent.flush()
 
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/empty-run/export?format=markdown"
@@ -1064,8 +1164,11 @@ class TestWorkspaceApiIsolation:
     async def test_export_response_does_not_leak_other_user_data(self, isolation_app):
         """Export response content must not contain another user's data."""
         transport = ASGITransport(app=isolation_app["app"])
-        async with AsyncClient(transport=transport, base_url="http://test",
-                               headers=self._headers(isolation_app, "a")) as client:
+        async with AsyncClient(
+            transport=transport,
+            base_url="http://test",
+            headers=self._headers(isolation_app, "a"),
+        ) as client:
             r = await client.get(
                 f"/api/v4/research/session/{isolation_app['session_a'].id}"
                 f"/runs/run-a-001/export?format=markdown"
@@ -1081,6 +1184,7 @@ class TestWorkspaceApiIsolation:
 # Cross-Project Document Isolation (Sprint 2 Task 008)
 # ============================================================
 
+
 class TestDocumentCrossProjectIsolation:
     """Document list, detail, stats, and reader must isolate by session/project.
 
@@ -1091,7 +1195,8 @@ class TestDocumentCrossProjectIsolation:
 
     @pytest.mark.anyio
     async def test_cross_project_list_isolation(
-        self, db_session_persistent: AsyncSession,
+        self,
+        db_session_persistent: AsyncSession,
     ):
         """User B's document list must exclude User A's session-scoped docs."""
         import uuid as _uuid
@@ -1102,19 +1207,27 @@ class TestDocumentCrossProjectIsolation:
 
         # Create two users
         ua = User(
-            id=str(_uuid.uuid4()), username="cp-a", email="cpa@test",
-            hashed_password="x", is_active=True,
+            id=str(_uuid.uuid4()),
+            username="cp-a",
+            email="cpa@test",
+            hashed_password="x",
+            is_active=True,
         )
         ub = User(
-            id=str(_uuid.uuid4()), username="cp-b", email="cpb@test",
-            hashed_password="x", is_active=True,
+            id=str(_uuid.uuid4()),
+            username="cp-b",
+            email="cpb@test",
+            hashed_password="x",
+            is_active=True,
         )
         db_session_persistent.add_all([ua, ub])
         await db_session_persistent.flush()
 
         # User A creates a session (project)
         sess_a = ResearchSession(
-            id=str(_uuid.uuid4()), user_id=ua.id, title="Project A",
+            id=str(_uuid.uuid4()),
+            user_id=ua.id,
+            title="Project A",
         )
         db_session_persistent.add(sess_a)
         await db_session_persistent.flush()
@@ -1133,6 +1246,7 @@ class TestDocumentCrossProjectIsolation:
         await db_session_persistent.commit()
 
         from app.repositories.document import DocumentRepository
+
         repo = DocumentRepository(db_session_persistent)
 
         # A's list should include the doc
@@ -1147,7 +1261,8 @@ class TestDocumentCrossProjectIsolation:
 
     @pytest.mark.anyio
     async def test_cross_project_detail_403(
-        self, db_session_persistent: AsyncSession,
+        self,
+        db_session_persistent: AsyncSession,
     ):
         """Session-scoped doc stores session_id correctly for API guard to enforce."""
         import uuid as _uuid
@@ -1158,14 +1273,19 @@ class TestDocumentCrossProjectIsolation:
         from app.services.document_service import DocumentService
 
         ua = User(
-            id=str(_uuid.uuid4()), username="cpd-a", email="cpda@test",
-            hashed_password="x", is_active=True,
+            id=str(_uuid.uuid4()),
+            username="cpd-a",
+            email="cpda@test",
+            hashed_password="x",
+            is_active=True,
         )
         db_session_persistent.add(ua)
         await db_session_persistent.flush()
 
         sess_a = ResearchSession(
-            id=str(_uuid.uuid4()), user_id=ua.id, title="Project A",
+            id=str(_uuid.uuid4()),
+            user_id=ua.id,
+            title="Project A",
         )
         db_session_persistent.add(sess_a)
         await db_session_persistent.flush()
@@ -1194,7 +1314,8 @@ class TestDocumentCrossProjectIsolation:
 
     @pytest.mark.anyio
     async def test_cross_project_stats_isolation(
-        self, db_session_persistent: AsyncSession,
+        self,
+        db_session_persistent: AsyncSession,
     ):
         """Session ID is stored correctly for stats endpoint to enforce isolation."""
         import uuid as _uuid
@@ -1204,14 +1325,19 @@ class TestDocumentCrossProjectIsolation:
         from app.models.workspace import ResearchSession
 
         ua = User(
-            id=str(_uuid.uuid4()), username="cps-a", email="cpsa@test",
-            hashed_password="x", is_active=True,
+            id=str(_uuid.uuid4()),
+            username="cps-a",
+            email="cpsa@test",
+            hashed_password="x",
+            is_active=True,
         )
         db_session_persistent.add(ua)
         await db_session_persistent.flush()
 
         sess_a = ResearchSession(
-            id=str(_uuid.uuid4()), user_id=ua.id, title="Stats Project",
+            id=str(_uuid.uuid4()),
+            user_id=ua.id,
+            title="Stats Project",
         )
         db_session_persistent.add(sess_a)
         await db_session_persistent.flush()
@@ -1229,6 +1355,7 @@ class TestDocumentCrossProjectIsolation:
         await db_session_persistent.commit()
 
         from sqlalchemy import select as sql_select
+
         stmt = sql_select(Document).where(Document.id == doc.id)
         result = await db_session_persistent.execute(stmt)
         fetched = result.scalar_one()
@@ -1237,7 +1364,8 @@ class TestDocumentCrossProjectIsolation:
 
     @pytest.mark.anyio
     async def test_public_doc_visible_to_all(
-        self, db_session_persistent: AsyncSession,
+        self,
+        db_session_persistent: AsyncSession,
     ):
         """Documents with session_id=NULL must be visible to all authenticated users."""
         import uuid as _uuid
@@ -1247,8 +1375,11 @@ class TestDocumentCrossProjectIsolation:
         from app.repositories.document import DocumentRepository
 
         u = User(
-            id=str(_uuid.uuid4()), username="cp-pub", email="cppub@test",
-            hashed_password="x", is_active=True,
+            id=str(_uuid.uuid4()),
+            username="cp-pub",
+            email="cppub@test",
+            hashed_password="x",
+            is_active=True,
         )
         db_session_persistent.add(u)
         await db_session_persistent.flush()
@@ -1289,9 +1420,7 @@ class TestAppendPassageRBACParity:
     """Append-passage must mirror the Document update authorization policy."""
 
     @pytest.fixture
-    async def parity_app(
-        self, db_session_persistent: AsyncSession
-    ):
+    async def parity_app(self, db_session_persistent: AsyncSession):
         """Build test app with real JWT auth chain + seed 3 documents + 3 users.
 
         Documents:
@@ -1341,11 +1470,12 @@ class TestAppendPassageRBACParity:
         # ---- Users A, B get document:update. User C does not. ----
         # register() auto-assigns Researcher role + its permissions.
         # We remove C from Researcher to strip document:update.
-        researcher_role = (await db.execute(
-            sa(Role).where(Role.name == "Researcher")
-        )).scalar_one_or_none()
+        researcher_role = (
+            await db.execute(sa(Role).where(Role.name == "Researcher"))
+        ).scalar_one_or_none()
         if researcher_role:
             from sqlalchemy import delete as sa_del
+
             await db.execute(
                 sa_del(ur).where(
                     and_(ur.c.user_id == user_c.id, ur.c.role_id == researcher_role.id)
@@ -1353,35 +1483,48 @@ class TestAppendPassageRBACParity:
             )
         await db.flush()
 
-        doc_upd = (await db.execute(
-            sa(PermModel).where(
-                and_(PermModel.resource == "document", PermModel.action == "update")
+        doc_upd = (
+            await db.execute(
+                sa(PermModel).where(
+                    and_(PermModel.resource == "document", PermModel.action == "update")
+                )
             )
-        )).scalar_one_or_none()
+        ).scalar_one_or_none()
         if doc_upd is None:
             doc_upd = PermModel(
                 id=str(_uuid.uuid4()),
-                resource="document", action="update", description="Update documents"
+                resource="document",
+                action="update",
+                description="Update documents",
             )
             db.add(doc_upd)
             await db.flush()
 
         # Grant document:update to Researcher role (user_a, user_b already members)
         if researcher_role and doc_upd:
-            ex_rp = (await db.execute(
-                sa(rp).where(
-                    and_(rp.c.role_id == researcher_role.id, rp.c.permission_id == doc_upd.id)
+            ex_rp = (
+                await db.execute(
+                    sa(rp).where(
+                        and_(
+                            rp.c.role_id == researcher_role.id,
+                            rp.c.permission_id == doc_upd.id,
+                        )
+                    )
                 )
-            )).first()
+            ).first()
             if ex_rp is None:
                 await db.execute(
-                    rp.insert().values(role_id=researcher_role.id, permission_id=doc_upd.id)
+                    rp.insert().values(
+                        role_id=researcher_role.id, permission_id=doc_upd.id
+                    )
                 )
         await db.flush()
 
         # ---- Create session for session-scoped doc ----
         sess_a = ResearchSession(
-            id=str(_uuid.uuid4()), user_id=user_a.id, title="Parity Project A",
+            id=str(_uuid.uuid4()),
+            user_id=user_a.id,
+            title="Parity Project A",
         )
         db.add(sess_a)
         await db.flush()
@@ -1393,16 +1536,21 @@ class TestAppendPassageRBACParity:
         db.add(book)
         ver = Version(
             id=str(_uuid.uuid4()),
-            book_id=book.id, version_name="RBAC版", era="现代",
-            repository="RBAC库", shelf_mark="RBAC-001",
+            book_id=book.id,
+            version_name="RBAC版",
+            era="现代",
+            repository="RBAC库",
+            shelf_mark="RBAC-001",
         )
         db.add(ver)
         ch = Chapter(id=str(_uuid.uuid4()), book_id=book.id, title="RBAC章", order=1)
         db.add(ch)
         passage = Passage(
             id=str(_uuid.uuid4()),
-            chapter_id=ch.id, version_id=ver.id,
-            content_text="RBAC经文", order=1,
+            chapter_id=ch.id,
+            version_id=ver.id,
+            content_text="RBAC经文",
+            order=1,
         )
         db.add(passage)
         await db.flush()
@@ -1452,6 +1600,7 @@ class TestAppendPassageRBACParity:
 
         # ---- Build app — ONLY override get_session ----
         from app.api.v1 import router as v1_router
+
         app = FastAPI()
         app.include_router(v1_router)
 
@@ -1483,25 +1632,34 @@ class TestAppendPassageRBACParity:
         """Capture document state for immutable assertions."""
         from sqlalchemy import text as sqla_text
 
-        doc = (await db.execute(
-            sqla_text(
-                "SELECT content_checksum, review_status, rag_enabled FROM documents WHERE id = :id"
-            ).bindparams(id=doc_id)
-        )).mappings().first()
-        chunk_count = (await db.execute(
-            sqla_text("SELECT COUNT(*) FROM document_chunks WHERE document_id = :id")
-            .bindparams(id=doc_id)
-        )).scalar_one()
+        doc = (
+            (
+                await db.execute(
+                    sqla_text(
+                        "SELECT content_checksum, review_status, rag_enabled FROM documents WHERE id = :id"
+                    ).bindparams(id=doc_id)
+                )
+            )
+            .mappings()
+            .first()
+        )
+        chunk_count = (
+            await db.execute(
+                sqla_text(
+                    "SELECT COUNT(*) FROM document_chunks WHERE document_id = :id"
+                ).bindparams(id=doc_id)
+            )
+        ).scalar_one()
         return {
             "chunk_count": chunk_count,
             "content_checksum": doc["content_checksum"] if doc else None,
             "review_status": doc["review_status"] if doc else None,
-            "rag_enabled": bool(doc["rag_enabled"]) if doc and "rag_enabled" in doc else None,
+            "rag_enabled": bool(doc["rag_enabled"])
+            if doc and "rag_enabled" in doc
+            else None,
         }
 
-    def _assert_state_unchanged(
-        self, before: dict, after: dict, label: str
-    ) -> None:
+    def _assert_state_unchanged(self, before: dict, after: dict, label: str) -> None:
         """Assert document state is completely unchanged after a failed call."""
         for key in ["chunk_count", "content_checksum", "review_status", "rag_enabled"]:
             assert after.get(key) == before.get(key), (
@@ -1519,9 +1677,7 @@ class TestAppendPassageRBACParity:
                 f"/api/v1/search/documents/{parity_app['public_doc'].id}/append-passage",
                 json={"text": "追加", "passage_id": parity_app["passage_id"]},
             )
-            assert r.status_code == 401, (
-                f"Expected 401, got {r.status_code}: {r.text}"
-            )
+            assert r.status_code == 401, f"Expected 401, got {r.status_code}: {r.text}"
 
     # ------------------------------------------------------------------
     # Scenario 2: Authenticated but missing document:update → 403
@@ -1540,9 +1696,7 @@ class TestAppendPassageRBACParity:
                 json={"text": "追加", "passage_id": parity_app["passage_id"]},
                 headers={"Authorization": f"Bearer {parity_app['token_c']}"},
             )
-            assert r.status_code == 403, (
-                f"Expected 403, got {r.status_code}: {r.text}"
-            )
+            assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.text}"
 
         after = await self._snapshot(db, doc_id)
         self._assert_state_unchanged(before, after, "no-perm-403")
@@ -1562,9 +1716,7 @@ class TestAppendPassageRBACParity:
                 json={"text": "追加公开内容", "passage_id": parity_app["passage_id"]},
                 headers={"Authorization": f"Bearer {token_a}"},
             )
-            assert r.status_code == 200, (
-                f"Expected 200, got {r.status_code}: {r.text}"
-            )
+            assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
             body = r.json()
             assert body["document_id"] == doc_id
             assert body["passage_id"] == parity_app["passage_id"]

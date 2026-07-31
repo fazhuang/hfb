@@ -49,7 +49,7 @@ export function useToast() {
   }
 
   function dismiss(id: string) {
-    toasts.value = toasts.value.filter(t => t.id !== id);
+    toasts.value = toasts.value.filter((t) => t.id !== id);
   }
 
   function success(message: string, options?: ToastOptions) {

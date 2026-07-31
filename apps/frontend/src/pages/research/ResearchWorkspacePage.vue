@@ -29,10 +29,7 @@
 
     <div class="rwp-body">
       <!-- Page-level states -->
-      <LoadingState
-        v-if="pageLoading"
-        message="正在加载工作区..."
-      />
+      <LoadingState v-if="pageLoading" message="正在加载工作区..." />
 
       <ErrorState
         v-else-if="pageError"
@@ -48,9 +45,7 @@
         icon="🔍"
       >
         <template #action>
-          <router-link to="/research" class="rwp-back-link">
-            返回研究课题列表
-          </router-link>
+          <router-link to="/research" class="rwp-back-link"> 返回研究课题列表 </router-link>
         </template>
       </EmptyState>
 
@@ -227,9 +222,7 @@ async function loadRuns() {
   } catch (e: unknown) {
     if (myReqId !== runsReqId) return;
     const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载研究运行记录失败';
+      (e as any)?.response?.data?.message || (e as any)?.message || '加载研究运行记录失败';
     runsError.value = msg;
   } finally {
     if (myReqId === runsReqId) {

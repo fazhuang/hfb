@@ -11,14 +11,8 @@
     </div>
 
     <div class="rrli-badges">
-      <ResearchReportStatusBadge
-        :status="item.run_status"
-        type="run"
-      />
-      <ResearchReportStatusBadge
-        :status="item.report_status"
-        type="report"
-      />
+      <ResearchReportStatusBadge :status="item.run_status" type="run" />
+      <ResearchReportStatusBadge :status="item.report_status" type="report" />
     </div>
 
     <div class="rrli-actions">

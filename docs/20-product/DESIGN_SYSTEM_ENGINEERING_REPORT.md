@@ -12,22 +12,23 @@
 
 ## 指标
 
-| 指标 | 之前 | 之后 |
-|---|---|---|
-| 设计 Token 来源文件数 | 1 (`main.css`) | 10（在 `styles/tokens/` 下为 9 个模块 + `main.css` 作为入口点） |
-| 基础 UI 组件数 | 3 (LoadingState、EmptyState、ErrorState) | 17（+ Button、Input、Select、Textarea、Tabs、Dialog、Drawer、Dropdown、Table、Pagination、Badge、Alert、Toast、Skeleton） |
-| 组件 CSS 文件 | 0 | 14（在 `styles/base/` 下） |
-| 零 Token 组件数 | 0 | 11（无变化——这些组件已经状态良好） |
-| 组件中独立硬编码颜色 | ~355 | ~290（通过 ESLint 计数） |
-| 研究组件中已消除的 Token 影子 | — | 52 个硬编码值已替换为 `var(--*)` tokens |
-| 单元测试 | 384 | 436（新增 52 个 token 验证测试） |
-| ESLint 规则 | 0 个自定义规则 | 1（`no-hardcoded-colors`，级别：warn） |
-| TypeCheck | 通过 | 通过 |
-| 构建 | 通过 | 通过 |
+| 指标                          | 之前                                     | 之后                                                                                                                      |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 设计 Token 来源文件数         | 1 (`main.css`)                           | 10（在 `styles/tokens/` 下为 9 个模块 + `main.css` 作为入口点）                                                           |
+| 基础 UI 组件数                | 3 (LoadingState、EmptyState、ErrorState) | 17（+ Button、Input、Select、Textarea、Tabs、Dialog、Drawer、Dropdown、Table、Pagination、Badge、Alert、Toast、Skeleton） |
+| 组件 CSS 文件                 | 0                                        | 14（在 `styles/base/` 下）                                                                                                |
+| 零 Token 组件数               | 0                                        | 11（无变化——这些组件已经状态良好）                                                                                        |
+| 组件中独立硬编码颜色          | ~355                                     | ~290（通过 ESLint 计数）                                                                                                  |
+| 研究组件中已消除的 Token 影子 | —                                        | 52 个硬编码值已替换为 `var(--*)` tokens                                                                                   |
+| 单元测试                      | 384                                      | 436（新增 52 个 token 验证测试）                                                                                          |
+| ESLint 规则                   | 0 个自定义规则                           | 1（`no-hardcoded-colors`，级别：warn）                                                                                    |
+| TypeCheck                     | 通过                                     | 通过                                                                                                                      |
+| 构建                          | 通过                                     | 通过                                                                                                                      |
 
 ## 已创建文件
 
 ### Design Tokens
+
 - `apps/frontend/src/styles/tokens/typography.css`
 - `apps/frontend/src/styles/tokens/spacing.css`
 - `apps/frontend/src/styles/tokens/colors.css`
@@ -39,6 +40,7 @@
 - `apps/frontend/src/styles/tokens/components.css`（新增 — `--color-input-bg`、`--color-input-border`、`--color-input-focus-ring`、`--color-disabled-bg`、`--color-disabled-text`）
 
 ### Base Component CSS
+
 - `apps/frontend/src/styles/base/badge.css`
 - `apps/frontend/src/styles/base/skeleton.css`
 - `apps/frontend/src/styles/base/button.css`
@@ -54,6 +56,7 @@
 - `apps/frontend/src/styles/base/toast.css`
 
 ### Vue Components
+
 - `apps/frontend/src/components/common/HfbBadge.vue`
 - `apps/frontend/src/components/common/HfbSkeleton.vue`
 - `apps/frontend/src/components/common/HfbButton.vue`
@@ -70,37 +73,39 @@
 - `apps/frontend/src/components/common/HfbToastProvider.vue`
 
 ### Composables（新增）
+
 - `apps/frontend/src/composables/useFocusTrap.ts`
 - `apps/frontend/src/composables/useToast.ts`
 
 ### Governance
+
 - `apps/frontend/eslint-rules/no-hardcoded-colors.cjs`
 - `apps/frontend/src/__tests__/design-tokens.test.ts`（52 个测试）
 
 ## 已修改文件
 
-| 文件 | 变更 |
-|---|---|
-| `apps/frontend/src/assets/main.css` | 将 token 块替换为模块化 `@import` 语句。保留全局重置 + 工具类 + 动画。 |
-| `apps/frontend/src/components/common/DataTable.vue` | 变为 HfbTable 的向后兼容重新导出别名（6 个现有消费者不受影响） |
-| `apps/frontend/eslint.config.mjs` | 注册 `local/no-hardcoded-colors` 规则于 `warn` 级别 |
-| `apps/frontend/src/components/research/result/LineageStatusBadge.vue` | 9 个硬编码十六进制值 → `var(--color-*)` tokens |
-| `apps/frontend/src/components/research/result/ResearchRunSummary.vue` | 10 个硬编码十六进制值 → tokens |
-| `apps/frontend/src/components/research/result/EvidenceDetail.vue` | 11 个硬编码十六进制值 → tokens |
-| `apps/frontend/src/components/research/result/SourceReferenceCard.vue` | 6 个硬编码十六进制值 → tokens |
-| `apps/frontend/src/components/research/result/CitationPanel.vue` | 1 个硬编码十六进制值 → token |
-| `apps/frontend/src/components/reports/ResearchReportStatusBadge.vue` | 8 个硬编码 `rgba()` 值 → tokens |
-| `apps/frontend/src/components/research/workflow/WorkflowStepNavigation.vue` | 3 个硬编码十六进制值 → tokens |
+| 文件                                                                        | 变更                                                                   |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `apps/frontend/src/assets/main.css`                                         | 将 token 块替换为模块化 `@import` 语句。保留全局重置 + 工具类 + 动画。 |
+| `apps/frontend/src/components/common/DataTable.vue`                         | 变为 HfbTable 的向后兼容重新导出别名（6 个现有消费者不受影响）         |
+| `apps/frontend/eslint.config.mjs`                                           | 注册 `local/no-hardcoded-colors` 规则于 `warn` 级别                    |
+| `apps/frontend/src/components/research/result/LineageStatusBadge.vue`       | 9 个硬编码十六进制值 → `var(--color-*)` tokens                         |
+| `apps/frontend/src/components/research/result/ResearchRunSummary.vue`       | 10 个硬编码十六进制值 → tokens                                         |
+| `apps/frontend/src/components/research/result/EvidenceDetail.vue`           | 11 个硬编码十六进制值 → tokens                                         |
+| `apps/frontend/src/components/research/result/SourceReferenceCard.vue`      | 6 个硬编码十六进制值 → tokens                                          |
+| `apps/frontend/src/components/research/result/CitationPanel.vue`            | 1 个硬编码十六进制值 → token                                           |
+| `apps/frontend/src/components/reports/ResearchReportStatusBadge.vue`        | 8 个硬编码 `rgba()` 值 → tokens                                        |
+| `apps/frontend/src/components/research/workflow/WorkflowStepNavigation.vue` | 3 个硬编码十六进制值 → tokens                                          |
 
 ## Governance 状态
 
-| 治理项 | 状态 | 详情 |
-|---|---|---|
-| `no-hardcoded-colors` ESLint 规则 | ✅ 活跃（warn） | 检测独立十六进制 / rgb / rgba / hsl / hsla。允许关键字 `transparent`、`currentColor`、`inherit`。301 个现有违规项（全部为 warn 级别——主要存在于此次范围之外的 views/ 和 pages/ 文件中） |
-| Token 覆盖验证 | ✅ 52 个测试通过 | 验证 :root / html.dark 中的 token 存在性、缺失的暗色覆盖、组件中的 token 有效性、对比度 ≥ 4.5:1 |
-| 全部 436 个单元测试通过 | ✅ 0 个失败 | 384 个现有测试 + 52 个新测试 |
-| TypeScript 类型检查 | ✅ 零错误 | `vue-tsc --noEmit` 无错误通过 |
-| 构建 | ✅ 通过 | `vite build` 成功，输出 19 个资源文件 |
+| 治理项                            | 状态             | 详情                                                                                                                                                                                    |
+| --------------------------------- | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-hardcoded-colors` ESLint 规则 | ✅ 活跃（warn）  | 检测独立十六进制 / rgb / rgba / hsl / hsla。允许关键字 `transparent`、`currentColor`、`inherit`。301 个现有违规项（全部为 warn 级别——主要存在于此次范围之外的 views/ 和 pages/ 文件中） |
+| Token 覆盖验证                    | ✅ 52 个测试通过 | 验证 :root / html.dark 中的 token 存在性、缺失的暗色覆盖、组件中的 token 有效性、对比度 ≥ 4.5:1                                                                                         |
+| 全部 436 个单元测试通过           | ✅ 0 个失败      | 384 个现有测试 + 52 个新测试                                                                                                                                                            |
+| TypeScript 类型检查               | ✅ 零错误        | `vue-tsc --noEmit` 无错误通过                                                                                                                                                           |
+| 构建                              | ✅ 通过          | `vite build` 成功，输出 19 个资源文件                                                                                                                                                   |
 
 ## 排除范围（按设计要求未做修改）
 

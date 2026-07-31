@@ -1,16 +1,16 @@
 ---
-title: "ADR-0001 FastAPI"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "architecture"
+title: 'ADR-0001 FastAPI'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'architecture'
 related:
-  - "ADR-0003-PostgreSQL"
-  - "ADR-0009-Monorepo"
-  - "ADR-0010-AI-Native"
-  - "docs/05-development/00_Development_Specification.md"
+  - 'ADR-0003-PostgreSQL'
+  - 'ADR-0009-Monorepo'
+  - 'ADR-0010-AI-Native'
+  - 'docs/05-development/00_Development_Specification.md'
 ---
 
 # ADR-0001: 选择 FastAPI 作为 API 框架
@@ -36,12 +36,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| FastAPI | 自动 OpenAPI、异步原生、Pydantic 集成、性能优秀 | 社区小于 Django | — |
-| Django + DRF | 社区最大、插件丰富、Admin 面板 | 异步支持弱、OpenAPI 需额外配置、过重 | 不符合微服务轻量化方向 |
-| Flask | 极简、灵活 | 无自动文档、无类型校验、异步支持弱 | 需要过多手动配置 |
-| Django Ninja | 类型安全 + Django 生态 | 社区较小、与 Django 耦合 | FastAPI 社区更大 |
+| 方案         | 优点                                            | 缺点                                 | 放弃原因               |
+| ------------ | ----------------------------------------------- | ------------------------------------ | ---------------------- |
+| FastAPI      | 自动 OpenAPI、异步原生、Pydantic 集成、性能优秀 | 社区小于 Django                      | —                      |
+| Django + DRF | 社区最大、插件丰富、Admin 面板                  | 异步支持弱、OpenAPI 需额外配置、过重 | 不符合微服务轻量化方向 |
+| Flask        | 极简、灵活                                      | 无自动文档、无类型校验、异步支持弱   | 需要过多手动配置       |
+| Django Ninja | 类型安全 + Django 生态                          | 社区较小、与 Django 耦合             | FastAPI 社区更大       |
 
 ## Consequences
 

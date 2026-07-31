@@ -1,6 +1,7 @@
 """
 Person repository — data access for persons (人物).
 """
+
 from __future__ import annotations
 
 from app.models.person import Person
@@ -30,10 +31,12 @@ class PersonRepository(BaseRepository[Person]):
             Person.is_deleted.is_(False),
         )
         count = select(func.count()).select_from(
-            select(Person.id).where(
+            select(Person.id)
+            .where(
                 Person.dynasty == dynasty,
                 Person.is_deleted.is_(False),
-            ).subquery()
+            )
+            .subquery()
         )
         offset = (page - 1) * limit
         stmt = stmt.offset(offset).limit(limit)

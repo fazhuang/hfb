@@ -27,8 +27,5 @@
     // Remote Development
     "ms-vscode-remote.remote-containers"
   ],
-  "unwantedRecommendations": [
-    "hookyqr.beautify",
-    "valentjn.vscode-ltex"
-  ]
+  "unwantedRecommendations": ["hookyqr.beautify", "valentjn.vscode-ltex"]
 }

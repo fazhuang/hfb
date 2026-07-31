@@ -63,9 +63,22 @@ for pg in sorted(need_ocr):
     out_prefix = os.path.join(tmpdir, f"p{pg:04d}")
     # pdftoppm is faster than pdf2image for single pages
     r = subprocess.run(
-        ["pdftoppm", "-f", str(pg), "-l", str(pg), "-r", "200", "-png",
-         "-singlefile", PDF_PATH, out_prefix],
-        capture_output=True, text=True, timeout=60
+        [
+            "pdftoppm",
+            "-f",
+            str(pg),
+            "-l",
+            str(pg),
+            "-r",
+            "200",
+            "-png",
+            "-singlefile",
+            PDF_PATH,
+            out_prefix,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     png_path = out_prefix + ".png"
     render_time = time.time() - t0
@@ -79,7 +92,9 @@ for pg in sorted(need_ocr):
     txt_path = png_path + ".txt"
     r = subprocess.run(
         ["tesseract", png_path, png_path, "-l", "chi_sim", "--psm", "6"],
-        capture_output=True, text=True, timeout=120
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     ocr_time = time.time() - t0 - render_time
     try:
@@ -106,6 +121,6 @@ for pg in sorted(need_ocr):
         except Exception:
             pass
 
-total = time.time() - t0 if 't0' in dir() else 0
+total = time.time() - t0 if "t0" in dir() else 0
 print(f"\nDone: {len(texts)} pages in total")
 print(f"Saved to {OUT_PATH}")

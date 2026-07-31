@@ -1,10 +1,10 @@
 ---
-title: "Decision Tree — Frontend"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-last_updated: "2026-06-24"
-related_adr: ["ADR-0002"]
+title: 'Decision Tree — Frontend'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+last_updated: '2026-06-24'
+related_adr: ['ADR-0002']
 ---
 
 # Decision Tree — Frontend

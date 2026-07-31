@@ -96,4 +96,6 @@ class Commentary(BaseModel):
 
     def __repr__(self) -> str:
         author = self.author_id[:8] if self.author_id else "?"
-        return f"<Commentary type={self.commentary_type} layer={self.layer} by={author}>"
+        return (
+            f"<Commentary type={self.commentary_type} layer={self.layer} by={author}>"
+        )

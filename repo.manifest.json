@@ -188,27 +188,34 @@
 
   "dataStandard": {
     "path": "docs/03-data/",
-    "key_documents": [
-      "00_Data_Standard.md",
-      "01_Ontology_Specification.md"
-    ]
+    "key_documents": ["00_Data_Standard.md", "01_Ontology_Specification.md"]
   },
 
   "aiStandard": {
     "path": "docs/04-ai/",
-    "key_documents": [
-      "00_AI_Engineering_Standard.md",
-      "01_RAG_GraphRAG_Architecture.md"
-    ]
+    "key_documents": ["00_AI_Engineering_Standard.md", "01_RAG_GraphRAG_Architecture.md"]
   },
 
   "currentContext": {
     "path": "docs/12-context/Sprint00/",
     "available_sprints": [
-      "Sprint00", "Sprint01", "Sprint02", "Sprint03",
-      "Sprint04", "Sprint05", "Sprint06", "Sprint07",
-      "Sprint08", "Sprint09", "Sprint10", "Sprint11",
-      "Sprint12", "Sprint13", "Sprint14", "Sprint15", "Sprint16"
+      "Sprint00",
+      "Sprint01",
+      "Sprint02",
+      "Sprint03",
+      "Sprint04",
+      "Sprint05",
+      "Sprint06",
+      "Sprint07",
+      "Sprint08",
+      "Sprint09",
+      "Sprint10",
+      "Sprint11",
+      "Sprint12",
+      "Sprint13",
+      "Sprint14",
+      "Sprint15",
+      "Sprint16"
     ],
     "machine_readable": "docs/13-machine/"
   },
@@ -234,6 +241,6 @@
     "make": "Makefile (14 targets)"
   },
 
-  _schema: "repo.manifest.json — Machine-readable repository manifest. Updated at the end of each Sprint.",
-  _ai_hint: "For bootstrapping, read AI_BOOTSTRAP.md first."
+  "_schema": "repo.manifest.json — Machine-readable repository manifest. Updated at the end of each Sprint.",
+  "_ai_hint": "For bootstrapping, read AI_BOOTSTRAP.md first."
 }

@@ -54,8 +54,16 @@ ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
     "compared": {"person", "book", "version"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person", "book", "version", "passage", "text",
-        "herb", "prescription", "meridian", "symptom", "syndrome",
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+        "syndrome",
     },
     "contains": {"book", "text", "version", "prescription"},
     "treats": {"prescription", "herb"},
@@ -73,8 +81,16 @@ ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
     "compared": {"book", "version", "text"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person", "book", "version", "passage", "text",
-        "herb", "prescription", "meridian", "symptom", "syndrome",
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+        "syndrome",
     },
     "contains": {"passage", "prescription", "herb", "symptom", "syndrome"},
     "treats": {"syndrome"},  # Phase 2a: 治疗证候，而非症状
@@ -118,8 +134,10 @@ class EntityRelation(BaseModel):
     __table_args__ = (
         Index(
             "ix_entity_relations_lookup",
-            "source_entity_type", "source_entity_id",
-            "target_entity_type", "target_entity_id",
+            "source_entity_type",
+            "source_entity_id",
+            "target_entity_type",
+            "target_entity_id",
             "relation_type",
         ),
         CheckConstraint(
@@ -170,9 +188,11 @@ class EntityRelation(BaseModel):
         Text, nullable=True, comment="关系说明"
     )
     evidence_level: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=0,
+        Integer,
+        nullable=False,
+        default=0,
         server_default=sa_text("0"),
-        comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据"
+        comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据",
     )
     # Deprecated free-text evidence — kept for backward compat, NOT used in P0 validation
     evidence: Mapped[str | None] = mapped_column(

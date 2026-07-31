@@ -8,8 +8,11 @@ def inventory(args):
     result = scan_docs()
     out = write_audit_report(result)
     print(f"✔ inventory complete: {out}")
-    print(f"Markdown: {len(result.markdown_files)} | md.md: {len(result.mdmd_files)} | missing header: {len(result.missing_yaml_header)}")
+    print(
+        f"Markdown: {len(result.markdown_files)} | md.md: {len(result.mdmd_files)} | missing header: {len(result.missing_yaml_header)}"
+    )
     return 0
+
 
 def scaffold(args):
     actions = scaffold_docs()
@@ -21,6 +24,7 @@ def scaffold(args):
     for action in actions:
         print(f"- {action}")
     return 0
+
 
 def validate(args):
     result = scan_docs()
@@ -34,11 +38,13 @@ def validate(args):
         print(f"- {error}")
     return 1
 
+
 def report(args):
     result = scan_docs()
     out = write_audit_report(result)
     print(f"✔ report generated: {out}")
     return 0
+
 
 def all_cmd(args):
     inventory(args)

@@ -4,6 +4,7 @@ Pytest configuration for E2E test modules under tests/e2e/.
 Provides shared fixtures (live_servers, auth helpers, test data) so that
 individual test files like test_reader_e2e.py don't need to duplicate them.
 """
+
 from __future__ import annotations
 
 import os
@@ -49,7 +50,18 @@ def _run_backend(port: int) -> subprocess.Popen:
     env["DATABASE_URL"] = "sqlite+aiosqlite://"
     env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--log-level",
+            "warning",
+        ],
         cwd=str(backend_dir),
         env=env,
         stdout=subprocess.DEVNULL,
@@ -77,16 +89,25 @@ def _seed_user(backend_port: int, username: str, password: str) -> dict | None:
     """Register and login a user via the backend API. Return tokens + username."""
     base = f"http://127.0.0.1:{backend_port}"
     try:
-        r = httpx.post(f"{base}/api/v1/auth/register", json={
-            "username": username, "email": f"{username}@example.com", "password": password,
-        }, timeout=5)
+        r = httpx.post(
+            f"{base}/api/v1/auth/register",
+            json={
+                "username": username,
+                "email": f"{username}@example.com",
+                "password": password,
+            },
+            timeout=5,
+        )
         if r.status_code not in (201, 200):
-            raise RuntimeError(
-                f"Registration failed: {r.status_code} {r.text}"
-            )
-        r2 = httpx.post(f"{base}/api/v1/auth/login", json={
-            "username": username, "password": password,
-        }, timeout=5)
+            raise RuntimeError(f"Registration failed: {r.status_code} {r.text}")
+        r2 = httpx.post(
+            f"{base}/api/v1/auth/login",
+            json={
+                "username": username,
+                "password": password,
+            },
+            timeout=5,
+        )
         if r2.status_code == 200:
             data = r2.json()["data"]
             data["username"] = username  # embed for fixture convenience
@@ -160,8 +181,12 @@ def library_test_users(live_servers):
     base = f"http://127.0.0.1:{backend_port}"
 
     # Register users first so they exist in DB
-    token_a = _seed_user(backend_port, f"lib-a-{_uuid.uuid4().hex[:6]}", "LibA_Pass123!")
-    token_b = _seed_user(backend_port, f"lib-b-{_uuid.uuid4().hex[:6]}", "LibB_Pass123!")
+    token_a = _seed_user(
+        backend_port, f"lib-a-{_uuid.uuid4().hex[:6]}", "LibA_Pass123!"
+    )
+    token_b = _seed_user(
+        backend_port, f"lib-b-{_uuid.uuid4().hex[:6]}", "LibB_Pass123!"
+    )
 
     # User A: full reader data
     a_body = {
@@ -183,25 +208,29 @@ def library_test_users(live_servers):
         "passage_translation": "黄帝问道：我从夫子那里听说了九针，内容广博，不可胜数。我希望听闻要旨。",
         "with_passage": True,
     }
-    a_resp = httpx.post(f"{base}/api/v1/_test/seed-reader-data", json=a_body, timeout=10)
+    a_resp = httpx.post(
+        f"{base}/api/v1/_test/seed-reader-data", json=a_body, timeout=10
+    )
     if a_resp.status_code not in (200, 201):
-        raise RuntimeError(f"seed-reader-data A failed: {a_resp.status_code} {a_resp.text}")
+        raise RuntimeError(
+            f"seed-reader-data A failed: {a_resp.status_code} {a_resp.text}"
+        )
 
     # User B: document only (no passage/citation/evidence — minimal isolation fixture)
     b_body = {
         "username": token_b["username"],
         "password": "LibB_Pass123!",
         "document_title": f"用户B的Reader文献-{_uuid.uuid4().hex[:6]}",
-        "document_text": (
-            "这是用户B的私有文献内容。\n\n"
-            "第二段内容。\n\n"
-            "第三段内容。"
-        ),
+        "document_text": ("这是用户B的私有文献内容。\n\n第二段内容。\n\n第三段内容。"),
         "with_passage": False,
     }
-    b_resp = httpx.post(f"{base}/api/v1/_test/seed-reader-data", json=b_body, timeout=10)
+    b_resp = httpx.post(
+        f"{base}/api/v1/_test/seed-reader-data", json=b_body, timeout=10
+    )
     if b_resp.status_code not in (200, 201):
-        raise RuntimeError(f"seed-reader-data B failed: {b_resp.status_code} {b_resp.text}")
+        raise RuntimeError(
+            f"seed-reader-data B failed: {b_resp.status_code} {b_resp.text}"
+        )
 
     seed_a = a_resp.json()["data"]
     seed_b = b_resp.json()["data"]

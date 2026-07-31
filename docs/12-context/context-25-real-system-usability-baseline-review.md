@@ -12,14 +12,14 @@
 
 ## 2. 启动与环境真实性
 
-| 检查 | 本轮直接证据 | 结果 |
-|---|---|---|
-| 依赖容器 | `docker compose -f docker-compose.dev.yml up -d postgres redis elasticsearch minio`；四项均 `healthy` | 通过 |
-| 后端导入 | `UV_CACHE_DIR=/private/tmp/uv-cache uv run python -c "import main; print('IMPORT_OK')"` → `IMPORT_OK` | 通过 |
-| health | `GET /health` → HTTP 200 | 通过 |
-| ready | `GET /ready` → HTTP 200；PostgreSQL、Redis、Elasticsearch、MinIO 均 `healthy` | 通过 |
-| README 冷启动路径 | 依赖容器和后端均已实际启动并返回 health；前端 `:5173` 可访问 | 部分通过 |
-| clean-HEAD 可发布性 | 当前大量已修改及未跟踪文件 | 未证明 |
+| 检查                | 本轮直接证据                                                                                          | 结果     |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | -------- |
+| 依赖容器            | `docker compose -f docker-compose.dev.yml up -d postgres redis elasticsearch minio`；四项均 `healthy` | 通过     |
+| 后端导入            | `UV_CACHE_DIR=/private/tmp/uv-cache uv run python -c "import main; print('IMPORT_OK')"` → `IMPORT_OK` | 通过     |
+| health              | `GET /health` → HTTP 200                                                                              | 通过     |
+| ready               | `GET /ready` → HTTP 200；PostgreSQL、Redis、Elasticsearch、MinIO 均 `healthy`                         | 通过     |
+| README 冷启动路径   | 依赖容器和后端均已实际启动并返回 health；前端 `:5173` 可访问                                          | 部分通过 |
+| clean-HEAD 可发布性 | 当前大量已修改及未跟踪文件                                                                            | 未证明   |
 
 ## 3. 后端真实研究运行
 
@@ -97,29 +97,29 @@ source_ref_url: null
 
 ## 7. P0 / P1 / P2 复核
 
-| 等级 | 复核结果 | 直接证据 |
-|---|---|---|
-| P0：启动与依赖就绪 | 已通过 | compose 四服务健康；`IMPORT_OK`；health/ready 200 |
-| P0：后端证据综合失败 | 已修复 | 固定请求 14.15 秒成功；5 claims、5 export citations |
-| P0：普通用户研究页面 | **未修复** | 页面 10 秒超时，`net::ERR_ABORTED` |
-| P1：五条正式 Citation 的 SourceRef 链 | **未通过** | 五条事实 `source_ref_id=null`、`source_ref_url=null` |
-| P1：Withdraw 内部 trace 阻断 | 已通过 | Withdraw 后 `TRACE_LINEAGE_INCOMPLETE`，restore 后恢复 5 traces |
-| P1：删除 Document 与 Withdraw 的端到端消失 | Evidence Missing | 未执行页面/检索/既有 Citation 前后对照 |
-| P1：P2T1 脚本可结束 | 已通过 | 脚本退出并输出 `FINAL: PASS` |
-| P2：全页面与后台矩阵 | Evidence Missing | 本轮未完成逐项实际操作 |
+| 等级                                       | 复核结果         | 直接证据                                                        |
+| ------------------------------------------ | ---------------- | --------------------------------------------------------------- |
+| P0：启动与依赖就绪                         | 已通过           | compose 四服务健康；`IMPORT_OK`；health/ready 200               |
+| P0：后端证据综合失败                       | 已修复           | 固定请求 14.15 秒成功；5 claims、5 export citations             |
+| P0：普通用户研究页面                       | **未修复**       | 页面 10 秒超时，`net::ERR_ABORTED`                              |
+| P1：五条正式 Citation 的 SourceRef 链      | **未通过**       | 五条事实 `source_ref_id=null`、`source_ref_url=null`            |
+| P1：Withdraw 内部 trace 阻断               | 已通过           | Withdraw 后 `TRACE_LINEAGE_INCOMPLETE`，restore 后恢复 5 traces |
+| P1：删除 Document 与 Withdraw 的端到端消失 | Evidence Missing | 未执行页面/检索/既有 Citation 前后对照                          |
+| P1：P2T1 脚本可结束                        | 已通过           | 脚本退出并输出 `FINAL: PASS`                                    |
+| P2：全页面与后台矩阵                       | Evidence Missing | 本轮未完成逐项实际操作                                          |
 
 ## 8. 评分
 
-| 维度 | 评分 | 理由 |
-|---|---|---|
-| 环境真实性 | ★★★★☆ | 容器、导入、health、ready、前端首页均有运行证据 |
-| 数据真实性 | ★★★☆☆ | 已直接计数并有五条 trace；未完成全部表、Seed/测试数据拆分 |
-| 页面真实性 | ★★☆☆☆ | 首页、登录、V4 页面真实访问；核心页面超时且无全页矩阵 |
-| 研究流程真实性 | ★★☆☆☆ | 后端完成，真实用户页面中断 |
-| Evidence 真实性 | ★★★☆☆ | 内部 trace 有页码与版本；页面未展示或核验 |
-| Citation 真实性 | ★★☆☆☆ | 生成计数存在，但五条事实缺 SourceRef |
-| Academic Trust | ★★☆☆☆ | 关键来源链与端到端核验不完整 |
-| 报告真实性 | ★★★★★ | 关键通过、失败与缺失项均标明本轮运行证据 |
+| 维度            | 评分  | 理由                                                      |
+| --------------- | ----- | --------------------------------------------------------- |
+| 环境真实性      | ★★★★☆ | 容器、导入、health、ready、前端首页均有运行证据           |
+| 数据真实性      | ★★★☆☆ | 已直接计数并有五条 trace；未完成全部表、Seed/测试数据拆分 |
+| 页面真实性      | ★★☆☆☆ | 首页、登录、V4 页面真实访问；核心页面超时且无全页矩阵     |
+| 研究流程真实性  | ★★☆☆☆ | 后端完成，真实用户页面中断                                |
+| Evidence 真实性 | ★★★☆☆ | 内部 trace 有页码与版本；页面未展示或核验                 |
+| Citation 真实性 | ★★☆☆☆ | 生成计数存在，但五条事实缺 SourceRef                      |
+| Academic Trust  | ★★☆☆☆ | 关键来源链与端到端核验不完整                              |
+| 报告真实性      | ★★★★★ | 关键通过、失败与缺失项均标明本轮运行证据                  |
 
 ## 9. Claude 报告错误清单、遗漏项与最终决定
 
@@ -148,13 +148,13 @@ source_ref_url: null
 
 ## 11. 已保存任务状态
 
-| 项目 | 已保存状态 |
-|---|---|
-| 当前验收门禁 | **C / BLOCK_RELEASE** |
-| 当前基线 | `cbdb448d58bbb4df5f82b41e61b8da7a15cda6a9`，worktree 非干净 |
-| 已验证通过 | 依赖容器健康；后端导入、health、ready；固定问题后端工作流；P2T1 脚本；内部 Withdraw trace 阻断与 restore |
-| 批次一状态 | **未通过**：普通用户页面仅取得“执行中”证据，未取得完成态证据 |
-| 批次二状态 | 未开始验收；五条事实 `source_ref_id` 与 `source_ref_url` 仍为 null |
-| 批次三状态 | 未开始验收；删除 Document、Withdraw 的页面/API/检索端到端前后对照缺失 |
-| 批次四状态 | 未开始验收；全页面、后台能力、采集/OCR 和逐表数据矩阵缺失 |
-| 下次验收入口 | 优先重验批次一：使用可持续本地前后端，普通用户完成固定问题并保存最终浏览器与网络证据 |
+| 项目         | 已保存状态                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------- |
+| 当前验收门禁 | **C / BLOCK_RELEASE**                                                                                    |
+| 当前基线     | `cbdb448d58bbb4df5f82b41e61b8da7a15cda6a9`，worktree 非干净                                              |
+| 已验证通过   | 依赖容器健康；后端导入、health、ready；固定问题后端工作流；P2T1 脚本；内部 Withdraw trace 阻断与 restore |
+| 批次一状态   | **未通过**：普通用户页面仅取得“执行中”证据，未取得完成态证据                                             |
+| 批次二状态   | 未开始验收；五条事实 `source_ref_id` 与 `source_ref_url` 仍为 null                                       |
+| 批次三状态   | 未开始验收；删除 Document、Withdraw 的页面/API/检索端到端前后对照缺失                                    |
+| 批次四状态   | 未开始验收；全页面、后台能力、采集/OCR 和逐表数据矩阵缺失                                                |
+| 下次验收入口 | 优先重验批次一：使用可持续本地前后端，普通用户完成固定问题并保存最终浏览器与网络证据                     |

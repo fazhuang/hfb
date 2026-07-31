@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Book Knowledge Model
+
 ## 古籍知识模型
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的古籍知识建模标准。
@@ -122,18 +123,18 @@ BOOK-00000001
 
 统一字段：
 
-| 字段 | 说明 |
-|------|------|
-| id | UUID |
-| book_code | 古籍编码 |
-| title | 标准书名 |
-| aliases | 异名、别称 |
-| english_title | 英文名称 |
-| category | 分类 |
-| dynasty | 成书时代 |
-| language | 语言 |
-| description | 内容简介 |
-| metadata_id | Metadata |
+| 字段          | 说明       |
+| ------------- | ---------- |
+| id            | UUID       |
+| book_code     | 古籍编码   |
+| title         | 标准书名   |
+| aliases       | 异名、别称 |
+| english_title | 英文名称   |
+| category      | 分类       |
+| dynasty       | 成书时代   |
+| language      | 语言       |
+| description   | 内容简介   |
+| metadata_id   | Metadata   |
 
 ---
 
@@ -395,13 +396,13 @@ Metadata 不完整不得发布。
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| Book 唯一性 | 100% |
+| 指标            | 标准 |
+| --------------- | ---- |
+| Book 唯一性     | 100% |
 | Metadata 完整率 | 100% |
-| 作者关联率 | 100% |
-| Version 建立率 | 100% |
-| AI 可解释率 | 100% |
+| 作者关联率      | 100% |
+| Version 建立率  | 100% |
+| AI 可解释率     | 100% |
 
 ---
 
@@ -497,6 +498,6 @@ AI 回答必须：
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台古籍知识模型统一规范。 |
+| Version | Date       | Description                              |
+| ------- | ---------- | ---------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台古籍知识模型统一规范。 |

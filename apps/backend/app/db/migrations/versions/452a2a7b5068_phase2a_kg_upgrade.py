@@ -8,6 +8,7 @@ Revision ID: 452a2a7b5068
 Revises: p0_1_verified_by_fk
 Create Date: 2026-07-05 02:15:44.740636
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -24,7 +25,9 @@ def upgrade() -> None:
     # 1. Add evidence_level column + update constraints on entity_relations
     with op.batch_alter_table("entity_relations") as batch_op:
         batch_op.add_column(
-            sa.Column("evidence_level", sa.Integer(), nullable=False, server_default="0")
+            sa.Column(
+                "evidence_level", sa.Integer(), nullable=False, server_default="0"
+            )
         )
 
         # Drop old CHECK constraints (named constraints from p0p4p5p6 migration)

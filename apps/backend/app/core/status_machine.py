@@ -7,6 +7,7 @@ States:  draft → active → archived → deleted
 
 Deleted is terminal.  Pure functions — no framework, no DB dependency.
 """
+
 from __future__ import annotations
 
 # ---------------------------------------------------------------------------
@@ -14,10 +15,10 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 
 _VALID_TRANSITIONS: dict[str, frozenset[str]] = {
-    "draft":    frozenset({"active", "deleted"}),
-    "active":   frozenset({"archived", "deleted"}),
+    "draft": frozenset({"active", "deleted"}),
+    "active": frozenset({"archived", "deleted"}),
     "archived": frozenset({"deleted"}),
-    "deleted":  frozenset(),  # terminal
+    "deleted": frozenset(),  # terminal
 }
 
 _STATES: frozenset[str] = frozenset(_VALID_TRANSITIONS.keys())

@@ -3,6 +3,7 @@
 Sprint 4 P0: step-to-step pipeline with immutable trace passing.
 Synthesis/report/citation-export never re-retrieve, never reconstruct traces.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -43,7 +44,9 @@ class ResearchWorkflowService:
         academic = AcademicService(self.session)
         result = await academic.research(query=topic)
         return await _pack_academic_step(
-            self.session, result, topic,
+            self.session,
+            result,
+            topic,
             retrieval_snapshot=academic.last_snapshot,
         )
 
@@ -55,7 +58,8 @@ class ResearchWorkflowService:
         academic = AcademicService(self.session)
         result = await academic.synthesize(query=topic)
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            self.session, result,
+            self.session,
+            result,
             retrieval_snapshot=academic.last_snapshot,
         )
         # Immutable traces — downstream steps pass these exact records
@@ -72,7 +76,9 @@ class ResearchWorkflowService:
     # =========================================================================
 
     def execute_evidence_synthesis_from_snapshot(
-        self, topic: str, snapshot: list[dict],
+        self,
+        topic: str,
+        snapshot: list[dict],
         internal_traces: list[InternalTraceRecord] | None = None,
     ) -> dict[str, Any]:
         """Build evidence synthesis from a retrieval snapshot.
@@ -108,7 +114,9 @@ class ResearchWorkflowService:
     # =========================================================================
 
     def execute_report_from_synthesis(
-        self, topic: str, synthesis_output: dict,
+        self,
+        topic: str,
+        synthesis_output: dict,
     ) -> dict[str, Any]:
         evidence = synthesis_output.get("evidence", [])
         sections = synthesis_output.get("sections", [])
@@ -137,7 +145,9 @@ class ResearchWorkflowService:
     # =========================================================================
 
     def execute_citation_export_from_evidence(
-        self, topic: str, evidence: list[dict],
+        self,
+        topic: str,
+        evidence: list[dict],
         internal_traces: list[InternalTraceRecord] | None = None,
     ) -> dict[str, Any]:
         if not evidence:
@@ -155,12 +165,14 @@ class ResearchWorkflowService:
             if not tid or tid in seen:
                 continue
             seen.add(tid)
-            citations.append({
-                "trace_id": tid,
-                "citation_text": ev.get("citation_text", ""),
-                "document_id": ev.get("document_id", ""),
-                "quote": ev.get("quote", ""),
-            })
+            citations.append(
+                {
+                    "trace_id": tid,
+                    "citation_text": ev.get("citation_text", ""),
+                    "document_id": ev.get("document_id", ""),
+                    "quote": ev.get("quote", ""),
+                }
+            )
         return {
             "result": {"total_citations": len(citations), "citations": citations},
             "trace_ids": [c["trace_id"] for c in citations],
@@ -173,15 +185,19 @@ class ResearchWorkflowService:
     # =========================================================================
 
     def build_markdown_artifact(
-        self, topic: str, run_id: str, steps: list[Any],
-        retrieval_snapshot: list[dict], synthesis_output: dict,
+        self,
+        topic: str,
+        run_id: str,
+        steps: list[Any],
+        retrieval_snapshot: list[dict],
+        synthesis_output: dict,
     ) -> str:
         now = datetime.now(UTC).isoformat()
         evidence = synthesis_output.get("evidence", [])
         sections = synthesis_output.get("sections", [])
-        artifact_id = hashlib.sha256(
-            f"{run_id}:{topic}:{now}".encode()
-        ).hexdigest()[:16]
+        artifact_id = hashlib.sha256(f"{run_id}:{topic}:{now}".encode()).hexdigest()[
+            :16
+        ]
 
         lines = [
             f"# 研究报告：{topic}",
@@ -197,7 +213,13 @@ class ResearchWorkflowService:
             "",
         ]
         for step in steps:
-            s = step if isinstance(step, dict) else step.model_dump() if hasattr(step, 'model_dump') else {}
+            s = (
+                step
+                if isinstance(step, dict)
+                else step.model_dump()
+                if hasattr(step, "model_dump")
+                else {}
+            )
             icon = "✅" if s.get("status") == "completed" else "❌"
             lines.append(f"- {icon} **{s.get('name', 'unknown')}**")
 
@@ -207,7 +229,7 @@ class ResearchWorkflowService:
                 lines.append(f"### {i}. {rec.get('claim_text', 'N/A')[:80]}")
                 lines.append(f"> {rec.get('quote', '')[:200]}")
                 lines.append(f"- 文献: `{rec.get('document_id', '')}`")
-                tid = rec.get('trace_id', '')
+                tid = rec.get("trace_id", "")
                 lines.append(f"- 引用标记: [{tid}]")
                 lines.append("")
         else:
@@ -225,7 +247,7 @@ class ResearchWorkflowService:
             for i, ev in enumerate(evidence[:20], 1):
                 lines.append(f"### {i}. {ev.get('claim_text', 'N/A')[:80]}")
                 lines.append(f"- 引用: `{ev.get('citation_text', '')}`")
-                tid = ev.get('trace_id', '')
+                tid = ev.get("trace_id", "")
                 lines.append(f"- 引用标记: [{tid}]")
                 lines.append("")
 
@@ -233,17 +255,24 @@ class ResearchWorkflowService:
         body_text = "\n".join(lines)
         content_sha256 = hashlib.sha256(body_text.encode()).hexdigest()
 
-        lines.extend([
-            "", "---", "",
-            "## 证据状态", "",
-            f"- 检索快照记录数: {len(retrieval_snapshot)}",
-            f"- 综合证据条数: {len(evidence)}",
-            f"- 报告段落数: {len(sections)}",
-            f"- 内容哈希: `{content_sha256}`",
-            f"- Artifact ID: `{artifact_id}`",
-            "", "---", "",
-            "*本报告由 HFB V4 研究门户自动生成。*",
-        ])
+        lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## 证据状态",
+                "",
+                f"- 检索快照记录数: {len(retrieval_snapshot)}",
+                f"- 综合证据条数: {len(evidence)}",
+                f"- 报告段落数: {len(sections)}",
+                f"- 内容哈希: `{content_sha256}`",
+                f"- Artifact ID: `{artifact_id}`",
+                "",
+                "---",
+                "",
+                "*本报告由 HFB V4 研究门户自动生成。*",
+            ]
+        )
         return "\n".join(lines)
 
     # =========================================================================
@@ -251,7 +280,10 @@ class ResearchWorkflowService:
     # =========================================================================
 
     async def persist_research_run(
-        self, session_id: UUID | str, run_id: str, topic: str,
+        self,
+        session_id: UUID | str,
+        run_id: str,
+        topic: str,
         workflow_type: str = "full_research_flow",
         steps: list[Any] | None = None,
         output_artifacts: dict[str, Any] | None = None,
@@ -283,10 +315,7 @@ class ResearchWorkflowService:
             "query_history_binding": query_history_ids or [],
             "started_at": started_at or now,
             "completed_at": completed_at or now,
-            "step_execution_trace": [
-                _step_to_record(s)
-                for s in (steps or [])
-            ],
+            "step_execution_trace": [_step_to_record(s) for s in (steps or [])],
             "output_artifacts": output_artifacts or {},
         }
 
@@ -296,19 +325,21 @@ class ResearchWorkflowService:
         if retrieval_snapshot:
             trace_dicts = []
             for tr in immutable_traces:
-                if hasattr(tr, 'to_dict'):
+                if hasattr(tr, "to_dict"):
                     trace_dicts.append(tr.to_dict())
-            trace_ids = sorted({
-                r.trace_id for r in immutable_traces if hasattr(r, 'trace_id')
-            })
-            source_doc_ids = sorted({
-                r.document_id for r in immutable_traces if hasattr(r, 'document_id')
-            })
+            trace_ids = sorted(
+                {r.trace_id for r in immutable_traces if hasattr(r, "trace_id")}
+            )
+            source_doc_ids = sorted(
+                {r.document_id for r in immutable_traces if hasattr(r, "document_id")}
+            )
 
             # Build canonical traces from immutable trace dicts — single source of truth
             canonical_traces = canonicalize_traces(trace_dicts)
             # Build snapshot with passage_id merged from traces for corpus hash
-            trace_passage_map = {ct["trace_id"]: ct["passage_id"] for ct in canonical_traces}
+            trace_passage_map = {
+                ct["trace_id"]: ct["passage_id"] for ct in canonical_traces
+            }
             snapshot_for_corpus = []
             for r in retrieval_snapshot:
                 entry = dict(r)
@@ -319,32 +350,40 @@ class ResearchWorkflowService:
 
             # Compute self-contained hashes for the frozen manifest — all include canonical traces
             corpus_hash = canonical_sha256(_build_corpus_payload(snapshot_for_corpus))
-            input_hash = canonical_sha256(_build_input_payload(
-                topic=topic,
-                workflow_type=workflow_type,
-                pipeline_version="1.0.0",
-                retrieval_snapshot=retrieval_snapshot,
-                trace_ids=trace_ids,
-                source_document_ids=source_doc_ids,
-                canonical_traces=canonical_traces,
-            ))
+            input_hash = canonical_sha256(
+                _build_input_payload(
+                    topic=topic,
+                    workflow_type=workflow_type,
+                    pipeline_version="1.0.0",
+                    retrieval_snapshot=retrieval_snapshot,
+                    trace_ids=trace_ids,
+                    source_document_ids=source_doc_ids,
+                    canonical_traces=canonical_traces,
+                )
+            )
 
             # Build output payload from synthesis/report/citation
             synthesis_sections = _group_snapshot_into_sections(retrieval_snapshot)
             synthesis_evidence = _snapshot_to_evidence_list(retrieval_snapshot)
             synthesis_output_for_hash = self.execute_evidence_synthesis_from_snapshot(
-                topic, retrieval_snapshot, internal_traces=list(immutable_traces),
+                topic,
+                retrieval_snapshot,
+                internal_traces=list(immutable_traces),
             )
             report_output_for_hash = self.execute_report_from_synthesis(
-                topic, synthesis_output_for_hash,
+                topic,
+                synthesis_output_for_hash,
             )
             all_evidence = synthesis_output_for_hash.get("evidence", [])
             citation_output_for_hash = self.execute_citation_export_from_evidence(
-                topic, all_evidence, internal_traces=list(immutable_traces),
+                topic,
+                all_evidence,
+                internal_traces=list(immutable_traces),
             )
             # Build report sections deterministically from evidence
             report_sections_for_hash = _build_report_sections(
-                topic, all_evidence,
+                topic,
+                all_evidence,
                 report_output_for_hash.get("sections", []),
             )
 
@@ -356,7 +395,9 @@ class ResearchWorkflowService:
                 synthesis_sections=synthesis_sections,
                 synthesis_evidence=synthesis_evidence,
                 report_sections=report_sections_for_hash,
-                citations=citation_output_for_hash.get("result", {}).get("citations", []),
+                citations=citation_output_for_hash.get("result", {}).get(
+                    "citations", []
+                ),
                 trace_ids=trace_ids,
                 source_document_ids=source_doc_ids,
                 canonical_traces=canonical_traces,
@@ -371,7 +412,13 @@ class ResearchWorkflowService:
                 "workflow_type": workflow_type,
                 "topic": topic,
                 "pipeline_version": "1.0.0",
-                "workflow_steps": ["topic_selection", "literature_retrieval", "evidence_synthesis", "report_generation", "citation_export"],
+                "workflow_steps": [
+                    "topic_selection",
+                    "literature_retrieval",
+                    "evidence_synthesis",
+                    "report_generation",
+                    "citation_export",
+                ],
                 "retrieval_snapshot": retrieval_snapshot,
                 "traces": trace_dicts,
                 "query_history_binding": query_history_ids or [],
@@ -407,10 +454,13 @@ class ResearchWorkflowService:
     # =========================================================================
 
     async def configure_version_comparison(
-        self, session_id: UUID | str,
-        source_passage_id: UUID | str, target_passage_id: UUID | str,
+        self,
+        session_id: UUID | str,
+        source_passage_id: UUID | str,
+        target_passage_id: UUID | str,
     ) -> dict[str, Any]:
         from app.services.version_center import VersionComparisonService
+
         comparisons = VersionComparisonService(self.session)
         research_session = await self.workspace.get_session(session_id)
         if research_session is None:
@@ -421,13 +471,18 @@ class ResearchWorkflowService:
             raise ValueError("Passages must belong to different versions")
         if source["book"]["id"] != target["book"]["id"]:
             raise ValueError("Passages must belong to versions of the same book")
-        comparison = await comparisons.compare_passages(source_passage_id, target_passage_id)
+        comparison = await comparisons.compare_passages(
+            source_passage_id, target_passage_id
+        )
         # P2T1: corpus_status = "approved" only when both versions are formal sources
-        both_formal = source.get("is_formal_source", False) and target.get("is_formal_source", False)
+        both_formal = source.get("is_formal_source", False) and target.get(
+            "is_formal_source", False
+        )
         state: dict[str, Any] = {
             "workflow_type": "evidence_backed_version_comparison",
             "corpus_status": "approved" if both_formal else "validation",
-            "source": source, "target": target,
+            "source": source,
+            "target": target,
             "comparison": {
                 "differences": comparison["differences"],
                 "operations": comparison["operations"],
@@ -437,7 +492,8 @@ class ResearchWorkflowService:
         }
         research_session.workflow_state = json.dumps(state, ensure_ascii=False)
         research_session.active_entities = json.dumps(
-            [str(source_passage_id), str(target_passage_id)], ensure_ascii=False,
+            [str(source_passage_id), str(target_passage_id)],
+            ensure_ascii=False,
         )
         research_session.updated_at = datetime.now(UTC)  # type: ignore[assignment]
         await self.session.flush()
@@ -463,24 +519,42 @@ class ResearchWorkflowService:
         notes = await self.workspace.list_notes(session_id)
         source, target = state["source"], state["target"]
         comparison = state["comparison"]
-        is_formal = state["source"].get("is_formal_source", False) and state["target"].get("is_formal_source", False)
-        validation_notice = "" if is_formal else "> 验证语料：非生产验证数据，不得作为正式学术引用。"
+        is_formal = state["source"].get("is_formal_source", False) and state[
+            "target"
+        ].get("is_formal_source", False)
+        validation_notice = (
+            "" if is_formal else "> 验证语料：非生产验证数据，不得作为正式学术引用。"
+        )
         lines = [
-            f"# {research_session.title}", "",
-            validation_notice, "",
-            "## 比较对象", "",
-            f"### 底本：{source['version']['name']}", "",
-            source["text"], "", f"引用：{source['citation']}", "",
-            f"### 对校本：{target['version']['name']}", "",
-            target["text"], "", f"引用：{target['citation']}", "",
-            "## 差异摘要", "",
+            f"# {research_session.title}",
+            "",
+            validation_notice,
+            "",
+            "## 比较对象",
+            "",
+            f"### 底本：{source['version']['name']}",
+            "",
+            source["text"],
+            "",
+            f"引用：{source['citation']}",
+            "",
+            f"### 对校本：{target['version']['name']}",
+            "",
+            target["text"],
+            "",
+            f"引用：{target['citation']}",
+            "",
+            "## 差异摘要",
+            "",
             f"- 差异数量：{comparison['differences']}",
             f"- 文本相似度：{comparison['similarity_ratio']:.2%}",
         ]
         if comparison.get("operations"):
             lines.extend(["", "| 类型 | 底本文字 | 对校本文字 |", "|---|---|---|"])
             for op in comparison["operations"]:
-                lines.append(f"| {op['op']} | {self._escape_md(op.get('source_text',''))} | {self._escape_md(op.get('target_text',''))} |")
+                lines.append(
+                    f"| {op['op']} | {self._escape_md(op.get('source_text', ''))} | {self._escape_md(op.get('target_text', ''))} |"
+                )
         lines.extend(["", "## 研究笔记", ""])
         if research_session.context_notes:
             lines.extend([research_session.context_notes, ""])
@@ -490,12 +564,20 @@ class ResearchWorkflowService:
                 lines.append(f"-{tag} {note.content}")
         elif not research_session.context_notes:
             lines.append("暂无研究笔记。")
-        lines.extend(["", "## 证据状态", "",
-            f"- 底本来源完整：{'是' if source['evidence_complete'] else '否'}",
-            f"- 对校本来源完整：{'是' if target['evidence_complete'] else '否'}",
-            f"- 正式学术来源：{'是' if is_formal else '否（验证流程）'}",
-            f"- 学术审核状态：{'已审核（正式引用）' if is_formal else '未审核（验证流程）'}", "",
-            f"生成时间：{datetime.now(UTC).isoformat()}", ""])
+        lines.extend(
+            [
+                "",
+                "## 证据状态",
+                "",
+                f"- 底本来源完整：{'是' if source['evidence_complete'] else '否'}",
+                f"- 对校本来源完整：{'是' if target['evidence_complete'] else '否'}",
+                f"- 正式学术来源：{'是' if is_formal else '否（验证流程）'}",
+                f"- 学术审核状态：{'已审核（正式引用）' if is_formal else '未审核（验证流程）'}",
+                "",
+                f"生成时间：{datetime.now(UTC).isoformat()}",
+                "",
+            ]
+        )
         return "\n".join(lines)
 
     @staticmethod
@@ -509,41 +591,54 @@ class ResearchWorkflowService:
         from app.models.chapter import Chapter as Ch
         from app.models.passage import Passage as P
         from app.models.version import Version as V
+
         stmt = (
             sql_select(P, V, B, Ch)
-            .join(V, P.version_id == V.id).join(B, V.book_id == B.id)
+            .join(V, P.version_id == V.id)
+            .join(B, V.book_id == B.id)
             .join(Ch, P.chapter_id == Ch.id)
-            .where(P.id == str(passage_id), P.is_deleted.is_(False),
-                   V.is_deleted.is_(False), B.is_deleted.is_(False),
-                   Ch.is_deleted.is_(False),
-                   V.withdrawn_at.is_(None))
+            .where(
+                P.id == str(passage_id),
+                P.is_deleted.is_(False),
+                V.is_deleted.is_(False),
+                B.is_deleted.is_(False),
+                Ch.is_deleted.is_(False),
+                V.withdrawn_at.is_(None),
+            )
         )
         row = (await self.session.execute(stmt)).one_or_none()
         if row is None:
             raise ValueError(f"Passage {passage_id} not found")
         passage, version, book, chapter = row
         # P2T1: Use is_academic_citable to determine formal scholarly status
-        is_formal = getattr(version, 'is_academic_citable', False)
+        is_formal = getattr(version, "is_academic_citable", False)
         loc_parts = [p for p in [version.repository, version.shelf_mark] if p]
         loc = "，".join(loc_parts)
         citation = f"《{book.title}》·{version.version_name}，{chapter.title}，第{passage.order}条"
         if loc:
             citation += f"（{loc}）"
         return {
-            "passage_id": passage.id, "text": passage.content_text,
-            "translation": passage.translation, "notes": passage.notes,
+            "passage_id": passage.id,
+            "text": passage.content_text,
+            "translation": passage.translation,
+            "notes": passage.notes,
             "order": passage.order,
             "chapter": {"id": chapter.id, "title": chapter.title},
-            "version": {"id": version.id, "name": version.version_name,
-                        "era": version.era, "year": version.year,
-                        "repository": version.repository,
-                        "shelf_mark": version.shelf_mark,
-                        "source_url": version.source_url,
-                        "is_formal_source": getattr(version, 'is_formal_source', False),
-                        "rights_statement": getattr(version, 'rights_statement', None),
-                        "persistent_identifier": getattr(version, 'persistent_identifier', None),
-                        "is_withdrawn": bool(getattr(version, 'withdrawn_at', None)),
-                        },
+            "version": {
+                "id": version.id,
+                "name": version.version_name,
+                "era": version.era,
+                "year": version.year,
+                "repository": version.repository,
+                "shelf_mark": version.shelf_mark,
+                "source_url": version.source_url,
+                "is_formal_source": getattr(version, "is_formal_source", False),
+                "rights_statement": getattr(version, "rights_statement", None),
+                "persistent_identifier": getattr(
+                    version, "persistent_identifier", None
+                ),
+                "is_withdrawn": bool(getattr(version, "withdrawn_at", None)),
+            },
             "book": {"id": book.id, "title": book.title, "source_url": book.source_url},
             "citation": citation,
             "evidence_complete": is_formal,
@@ -575,7 +670,8 @@ def _step_to_record(step: Any) -> dict:
 
 
 async def _build_retrieval_snapshot(
-    db: AsyncSession, result,
+    db: AsyncSession,
+    result,
     retrieval_snapshot: dict[str, dict] | None = None,
 ) -> tuple[list[dict], list[InternalTraceRecord]]:
     """Build immutable retrieval snapshot + traces from AcademicService result.
@@ -585,6 +681,7 @@ async def _build_retrieval_snapshot(
     """
     if retrieval_snapshot is None:
         from app.services.trace_lineage import TraceLineageError
+
         raise TraceLineageError(
             "TRACE_LINEAGE_INCOMPLETE: retrieval_snapshot is required for workflow"
         )
@@ -609,7 +706,9 @@ async def _build_retrieval_snapshot(
         )
         sr_result = await db.execute(sr_stmt)
         for sr in sr_result.scalars().all():
-            doc_id = sr.page_location.replace("document:", "") if sr.page_location else ""
+            doc_id = (
+                sr.page_location.replace("document:", "") if sr.page_location else ""
+            )
             if doc_id:
                 source_ref_by_doc[doc_id] = {
                     "source_ref_id": sr.id,
@@ -624,6 +723,7 @@ async def _build_retrieval_snapshot(
         unmatched_for_passage = doc_ids - set(source_ref_by_doc.keys())
         if unmatched_for_passage:
             from app.models.document_chunk import DocumentChunk as DC
+
             chunk_stmt = sql_select(DC.document_id, DC.passage_id).where(
                 DC.is_deleted.is_(False),
                 DC.document_id.in_(list(unmatched_for_passage)),
@@ -669,20 +769,23 @@ async def _build_retrieval_snapshot(
             continue
         seen.add(key)
         sr_info = source_ref_by_doc.get(t.document_id, {})
-        snapshot.append({
-            "trace_id": tid,
-            "document_id": t.document_id,
-            "chunk_id": t.chunk_id,
-            "claim_text": t.claim_text,
-            "quote": t.quote,
-            "citation_text": t.citation_text,
-            "source_ref_id": sr_info.get("source_ref_id"),
-            "source_ref_url": sr_info.get("source_ref_url"),
-            "source_ref_title": sr_info.get("source_ref_title"),
-        })
+        snapshot.append(
+            {
+                "trace_id": tid,
+                "document_id": t.document_id,
+                "chunk_id": t.chunk_id,
+                "claim_text": t.claim_text,
+                "quote": t.quote,
+                "citation_text": t.citation_text,
+                "source_ref_id": sr_info.get("source_ref_id"),
+                "source_ref_url": sr_info.get("source_ref_url"),
+                "source_ref_title": sr_info.get("source_ref_title"),
+            }
+        )
 
     # Build InternalTraceRecords from real snapshot
     from app.services.trace_lineage import TraceLineageError
+
     now = datetime.now(UTC).isoformat()
     internal_traces: list[InternalTraceRecord] = []
     seen_tids: set[str] = set()
@@ -714,6 +817,7 @@ async def _build_retrieval_snapshot(
         from sqlalchemy import select as sql_select
 
         from app.models.document_chunk import DocumentChunk as DC
+
         chk_stmt = sql_select(DC.passage_id).where(
             DC.id == chk_id,
             DC.is_deleted.is_(False),
@@ -737,24 +841,30 @@ async def _build_retrieval_snapshot(
             )
             continue
 
-        internal_traces.append(InternalTraceRecord(
-            trace_id=tid,
-            document_id=rec["document_id"],
-            chunk_id=chk_id,
-            passage_id=passage_id,
-            provenance_kind="retrieval",
-            retrieval_score=float(score),
-            retrieval_method=method,
-            timestamp=now,
-        ))
+        internal_traces.append(
+            InternalTraceRecord(
+                trace_id=tid,
+                document_id=rec["document_id"],
+                chunk_id=chk_id,
+                passage_id=passage_id,
+                provenance_kind="retrieval",
+                retrieval_score=float(score),
+                retrieval_method=method,
+                timestamp=now,
+            )
+        )
     return snapshot, internal_traces
 
 
 async def _pack_academic_step(
-    db: AsyncSession, result, topic: str,
+    db: AsyncSession,
+    result,
+    topic: str,
     retrieval_snapshot: dict[str, dict] | None = None,
 ) -> dict[str, Any]:
-    traces = await build_internal_traces(db, result.evidence_trace, retrieval_snapshot=retrieval_snapshot)
+    traces = await build_internal_traces(
+        db, result.evidence_trace, retrieval_snapshot=retrieval_snapshot
+    )
     return {
         "result": {"topic": topic, "sub_questions": len(result.decomposition)},
         "trace_ids": extract_trace_ids(result.evidence_trace),
@@ -768,22 +878,34 @@ def _group_snapshot_into_sections(snapshot: list[dict]) -> list[dict]:
     for r in snapshot:
         did = r["document_id"]
         if did not in sections:
-            sections[did] = {"heading": f"来源文献: {did}", "body": "", "references": []}
+            sections[did] = {
+                "heading": f"来源文献: {did}",
+                "body": "",
+                "references": [],
+            }
         sections[did]["body"] += f"- {r['claim_text']}\n"
         sections[did]["references"].append(r["trace_id"])
     return list(sections.values())
 
 
 def _snapshot_to_evidence_list(snapshot: list[dict]) -> list[dict]:
-    return [{
-        "trace_id": r["trace_id"], "document_id": r["document_id"],
-        "chunk_id": r["chunk_id"], "claim_text": r["claim_text"],
-        "quote": r["quote"], "citation_text": r["citation_text"],
-    } for r in snapshot]
+    return [
+        {
+            "trace_id": r["trace_id"],
+            "document_id": r["document_id"],
+            "chunk_id": r["chunk_id"],
+            "claim_text": r["claim_text"],
+            "quote": r["quote"],
+            "citation_text": r["citation_text"],
+        }
+        for r in snapshot
+    ]
 
 
 def _build_report_sections(
-    topic: str, evidence: list[dict], sections: list[dict],
+    topic: str,
+    evidence: list[dict],
+    sections: list[dict],
 ) -> list[dict]:
     if sections:
         return sections
@@ -795,12 +917,17 @@ def _build_report_sections(
         body = []
         refs = []
         for ev in evs:
-            body.append(f"- {ev.get('claim_text','')}")
-            if ev.get('citation_text'):
+            body.append(f"- {ev.get('claim_text', '')}")
+            if ev.get("citation_text"):
                 body.append(f"  引用: {ev['citation_text']}")
             refs.append(ev.get("trace_id", ""))
-        report.append({"heading": f"文献 {did}", "body": "\n".join(body),
-                        "references": [r for r in refs if r]})
+        report.append(
+            {
+                "heading": f"文献 {did}",
+                "body": "\n".join(body),
+                "references": [r for r in refs if r],
+            }
+        )
     return report
 
 
@@ -817,7 +944,10 @@ def canonical_json_bytes(payload: dict) -> bytes:
     Uses sort_keys=True, ASCII-safe encoding, fixed separators.
     """
     return json.dumps(
-        payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+        payload,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
     ).encode("utf-8")
 
 

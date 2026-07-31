@@ -41,11 +41,31 @@ function createMockRouter() {
     history: createWebHistory(),
     routes: [
       { path: '/', component: { template: '<div class="home" />' } },
-      { path: '/research', component: { template: '<div class="test-page">research</div>' }, meta: { section: 'research', requiresAuth: true } },
-      { path: '/library', component: { template: '<div class="test-page">library</div>' }, meta: { section: 'library', requiresAuth: true } },
-      { path: '/knowledge', component: { template: '<div class="test-page">knowledge</div>' }, meta: { section: 'knowledge', requiresAuth: true } },
-      { path: '/reports', component: { template: '<div class="test-page">reports</div>' }, meta: { section: 'reports', requiresAuth: true } },
-      { path: '/admin/literature-review', component: { template: '<div class="test-page">admin</div>' }, meta: { section: 'admin', requiresAuth: true } },
+      {
+        path: '/research',
+        component: { template: '<div class="test-page">research</div>' },
+        meta: { section: 'research', requiresAuth: true },
+      },
+      {
+        path: '/library',
+        component: { template: '<div class="test-page">library</div>' },
+        meta: { section: 'library', requiresAuth: true },
+      },
+      {
+        path: '/knowledge',
+        component: { template: '<div class="test-page">knowledge</div>' },
+        meta: { section: 'knowledge', requiresAuth: true },
+      },
+      {
+        path: '/reports',
+        component: { template: '<div class="test-page">reports</div>' },
+        meta: { section: 'reports', requiresAuth: true },
+      },
+      {
+        path: '/admin/literature-review',
+        component: { template: '<div class="test-page">admin</div>' },
+        meta: { section: 'admin', requiresAuth: true },
+      },
     ],
   });
 }

@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path("docs")
 
+
 def main():
     if not ROOT.exists():
         raise SystemExit("docs/ directory not found. Run from project root.")
@@ -29,8 +30,8 @@ def main():
         if t:
             titles[t.group(1).strip()].append(str(f))
 
-    duplicate_doc_ids = {k:v for k,v in doc_ids.items() if len(v) > 1}
-    duplicate_titles = {k:v for k,v in titles.items() if len(v) > 1}
+    duplicate_doc_ids = {k: v for k, v in doc_ids.items() if len(v) > 1}
+    duplicate_titles = {k: v for k, v in titles.items() if len(v) > 1}
 
     known_duplicates = [
         "docs/00-governance/00_Project_Charter.md",
@@ -43,7 +44,9 @@ def main():
 
     report = []
     report.append("# Docs Structure Audit\n")
-    report.append(f"Generated at: {datetime.datetime.now().isoformat(timespec='seconds')}\n")
+    report.append(
+        f"Generated at: {datetime.datetime.now().isoformat(timespec='seconds')}\n"
+    )
     report.append("## Summary\n")
     report.append(f"- Directories: {len(dirs)}")
     report.append(f"- Markdown files: {len(md_files)}")
@@ -89,6 +92,7 @@ def main():
     out = ROOT / "DOCS_STRUCTURE_AUDIT.md"
     out.write_text("\n".join(report), encoding="utf-8")
     print(f"Wrote {out}")
+
 
 if __name__ == "__main__":
     main()

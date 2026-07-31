@@ -41,33 +41,33 @@ HEAD: 6368e9b (fix: Phase 2 Task 1 P0 blockers — citation chain, V4 graph line
 
 #### 已提交的修复文件（均在 6368e9b 中）
 
-| 文件 | 修改内容 |
-|------|----------|
-| `apps/backend/app/api/v1/admin.py` | `document_id` → `str(document_id)` 修复 get() 类型问题 |
-| `apps/backend/app/api/v1/day2_search.py` | 新增 `passage_id` 参数传递给 ingest_text |
-| `apps/backend/app/api/v4/research.py` | P0-6 修复：V4 graph evidence 批量水合 lineage 字段 |
-| `apps/backend/app/schemas/chunk_search.py` | IngestTextRequest 新增 `passage_id` 字段 |
-| `apps/backend/app/services/academic_rag_service.py` | 图书名《》解析、扩展实体搜索（person/book/text）、2-hop 邻居扩展 |
-| `apps/backend/app/services/academic_service.py` | 中文检索词优化：扩展关键词词典 + bigram/trigram fallback |
-| `apps/backend/app/services/graph_service.py` | `_make_evidence` 传递全 lineage；`intelligence` 中文字符提取 |
-| `apps/backend/app/db/seed_kg.py` | 创建 5 条 verified entity_relations（KG 骨干）|
-| `scripts/seed_kg_relations.py` | 同上，备用版本 |
-| `scripts/seed_citations.py` | 从 entity_relations 批量创建 citations + evidences + source_refs |
-| `scripts/capture_researcher_flow.py` | Playwright 浏览器截图脚本 (P0-5) |
-| `docs/12-context/context-25-real-system-usability-baseline.md` | 本报告 |
+| 文件                                                           | 修改内容                                                         |
+| -------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `apps/backend/app/api/v1/admin.py`                             | `document_id` → `str(document_id)` 修复 get() 类型问题           |
+| `apps/backend/app/api/v1/day2_search.py`                       | 新增 `passage_id` 参数传递给 ingest_text                         |
+| `apps/backend/app/api/v4/research.py`                          | P0-6 修复：V4 graph evidence 批量水合 lineage 字段               |
+| `apps/backend/app/schemas/chunk_search.py`                     | IngestTextRequest 新增 `passage_id` 字段                         |
+| `apps/backend/app/services/academic_rag_service.py`            | 图书名《》解析、扩展实体搜索（person/book/text）、2-hop 邻居扩展 |
+| `apps/backend/app/services/academic_service.py`                | 中文检索词优化：扩展关键词词典 + bigram/trigram fallback         |
+| `apps/backend/app/services/graph_service.py`                   | `_make_evidence` 传递全 lineage；`intelligence` 中文字符提取     |
+| `apps/backend/app/db/seed_kg.py`                               | 创建 5 条 verified entity_relations（KG 骨干）                   |
+| `scripts/seed_kg_relations.py`                                 | 同上，备用版本                                                   |
+| `scripts/seed_citations.py`                                    | 从 entity_relations 批量创建 citations + evidences + source_refs |
+| `scripts/capture_researcher_flow.py`                           | Playwright 浏览器截图脚本 (P0-5)                                 |
+| `docs/12-context/context-25-real-system-usability-baseline.md` | 本报告                                                           |
 
 #### 未跟踪文件（外部运行产物，非源码）
 
-| 文件 | 说明 |
-|------|------|
-| `output/` | Playwright 截图输出目录（12 张浏览器截图），运行产物，不需要入版本控制 |
-| `backend/uv.lock` | Python 依赖锁文件 |
-| `docs/03-architecture/` | 架构文档（独立交付物）|
-| `docs/06-guides/` | 指南文档（独立交付物）|
-| `docs/academic_implementation_manual.md` | 学术实现手册 |
-| `docs/03-data/huangfu-mi-literature-data-model.md` | 数据模型文档 |
-| `docs/07-compliance/literature-source-policy-codex-review.md` | 合规审查文档 |
-| 多个 `docs/12-context/context-1x-*.md` | 历史 codex review 文档 |
+| 文件                                                          | 说明                                                                   |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `output/`                                                     | Playwright 截图输出目录（12 张浏览器截图），运行产物，不需要入版本控制 |
+| `backend/uv.lock`                                             | Python 依赖锁文件                                                      |
+| `docs/03-architecture/`                                       | 架构文档（独立交付物）                                                 |
+| `docs/06-guides/`                                             | 指南文档（独立交付物）                                                 |
+| `docs/academic_implementation_manual.md`                      | 学术实现手册                                                           |
+| `docs/03-data/huangfu-mi-literature-data-model.md`            | 数据模型文档                                                           |
+| `docs/07-compliance/literature-source-policy-codex-review.md` | 合规审查文档                                                           |
+| 多个 `docs/12-context/context-1x-*.md`                        | 历史 codex review 文档                                                 |
 
 #### Clean DB 复现路径
 
@@ -100,12 +100,14 @@ cd apps/backend && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ### P0-3: Citation / SourceRef 持久链 ✅ 已修复
 
 **修复前**:
+
 ```
 citations = 0
 source_refs = 0
 ```
 
 **修复后**:
+
 ```
 citations = 5
 source_refs = 1
@@ -161,13 +163,13 @@ citation_id: fcde7c0c -> evidence: 72a74dc2 -> passage: b7a0bca6 -> version: 9b4
 
 #### 当前证据
 
-| 维度 | 状态 |
-|------|------|
-| source_uri | `https://ctext.org/library.pl?if=gb&res=77431` (ctext 公版文本) |
-| 有 page_number 的 chunks | 8 / 13 |
-| 有 passage_id 的 chunks | 8 / 13 |
-| passage → version 映射 | 8 条 passage 全部 FK 到 `明代刻本` (9b48b722) |
-| 原文对应 | 每条 chunk 有 content 字段，可直接逐字对比 citation quote |
+| 维度                     | 状态                                                            |
+| ------------------------ | --------------------------------------------------------------- |
+| source_uri               | `https://ctext.org/library.pl?if=gb&res=77431` (ctext 公版文本) |
+| 有 page_number 的 chunks | 8 / 13                                                          |
+| 有 passage_id 的 chunks  | 8 / 13                                                          |
+| passage → version 映射   | 8 条 passage 全部 FK 到 `明代刻本` (9b48b722)                   |
+| 原文对应                 | 每条 chunk 有 content 字段，可直接逐字对比 citation quote       |
 
 #### passage/page 映射（7 条有效 chunks）
 
@@ -199,30 +201,32 @@ role: Researcher (非 superuser)
 
 12 张截图位于 `output/playwright/context25-v3/`:
 
-| 步骤 | 截图 | 页面 URL |
-|------|------|----------|
-| 1. 公开展示首页 | `01-public-home.png` | `http://localhost:5173/` |
-| 2. 登录后控制台 | `02-researcher-login-dashboard.png` | `http://localhost:5173/` (已登录) |
-| 3. 文献浏览 | `03-researcher-literature.png` | `http://localhost:5173/literature` |
-| 4. 古籍浏览 | `04-researcher-books.png` | `http://localhost:5173/books` |
-| 5. 文档列表 | `05-researcher-documents.png` | `http://localhost:5173/documents` |
-| 6. 研究门户 (RAG) | `07-researcher-research-portal.png` | `http://localhost:5173/research` |
-| 7. RAG 问题输入 | `08-researcher-rag-query-input.png` | `http://localhost:5173/research` |
-| 8. 版本浏览 | `09-researcher-versions.png` | `http://localhost:5173/versions` |
-| 9. 人物浏览 | `10-researcher-persons.png` | `http://localhost:5173/persons` |
-| 10. 知识图谱 | `11-researcher-graph.png` | `http://localhost:5173/graph` |
-| 11. V4 研究 | `12-researcher-v4.png` | `http://localhost:5173/v4` |
-| 12. 工作区 | `13-researcher-workspace.png` | `http://localhost:5173/workspace` |
+| 步骤              | 截图                                | 页面 URL                           |
+| ----------------- | ----------------------------------- | ---------------------------------- |
+| 1. 公开展示首页   | `01-public-home.png`                | `http://localhost:5173/`           |
+| 2. 登录后控制台   | `02-researcher-login-dashboard.png` | `http://localhost:5173/` (已登录)  |
+| 3. 文献浏览       | `03-researcher-literature.png`      | `http://localhost:5173/literature` |
+| 4. 古籍浏览       | `04-researcher-books.png`           | `http://localhost:5173/books`      |
+| 5. 文档列表       | `05-researcher-documents.png`       | `http://localhost:5173/documents`  |
+| 6. 研究门户 (RAG) | `07-researcher-research-portal.png` | `http://localhost:5173/research`   |
+| 7. RAG 问题输入   | `08-researcher-rag-query-input.png` | `http://localhost:5173/research`   |
+| 8. 版本浏览       | `09-researcher-versions.png`        | `http://localhost:5173/versions`   |
+| 9. 人物浏览       | `10-researcher-persons.png`         | `http://localhost:5173/persons`    |
+| 10. 知识图谱      | `11-researcher-graph.png`           | `http://localhost:5173/graph`      |
+| 11. V4 研究       | `12-researcher-v4.png`              | `http://localhost:5173/v4`         |
+| 12. 工作区        | `13-researcher-workspace.png`       | `http://localhost:5173/workspace`  |
 
 #### API 验证（普通 Researcher token）
 
 **POST /api/v1/academic-rag/query** (researcher token):
+
 ```json
 {"query": "《针灸甲乙经》的成书特点是什么？"}
 → success: true, refusal: false, citations: 4, kg_paths: 20, evidence_chain: 20
 ```
 
 **POST /api/v4/research/query** (researcher token, mode=graph):
+
 ```json
 {"query": "《针灸甲乙经》的成书特点", "mode": "graph", "session_id": "..."}
 → success: true, evidence_trace: 3, citations: 3
@@ -269,13 +273,13 @@ Untracked: output/ (Playwright 截图), backend/uv.lock, docs/* (文档), 历史
 ### /health
 
 ```json
-{"success":true,"data":{"status":"healthy"},"message":"Service is running"}
+{ "success": true, "data": { "status": "healthy" }, "message": "Service is running" }
 ```
 
 ### /ready
 
 ```json
-{"success":true,"data":{"ready":true,"services":{"PostgreSQL":{"healthy":true},"Redis":{"healthy":true},"Elasticsearch":{"healthy":true},"MinIO":{"healthy":true}}},"message":"All services healthy"}
+{ "success": true, "data": { "ready": true, "services": { "PostgreSQL": { "healthy": true }, "Redis": { "healthy": true }, "Elasticsearch": { "healthy": true }, "MinIO": { "healthy": true } } }, "message": "All services healthy" }
 ```
 
 ### SQL 验证
@@ -298,14 +302,14 @@ citation → evidence → passage → version → source_uri
 
 ## 四、Academic Trust 链路表
 
-| 层级 | 表 | 记录数 | 关联 |
-|------|-----|--------|------|
-| Citation | citations | 5 | FK → evidences |
-| Evidence | evidences | 6 | FK → passages (source_passage_id) |
-| Passage | passages | 8 | FK → versions |
-| Version | versions | 1 (明代刻本) | source_url = 空 (URI 在 entity_relations) |
-| Source | source_refs | 1 | url = ctext |
-| Entity Relation | entity_relations | 5 | evidence_document_id, evidence_chunk_id, evidence_passage_id, evidence_version_id, evidence_source_uri, claim_text |
+| 层级            | 表               | 记录数       | 关联                                                                                                               |
+| --------------- | ---------------- | ------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Citation        | citations        | 5            | FK → evidences                                                                                                     |
+| Evidence        | evidences        | 6            | FK → passages (source_passage_id)                                                                                  |
+| Passage         | passages         | 8            | FK → versions                                                                                                      |
+| Version         | versions         | 1 (明代刻本) | source_url = 空 (URI 在 entity_relations)                                                                          |
+| Source          | source_refs      | 1            | url = ctext                                                                                                        |
+| Entity Relation | entity_relations | 5            | evidence_document_id, evidence_chunk_id, evidence_passage_id, evidence_version_id, evidence_source_uri, claim_text |
 
 ---
 
@@ -341,14 +345,14 @@ psql -h 127.0.0.1 -U hfb -d hfb -c "select count(*) from citations; select count
 
 ## 六、P0 逐一状态
 
-| P0 | 问题 | 修复后状态 | 备注 |
-|----|------|-----------|------|
-| P0-1 | 报告未更新 | ✅ 本报告即更新 | |
-| P0-2 | dirty worktree | ✅ 已提交至 6368e9b | worktree 干净，所有修复已 commit |
-| P0-3 | citations=0 | ✅ citations=5, source_refs=1 | 链路 SQL 可查 |
-| P0-4 | PDF/OCR 未证明 | ✅ Path B 声明 | 网页公版文本，ctext source_uri |
-| P0-5 | 浏览器流程未证明 | ✅ 12 截图 | 普通 Researcher 全流程 |
-| P0-6 | V4 graph 空 lineage | ✅ 6/6 非空 | version_id, passage_id, source_uri, claim_text 全填充 |
+| P0   | 问题                | 修复后状态                    | 备注                                                  |
+| ---- | ------------------- | ----------------------------- | ----------------------------------------------------- |
+| P0-1 | 报告未更新          | ✅ 本报告即更新               |                                                       |
+| P0-2 | dirty worktree      | ✅ 已提交至 6368e9b           | worktree 干净，所有修复已 commit                      |
+| P0-3 | citations=0         | ✅ citations=5, source_refs=1 | 链路 SQL 可查                                         |
+| P0-4 | PDF/OCR 未证明      | ✅ Path B 声明                | 网页公版文本，ctext source_uri                        |
+| P0-5 | 浏览器流程未证明    | ✅ 12 截图                    | 普通 Researcher 全流程                                |
+| P0-6 | V4 graph 空 lineage | ✅ 6/6 非空                   | version_id, passage_id, source_uri, claim_text 全填充 |
 
 ---
 

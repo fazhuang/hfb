@@ -3,10 +3,7 @@
     <div class="pli-body">
       <div class="pli-main">
         <h3 class="pli-name">
-          <router-link
-            :to="`/research/${project.id}`"
-            class="pli-name-link"
-          >
+          <router-link :to="`/research/${project.id}`" class="pli-name-link">
             {{ project.title }}
           </router-link>
         </h3>
@@ -63,7 +60,9 @@ function formatDate(iso?: string | null): string {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .pli-card:hover {

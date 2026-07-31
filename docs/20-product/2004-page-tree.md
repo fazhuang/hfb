@@ -147,16 +147,16 @@ HFB Platform
 
 ## Page Count Summary
 
-| Module | Pages | Auth Required |
-|--------|-------|--------------|
-| System | 4 | None |
-| Authentication | 3 | Guest-only (login/register), None (access-denied) |
-| Library | 4 | None |
-| Knowledge | 2 | None |
-| Research | 5 | Authenticated |
-| Reports | 3 | Authenticated |
-| Administration | 4 | Admin/SuperAdmin |
-| **Total** | **25** | — |
+| Module         | Pages  | Auth Required                                     |
+| -------------- | ------ | ------------------------------------------------- |
+| System         | 4      | None                                              |
+| Authentication | 3      | Guest-only (login/register), None (access-denied) |
+| Library        | 4      | None                                              |
+| Knowledge      | 2      | None                                              |
+| Research       | 5      | Authenticated                                     |
+| Reports        | 3      | Authenticated                                     |
+| Administration | 4      | Admin/SuperAdmin                                  |
+| **Total**      | **25** | —                                                 |
 
 ## References
 

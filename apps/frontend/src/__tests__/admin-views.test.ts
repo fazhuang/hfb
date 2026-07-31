@@ -33,7 +33,11 @@ function makeRouter() {
       { path: '/books', component: { template: '<div/>' }, name: 'books' },
       { path: '/literature', component: { template: '<div/>' }, name: 'literature' },
       { path: '/literature/:id', component: { template: '<div/>' }, name: 'literature-detail' },
-      { path: '/classical-versions', component: { template: '<div/>' }, name: 'classical-versions' },
+      {
+        path: '/classical-versions',
+        component: { template: '<div/>' },
+        name: 'classical-versions',
+      },
       { path: '/persons', component: { template: '<div/>' }, name: 'persons' },
       { path: '/search', component: { template: '<div/>' }, name: 'search' },
       { path: '/about', component: { template: '<div/>' }, name: 'about' },
@@ -41,9 +45,24 @@ function makeRouter() {
       { path: '/library', component: { template: '<div/>' }, name: 'library-search' },
       { path: '/knowledge', component: { template: '<div/>' }, name: 'knowledge' },
       { path: '/reports', component: { template: '<div/>' }, name: 'report-list' },
-      { path: '/admin/literature-review', component: { template: '<div/>' }, name: 'admin-literature-review', meta: { requiresAuth: true, requiresAdmin: true } },
-      { path: '/admin/ingestion-tasks', component: { template: '<div/>' }, name: 'admin-ingestion-tasks', meta: { requiresAuth: true, requiresAdmin: true } },
-      { path: '/admin/source-policy', component: { template: '<div/>' }, name: 'admin-source-policy', meta: { requiresAuth: true, requiresSuperAdmin: true } },
+      {
+        path: '/admin/literature-review',
+        component: { template: '<div/>' },
+        name: 'admin-literature-review',
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: '/admin/ingestion-tasks',
+        component: { template: '<div/>' },
+        name: 'admin-ingestion-tasks',
+        meta: { requiresAuth: true, requiresAdmin: true },
+      },
+      {
+        path: '/admin/source-policy',
+        component: { template: '<div/>' },
+        name: 'admin-source-policy',
+        meta: { requiresAuth: true, requiresSuperAdmin: true },
+      },
     ],
   });
 }
@@ -57,8 +76,15 @@ const i18n = createI18n({ legacy: false, locale: 'zh-CN', messages: { 'zh-CN': z
 function useMockAuth(user: { is_superuser: boolean; roles: Array<{ name: string }> } | null) {
   const isAuthed = user !== null;
   const isSuperAdmin = user?.is_superuser ?? false;
-  const ADMIN_ROLE_NAMES = new Set(['platform administrator', 'academic administrator', 'research leader', 'reviewer']);
-  const hasAdminRole = user ? (isSuperAdmin || user.roles.some((r) => ADMIN_ROLE_NAMES.has(r.name.toLowerCase()))) : false;
+  const ADMIN_ROLE_NAMES = new Set([
+    'platform administrator',
+    'academic administrator',
+    'research leader',
+    'reviewer',
+  ]);
+  const hasAdminRole = user
+    ? isSuperAdmin || user.roles.some((r) => ADMIN_ROLE_NAMES.has(r.name.toLowerCase()))
+    : false;
 
   vi.doMock('@/stores/auth', () => ({
     useAuthStore: vi.fn(() => ({
@@ -70,18 +96,20 @@ function useMockAuth(user: { is_superuser: boolean; roles: Array<{ name: string 
       canManageSourcePolicies: isSuperAdmin,
       userName: user ? 'TestUser' : '',
       accessToken: isAuthed ? 'token' : null,
-      user: user ? {
-        id: '1',
-        username: 'testuser',
-        email: 'test@example.com',
-        display_name: 'Test User',
-        affiliation: null,
-        is_active: true,
-        is_superuser: user.is_superuser,
-        roles: user.roles.map((r, i) => ({ id: `${i}`, name: r.name, description: null })),
-        created_at: null,
-        updated_at: null,
-      } : null,
+      user: user
+        ? {
+            id: '1',
+            username: 'testuser',
+            email: 'test@example.com',
+            display_name: 'Test User',
+            affiliation: null,
+            is_active: true,
+            is_superuser: user.is_superuser,
+            roles: user.roles.map((r, i) => ({ id: `${i}`, name: r.name, description: null })),
+            created_at: null,
+            updated_at: null,
+          }
+        : null,
       loading: false,
       error: null,
       login: vi.fn(),
@@ -129,8 +157,11 @@ describe('普通用户 (Visitor)', () => {
     await router.push('/literature');
     await router.isReady();
 
-    const { default: LiteratureListView } = await import('@/views/literature/LiteratureListView.vue');
-    const wrapper = mount(LiteratureListView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureListView } =
+      await import('@/views/literature/LiteratureListView.vue');
+    const wrapper = mount(LiteratureListView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('文献库');
   });
 
@@ -158,21 +189,41 @@ describe('普通用户 (Visitor)', () => {
 
   it('文献详情页不显示管理操作', async () => {
     mockGet({
-      id: '1', title: '测试', dynasty: null, category: null,
-      copyright_status: 'unknown', license_type: null, authorization_basis: null,
-      review_status: 'pending_review', reviewed_by: null, reviewed_at: null,
-      rag_enabled: false, content_checksum: null, source_name: null,
-      withdrawn_at: null, withdraw_reason: null,
-      title_pinyin: null, title_english: null, year: null, language: 'zh',
-      content_text: null, abstract: null, source_url: null, page_count: null,
-      created_at: null, updated_at: null,
+      id: '1',
+      title: '测试',
+      dynasty: null,
+      category: null,
+      copyright_status: 'unknown',
+      license_type: null,
+      authorization_basis: null,
+      review_status: 'pending_review',
+      reviewed_by: null,
+      reviewed_at: null,
+      rag_enabled: false,
+      content_checksum: null,
+      source_name: null,
+      withdrawn_at: null,
+      withdraw_reason: null,
+      title_pinyin: null,
+      title_english: null,
+      year: null,
+      language: 'zh',
+      content_text: null,
+      abstract: null,
+      source_url: null,
+      page_count: null,
+      created_at: null,
+      updated_at: null,
     });
     const router = makeRouter();
     await router.push('/literature/1');
     await router.isReady();
 
-    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
-    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureDetailView } =
+      await import('@/views/literature/LiteratureDetailView.vue');
+    const wrapper = mount(LiteratureDetailView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).not.toContain('管理操作');
@@ -217,21 +268,41 @@ describe('管理员 (Reviewer)', () => {
 
   it('文献详情页可见管理操作', async () => {
     mockGet({
-      id: '1', title: '测试', dynasty: null, category: null,
-      copyright_status: 'unknown', license_type: null, authorization_basis: null,
-      review_status: 'pending_review', reviewed_by: null, reviewed_at: null,
-      rag_enabled: false, content_checksum: null, source_name: null,
-      withdrawn_at: null, withdraw_reason: null,
-      title_pinyin: null, title_english: null, year: null, language: 'zh',
-      content_text: null, abstract: null, source_url: null, page_count: null,
-      created_at: null, updated_at: null,
+      id: '1',
+      title: '测试',
+      dynasty: null,
+      category: null,
+      copyright_status: 'unknown',
+      license_type: null,
+      authorization_basis: null,
+      review_status: 'pending_review',
+      reviewed_by: null,
+      reviewed_at: null,
+      rag_enabled: false,
+      content_checksum: null,
+      source_name: null,
+      withdrawn_at: null,
+      withdraw_reason: null,
+      title_pinyin: null,
+      title_english: null,
+      year: null,
+      language: 'zh',
+      content_text: null,
+      abstract: null,
+      source_url: null,
+      page_count: null,
+      created_at: null,
+      updated_at: null,
     });
     const router = makeRouter();
     await router.push('/literature/1');
     await router.isReady();
 
-    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
-    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureDetailView } =
+      await import('@/views/literature/LiteratureDetailView.vue');
+    const wrapper = mount(LiteratureDetailView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
@@ -296,28 +367,51 @@ describe('View render smoke tests', () => {
     await router.push('/literature');
     await router.isReady();
 
-    const { default: LiteratureListView } = await import('@/views/literature/LiteratureListView.vue');
-    const wrapper = mount(LiteratureListView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureListView } =
+      await import('@/views/literature/LiteratureListView.vue');
+    const wrapper = mount(LiteratureListView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('文献库');
   });
 
   it('LiteratureDetailView renders admin panel for super admin', async () => {
     mockGet({
-      id: '1', title: '伤寒论', dynasty: '汉', category: '方剂',
-      copyright_status: 'public_domain', license_type: null, authorization_basis: null,
-      review_status: 'approved', reviewed_by: null, reviewed_at: null,
-      rag_enabled: true, content_checksum: null, source_name: 'user_upload',
-      withdrawn_at: null, withdraw_reason: null,
-      title_pinyin: null, title_english: null, year: null, language: 'zh',
-      content_text: '太阳之为病', abstract: null, source_url: null, page_count: null,
-      created_at: null, updated_at: null,
+      id: '1',
+      title: '伤寒论',
+      dynasty: '汉',
+      category: '方剂',
+      copyright_status: 'public_domain',
+      license_type: null,
+      authorization_basis: null,
+      review_status: 'approved',
+      reviewed_by: null,
+      reviewed_at: null,
+      rag_enabled: true,
+      content_checksum: null,
+      source_name: 'user_upload',
+      withdrawn_at: null,
+      withdraw_reason: null,
+      title_pinyin: null,
+      title_english: null,
+      year: null,
+      language: 'zh',
+      content_text: '太阳之为病',
+      abstract: null,
+      source_url: null,
+      page_count: null,
+      created_at: null,
+      updated_at: null,
     });
     const router = makeRouter();
     await router.push('/literature/1');
     await router.isReady();
 
-    const { default: LiteratureDetailView } = await import('@/views/literature/LiteratureDetailView.vue');
-    const wrapper = mount(LiteratureDetailView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureDetailView } =
+      await import('@/views/literature/LiteratureDetailView.vue');
+    const wrapper = mount(LiteratureDetailView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('伤寒论');
@@ -330,8 +424,11 @@ describe('View render smoke tests', () => {
     await router.push('/');
     await router.isReady();
 
-    const { default: ClassicalVersionListView } = await import('@/views/classical-versions/ClassicalVersionListView.vue');
-    const wrapper = mount(ClassicalVersionListView, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: ClassicalVersionListView } =
+      await import('@/views/classical-versions/ClassicalVersionListView.vue');
+    const wrapper = mount(ClassicalVersionListView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('古籍版本库');
   });
 
@@ -341,8 +438,11 @@ describe('View render smoke tests', () => {
     await router.push('/admin/literature-review');
     await router.isReady();
 
-    const { default: LiteratureReviewQueue } = await import('@/views/admin/LiteratureReviewQueue.vue');
-    const wrapper = mount(LiteratureReviewQueue, { global: { plugins: [i18n, router, createPinia()] } });
+    const { default: LiteratureReviewQueue } =
+      await import('@/views/admin/LiteratureReviewQueue.vue');
+    const wrapper = mount(LiteratureReviewQueue, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('全文审核队列');
   });
 
@@ -353,7 +453,9 @@ describe('View render smoke tests', () => {
     await router.isReady();
 
     const { default: IngestionTasksView } = await import('@/views/admin/IngestionTasksView.vue');
-    const wrapper = mount(IngestionTasksView, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(IngestionTasksView, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('采集任务记录');
   });
 

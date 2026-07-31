@@ -6,12 +6,7 @@
     <LoadingState v-if="loading" message="正在加载研究活动..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      title="活动加载失败"
-      @retry="fetchActivities"
-    />
+    <ErrorState v-else-if="error" :message="error" title="活动加载失败" @retry="fetchActivities" />
 
     <!-- Empty -->
     <EmptyState
@@ -100,19 +95,15 @@ async function fetchActivities() {
   loading.value = true;
   error.value = null;
   try {
-    const { data } = await api.get(
-      `/api/v4/research/session/${props.projectId}/history`,
-      { params: { limit: 50 } },
-    );
+    const { data } = await api.get(`/api/v4/research/session/${props.projectId}/history`, {
+      params: { limit: 50 },
+    });
     if (myReqId !== reqId) return;
     const body = data.data ?? data;
     activities.value = (body.history ?? []) as ActivityItem[];
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载活动失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {

@@ -1,10 +1,10 @@
 ---
-title: "Sprint 00 API Status"
-version: "1.0"
-status: "Draft"
-sprint: "Sprint 00"
-last_updated: "2026-06-24"
-related: ["../../05-development/00_Development_Specification.md"]
+title: 'Sprint 00 API Status'
+version: '1.0'
+status: 'Draft'
+sprint: 'Sprint 00'
+last_updated: '2026-06-24'
+related: ['../../05-development/00_Development_Specification.md']
 ---
 
 # Sprint 00 — API Status

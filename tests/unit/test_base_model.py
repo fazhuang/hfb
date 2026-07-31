@@ -7,6 +7,7 @@ from app.db.base import BaseModel
 
 class DummyModel(BaseModel):
     """Minimal model for testing the base."""
+
     __tablename__ = "test_dummy"
     __table_args__ = {"extend_existing": True}
 

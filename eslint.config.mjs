@@ -106,7 +106,9 @@ const eslintConfig = [
     plugins: {
       local: {
         rules: {
-          'no-hardcoded-colors': (await import('./apps/frontend/eslint-rules/no-hardcoded-colors.cjs')).default,
+          'no-hardcoded-colors': (
+            await import('./apps/frontend/eslint-rules/no-hardcoded-colors.cjs')
+          ).default,
         },
       },
     },

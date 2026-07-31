@@ -5,6 +5,7 @@ Revision ID: p2t1_formal_source
 Revises: rag_evidence_binding_v2
 Create Date: 2026-07-15
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa

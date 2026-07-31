@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Platform Navigation & Interaction Specification
+
 ## 平台导航与交互规范
 
 > 本规格书定义《皇甫谧数字人文与中医经典智能研究平台》的统一导航体系（Navigation System）与统一交互体系（Interaction System）。
@@ -583,6 +584,6 @@ Research First。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-|1.0.0|2026-06-24|首版发布，定义平台统一导航与交互规范，作为所有模块 UI/UX 开发的最高约束。|
+| Version | Date       | Description                                                               |
+| ------- | ---------- | ------------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，定义平台统一导航与交互规范，作为所有模块 UI/UX 开发的最高约束。 |

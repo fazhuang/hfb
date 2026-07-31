@@ -38,7 +38,9 @@
 
       <!-- Search Results -->
       <div v-if="searchResults.length > 0" class="search-results">
-        <div class="results-header">{{ t('graph.searchResults') }} ({{ searchResults.length }})</div>
+        <div class="results-header">
+          {{ t('graph.searchResults') }} ({{ searchResults.length }})
+        </div>
         <ul class="results-list">
           <li
             v-for="node in searchResults"
@@ -105,7 +107,11 @@
           <label>{{ t('graph.target') }}</label>
           <input type="text" :value="pathTarget?.label || ''" readonly class="path-input" />
         </div>
-        <button class="action-btn action-btn--primary" @click="findPath" :disabled="!pathSource || !pathTarget || pathLoading">
+        <button
+          class="action-btn action-btn--primary"
+          @click="findPath"
+          :disabled="!pathSource || !pathTarget || pathLoading"
+        >
           {{ pathLoading ? t('common.loading') : t('graph.findPath') }}
         </button>
 
@@ -113,9 +119,7 @@
           <div v-if="pathResult.nodes.length > 0" class="path-success">
             ✅ {{ t('graph.pathFound', { length: pathResult.length }) }}
           </div>
-          <div v-else class="path-empty">
-            ❌ {{ t('graph.noPath') }}
-          </div>
+          <div v-else class="path-empty">❌ {{ t('graph.noPath') }}</div>
         </div>
       </div>
     </div>

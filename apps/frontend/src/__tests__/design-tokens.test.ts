@@ -22,9 +22,8 @@ function readMainCss(): string {
 function extractTokens(css: string, blockSelector: ':root' | 'html.dark'): Set<string> {
   const tokens = new Set<string>();
   // Match the block contents — note that @import files have separable blocks
-  const blockRegex = blockSelector === ':root'
-    ? /:root\s*\{([^}]+)\}/g
-    : /html\.dark\s*\{([^}]+)\}/g;
+  const blockRegex =
+    blockSelector === ':root' ? /:root\s*\{([^}]+)\}/g : /html\.dark\s*\{([^}]+)\}/g;
 
   let match: RegExpExecArray | null;
   while ((match = blockRegex.exec(css)) !== null) {
@@ -54,15 +53,15 @@ function collectAllTokens(): { rootTokens: Set<string>; darkTokens: Set<string> 
     const importPath = resolve(ROOT, 'src', 'styles', match[1]!);
     if (existsSync(importPath)) {
       const importedCss = readFileSync(importPath, 'utf-8');
-      extractTokens(importedCss, ':root').forEach(t => rootTokens.add(t));
-      extractTokens(importedCss, 'html.dark').forEach(t => darkTokens.add(t));
+      extractTokens(importedCss, ':root').forEach((t) => rootTokens.add(t));
+      extractTokens(importedCss, 'html.dark').forEach((t) => darkTokens.add(t));
     }
   }
 
   // Also parse inline :root and html.dark blocks in main.css itself
   // (for the global reset + animations section)
-  extractTokens(css, ':root').forEach(t => rootTokens.add(t));
-  extractTokens(css, 'html.dark').forEach(t => darkTokens.add(t));
+  extractTokens(css, ':root').forEach((t) => rootTokens.add(t));
+  extractTokens(css, 'html.dark').forEach((t) => darkTokens.add(t));
 
   return { rootTokens, darkTokens };
 }
@@ -85,7 +84,9 @@ function collectVarReferences(): Map<string, Array<string>> {
           results.push(full);
         }
       }
-    } catch { /* dir may not exist */ }
+    } catch {
+      /* dir may not exist */
+    }
     return results;
   }
 
@@ -126,10 +127,18 @@ describe('Design Token Validation', () => {
 
     it('has core color tokens', () => {
       const required = [
-        '--color-accent', '--color-accent-hover', '--color-accent-light',
-        '--color-text-primary', '--color-text-secondary', '--color-text-muted',
-        '--color-border', '--color-hover', '--color-active',
-        '--color-navbar-bg', '--color-page-bg', '--color-surface',
+        '--color-accent',
+        '--color-accent-hover',
+        '--color-accent-light',
+        '--color-text-primary',
+        '--color-text-secondary',
+        '--color-text-muted',
+        '--color-border',
+        '--color-hover',
+        '--color-active',
+        '--color-navbar-bg',
+        '--color-page-bg',
+        '--color-surface',
       ];
       for (const t of required) {
         expect(rootTokens.has(t), `Missing token: ${t}`).toBe(true);
@@ -138,10 +147,21 @@ describe('Design Token Validation', () => {
 
     it('has semantic color tokens', () => {
       const required = [
-        '--color-success', '--color-success-text', '--color-success-bg', '--color-success-icon-bg',
-        '--color-warning', '--color-warning-text', '--color-warning-bg',
-        '--color-error', '--color-error-text', '--color-error-light-text', '--color-error-bg', '--color-error-icon-bg',
-        '--color-info', '--color-info-text', '--color-info-bg',
+        '--color-success',
+        '--color-success-text',
+        '--color-success-bg',
+        '--color-success-icon-bg',
+        '--color-warning',
+        '--color-warning-text',
+        '--color-warning-bg',
+        '--color-error',
+        '--color-error-text',
+        '--color-error-light-text',
+        '--color-error-bg',
+        '--color-error-icon-bg',
+        '--color-info',
+        '--color-info-text',
+        '--color-info-bg',
       ];
       for (const t of required) {
         expect(rootTokens.has(t), `Missing token: ${t}`).toBe(true);
@@ -150,11 +170,19 @@ describe('Design Token Validation', () => {
 
     it('has component-level tokens', () => {
       const required = [
-        '--btn-padding-sm', '--btn-padding-md', '--btn-padding-lg',
-        '--btn-font-sm', '--btn-font-md', '--btn-font-lg', '--btn-radius',
-        '--focus-ring', '--focus-ring-sm',
-        '--color-input-bg', '--color-input-border',
-        '--color-disabled-bg', '--color-disabled-text',
+        '--btn-padding-sm',
+        '--btn-padding-md',
+        '--btn-padding-lg',
+        '--btn-font-sm',
+        '--btn-font-md',
+        '--btn-font-lg',
+        '--btn-radius',
+        '--focus-ring',
+        '--focus-ring-sm',
+        '--color-input-bg',
+        '--color-input-border',
+        '--color-disabled-bg',
+        '--color-disabled-text',
       ];
       for (const t of required) {
         expect(rootTokens.has(t), `Missing token: ${t}`).toBe(true);
@@ -170,15 +198,17 @@ describe('Design Token Validation', () => {
   });
 
   describe('Dark Mode Overrides', () => {
-    const colorTokens = [...rootTokens].filter(t =>
-      t.startsWith('--color-') ||
-      t.startsWith('--btn-') ||
-      t.startsWith('--z-')
+    const colorTokens = [...rootTokens].filter(
+      (t) => t.startsWith('--color-') || t.startsWith('--btn-') || t.startsWith('--z-'),
     );
 
     for (const token of colorTokens) {
       // Skip tokens that are intentionally same in dark mode (z-index, spacing, etc.)
-      if (token.startsWith('--z-') || token.startsWith('--radius') || token.startsWith('--shadow')) {
+      if (
+        token.startsWith('--z-') ||
+        token.startsWith('--radius') ||
+        token.startsWith('--shadow')
+      ) {
         continue;
       }
       if (token.includes('white') || token.includes('black')) continue;
@@ -187,24 +217,31 @@ describe('Design Token Validation', () => {
         // Tokens that reference OTHER tokens don't need dark overrides:
         // the referenced tokens themselves ARE overridden
         const derivedTokens = [
-          '--btn-font-sm', '--btn-font-md', '--btn-font-lg',
+          '--btn-font-sm',
+          '--btn-font-md',
+          '--btn-font-lg',
           '--btn-radius',
-          '--color-input-bg', '--color-input-border',
+          '--color-input-bg',
+          '--color-input-border',
           '--color-input-focus-ring',
-          '--focus-ring', '--focus-ring-sm', '--focus-ring-error',
-          '--color-overlay', '--color-on-accent', '--color-overlay-light',
-          '--color-accent-alpha-08', '--color-accent-alpha-12',
-          '--color-accent-alpha-15', '--color-accent-alpha-05',
-          '--color-success-alpha-12', '--color-error-alpha-10',
+          '--focus-ring',
+          '--focus-ring-sm',
+          '--focus-ring-error',
+          '--color-overlay',
+          '--color-on-accent',
+          '--color-overlay-light',
+          '--color-accent-alpha-08',
+          '--color-accent-alpha-12',
+          '--color-accent-alpha-15',
+          '--color-accent-alpha-05',
+          '--color-success-alpha-12',
+          '--color-error-alpha-10',
           '--color-muted-alpha-12',
         ];
         if (token.startsWith('--btn-') || derivedTokens.includes(token)) {
           return; // These derive from other tokens that ARE overridden
         }
-        expect(
-          darkTokens.has(token),
-          `Missing dark mode override for ${token}`,
-        ).toBe(true);
+        expect(darkTokens.has(token), `Missing dark mode override for ${token}`).toBe(true);
       });
     }
   });
@@ -217,7 +254,9 @@ describe('Design Token Validation', () => {
           undefinedTokens.push(`${token} (used in: ${files.join(', ')})`);
         }
       }
-      expect(undefinedTokens.sort(), `Undefined tokens:\n${undefinedTokens.join('\n')}`).toEqual([]);
+      expect(undefinedTokens.sort(), `Undefined tokens:\n${undefinedTokens.join('\n')}`).toEqual(
+        [],
+      );
     });
   });
 
@@ -314,7 +353,7 @@ describe('Design Token Validation', () => {
     }
 
     function relativeLuminance(r: number, g: number, b: number): number {
-      const vals = [r, g, b].map(c => {
+      const vals = [r, g, b].map((c) => {
         const s = c / 255;
         return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
       });
@@ -418,7 +457,10 @@ describe('Design Token Validation', () => {
         expect(textVal, `Must resolve ${textToken}`).toBeTruthy();
         expect(bgVal, `Must resolve ${bgToken}`).toBeTruthy();
         const ratio = contrastRatio(textVal!, bgVal!);
-        expect(ratio, `${label}: ${textVal} vs ${bgVal} = ${ratio.toFixed(2)}:1 (need >= 4.5)`).toBeGreaterThanOrEqual(4.5);
+        expect(
+          ratio,
+          `${label}: ${textVal} vs ${bgVal} = ${ratio.toFixed(2)}:1 (need >= 4.5)`,
+        ).toBeGreaterThanOrEqual(4.5);
       }
     });
 

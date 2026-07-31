@@ -33,7 +33,11 @@
           >
             ✕
           </button>
-          <span :class="['hfb-select__chevron', open ? 'hfb-select__chevron--open' : '']" aria-hidden="true">▼</span>
+          <span
+            :class="['hfb-select__chevron', open ? 'hfb-select__chevron--open' : '']"
+            aria-hidden="true"
+            >▼</span
+          >
         </span>
       </button>
       <ul
@@ -56,7 +60,9 @@
           @mouseenter="highlightedIdx = idx"
         >
           {{ opt.label }}
-          <span v-if="opt.value === modelValue" class="hfb-select__check" aria-hidden="true">✓</span>
+          <span v-if="opt.value === modelValue" class="hfb-select__check" aria-hidden="true"
+            >✓</span
+          >
         </li>
         <li v-if="options.length === 0" class="hfb-select__option hfb-select__option--disabled">
           No options
@@ -77,20 +83,23 @@ export interface HfbSelectOption {
   disabled?: boolean;
 }
 
-const props = withDefaults(defineProps<{
-  modelValue: string | number | null;
-  options: HfbSelectOption[];
-  label?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  error?: string;
-  hint?: string;
-  required?: boolean;
-  clearable?: boolean;
-}>(), {
-  placeholder: 'Select...',
-  clearable: false,
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: string | number | null;
+    options: HfbSelectOption[];
+    label?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    error?: string;
+    hint?: string;
+    required?: boolean;
+    clearable?: boolean;
+  }>(),
+  {
+    placeholder: 'Select...',
+    clearable: false,
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: string | number | null];
@@ -118,28 +127,31 @@ const describedBy = computed(() => {
   return ids.join(' ') || undefined;
 });
 
-const selectedOption = computed(() =>
-  props.options.find(o => o.value === props.modelValue) ?? null
+const selectedOption = computed(
+  () => props.options.find((o) => o.value === props.modelValue) ?? null,
 );
 
-const triggerClass = computed(() => [
-  'hfb-select__trigger',
-  props.error ? 'hfb-select__trigger--error' : '',
-].filter(Boolean).join(' '));
+const triggerClass = computed(() =>
+  ['hfb-select__trigger', props.error ? 'hfb-select__trigger--error' : '']
+    .filter(Boolean)
+    .join(' '),
+);
 
 function optionClass(opt: HfbSelectOption) {
   return [
     'hfb-select__option',
     opt.value === props.modelValue ? 'hfb-select__option--selected' : '',
     opt.disabled ? 'hfb-select__option--disabled' : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function toggleOpen() {
   if (props.disabled) return;
   open.value = !open.value;
   if (open.value) {
-    highlightedIdx.value = props.options.findIndex(o => o.value === props.modelValue);
+    highlightedIdx.value = props.options.findIndex((o) => o.value === props.modelValue);
     if (highlightedIdx.value < 0) highlightedIdx.value = 0;
     emit('open');
     nextTick(() => menuRef.value?.focus());

@@ -70,9 +70,7 @@ async def search(
             a.get("author", {}).get("display_name", "")
             for a in w.get("authorships", [])
         )
-        kw = ", ".join(
-            c.get("display_name", "") for c in w.get("concepts", [])[:10]
-        )
+        kw = ", ".join(c.get("display_name", "") for c in w.get("concepts", [])[:10])
         item = LiteratureItem.try_create(
             title=w.get("title", ""),
             source="openalex",
@@ -96,6 +94,7 @@ async def search(
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _first_str(inverted: dict) -> str:
     """Reconstruct first 500 chars from OpenAlex inverted index abstract."""
     if not inverted:
@@ -108,7 +107,9 @@ def _first_str(inverted: dict) -> str:
         ordered.sort()
         return " ".join(w for _, w in ordered)[:500]
     except (TypeError, ValueError, KeyError):
-        logger.debug("Failed to reconstruct abstract from inverted index", exc_info=True)
+        logger.debug(
+            "Failed to reconstruct abstract from inverted index", exc_info=True
+        )
         return ""
 
 

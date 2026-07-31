@@ -1,6 +1,7 @@
 """
 Tests for user/role/permission Pydantic schemas.
 """
+
 import pytest
 from app.schemas.user import (
     LoginRequest,
@@ -28,7 +29,9 @@ class TestLoginSchema:
 
 class TestRegisterSchema:
     def test_valid(self):
-        r = RegisterRequest(username="newuser", email="new@test.com", password="secret123")
+        r = RegisterRequest(
+            username="newuser", email="new@test.com", password="secret123"
+        )
         assert r.email == "new@test.com"
 
     def test_short_password(self):
@@ -37,7 +40,9 @@ class TestRegisterSchema:
 
     def test_invalid_email(self):
         with pytest.raises(ValidationError):
-            RegisterRequest(username="newuser", email="not-an-email", password="secret123")
+            RegisterRequest(
+                username="newuser", email="not-an-email", password="secret123"
+            )
 
     def test_short_username(self):
         with pytest.raises(ValidationError):

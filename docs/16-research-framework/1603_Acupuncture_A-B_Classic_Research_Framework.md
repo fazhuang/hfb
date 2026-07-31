@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Research Framework for The Systematic Classic of Acupuncture and Moxibustion
+
 ## 《针灸甲乙经》研究框架
 
 > 本框架定义《皇甫谧数字人文与中医经典智能研究平台》关于《针灸甲乙经》的总体研究体系。
@@ -414,6 +415,6 @@ International Research Hub。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为《针灸甲乙经》数字人文研究总体框架。 |
+| Version | Date       | Description                                        |
+| ------- | ---------- | -------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为《针灸甲乙经》数字人文研究总体框架。 |

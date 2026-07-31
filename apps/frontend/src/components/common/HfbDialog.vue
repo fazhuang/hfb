@@ -19,7 +19,9 @@
           <div>
             <slot name="header">
               <h2 v-if="title" :id="titleId" class="hfb-dialog__title">{{ title }}</h2>
-              <p v-if="description" :id="descriptionId" class="hfb-dialog__description">{{ description }}</p>
+              <p v-if="description" :id="descriptionId" class="hfb-dialog__description">
+                {{ description }}
+              </p>
             </slot>
           </div>
           <button
@@ -53,22 +55,25 @@ import { useFocusTrap } from '@/composables/useFocusTrap';
 
 const slots = useSlots();
 
-const props = withDefaults(defineProps<{
-  open: boolean;
-  title?: string;
-  description?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  closable?: boolean;
-  closeOnBackdrop?: boolean;
-  closeOnEscape?: boolean;
-  variant?: 'default' | 'danger' | 'info';
-}>(), {
-  size: 'md',
-  closable: true,
-  closeOnBackdrop: true,
-  closeOnEscape: true,
-  variant: 'default',
-});
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    title?: string;
+    description?: string;
+    size?: 'sm' | 'md' | 'lg' | 'xl';
+    closable?: boolean;
+    closeOnBackdrop?: boolean;
+    closeOnEscape?: boolean;
+    variant?: 'default' | 'danger' | 'info';
+  }>(),
+  {
+    size: 'md',
+    closable: true,
+    closeOnBackdrop: true,
+    closeOnEscape: true,
+    variant: 'default',
+  },
+);
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
@@ -82,11 +87,15 @@ const titleId = computed(() => `hfb-dialog-title-${uid}`);
 const descriptionId = computed(() => `hfb-dialog-desc-${uid}`);
 const hasHeader = computed(() => !!(props.title || props.closable || slots?.header));
 
-const dialogClass = computed(() => [
-  'hfb-dialog',
-  `hfb-dialog--${props.size}`,
-  props.variant !== 'default' ? `hfb-dialog--${props.variant}` : '',
-].filter(Boolean).join(' '));
+const dialogClass = computed(() =>
+  [
+    'hfb-dialog',
+    `hfb-dialog--${props.size}`,
+    props.variant !== 'default' ? `hfb-dialog--${props.variant}` : '',
+  ]
+    .filter(Boolean)
+    .join(' '),
+);
 
 function close() {
   emit('update:open', false);
@@ -101,17 +110,21 @@ function onEscape() {
 }
 
 // Sync external open prop changes
-watch(() => props.open, async (val) => {
-  isOpen.value = val;
-  if (val) {
-    await nextTick();
-    document.body.style.overflow = 'hidden';
-    focusTrap.activate();
-  } else {
-    document.body.style.overflow = '';
-    focusTrap.deactivate();
-  }
-}, { immediate: true });
+watch(
+  () => props.open,
+  async (val) => {
+    isOpen.value = val;
+    if (val) {
+      await nextTick();
+      document.body.style.overflow = 'hidden';
+      focusTrap.activate();
+    } else {
+      document.body.style.overflow = '';
+      focusTrap.deactivate();
+    }
+  },
+  { immediate: true },
+);
 
 // Cleanup body overflow on unmount
 watch(isOpen, (val) => {

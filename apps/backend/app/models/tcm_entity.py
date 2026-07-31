@@ -32,7 +32,10 @@ class TCMEntity(BaseModel):
     )
 
     entity_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, index=True, comment="Entity type from canonical ontology"
+        String(50),
+        nullable=False,
+        index=True,
+        comment="Entity type from canonical ontology",
     )
     name: Mapped[str] = mapped_column(
         String(300), nullable=False, comment="Display name"

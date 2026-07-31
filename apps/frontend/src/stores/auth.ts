@@ -115,15 +115,21 @@ export const useAuthStore = defineStore('auth', () => {
     // Custom handler 422: meta.metadata.validation_errors → join per-field messages
     const meta = data.meta as Record<string, unknown> | undefined;
     const metadata = meta?.metadata as Record<string, unknown> | undefined;
-    const ve = metadata?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    const ve = metadata?.validation_errors as
+      | Array<{ loc: Array<string>; msg: string }>
+      | undefined;
     if (ve?.length) {
-      return ve.map((e) => `${e.loc.filter(s => s !== 'body').join('.')}: ${e.msg}`).join('; ');
+      return ve.map((e) => `${e.loc.filter((s) => s !== 'body').join('.')}: ${e.msg}`).join('; ');
     }
 
     // Also check the legacy path (meta.validation_errors) for backward compat
-    const legacyVe = meta?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    const legacyVe = meta?.validation_errors as
+      | Array<{ loc: Array<string>; msg: string }>
+      | undefined;
     if (legacyVe?.length) {
-      return legacyVe.map((e) => `${e.loc.filter(s => s !== 'body').join('.')}: ${e.msg}`).join('; ');
+      return legacyVe
+        .map((e) => `${e.loc.filter((s) => s !== 'body').join('.')}: ${e.msg}`)
+        .join('; ');
     }
 
     // Standard error: detail field
@@ -142,7 +148,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     const meta = data.meta as Record<string, unknown> | undefined;
     const metadata = meta?.metadata as Record<string, unknown> | undefined;
-    const ve = metadata?.validation_errors as Array<{ loc: Array<string>; msg: string }> | undefined;
+    const ve = metadata?.validation_errors as
+      | Array<{ loc: Array<string>; msg: string }>
+      | undefined;
     if (!ve?.length) return {};
 
     const result: Record<string, string> = {};

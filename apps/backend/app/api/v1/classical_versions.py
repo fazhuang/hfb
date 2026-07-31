@@ -7,6 +7,7 @@ POST   /api/admin/classical-versions     — admin (create)
 PATCH  /api/admin/classical-versions/{id} — admin (update)
 DELETE /api/admin/classical-versions/{id} — superuser only (soft delete)
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -44,14 +45,22 @@ class ClassicalVersionRepo(BaseRepository[ClassicalVersion]):
 
     async def search_query(self, query: str, page: int = 1, limit: int = 20):
         return await self.search(
-            search_fields=["work_title", "version_name", "dynasty", "repository", "edition_type"],
+            search_fields=[
+                "work_title",
+                "version_name",
+                "dynasty",
+                "repository",
+                "edition_type",
+            ],
             query=query,
             page=page,
             limit=limit,
         )
 
 
-class ClassicalVersionService(BaseService[ClassicalVersionRepo, ClassicalVersionCreate, ClassicalVersionResponse]):
+class ClassicalVersionService(
+    BaseService[ClassicalVersionRepo, ClassicalVersionCreate, ClassicalVersionResponse]
+):
     repository_class = ClassicalVersionRepo
 
     async def _validate_create(self, data: dict) -> None:
@@ -63,7 +72,9 @@ class ClassicalVersionService(BaseService[ClassicalVersionRepo, ClassicalVersion
             raise ValueError("source_url is required")
         pd = data.get("public_domain_status", "unknown")
         if pd not in PUBLIC_DOMAIN_STATUSES:
-            raise ValueError(f"public_domain_status must be one of: {sorted(PUBLIC_DOMAIN_STATUSES)}")
+            raise ValueError(
+                f"public_domain_status must be one of: {sorted(PUBLIC_DOMAIN_STATUSES)}"
+            )
         rs = data.get("review_status", "pending_review")
         if rs not in REVIEW_STATUSES:
             raise ValueError(f"review_status must be one of: {sorted(REVIEW_STATUSES)}")
@@ -74,7 +85,9 @@ class ClassicalVersionService(BaseService[ClassicalVersionRepo, ClassicalVersion
     async def _validate_update(self, id: UUID, data: dict) -> None:
         pd = data.get("public_domain_status")
         if pd is not None and pd not in PUBLIC_DOMAIN_STATUSES:
-            raise ValueError(f"public_domain_status must be one of: {sorted(PUBLIC_DOMAIN_STATUSES)}")
+            raise ValueError(
+                f"public_domain_status must be one of: {sorted(PUBLIC_DOMAIN_STATUSES)}"
+            )
         rs = data.get("review_status")
         if rs is not None and rs not in REVIEW_STATUSES:
             raise ValueError(f"review_status must be one of: {sorted(REVIEW_STATUSES)}")
@@ -145,8 +158,12 @@ async def list_classical_versions(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
     q: str = Query(default="", description="Search query"),
-    review_status: str | None = Query(default=None, description="Filter by review status"),
-    public_domain_status: str | None = Query(default=None, description="Filter by public domain status"),
+    review_status: str | None = Query(
+        default=None, description="Filter by review status"
+    ),
+    public_domain_status: str | None = Query(
+        default=None, description="Filter by public domain status"
+    ),
 ) -> dict:
     svc = ClassicalVersionService(session)
     if q.strip():
@@ -160,7 +177,9 @@ async def list_classical_versions(
     if public_domain_status:
         items = [i for i in items if i.public_domain_status == public_domain_status]
 
-    results = [ClassicalVersionBrief.model_validate(i).model_dump(mode="json") for i in items]
+    results = [
+        ClassicalVersionBrief.model_validate(i).model_dump(mode="json") for i in items
+    ]
     return api_response(data={"items": results, "total": total})
 
 
@@ -173,8 +192,12 @@ async def get_classical_version(
     svc = ClassicalVersionService(session)
     obj = await svc.get_by_id(version_id)
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found")
-    return api_response(data=ClassicalVersionResponse.model_validate(obj).model_dump(mode="json"))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found"
+        )
+    return api_response(
+        data=ClassicalVersionResponse.model_validate(obj).model_dump(mode="json")
+    )
 
 
 # ------------------------------------------------------------------
@@ -196,7 +219,9 @@ async def create_classical_version(
     try:
         obj = await svc.create(body)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     return api_response(
         data=ClassicalVersionResponse.model_validate(obj).model_dump(mode="json"),
         message="Created",
@@ -213,13 +238,17 @@ async def update_classical_version(
     svc = ClassicalVersionService(session)
     obj = await svc.get_by_id(version_id)
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found"
+        )
     try:
         data = body.model_dump(exclude_unset=True)
         await svc._validate_update(version_id, data)
         updated = await svc.repo.update(version_id, **data)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     return api_response(
         data=ClassicalVersionResponse.model_validate(updated).model_dump(mode="json"),
         message="Updated",
@@ -235,6 +264,8 @@ async def delete_classical_version(
     svc = ClassicalVersionService(session)
     obj = await svc.get_by_id(version_id)
     if obj is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Classical version not found"
+        )
     await svc.soft_delete(version_id)
     return api_response(data=None, message="Deleted")

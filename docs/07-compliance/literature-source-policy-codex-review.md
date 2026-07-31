@@ -3,7 +3,7 @@
 **被审计文件:** `backend/app/config/source_whitelist.yaml`、`docs/07-compliance/literature-source-policy.md`  
 **关联设计:** `docs/03-data/huangfu-mi-literature-data-model.md`  
 **审计日期:** 2026-07-10  
-**审计范围:** 来源分类、商业数据库限制、盗版站禁止、人工审核、非法下载逻辑、平台学术可信度要求  
+**审计范围:** 来源分类、商业数据库限制、盗版站禁止、人工审核、非法下载逻辑、平台学术可信度要求
 
 ## 结论
 
@@ -15,13 +15,13 @@
 
 ## 审计矩阵
 
-| 审计项 | 结论 | 证据 | 说明 |
-|---|---:|---|---|
-| 是否把商业数据库列为“仅元数据” | PASS | `source_whitelist.yaml` 将 B 类定义为“只允许采集元数据和外链”；CNKI、万方、维普、超星、中华经典古籍库、商业电子书平台、高校付费数据库均为 `metadata_allowed: true` 且 `fulltext_allowed: false`。`literature-source-policy.md` 第 2.2 节也声明商业数据库仅采集标题、作者、摘要、关键词、DOI/链接，禁止下载、缓存或索引全文。 | 满足“商业数据库仅元数据”要求。 |
-| 是否明确禁止盗版站 | PASS | `source_whitelist.yaml` D 类列出“盗版 PDF 站”“无授权扫描本”“绕过登录下载资源”“破解数据库”“镜像站”，均为 `metadata_allowed: false`、`fulltext_allowed: false`；备注明确 Sci-Hub、LibGen 禁止采集、索引或链接。`literature-source-policy.md` 第 2.4 节列出同类禁止源。 | 禁止范围覆盖盗版站、破解库、镜像站和绕过访问控制资源。 |
-| 是否有人工审核机制 | PASS, policy-level | `source_whitelist.yaml` C 类来源将地方图书馆资源、个人博客整理资料、论坛资料、公众号文章、网盘资源标为 `requires_manual_review: true`。`literature-source-policy.md` 第 2.3 节规定提交申请、审核版权状态和可信度、通过后新增具体白名单条目、归档审核记录。 | 人工审核机制在政策和配置层存在。当前未证明已有运行时工作流实现。 |
-| 是否没有硬编码非法下载逻辑 | PASS | `rg` 检索 `apps`、`packages`、`tests`、`scripts`、`backend` 中的 `requests/httpx/aiohttp/urllib/download/fulltext/pdf/Sci-Hub/LibGen/cnki/wanfang/cqvip/chaoxing/elsevier/springer/jstor/paywall` 等关键词，未发现外部盗版或商业数据库全文下载器。现有 `IngestionService.ingest_pdf()` 只解析调用方提供的 PDF 字节，不包含外部 URL 下载逻辑。 | 未发现硬编码非法下载路径。注意 `Document.raw_pdf_blob` 和 `ingest_pdf(store_raw_pdf=True)` 能保存用户上传 PDF，后续若接入外部采集必须先接白名单和版权门控。 |
-| 是否符合平台学术可信度要求 | PASS, policy-level | `1710_Production_Readiness_Specification.md` 要求数据来源明确、Citation 完整、Evidence 完整、审核完成且不得存在未知来源数据；`0303_Metadata_Standard.md` 要求来源明确、版本清晰、Citation/Evidence 完整、审核完成；来源政策要求记录采集时间、来源 URL、许可依据、审核状态和审核人。 | 政策方向符合平台学术可信度要求。上线前仍需证明运行时采集、入库、RAG/Graph 消费路径都执行这些字段和门禁。 |
+| 审计项                         |               结论 | 证据                                                                                                                                                                                                                                                                                                                                          | 说明                                                                                                                                                        |
+| ------------------------------ | -----------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 是否把商业数据库列为“仅元数据” |               PASS | `source_whitelist.yaml` 将 B 类定义为“只允许采集元数据和外链”；CNKI、万方、维普、超星、中华经典古籍库、商业电子书平台、高校付费数据库均为 `metadata_allowed: true` 且 `fulltext_allowed: false`。`literature-source-policy.md` 第 2.2 节也声明商业数据库仅采集标题、作者、摘要、关键词、DOI/链接，禁止下载、缓存或索引全文。                  | 满足“商业数据库仅元数据”要求。                                                                                                                              |
+| 是否明确禁止盗版站             |               PASS | `source_whitelist.yaml` D 类列出“盗版 PDF 站”“无授权扫描本”“绕过登录下载资源”“破解数据库”“镜像站”，均为 `metadata_allowed: false`、`fulltext_allowed: false`；备注明确 Sci-Hub、LibGen 禁止采集、索引或链接。`literature-source-policy.md` 第 2.4 节列出同类禁止源。                                                                          | 禁止范围覆盖盗版站、破解库、镜像站和绕过访问控制资源。                                                                                                      |
+| 是否有人工审核机制             | PASS, policy-level | `source_whitelist.yaml` C 类来源将地方图书馆资源、个人博客整理资料、论坛资料、公众号文章、网盘资源标为 `requires_manual_review: true`。`literature-source-policy.md` 第 2.3 节规定提交申请、审核版权状态和可信度、通过后新增具体白名单条目、归档审核记录。                                                                                    | 人工审核机制在政策和配置层存在。当前未证明已有运行时工作流实现。                                                                                            |
+| 是否没有硬编码非法下载逻辑     |               PASS | `rg` 检索 `apps`、`packages`、`tests`、`scripts`、`backend` 中的 `requests/httpx/aiohttp/urllib/download/fulltext/pdf/Sci-Hub/LibGen/cnki/wanfang/cqvip/chaoxing/elsevier/springer/jstor/paywall` 等关键词，未发现外部盗版或商业数据库全文下载器。现有 `IngestionService.ingest_pdf()` 只解析调用方提供的 PDF 字节，不包含外部 URL 下载逻辑。 | 未发现硬编码非法下载路径。注意 `Document.raw_pdf_blob` 和 `ingest_pdf(store_raw_pdf=True)` 能保存用户上传 PDF，后续若接入外部采集必须先接白名单和版权门控。 |
+| 是否符合平台学术可信度要求     | PASS, policy-level | `1710_Production_Readiness_Specification.md` 要求数据来源明确、Citation 完整、Evidence 完整、审核完成且不得存在未知来源数据；`0303_Metadata_Standard.md` 要求来源明确、版本清晰、Citation/Evidence 完整、审核完成；来源政策要求记录采集时间、来源 URL、许可依据、审核状态和审核人。                                                           | 政策方向符合平台学术可信度要求。上线前仍需证明运行时采集、入库、RAG/Graph 消费路径都执行这些字段和门禁。                                                    |
 
 ## 关键证据
 

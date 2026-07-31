@@ -5,6 +5,7 @@ Replaces raw text streaming with a JSON envelope that the frontend renders
 as a structured research card.  When no evidence is available the assistant
 MUST refuse to answer ("evidence-gated").
 """
+
 from __future__ import annotations
 
 from typing import Any

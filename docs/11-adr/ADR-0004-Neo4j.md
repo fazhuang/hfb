@@ -1,15 +1,15 @@
 ---
-title: "ADR-0004 Neo4j"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "data"
+title: 'ADR-0004 Neo4j'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'data'
 related:
-  - "ADR-0003-PostgreSQL"
-  - "ADR-0006-GraphRAG"
-  - "docs/03-data/01_Ontology_Specification.md"
+  - 'ADR-0003-PostgreSQL'
+  - 'ADR-0006-GraphRAG'
+  - 'docs/03-data/01_Ontology_Specification.md'
 ---
 
 # ADR-0004: 选择 Neo4j 作为图数据库
@@ -37,12 +37,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| Neo4j | 最成熟的图数据库、Cypher 查询直观、社区版免费、图算法丰富 | 需要单独的运维、垂直扩展有限 | — |
-| Apache Age | PostgreSQL 扩展，无需额外部署 | 社区小、稳定性不如 Neo4j、图算法少 | 不适合生产级的图推理 |
-| ArangoDB | 多模型（文档+图）、单数据库 | 图查询性能逊于 Neo4j、社区中等 | 图推理性能不如 Neo4j |
-| 自研图引擎 | 完全可控 | 重复造轮子、维护成本高 | V1 阶段不造轮子 |
+| 方案       | 优点                                                      | 缺点                               | 放弃原因             |
+| ---------- | --------------------------------------------------------- | ---------------------------------- | -------------------- |
+| Neo4j      | 最成熟的图数据库、Cypher 查询直观、社区版免费、图算法丰富 | 需要单独的运维、垂直扩展有限       | —                    |
+| Apache Age | PostgreSQL 扩展，无需额外部署                             | 社区小、稳定性不如 Neo4j、图算法少 | 不适合生产级的图推理 |
+| ArangoDB   | 多模型（文档+图）、单数据库                               | 图查询性能逊于 Neo4j、社区中等     | 图推理性能不如 Neo4j |
+| 自研图引擎 | 完全可控                                                  | 重复造轮子、维护成本高             | V1 阶段不造轮子      |
 
 ## Consequences
 

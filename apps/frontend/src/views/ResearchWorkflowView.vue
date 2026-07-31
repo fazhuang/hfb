@@ -159,7 +159,9 @@
           <h2 id="comparison-title">{{ t('research.comparisonResult') }}</h2>
         </div>
         <div class="comparison-metrics">
-          <span>{{ t('research.differenceCount', { count: comparison.comparison.differences }) }}</span>
+          <span>{{
+            t('research.differenceCount', { count: comparison.comparison.differences })
+          }}</span>
           <span>{{ formatSimilarity(comparison.comparison.similarity_ratio) }}</span>
         </div>
       </div>
@@ -195,7 +197,9 @@
           </thead>
           <tbody>
             <tr v-for="(operation, index) in comparison.comparison.operations" :key="index">
-              <td><span class="diff-type">{{ operation.op }}</span></td>
+              <td>
+                <span class="diff-type">{{ operation.op }}</span>
+              </td>
               <td>{{ operation.source_text || '—' }}</td>
               <td>{{ operation.target_text || '—' }}</td>
             </tr>
@@ -334,8 +338,8 @@ const sameVersion = computed(
     Boolean(sourcePassage.value?.metadata.version_id) &&
     sourcePassage.value?.metadata.version_id === targetPassage.value?.metadata.version_id,
 );
-const canCompare = computed(
-  () => Boolean(sourcePassage.value && targetPassage.value && !sameVersion.value),
+const canCompare = computed(() =>
+  Boolean(sourcePassage.value && targetPassage.value && !sameVersion.value),
 );
 const currentStep = computed(() => {
   if (noteSaved.value || noteContent.value.trim()) return 4;
@@ -393,13 +397,10 @@ async function runComparison() {
   message.value = '';
   try {
     const id = await ensureSession();
-    const { data } = await api.put(
-      `/api/v1/research/sessions/${id}/version-comparison`,
-      {
-        source_passage_id: sourcePassage.value.id,
-        target_passage_id: targetPassage.value.id,
-      },
-    );
+    const { data } = await api.put(`/api/v1/research/sessions/${id}/version-comparison`, {
+      source_passage_id: sourcePassage.value.id,
+      target_passage_id: targetPassage.value.id,
+    });
     comparison.value = data.data as ComparisonState;
     noteSaved.value = false;
     message.value = t('research.comparisonSaved');
@@ -436,10 +437,9 @@ async function exportRecord() {
   exporting.value = true;
   error.value = '';
   try {
-    const response = await api.get(
-      `/api/v1/research/sessions/${sessionId.value}/export`,
-      { responseType: 'blob' },
-    );
+    const response = await api.get(`/api/v1/research/sessions/${sessionId.value}/export`, {
+      responseType: 'blob',
+    });
     const url = URL.createObjectURL(response.data as Blob);
     const link = document.createElement('a');
     link.href = url;
@@ -482,10 +482,7 @@ async function restoreLatestWorkflow() {
 }
 
 function provenanceLabel(item: PassageSearchResult): string {
-  const parts = [
-    item.metadata.repository,
-    item.metadata.shelf_mark,
-  ].filter(Boolean);
+  const parts = [item.metadata.repository, item.metadata.shelf_mark].filter(Boolean);
   return parts.length ? parts.join(' · ') : t('research.provenancePending');
 }
 
@@ -494,11 +491,7 @@ function formatSimilarity(value: number): string {
 }
 
 function getErrorMessage(errorValue: unknown, fallback: string): string {
-  if (
-    typeof errorValue === 'object' &&
-    errorValue !== null &&
-    'response' in errorValue
-  ) {
+  if (typeof errorValue === 'object' && errorValue !== null && 'response' in errorValue) {
     const response = (errorValue as { response?: { data?: { detail?: string } } }).response;
     return response?.data?.detail || fallback;
   }
@@ -859,7 +852,7 @@ textarea {
 .passage-text {
   min-height: 88px;
   margin: var(--space-4) 0;
-  font-family: "Songti SC", "STSong", serif;
+  font-family: 'Songti SC', 'STSong', serif;
   font-size: 18px;
   line-height: 2;
 }

@@ -1,6 +1,7 @@
 """
 User repository — data access for users, roles, permissions.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import select

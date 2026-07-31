@@ -6,6 +6,7 @@ index for deterministic citation (e.g. [doc_id:3]).
 
 Sprint 4 P0: passage_id FK enables trace_id → chunk → document → passage → citation.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

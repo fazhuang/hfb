@@ -20,26 +20,15 @@
 
     <div class="rpp-body">
       <!-- Search & Filter Toolbar -->
-      <ProjectListToolbar
-        v-model="searchQuery"
-        @search="onSearch"
-        @clear="onClear"
-      />
+      <ProjectListToolbar v-model="searchQuery" @search="onSearch" @clear="onClear" />
 
       <!-- Content Area -->
       <div class="rpp-content">
         <!-- Loading -->
-        <LoadingState
-          v-if="loading"
-          :message="loadingMessage"
-        />
+        <LoadingState v-if="loading" :message="loadingMessage" />
 
         <!-- Error -->
-        <ErrorState
-          v-else-if="error"
-          :message="error"
-          @retry="loadProjects"
-        />
+        <ErrorState v-else-if="error" :message="error" @retry="loadProjects" />
 
         <!-- Empty: no projects at all -->
         <EmptyState
@@ -49,10 +38,7 @@
           icon="🔬"
         >
           <template #action>
-            <button
-              class="rpp-create-btn rpp-create-btn--inline"
-              @click="showCreateDialog = true"
-            >
+            <button class="rpp-create-btn rpp-create-btn--inline" @click="showCreateDialog = true">
               + 新建课题
             </button>
           </template>
@@ -66,12 +52,7 @@
           icon="🔍"
         >
           <template #action>
-            <button
-              class="rpp-create-btn rpp-create-btn--inline"
-              @click="onClear"
-            >
-              清除筛选
-            </button>
+            <button class="rpp-create-btn rpp-create-btn--inline" @click="onClear">清除筛选</button>
           </template>
         </EmptyState>
 
@@ -87,17 +68,13 @@
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="rpp-pagination">
-        <button
-          :disabled="page <= 1"
-          @click="goPage(page - 1)"
-        >
+        <button :disabled="page <= 1" @click="goPage(page - 1)">
           {{ t('common.back') }}
         </button>
-        <span class="rpp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
-        <button
-          :disabled="page >= totalPages"
-          @click="goPage(page + 1)"
+        <span class="rpp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`"
+          >{{ page }} / {{ totalPages }}</span
         >
+        <button :disabled="page >= totalPages" @click="goPage(page + 1)">
           {{ t('common.next') }}
         </button>
       </div>
@@ -112,12 +89,7 @@
     />
 
     <!-- Success toast (lightweight) -->
-    <div
-      v-if="successMessage"
-      class="rpp-toast"
-      role="status"
-      aria-live="polite"
-    >
+    <div v-if="successMessage" class="rpp-toast" role="status" aria-live="polite">
       {{ successMessage }}
     </div>
   </div>
@@ -218,9 +190,10 @@ async function loadProjects() {
     allProjects.value = rawItems.map(toProjectSummary);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg = (e as any)?.response?.data?.message
-      || (e as any)?.message
-      || '加载失败，请检查网络连接后重试。';
+    const msg =
+      (e as any)?.response?.data?.message ||
+      (e as any)?.message ||
+      '加载失败，请检查网络连接后重试。';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {

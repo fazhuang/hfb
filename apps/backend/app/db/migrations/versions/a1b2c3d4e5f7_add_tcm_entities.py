@@ -30,12 +30,24 @@ def upgrade() -> None:
         sa.Column("properties", sa.JSON, nullable=True),
         sa.Column("description", sa.Text, nullable=True),
         sa.Column("external_ref", sa.String(500), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
         sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), server_default="false", nullable=False),
     )
-    op.create_index("ix_tcm_entities_type_name", "tcm_entities", ["entity_type", "name"])
+    op.create_index(
+        "ix_tcm_entities_type_name", "tcm_entities", ["entity_type", "name"]
+    )
 
 
 def downgrade() -> None:

@@ -57,9 +57,7 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     db_session.add(p_song)
     await db_session.flush()
 
-    s_song = Sentence(
-        passage_id=p_song.id, content_text="齿痛，商阳主之。", order=1
-    )
+    s_song = Sentence(passage_id=p_song.id, content_text="齿痛，商阳主之。", order=1)
     db_session.add(s_song)
     await db_session.flush()
 
@@ -77,9 +75,7 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     db_session.add(p_ming)
     await db_session.flush()
 
-    s_ming = Sentence(
-        passage_id=p_ming.id, content_text="齿痛，商阴主之。", order=1
-    )
+    s_ming = Sentence(passage_id=p_ming.id, content_text="齿痛，商阴主之。", order=1)
     db_session.add(s_ming)
     await db_session.flush()
 
@@ -119,9 +115,7 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     entity_acupoint = AcademicEntity(
         name="商阳", entity_type=AcademicEntityType.ACUPOINT
     )
-    entity_disease = AcademicEntity(
-        name="齿痛", entity_type=AcademicEntityType.DISEASE
-    )
+    entity_disease = AcademicEntity(name="齿痛", entity_type=AcademicEntityType.DISEASE)
     db_session.add_all([entity_acupoint, entity_disease])
     await db_session.flush()
 
@@ -210,14 +204,10 @@ async def test_confidence_multiple_evidences(db_session: AsyncSession):
     from sqlalchemy import insert
 
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=rel.id, evidence_id=ev1.id
-        )
+        insert(relation_evidences).values(relation_id=rel.id, evidence_id=ev1.id)
     )
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=rel.id, evidence_id=ev2.id
-        )
+        insert(relation_evidences).values(relation_id=rel.id, evidence_id=ev2.id)
     )
     await db_session.flush()
 
@@ -255,9 +245,7 @@ async def test_confidence_conflict_penalty(db_session: AsyncSession):
     from sqlalchemy import insert
 
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=treat_rel.id, evidence_id=ev.id
-        )
+        insert(relation_evidences).values(relation_id=treat_rel.id, evidence_id=ev.id)
     )
     await db_session.flush()
 
@@ -332,9 +320,7 @@ async def test_confidence_conflict_reverse(db_session: AsyncSession):
     from sqlalchemy import insert
 
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=contra_rel.id, evidence_id=ev.id
-        )
+        insert(relation_evidences).values(relation_id=contra_rel.id, evidence_id=ev.id)
     )
     await db_session.flush()
 
@@ -346,14 +332,13 @@ async def test_confidence_conflict_reverse(db_session: AsyncSession):
     from sqlalchemy import select as _sel
 
     conf_result = await db_session.execute(
-        _sel(RelationConfidence).where(
-            RelationConfidence.relation_id == contra_rel.id
-        )
+        _sel(RelationConfidence).where(RelationConfidence.relation_id == contra_rel.id)
     )
     confidence = conf_result.scalar_one_or_none()
     assert confidence is not None
     assert confidence.logic_checked is False
     import json
+
     log = json.loads(confidence.calculation_log or "{}")
     assert log["conflict_penalty"] is True
     assert log["conflicting_relation_id"] == treat_rel.id
@@ -389,10 +374,9 @@ async def test_confidence_conflict_log_structured(db_session: AsyncSession):
 
     from app.models.academic_relation import relation_evidences
     from sqlalchemy import insert
+
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=treat_rel.id, evidence_id=ev.id
-        )
+        insert(relation_evidences).values(relation_id=treat_rel.id, evidence_id=ev.id)
     )
     await db_session.flush()
 
@@ -412,15 +396,14 @@ async def test_confidence_conflict_log_structured(db_session: AsyncSession):
     from sqlalchemy import select as _sel
 
     conf_result = await db_session.execute(
-        _sel(RelationConfidence).where(
-            RelationConfidence.relation_id == treat_rel.id
-        )
+        _sel(RelationConfidence).where(RelationConfidence.relation_id == treat_rel.id)
     )
     confidence = conf_result.scalar_one_or_none()
     assert confidence is not None
     assert confidence.logic_checked is False
 
     import json
+
     log = json.loads(confidence.calculation_log or "{}")
     assert log["conflict_penalty"] is True
     assert log["conflicting_relation_id"] == contra_rel.id
@@ -457,10 +440,9 @@ async def test_confidence_no_conflict_structured_log(db_session: AsyncSession):
 
     from app.models.academic_relation import relation_evidences
     from sqlalchemy import insert
+
     await db_session.execute(
-        insert(relation_evidences).values(
-            relation_id=rel.id, evidence_id=ev.id
-        )
+        insert(relation_evidences).values(relation_id=rel.id, evidence_id=ev.id)
     )
     await db_session.flush()
 
@@ -469,6 +451,7 @@ async def test_confidence_no_conflict_structured_log(db_session: AsyncSession):
 
     from app.models.academic_relation import RelationConfidence
     from sqlalchemy import select as _sel
+
     conf_result = await db_session.execute(
         _sel(RelationConfidence).where(RelationConfidence.relation_id == rel.id)
     )
@@ -477,6 +460,7 @@ async def test_confidence_no_conflict_structured_log(db_session: AsyncSession):
     assert confidence.logic_checked is True
 
     import json
+
     log = json.loads(confidence.calculation_log or "{}")
     assert log["conflict_penalty"] is False
     assert "conflicting_relation_id" not in log
@@ -518,8 +502,11 @@ async def test_passage_detail_includes_sentences(db_session: AsyncSession):
     await db_session.flush()
 
     p = P(
-        id="pass-detail-999", chapter_id=chap.id, version_id=ver.id,
-        content_text="帝曰：善。", order=1,
+        id="pass-detail-999",
+        chapter_id=chap.id,
+        version_id=ver.id,
+        content_text="帝曰：善。",
+        order=1,
     )
     db_session.add(p)
     await db_session.flush()
@@ -533,8 +520,10 @@ async def test_passage_detail_includes_sentences(db_session: AsyncSession):
     await db_session.flush()
 
     vt = Var(
-        id="var-detail-1", base_token_id=t.id,
-        variant_type=VariantType.SUBSTITUTION, description="善 ↔ 差",
+        id="var-detail-1",
+        base_token_id=t.id,
+        variant_type=VariantType.SUBSTITUTION,
+        description="善 ↔ 差",
     )
     db_session.add(vt)
     await db_session.flush()

@@ -30,10 +30,10 @@ router = APIRouter(tags=["Relations"])
 
 # Evidence level → confidence weight
 LEVEL_WEIGHTS: dict[EvidenceLevel, float] = {
-    EvidenceLevel.LEVEL_1: 1.0,   # 出土实物
-    EvidenceLevel.LEVEL_2: 0.9,   # 传世善本/校勘本
-    EvidenceLevel.LEVEL_3: 0.6,   # 旁证/转引注疏
-    EvidenceLevel.LEVEL_4: 0.3,   # 现代推论
+    EvidenceLevel.LEVEL_1: 1.0,  # 出土实物
+    EvidenceLevel.LEVEL_2: 0.9,  # 传世善本/校勘本
+    EvidenceLevel.LEVEL_3: 0.6,  # 旁证/转引注疏
+    EvidenceLevel.LEVEL_4: 0.3,  # 现代推论
 }
 
 
@@ -94,13 +94,15 @@ async def calculate_relation_confidence(
                 opposite_filter = AcademicRelation.relation_type == "TREAT"
 
             conflict_rel = await session.execute(
-                select(AcademicRelation).where(
+                select(AcademicRelation)
+                .where(
                     AcademicRelation.source_entity_id == relation.source_entity_id,
                     AcademicRelation.target_entity_id == relation.target_entity_id,
                     AcademicRelation.id != relation.id,
                     AcademicRelation.is_deleted.is_(False),
                     opposite_filter,
-                ).limit(1)
+                )
+                .limit(1)
             )
             conflicting = conflict_rel.scalar_one_or_none()
             if conflicting is not None:
@@ -113,9 +115,7 @@ async def calculate_relation_confidence(
 
     # 4. Upsert RelationConfidence
     conf_result = await session.execute(
-        select(RelationConfidence).filter(
-            RelationConfidence.relation_id == relation_id
-        )
+        select(RelationConfidence).filter(RelationConfidence.relation_id == relation_id)
     )
     confidence = conf_result.scalar_one_or_none()
     if not confidence:
@@ -128,17 +128,21 @@ async def calculate_relation_confidence(
         {
             "weights": weights,
             "conflict_penalty": conflicting_id is not None,
-            **({
-                "conflict_note": (
-                    f"{relation.relation_type} ↔ {conflicting_relation_type} conflict "
-                    f"for same entity pair"
-                ),
-                "conflicting_relation_id": conflicting_id,
-                "current_relation_type": relation.relation_type,
-                "conflicting_relation_type": conflicting_relation_type,
-                "source_entity_id": relation.source_entity_id,
-                "target_entity_id": relation.target_entity_id,
-            } if conflicting_id is not None else {}),
+            **(
+                {
+                    "conflict_note": (
+                        f"{relation.relation_type} ↔ {conflicting_relation_type} conflict "
+                        f"for same entity pair"
+                    ),
+                    "conflicting_relation_id": conflicting_id,
+                    "current_relation_type": relation.relation_type,
+                    "conflicting_relation_type": conflicting_relation_type,
+                    "source_entity_id": relation.source_entity_id,
+                    "target_entity_id": relation.target_entity_id,
+                }
+                if conflicting_id is not None
+                else {}
+            ),
         },
         ensure_ascii=False,
     )
@@ -167,6 +171,7 @@ def _is_treat_or_contra(relation_type: str) -> bool:
 # API endpoint
 # ---------------------------------------------------------------------------
 
+
 class ConfidenceResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     relation_id: str
@@ -189,9 +194,7 @@ async def calculate_confidence_endpoint(
 
     # Fetch the stored confidence record
     result = await session.execute(
-        select(RelationConfidence).filter(
-            RelationConfidence.relation_id == relation_id
-        )
+        select(RelationConfidence).filter(RelationConfidence.relation_id == relation_id)
     )
     confidence = result.scalar_one_or_none()
 

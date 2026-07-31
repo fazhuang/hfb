@@ -15,20 +15,10 @@
     </div>
 
     <div class="dss-actions">
-      <button
-        type="button"
-        class="dss-back-btn"
-        :disabled="disabled"
-        @click="$emit('back')"
-      >
+      <button type="button" class="dss-back-btn" :disabled="disabled" @click="$emit('back')">
         返回修改问题
       </button>
-      <button
-        type="button"
-        class="dss-submit-btn"
-        :disabled="disabled"
-        @click="$emit('submit')"
-      >
+      <button type="button" class="dss-submit-btn" :disabled="disabled" @click="$emit('submit')">
         开始分析
       </button>
     </div>

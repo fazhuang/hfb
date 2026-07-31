@@ -1,10 +1,10 @@
 ---
-title: "Sprint 00 Prompt Status"
-version: "1.0"
-status: "Active"
-sprint: "Sprint 00"
-last_updated: "2026-06-24"
-related: ["../../09-prompts/README.md"]
+title: 'Sprint 00 Prompt Status'
+version: '1.0'
+status: 'Active'
+sprint: 'Sprint 00'
+last_updated: '2026-06-24'
+related: ['../../09-prompts/README.md']
 ---
 
 # Sprint 00 — Prompt Status
@@ -15,19 +15,19 @@ related: ["../../09-prompts/README.md"]
 
 ## 可用 Prompt
 
-| 编号 | 名称 | 状态 | 用途 |
-|---|---|---|---|
-| P001 | Claude Sprint 00 Docs Foundation | Active | 文档创建 |
-| P002 | Codex Docs Audit | Active | 文档审计 |
-| P003 | Gemini UI Academic Review | Active | UI 学术评审 |
+| 编号 | 名称                             | 状态   | 用途        |
+| ---- | -------------------------------- | ------ | ----------- |
+| P001 | Claude Sprint 00 Docs Foundation | Active | 文档创建    |
+| P002 | Codex Docs Audit                 | Active | 文档审计    |
+| P003 | Gemini UI Academic Review        | Active | UI 学术评审 |
 
 ## Prompt 版本
 
-| 编号 | 当前版本 | 最近更新 |
-|---|---|---|
-| P001 | V0.1 | 2026-06-24 |
-| P002 | V0.1 | 2026-06-24 |
-| P003 | V0.1 | 2026-06-24 |
+| 编号 | 当前版本 | 最近更新   |
+| ---- | -------- | ---------- |
+| P001 | V0.1     | 2026-06-24 |
+| P002 | V0.1     | 2026-06-24 |
+| P003 | V0.1     | 2026-06-24 |
 
 ## 待添加 Prompt
 

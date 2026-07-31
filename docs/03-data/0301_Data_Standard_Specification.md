@@ -35,13 +35,13 @@
 
 准入预检覆盖以下五类核心对象：
 
-| 对象 | 对应表 | 准入条件 |
-|---|---|---|
-| ClassicalVersion | `classical_versions` | `review_status = 'approved'` 且 `source_url` 非空 |
-| Document | `documents` | `review_status = 'approved'` 且 `source_url` 非空 且 `rag_enabled = true` |
-| Passage (已验证) | `passages` | 必须存在 `Citation → Evidence → SourceRef` 绑定链，且 `Evidence.source_passage_id` 与该 Passage 一致、`Evidence.source_ref_id` 非空、`SourceRef.url` 非空 |
-| Passage (可对齐) | `passages` | `content_text` 非空 |
-| Person | `persons` | **仅统计数量**；当前模型无 `review_status` 及 Citation/Evidence 绑定，不计入任何审核/Citation/Evidence 要求 |
+| 对象             | 对应表               | 准入条件                                                                                                                                                  |
+| ---------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ClassicalVersion | `classical_versions` | `review_status = 'approved'` 且 `source_url` 非空                                                                                                         |
+| Document         | `documents`          | `review_status = 'approved'` 且 `source_url` 非空 且 `rag_enabled = true`                                                                                 |
+| Passage (已验证) | `passages`           | 必须存在 `Citation → Evidence → SourceRef` 绑定链，且 `Evidence.source_passage_id` 与该 Passage 一致、`Evidence.source_ref_id` 非空、`SourceRef.url` 非空 |
+| Passage (可对齐) | `passages`           | `content_text` 非空                                                                                                                                       |
+| Person           | `persons`            | **仅统计数量**；当前模型无 `review_status` 及 Citation/Evidence 绑定，不计入任何审核/Citation/Evidence 要求                                               |
 
 ### 已知模型缺口：Person
 
@@ -56,20 +56,20 @@
 
 所有阈值必须同时满足才判定 PASS：
 
-| 阈值 | 要求 | 语义 |
-|---|---|---|
-| `approved_classical_versions` | >= 2 | 已审核古籍版本（`review_status=approved`，`source_url` 非空） |
-| `chapters` OR `alignable_passages` | chapters >= 3 或 alignable_passages >= 100 | 有足够的章节结构或可对齐经文数据 |
-| `persons` | >= 10 | 历史人物记录数（仅计数，无 Citation/Evidence 门槛） |
-| `literature_or_collections` | >= 20 | 至少 20 条有来源链接的文献（`documents` 中 `source_url` 非空） |
-| `approved_rag_documents` | >= 20 | 已审核且 RAG 启用的文献（`review_status=approved`, `source_url` 非空, `rag_enabled=true`） |
+| 阈值                               | 要求                                       | 语义                                                                                       |
+| ---------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `approved_classical_versions`      | >= 2                                       | 已审核古籍版本（`review_status=approved`，`source_url` 非空）                              |
+| `chapters` OR `alignable_passages` | chapters >= 3 或 alignable_passages >= 100 | 有足够的章节结构或可对齐经文数据                                                           |
+| `persons`                          | >= 10                                      | 历史人物记录数（仅计数，无 Citation/Evidence 门槛）                                        |
+| `literature_or_collections`        | >= 20                                      | 至少 20 条有来源链接的文献（`documents` 中 `source_url` 非空）                             |
+| `approved_rag_documents`           | >= 20                                      | 已审核且 RAG 启用的文献（`review_status=approved`, `source_url` 非空, `rag_enabled=true`） |
 
 ### Evidence 链覆盖门槛
 
-| 路径 | 条件 | evidence_bound_passages 要求 |
-|---|---|---|
-| 章节路径 | `chapters >= 3` | >= 1 |
-| 经文路径 | `alignable_passages >= 100` | >= 100 |
+| 路径     | 条件                        | evidence_bound_passages 要求 |
+| -------- | --------------------------- | ---------------------------- |
+| 章节路径 | `chapters >= 3`             | >= 1                         |
+| 经文路径 | `alignable_passages >= 100` | >= 100                       |
 
 `evidence_bound_passages` 定义为同一 Passage 上真实存在 `Citation → Evidence → SourceRef` 绑定链，且 `Evidence.source_passage_id = Passage.id`、`Evidence.source_ref_id` 非空、`SourceRef.url` 非空。对应 SQL 见下方 Passage (已验证) 语义。
 
@@ -126,11 +126,11 @@ ORM 语义：`Person` 表全行计数。不施加审核/Citation/Evidence 过滤
 
 ## Exit Codes
 
-| 退出码 | 判定 | 含义 |
-|---|---|---|
-| 0 | PASS | 以下**全部**条件满足：（1）`approved_classical_versions >= 2`，（2）`chapters >= 3` 或 `alignable_passages >= 100`，（3）`persons >= 10`，（4）`literature_or_collections >= 20`，（5）`approved_rag_documents >= 20`，（6）满足对应路径的 Evidence 链覆盖门槛（章节路径 >=1 或经文路径 >=100），且（7）无 `BLOCKED_SCHEMA_GAP` |
-| 1 | FAIL_THRESHOLD | 无 schema gap，但上述任一条件不满足 |
-| 2 | BLOCKED_SCHEMA_GAP | 当前模型无法表达某条所需绑定（如 Person 缺 `review_status`） |
+| 退出码 | 判定               | 含义                                                                                                                                                                                                                                                                                                                            |
+| ------ | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0      | PASS               | 以下**全部**条件满足：（1）`approved_classical_versions >= 2`，（2）`chapters >= 3` 或 `alignable_passages >= 100`，（3）`persons >= 10`，（4）`literature_or_collections >= 20`，（5）`approved_rag_documents >= 20`，（6）满足对应路径的 Evidence 链覆盖门槛（章节路径 >=1 或经文路径 >=100），且（7）无 `BLOCKED_SCHEMA_GAP` |
+| 1      | FAIL_THRESHOLD     | 无 schema gap，但上述任一条件不满足                                                                                                                                                                                                                                                                                             |
+| 2      | BLOCKED_SCHEMA_GAP | 当前模型无法表达某条所需绑定（如 Person 缺 `review_status`）                                                                                                                                                                                                                                                                    |
 
 ## Output Schema
 

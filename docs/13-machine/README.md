@@ -1,13 +1,13 @@
 ---
-title: "Machine Layer README"
-version: "1.1"
-status: "Active"
-owner: "Chief Documentation Architect"
-last_updated: "2026-06-25"
-domain: "documentation"
+title: 'Machine Layer README'
+version: '1.1'
+status: 'Active'
+owner: 'Chief Documentation Architect'
+last_updated: '2026-06-25'
+domain: 'documentation'
 related:
-  - "docs/00-governance/0005_AI_Execution_Protocol.md"
-  - "docs/09-prompts/README.md"
+  - 'docs/00-governance/0005_AI_Execution_Protocol.md'
+  - 'docs/09-prompts/README.md'
 ---
 
 # 13 Machine — AI Machine Layer
@@ -41,18 +41,18 @@ AI 进入项目
 
 ## 文件清单
 
-| 文件 | 用途 |
-|---|---|
-| `project.json` | 项目元数据 + 技术栈 |
-| `document-index.json` | 全部文档索引 |
-| `prompt-index.json` | Prompt 版本和状态 |
-| `sprint-index.json` | Sprint 进度 |
-| `architecture.json` | 六层架构 + ADR |
-| `ontology.json` | 知识本体 |
-| `entity-types.json` | 实体类型定义 |
+| 文件                  | 用途                |
+| --------------------- | ------------------- |
+| `project.json`        | 项目元数据 + 技术栈 |
+| `document-index.json` | 全部文档索引        |
+| `prompt-index.json`   | Prompt 版本和状态   |
+| `sprint-index.json`   | Sprint 进度         |
+| `architecture.json`   | 六层架构 + ADR      |
+| `ontology.json`       | 知识本体            |
+| `entity-types.json`   | 实体类型定义        |
 | `relation-types.json` | 关系类型 + NER 标签 |
-| `api-index.json` | API 端点清单 |
-| `README.json` | 本文件 |
+| `api-index.json`      | API 端点清单        |
+| `README.json`         | 本文件              |
 
 ## 维护规则
 
@@ -63,10 +63,10 @@ AI 进入项目
 
 ## 关联目录
 
-| 目录 | 关系 | 说明 |
-|---|---|---|
+| 目录                                     | 关系        | 说明                                        |
+| ---------------------------------------- | ----------- | ------------------------------------------- |
 | [docs/00-governance/](../00-governance/) | AI 启动依据 | 遵循 0005 AI Execution Protocol §4 启动流程 |
-| [docs/09-prompts/](../09-prompts/) | Prompt 来源 | Prompt 索引映射到 09-prompts 资产库 |
+| [docs/09-prompts/](../09-prompts/)       | Prompt 来源 | Prompt 索引映射到 09-prompts 资产库         |
 
 ---
 

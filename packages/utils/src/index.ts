@@ -16,9 +16,10 @@ export function sleep(ms: number): Promise<void> {
  */
 export function generateId(length: number = 21): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const randomValues = typeof crypto !== 'undefined'
-    ? crypto.getRandomValues(new Uint8Array(length))
-    : Array.from({ length }, () => Math.floor(Math.random() * 256));
+  const randomValues =
+    typeof crypto !== 'undefined'
+      ? crypto.getRandomValues(new Uint8Array(length))
+      : Array.from({ length }, () => Math.floor(Math.random() * 256));
   return Array.from(randomValues, (v) => chars[v % chars.length]!).join('');
 }
 

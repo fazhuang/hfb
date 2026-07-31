@@ -31,7 +31,6 @@ async function login(page: any) {
 // ─── Suite ───────────────────────────────────────────────────────────
 
 test.describe('Task 2A E2E — Knowledge Explorer page', () => {
-
   test.beforeAll(async ({ request }) => {
     // Authenticate — backend envelope is { success, data: { access_token, ... } }
     const resp = await request.post(`${API}/api/v1/auth/login`, {
@@ -153,7 +152,9 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
 
   // ─── Edge evidence inspection ──────────────────────────────────────
 
-  test('clicking an edge shows evidence details with quote, citation, and document link', async ({ page }) => {
+  test('clicking an edge shows evidence details with quote, citation, and document link', async ({
+    page,
+  }) => {
     // Search for an entity known to have evidence-backed graph edges.
     // 针灸甲乙经 has 4 explicit edges with real evidence (quotes, citations, document_ids).
     const input = page.locator('input.search-input');
@@ -162,7 +163,11 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
 
     await expect(page.locator('.result-item').first()).toBeVisible({ timeout: 10_000 });
     // Select the book result — its entity_type is 'book' and it has many edges
-    await page.locator('.result-item').filter({ has: page.locator('.result-type', { hasText: 'book' }) }).first().click();
+    await page
+      .locator('.result-item')
+      .filter({ has: page.locator('.result-type', { hasText: 'book' }) })
+      .first()
+      .click();
 
     // Wait for neighborhood and graph to fully load (vis-network + edges)
     await expect(page.locator('.entity-detail')).toBeVisible({ timeout: 10_000 });
@@ -181,7 +186,12 @@ test.describe('Task 2A E2E — Knowledge Explorer page', () => {
       if (!edgeIds || edgeIds.length === 0) return false;
       // Select the first edge — this fires 'selectEdge' → edge-click emit
       net.setSelection({ edges: [edgeIds[0]] });
-      (net as any).emit('selectEdge', { edges: [edgeIds[0]], nodes: [], event: {} as any, pointer: {} as any });
+      (net as any).emit('selectEdge', {
+        edges: [edgeIds[0]],
+        nodes: [],
+        event: {} as any,
+        pointer: {} as any,
+      });
       return true;
     });
 

@@ -3,6 +3,7 @@ Schemas for Book, Version, Chapter, Passage, Paper, Image entities.
 
 Per HFB-DOM-0802 ~ 0805, HFB-DEV-0504 API Design Standard.
 """
+
 from __future__ import annotations
 
 from datetime import datetime

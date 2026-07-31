@@ -21,6 +21,7 @@ def openapi_paths():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         from main import app
+
         schema = app.openapi()
     return sorted(schema.get("paths", {}).keys())
 
@@ -40,15 +41,19 @@ def test_no_double_v1_prefix_in_openapi(openapi_paths):
 def test_admin_routes_have_single_v1_prefix(openapi_paths):
     """Admin routes must be mounted under /api/v1/ (exactly once)."""
     admin_routes = [
-        p for p in openapi_paths
-        if any(kw in p for kw in [
-            "/admin/source-policies",
-            "/ingestion/tasks",
-            "/documents/{document_id}/review",
-            "/documents/{document_id}/withdraw",
-            "/versions/{version_id}/withdraw",
-            "/versions/{version_id}/restore",
-        ])
+        p
+        for p in openapi_paths
+        if any(
+            kw in p
+            for kw in [
+                "/admin/source-policies",
+                "/ingestion/tasks",
+                "/documents/{document_id}/review",
+                "/documents/{document_id}/withdraw",
+                "/versions/{version_id}/withdraw",
+                "/versions/{version_id}/restore",
+            ]
+        )
     ]
 
     assert admin_routes, "Expected admin routes are missing from OpenAPI"
@@ -65,7 +70,8 @@ def test_admin_routes_have_single_v1_prefix(openapi_paths):
 def test_classical_versions_routes_under_v1(openapi_paths):
     """Classical versions must be at /api/v1/, not /api/."""
     legacy = [
-        p for p in openapi_paths
+        p
+        for p in openapi_paths
         if p.startswith(("/api/classical", "/api/admin/classical"))
     ]
     assert legacy == [], (

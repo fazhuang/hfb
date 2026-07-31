@@ -1,13 +1,13 @@
 ---
-title: "Academic Assets Index"
-version: "1.1"
-status: "Active"
-owner: "Research Lead + Content Manager"
-last_updated: "2026-06-25"
-domain: "academic"
+title: 'Academic Assets Index'
+version: '1.1'
+status: 'Active'
+owner: 'Research Lead + Content Manager'
+last_updated: '2026-06-25'
+domain: 'academic'
 related:
-  - "docs/16-research-framework/1601_Digital_Humanities_Research_Framework.md"
-  - "docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md"
+  - 'docs/16-research-framework/1601_Digital_Humanities_Research_Framework.md'
+  - 'docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md'
 ---
 
 # 18 Academic Assets — 学术资产
@@ -25,11 +25,11 @@ related:
 
 ## 关联目录
 
-| 目录 | 关系 | 说明 |
-|---|---|---|
-| [docs/16-research-framework/](../16-research-framework/) | 研究方向依据 | 学术产出服务于研究框架定义的学术方向 |
-| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | MVP 约束 | 学术资产建设以 HFB-PS-1709 为范围边界 |
-| [docs/08-domain/](../08-domain/) | 领域知识模型 | 学术数据基于知识模型组织 |
+| 目录                                                               | 关系         | 说明                                  |
+| ------------------------------------------------------------------ | ------------ | ------------------------------------- |
+| [docs/16-research-framework/](../16-research-framework/)           | 研究方向依据 | 学术产出服务于研究框架定义的学术方向  |
+| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | MVP 约束     | 学术资产建设以 HFB-PS-1709 为范围边界 |
+| [docs/08-domain/](../08-domain/)                                   | 领域知识模型 | 学术数据基于知识模型组织              |
 
 ---
 

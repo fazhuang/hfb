@@ -3,25 +3,32 @@
     <!-- Welcome Hero -->
     <div class="welcome-hero">
       <template v-if="auth.isAuthenticated && auth.user">
-        <h1>{{ t('onboarding.welcomeNewUser', { name: auth.user.display_name || auth.user.username }) }}</h1>
+        <h1>
+          {{
+            t('onboarding.welcomeNewUser', { name: auth.user.display_name || auth.user.username })
+          }}
+        </h1>
         <p class="hero-subtitle">{{ t('onboarding.welcomeNewUserHint') }}</p>
         <router-link
           v-if="!store.hasActiveResearch"
           :to="{ name: 'research-project-list' }"
           class="hero-cta"
-        >{{ t('onboarding.createFirstTopic') }}</router-link>
-        <router-link
-          v-else
-          :to="{ name: 'research-project-list' }"
-          class="hero-cta"
-        >{{ t('researchEntry.backToResearch') }}</router-link>
+          >{{ t('onboarding.createFirstTopic') }}</router-link
+        >
+        <router-link v-else :to="{ name: 'research-project-list' }" class="hero-cta">{{
+          t('researchEntry.backToResearch')
+        }}</router-link>
       </template>
       <template v-else>
         <h1>{{ t('onboarding.welcomeTitle') }}</h1>
         <p class="hero-subtitle">{{ t('onboarding.welcomeAnonymous') }}</p>
         <div class="hero-actions">
-          <router-link :to="{ name: 'register' }" class="hero-cta">{{ t('onboarding.startExplore') }}</router-link>
-          <router-link :to="{ name: 'about' }" class="hero-link">{{ t('onboarding.learnMore') }}</router-link>
+          <router-link :to="{ name: 'register' }" class="hero-cta">{{
+            t('onboarding.startExplore')
+          }}</router-link>
+          <router-link :to="{ name: 'about' }" class="hero-link">{{
+            t('onboarding.learnMore')
+          }}</router-link>
         </div>
       </template>
     </div>
@@ -39,16 +46,18 @@
       >
         <span class="entry-icon">🔬</span>
         <span class="entry-text">
-          <span class="entry-label">{{ store.hasActiveResearch ? t('researchEntry.backToResearch') : t('researchEntry.startNew') }}</span>
-          <span class="entry-desc" v-if="!store.hasActiveResearch">{{ t('researchEntry.startNewDesc') }}</span>
+          <span class="entry-label">{{
+            store.hasActiveResearch
+              ? t('researchEntry.backToResearch')
+              : t('researchEntry.startNew')
+          }}</span>
+          <span class="entry-desc" v-if="!store.hasActiveResearch">{{
+            t('researchEntry.startNewDesc')
+          }}</span>
           <span class="entry-desc" v-else>{{ store.currentTopic?.name }}</span>
         </span>
       </router-link>
-      <router-link
-        v-else
-        :to="{ name: 'login' }"
-        class="research-entry-btn"
-      >
+      <router-link v-else :to="{ name: 'login' }" class="research-entry-btn">
         <span class="entry-icon">🔬</span>
         <span class="entry-text">
           <span class="entry-label">{{ t('researchEntry.startNew') }}</span>
@@ -63,7 +72,9 @@
 
     <div v-else class="status-grid">
       <StatusCard
-        :label="system.backendConnected ? t('system.backendConnected') : t('system.backendDisconnected')"
+        :label="
+          system.backendConnected ? t('system.backendConnected') : t('system.backendDisconnected')
+        "
         :connected="system.backendConnected"
       />
       <StatusCard
@@ -140,7 +151,8 @@ onMounted(() => {
   margin: var(--space-20) auto;
   padding: var(--space-10) 32px;
   text-align: center;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 /* --- Welcome Hero --- */
@@ -288,7 +300,9 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .status-grid {

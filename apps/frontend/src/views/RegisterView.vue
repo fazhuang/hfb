@@ -2,90 +2,102 @@
   <div class="register-page">
     <div class="register-layout">
       <div class="register-card">
-      <h1>{{ t('auth.registerTitle') }}</h1>
-      <p class="register-subtitle">{{ t('auth.registerSubtitle') }}</p>
+        <h1>{{ t('auth.registerTitle') }}</h1>
+        <p class="register-subtitle">{{ t('auth.registerSubtitle') }}</p>
 
-      <form @submit.prevent="handleRegister" class="register-form">
-        <div class="form-group">
-          <label for="username">{{ t('auth.username') }}</label>
-          <input
-            id="username"
-            v-model="username"
-            type="text"
-            autocomplete="username"
-            :disabled="auth.loading"
-            :placeholder="t('auth.usernamePlaceholder')"
-            :class="{ 'input-error': auth.validationErrors['username'] }"
-          />
-          <span v-if="auth.validationErrors['username']" class="field-error">{{ auth.validationErrors['username'] }}</span>
-        </div>
+        <form @submit.prevent="handleRegister" class="register-form">
+          <div class="form-group">
+            <label for="username">{{ t('auth.username') }}</label>
+            <input
+              id="username"
+              v-model="username"
+              type="text"
+              autocomplete="username"
+              :disabled="auth.loading"
+              :placeholder="t('auth.usernamePlaceholder')"
+              :class="{ 'input-error': auth.validationErrors['username'] }"
+            />
+            <span v-if="auth.validationErrors['username']" class="field-error">{{
+              auth.validationErrors['username']
+            }}</span>
+          </div>
 
-        <div class="form-group">
-          <label for="email">{{ t('auth.email') }}</label>
-          <input
-            id="email"
-            v-model="email"
-            type="email"
-            autocomplete="email"
-            :disabled="auth.loading"
-            placeholder="email@example.com"
-            :class="{ 'input-error': auth.validationErrors['email'] }"
-          />
-          <span v-if="auth.validationErrors['email']" class="field-error">{{ auth.validationErrors['email'] }}</span>
-        </div>
+          <div class="form-group">
+            <label for="email">{{ t('auth.email') }}</label>
+            <input
+              id="email"
+              v-model="email"
+              type="email"
+              autocomplete="email"
+              :disabled="auth.loading"
+              placeholder="email@example.com"
+              :class="{ 'input-error': auth.validationErrors['email'] }"
+            />
+            <span v-if="auth.validationErrors['email']" class="field-error">{{
+              auth.validationErrors['email']
+            }}</span>
+          </div>
 
-        <div class="form-group">
-          <label for="displayName">{{ t('auth.displayName') }}</label>
-          <input
-            id="displayName"
-            v-model="displayName"
-            type="text"
-            autocomplete="name"
-            :disabled="auth.loading"
-            :placeholder="t('auth.displayNamePlaceholder')"
-            :class="{ 'input-error': auth.validationErrors['display_name'] }"
-          />
-          <span v-if="auth.validationErrors['display_name']" class="field-error">{{ auth.validationErrors['display_name'] }}</span>
-        </div>
+          <div class="form-group">
+            <label for="displayName">{{ t('auth.displayName') }}</label>
+            <input
+              id="displayName"
+              v-model="displayName"
+              type="text"
+              autocomplete="name"
+              :disabled="auth.loading"
+              :placeholder="t('auth.displayNamePlaceholder')"
+              :class="{ 'input-error': auth.validationErrors['display_name'] }"
+            />
+            <span v-if="auth.validationErrors['display_name']" class="field-error">{{
+              auth.validationErrors['display_name']
+            }}</span>
+          </div>
 
-        <div class="form-group">
-          <label for="password">{{ t('auth.password') }}</label>
-          <input
-            id="password"
-            v-model="password"
-            type="password"
-            autocomplete="new-password"
-            :disabled="auth.loading"
-            :placeholder="t('auth.passwordPlaceholder')"
-            :class="{ 'input-error': passwordError || auth.validationErrors['password'] }"
-          />
-          <span v-if="passwordError" class="field-error">{{ passwordError }}</span>
-          <span v-else-if="auth.validationErrors['password']" class="field-error">{{ auth.validationErrors['password'] }}</span>
-        </div>
+          <div class="form-group">
+            <label for="password">{{ t('auth.password') }}</label>
+            <input
+              id="password"
+              v-model="password"
+              type="password"
+              autocomplete="new-password"
+              :disabled="auth.loading"
+              :placeholder="t('auth.passwordPlaceholder')"
+              :class="{ 'input-error': passwordError || auth.validationErrors['password'] }"
+            />
+            <span v-if="passwordError" class="field-error">{{ passwordError }}</span>
+            <span v-else-if="auth.validationErrors['password']" class="field-error">{{
+              auth.validationErrors['password']
+            }}</span>
+          </div>
 
-        <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
+          <div v-if="auth.error" class="error-message">{{ auth.error }}</div>
 
-        <button type="submit" class="register-btn" :disabled="auth.loading || !username || !email || !password || !!passwordError">
-          <span v-if="auth.loading" class="spinner"></span>
-          {{ auth.loading ? t('auth.registering') : t('auth.register') }}
-        </button>
-      </form>
+          <button
+            type="submit"
+            class="register-btn"
+            :disabled="auth.loading || !username || !email || !password || !!passwordError"
+          >
+            <span v-if="auth.loading" class="spinner"></span>
+            {{ auth.loading ? t('auth.registering') : t('auth.register') }}
+          </button>
+        </form>
 
-      <p class="login-link">
-        {{ t('auth.hasAccount') }}
-        <router-link :to="{ name: 'login' }">{{ t('auth.login') }}</router-link>
-      </p>
+        <p class="login-link">
+          {{ t('auth.hasAccount') }}
+          <router-link :to="{ name: 'login' }">{{ t('auth.login') }}</router-link>
+        </p>
+      </div>
+
+      <aside class="login-value-card">
+        <h3>{{ t('onboarding.loginValueTitle') }}</h3>
+        <ul>
+          <li>{{ t('onboarding.loginValue1') }}</li>
+          <li>{{ t('onboarding.loginValue2') }}</li>
+          <li>{{ t('onboarding.loginValue3') }}</li>
+        </ul>
+      </aside>
     </div>
-
-    <aside class="login-value-card">
-      <h3>{{ t('onboarding.loginValueTitle') }}</h3>
-      <ul>
-        <li>{{ t('onboarding.loginValue1') }}</li>
-        <li>{{ t('onboarding.loginValue2') }}</li>
-        <li>{{ t('onboarding.loginValue3') }}</li>
-      </ul>
-    </aside>
-  </div>
   </div>
 </template>
 
@@ -113,7 +125,12 @@ const passwordError = computed(() => {
 
 async function handleRegister(): Promise<void> {
   if (passwordError.value) return;
-  const ok = await auth.register(username.value.trim(), email.value.trim(), password.value, displayName.value.trim() || undefined);
+  const ok = await auth.register(
+    username.value.trim(),
+    email.value.trim(),
+    password.value,
+    displayName.value.trim() || undefined,
+  );
   if (ok) {
     // After registration, log the user in
     const loginOk = await auth.login(username.value.trim(), password.value);
@@ -275,7 +292,9 @@ async function handleRegister(): Promise<void> {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- Value card (shared with LoginView) --- */

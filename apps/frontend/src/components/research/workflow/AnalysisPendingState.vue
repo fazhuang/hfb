@@ -8,9 +8,7 @@
       研究工作流正在执行中，包含文献检索、证据综合和报告生成等步骤。此过程可能需要一些时间，请耐心等待。
     </p>
 
-    <div v-if="elapsed > 0" class="aps-elapsed">
-      已等待 {{ formatElapsed }}
-    </div>
+    <div v-if="elapsed > 0" class="aps-elapsed">已等待 {{ formatElapsed }}</div>
   </section>
 </template>
 
@@ -33,12 +31,15 @@
 import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 
-const props = withDefaults(defineProps<{
-  /** Whether submission is still active */
-  active?: boolean;
-}>(), {
-  active: true,
-});
+const props = withDefaults(
+  defineProps<{
+    /** Whether submission is still active */
+    active?: boolean;
+  }>(),
+  {
+    active: true,
+  },
+);
 
 const elapsed = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;

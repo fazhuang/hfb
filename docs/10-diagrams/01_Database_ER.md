@@ -129,32 +129,32 @@ erDiagram
 
 ## 2. 实体说明
 
-| 实体 | 表名 | 说明 | 关键字段 |
-|---|---|---|---|
-| Person | `persons` | 历史/现代人物 | name, name_zh, birth_year, death_year, dynasty |
-| Book | `books` | 古籍 | title, author, dynasty, genre |
-| Version | `versions` | 书籍版本（底本/校本/注本） | version_type, version_name, era |
-| Chapter | `chapters` | 版本内的章节 | chapter_number, title |
-| Passage | `passages` | 最小文本单元 | content_original, content_modern, annotation |
-| Paper | `papers` | 现代研究论文 | title, authors, year, doi |
-| Entity | `entities` | 通用实体基表 | entity_type, name, attributes(JSONB) |
-| Relation | `relations` | 实体间关系 | relation_type, confidence, is_verified |
-| User | `users` | 学术用户 | username, email, role |
+| 实体     | 表名        | 说明                       | 关键字段                                       |
+| -------- | ----------- | -------------------------- | ---------------------------------------------- |
+| Person   | `persons`   | 历史/现代人物              | name, name_zh, birth_year, death_year, dynasty |
+| Book     | `books`     | 古籍                       | title, author, dynasty, genre                  |
+| Version  | `versions`  | 书籍版本（底本/校本/注本） | version_type, version_name, era                |
+| Chapter  | `chapters`  | 版本内的章节               | chapter_number, title                          |
+| Passage  | `passages`  | 最小文本单元               | content_original, content_modern, annotation   |
+| Paper    | `papers`    | 现代研究论文               | title, authors, year, doi                      |
+| Entity   | `entities`  | 通用实体基表               | entity_type, name, attributes(JSONB)           |
+| Relation | `relations` | 实体间关系                 | relation_type, confidence, is_verified         |
+| User     | `users`     | 学术用户                   | username, email, role                          |
 
 ## 3. 关系说明
 
-| 源 | 目标 | 关系类型 | 说明 |
-|---|---|---|---|
-| Book | Version | 1:N | 一部书有多个版本 |
-| Version | Chapter | 1:N | 一个版本有多个章节 |
-| Chapter | Passage | 1:N | 一个章节有多个段落 |
-| Passage | Relation | 1:N | 关系可追溯到出处段落 |
-| Entity | Relation | 1:N（源） | 一个实体作为关系起点 |
-| Entity | Relation | 1:N（目标） | 一个实体作为关系终点 |
-| Passage | Entity | M:N | 段落与实体间的提及关系 |
-| User | Passage | 1:N | 记录导入者 |
-| User | Relation | 1:N | 记录验证者 |
-| Paper | Entity | M:N | 论文与实体的引用关系 |
+| 源      | 目标     | 关系类型    | 说明                   |
+| ------- | -------- | ----------- | ---------------------- |
+| Book    | Version  | 1:N         | 一部书有多个版本       |
+| Version | Chapter  | 1:N         | 一个版本有多个章节     |
+| Chapter | Passage  | 1:N         | 一个章节有多个段落     |
+| Passage | Relation | 1:N         | 关系可追溯到出处段落   |
+| Entity  | Relation | 1:N（源）   | 一个实体作为关系起点   |
+| Entity  | Relation | 1:N（目标） | 一个实体作为关系终点   |
+| Passage | Entity   | M:N         | 段落与实体间的提及关系 |
+| User    | Passage  | 1:N         | 记录导入者             |
+| User    | Relation | 1:N         | 记录验证者             |
+| Paper   | Entity   | M:N         | 论文与实体的引用关系   |
 
 ## 4. 设计要点
 

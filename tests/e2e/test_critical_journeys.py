@@ -12,6 +12,7 @@ Requirements:
 Run:
   uv run pytest tests/e2e/ -v --browser chromium
 """
+
 from __future__ import annotations
 
 import json
@@ -122,7 +123,18 @@ def _run_backend(port: int) -> tuple[subprocess.Popen, Path]:
     log_fh = log_path.open("wb")
     try:
         proc = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "main:app", "--host", "127.0.0.1", "--port", str(port), "--log-level", "warning"],
+            [
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "main:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(port),
+                "--log-level",
+                "warning",
+            ],
             cwd=str(backend_dir),
             env=env,
             stdout=log_fh,
@@ -157,16 +169,25 @@ def _seed_user(backend_port: int, username: str, password: str) -> dict | None:
     """Register and login a user via the backend API. Return tokens + username."""
     base = f"http://127.0.0.1:{backend_port}"
     try:
-        r = httpx.post(f"{base}/api/v1/auth/register", json={
-            "username": username, "email": f"{username}@example.com", "password": password,
-        }, timeout=5)
+        r = httpx.post(
+            f"{base}/api/v1/auth/register",
+            json={
+                "username": username,
+                "email": f"{username}@example.com",
+                "password": password,
+            },
+            timeout=5,
+        )
         if r.status_code not in (201, 200):
-            raise RuntimeError(
-                f"Registration failed: {r.status_code} {r.text}"
-            )
-        r2 = httpx.post(f"{base}/api/v1/auth/login", json={
-            "username": username, "password": password,
-        }, timeout=5)
+            raise RuntimeError(f"Registration failed: {r.status_code} {r.text}")
+        r2 = httpx.post(
+            f"{base}/api/v1/auth/login",
+            json={
+                "username": username,
+                "password": password,
+            },
+            timeout=5,
+        )
         if r2.status_code == 200:
             data = r2.json()["data"]
             data["username"] = username  # embed for fixture convenience
@@ -201,12 +222,24 @@ def live_servers():
     frontend_healthy = _wait_ready(frontend_url, timeout=30)
 
     if not backend_healthy:
-        _fail_start(backend_proc, frontend_proc, logs, backend_port,
-                     "Backend /health failed", backend_url)
+        _fail_start(
+            backend_proc,
+            frontend_proc,
+            logs,
+            backend_port,
+            "Backend /health failed",
+            backend_url,
+        )
 
     if not frontend_healthy:
-        _fail_start(backend_proc, frontend_proc, logs, backend_port,
-                     "Frontend failed to start", frontend_url)
+        _fail_start(
+            backend_proc,
+            frontend_proc,
+            logs,
+            backend_port,
+            "Frontend failed to start",
+            frontend_url,
+        )
 
     # ---- /ready probe (guards against silent infra failures) ----
     ready_body: str = ""
@@ -224,9 +257,14 @@ def live_servers():
         time.sleep(0.5)
 
     if not ready_ok:
-        _fail_start(backend_proc, frontend_proc, logs, backend_port,
-                     f"/ready returned non-200.\nbody: {ready_body}",
-                     backend_url)
+        _fail_start(
+            backend_proc,
+            frontend_proc,
+            logs,
+            backend_port,
+            f"/ready returned non-200.\nbody: {ready_body}",
+            backend_url,
+        )
 
     # ---- Yield to tests ----
     success = False
@@ -287,56 +325,76 @@ def research_data(live_servers, test_user):
         )
         if response.status_code not in (200, 201):
             raise RuntimeError(
-                f"Failed to create {resource}: "
-                f"{response.status_code} {response.text}"
+                f"Failed to create {resource}: {response.status_code} {response.text}"
             )
         return response.json()["data"]
 
-    person = create("persons", {
-        "name": "皇甫谧",
-        "dynasty": "西晋",
-        "biography": "流程验证人物资料。",
-    })
-    book = create("books", {
-        "title": "针灸甲乙经（流程验证）",
-        "dynasty": "西晋",
-        "author_id": person["id"],
-    })
-    source_version = create("versions", {
-        "book_id": book["id"],
-        "version_name": "流程验证本 A",
-        "era": "验证数据",
-        "repository": "流程验证资料库",
-        "shelf_mark": "VALIDATION-A",
-        "source_url": "https://example.invalid/validation-a",
-    })
-    target_version = create("versions", {
-        "book_id": book["id"],
-        "version_name": "流程验证本 B",
-        "era": "验证数据",
-        "repository": "流程验证资料库",
-        "shelf_mark": "VALIDATION-B",
-        "source_url": "https://example.invalid/validation-b",
-    })
-    chapter = create("chapters", {
-        "book_id": book["id"],
-        "title": "流程验证章节",
-        "order": 1,
-    })
-    source_passage = create("passages", {
-        "chapter_id": chapter["id"],
-        "version_id": source_version["id"],
-        "content_text": "凡刺之法，必候日月星辰，四时八正之气。",
-        "order": 1,
-        "tags": "流程验证",
-    })
-    target_passage = create("passages", {
-        "chapter_id": chapter["id"],
-        "version_id": target_version["id"],
-        "content_text": "凡刺之法，必候日月星辰，四时八节之气。",
-        "order": 1,
-        "tags": "流程验证",
-    })
+    person = create(
+        "persons",
+        {
+            "name": "皇甫谧",
+            "dynasty": "西晋",
+            "biography": "流程验证人物资料。",
+        },
+    )
+    book = create(
+        "books",
+        {
+            "title": "针灸甲乙经（流程验证）",
+            "dynasty": "西晋",
+            "author_id": person["id"],
+        },
+    )
+    source_version = create(
+        "versions",
+        {
+            "book_id": book["id"],
+            "version_name": "流程验证本 A",
+            "era": "验证数据",
+            "repository": "流程验证资料库",
+            "shelf_mark": "VALIDATION-A",
+            "source_url": "https://example.invalid/validation-a",
+        },
+    )
+    target_version = create(
+        "versions",
+        {
+            "book_id": book["id"],
+            "version_name": "流程验证本 B",
+            "era": "验证数据",
+            "repository": "流程验证资料库",
+            "shelf_mark": "VALIDATION-B",
+            "source_url": "https://example.invalid/validation-b",
+        },
+    )
+    chapter = create(
+        "chapters",
+        {
+            "book_id": book["id"],
+            "title": "流程验证章节",
+            "order": 1,
+        },
+    )
+    source_passage = create(
+        "passages",
+        {
+            "chapter_id": chapter["id"],
+            "version_id": source_version["id"],
+            "content_text": "凡刺之法，必候日月星辰，四时八正之气。",
+            "order": 1,
+            "tags": "流程验证",
+        },
+    )
+    target_passage = create(
+        "passages",
+        {
+            "chapter_id": chapter["id"],
+            "version_id": target_version["id"],
+            "content_text": "凡刺之法，必候日月星辰，四时八节之气。",
+            "order": 1,
+            "tags": "流程验证",
+        },
+    )
     return {
         "source_passage": source_passage,
         "target_passage": target_passage,
@@ -352,9 +410,11 @@ def _pytest_playwright_present() -> bool:
     """True when pytest-playwright plugin is installed and active."""
     try:
         import pytest_playwright  # noqa: F401
+
         return True
     except ImportError:
         return False
+
 
 pytestmark = pytest.mark.skipif(
     not _pytest_playwright_present(),
@@ -399,7 +459,7 @@ class TestGraphExplorer:
     def test_graph_page_loads(self, live_servers, page):
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/graph")
-        page.wait_for_selector('text=知识图谱', timeout=5000)
+        page.wait_for_selector("text=知识图谱", timeout=5000)
         # Sidebar search input should be visible
         assert page.locator('input[placeholder*="搜索图谱"]').is_visible()
 
@@ -410,7 +470,7 @@ class TestDashboard:
     def test_dashboard_loads(self, live_servers, page):
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/dashboard")
-        page.wait_for_selector('text=平台概览', timeout=5000)
+        page.wait_for_selector("text=平台概览", timeout=5000)
         # Stat cards should be present
         assert page.locator("text=最近活动").is_visible()
 
@@ -439,8 +499,7 @@ class TestWorkspace:
         page.goto(f"{frontend_url}/workspace")
         page.wait_for_url("**/research**", timeout=10000)
         # Verify we land on the canonical project list page
-        assert page.locator('h1').first.is_visible()
-
+        assert page.locator("h1").first.is_visible()
 
 
 # ============================================================
@@ -488,9 +547,7 @@ def workflow_session(live_servers, workflow_user):
         timeout=10,
     )
     if r.status_code not in (200, 201):
-        raise RuntimeError(
-            f"Failed to create session: {r.status_code} {r.text}"
-        )
+        raise RuntimeError(f"Failed to create session: {r.status_code} {r.text}")
     session_data = r.json().get("data", r.json())
     return {
         "id": session_data["id"],
@@ -583,7 +640,11 @@ def workflow_rag_doc(live_servers, workflow_user):
         # Admin may not exist yet — register first (idempotent), then login
         httpx.post(
             f"{base}/api/v1/auth/register",
-            json={"username": "admin", "email": "admin@e2e.test", "password": "admin123"},
+            json={
+                "username": "admin",
+                "email": "admin@e2e.test",
+                "password": "admin123",
+            },
             timeout=5,
         )
         admin_login2 = httpx.post(
@@ -635,7 +696,11 @@ class TestResearchWorkflowPageE2E:
     # ------------------------------------------------------------------
 
     def test_workflow_page_loads_with_valid_session(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """Navigating to workflow page with a valid session shows step 0 (question)."""
         frontend_url, _ = live_servers
@@ -661,7 +726,10 @@ class TestResearchWorkflowPageE2E:
         assert page.locator("text=课题不存在").count() == 0
 
     def test_workflow_page_shows_not_found_for_invalid_session(
-        self, live_servers, workflow_user, page,
+        self,
+        live_servers,
+        workflow_user,
+        page,
     ):
         """Navigating with a non-existent session UUID shows '课题不存在'."""
         frontend_url, _ = live_servers
@@ -675,7 +743,10 @@ class TestResearchWorkflowPageE2E:
         assert page.locator("text=课题不存在").is_visible()
 
     def test_workflow_page_session_requires_auth(
-        self, live_servers, workflow_session, page,
+        self,
+        live_servers,
+        workflow_session,
+        page,
     ):
         """Navigating to workflow page anonymously redirects to login."""
         frontend_url, _ = live_servers
@@ -687,7 +758,11 @@ class TestResearchWorkflowPageE2E:
     # ------------------------------------------------------------------
 
     def test_workflow_no_evidence_shows_error_banner(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """Without RAG documents, submitting a workflow shows the NO_EVIDENCE
         error banner. The UI must NOT show fake evidence or reports.
@@ -746,12 +821,17 @@ class TestResearchWorkflowPageE2E:
             assert page.locator("text=查看完整结果").count() == 0, (
                 "NO_EVIDENCE error must not show report result link"
             )
-            assert page.locator("text=研究报告").count() == 0 or page.locator(".rrs-card").count() == 0, (
-                "NO_EVIDENCE error must not show report card"
-            )
+            assert (
+                page.locator("text=研究报告").count() == 0
+                or page.locator(".rrs-card").count() == 0
+            ), "NO_EVIDENCE error must not show report card"
 
     def test_workflow_retry_returns_to_question(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """After a NO_EVIDENCE error, clicking '返回修改' returns to question step,
         with question input preserved. No try/except: pass for core assertions."""
@@ -789,7 +869,12 @@ class TestResearchWorkflowPageE2E:
     # ------------------------------------------------------------------
 
     def test_successful_workflow_uses_current_run_artifacts(
-        self, live_servers, workflow_user, workflow_session, workflow_rag_doc, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        workflow_rag_doc,
+        page,
     ):
         """Full successful workflow path: question → selection → submit →
         evidence review → research report → result link.
@@ -817,7 +902,10 @@ class TestResearchWorkflowPageE2E:
 
         def _on_response(response):
             nonlocal workflow_post_count, workflow_response_data
-            if "/api/v4/research/workflow" in response.url and response.request.method == "POST":
+            if (
+                "/api/v4/research/workflow" in response.url
+                and response.request.method == "POST"
+            ):
                 workflow_post_count += 1
                 try:
                     workflow_response_data = response.json()
@@ -935,7 +1023,9 @@ class TestResearchWorkflowPageE2E:
         assert len(preview_text) > 0, "Report preview should have content"
 
         # Verify result link is correct: /research/{session_id}/result/{run_id}
-        result_link = page.locator(f'a[href="/research/{sid}/result/{run_id_from_api}"]')
+        result_link = page.locator(
+            f'a[href="/research/{sid}/result/{run_id_from_api}"]'
+        )
         if result_link.count() == 0:
             # Try fuzzy match
             all_links = page.locator(".rrs-actions a").all()
@@ -965,16 +1055,17 @@ class TestResearchWorkflowPageE2E:
         assert re_search_btn.count() > 0, (
             "Report card must have '基于报告重新搜索' button"
         )
-        assert re_search_btn.is_visible(), (
-            "'基于报告重新搜索' button must be visible"
-        )
+        assert re_search_btn.is_visible(), "'基于报告重新搜索' button must be visible"
 
         # Compute expected query using production logic
         # (useResearchWorkflow.ts navigateToLibrarySearch:701-712):
         #   First non-empty, non-#-prefix line longer than 10 chars, truncated
         #   to 60 chars.  Fallback to report topic/question.
-        lines = [l for l in preview_text.split('\n')
-                 if l.strip() and not l.startswith('#') and len(l) > 10]
+        lines = [
+            l
+            for l in preview_text.split("\n")
+            if l.strip() and not l.startswith("#") and len(l) > 10
+        ]
         expected_query = lines[0][:60] if lines else "E2E验证标识 经络"
 
         # Click re-search button
@@ -989,9 +1080,7 @@ class TestResearchWorkflowPageE2E:
             f"Re-search must land on /library, got path {parsed.path}"
         )
         qs = parse_qs(parsed.query)
-        assert "q" in qs, (
-            f"Re-search URL must have 'q' query param, got {parsed.query}"
-        )
+        assert "q" in qs, f"Re-search URL must have 'q' query param, got {parsed.query}"
         actual_q = qs["q"][0]
         assert actual_q == expected_query, (
             f"Re-search q param mismatch.\n"
@@ -1000,9 +1089,7 @@ class TestResearchWorkflowPageE2E:
         )
 
         # Must NOT be login page or /research fallback
-        assert "/login" not in page.url, (
-            "Re-search must not land on login page"
-        )
+        assert "/login" not in page.url, "Re-search must not land on login page"
         assert parsed.path != "/research", (
             "Re-search must not land on generic /research fallback"
         )
@@ -1030,12 +1117,14 @@ class TestResearchWorkflowPageE2E:
         page.wait_for_selector("#rqs-input", timeout=10000)
         # Direct API check: the run is persisted in the session
         _, be_port = live_servers
-        runs_resp = __import__('json').loads(
-            __import__('httpx').get(
+        runs_resp = __import__("json").loads(
+            __import__("httpx")
+            .get(
                 f"http://127.0.0.1:{be_port}/api/v4/research/session/{sid}/runs",
                 headers={"Authorization": f"Bearer {workflow_user['access_token']}"},
                 timeout=10,
-            ).text
+            )
+            .text
         )
         runs_after = runs_resp.get("data", runs_resp).get("runs", [])
         current_after = [r for r in runs_after if r.get("run_id") == run_id_from_api]
@@ -1057,7 +1146,12 @@ class TestResearchWorkflowPageE2E:
         # (Persistence already verified via direct API call above.)
 
     def test_workflow_run_isolation_no_history_leak(
-        self, live_servers, workflow_user, workflow_session, workflow_rag_doc, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        workflow_rag_doc,
+        page,
     ):
         """Two consecutive workflow runs MUST NOT cross-contaminate.
 
@@ -1072,7 +1166,10 @@ class TestResearchWorkflowPageE2E:
         captured_run_ids: list[str] = []
 
         def _capture_run_id(response):
-            if "/api/v4/research/workflow" in response.url and response.request.method == "POST":
+            if (
+                "/api/v4/research/workflow" in response.url
+                and response.request.method == "POST"
+            ):
                 try:
                     data = response.json()
                     rid = data.get("data", {}).get("run_id", "")
@@ -1149,7 +1246,10 @@ class TestResearchWorkflowPageE2E:
     # ------------------------------------------------------------------
 
     def test_workflow_cross_user_blocked(
-        self, live_servers, cross_users, page,
+        self,
+        live_servers,
+        cross_users,
+        page,
     ):
         """User A visiting User B's workflow URL → '课题不存在'."""
         frontend_url, _ = live_servers
@@ -1176,16 +1276,18 @@ class TestResearchWorkflowPageE2E:
         assert page.locator("text=课题不存在").is_visible(), (
             "Cross-user workflow URL should show '课题不存在'"
         )
-        assert api_404, (
-            "Session API for B's session must return 404 when accessed by A"
-        )
+        assert api_404, "Session API for B's session must return 404 when accessed by A"
 
     # ------------------------------------------------------------------
     # Navigation: back/forward between steps
     # ------------------------------------------------------------------
 
     def test_workflow_back_to_question_from_selection(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """In selection step, clicking '返回修改问题' goes back to question step."""
         frontend_url, _ = live_servers
@@ -1210,7 +1312,11 @@ class TestResearchWorkflowPageE2E:
         )
 
     def test_workflow_step_navigation_visible(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """Step navigation shows correct current/completed states as we progress."""
         frontend_url, _ = live_servers
@@ -1244,7 +1350,11 @@ class TestV4ResearchPortal:
     """
 
     def test_v4_research_internal_redirects_to_canonical_workflow(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """/v4/research-internal → /research/:projectId/workflow via LegacyRedirect.
 
@@ -1272,9 +1382,7 @@ class TestV4ResearchPortal:
         )
 
         # Must NOT contain /v4 in final URL
-        assert "/v4" not in page.url, (
-            f"Final URL must not contain /v4, got {page.url}"
-        )
+        assert "/v4" not in page.url, f"Final URL must not contain /v4, got {page.url}"
 
         # Workflow-specific input visible
         assert page.locator("#rqs-input").is_visible(), (
@@ -1287,7 +1395,11 @@ class TestV4ResearchPortal:
         )
 
     def test_v4_research_redirects_to_canonical(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """/v4/research redirects to canonical workflow with real session context.
 
@@ -1311,9 +1423,7 @@ class TestV4ResearchPortal:
         )
 
         # Must NOT contain /v4 in final URL
-        assert "/v4" not in page.url, (
-            f"Final URL must not contain /v4, got {page.url}"
-        )
+        assert "/v4" not in page.url, f"Final URL must not contain /v4, got {page.url}"
 
         # Workflow input visible — proves we landed on the workflow page, not a blank fallback
         assert page.locator("#rqs-input").is_visible(), (
@@ -1321,7 +1431,11 @@ class TestV4ResearchPortal:
         )
 
     def test_v4_root_redirects_to_canonical(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """/v4 redirects to canonical workflow with real session context."""
         frontend_url, _ = live_servers
@@ -1340,9 +1454,7 @@ class TestV4ResearchPortal:
         )
 
         # Must NOT contain /v4 in final URL
-        assert "/v4" not in page.url, (
-            f"Final URL must not contain /v4, got {page.url}"
-        )
+        assert "/v4" not in page.url, f"Final URL must not contain /v4, got {page.url}"
 
         # Workflow input visible
         assert page.locator("#rqs-input").is_visible(), (
@@ -1350,7 +1462,10 @@ class TestV4ResearchPortal:
         )
 
     def test_workspace_redirects_to_canonical_with_context(
-        self, live_servers, test_user, page,
+        self,
+        live_servers,
+        test_user,
+        page,
     ):
         """/research/workspace redirects with project context (not blank /research)."""
         frontend_url, _ = live_servers
@@ -1367,10 +1482,17 @@ class TestV4ResearchPortal:
         page.wait_for_url("**/research/**", timeout=15000)
         page.wait_for_timeout(2000)
         # Page must be visible — not blank
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+        assert (
+            page.locator("h1").first.is_visible()
+            or page.locator("[data-testid]").first.is_visible()
+        )
 
     def test_short_workspace_redirects_to_canonical(
-        self, live_servers, workflow_user, workflow_session, page,
+        self,
+        live_servers,
+        workflow_user,
+        workflow_session,
+        page,
     ):
         """/workspace redirects to /research/:projectId/workspace with real session.
 
@@ -1394,9 +1516,7 @@ class TestV4ResearchPortal:
         )
 
         # Not login, not error
-        assert "/login" not in page.url, (
-            f"Must not redirect to login, got {page.url}"
-        )
+        assert "/login" not in page.url, f"Must not redirect to login, got {page.url}"
         assert page.locator("text=课题不存在").count() == 0, (
             "Must not show '课题不存在' for own session"
         )
@@ -1407,7 +1527,10 @@ class TestV4ResearchPortal:
         )
 
     def test_navbar_navigates_to_canonical_research(
-        self, live_servers, test_user, page,
+        self,
+        live_servers,
+        test_user,
+        page,
     ):
         frontend_url, _ = live_servers
         page.goto(f"{frontend_url}/")
@@ -1419,17 +1542,20 @@ class TestV4ResearchPortal:
             [test_user["access_token"], test_user["refresh_token"]],
         )
         page.goto(f"{frontend_url}/")
-        page.wait_for_selector('nav', timeout=5000)
+        page.wait_for_selector("nav", timeout=5000)
 
         # Navbar link points to /research (canonical, not workspace)
         page.locator('nav a[href="/research"]').first.click()
         page.wait_for_timeout(3000)
         # Verify navigation to canonical research page
-        assert page.locator('h1').first.is_visible()
+        assert page.locator("h1").first.is_visible()
 
     # -- 2B: Replay verification — canonical equivalent FIXED (2026-07-29) --
     def test_gap_replay_verification_matched(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Canonical replay verification matched=true — real browser, full UI navigation.
 
@@ -1462,7 +1588,7 @@ class TestV4ResearchPortal:
         if project_link.count() == 0:
             # Some builds render router-link :to as relative path
             found_pl = False
-            for sel in ['.pli-name-link', '.pli-enter-btn']:
+            for sel in [".pli-name-link", ".pli-enter-btn"]:
                 links = page.locator(sel)
                 for i in range(links.count()):
                     href = links.nth(i).get_attribute("href") or ""
@@ -1472,9 +1598,7 @@ class TestV4ResearchPortal:
                         break
                 if found_pl:
                     break
-            assert found_pl, (
-                f"Project link for session {sid} not found on project list"
-            )
+            assert found_pl, f"Project link for session {sid} not found on project list"
         else:
             project_link.first.click()
 
@@ -1489,7 +1613,7 @@ class TestV4ResearchPortal:
         # Instead of matching by exact href (which Vue router-link may render
         # differently), find the link whose href ends with the run ID.
         found_report_link = False
-        for selector in ['.pr-view-link', '.rr-view-link']:
+        for selector in [".pr-view-link", ".rr-view-link"]:
             links = page.locator(selector)
             count = links.count()
             for i in range(count):
@@ -1532,7 +1656,7 @@ class TestV4ResearchPortal:
         )
 
         # Assert both SHA-256 values (64 hex chars each)
-        hashes = page.locator('.rpage-replay-hash-value')
+        hashes = page.locator(".rpage-replay-hash-value")
         assert hashes.count() >= 2, (
             f"Replay result must show 2 SHA-256 hashes, got {hashes.count()}"
         )
@@ -1555,7 +1679,10 @@ class TestV4ResearchPortal:
         )
 
     def test_gap_replay_verification_mismatched(
-        self, live_servers, result_workflow_session_mismatched, page,
+        self,
+        live_servers,
+        result_workflow_session_mismatched,
+        page,
     ):
         """Canonical replay verification matched=false — real browser, real UI nav.
 
@@ -1584,7 +1711,7 @@ class TestV4ResearchPortal:
 
         # --- Step 3: Click the project on the project list ---
         found_pl = False
-        for sel in ['.pli-name-link', '.pli-enter-btn']:
+        for sel in [".pli-name-link", ".pli-enter-btn"]:
             links = page.locator(sel)
             for i in range(links.count()):
                 href = links.nth(i).get_attribute("href") or ""
@@ -1600,9 +1727,7 @@ class TestV4ResearchPortal:
             if project_link.count() > 0:
                 project_link.first.click()
                 found_pl = True
-        assert found_pl, (
-            f"Project link for session {sid} not found on project list"
-        )
+        assert found_pl, f"Project link for session {sid} not found on project list"
 
         # Wait for project detail to load
         page.wait_for_selector("h1", timeout=10000)
@@ -1610,7 +1735,7 @@ class TestV4ResearchPortal:
 
         # --- Step 4: Find and click report link on project detail ---
         found_report_link = False
-        for selector in ['.pr-view-link', '.rr-view-link']:
+        for selector in [".pr-view-link", ".rr-view-link"]:
             links = page.locator(selector)
             count = links.count()
             for i in range(count):
@@ -1661,7 +1786,7 @@ class TestV4ResearchPortal:
         )
 
         # Assert both SHA-256 values are displayed and DIFFERENT
-        hashes = page.locator('.rpage-replay-hash-value')
+        hashes = page.locator(".rpage-replay-hash-value")
         assert hashes.count() >= 2, (
             f"Replay result must show 2 SHA-256 hashes, got {hashes.count()}"
         )
@@ -1684,7 +1809,10 @@ class TestV4ResearchPortal:
 
     # -- 2B: Acceptance verdict — old workspace redirect now session-aware --
     def test_old_workspace_redirect_resolves_session_context(
-        self, live_servers, test_user, page,
+        self,
+        live_servers,
+        test_user,
+        page,
     ):
         """Task 2B fix: /research/workspace → session-aware canonical redirect.
 
@@ -1705,7 +1833,10 @@ class TestV4ResearchPortal:
         page.wait_for_url("**/research/**", timeout=15000)
         page.wait_for_timeout(2000)
         # Page must be visible — not blank
-        assert page.locator('h1').first.is_visible() or page.locator('[data-testid]').first.is_visible()
+        assert (
+            page.locator("h1").first.is_visible()
+            or page.locator("[data-testid]").first.is_visible()
+        )
 
 
 # ============================================================
@@ -1745,22 +1876,40 @@ def cross_users(live_servers):
         return r
 
     # Create two users
-    token_a = _seed_user(backend_port, f"cross-a-{_uuid.uuid4().hex[:6]}", "CrossA_Pass123!")
-    token_b = _seed_user(backend_port, f"cross-b-{_uuid.uuid4().hex[:6]}", "CrossB_Pass123!")
+    token_a = _seed_user(
+        backend_port, f"cross-a-{_uuid.uuid4().hex[:6]}", "CrossA_Pass123!"
+    )
+    token_b = _seed_user(
+        backend_port, f"cross-b-{_uuid.uuid4().hex[:6]}", "CrossB_Pass123!"
+    )
 
     # User A: session + note + citation + v4 query history
     sess_a = _api_post(token_a, "/api/v1/workspace/sessions", {"title": "用户A的课题"})
     sid_a = sess_a["id"]
     title_a = sess_a["title"]
-    note_a = _api_post(token_a, f"/api/v1/workspace/sessions/{sid_a}/notes", {"content": "A的笔记内容"})
-    cit_a = _api_post(token_a, f"/api/v1/workspace/sessions/{sid_a}/citations", {
-        "trace_json": json.dumps({"document_id": "cross-doc", "chunk_id": "cross-chunk", "passage_id": str(_uuid.uuid4())}),
-        "citation_text": "A引用某条文",
-        "source_document": "cross-doc",
-    })
+    note_a = _api_post(
+        token_a, f"/api/v1/workspace/sessions/{sid_a}/notes", {"content": "A的笔记内容"}
+    )
+    cit_a = _api_post(
+        token_a,
+        f"/api/v1/workspace/sessions/{sid_a}/citations",
+        {
+            "trace_json": json.dumps(
+                {
+                    "document_id": "cross-doc",
+                    "chunk_id": "cross-chunk",
+                    "passage_id": str(_uuid.uuid4()),
+                }
+            ),
+            "citation_text": "A引用某条文",
+            "source_document": "cross-doc",
+        },
+    )
     # v4 research session run (for history + runs endpoints)
     try:
-        _api_post(token_a, "/api/v4/research/session", {"title": title_a, "query": "测试查询"})
+        _api_post(
+            token_a, "/api/v4/research/session", {"title": title_a, "query": "测试查询"}
+        )
     except RuntimeError:
         pass  # v4 session creation may fail without passages — we still have the session
 
@@ -1774,14 +1923,28 @@ def cross_users(live_servers):
     sess_b = _api_post(token_b, "/api/v1/workspace/sessions", {"title": "用户B的课题"})
     sid_b = sess_b["id"]
     title_b = sess_b["title"]
-    note_b = _api_post(token_b, f"/api/v1/workspace/sessions/{sid_b}/notes", {"content": "B的笔记内容"})
-    cit_b = _api_post(token_b, f"/api/v1/workspace/sessions/{sid_b}/citations", {
-        "trace_json": json.dumps({"document_id": "cross-doc", "chunk_id": "cross-chunk", "passage_id": str(_uuid.uuid4())}),
-        "citation_text": "B引用某条文",
-        "source_document": "cross-doc",
-    })
+    note_b = _api_post(
+        token_b, f"/api/v1/workspace/sessions/{sid_b}/notes", {"content": "B的笔记内容"}
+    )
+    cit_b = _api_post(
+        token_b,
+        f"/api/v1/workspace/sessions/{sid_b}/citations",
+        {
+            "trace_json": json.dumps(
+                {
+                    "document_id": "cross-doc",
+                    "chunk_id": "cross-chunk",
+                    "passage_id": str(_uuid.uuid4()),
+                }
+            ),
+            "citation_text": "B引用某条文",
+            "source_document": "cross-doc",
+        },
+    )
     try:
-        _api_post(token_b, "/api/v4/research/session", {"title": title_b, "query": "测试查询"})
+        _api_post(
+            token_b, "/api/v4/research/session", {"title": title_b, "query": "测试查询"}
+        )
     except RuntimeError:
         pass
 
@@ -1864,7 +2027,7 @@ class TestCrossProjectIsolation:
         page.wait_for_selector("h1", timeout=10000)
         # Wait for the title to settle from fallback "研究工作区"
         page.wait_for_function(
-            f"""() => document.querySelector('h1')?.textContent === '{a['title']}'""",
+            f"""() => document.querySelector('h1')?.textContent === '{a["title"]}'""",
             timeout=10000,
         )
         assert page.locator("h1").text_content() == a["title"], (
@@ -1877,8 +2040,10 @@ class TestCrossProjectIsolation:
 
         # Verify own session API returns 200 (capture network)
         with page.expect_response(
-            lambda r: f"/api/v1/workspace/sessions/{a['session_id']}" in r.url
-            and r.status == 200,
+            lambda r: (
+                f"/api/v1/workspace/sessions/{a['session_id']}" in r.url
+                and r.status == 200
+            ),
             timeout=5000,
         ):
             page.reload()
@@ -1955,7 +2120,7 @@ class TestCrossProjectIsolation:
         page.goto(f"{frontend_url}/research/{a['session_id']}/workspace")
         page.wait_for_selector("h1", timeout=10000)
         page.wait_for_function(
-            f"""() => document.querySelector('h1')?.textContent === '{a['title']}'""",
+            f"""() => document.querySelector('h1')?.textContent === '{a["title"]}'""",
             timeout=10000,
         )
         assert page.locator("h1").text_content() == a["title"]
@@ -2115,17 +2280,21 @@ class TestCrossProjectIsolation:
         def _capture(response):
             url = response.url
             if f"/api/v1/workspace/sessions/{b['session_id']}" in url:
-                api_responses.append({
-                    "url": url,
-                    "status": response.status,
-                    "endpoint": "session",
-                })
+                api_responses.append(
+                    {
+                        "url": url,
+                        "status": response.status,
+                        "endpoint": "session",
+                    }
+                )
             if f"/api/v4/research/session/{b['session_id']}/history" in url:
-                api_responses.append({
-                    "url": url,
-                    "status": response.status,
-                    "endpoint": "history",
-                })
+                api_responses.append(
+                    {
+                        "url": url,
+                        "status": response.status,
+                        "endpoint": "history",
+                    }
+                )
 
         page.on("response", _capture)
 
@@ -2207,6 +2376,7 @@ class TestCrossProjectIsolation:
 
 # -- Result Page RAG Document (shared by all real-workflow fixtures) --
 
+
 @pytest.fixture(scope="module")
 def result_workflow_rag_doc(live_servers, result_user):
     """Seed ONE RAG-enabled Document, then append a second Passage to it.
@@ -2232,16 +2402,24 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    assert person_resp.status_code in (200, 201), f"Person creation failed: {person_resp.text[:200]}"
+    assert person_resp.status_code in (200, 201), (
+        f"Person creation failed: {person_resp.text[:200]}"
+    )
     person_id = person_resp.json()["data"]["id"]
 
     book_resp = httpx.post(
         f"{base}/api/v1/books",
-        json={"title": "针灸甲乙经（E2E结果验证）", "dynasty": "西晋", "author_id": person_id},
+        json={
+            "title": "针灸甲乙经（E2E结果验证）",
+            "dynasty": "西晋",
+            "author_id": person_id,
+        },
         headers=headers,
         timeout=10,
     )
-    assert book_resp.status_code in (200, 201), f"Book creation failed: {book_resp.text[:200]}"
+    assert book_resp.status_code in (200, 201), (
+        f"Book creation failed: {book_resp.text[:200]}"
+    )
     book_id = book_resp.json()["data"]["id"]
 
     version_resp = httpx.post(
@@ -2257,7 +2435,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    assert version_resp.status_code in (200, 201), f"Version creation failed: {version_resp.text[:200]}"
+    assert version_resp.status_code in (200, 201), (
+        f"Version creation failed: {version_resp.text[:200]}"
+    )
     version_id = version_resp.json()["data"]["id"]
 
     # ---- Step 1: Create ONE chapter, then TWO passages under it ----
@@ -2267,7 +2447,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    assert ch_resp.status_code in (200, 201), f"Chapter creation failed: {ch_resp.text[:200]}"
+    assert ch_resp.status_code in (200, 201), (
+        f"Chapter creation failed: {ch_resp.text[:200]}"
+    )
     chapter_id = ch_resp.json()["data"]["id"]
 
     passage1_resp = httpx.post(
@@ -2282,7 +2464,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    assert passage1_resp.status_code in (200, 201), f"Passage 1 creation failed: {passage1_resp.text[:200]}"
+    assert passage1_resp.status_code in (200, 201), (
+        f"Passage 1 creation failed: {passage1_resp.text[:200]}"
+    )
     passage1_id = passage1_resp.json()["data"]["id"]
 
     passage2_resp = httpx.post(
@@ -2297,7 +2481,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         headers=headers,
         timeout=10,
     )
-    assert passage2_resp.status_code in (200, 201), f"Passage 2 creation failed: {passage2_resp.text[:200]}"
+    assert passage2_resp.status_code in (200, 201), (
+        f"Passage 2 creation failed: {passage2_resp.text[:200]}"
+    )
     passage2_id = passage2_resp.json()["data"]["id"]
 
     # ---- Step 2: Ingest ONE document with passage A via standard API ----
@@ -2322,7 +2508,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         timeout=10,
     )
     if ingest_resp.status_code not in (200, 201):
-        raise RuntimeError(f"Ingest failed: {ingest_resp.status_code} {ingest_resp.text[:300]}")
+        raise RuntimeError(
+            f"Ingest failed: {ingest_resp.status_code} {ingest_resp.text[:300]}"
+        )
     doc_data = ingest_resp.json().get("data", ingest_resp.json())
     doc_id = doc_data["document_id"]
 
@@ -2334,7 +2522,9 @@ def result_workflow_rag_doc(live_servers, result_user):
         timeout=5,
     )
     if admin_login.status_code != 200:
-        raise RuntimeError(f"Admin login failed: {admin_login.status_code} {admin_login.text[:300]}")
+        raise RuntimeError(
+            f"Admin login failed: {admin_login.status_code} {admin_login.text[:300]}"
+        )
     admin_token = admin_login.json()["data"]["access_token"]
 
     append_resp = httpx.post(
@@ -2374,17 +2564,21 @@ def result_workflow_rag_doc(live_servers, result_user):
         timeout=10,
     )
     if review_resp.status_code != 200:
-        raise RuntimeError(f"Re-review after append failed: {review_resp.status_code} {review_resp.text[:300]}")
+        raise RuntimeError(
+            f"Re-review after append failed: {review_resp.status_code} {review_resp.text[:300]}"
+        )
 
     return {
         "document_id": doc_id,
-        "chunk_count": doc_data.get("chunk_count", 0) + append_data.get("appended_chunk_count", 0),
+        "chunk_count": doc_data.get("chunk_count", 0)
+        + append_data.get("appended_chunk_count", 0),
         "passage_ids": [passage1_id, passage2_id],
         "version_id": version_id,
     }
 
 
 # -- Primary real-workflow fixture (replaces seed-based result_session) --
+
 
 @pytest.fixture(scope="module")
 def result_workflow_session(live_servers, result_workflow_rag_doc):
@@ -2444,9 +2638,7 @@ def result_workflow_session(live_servers, result_workflow_rag_doc):
     success = wf_data.get("success", True)
     if not success:
         msg = wf_data.get("message", "unknown error")
-        raise RuntimeError(
-            f"Workflow returned success=False: {msg}"
-        )
+        raise RuntimeError(f"Workflow returned success=False: {msg}")
 
     return {
         "session_id": session_id,
@@ -2482,7 +2674,10 @@ def result_workflow_session_mismatched(live_servers, result_workflow_session):
 
     def _canonical_json_bytes(payload: dict) -> bytes:
         return _json.dumps(
-            payload, sort_keys=True, ensure_ascii=False, separators=(",", ":"),
+            payload,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
         ).encode("utf-8")
 
     def _canonical_sha256(payload: dict) -> str:
@@ -2543,12 +2738,14 @@ def result_workflow_session_mismatched(live_servers, result_workflow_session):
             conn.close()
             conn = None
             import time as _time
+
             _time.sleep(0.5)
         except Exception:
             if conn:
                 conn.close()
                 conn = None
             import time as _time
+
             _time.sleep(0.5)
 
     assert conn is not None and row is not None, (
@@ -2601,7 +2798,9 @@ def result_workflow_session_no_report(live_servers, result_workflow_session):
     """
     _, backend_port = live_servers
     base = f"http://127.0.0.1:{backend_port}"
-    headers = {"Authorization": f"Bearer {result_workflow_session['token']['access_token']}"}
+    headers = {
+        "Authorization": f"Bearer {result_workflow_session['token']['access_token']}"
+    }
 
     sess_resp = httpx.post(
         f"{base}/api/v1/workspace/sessions",
@@ -2630,6 +2829,7 @@ def result_workflow_session_no_report(live_servers, result_workflow_session):
 
 
 # -- Real-workflow cross-user fixture (replaces seed-based result_cross_users) --
+
 
 @pytest.fixture(scope="module")
 def result_workflow_cross_users(live_servers, result_workflow_rag_doc):
@@ -2663,7 +2863,9 @@ def result_workflow_cross_users(live_servers, result_workflow_rag_doc):
         timeout=180,
     )
     if wf_a.status_code not in (200, 201):
-        raise RuntimeError(f"User A workflow failed: {wf_a.status_code} {wf_a.text[:300]}")
+        raise RuntimeError(
+            f"User A workflow failed: {wf_a.status_code} {wf_a.text[:300]}"
+        )
     run_a = wf_a.json().get("data", {}).get("run_id", "")
     if not run_a:
         raise RuntimeError("User A workflow returned no run_id")
@@ -2682,7 +2884,9 @@ def result_workflow_cross_users(live_servers, result_workflow_rag_doc):
         timeout=180,
     )
     if wf_b.status_code not in (200, 201):
-        raise RuntimeError(f"User B workflow failed: {wf_b.status_code} {wf_b.text[:300]}")
+        raise RuntimeError(
+            f"User B workflow failed: {wf_b.status_code} {wf_b.text[:300]}"
+        )
     run_b = wf_b.json().get("data", {}).get("run_id", "")
     if not run_b:
         raise RuntimeError("User B workflow returned no run_id")
@@ -2712,6 +2916,7 @@ def result_workflow_cross_users(live_servers, result_workflow_rag_doc):
 # authenticity — only used to construct pending/failed/missing states).
 # ====================================================================
 
+
 @pytest.fixture(scope="module")
 def result_user(live_servers):
     """Create a dedicated user for the three state-test fixtures below.
@@ -2722,7 +2927,9 @@ def result_user(live_servers):
     test uses this user.
     """
     _, backend_port = live_servers
-    tokens = _seed_user(backend_port, f"resulte2e-{_uuid.uuid4().hex[:6]}", "Result_Pass123!")
+    tokens = _seed_user(
+        backend_port, f"resulte2e-{_uuid.uuid4().hex[:6]}", "Result_Pass123!"
+    )
     if tokens is None:
         raise RuntimeError("Failed to create test user for result page state fixtures")
     return tokens
@@ -2765,7 +2972,11 @@ def result_session_no_report(live_servers, result_user):
     )
     run_id = seed_resp.json()["data"]["run_id"]
 
-    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+    return {
+        "session_id": session_id,
+        "run_id": run_id,
+        "username": result_user.get("username", ""),
+    }
 
 
 @pytest.fixture(scope="module")
@@ -2809,7 +3020,11 @@ def result_session_run_failed(live_servers, result_user):
     )
     run_id = seed_resp.json()["data"]["run_id"]
 
-    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+    return {
+        "session_id": session_id,
+        "run_id": run_id,
+        "username": result_user.get("username", ""),
+    }
 
 
 @pytest.fixture(scope="module")
@@ -2850,7 +3065,11 @@ def result_session_pending(live_servers, result_user):
     )
     run_id = seed_resp.json()["data"]["run_id"]
 
-    return {"session_id": session_id, "run_id": run_id, "username": result_user.get("username", "")}
+    return {
+        "session_id": session_id,
+        "run_id": run_id,
+        "username": result_user.get("username", ""),
+    }
 
 
 # ====================================================================
@@ -2899,13 +3118,13 @@ def result_session_xss_payloads(live_servers, result_user):
         '<div onclick="alert(3)">click</div>\n\n'
         '<a onclick="alert(4)" href="/safe">link</a>\n\n'
         "## JavaScript URL 载荷\n\n"
-        '[javascript:alert(5)](javascript:alert(5))\n\n'
+        "[javascript:alert(5)](javascript:alert(5))\n\n"
         "## IFrame 载荷\n\n"
         '<iframe src="javascript:alert(6)"></iframe>\n\n'
         '<iframe srcdoc="<script>alert(7)</script>"></iframe>\n\n'
         "## SVG 载荷\n\n"
         '<svg onload="alert(8)"></svg>\n\n'
-        '<svg><script>alert(9)</script></svg>\n\n'
+        "<svg><script>alert(9)</script></svg>\n\n"
         "## 正常内容\n\n"
         "这是正常的中文文本段落，应正常渲染。\n\n"
         "**粗体文字** 和普通文字。\n\n"
@@ -3108,25 +3327,22 @@ class TestResearchResultPageE2E:
     # ================================================================
 
     def test_real_workflow_report_loads(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Real workflow → ResultPage shows authentic report."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Breadcrumbs
-        assert page.locator(
-            ".rrh-breadcrumb-link", has_text="返回工作区"
-        ).is_visible()
-        assert page.locator(
-            ".rrh-breadcrumb-current", has_text="研究结果"
-        ).is_visible()
+        assert page.locator(".rrh-breadcrumb-link", has_text="返回工作区").is_visible()
+        assert page.locator(".rrh-breadcrumb-current", has_text="研究结果").is_visible()
 
         # Header title — must match the real session title
         assert page.locator("h1").text_content() == "结果页真实工作流验证"
@@ -3165,16 +3381,17 @@ class TestResearchResultPageE2E:
         assert page.locator(".rre-state").count() == 0
 
     def test_real_workflow_citation_shows_evidence(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Click a real Citation → Evidence panel shows real claim + quote."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rcp-citation-item", timeout=10000)
 
         # Click first citation
@@ -3198,7 +3415,10 @@ class TestResearchResultPageE2E:
         assert page.locator(".rcp-citation-item--selected").count() == 1
 
     def test_real_workflow_citation_marker_clickable(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Click [N] marker in real report → selects matching citation.
         If the real report has no inline citation markers (citation panel
@@ -3208,9 +3428,7 @@ class TestResearchResultPageE2E:
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rcp-citation-item", timeout=10000)
 
         markers = page.locator(".rrv-citation-marker")
@@ -3231,16 +3449,17 @@ class TestResearchResultPageE2E:
             assert page.locator(".rcp-citation-item--selected").count() == 1
 
     def test_real_workflow_lineage_displayed(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Real workflow evidence shows lineage badge + SourceRef card."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rcp-citation-item", timeout=10000)
 
         page.locator(".rcp-citation-item").first.click()
@@ -3259,7 +3478,10 @@ class TestResearchResultPageE2E:
         assert len(src_text.strip()) > 0, "SourceRef card must have content"
 
     def test_real_workflow_sourceref_link_routes(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """SourceRef canonical /library/{document_id}?passage={passage_id}
         binding — same document, two different passages, two distinct
@@ -3285,7 +3507,7 @@ class TestResearchResultPageE2E:
 
         # ---- Step 3: Click the project on the project list ----
         found_pl = False
-        for sel in ['.pli-name-link', '.pli-enter-btn']:
+        for sel in [".pli-name-link", ".pli-enter-btn"]:
             links = page.locator(sel)
             for i in range(links.count()):
                 href = links.nth(i).get_attribute("href") or ""
@@ -3307,7 +3529,7 @@ class TestResearchResultPageE2E:
         page.wait_for_timeout(3000)
 
         found_report_link = False
-        for selector in ['.pr-view-link', '.rr-view-link']:
+        for selector in [".pr-view-link", ".rr-view-link"]:
             links = page.locator(selector)
             for i in range(links.count()):
                 href = links.nth(i).get_attribute("href") or ""
@@ -3394,6 +3616,7 @@ class TestResearchResultPageE2E:
         )
 
         import sys
+
         print(
             f"\n--- SOURCEREF_E2E_SAME_DOC_TRACES: "
             f"doc={t1['document_id'][:8]}... "
@@ -3429,9 +3652,8 @@ class TestResearchResultPageE2E:
 
             # 7b. Evidence detail trace match
             page.wait_for_selector(".eed-card", timeout=5000)
-            evidence_id_el = (
-                page.locator('.eed-meta-row:has-text("证据 ID")')
-                .locator(".eed-meta-value")
+            evidence_id_el = page.locator('.eed-meta-row:has-text("证据 ID")').locator(
+                ".eed-meta-value"
             )
             assert evidence_id_el.count() > 0, (
                 f"[trace {idx}] Evidence card missing 证据 ID"
@@ -3456,12 +3678,14 @@ class TestResearchResultPageE2E:
                 f"expected {expected!r}, got {href!r}"
             )
 
-            verified.append({
-                "trace_id": trace_id,
-                "document_id": doc_id,
-                "passage_id": psg_id,
-                "href": href,
-            })
+            verified.append(
+                {
+                    "trace_id": trace_id,
+                    "document_id": doc_id,
+                    "passage_id": psg_id,
+                    "href": href,
+                }
+            )
 
         # ---- Step 8: Cross-trace no-serialization ----
         assert verified[0]["document_id"] == verified[1]["document_id"], (
@@ -3524,7 +3748,10 @@ class TestResearchResultPageE2E:
                 page.wait_for_selector(".rrv-report", timeout=10000)
 
     def test_real_workflow_lineage_complete_or_partial(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Real workflow lineage is either complete (full badge) or
         partial (partial badge) — never fabricated as complete when
@@ -3533,9 +3760,7 @@ class TestResearchResultPageE2E:
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rcp-citation-item", timeout=10000)
 
         # Click every citation, verify each has a lineage badge
@@ -3566,7 +3791,10 @@ class TestResearchResultPageE2E:
     # ================================================================
 
     def test_export_markdown_real_browser_download(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Full UI navigation export: /login → Research → project list →
         click project → project detail → click report → result page →
@@ -3591,7 +3819,7 @@ class TestResearchResultPageE2E:
 
         # ---- Step 3: Click the project on the project list ----
         found_pl = False
-        for sel in ['.pli-name-link', '.pli-enter-btn']:
+        for sel in [".pli-name-link", ".pli-enter-btn"]:
             links = page.locator(sel)
             for i in range(links.count()):
                 href = links.nth(i).get_attribute("href") or ""
@@ -3615,7 +3843,7 @@ class TestResearchResultPageE2E:
 
         # ---- Step 5: Find and click report link on project detail ----
         found_report_link = False
-        for selector in ['.pr-view-link', '.rr-view-link']:
+        for selector in [".pr-view-link", ".rr-view-link"]:
             links = page.locator(selector)
             for i in range(links.count()):
                 href = links.nth(i).get_attribute("href") or ""
@@ -3660,12 +3888,8 @@ class TestResearchResultPageE2E:
                 and "/export" in response.url
             ):
                 export_http_status = response.status
-                export_ct = (
-                    response.headers.get("content-type", "")
-                ).lower()
-                export_cd = (
-                    response.headers.get("content-disposition", "")
-                ).lower()
+                export_ct = (response.headers.get("content-type", "")).lower()
+                export_cd = (response.headers.get("content-disposition", "")).lower()
 
         page.on("response", _capture_export_response)
 
@@ -3688,9 +3912,7 @@ class TestResearchResultPageE2E:
         assert filename.startswith(expected_prefix), (
             f"Filename must start with '{expected_prefix}', got {filename!r}"
         )
-        assert filename.endswith(".md"), (
-            f"Filename must end with .md, got {filename!r}"
-        )
+        assert filename.endswith(".md"), f"Filename must end with .md, got {filename!r}"
         # The filename embeds the run_id prefix — verify it matches
         assert rid[:8] in filename, (
             f"Filename must contain run_id prefix '{rid[:8]}', got {filename!r}"
@@ -3703,14 +3925,12 @@ class TestResearchResultPageE2E:
         content = raw_bytes.decode("utf-8")
         assert len(content) > 0, "Downloaded file must be non-empty"
         # Must be Markdown — at least one heading
-        assert "#" in content, (
-            "Real export must contain Markdown headings"
-        )
+        assert "#" in content, "Real export must contain Markdown headings"
         # Must contain the real report title or research topic as
         # proof it's THIS report, not a stale or fake one
         session_title = "结果页真实工作流验证"
         topic = "ResultE2E验证"
-        assert (session_title in content or topic in content), (
+        assert session_title in content or topic in content, (
             f"Exported Markdown must contain the real report title "
             f"'{session_title}' or research topic '{topic}'. "
             f"Content preview: {content[:500]}"
@@ -3730,14 +3950,17 @@ class TestResearchResultPageE2E:
         assert "attachment" in export_cd, (
             f"Content-Disposition must be attachment, got {export_cd!r}"
         )
-        assert f'hfb-research-report-{rid[:8]}.md' in export_cd, (
+        assert f"hfb-research-report-{rid[:8]}.md" in export_cd, (
             f"Content-Disposition must name the file with correct run_id prefix. "
             f"Expected 'hfb-research-report-{rid[:8]}.md' in {export_cd!r}"
         )
 
     def test_export_disabled_when_no_report(
-        self, live_servers, result_workflow_session,
-        result_workflow_session_no_report, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        result_workflow_session_no_report,
+        page,
     ):
         """Export button is disabled when the run has no report."""
         frontend_url, _ = live_servers
@@ -3745,9 +3968,7 @@ class TestResearchResultPageE2E:
         nr = result_workflow_session_no_report
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}")
         page.wait_for_selector(".rre-state", timeout=10000)
 
         # Export button should be disabled
@@ -3758,7 +3979,10 @@ class TestResearchResultPageE2E:
             )
 
     def test_export_no_double_click(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """Export composable guard (`exporting.value`) blocks concurrent
         double-click → exactly 1 download event.
@@ -3778,9 +4002,7 @@ class TestResearchResultPageE2E:
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         download_count = 0
@@ -3807,8 +4029,11 @@ class TestResearchResultPageE2E:
         )
 
     def test_export_stale_after_route_switch(
-        self, live_servers, result_workflow_session,
-        result_workflow_session_no_report, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        result_workflow_session_no_report,
+        page,
     ):
         """Exporting after switching to a report-missing run →
         old export does NOT fire with stale data."""
@@ -3818,15 +4043,11 @@ class TestResearchResultPageE2E:
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
         # First load the real report
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Then switch to report-missing run
-        page.goto(
-            f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}")
         page.wait_for_selector(".rre-state", timeout=10000)
         assert page.locator("text=报告缺失").is_visible()
 
@@ -3842,7 +4063,10 @@ class TestResearchResultPageE2E:
     # ================================================================
 
     def test_cross_user_result_blocked(
-        self, live_servers, result_workflow_cross_users, page,
+        self,
+        live_servers,
+        result_workflow_cross_users,
+        page,
     ):
         """User A accessing B's real-workflow result → not-found,
         no B data leaked."""
@@ -3862,9 +4086,7 @@ class TestResearchResultPageE2E:
 
         page.on("response", _capture)
 
-        page.goto(
-            f"{frontend_url}/research/{b['session_id']}/result/{b['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{b['session_id']}/result/{b['run_id']}")
         page.wait_for_load_state("networkidle", timeout=10000)
         page.wait_for_timeout(2000)
 
@@ -3887,7 +4109,10 @@ class TestResearchResultPageE2E:
         assert api_404, "Session API must return 404 for cross-user access"
 
     def test_run_not_belonging_to_session_rejected(
-        self, live_servers, result_workflow_cross_users, page,
+        self,
+        live_servers,
+        result_workflow_cross_users,
+        page,
     ):
         """User A's run in User B's session URL → rejected (run_id
         does not belong to that session)."""
@@ -3898,9 +4123,7 @@ class TestResearchResultPageE2E:
         _login_via_ui(page, frontend_url, a["username"], a["password"])
 
         # Use A's run_id with B's session_id — cross-session mismatch
-        page.goto(
-            f"{frontend_url}/research/{a['session_id']}/result/{b['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{a['session_id']}/result/{b['run_id']}")
         page.wait_for_load_state("networkidle", timeout=10000)
         page.wait_for_timeout(2000)
 
@@ -3909,9 +4132,7 @@ class TestResearchResultPageE2E:
             page.locator("text=未找到").is_visible()
             or page.locator("text=不存在").is_visible()
             or page.locator(".rre-state").count() > 0
-        ), (
-            "Cross-session run ID must be rejected with not-found or error state"
-        )
+        ), "Cross-session run ID must be rejected with not-found or error state"
 
         # B's report must not be visible
         assert page.locator(".rrv-report").count() == 0, (
@@ -3931,7 +4152,10 @@ class TestResearchResultPageE2E:
     # report/Citation/Evidence/SourceRef authenticity assertions.
 
     def test_xss_script_no_executable_node(
-        self, live_servers, result_session_xss_payloads, page,
+        self,
+        live_servers,
+        result_session_xss_payloads,
+        page,
     ):
         """Controlled XSS payload: <script>, onerror=, onclick= are NOT
         rendered as executable HTML nodes."""
@@ -3939,9 +4163,7 @@ class TestResearchResultPageE2E:
         s = result_session_xss_payloads
         _login_via_ui(page, frontend_url, s["username"], s["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Scoped assertions: check the report inner HTML only — not the
@@ -3977,9 +4199,7 @@ class TestResearchResultPageE2E:
         )
 
         # No SVG in report
-        assert "<svg" not in report_html, (
-            "<svg> must not appear in report inner HTML"
-        )
+        assert "<svg" not in report_html, "<svg> must not appear in report inner HTML"
 
         # ---- Normal safe content MUST still render ----
         # The report title shows "研究报告：XSS载荷验证" (topic-based).
@@ -3994,7 +4214,10 @@ class TestResearchResultPageE2E:
         )
 
     def test_xss_no_dangerous_href(
-        self, live_servers, result_session_xss_payloads, page,
+        self,
+        live_servers,
+        result_session_xss_payloads,
+        page,
     ):
         """Controlled XSS payload: no javascript: links in citation panel
         or SourceRef card."""
@@ -4002,9 +4225,7 @@ class TestResearchResultPageE2E:
         s = result_session_xss_payloads
         _login_via_ui(page, frontend_url, s["username"], s["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Select the XSS citation
@@ -4058,15 +4279,14 @@ class TestResearchResultPageE2E:
         # ---- Normal safe external links must still work in report ----
         # The markdown text should render the text portion normally
         body_text = page.locator("body").text_content() or ""
-        assert "正常外链" in body_text, (
-            "Normal external link text must appear in page"
-        )
-        assert "正常安全链接" in body_text, (
-            "Normal safe-links section must render"
-        )
+        assert "正常外链" in body_text, "Normal external link text must appear in page"
+        assert "正常安全链接" in body_text, "Normal safe-links section must render"
 
     def test_xss_no_navigation_or_script_execution(
-        self, live_servers, result_session_xss_payloads, page,
+        self,
+        live_servers,
+        result_session_xss_payloads,
+        page,
     ):
         """Click around the XSS-payload report → no navigation to
         dangerous URLs, no script execution."""
@@ -4074,9 +4294,7 @@ class TestResearchResultPageE2E:
         s = result_session_xss_payloads
         _login_via_ui(page, frontend_url, s["username"], s["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         start_url = page.url
@@ -4119,7 +4337,10 @@ class TestResearchResultPageE2E:
     # not rendered as active link, literature body not leaked.
 
     def test_withdrawn_source_no_internal_link(
-        self, live_servers, result_session_withdrawn_source, page,
+        self,
+        live_servers,
+        result_session_withdrawn_source,
+        page,
     ):
         """Withdrawn source (no document_id) → no internal /versions/ link,
         no javascript: link active, source text not leaked."""
@@ -4127,9 +4348,7 @@ class TestResearchResultPageE2E:
         s = result_session_withdrawn_source
         _login_via_ui(page, frontend_url, s["username"], s["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Select first citation (trace_a: no document_id)
@@ -4157,7 +4376,10 @@ class TestResearchResultPageE2E:
         )
 
     def test_withdrawn_source_no_malicious_sourceref_url(
-        self, live_servers, result_session_withdrawn_source, page,
+        self,
+        live_servers,
+        result_session_withdrawn_source,
+        page,
     ):
         """SourceRef with javascript: source_ref_url → NOT rendered as
         active link, no literature body leaked via link target."""
@@ -4165,9 +4387,7 @@ class TestResearchResultPageE2E:
         s = result_session_withdrawn_source
         _login_via_ui(page, frontend_url, s["username"], s["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{s['session_id']}/result/{s['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Select second citation (trace_b: javascript: source_ref_url)
@@ -4185,31 +4405,30 @@ class TestResearchResultPageE2E:
 
         # No data: links
         data_links = page.locator('a[href^="data:"]')
-        assert data_links.count() == 0, (
-            f"Found {data_links.count()} data: link(s)"
-        )
+        assert data_links.count() == 0, f"Found {data_links.count()} data: link(s)"
 
         # Restricted source title should appear as plain text only
         page_text = page.locator(".esrc-card").text_content()
-        assert "受限文献" in page_text or "无权限" in page_text or "来源" in page_text, (
-            "Withdrawn source info must appear as plain descriptive text"
-        )
+        assert (
+            "受限文献" in page_text or "无权限" in page_text or "来源" in page_text
+        ), "Withdrawn source info must appear as plain descriptive text"
 
     # ================================================================
     # XSS (on real-workflow report)
     # ================================================================
 
     def test_markdown_xss_script_not_executed(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """<script> in real report is NOT rendered as executable HTML."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         html = page.content()
@@ -4218,16 +4437,17 @@ class TestResearchResultPageE2E:
         assert "onclick=" not in html
 
     def test_markdown_xss_javascript_url_not_active(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """javascript: URLs in real report are not active."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         js_links = page.locator('a[href^="javascript:"]')
@@ -4236,30 +4456,32 @@ class TestResearchResultPageE2E:
         )
 
     def test_markdown_xss_no_iframe_svg(
-        self, live_servers, result_workflow_session, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        page,
     ):
         """iframe/SVG elements not injected into real report DOM."""
         frontend_url, _ = live_servers
         ws = result_workflow_session
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         iframes = page.locator(".rrv-report iframe")
-        assert iframes.count() == 0, (
-            f"Found {iframes.count()} iframe(s) in real report"
-        )
+        assert iframes.count() == 0, f"Found {iframes.count()} iframe(s) in real report"
 
     # ================================================================
     # Route-switch isolation (state-only seed for "bad" states)
     # ================================================================
 
     def test_route_switch_clears_stale_data(
-        self, live_servers, result_workflow_session,
-        result_workflow_session_no_report, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        result_workflow_session_no_report,
+        page,
     ):
         """Switching from real report to report-missing → old report cleared.
         (Uses seed-only fixture for the empty-report state.)"""
@@ -4269,16 +4491,12 @@ class TestResearchResultPageE2E:
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
         # Navigate to real report
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
         assert page.locator(".rrv-report").is_visible()
 
         # Switch to report-missing run (same user, different session)
-        page.goto(
-            f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}")
         page.wait_for_selector(".rre-state", timeout=10000)
 
         # Old report content must NOT be visible
@@ -4290,8 +4508,11 @@ class TestResearchResultPageE2E:
         )
 
     def test_switch_from_error_to_ready_clears_error(
-        self, live_servers, result_workflow_session,
-        result_workflow_session_no_report, page,
+        self,
+        live_servers,
+        result_workflow_session,
+        result_workflow_session_no_report,
+        page,
     ):
         """After seeing error state, switching to real workflow run
         clears the error and shows real report."""
@@ -4301,16 +4522,12 @@ class TestResearchResultPageE2E:
         _login_via_ui(page, frontend_url, ws["username"], ws["password"])
 
         # First visit report-missing run
-        page.goto(
-            f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{nr['session_id']}/result/{nr['run_id']}")
         page.wait_for_selector(".rre-state", timeout=10000)
         assert page.locator("text=报告缺失").is_visible()
 
         # Now switch to real workflow run
-        page.goto(
-            f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ws['session_id']}/result/{ws['run_id']}")
         page.wait_for_selector(".rrv-report", timeout=10000)
 
         # Error state must be gone
@@ -4332,7 +4549,9 @@ class TestResearchResultPageE2E:
 def reports_user_a(live_servers):
     """Create user A with a real-workflow session + run (report ready)."""
     _, backend_port = live_servers
-    tokens = _seed_user(backend_port, f"rpts-a-{_uuid.uuid4().hex[:6]}", "ReportsA_Pass123!")
+    tokens = _seed_user(
+        backend_port, f"rpts-a-{_uuid.uuid4().hex[:6]}", "ReportsA_Pass123!"
+    )
     if tokens is None:
         raise RuntimeError("Failed to create reports user A")
     base = f"http://127.0.0.1:{backend_port}"
@@ -4341,7 +4560,8 @@ def reports_user_a(live_servers):
     sess_resp = httpx.post(
         f"{base}/api/v1/workspace/sessions",
         json={"title": "用户A研究报告"},
-        headers=headers, timeout=10,
+        headers=headers,
+        timeout=10,
     )
     session_id = sess_resp.json()["data"]["id"]
 
@@ -4355,7 +4575,8 @@ def reports_user_a(live_servers):
             "retrieval_snapshot": [],
             "traces": [],
         },
-        headers=headers, timeout=10,
+        headers=headers,
+        timeout=10,
     )
     run_id = seed_resp.json()["data"]["run_id"]
 
@@ -4372,7 +4593,9 @@ def reports_user_a(live_servers):
 def reports_user_b(live_servers):
     """Create user B with own session + run - must be isolated from A."""
     _, backend_port = live_servers
-    tokens = _seed_user(backend_port, f"rpts-b-{_uuid.uuid4().hex[:6]}", "ReportsB_Pass123!")
+    tokens = _seed_user(
+        backend_port, f"rpts-b-{_uuid.uuid4().hex[:6]}", "ReportsB_Pass123!"
+    )
     if tokens is None:
         raise RuntimeError("Failed to create reports user B")
     base = f"http://127.0.0.1:{backend_port}"
@@ -4381,7 +4604,8 @@ def reports_user_b(live_servers):
     sess_resp = httpx.post(
         f"{base}/api/v1/workspace/sessions",
         json={"title": "用户B研究报告"},
-        headers=headers, timeout=10,
+        headers=headers,
+        timeout=10,
     )
     session_id = sess_resp.json()["data"]["id"]
 
@@ -4395,7 +4619,8 @@ def reports_user_b(live_servers):
             "retrieval_snapshot": [],
             "traces": [],
         },
-        headers=headers, timeout=10,
+        headers=headers,
+        timeout=10,
     )
     run_id = seed_resp.json()["data"]["run_id"]
 
@@ -4422,7 +4647,10 @@ class TestResearchReportsPageE2E:
     """
 
     def test_report_list_loads_with_own_reports(
-        self, live_servers, reports_user_a, page,
+        self,
+        live_servers,
+        reports_user_a,
+        page,
     ):
         """Real login → open /reports → see own reports."""
         frontend_url, _ = live_servers
@@ -4443,12 +4671,13 @@ class TestResearchReportsPageE2E:
 
         # Check badge inside a list item (NOT the toolbar dropdown option)
         badge = page.locator(".rrli-root .rsb-report-ready")
-        assert badge.count() >= 1, (
-            "Report with markdown must show ready badge"
-        )
+        assert badge.count() >= 1, "Report with markdown must show ready badge"
 
     def test_view_report_link_uses_real_ids(
-        self, live_servers, reports_user_a, page,
+        self,
+        live_servers,
+        reports_user_a,
+        page,
     ):
         """The '查看报告' link must use real session_id and run_id."""
         frontend_url, _ = live_servers
@@ -4470,7 +4699,10 @@ class TestResearchReportsPageE2E:
         assert "/result/" in href, f"URL missing /result/: {href}"
 
     def test_click_view_opens_result_page(
-        self, live_servers, reports_user_a, page,
+        self,
+        live_servers,
+        reports_user_a,
+        page,
     ):
         """Click '查看报告' → navigate to frozen ResearchResultPage."""
         frontend_url, _ = live_servers
@@ -4489,7 +4721,10 @@ class TestResearchReportsPageE2E:
         page.wait_for_selector(".rrh-page-title, .rrv-report, h1", timeout=10000)
 
     def test_export_from_reports_page(
-        self, live_servers, reports_user_a, page,
+        self,
+        live_servers,
+        reports_user_a,
+        page,
     ):
         """Export button on reports page triggers real download."""
         frontend_url, _ = live_servers
@@ -4512,7 +4747,11 @@ class TestResearchReportsPageE2E:
         assert filename.endswith(".md"), f"Not .md: {filename}"
 
     def test_user_a_cannot_see_user_b_reports(
-        self, live_servers, reports_user_a, reports_user_b, page,
+        self,
+        live_servers,
+        reports_user_a,
+        reports_user_b,
+        page,
     ):
         """User A must not see User B's reports."""
         frontend_url, _ = live_servers
@@ -4527,9 +4766,7 @@ class TestResearchReportsPageE2E:
         assert page.locator("text=B的经络研究").count() == 0
 
         # Try direct URL access to B's report
-        page.goto(
-            f"{frontend_url}/research/{ub['session_id']}/result/{ub['run_id']}"
-        )
+        page.goto(f"{frontend_url}/research/{ub['session_id']}/result/{ub['run_id']}")
 
         try:
             page.wait_for_selector(".rre-state", timeout=5000)
@@ -4539,7 +4776,11 @@ class TestResearchReportsPageE2E:
         assert page.locator("text=用户B研究报告").count() == 0
 
     def test_b_cannot_see_a_reports(
-        self, live_servers, reports_user_a, reports_user_b, page,
+        self,
+        live_servers,
+        reports_user_a,
+        reports_user_b,
+        page,
     ):
         """User B must not see User A's reports."""
         frontend_url, _ = live_servers
@@ -4553,7 +4794,9 @@ class TestResearchReportsPageE2E:
         assert page.locator("text=A的哮喘研究").count() == 0
 
     def test_empty_reports_page(
-        self, live_servers, page,
+        self,
+        live_servers,
+        page,
     ):
         """New user with no sessions sees empty state."""
         frontend_url, backend_port = live_servers
@@ -4583,8 +4826,12 @@ def library_test_users(live_servers):
     _, backend_port = live_servers
     base = f"http://127.0.0.1:{backend_port}"
 
-    token_a = _seed_user(backend_port, f"lib-a-{_uuid.uuid4().hex[:6]}", "LibA_Pass123!")
-    token_b = _seed_user(backend_port, f"lib-b-{_uuid.uuid4().hex[:6]}", "LibB_Pass123!")
+    token_a = _seed_user(
+        backend_port, f"lib-a-{_uuid.uuid4().hex[:6]}", "LibA_Pass123!"
+    )
+    token_b = _seed_user(
+        backend_port, f"lib-b-{_uuid.uuid4().hex[:6]}", "LibB_Pass123!"
+    )
 
     # User A creates a private document
     headers_a = {"Authorization": f"Bearer {token_a['access_token']}"}
@@ -4638,7 +4885,10 @@ class TestLibraryE2E:
     """
 
     def test_library_page_loads_authenticated(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """After real login, /library shows the Library heading."""
         frontend_url, _ = live_servers
@@ -4650,7 +4900,9 @@ class TestLibraryE2E:
         assert page.locator("text=Library").count() > 0
 
     def test_library_requires_auth(
-        self, live_servers, page,
+        self,
+        live_servers,
+        page,
     ):
         """Anonymous user visiting /library is redirected to login."""
         frontend_url, _ = live_servers
@@ -4659,7 +4911,10 @@ class TestLibraryE2E:
         page.wait_for_url(f"{frontend_url}/login**", timeout=10000)
 
     def test_library_search_returns_results(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """Search for a seed document (针灸) returns matching results."""
         frontend_url, _ = live_servers
@@ -4677,7 +4932,12 @@ class TestLibraryE2E:
 
         # Intercept the API request to verify q param
         api_requests = []
-        page.on("request", lambda req: api_requests.append(req.url) if "/api/v1/documents" in req.url else None)
+        page.on(
+            "request",
+            lambda req: (
+                api_requests.append(req.url) if "/api/v1/documents" in req.url else None
+            ),
+        )
 
         # Click search button
         page.locator(".lib-search-btn").first.click()
@@ -4690,18 +4950,26 @@ class TestLibraryE2E:
         assert len(search_requests) >= 1, (
             f"No search API call with q= param detected. Got: {api_requests}"
         )
-        assert any("q=%E9%92%88%E7%81%B8" in u or "q=针灸" in u or "q=%E9%87%9D%E7%81%B8" in u
-                   or "q=%E9%8F%BD%E7%81%B8" in u for u in search_requests), (
-            f"Search query '针灸' not found in API requests: {search_requests}"
-        )
+        assert any(
+            "q=%E9%92%88%E7%81%B8" in u
+            or "q=针灸" in u
+            or "q=%E9%87%9D%E7%81%B8" in u
+            or "q=%E9%8F%BD%E7%81%B8" in u
+            for u in search_requests
+        ), f"Search query '针灸' not found in API requests: {search_requests}"
 
         # Must show matching document cards (seed data has '针灸甲乙经')
         assert page.locator("text=Library").count() > 0
-        body = page.locator('body').first.text_content() or ""
-        assert "针灸" in body, f"Search results should contain '针灸'. Body: {body[:500]}"
+        body = page.locator("body").first.text_content() or ""
+        assert "针灸" in body, (
+            f"Search results should contain '针灸'. Body: {body[:500]}"
+        )
 
     def test_library_detail_page_shows_document_info(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """Detail page at /library/:id shows real title, no error, stats panel visible."""
         frontend_url, _ = live_servers
@@ -4727,7 +4995,7 @@ class TestLibraryE2E:
         # Wait for the detail page to load — API returns doc + stats
         page.wait_for_timeout(8000)
 
-        body = page.locator('body').first.text_content() or ""
+        body = page.locator("body").first.text_content() or ""
 
         # Must show the real document title
         assert doc_title in body, (
@@ -4735,16 +5003,16 @@ class TestLibraryE2E:
         )
 
         # Must NOT show loading or error state
-        assert page.locator('.error-state, .lib-error').count() == 0, (
+        assert page.locator(".error-state, .lib-error").count() == 0, (
             f"Page should not show error state. Body: {body[:300]}"
         )
         assert "加载中" not in body, f"Page should not be loading. Body: {body[:300]}"
 
         # Stats panel must be visible — "文献统计" heading or stat fields
-        assert page.locator('text=文献统计').is_visible() or \
-               page.locator('text=分块数量').is_visible(), (
-            f"Stats panel not visible. Body: {body[:300]}"
-        )
+        assert (
+            page.locator("text=文献统计").is_visible()
+            or page.locator("text=分块数量").is_visible()
+        ), f"Stats panel not visible. Body: {body[:300]}"
 
         # Stats request must have returned 200
         assert stats_status == 200, (
@@ -4752,7 +5020,10 @@ class TestLibraryE2E:
         )
 
     def test_library_reader_jump(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """Clicking '全文阅读' button navigates to /reader/:id with correct doc ID."""
         frontend_url, _ = live_servers
@@ -4781,7 +5052,7 @@ class TestLibraryE2E:
 
         # Verify the reader page loaded with real content
         page.wait_for_timeout(3000)
-        reader_body = page.locator('body').first.text_content() or ""
+        reader_body = page.locator("body").first.text_content() or ""
         # The reader must show the document title or its content text
         assert doc_title in reader_body or "这是A的私有文献内容" in reader_body, (
             f"Reader page must show doc title or content for doc {doc_id}. "
@@ -4789,7 +5060,9 @@ class TestLibraryE2E:
         )
 
     def test_literature_page_requires_auth(
-        self, live_servers, page,
+        self,
+        live_servers,
+        page,
     ):
         """Anonymous user visiting /literature/:id is redirected to login."""
         frontend_url, _ = live_servers
@@ -4802,7 +5075,10 @@ class TestLibraryCrossUserIsolation:
     """Cross-user isolation: User A must NOT see User B's private documents."""
 
     def test_user_a_cannot_see_user_b_private_doc_in_list(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """User A's document list must not contain User B's private document title."""
         frontend_url, _ = live_servers
@@ -4819,7 +5095,10 @@ class TestLibraryCrossUserIsolation:
             assert page.locator(f"text={b_title}").count() == 0
 
     def test_user_b_cannot_see_user_a_private_doc_in_list(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """User B's document list must not contain User A's private document title."""
         frontend_url, _ = live_servers
@@ -4836,7 +5115,10 @@ class TestLibraryCrossUserIsolation:
             assert page.locator(f"text={a_title}").count() == 0
 
     def test_user_a_cannot_access_user_b_private_doc_detail(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """User A must NOT see User B's private document detail — title, body, stats."""
         frontend_url, _ = live_servers
@@ -4864,13 +5146,16 @@ class TestLibraryCrossUserIsolation:
             assert page.locator(f"text={b_abstract}").count() == 0, (
                 "User A should NOT see B's doc abstract"
             )
-        body = (page.locator('body').first.text_content() or "")
+        body = page.locator("body").first.text_content() or ""
         assert "统计" not in body or "分块数量" not in body, (
             f"User A must not see stats for B's doc. Body: {body[:300]}"
         )
 
     def test_user_a_cannot_read_user_b_private_doc_via_literature(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """User A must not read User B's private document full text via /literature/:id."""
         frontend_url, _ = live_servers
@@ -4892,7 +5177,10 @@ class TestLibraryCrossUserIsolation:
             assert page.locator(f"text={b_title}").count() == 0
 
     def test_user_b_cannot_access_user_a_private_doc_stats(
-        self, live_servers, library_test_users, page,
+        self,
+        live_servers,
+        library_test_users,
+        page,
     ):
         """User B gets 404 when accessing User A's private document stats."""
         frontend_url, backend_port = live_servers
@@ -4907,7 +5195,9 @@ class TestLibraryCrossUserIsolation:
         # B tries direct API access to A's stats
         base = f"http://127.0.0.1:{backend_port}"
         headers = {"Authorization": f"Bearer {b['access_token']}"}
-        r = httpx.get(f"{base}/api/v1/documents/{a_doc_id}/stats", headers=headers, timeout=10)
+        r = httpx.get(
+            f"{base}/api/v1/documents/{a_doc_id}/stats", headers=headers, timeout=10
+        )
 
         # Must return 403 (RBAC permission denied) or 404 (ownership check).
         # 200 or 500 is a leak — B must not know whether A's doc exists.

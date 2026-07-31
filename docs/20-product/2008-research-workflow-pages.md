@@ -14,13 +14,13 @@ Document the newly scaffolded Research Workflow pages, their routes, directory s
 
 ## New Pages
 
-| # | File | Page Name | Route | Auth |
-|---|------|-----------|-------|------|
-| 1 | `pages/research/ProjectListPage.vue` | Project List | `/research` | Authenticated |
-| 2 | `pages/research/ProjectDetailPage.vue` | Project Detail | `/research/:projectId` | Authenticated |
-| 3 | `pages/research/ResearchWorkspacePage.vue` | Research Workspace | `/research/:projectId/workspace` | Authenticated |
-| 4 | `pages/research/ResearchWorkflowPage.vue` | Research Workflow | `/research/:projectId/workflow` | Authenticated |
-| 5 | `pages/research/ResearchResultPage.vue` | Research Result | `/research/:projectId/result/:runId` | Authenticated |
+| #   | File                                       | Page Name          | Route                                | Auth          |
+| --- | ------------------------------------------ | ------------------ | ------------------------------------ | ------------- |
+| 1   | `pages/research/ProjectListPage.vue`       | Project List       | `/research`                          | Authenticated |
+| 2   | `pages/research/ProjectDetailPage.vue`     | Project Detail     | `/research/:projectId`               | Authenticated |
+| 3   | `pages/research/ResearchWorkspacePage.vue` | Research Workspace | `/research/:projectId/workspace`     | Authenticated |
+| 4   | `pages/research/ResearchWorkflowPage.vue`  | Research Workflow  | `/research/:projectId/workflow`      | Authenticated |
+| 5   | `pages/research/ResearchResultPage.vue`    | Research Result    | `/research/:projectId/result/:runId` | Authenticated |
 
 ---
 

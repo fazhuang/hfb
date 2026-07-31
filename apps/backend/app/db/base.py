@@ -3,6 +3,7 @@ Base model with UUID primary key, timestamps, and soft-delete support.
 
 Uses a portable UUID type that works with both PostgreSQL and SQLite.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -14,7 +15,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 class Base(DeclarativeBase):
     """Base class for all database models."""
-
 
 
 class TimestampMixin:

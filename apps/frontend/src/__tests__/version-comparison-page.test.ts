@@ -114,11 +114,31 @@ function makeRouter() {
     routes: [
       { path: '/', component: { template: '<div/>' }, name: 'home' },
       { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
-      { path: '/research/:projectId', component: { template: '<div/>' }, name: 'research-project-detail' },
-      { path: '/research/:projectId/workspace', component: { template: '<div/>' }, name: 'research-project-workspace' },
-      { path: '/research/:projectId/workflow', component: { template: '<div/>' }, name: 'research-project-workflow' },
-      { path: '/research/:projectId/version-comparison', component: { template: '<div/>' }, name: 'research-project-version-comparison' },
-      { path: '/research/:projectId/result/:runId', component: { template: '<div/>' }, name: 'research-project-result' },
+      {
+        path: '/research/:projectId',
+        component: { template: '<div/>' },
+        name: 'research-project-detail',
+      },
+      {
+        path: '/research/:projectId/workspace',
+        component: { template: '<div/>' },
+        name: 'research-project-workspace',
+      },
+      {
+        path: '/research/:projectId/workflow',
+        component: { template: '<div/>' },
+        name: 'research-project-workflow',
+      },
+      {
+        path: '/research/:projectId/version-comparison',
+        component: { template: '<div/>' },
+        name: 'research-project-version-comparison',
+      },
+      {
+        path: '/research/:projectId/result/:runId',
+        component: { template: '<div/>' },
+        name: 'research-project-result',
+      },
     ],
   });
 }

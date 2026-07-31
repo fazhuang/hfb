@@ -21,11 +21,7 @@
       <div class="rpn-separator"></div>
       <ul class="rpn-section">
         <li v-for="item in adminNavItems" :key="item.path">
-          <a
-            v-if="item.external"
-            :href="item.path"
-            class="rpn-link rpn-link--admin"
-          >
+          <a v-if="item.external" :href="item.path" class="rpn-link rpn-link--admin">
             <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
             <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
           </a>

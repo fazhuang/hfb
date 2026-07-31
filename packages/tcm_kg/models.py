@@ -50,9 +50,7 @@ class Edge:
     source_ref: str | None = None
 
     def __hash__(self) -> int:
-        return hash(
-            (self.source_id, self.target_id, self.relation, self.source_ref)
-        )
+        return hash((self.source_id, self.target_id, self.relation, self.source_ref))
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Edge):

@@ -3,6 +3,7 @@ Workspace models — ResearchSession and ResearchNote.
 
 Per HFB-PS-1705 AI Research Workspace Product Specification.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -31,7 +32,11 @@ class ResearchSession(BaseModel):
         comment="所属用户 ID",
     )
     title: Mapped[str] = mapped_column(
-        String(500), default="未命名研究", server_default="未命名研究", nullable=False, comment="会话标题"
+        String(500),
+        default="未命名研究",
+        server_default="未命名研究",
+        nullable=False,
+        comment="会话标题",
     )
     active_entities: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="当前打开的实体 ID 列表 (JSON)"
@@ -72,9 +77,7 @@ class ResearchNote(BaseModel):
     content: Mapped[str] = mapped_column(
         Text, nullable=False, comment="笔记内容 (Markdown)"
     )
-    tags: Mapped[str | None] = mapped_column(
-        String(500), nullable=True, comment="标签"
-    )
+    tags: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="标签")
 
     # Relationships
     session: Mapped[ResearchSession] = relationship(
@@ -100,9 +103,7 @@ class QueryHistory(BaseModel):
         index=True,
         comment="所属研究会话 ID",
     )
-    query_text: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="查询原文"
-    )
+    query_text: Mapped[str] = mapped_column(Text, nullable=False, comment="查询原文")
     query_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -152,9 +153,7 @@ class CitationCollection(BaseModel):
     tags: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="用户标签"
     )
-    notes: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="用户标注"
-    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True, comment="用户标注")
 
     session: Mapped[ResearchSession] = relationship(
         "ResearchSession", backref="citations", lazy="selectin"

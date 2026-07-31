@@ -7,6 +7,7 @@ is anchored on Version.
 
 Example: 北宋刻本, 南宋刻本, 日本刊本 of 针灸甲乙经
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -27,16 +28,33 @@ class Version(BaseModel):
     __tablename__ = "versions"
 
     book_id: Mapped[str] = mapped_column(
-        ForeignKey("books.id", ondelete="CASCADE"), nullable=False, index=True, comment="所属书籍 ID"
+        ForeignKey("books.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="所属书籍 ID",
     )
-    version_name: Mapped[str] = mapped_column(String(300), nullable=False, comment="版本名称")
-    era: Mapped[str | None] = mapped_column(String(100), nullable=True, comment="朝代/时期")
+    version_name: Mapped[str] = mapped_column(
+        String(300), nullable=False, comment="版本名称"
+    )
+    era: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="朝代/时期"
+    )
     year: Mapped[int | None] = mapped_column(nullable=True, comment="版本年份")
-    repository: Mapped[str | None] = mapped_column(String(500), nullable=True, comment="收藏机构")
-    shelf_mark: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="索书号")
-    editor: Mapped[str | None] = mapped_column(String(200), nullable=True, comment="编者/校注者")
-    description: Mapped[str | None] = mapped_column(Text, nullable=True, comment="版本描述")
-    source_url: Mapped[str | None] = mapped_column(String(2000), nullable=True, comment="来源链接")
+    repository: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, comment="收藏机构"
+    )
+    shelf_mark: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, comment="索书号"
+    )
+    editor: Mapped[str | None] = mapped_column(
+        String(200), nullable=True, comment="编者/校注者"
+    )
+    description: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="版本描述"
+    )
+    source_url: Mapped[str | None] = mapped_column(
+        String(2000), nullable=True, comment="来源链接"
+    )
 
     # ------------------------------------------------------------------
     # Academic credibility fields (P2T1)

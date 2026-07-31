@@ -1,9 +1,9 @@
 ---
-title: "Sprint 08 — todo"
-version: "1.0"
-status: "Pending"
-sprint: "Sprint 08"
-last_updated: "2026-06-24"
+title: 'Sprint 08 — todo'
+version: '1.0'
+status: 'Pending'
+sprint: 'Sprint 08'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 08 — todo

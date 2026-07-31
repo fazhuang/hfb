@@ -34,7 +34,9 @@
       </div>
       <div v-else-if="evidence.chunk_id" class="eed-meta-row">
         <span class="eed-meta-label">Chunk ID</span>
-        <code class="eed-meta-value eed-meta-value--incomplete">{{ evidence.chunk_id.slice(0, 16) }}...</code>
+        <code class="eed-meta-value eed-meta-value--incomplete"
+          >{{ evidence.chunk_id.slice(0, 16) }}...</code
+        >
         <span class="eed-meta-note">（无 passage 映射）</span>
       </div>
     </div>

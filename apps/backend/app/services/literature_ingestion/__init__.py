@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 # Shared result shape — all clients normalize into this
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class LiteratureItem:
     """Normalized metadata record from any source."""
@@ -44,8 +45,13 @@ class LiteratureItem:
             raise ValueError("LiteratureItem.source must not be empty")
         if not self.source_url.strip():
             raise ValueError("LiteratureItem.source_url must not be empty")
-        if not (self.source_url.startswith("http://") or self.source_url.startswith("https://")):
-            raise ValueError(f"LiteratureItem.source_url must be an HTTP(S) URL, got: {self.source_url!r}")
+        if not (
+            self.source_url.startswith("http://")
+            or self.source_url.startswith("https://")
+        ):
+            raise ValueError(
+                f"LiteratureItem.source_url must be an HTTP(S) URL, got: {self.source_url!r}"
+            )
 
     def dedup_key(self) -> str:
         """Deterministic dedup: DOI if available, else normalized title+year."""
@@ -71,6 +77,7 @@ class LiteratureItem:
 # ---------------------------------------------------------------------------
 # Ingestion job — audit trail
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class IngestionJob:
@@ -101,6 +108,7 @@ class IngestionJob:
 # Shared HTTP client factory
 # ---------------------------------------------------------------------------
 
+
 def _http_client(timeout: float = 15.0) -> httpx.AsyncClient:
     from app.core.settings import settings
 
@@ -119,6 +127,7 @@ def _http_client(timeout: float = 15.0) -> httpx.AsyncClient:
 # ---------------------------------------------------------------------------
 # Dedup against existing DB records
 # ---------------------------------------------------------------------------
+
 
 async def filter_new_items(
     session: AsyncSession,
@@ -160,14 +169,19 @@ async def filter_new_items(
     existing_dois: set[str] = {row.doi_lower for row in rows if row.doi_lower}
     existing_title_years: set[tuple[str, int | None]] = {
         (LiteratureItem.normalized_title(row.title), row.year)
-        for row in rows if not row.doi_lower and row.title
+        for row in rows
+        if not row.doi_lower and row.title
     }
 
     new_items: list[LiteratureItem] = []
     for item in items:
         if item.doi and item.doi.lower().strip() in existing_dois:
             continue
-        if not item.doi and (LiteratureItem.normalized_title(item.title), item.year) in existing_title_years:
+        if (
+            not item.doi
+            and (LiteratureItem.normalized_title(item.title), item.year)
+            in existing_title_years
+        ):
             continue
         new_items.append(item)
     return new_items

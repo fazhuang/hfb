@@ -78,7 +78,10 @@ async def get_paper(
     """Retrieve a previously generated paper by its SHA-256 ID."""
     paper = _paper_cache.get(paper_id)
     if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found. Generate it first via POST /generate.")
+        raise HTTPException(
+            status_code=404,
+            detail="Paper not found. Generate it first via POST /generate.",
+        )
     return PaperEnvelope(success=True, data=paper, message="ok")
 
 
@@ -93,7 +96,10 @@ async def get_paper_markdown(
     """Download a generated paper as Markdown."""
     paper = _paper_cache.get(paper_id)
     if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found. Generate it first via POST /generate.")
+        raise HTTPException(
+            status_code=404,
+            detail="Paper not found. Generate it first via POST /generate.",
+        )
     return PaperEnvelope(
         success=True,
         data={"paper_id": paper_id, "markdown": paper.get("markdown", "")},

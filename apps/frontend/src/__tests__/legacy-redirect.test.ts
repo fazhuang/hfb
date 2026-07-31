@@ -205,14 +205,7 @@ describe('LegacyRedirect', () => {
   // ---------------------------------------------------------------------------
 
   it('所有 migration-contract 定义的 tab 值均有路由映射', () => {
-    const requiredTabs = [
-      'materials',
-      'versions',
-      'notes',
-      'reports',
-      'research',
-      'v4-research',
-    ];
+    const requiredTabs = ['materials', 'versions', 'notes', 'reports', 'research', 'v4-research'];
     for (const tab of requiredTabs) {
       expect(TAB_TO_ROUTE[tab]).toBeDefined();
     }

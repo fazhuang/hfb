@@ -11,6 +11,7 @@ Endpoints:
   CRUD /api/v1/workspace/sessions — Research session management
   CRUD /api/v1/workspace/notes    — Research notes
 """
+
 from __future__ import annotations
 
 import json
@@ -156,7 +157,9 @@ async def ai_chat(
             yield f"data: {json.dumps({'content': refusal.answer, 'structured': refusal.model_dump(mode='json')})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
             if body.session_id:
-                await ws_svc.append_chat_message(body.session_id, "assistant", refusal.answer)
+                await ws_svc.append_chat_message(
+                    body.session_id, "assistant", refusal.answer
+                )
             return
 
         # Stream LLM response
@@ -213,7 +216,9 @@ async def grounded_generate(
 # ============================================================
 
 
-@ai_router.post("/summarize", response_model=dict, dependencies=[Depends(guard_ai_read)])
+@ai_router.post(
+    "/summarize", response_model=dict, dependencies=[Depends(guard_ai_read)]
+)
 async def summarize(body: SummarizeRequest) -> dict:
     ai_svc = AIService()
     result = await ai_svc.summarize(body.text, body.max_words)
@@ -225,7 +230,9 @@ async def summarize(body: SummarizeRequest) -> dict:
 # ============================================================
 
 
-@ai_router.post("/translate", response_model=dict, dependencies=[Depends(guard_ai_read)])
+@ai_router.post(
+    "/translate", response_model=dict, dependencies=[Depends(guard_ai_read)]
+)
 async def translate(body: TranslateRequest) -> dict:
     ai_svc = AIService()
     result = await ai_svc.translate(body.text, body.target_lang)
@@ -240,7 +247,9 @@ async def translate(body: TranslateRequest) -> dict:
 @ai_router.post("/compare", response_model=dict, dependencies=[Depends(guard_ai_read)])
 async def ai_compare(body: CompareRequest) -> dict:
     ai_svc = AIService()
-    result = await ai_svc.ai_compare(body.source_text, body.target_text, body.source_label, body.target_label)
+    result = await ai_svc.ai_compare(
+        body.source_text, body.target_text, body.source_label, body.target_label
+    )
     return api_response(data={"comparison": result})
 
 
@@ -249,7 +258,9 @@ async def ai_compare(body: CompareRequest) -> dict:
 # ============================================================
 
 
-@workspace_router.get("/sessions", response_model=dict, dependencies=[Depends(guard_workspace_read)])
+@workspace_router.get(
+    "/sessions", response_model=dict, dependencies=[Depends(guard_workspace_read)]
+)
 async def list_sessions(
     current_user: str = Depends(get_current_user),
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -259,7 +270,9 @@ async def list_sessions(
     return api_response(data=[_session_dict(s) for s in items])
 
 
-@workspace_router.post("/sessions", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.post(
+    "/sessions", response_model=dict, dependencies=[Depends(guard_workspace_write)]
+)
 async def create_session(
     body: SessionCreateRequest,
     current_user: str = Depends(get_current_user),
@@ -270,7 +283,11 @@ async def create_session(
     return api_response(data=_session_dict(obj), message="Created")
 
 
-@workspace_router.get("/sessions/{session_id}", response_model=dict, dependencies=[Depends(guard_workspace_read)])
+@workspace_router.get(
+    "/sessions/{session_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_read)],
+)
 async def get_session_route(
     session_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -280,11 +297,16 @@ async def get_session_route(
     obj = await svc.get_session(session_id)
     if obj is None or obj.user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Session not found")
     return api_response(data=_session_dict(obj))
 
 
-@workspace_router.patch("/sessions/{session_id}", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.patch(
+    "/sessions/{session_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
 async def update_session_route(
     session_id: UUID,
     body: SessionUpdateRequest,
@@ -295,6 +317,7 @@ async def update_session_route(
     obj = await svc.get_session(session_id)
     if obj is None or obj.user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Session not found")
     obj = await svc.update_session(
         session_id,
@@ -305,7 +328,11 @@ async def update_session_route(
     return api_response(data=_session_dict(obj), message="Updated")
 
 
-@workspace_router.delete("/sessions/{session_id}", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.delete(
+    "/sessions/{session_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
 async def delete_session_route(
     session_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -315,6 +342,7 @@ async def delete_session_route(
     obj = await svc.get_session(session_id)
     if obj is None or obj.user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Session not found")
     await svc.delete_session(session_id)
     return api_response(data=None, message="Deleted")
@@ -325,7 +353,11 @@ async def delete_session_route(
 # ============================================================
 
 
-@workspace_router.get("/sessions/{session_id}/notes", response_model=dict, dependencies=[Depends(guard_workspace_read)])
+@workspace_router.get(
+    "/sessions/{session_id}/notes",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_read)],
+)
 async def list_notes(
     session_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -335,12 +367,17 @@ async def list_notes(
     s = await svc.get_session(session_id)
     if s is None or s.user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Session not found")
     items = await svc.list_notes(session_id)
     return api_response(data=[_note_dict(n) for n in items])
 
 
-@workspace_router.post("/sessions/{session_id}/notes", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.post(
+    "/sessions/{session_id}/notes",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
 async def create_note(
     session_id: UUID,
     body: NoteCreateRequest,
@@ -351,12 +388,19 @@ async def create_note(
     s = await svc.get_session(session_id)
     if s is None or s.user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Session not found")
-    note = await svc.create_note(session_id, body.content, body.entity_type, body.entity_id, body.tags)
+    note = await svc.create_note(
+        session_id, body.content, body.entity_type, body.entity_id, body.tags
+    )
     return api_response(data=_note_dict(note), message="Created")
 
 
-@workspace_router.patch("/notes/{note_id}", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.patch(
+    "/notes/{note_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
 async def update_note_route(
     note_id: UUID,
     body: NoteUpdateRequest,
@@ -368,12 +412,17 @@ async def update_note_route(
     note = await svc.get_note_with_session(note_id)
     if note is None or note[1].user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Note not found")
     note = await svc.update_note(note_id, content=body.content, tags=body.tags)
     return api_response(data=_note_dict(note), message="Updated")
 
 
-@workspace_router.delete("/notes/{note_id}", response_model=dict, dependencies=[Depends(guard_workspace_write)])
+@workspace_router.delete(
+    "/notes/{note_id}",
+    response_model=dict,
+    dependencies=[Depends(guard_workspace_write)],
+)
 async def delete_note_route(
     note_id: UUID,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
@@ -383,6 +432,7 @@ async def delete_note_route(
     note = await svc.get_note_with_session(note_id)
     if note is None or note[1].user_id != current_user:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Note not found")
     await svc.delete_note(note_id)
     return api_response(data=None, message="Deleted")

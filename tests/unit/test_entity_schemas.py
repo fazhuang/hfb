@@ -1,6 +1,7 @@
 """
 Tests for entity Pydantic schemas — Book, Version, Chapter, Passage, Paper, Image.
 """
+
 import pytest
 from app.schemas.entities import (
     BookCreate,

@@ -46,13 +46,13 @@ erDiagram
 
 ## Identifier Semantics
 
-| Context | Identifier | Actual meaning |
-|---|---|---|
-| URL route | `/research/:projectId` | `ResearchSession.id` (UUID) |
-| API response | `data[].id` | `ResearchSession.id` (UUID) |
-| Frontend type | `ResearchProjectSummary.id` | `ResearchSession.id` (UUID) |
-| Create request | POST body | → new ResearchSession row |
-| Create response | Response `data.id` | new ResearchSession.id |
+| Context         | Identifier                  | Actual meaning              |
+| --------------- | --------------------------- | --------------------------- |
+| URL route       | `/research/:projectId`      | `ResearchSession.id` (UUID) |
+| API response    | `data[].id`                 | `ResearchSession.id` (UUID) |
+| Frontend type   | `ResearchProjectSummary.id` | `ResearchSession.id` (UUID) |
+| Create request  | POST body                   | → new ResearchSession row   |
+| Create response | Response `data.id`          | new ResearchSession.id      |
 
 **The `projectId` route parameter name is a product convenience.** Throughout the system, this value is `ResearchSession.id`. There is no project ID abstraction that differs from the session ID.
 
@@ -68,6 +68,7 @@ erDiagram
 **Request:** No query parameters accepted by the route handler. The service layer has an internal `limit: int = 20` default, but the route handler does NOT pass any params. The `limit=100` the frontend sends is accepted but **not acted upon** — the backend always returns at most 20 sessions.
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -92,12 +93,14 @@ erDiagram
 
 **Source:** `/Users/likeming/Sites/hfb/apps/backend/app/api/v1/ai.py` lines 262–270
 **Schema:** `SessionCreateRequest` (line 80–81):
+
 ```python
 class SessionCreateRequest(BaseModel):
     title: str = "未命名研究"
 ```
 
 **Request body:**
+
 ```json
 { "title": "<string>" }
 ```
@@ -108,16 +111,16 @@ class SessionCreateRequest(BaseModel):
 
 ## Field Mapping
 
-| Backend field (ResearchSession) | API key | Frontend field (ResearchProjectSummary) | Optional? | Transform | Missing handling |
-|---|---|---|---|---|---|
-| `id` (UUID varchar) | `id` | `id` | Required | `String(raw.id \|\| '')` | Empty string fallback (should not occur) |
-| `title` (varchar 500) | `title` | `title` | Required | `String(raw.title \|\| '')` | Empty string fallback |
-| `created_at` (timestamptz) | `created_at` (ISO) | `created_at` | Optional | Pass ISO string, null if not string | Null |
-| `updated_at` (timestamptz) | `updated_at` (ISO) | `updated_at` | Optional | Pass ISO string, null if not string | Null |
-| `active_entities` (JSON text) | `active_entities` | — not mapped — | Internal only | Not surfaced to UI | — |
-| `context_notes` (text) | `context_notes` | — not mapped — | Internal only | Not surfaced to UI | — |
-| N/A | N/A | `description` | **Deleted** (was `null` always) | Not applicable | No `description` key added |
-| N/A | N/A | No `status` field | **Removed** | Not applicable | No fake status |
+| Backend field (ResearchSession) | API key            | Frontend field (ResearchProjectSummary) | Optional?                       | Transform                           | Missing handling                         |
+| ------------------------------- | ------------------ | --------------------------------------- | ------------------------------- | ----------------------------------- | ---------------------------------------- |
+| `id` (UUID varchar)             | `id`               | `id`                                    | Required                        | `String(raw.id \|\| '')`            | Empty string fallback (should not occur) |
+| `title` (varchar 500)           | `title`            | `title`                                 | Required                        | `String(raw.title \|\| '')`         | Empty string fallback                    |
+| `created_at` (timestamptz)      | `created_at` (ISO) | `created_at`                            | Optional                        | Pass ISO string, null if not string | Null                                     |
+| `updated_at` (timestamptz)      | `updated_at` (ISO) | `updated_at`                            | Optional                        | Pass ISO string, null if not string | Null                                     |
+| `active_entities` (JSON text)   | `active_entities`  | — not mapped —                          | Internal only                   | Not surfaced to UI                  | —                                        |
+| `context_notes` (text)          | `context_notes`    | — not mapped —                          | Internal only                   | Not surfaced to UI                  | —                                        |
+| N/A                             | N/A                | `description`                           | **Deleted** (was `null` always) | Not applicable                      | No `description` key added               |
+| N/A                             | N/A                | No `status` field                       | **Removed**                     | Not applicable                      | No fake status                           |
 
 ### Corrections applied (this audit)
 
@@ -131,13 +134,13 @@ class SessionCreateRequest(BaseModel):
 
 ### Real capabilities
 
-| Capability | Status | Details |
-|---|---|---|
-| Server-side search | **Not supported** | No `q`/`search`/`keyword` query param accepted |
-| Server-side pagination | **Not supported** | No `page`/`page_size`/`offset` params accepted |
-| `total` count | **Not returned** | Response has no `total` or pagination metadata |
-| Response size | **Hardcoded to 20** | `WorkspaceService.list_sessions` defaults `limit=20` |
-| Status filtering | **Not supported** | ResearchSession has no status column |
+| Capability             | Status              | Details                                              |
+| ---------------------- | ------------------- | ---------------------------------------------------- |
+| Server-side search     | **Not supported**   | No `q`/`search`/`keyword` query param accepted       |
+| Server-side pagination | **Not supported**   | No `page`/`page_size`/`offset` params accepted       |
+| `total` count          | **Not returned**    | Response has no `total` or pagination metadata       |
+| Response size          | **Hardcoded to 20** | `WorkspaceService.list_sessions` defaults `limit=20` |
+| Status filtering       | **Not supported**   | ResearchSession has no status column                 |
 
 ### Frontend approach
 
@@ -152,15 +155,16 @@ class SessionCreateRequest(BaseModel):
 
 All pages in the Research section MUST use `ResearchSession.id` as the single identifier:
 
-| Page | Route | Identifier | Notes |
-|---|---|---|---|
-| Project List | `/research` | — | Lists ResearchSessions |
-| Project Detail | `/research/:projectId` | `ResearchSession.id` | projectId === session UUID |
-| Workspace | (contextual) | `ResearchSession.id` | No separate project |
-| Workflow | (contextual) | `ResearchSession.id` | No separate project |
-| Results/Reports | (contextual) | `ResearchSession.id` | No separate project |
+| Page            | Route                  | Identifier           | Notes                      |
+| --------------- | ---------------------- | -------------------- | -------------------------- |
+| Project List    | `/research`            | —                    | Lists ResearchSessions     |
+| Project Detail  | `/research/:projectId` | `ResearchSession.id` | projectId === session UUID |
+| Workspace       | (contextual)           | `ResearchSession.id` | No separate project        |
+| Workflow        | (contextual)           | `ResearchSession.id` | No separate project        |
+| Results/Reports | (contextual)           | `ResearchSession.id` | No separate project        |
 
 **Prohibited:**
+
 - Creating an independent `Project` table or model
 - Adding a `project_id` column to any table (use `session_id`)
 - Treating `ResearchSession` as a "session of a project" — it IS the project

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.10.0] - 2025-06-25
 
 ### Added — MVP Phases 6-10
+
 - **Phase 6: Knowledge Graph** — EntityRelation model, GraphService (BFS path finding, neighborhood, subgraph), 7 graph API endpoints, GraphExplorerView + GraphCanvas.vue (vis-network force layout), FK-derived edges auto-computed
 - **Phase 7: Unified Search** — SearchService (ILIKE cross-entity search with scoring, snippets), autocomplete, reindex, 3 search API endpoints, SearchView with faceted filters and pagination
 - **Phase 8: AI Research Workspace** — AIService (streaming chat, summarize, translate, AI compare), RAGService (hybrid retrieval + context assembly), ResearchSession/ResearchNote models, 9 AI/workspace API endpoints, WorkspaceView three-panel layout
@@ -15,18 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Phase 10: Testing & Production Readiness** — RBAC security audit, workspace IDOR fixes, double API prefix fix, Playwright E2E test scaffolding, full verification (197 tests, ruff/lint/typecheck green)
 
 ### Security
+
 - Fixed double `/api/v1` prefix in child routers causing `/api/v1/api/v1/...` URLs
 - Fixed workspace session/note IDOR — added user ownership checks on all workspace endpoints
 - Added `graph`, `search`, `ai`, `dashboard` RBAC permissions to role seed
 - Added RBAC endpoint coverage audit (73 endpoints, all properly guarded)
 
 ### Changed
+
 - All child API routers no longer duplicate `prefix="/api/v1"` (parent router provides it)
 - Workspace routes now verify session ownership via `get_current_user`
 
 ## [0.2.0] - 2025-06-24
 
 ### Added
+
 - Complete monorepo directory structure (`apps/`, `packages/`, `docker/`, `deploy/`, `infra/`, `scripts/`, `tests/`, `tools/`)
 - GitHub community health files (ISSUE_TEMPLATE, PR_TEMPLATE, CODEOWNERS, SECURITY.md, CODE_OF_CONDUCT.md)
 - Root-level project documentation (README, LICENSE, CHANGELOG, CONTRIBUTING, ROADMAP, PROJECT_STATUS)
@@ -43,11 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Makefile with full development lifecycle targets
 
 ### Changed
+
 - Reorganized repository from flat structure to monorepo layout
 
 ## [0.7.0] - 2025-06-24
 
 ### Added — Sprint 6
+
 - Full CRUD REST API for all 4 entities (documents, persons, herbs, prescriptions)
 - Entity-specific full-text search endpoints: `/api/v1/search/documents` etc.
 - Unified search endpoint: `/api/v1/search?q=...&entity=...`
@@ -60,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2025-06-24
 
 ### Added — Sprint 4 & 5
+
 - **Knowledge Graph Engine (Sprint 4)**:
   - Neo4j connection management (async driver, session factory, health check)
   - Ontology schema: 9 node labels, 14 relationship types, property definitions
@@ -81,11 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Vector ingestion pipeline (PostgreSQL → Milvus sync)
 
 ### Changed
+
 - Settings: added Neo4j and Milvus configuration
 
 ## [0.5.0] - 2025-06-24
 
 ### Added
+
 - Domain models: Document (文献), Person (人物), Herb (药材), Prescription (方剂)
 - SQLAlchemy 2.0 async ORM models with full relationship mapping
 - ForeignKey on Document.author_id → Person.id with ON DELETE SET NULL
@@ -100,19 +109,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Database testing utilities: in-memory SQLite fixtures (db_session, db_session_persistent)
 
 ### Changed
+
 - Base model: UUID PK switched to String(36) for SQLite/PostgreSQL portability
 - All model annotations use `Optional[X]` instead of `X | None` for SQLAlchemy 2.0 compat
 - Repository layer no longer empty placeholder — full CRUD implementation
 - Service layer no longer empty placeholder — validation + orchestration
 
 ### Fixed
-- Document.language default now set via __init__ for non-DB contexts
+
+- Document.language default now set via **init** for non-DB contexts
 - contains() used instead of ilike() for portable text search
 - Search condition uses AND(is_deleted=False) rather than OR with is_deleted
 
 ## [0.4.0] - 2025-06-24
 
 ### Added
+
 - i18n framework with vue-i18n (zh-CN & en locales, browser detection, localStorage persistence)
 - Dark mode support (light/dark/auto themes via CSS custom properties)
 - Layout system: DefaultLayout with AppNavbar, AppMain, AppFooter
@@ -128,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SearchView, KnowledgeView, DocumentsView, HerbsView placeholder pages
 
 ### Changed
+
 - HomeView refactored to use StatusCard components and i18n
 - App.vue simplified — theme initialized via useTheme composable
 - CSS reset and global styles use CSS custom properties
@@ -135,13 +148,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - main.ts now registers i18n plugin
 
 ### Fixed
-- TypeScript baseUrl in frontend tsconfig ensures @/* alias resolves
+
+- TypeScript baseUrl in frontend tsconfig ensures @/\* alias resolves
 - Added missing tsconfig.json for @hfb/ui and @hfb/utils packages
 - Vue type declarations included in tsconfig include paths
 
 ## [0.3.0] - 2025-06-24
 
 ### Added
+
 - Backend: FastAPI application entry point with lifecycle management (`apps/backend/main.py`)
 - Backend: Health, Readiness, Version, and Config API endpoints (`apps/backend/app/api/`)
 - Backend: Application settings with Pydantic Settings (`apps/backend/app/core/config.py`)
@@ -157,6 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tests: Conftest with sys.path setup for backend test imports
 
 ### Fixed
+
 - Vitest configuration: test files relocated to `apps/frontend/src/__tests__/`
 - Vitest runs strictly from `apps/frontend/` directory with correct `@` aliases
 - Backend tests: installed missing `asyncpg` dependency
@@ -165,6 +181,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-06-22
 
 ### Added
+
 - Initial project documentation in `/docs/`
 - Project governance and constitution
 - Product roadmap v0

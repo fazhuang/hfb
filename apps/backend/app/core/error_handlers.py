@@ -10,6 +10,7 @@ Handles:
 
 Registered on the FastAPI application in main.py.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -65,10 +66,15 @@ def _attach_request_id(request: Request, response: JSONResponse) -> None:
 # ---------------------------------------------------------------------------
 
 
-async def domain_exception_handler(request: Request, exc: DomainException) -> JSONResponse:
+async def domain_exception_handler(
+    request: Request, exc: DomainException
+) -> JSONResponse:
     logger.warning(
         "domain_error error_code=%s status=%d message=%s request_id=%s",
-        exc.error_code, exc.status_code, exc.message, _get_request_id(request),
+        exc.error_code,
+        exc.status_code,
+        exc.message,
+        _get_request_id(request),
     )
     resp = JSONResponse(
         status_code=exc.status_code,
@@ -84,10 +90,13 @@ async def domain_exception_handler(request: Request, exc: DomainException) -> JS
     return resp
 
 
-async def status_transition_handler(request: Request, exc: InvalidStatusTransitionError) -> JSONResponse:
+async def status_transition_handler(
+    request: Request, exc: InvalidStatusTransitionError
+) -> JSONResponse:
     logger.warning(
         "invalid_status_transition message=%s request_id=%s",
-        str(exc), _get_request_id(request),
+        str(exc),
+        _get_request_id(request),
     )
     resp = JSONResponse(
         status_code=409,
@@ -102,11 +111,14 @@ async def status_transition_handler(request: Request, exc: InvalidStatusTransiti
     return resp
 
 
-async def request_validation_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+async def request_validation_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
     """FastAPI RequestValidationError → 422 unified format."""
     logger.warning(
         "request_validation_error errors=%s request_id=%s",
-        str(exc.errors()), _get_request_id(request),
+        str(exc.errors()),
+        _get_request_id(request),
     )
     resp = JSONResponse(
         status_code=422,
@@ -122,11 +134,15 @@ async def request_validation_handler(request: Request, exc: RequestValidationErr
     return resp
 
 
-async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+async def http_exception_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
     """Starlette/FastAPI HTTPException → unified format."""
     logger.warning(
         "http_exception status=%d detail=%s request_id=%s",
-        exc.status_code, exc.detail, _get_request_id(request),
+        exc.status_code,
+        exc.detail,
+        _get_request_id(request),
     )
     resp = JSONResponse(
         status_code=exc.status_code,
@@ -145,7 +161,9 @@ async def generic_exception_handler(request: Request, exc: Exception) -> JSONRes
     """Catch-all for unexpected errors — 500, no detail leaked."""
     logger.exception(
         "unhandled_error type=%s message=%s request_id=%s",
-        type(exc).__name__, str(exc), _get_request_id(request),
+        type(exc).__name__,
+        str(exc),
+        _get_request_id(request),
     )
     resp = JSONResponse(
         status_code=500,

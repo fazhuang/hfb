@@ -178,7 +178,11 @@ const MOCK_SEARCH_RESPONSE = (nodes: Array<unknown>) => ({
   data: { success: true, data: nodes, message: 'ok' },
 });
 
-const MOCK_NEIGHBORS_RESPONSE = (center: unknown, neighbors: Array<unknown>, edges: Array<unknown>) => ({
+const MOCK_NEIGHBORS_RESPONSE = (
+  center: unknown,
+  neighbors: Array<unknown>,
+  edges: Array<unknown>,
+) => ({
   data: {
     success: true,
     data: { center, neighbors, edges },
@@ -441,9 +445,7 @@ describe('KnowledgeExplorerPage', () => {
   it('retries the last action on retry event', async () => {
     mockGet.mockResolvedValueOnce(MOCK_SEARCH_RESPONSE([mockPersonNode]));
     mockGet.mockRejectedValueOnce(new Error('Fail'));
-    mockGet.mockResolvedValueOnce(
-      MOCK_NEIGHBORS_RESPONSE(mockPersonNode, [], []),
-    );
+    mockGet.mockResolvedValueOnce(MOCK_NEIGHBORS_RESPONSE(mockPersonNode, [], []));
 
     const wrapper = mountPage();
 

@@ -7,7 +7,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 # Make scripts/ importable
-_root = str(Path(__file__).resolve().parent.parent.parent)  # repo root (tests/unit/ -> tests/ -> root)
+_root = str(
+    Path(__file__).resolve().parent.parent.parent
+)  # repo root (tests/unit/ -> tests/ -> root)
 sys.path.insert(0, str(Path(_root) / "apps" / "backend"))
 
 
@@ -37,12 +39,20 @@ class TestTrialScriptImport:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
-        assert len(mod.TRIAL_QUERIES) >= 10, f"Expected ≥10 seed keywords, got {len(mod.TRIAL_QUERIES)}"
+        assert len(mod.TRIAL_QUERIES) >= 10, (
+            f"Expected ≥10 seed keywords, got {len(mod.TRIAL_QUERIES)}"
+        )
         # Must include both Chinese and English
-        assert any("皇甫谧" in q for q in mod.TRIAL_QUERIES), "Missing core Chinese term"
-        assert any("Huangfu Mi" in q for q in mod.TRIAL_QUERIES), "Missing core English term"
+        assert any("皇甫谧" in q for q in mod.TRIAL_QUERIES), (
+            "Missing core Chinese term"
+        )
+        assert any("Huangfu Mi" in q for q in mod.TRIAL_QUERIES), (
+            "Missing core English term"
+        )
         # Must include cross-reference terms
-        assert any("黄帝内经" in q for q in mod.TRIAL_QUERIES), "Missing cross-reference term"
+        assert any("黄帝内经" in q for q in mod.TRIAL_QUERIES), (
+            "Missing cross-reference term"
+        )
 
     def test_dry_run_is_default(self):
         """--live must be False by default."""
@@ -103,8 +113,12 @@ class TestTrialScriptSourceCompliance:
 
         # Should import but not use session
         assert "session.add" not in dry_run_body, "_dry_run must not call session.add"
-        assert "session.flush" not in dry_run_body, "_dry_run must not call session.flush"
-        assert "session.commit" not in dry_run_body, "_dry_run must not call session.commit"
+        assert "session.flush" not in dry_run_body, (
+            "_dry_run must not call session.flush"
+        )
+        assert "session.commit" not in dry_run_body, (
+            "_dry_run must not call session.commit"
+        )
 
     def test_live_run_has_gate(self):
         """--live mode must exist as an explicit opt-in path."""
@@ -120,7 +134,12 @@ class TestDocumentReferences:
     """Verify related documents reference each other correctly."""
 
     def test_release_notes_mentions_related_docs(self):
-        release_path = Path(_root) / "docs" / "13-releases" / "v0.1.0-literature-compliance-release.md"
+        release_path = (
+            Path(_root)
+            / "docs"
+            / "13-releases"
+            / "v0.1.0-literature-compliance-release.md"
+        )
         content = release_path.read_text()
 
         assert "trial" in content.lower()
@@ -129,7 +148,12 @@ class TestDocumentReferences:
         assert "checklist" in content.lower()
 
     def test_checklist_has_all_sections(self):
-        checklist_path = Path(_root) / "docs" / "13-releases" / "v0.1.0-literature-compliance-checklist.md"
+        checklist_path = (
+            Path(_root)
+            / "docs"
+            / "13-releases"
+            / "v0.1.0-literature-compliance-checklist.md"
+        )
         content = checklist_path.read_text()
 
         required_sections = [
@@ -145,7 +169,9 @@ class TestDocumentReferences:
             assert section in content, f"Checklist missing section: {section}"
 
     def test_operations_manual_has_all_steps(self):
-        manual_path = Path(_root) / "docs" / "13-releases" / "trial-run-operations-manual.md"
+        manual_path = (
+            Path(_root) / "docs" / "13-releases" / "trial-run-operations-manual.md"
+        )
         content = manual_path.read_text()
 
         required_topics = [

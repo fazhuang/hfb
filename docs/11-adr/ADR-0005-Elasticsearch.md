@@ -1,14 +1,14 @@
 ---
-title: "ADR-0005 Elasticsearch"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "data"
+title: 'ADR-0005 Elasticsearch'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'data'
 related:
-  - "ADR-0003-PostgreSQL"
-  - "docs/03-data/00_Data_Standard.md"
+  - 'ADR-0003-PostgreSQL'
+  - 'docs/03-data/00_Data_Standard.md'
 ---
 
 # ADR-0005: 选择 Elasticsearch 作为搜索引擎
@@ -36,12 +36,12 @@ PostgreSQL 全文搜索对中文支持弱，需要专门的搜索引擎。
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| Elasticsearch | 成熟、生态丰富、中文分词插件、高亮、聚合 | 内存消耗大、运维复杂 | — |
-| MeiliSearch | 轻量、易部署、中文支持好 | 社区小、高级查询能力弱 | 缺少模糊搜索和聚合深度 |
-| Typesense | 速度快、即时搜索 | 中文分词不如 ES、社区更小 | 不满足文言文搜索精度要求 |
-| PostgreSQL 全文搜索 | 无需额外部署 | 中文支持极弱、无相关性调优 | 不满足核心搜索需求 |
+| 方案                | 优点                                     | 缺点                       | 放弃原因                 |
+| ------------------- | ---------------------------------------- | -------------------------- | ------------------------ |
+| Elasticsearch       | 成熟、生态丰富、中文分词插件、高亮、聚合 | 内存消耗大、运维复杂       | —                        |
+| MeiliSearch         | 轻量、易部署、中文支持好                 | 社区小、高级查询能力弱     | 缺少模糊搜索和聚合深度   |
+| Typesense           | 速度快、即时搜索                         | 中文分词不如 ES、社区更小  | 不满足文言文搜索精度要求 |
+| PostgreSQL 全文搜索 | 无需额外部署                             | 中文支持极弱、无相关性调优 | 不满足核心搜索需求       |
 
 ## Consequences
 

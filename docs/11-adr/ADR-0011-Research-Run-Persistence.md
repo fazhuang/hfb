@@ -1,18 +1,18 @@
 ---
-title: "ADR-0011 Research Run Persistence"
+title: 'ADR-0011 Research Run Persistence'
 document_id: HFB-ADR-0011
-version: "0.1"
-status: "Proposed"
-owner: "HFB 产品与架构负责人（待指定）"
-decision_date: "2026-07-27"
-last_updated: "2026-07-27"
-domain: "research-workflow"
+version: '0.1'
+status: 'Proposed'
+owner: 'HFB 产品与架构负责人（待指定）'
+decision_date: '2026-07-27'
+last_updated: '2026-07-27'
+domain: 'research-workflow'
 related:
-  - "ADR-0001-FastAPI"
-  - "ADR-0003-PostgreSQL"
-  - "ADR-0008-Docker"
-  - "docs/02-architecture/rfc/RFC-0001-Research-Passport-and-Quality-Gates.md"
-  - "docs/20-product/2023-academic-research-skills-benchmark.md"
+  - 'ADR-0001-FastAPI'
+  - 'ADR-0003-PostgreSQL'
+  - 'ADR-0008-Docker'
+  - 'docs/02-architecture/rfc/RFC-0001-Research-Passport-and-Quality-Gates.md'
+  - 'docs/20-product/2023-academic-research-skills-benchmark.md'
 ---
 
 # ADR-0011：以独立持久化模块管理 ResearchRun 与 ResearchPassport
@@ -51,12 +51,12 @@ HFB 需要保持现有 `trace_id → document_id → chunk` 的事实链，并�
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 结论 |
-| --- | --- | --- | --- |
-| 继续写 `workflow_state` JSON | 无迁移 | 无稳定并发、审计、版本与大 payload 管理 | 放弃 |
-| 仅为 JSON 外包对象 payload | 改动有限 | 状态/审计/权限仍分散在调用者 | 放弃 |
-| 独立持久化模块（本决策） | 清晰 seam、可验证迁移、支持未来关口 | 迁移和运维成本 | 推荐 |
-| 立即选定 Temporal/Celery | 可加速原型 | 在规模、SLO、运维约束未评估前过早锁定 | 延后 |
+| 方案                         | 优点                                | 缺点                                    | 结论 |
+| ---------------------------- | ----------------------------------- | --------------------------------------- | ---- |
+| 继续写 `workflow_state` JSON | 无迁移                              | 无稳定并发、审计、版本与大 payload 管理 | 放弃 |
+| 仅为 JSON 外包对象 payload   | 改动有限                            | 状态/审计/权限仍分散在调用者            | 放弃 |
+| 独立持久化模块（本决策）     | 清晰 seam、可验证迁移、支持未来关口 | 迁移和运维成本                          | 推荐 |
+| 立即选定 Temporal/Celery     | 可加速原型                          | 在规模、SLO、运维约束未评估前过早锁定   | 延后 |
 
 ## Future
 

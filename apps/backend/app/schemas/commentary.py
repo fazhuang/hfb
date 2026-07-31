@@ -17,16 +17,20 @@ class CommentaryCreate(BaseModel):
     author_id: str | None = Field(default=None, description="注者 ID")
     commentary_type: str = Field(
         default="end_of_passage",
-        description="interlinear_gloss | end_of_passage | sub_commentary | commentary_work | critique"
+        description="interlinear_gloss | end_of_passage | sub_commentary | commentary_work | critique",
     )
     layer: str = Field(default="modern", description="年代层")
     content_text: str = Field(..., description="注文内容")
-    target_position_start: int | None = Field(default=None, description="段落中起始字符偏移")
-    target_position_end: int | None = Field(default=None, description="段落中结束字符偏移")
+    target_position_start: int | None = Field(
+        default=None, description="段落中起始字符偏移"
+    )
+    target_position_end: int | None = Field(
+        default=None, description="段落中结束字符偏移"
+    )
     parent_id: str | None = Field(default=None, description="自引用 — 回应另一条注疏")
     relation_type: str | None = Field(
         default=None,
-        description="supplements | refutes | expands | annotates | interprets"
+        description="supplements | refutes | expands | annotates | interprets",
     )
 
 
@@ -65,11 +69,18 @@ class CommentaryGraphResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     nodes: list[CommentaryResponse] = Field(default_factory=list)
-    edges: list[dict] = Field(default_factory=list)  # {parent_id, child_id, relation_type}
+    edges: list[dict] = Field(
+        default_factory=list
+    )  # {parent_id, child_id, relation_type}
 
 
 class CommentaryEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     success: bool = Field(default=True)
-    data: CommentaryResponse | CommentaryChainResponse | CommentaryGraphResponse | list[CommentaryResponse]
+    data: (
+        CommentaryResponse
+        | CommentaryChainResponse
+        | CommentaryGraphResponse
+        | list[CommentaryResponse]
+    )
     message: str = Field(default="ok")

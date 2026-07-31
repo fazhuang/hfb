@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Passage Knowledge Model
+
 ## 条文知识模型
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的条文（Passage）知识模型。
@@ -109,19 +110,19 @@ Passage Code 永久保持不变。
 
 统一字段：
 
-| 字段 | 说明 |
-|------|------|
-| id | UUID |
-| passage_code | 条文编码 |
-| version_id | 所属版本 |
-| volume_no | 卷号 |
-| chapter_no | 篇号 |
-| section_no | 节号 |
-| sequence_no | 顺序号 |
-| title | 条文标题（可为空） |
-| original_text | 原文 |
-| normalized_text | 标准化文本 |
-| metadata_id | 元数据 |
+| 字段            | 说明               |
+| --------------- | ------------------ |
+| id              | UUID               |
+| passage_code    | 条文编码           |
+| version_id      | 所属版本           |
+| volume_no       | 卷号               |
+| chapter_no      | 篇号               |
+| section_no      | 节号               |
+| sequence_no     | 顺序号             |
+| title           | 条文标题（可为空） |
+| original_text   | 原文               |
+| normalized_text | 标准化文本         |
+| metadata_id     | 元数据             |
 
 ---
 
@@ -458,13 +459,13 @@ AI 回答精确引用：
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| Passage 编码覆盖率 | 100% |
+| 指标                   | 标准 |
+| ---------------------- | ---- |
+| Passage 编码覆盖率     | 100% |
 | Passage Mapping 完成率 | ≥95% |
-| Entity 标注率 | ≥95% |
-| AI 精确定位率 | ≥98% |
-| Citation 准确率 | ≥99% |
+| Entity 标注率          | ≥95% |
+| AI 精确定位率          | ≥98% |
+| Citation 准确率        | ≥99% |
 
 ---
 
@@ -499,6 +500,6 @@ AI 回答精确引用：
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台条文知识模型统一规范。 |
+| Version | Date       | Description                              |
+| ------- | ---------- | ---------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台条文知识模型统一规范。 |

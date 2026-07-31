@@ -1,6 +1,7 @@
 """
 Structured JSON logging configuration.
 """
+
 from __future__ import annotations
 
 import json
@@ -36,7 +37,7 @@ class ConsoleFormatter(logging.Formatter):
 
     COLORS: ClassVar[dict[str, str]] = {
         "DEBUG": "\033[36m",  # Cyan
-        "INFO": "\033[32m",   # Green
+        "INFO": "\033[32m",  # Green
         "WARNING": "\033[33m",  # Yellow
         "ERROR": "\033[31m",  # Red
         "CRITICAL": "\033[1;31m",  # Bold Red
@@ -58,7 +59,9 @@ def configure_logging(level: str = "INFO") -> None:
     import os
 
     is_production = os.environ.get("ENVIRONMENT") == "production"
-    formatter: logging.Formatter = JSONFormatter() if is_production else ConsoleFormatter()
+    formatter: logging.Formatter = (
+        JSONFormatter() if is_production else ConsoleFormatter()
+    )
 
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)

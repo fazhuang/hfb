@@ -1,14 +1,14 @@
 ---
-title: "ADR-0006 GraphRAG"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "ai"
+title: 'ADR-0006 GraphRAG'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'ai'
 related:
-  - "ADR-0004-Neo4j"
-  - "docs/04-ai/01_RAG_GraphRAG_Architecture.md"
+  - 'ADR-0004-Neo4j'
+  - 'docs/04-ai/01_RAG_GraphRAG_Architecture.md'
 ---
 
 # ADR-0006: 选择 GraphRAG 作为图推理架构
@@ -36,12 +36,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| 自研 Pipeline | 完全可控、可针对古籍优化、无框架约束 | 开发成本高 | — |
-| Microsoft GraphRAG | 微软开源、社区热 | 偏重英文、中文古籍适配成本高、框架过重 | 不适合古籍领域 |
-| LangChain Graph | LangChain 生态集成 | 抽象层过多、性能不可控、黑箱 | 不符合溯源透明性要求 |
-| 纯 LLM 推理 | 无需图数据库 | 幻觉率高、无法验证推理过程、不可溯源 | 违反质量红线 |
+| 方案               | 优点                                 | 缺点                                   | 放弃原因             |
+| ------------------ | ------------------------------------ | -------------------------------------- | -------------------- |
+| 自研 Pipeline      | 完全可控、可针对古籍优化、无框架约束 | 开发成本高                             | —                    |
+| Microsoft GraphRAG | 微软开源、社区热                     | 偏重英文、中文古籍适配成本高、框架过重 | 不适合古籍领域       |
+| LangChain Graph    | LangChain 生态集成                   | 抽象层过多、性能不可控、黑箱           | 不符合溯源透明性要求 |
+| 纯 LLM 推理        | 无需图数据库                         | 幻觉率高、无法验证推理过程、不可溯源   | 违反质量红线         |
 
 ## Consequences
 

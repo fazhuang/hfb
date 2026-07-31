@@ -1,9 +1,9 @@
 ---
-title: "OCR Knowledge"
-version: "1.0"
-status: "Active"
-domain: "ocr"
-last_updated: "2026-06-24"
+title: 'OCR Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'ocr'
+last_updated: '2026-06-24'
 ---
 
 # OCR — 文字识别规范

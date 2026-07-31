@@ -12,11 +12,7 @@
       />
     </div>
     <div class="plt-clear">
-      <button
-        v-if="hasFilters"
-        class="plt-clear-btn"
-        @click="onClear"
-      >
+      <button v-if="hasFilters" class="plt-clear-btn" @click="onClear">
         {{ t('researchWorkspace.clearFilters') || '清除筛选' }}
       </button>
     </div>
@@ -37,11 +33,14 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
-  modelValue?: string;
-}>(), {
-  modelValue: '',
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue?: string;
+  }>(),
+  {
+    modelValue: '',
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];

@@ -18,6 +18,7 @@ Covers:
 
 Run with: uv run pytest tests/unit/test_day1_foundation.py -v
 """
+
 from __future__ import annotations
 
 import pytest
@@ -55,7 +56,7 @@ from sqlalchemy.orm import sessionmaker
 
 class TestLegalTransitions:
     """Day 1 spec: draft→active, draft→deleted, active→archived,
-       active→deleted, archived→deleted.  Deleted is terminal."""
+    active→deleted, archived→deleted.  Deleted is terminal."""
 
     def test_draft_to_active(self):
         assert can_transition("draft", "active")
@@ -90,7 +91,9 @@ class TestIllegalTransitions:
 
     def test_deleted_to_anything_blocked(self):
         for target in ("draft", "active", "archived"):
-            assert not can_transition("deleted", target), f"deleted→{target} should be blocked"
+            assert not can_transition("deleted", target), (
+                f"deleted→{target} should be blocked"
+            )
 
 
 class TestUnknownState:
@@ -233,9 +236,11 @@ class TestInstitutionRepository:
         # But direct query confirms fields are set
         from sqlalchemy import select
 
-        row = (await db_session.execute(
-            select(Institution).where(Institution.id == inst.id)
-        )).scalar_one()
+        row = (
+            await db_session.execute(
+                select(Institution).where(Institution.id == inst.id)
+            )
+        ).scalar_one()
         assert row.status == InstitutionStatus.deleted.value
         assert row.is_deleted is True
         assert row.deleted_at is not None
@@ -275,7 +280,9 @@ class TestStatusMachineBypass:
         await db_session.flush()
         assert inst.status == "draft"
 
-        with pytest.raises(InvalidStatusTransitionError, match="Invalid status transition"):
+        with pytest.raises(
+            InvalidStatusTransitionError, match="Invalid status transition"
+        ):
             inst.status = "archived"
             await db_session.flush()
 
@@ -293,16 +300,22 @@ class TestStatusMachineBypass:
 class TestORMValidators:
     async def test_create_blank_name_fails(self, db_session):
         repo = InstitutionRepository(db_session)
-        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+        with pytest.raises(
+            ValidationException, match="Institution name must not be empty"
+        ):
             await repo.create(name="   ", type="archive")
 
     async def test_direct_construct_blank_name_fails(self):
-        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+        with pytest.raises(
+            ValidationException, match="Institution name must not be empty"
+        ):
             Institution(name="   ", type="archive")
 
     async def test_direct_construct_blank_name_stripped_blank(self):
         # "\t  \n" strips to empty
-        with pytest.raises(ValidationException, match="Institution name must not be empty"):
+        with pytest.raises(
+            ValidationException, match="Institution name must not be empty"
+        ):
             Institution(name="\t  \n", type="archive")
 
     async def test_direct_construct_invalid_type_fails(self):
@@ -312,20 +325,26 @@ class TestORMValidators:
     async def test_db_rejects_blank_name(self, db_session):
         """Raw SQL insert with empty name is rejected by DB CHECK constraint."""
         import uuid
+
         blank_id = str(uuid.uuid4())
         with pytest.raises(Exception):
             await db_session.execute(
-                text("INSERT INTO institutions (id, name, type, status) VALUES (:id, '   ', 'archive', 'draft')"),
+                text(
+                    "INSERT INTO institutions (id, name, type, status) VALUES (:id, '   ', 'archive', 'draft')"
+                ),
                 {"id": blank_id},
             )
 
     async def test_db_rejects_invalid_type(self, db_session):
         """Raw SQL insert with invalid type is rejected by DB CHECK constraint."""
         import uuid
+
         bad_id = str(uuid.uuid4())
         with pytest.raises(Exception):
             await db_session.execute(
-                text("INSERT INTO institutions (id, name, type, status) VALUES (:id, 'test', 'hospital', 'draft')"),
+                text(
+                    "INSERT INTO institutions (id, name, type, status) VALUES (:id, 'test', 'hospital', 'draft')"
+                ),
                 {"id": bad_id},
             )
 
@@ -409,6 +428,7 @@ def _make_test_app():
     @app.get("/test-http-exc")
     async def http_exc():
         from fastapi import HTTPException
+
         raise HTTPException(status_code=418, detail="I'm a teapot")
 
     @app.get("/test-crash")
@@ -583,8 +603,9 @@ class TestRequestID:
         await self._get("/test-rid")
         started = [r for r in caplog.records if "request_started" in r.message]
         completed = [r for r in caplog.records if "request_completed" in r.message]
-        assert len(started) >= 1 or len(completed) >= 1, \
+        assert len(started) >= 1 or len(completed) >= 1, (
             f"Expected request_started or request_completed log; got {len(caplog.records)} records"
+        )
 
 
 # ============================================================

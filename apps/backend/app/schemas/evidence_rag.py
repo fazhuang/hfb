@@ -5,6 +5,7 @@ Response contract:
   refusal=True → no evidence found, answer explains, citations/evidence empty
   refusal=False → answer is evidence-bound, every claim has a citation
 """
+
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -19,7 +20,9 @@ class EvidenceRAGRequest(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    query: str = Field(..., min_length=1, description="Natural-language Chinese question")
+    query: str = Field(
+        ..., min_length=1, description="Natural-language Chinese question"
+    )
     top_k: int = Field(default=5, ge=1, le=50, description="Max chunks to retrieve")
 
 
@@ -105,8 +108,12 @@ class EvidenceRAGResponse(BaseModel):
             if not self.evidence:
                 errors.append("evidence must be non-empty when refusal=False")
             if errors:
-                raise ValueError("refusal=False contract violated: " + "; ".join(errors))
+                raise ValueError(
+                    "refusal=False contract violated: " + "; ".join(errors)
+                )
         else:
             if self.citations or self.evidence:
-                raise ValueError("citations and evidence must be empty when refusal=True")
+                raise ValueError(
+                    "citations and evidence must be empty when refusal=True"
+                )
         return self

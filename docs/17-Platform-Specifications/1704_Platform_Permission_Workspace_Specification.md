@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Platform Permission & Workspace Specification
+
 ## 平台权限与科研工作台规格书
 
 > 本规格书定义《皇甫谧数字人文与中医经典智能研究平台》的统一权限体系（Permission System）与科研工作台体系（Research Workspace）。
@@ -102,15 +103,15 @@ AI 永远没有发布权限。
 
 统一角色：
 
-| 角色 | 描述 |
-|------|------|
+| 角色                   | 描述       |
+| ---------------------- | ---------- |
 | Platform Administrator | 平台管理员 |
 | Academic Administrator | 学术管理员 |
-| Research Leader | 项目负责人 |
-| Researcher | 研究人员 |
-| Reviewer | 学术审核人 |
-| Student | 学生 |
-| Visitor | 游客 |
+| Research Leader        | 项目负责人 |
+| Researcher             | 研究人员   |
+| Reviewer               | 学术审核人 |
+| Student                | 学生       |
+| Visitor                | 游客       |
 
 所有角色采用 RBAC。
 
@@ -519,6 +520,6 @@ Permission Service。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-|1.0.0|2026-06-24|首版发布，定义平台统一权限体系与科研工作台规范，为所有模块提供统一权限控制与协同研究能力。|
+| Version | Date       | Description                                                                                |
+| ------- | ---------- | ------------------------------------------------------------------------------------------ |
+| 1.0.0   | 2026-06-24 | 首版发布，定义平台统一权限体系与科研工作台规范，为所有模块提供统一权限控制与协同研究能力。 |

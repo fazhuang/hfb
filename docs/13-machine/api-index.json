@@ -7,52 +7,52 @@
         "module": "auth",
         "prefix": "/api/v1/auth",
         "endpoints": [
-          {"method": "POST", "path": "/register", "description": "用户注册"},
-          {"method": "POST", "path": "/login", "description": "用户登录"},
-          {"method": "POST", "path": "/refresh", "description": "刷新令牌"},
-          {"method": "GET", "path": "/me", "description": "当前用户信息"}
+          { "method": "POST", "path": "/register", "description": "用户注册" },
+          { "method": "POST", "path": "/login", "description": "用户登录" },
+          { "method": "POST", "path": "/refresh", "description": "刷新令牌" },
+          { "method": "GET", "path": "/me", "description": "当前用户信息" }
         ]
       },
       {
         "module": "literature",
         "prefix": "/api/v1/literature",
         "endpoints": [
-          {"method": "GET", "path": "/books", "description": "书籍列表"},
-          {"method": "POST", "path": "/books", "description": "创建书籍"},
-          {"method": "GET", "path": "/books/{id}", "description": "书籍详情"},
-          {"method": "GET", "path": "/books/{id}/versions", "description": "书籍版本列表"},
-          {"method": "GET", "path": "/versions/{id}/chapters", "description": "章节列表"},
-          {"method": "GET", "path": "/chapters/{id}/passages", "description": "段落列表"}
+          { "method": "GET", "path": "/books", "description": "书籍列表" },
+          { "method": "POST", "path": "/books", "description": "创建书籍" },
+          { "method": "GET", "path": "/books/{id}", "description": "书籍详情" },
+          { "method": "GET", "path": "/books/{id}/versions", "description": "书籍版本列表" },
+          { "method": "GET", "path": "/versions/{id}/chapters", "description": "章节列表" },
+          { "method": "GET", "path": "/chapters/{id}/passages", "description": "段落列表" }
         ]
       },
       {
         "module": "entities",
         "prefix": "/api/v1/entities",
         "endpoints": [
-          {"method": "GET", "path": "/persons", "description": "人物列表"},
-          {"method": "POST", "path": "/persons", "description": "创建人物"},
-          {"method": "GET", "path": "/places", "description": "地点列表"},
-          {"method": "GET", "path": "/concepts", "description": "概念列表"},
-          {"method": "GET", "path": "/relations", "description": "关系列表"},
-          {"method": "POST", "path": "/relations", "description": "创建关系"}
+          { "method": "GET", "path": "/persons", "description": "人物列表" },
+          { "method": "POST", "path": "/persons", "description": "创建人物" },
+          { "method": "GET", "path": "/places", "description": "地点列表" },
+          { "method": "GET", "path": "/concepts", "description": "概念列表" },
+          { "method": "GET", "path": "/relations", "description": "关系列表" },
+          { "method": "POST", "path": "/relations", "description": "创建关系" }
         ]
       },
       {
         "module": "ai",
         "prefix": "/api/v1/ai",
         "endpoints": [
-          {"method": "POST", "path": "/rag/query", "description": "RAG 问答"},
-          {"method": "POST", "path": "/search", "description": "语义检索"},
-          {"method": "POST", "path": "/graphrag/query", "description": "GraphRAG 推理"}
+          { "method": "POST", "path": "/rag/query", "description": "RAG 问答" },
+          { "method": "POST", "path": "/search", "description": "语义检索" },
+          { "method": "POST", "path": "/graphrag/query", "description": "GraphRAG 推理" }
         ]
       },
       {
         "module": "admin",
         "prefix": "/api/v1/admin",
         "endpoints": [
-          {"method": "POST", "path": "/import", "description": "文献导入"},
-          {"method": "GET", "path": "/health", "description": "健康检查"},
-          {"method": "GET", "path": "/stats", "description": "系统统计"}
+          { "method": "POST", "path": "/import", "description": "文献导入" },
+          { "method": "GET", "path": "/health", "description": "健康检查" },
+          { "method": "GET", "path": "/stats", "description": "系统统计" }
         ]
       }
     ]

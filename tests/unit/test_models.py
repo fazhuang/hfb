@@ -21,11 +21,23 @@ class TestDocumentModel:
     def test_document_has_expected_columns(self):
         cols = {c.name for c in Document.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "title", "title_pinyin", "title_english",
-            "author_id", "dynasty", "year", "category",
-            "abstract", "content_text", "source_url",
-            "page_count", "language",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "title",
+            "title_pinyin",
+            "title_english",
+            "author_id",
+            "dynasty",
+            "year",
+            "category",
+            "abstract",
+            "content_text",
+            "source_url",
+            "page_count",
+            "language",
         }
         assert expected.issubset(cols)
 
@@ -46,12 +58,25 @@ class TestPersonModel:
     def test_person_has_expected_columns(self):
         cols = {c.name for c in Person.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "name", "name_pinyin", "name_zh",
-            "courtesy_name", "pseudonym",
-            "dynasty", "birth_year", "death_year", "birth_place",
-            "biography", "biography_source",
-            "notable_works", "expertise", "external_ref",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "name",
+            "name_pinyin",
+            "name_zh",
+            "courtesy_name",
+            "pseudonym",
+            "dynasty",
+            "birth_year",
+            "death_year",
+            "birth_place",
+            "biography",
+            "biography_source",
+            "notable_works",
+            "expertise",
+            "external_ref",
         }
         assert expected.issubset(cols)
 

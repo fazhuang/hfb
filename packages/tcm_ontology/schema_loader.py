@@ -70,7 +70,9 @@ class SchemaLoader:
             data = json.loads(data)
         return self._parse_graph(data.get("@graph", []))
 
-    def dump_file(self, path: Path | str, schemas: list[EntitySchema] | None = None) -> None:
+    def dump_file(
+        self, path: Path | str, schemas: list[EntitySchema] | None = None
+    ) -> None:
         """Write built-in schemas (or given schemas) as JSON-LD."""
         if schemas is None:
             schemas = list(ENTITY_SCHEMA.values())

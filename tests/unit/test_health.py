@@ -1,6 +1,7 @@
 """
 Tests for backend health and readiness API endpoints.
 """
+
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -105,7 +106,11 @@ ALL_REQUIRED = ["PostgreSQL", "Redis", "Elasticsearch", "MinIO"]
 
 def _svc(name, healthy, error=None, latency_ms=0.0):
     """Create a lightweight mock service status."""
-    return type("Svc", (), {"name": name, "healthy": healthy, "error": error, "latency_ms": latency_ms})()
+    return type(
+        "Svc",
+        (),
+        {"name": name, "healthy": healthy, "error": error, "latency_ms": latency_ms},
+    )()
 
 
 def _all_healthy():
@@ -113,12 +118,17 @@ def _all_healthy():
 
 
 def _one_down(failing):
-    return [_svc(n, n != failing, "connection failed" if n == failing else None) for n in ALL_REQUIRED]
+    return [
+        _svc(n, n != failing, "connection failed" if n == failing else None)
+        for n in ALL_REQUIRED
+    ]
 
 
 def _missing_service():
     """Return only 3 services — one required service missing entirely."""
-    return [_svc(n, True) for n in ("PostgreSQL", "Redis", "Elasticsearch")]  # MinIO missing
+    return [
+        _svc(n, True) for n in ("PostgreSQL", "Redis", "Elasticsearch")
+    ]  # MinIO missing
 
 
 def _all_down():
@@ -126,10 +136,14 @@ def _all_down():
 
 
 def _mock_status(services):
-    return type("InfraStatus", (), {
-        "services": services,
-        "all_healthy": all(s.healthy for s in services),
-    })()
+    return type(
+        "InfraStatus",
+        (),
+        {
+            "services": services,
+            "all_healthy": all(s.healthy for s in services),
+        },
+    )()
 
 
 # ---------------------------------------------------------------------------
@@ -140,9 +154,12 @@ def _mock_status(services):
 @pytest.mark.anyio
 async def test_ready_all_healthy_returns_200():
     """GET /ready returns 200 + success=true + ready=true when all required services healthy."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_all_healthy()))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_all_healthy())),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -161,9 +178,12 @@ async def test_ready_all_healthy_returns_200():
 @pytest.mark.parametrize("failing", ALL_REQUIRED)
 async def test_ready_returns_503_when_service_unhealthy(failing):
     """GET /ready returns 503 when any one of the four required services is unhealthy."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_one_down(failing)))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_one_down(failing))),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -182,9 +202,12 @@ async def test_ready_returns_503_when_service_unhealthy(failing):
 @pytest.mark.anyio
 async def test_ready_returns_503_when_service_missing():
     """GET /ready returns 503 when a required service is missing from the response entirely."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_missing_service()))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_missing_service())),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -202,9 +225,12 @@ async def test_ready_returns_503_when_service_missing():
 @pytest.mark.anyio
 async def test_ready_response_structure():
     """GET /ready response body always includes success, data, services, ready."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_all_healthy()))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_all_healthy())),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -226,9 +252,12 @@ async def test_ready_response_structure():
 @pytest.mark.anyio
 async def test_ready_unhealthy_service_name_visible():
     """When services are unhealthy, all checked names appear in the response."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_all_down()))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_all_down())),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -241,9 +270,12 @@ async def test_ready_unhealthy_service_name_visible():
 @pytest.mark.anyio
 async def test_ready_no_sensitive_data_in_error():
     """Even when all services fail, no passwords, connection strings, or tokens leak."""
-    with patch(f"{READY_MODULE}.run_health_checks",
-               AsyncMock(return_value=_mock_status(_all_down()))):
+    with patch(
+        f"{READY_MODULE}.run_health_checks",
+        AsyncMock(return_value=_mock_status(_all_down())),
+    ):
         from main import app
+
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             response = await client.get("/ready")
@@ -253,5 +285,7 @@ async def test_ready_no_sensitive_data_in_error():
                 error = info.get("error")
                 if error:
                     assert "://" not in error, f"{svc_name} error leaked URL"
-                    assert "password" not in error.lower(), f"{svc_name} leaked password"
+                    assert "password" not in error.lower(), (
+                        f"{svc_name} leaked password"
+                    )
                     assert "@" not in error, f"{svc_name} leaked credential"

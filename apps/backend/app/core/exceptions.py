@@ -10,6 +10,7 @@ Required exported names per Day 1 spec:
 Compatibility aliases are provided for existing callers that use the
 older names (ValidationError, NotFoundError, PermissionError, ConflictError).
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -65,7 +66,11 @@ class NotFoundException(DomainException):
             message=f"{entity_type} with id '{entity_id}' not found",
             error_code="NOT_FOUND",
             status_code=404,
-            metadata={"entity_type": entity_type, "entity_id": entity_id, **(metadata or {})},
+            metadata={
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                **(metadata or {}),
+            },
         )
 
 

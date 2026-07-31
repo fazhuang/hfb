@@ -20,19 +20,28 @@
     <div v-else-if="items.length === 0" class="empty-state">{{ t('common.noData') }}</div>
 
     <div v-else class="entity-grid">
-      <div v-for="item in items" :key="item.id" class="entity-card" @click="$router.push(`${routePrefix}/${item.id}`)">
+      <div
+        v-for="item in items"
+        :key="item.id"
+        class="entity-card"
+        @click="$router.push(`${routePrefix}/${item.id}`)"
+      >
         <h3 class="card-title">{{ getTitle(item) }}</h3>
         <div class="card-meta">
           <span v-for="meta in getMeta(item)" :key="meta" class="meta-tag">{{ meta }}</span>
         </div>
-        <div v-if="props.getSubtitle?.(item)" class="card-subtitle">{{ props.getSubtitle?.(item) }}</div>
+        <div v-if="props.getSubtitle?.(item)" class="card-subtitle">
+          {{ props.getSubtitle?.(item) }}
+        </div>
       </div>
     </div>
 
     <div v-if="total > limit" class="pagination">
       <button :disabled="page <= 1" @click="goPage(page - 1)">{{ t('common.back') }}</button>
       <span>{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="goPage(page + 1)">{{ t('common.next') }}</button>
+      <button :disabled="page >= totalPages" @click="goPage(page + 1)">
+        {{ t('common.next') }}
+      </button>
     </div>
   </div>
 </template>
@@ -44,16 +53,19 @@ import { useEntityList, type EntityBrief } from '@/composables/useApi';
 
 const { t } = useI18n();
 
-const props = withDefaults(defineProps<{
-  endpoint: string;
-  title: string;
-  routePrefix: string;
-  getTitle: (item: EntityBrief) => string;
-  getMeta: (item: EntityBrief) => Array<string>;
-  getSubtitle?: (item: EntityBrief) => string | null;
-}>(), {
-  getSubtitle: undefined,
-});
+const props = withDefaults(
+  defineProps<{
+    endpoint: string;
+    title: string;
+    routePrefix: string;
+    getTitle: (item: EntityBrief) => string;
+    getMeta: (item: EntityBrief) => Array<string>;
+    getSubtitle?: (item: EntityBrief) => string | null;
+  }>(),
+  {
+    getSubtitle: undefined,
+  },
+);
 
 const { items, total, loading, error, fetch } = useEntityList<EntityBrief>(props.endpoint);
 
@@ -135,7 +147,9 @@ onMounted(() => fetch());
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   cursor: pointer;
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
   background: var(--color-surface);
 }
 
@@ -176,7 +190,9 @@ onMounted(() => fetch());
   overflow: hidden;
 }
 
-.loading-state, .error-state, .empty-state {
+.loading-state,
+.error-state,
+.empty-state {
   text-align: center;
   padding: var(--space-15) var(--space-5);
   color: var(--color-text-muted);

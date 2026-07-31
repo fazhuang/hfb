@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Testing Standard
+
 ## 测试规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的统一测试体系。
@@ -68,20 +69,20 @@ Unit Test
 
 平台测试划分为十二类：
 
-| 类型 | 是否必须 |
-|------|----------|
-| Unit Test | √ |
-| Integration Test | √ |
-| API Test | √ |
-| UI Test | √ |
-| Database Test | √ |
-| Migration Test | √ |
-| Security Test | √ |
-| Performance Test | √ |
-| Academic Data Test | √ |
-| Citation Test | √ |
-| AI Test | √ |
-| E2E Test | √ |
+| 类型               | 是否必须 |
+| ------------------ | -------- |
+| Unit Test          | √        |
+| Integration Test   | √        |
+| API Test           | √        |
+| UI Test            | √        |
+| Database Test      | √        |
+| Migration Test     | √        |
+| Security Test      | √        |
+| Performance Test   | √        |
+| Academic Data Test | √        |
+| Citation Test      | √        |
+| AI Test            | √        |
+| E2E Test           | √        |
 
 ---
 
@@ -348,13 +349,13 @@ Edge
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| API | ≤300ms |
-| Search | ≤1s |
-| AI | ≤3s |
-| 页面 | ≤2s |
-| 首屏 | ≤2.5s |
+| 指标   | 标准   |
+| ------ | ------ |
+| API    | ≤300ms |
+| Search | ≤1s    |
+| AI     | ≤3s    |
+| 页面   | ≤2s    |
+| 首屏   | ≤2.5s  |
 
 性能测试：
 
@@ -468,6 +469,6 @@ Sprint 不得结束。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一测试规范。 |
+| Version | Date       | Description                      |
+| ------- | ---------- | -------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一测试规范。 |

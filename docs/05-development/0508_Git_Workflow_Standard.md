@@ -16,6 +16,7 @@ related_documents:
 ---
 
 # Git Workflow Standard
+
 ## Git 工作流规范
 
 > 本规范定义项目 Git 分支、提交、合并、发布、回滚及审计流程。
@@ -172,18 +173,18 @@ refactor(service): simplify passage service
 
 允许类型：
 
-| Type | 用途 |
-|------|------|
-| feat | 新功能 |
-| fix | 修复 |
-| docs | 文档 |
-| test | 测试 |
-| refactor | 重构 |
-| chore | 杂项 |
-| ci | CI |
-| build | 构建 |
-| perf | 性能 |
-| security | 安全 |
+| Type     | 用途   |
+| -------- | ------ |
+| feat     | 新功能 |
+| fix      | 修复   |
+| docs     | 文档   |
+| test     | 测试   |
+| refactor | 重构   |
+| chore    | 杂项   |
+| ci       | CI     |
+| build    | 构建   |
+| perf     | 性能   |
+| security | 安全   |
 
 禁止使用：
 
@@ -259,7 +260,7 @@ AI 修改不得绕过 Review。
 
 - main
 - develop
-- release/*
+- release/\*
 
 必须 PR 合并。
 
@@ -358,6 +359,6 @@ Implementation
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为项目 Git 工作流统一规范。 |
+| Version | Date       | Description                             |
+| ------- | ---------- | --------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为项目 Git 工作流统一规范。 |

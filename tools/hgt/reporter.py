@@ -8,7 +8,9 @@ def render_audit_report(result) -> str:
     lines = []
     lines.append("# Docs Structure Audit")
     lines.append("")
-    lines.append(f"Generated at: {datetime.datetime.now().isoformat(timespec='seconds')}")
+    lines.append(
+        f"Generated at: {datetime.datetime.now().isoformat(timespec='seconds')}"
+    )
     lines.append("")
     lines.append("## 1. Summary")
     lines.append("")
@@ -17,9 +19,13 @@ def render_audit_report(result) -> str:
     lines.append(f"- Markdown files: {len(result.markdown_files)}")
     lines.append(f"- `.md.md` files: {len(result.mdmd_files)}")
     lines.append(f"- Missing YAML header: {len(result.missing_yaml_header)}")
-    lines.append(f"- Duplicate document_id groups: {len(result.duplicate_document_ids)}")
+    lines.append(
+        f"- Duplicate document_id groups: {len(result.duplicate_document_ids)}"
+    )
     lines.append(f"- Missing README directories: {len(result.missing_readmes)}")
-    lines.append(f"- Known duplicate candidates: {len(result.known_duplicate_candidates)}")
+    lines.append(
+        f"- Known duplicate candidates: {len(result.known_duplicate_candidates)}"
+    )
     lines.append("")
 
     sections = [
@@ -56,15 +62,21 @@ def render_audit_report(result) -> str:
     lines.append("")
     return "\n".join(lines)
 
+
 def write_audit_report(result):
     out = REPORT_FILES["audit"]
     write_text(out, render_audit_report(result))
     return out
 
+
 def append_report(kind: str, title: str, actions: list[str]):
     out = REPORT_FILES[kind]
     now = datetime.datetime.now().isoformat(timespec="seconds")
-    old = out.read_text(encoding="utf-8", errors="ignore") if out.exists() else f"# {title}\n"
+    old = (
+        out.read_text(encoding="utf-8", errors="ignore")
+        if out.exists()
+        else f"# {title}\n"
+    )
     lines = [old.rstrip(), "", f"## Run: {now}", ""]
     lines.extend([f"- {a}" for a in actions] or ["- No changes."])
     write_text(out, "\n".join(lines) + "\n")

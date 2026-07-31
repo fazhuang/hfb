@@ -142,8 +142,12 @@ class RAGPipeline:
         """Create human-readable description of an edge traversal."""
         src = self.kg.store.get_node(edge.source_id)
         tgt = self.kg.store.get_node(edge.target_id)
-        src_name = src.properties.get("name") or src.properties.get("title") or edge.source_id
-        tgt_name = tgt.properties.get("name") or tgt.properties.get("title") or edge.target_id
+        src_name = (
+            src.properties.get("name") or src.properties.get("title") or edge.source_id
+        )
+        tgt_name = (
+            tgt.properties.get("name") or tgt.properties.get("title") or edge.target_id
+        )
         return f"{src_name} --[{edge.relation}]--> {tgt_name}"
 
     def _build_citation(self, hits: list[TextHit]) -> CitationPath:

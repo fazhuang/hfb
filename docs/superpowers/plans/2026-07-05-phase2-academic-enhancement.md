@@ -66,9 +66,11 @@ Phase 2c (论文引擎):
 ### Task 1: LCS 句子对齐算法
 
 **Files:**
+
 - Modify: `packages/tcm_tei/comparator.py:84-113`
 
 **Interfaces:**
+
 - Consumes: 现有 `TextVersion`, `Paragraph`, `Sentence`, `Variant` dataclasses
 - Produces: `VersionComparator.align()` — 新签名 `(version_a, version_b, algorithm="lcs") -> list[tuple[Sentence|None, Sentence|None]]`，LCS 对齐替代位置索引对齐
 
@@ -175,10 +177,12 @@ git commit -m "feat: LCS sentence alignment in VersionComparator.align, eliminat
 ### Task 2: LCS 驱动的 diff 和测试
 
 **Files:**
+
 - Modify: `packages/tcm_tei/comparator.py:26-82` (diff method)
 - Modify: `tests/unit/test_tcm_tei.py`
 
 **Interfaces:**
+
 - Consumes: Task 1 的 `_lcs_align_sentences`
 - Produces: `VersionComparator.diff()` 内部改用 LCS 对齐；新增测试覆盖插入/删除/倒装场景
 
@@ -263,19 +267,25 @@ def test_lcs_alignment_insertion_does_not_misalign_remainder():
 
     # v1: [A, B, C, D]
     # v2: [A, B, X, C, D]  — X inserted between B and C
-    para1 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
-    para2 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="sX", text="此乃要言也"),  # inserted
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
+    para1 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
+    para2 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="sX", text="此乃要言也"),  # inserted
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
     v1.paragraphs = [para1]
     v2.paragraphs = [para2]
 
@@ -297,17 +307,23 @@ def test_lcs_alignment_deletion_does_not_misalign_remainder():
 
     # v1: [A, B, C, D]
     # v2: [A, C, D] — B deleted
-    para1 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
-    para2 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
+    para1 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
+    para2 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
     v1.paragraphs = [para1]
     v2.paragraphs = [para2]
 
@@ -324,10 +340,13 @@ def test_lcs_alignment_identical_texts_zero_variants():
 
     v1 = TextVersion(id="v1", label="宋本")
     v2 = TextVersion(id="v2", label="明本")
-    para = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-    ])
+    para = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+        ],
+    )
     v1.paragraphs = [para]
     v2.paragraphs = [para]
 
@@ -340,6 +359,7 @@ def test_lcs_alignment_identical_texts_zero_variants():
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_tcm_tei.py -v -k "lcs"
 ```
+
 Expected: 3 new tests PASS
 
 - [ ] **Step 4: 运行完整 TEI 测试套件**
@@ -347,6 +367,7 @@ Expected: 3 new tests PASS
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_tcm_tei.py -v
 ```
+
 Expected: all tests PASS
 
 - [ ] **Step 5: Commit**
@@ -363,11 +384,13 @@ git commit -m "feat: LCS-driven diff + tests for insertion/deletion tolerance"
 ### Task 3: 更新模型常量和约束 — syndrome + evidence_level
 
 **Files:**
+
 - Modify: `apps/backend/app/models/graph.py:27-37,40-63,66-89,92-102,120-153` — 新增 `syndrome` 实体类型、`indicates` 关系类型、ontology 定义
 - Modify: `apps/backend/app/models/graph.py:108-153` — EntityRelation 类新增 evidence_level 列 + CHECK 约束
 - Modify: `apps/backend/app/models/tcm_entity.py:27-34` — CHECK 约束增加 `syndrome`
 
 **Interfaces:**
+
 - Consumes: 现有 GRAPH_ENTITY_TYPES, ONTOLOGY_SOURCE_TYPES, ONTOLOGY_TARGET_TYPES, GRAPH_RELATION_TYPES
 - Produces: 扩展的常量集 + EntityRelation.evidence_level + 更新后的 CHECK 约束
 
@@ -405,8 +428,16 @@ ONTOLOGY_SOURCE_TYPES: dict[str, set[str]] = {
     "compared": {"person", "book", "version"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person", "book", "version", "passage", "text",
-        "herb", "prescription", "meridian", "symptom", "syndrome",
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+        "syndrome",
     },
     "contains": {"book", "text", "version", "prescription"},
     "treats": {"prescription", "herb"},
@@ -424,8 +455,16 @@ ONTOLOGY_TARGET_TYPES: dict[str, set[str]] = {
     "compared": {"book", "version", "text"},
     "referenced": {"person", "book", "version", "passage", "text"},
     "related_to": {
-        "person", "book", "version", "passage", "text",
-        "herb", "prescription", "meridian", "symptom", "syndrome",
+        "person",
+        "book",
+        "version",
+        "passage",
+        "text",
+        "herb",
+        "prescription",
+        "meridian",
+        "symptom",
+        "syndrome",
     },
     "contains": {"passage", "prescription", "herb", "symptom", "syndrome"},
     "treats": {"syndrome"},  # Phase 2a: 治疗证候，而非症状
@@ -462,9 +501,11 @@ GRAPH_RELATION_TYPES = set(ONTOLOGY_SOURCE_TYPES.keys()) | {
 
 ```python
 evidence_level: Mapped[int] = mapped_column(
-    Integer, nullable=False, default=0,
+    Integer,
+    nullable=False,
+    default=0,
     server_default=sa_text("0"),
-    comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据"
+    comment="证据等级 0-4: 0=无来源, 1=文献引用, 2=段落定位, 3=原文引证, 4=对勘证据",
 )
 ```
 
@@ -476,8 +517,10 @@ evidence_level: Mapped[int] = mapped_column(
 __table_args__ = (
     Index(
         "ix_entity_relations_lookup",
-        "source_entity_type", "source_entity_id",
-        "target_entity_type", "target_entity_id",
+        "source_entity_type",
+        "source_entity_id",
+        "target_entity_type",
+        "target_entity_id",
         "relation_type",
     ),
     CheckConstraint(
@@ -543,9 +586,11 @@ git commit -m "feat: add syndrome entity type, indicates relation, evidence_leve
 ### Task 4: Alembic 迁移
 
 **Files:**
+
 - Create: `apps/backend/app/db/migrations/versions/XXX_phase2a_kg_upgrade.py`
 
 **Interfaces:**
+
 - Consumes: Task 3 的模型变更
 - Produces: Alembic 迁移脚本
 
@@ -558,6 +603,7 @@ cd /Users/likeming/Sites/hfb/apps/backend && alembic revision --autogenerate -m 
 - [ ] **Step 2: 检查生成的迁移文件**
 
 用 Read 检查新生成的迁移文件在 `apps/backend/app/db/migrations/versions/` 中。确认它包含：
+
 - `ALTER TABLE entity_relations ADD COLUMN evidence_level INTEGER NOT NULL DEFAULT 0`
 - `ALTER TABLE entity_relations DROP CONSTRAINT ck_entity_relations_source_type`（旧约束）
 - `ALTER TABLE entity_relations ADD CONSTRAINT ck_entity_relations_source_type CHECK (... syndrome ...)`
@@ -570,45 +616,86 @@ cd /Users/likeming/Sites/hfb/apps/backend && alembic revision --autogenerate -m 
 ```python
 def upgrade():
     # 1. 新增 evidence_level 列
-    op.add_column('entity_relations',
-        sa.Column('evidence_level', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column(
+        "entity_relations",
+        sa.Column("evidence_level", sa.Integer(), nullable=False, server_default="0"),
+    )
 
     # 2. 删除旧 CHECK 约束（按名称）
-    op.drop_constraint('ck_entity_relations_source_type', 'entity_relations', type_='check')
-    op.drop_constraint('ck_entity_relations_target_type', 'entity_relations', type_='check')
-    op.drop_constraint('ck_entity_relations_relation_type', 'entity_relations', type_='check')
-    op.drop_constraint('ck_tcm_entities_entity_type', 'tcm_entities', type_='check')
+    op.drop_constraint(
+        "ck_entity_relations_source_type", "entity_relations", type_="check"
+    )
+    op.drop_constraint(
+        "ck_entity_relations_target_type", "entity_relations", type_="check"
+    )
+    op.drop_constraint(
+        "ck_entity_relations_relation_type", "entity_relations", type_="check"
+    )
+    op.drop_constraint("ck_tcm_entities_entity_type", "tcm_entities", type_="check")
 
     # 3. 创建新 CHECK 约束
-    op.create_check_constraint('ck_entity_relations_source_type', 'entity_relations',
-        "source_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')")
-    op.create_check_constraint('ck_entity_relations_target_type', 'entity_relations',
-        "target_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')")
-    op.create_check_constraint('ck_entity_relations_relation_type', 'entity_relations',
-        "relation_type IN ('authored','compiled','compiled_from','commented_on','cited_in','studied','compared','referenced','related_to','contains','treats','corresponds_to','indicates')")
-    op.create_check_constraint('ck_entity_relations_level', 'entity_relations',
-        "evidence_level IN (0, 1, 2, 3, 4)")
-    op.create_check_constraint('ck_tcm_entities_entity_type', 'tcm_entities',
-        "entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')")
+    op.create_check_constraint(
+        "ck_entity_relations_source_type",
+        "entity_relations",
+        "source_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')",
+    )
+    op.create_check_constraint(
+        "ck_entity_relations_target_type",
+        "entity_relations",
+        "target_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')",
+    )
+    op.create_check_constraint(
+        "ck_entity_relations_relation_type",
+        "entity_relations",
+        "relation_type IN ('authored','compiled','compiled_from','commented_on','cited_in','studied','compared','referenced','related_to','contains','treats','corresponds_to','indicates')",
+    )
+    op.create_check_constraint(
+        "ck_entity_relations_level",
+        "entity_relations",
+        "evidence_level IN (0, 1, 2, 3, 4)",
+    )
+    op.create_check_constraint(
+        "ck_tcm_entities_entity_type",
+        "tcm_entities",
+        "entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom','syndrome')",
+    )
 
 
 def downgrade():
-    op.drop_constraint('ck_tcm_entities_entity_type', 'tcm_entities', type_='check')
-    op.drop_constraint('ck_entity_relations_level', 'entity_relations', type_='check')
-    op.drop_constraint('ck_entity_relations_relation_type', 'entity_relations', type_='check')
-    op.drop_constraint('ck_entity_relations_target_type', 'entity_relations', type_='check')
-    op.drop_constraint('ck_entity_relations_source_type', 'entity_relations', type_='check')
+    op.drop_constraint("ck_tcm_entities_entity_type", "tcm_entities", type_="check")
+    op.drop_constraint("ck_entity_relations_level", "entity_relations", type_="check")
+    op.drop_constraint(
+        "ck_entity_relations_relation_type", "entity_relations", type_="check"
+    )
+    op.drop_constraint(
+        "ck_entity_relations_target_type", "entity_relations", type_="check"
+    )
+    op.drop_constraint(
+        "ck_entity_relations_source_type", "entity_relations", type_="check"
+    )
 
-    op.create_check_constraint('ck_entity_relations_source_type', 'entity_relations',
-        "source_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')")
-    op.create_check_constraint('ck_entity_relations_target_type', 'entity_relations',
-        "target_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')")
-    op.create_check_constraint('ck_entity_relations_relation_type', 'entity_relations',
-        "relation_type IN ('authored','compiled','compiled_from','commented_on','cited_in','studied','compared','referenced','related_to','contains','treats','corresponds_to')")
-    op.create_check_constraint('ck_tcm_entities_entity_type', 'tcm_entities',
-        "entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')")
+    op.create_check_constraint(
+        "ck_entity_relations_source_type",
+        "entity_relations",
+        "source_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')",
+    )
+    op.create_check_constraint(
+        "ck_entity_relations_target_type",
+        "entity_relations",
+        "target_entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')",
+    )
+    op.create_check_constraint(
+        "ck_entity_relations_relation_type",
+        "entity_relations",
+        "relation_type IN ('authored','compiled','compiled_from','commented_on','cited_in','studied','compared','referenced','related_to','contains','treats','corresponds_to')",
+    )
+    op.create_check_constraint(
+        "ck_tcm_entities_entity_type",
+        "tcm_entities",
+        "entity_type IN ('person','book','version','passage','text','herb','prescription','meridian','symptom')",
+    )
 
-    op.drop_column('entity_relations', 'evidence_level')
+    op.drop_column("entity_relations", "evidence_level")
 ```
 
 - [ ] **Step 3: 运行迁移（SQLite 测试数据库）**
@@ -622,6 +709,7 @@ cd /Users/likeming/Sites/hfb/apps/backend && ALEMBIC_CONFIG=alembic.ini DATABASE
 ```bash
 cd /Users/likeming/Sites/hfb/apps/backend && sqlite3 hfb_dev.db ".schema entity_relations" | grep -E "evidence_level|syndrome|indicates"
 ```
+
 Expected: 输出包含 evidence_level、syndrome、indicates 字样
 
 - [ ] **Step 5: 运行现有测试确认无回归**
@@ -639,12 +727,14 @@ git commit -m "feat: phase2a alembic migration — evidence_level + syndrome + i
 
 ---
 
-### Task 5: _derive_evidence_level + 集成到 GraphService
+### Task 5: \_derive_evidence_level + 集成到 GraphService
 
 **Files:**
+
 - Modify: `apps/backend/app/services/graph_service.py` — 新增 `_derive_evidence_level`
 
 **Interfaces:**
+
 - Consumes: `EntityRelation` 模型的 evidence 字段，`TextualVariant` 模型
 - Produces: `_derive_evidence_level(session, er) -> int`
 
@@ -678,10 +768,16 @@ async def _derive_evidence_level(
     # L4 check: TextualVariant records
     if has_version and has_passage and has_quote and is_verified:
         from app.models.tei import TextualVariant
-        variant_stmt = select(TextualVariant).where(
-            TextualVariant.source_version_id == getattr(er, "evidence_version_id", ""),
-            TextualVariant.is_deleted.is_(False),
-        ).limit(1)
+
+        variant_stmt = (
+            select(TextualVariant)
+            .where(
+                TextualVariant.source_version_id
+                == getattr(er, "evidence_version_id", ""),
+                TextualVariant.is_deleted.is_(False),
+            )
+            .limit(1)
+        )
         variant_result = await session.execute(variant_stmt)
         if variant_result.scalar_one_or_none() is not None:
             return 4
@@ -812,6 +908,7 @@ async def test_derive_evidence_level_l3_quote_verified(db_session):
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_evidence_level.py -v
 ```
+
 Expected: 4 tests PASS
 
 - [ ] **Step 7: Commit**
@@ -826,10 +923,12 @@ git commit -m "feat: _derive_evidence_level integration in create_relation + ver
 ### Task 6: AcademicEdge SQL 视图 + ORM 映射
 
 **Files:**
+
 - Modify: `apps/backend/app/db/migrations/versions/XXX_phase2a_kg_upgrade.py` — 在已有迁移中追加视图
 - Create: `apps/backend/app/models/academic_edge.py` — 只读 ORM 映射
 
 **Interfaces:**
+
 - Consumes: `entity_relations` 表
 - Produces: `academic_edges` 视图 + `AcademicEdge` ORM 映射（只读）
 
@@ -871,6 +970,7 @@ cd /Users/likeming/Sites/hfb/apps/backend && ALEMBIC_CONFIG=alembic.ini DATABASE
 ```bash
 cd /Users/likeming/Sites/hfb/apps/backend && sqlite3 hfb_dev.db "SELECT name FROM sqlite_master WHERE type='view';"
 ```
+
 Expected: 输出包含 `academic_edges`
 
 - [ ] **Step 3: 创建只读 ORM 映射**
@@ -907,24 +1007,36 @@ class AcademicEdge:
     target_entity_id: Mapped[str] = mapped_column(String(36))
     relation_type: Mapped[str] = mapped_column(String(50))
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    evidence_document_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+    evidence_document_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True
+    )
     evidence_chunk_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
     evidence_quote: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     evidence_citation: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    evidence_version_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
-    evidence_passage_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
-    evidence_source_uri: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    evidence_version_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True
+    )
+    evidence_passage_id: Mapped[Optional[str]] = mapped_column(
+        String(36), nullable=True
+    )
+    evidence_source_uri: Mapped[Optional[str]] = mapped_column(
+        String(500), nullable=True
+    )
     evidence_status: Mapped[str] = mapped_column(String(20))
     claim_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     verified_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
-    verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     evidence_level: Mapped[int] = mapped_column(Integer)
     confidence_score: Mapped[float] = mapped_column(Float)
     evidence: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     is_deleted: Mapped[bool] = mapped_column(default=False)
-    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 ```
 
 - [ ] **Step 4: Commit**
@@ -939,9 +1051,11 @@ git commit -m "feat: academic_edges SQL view + read-only ORM mapping"
 ### Task 7: EvidenceHop / EvidenceChainPath schemas
 
 **Files:**
+
 - Modify: `apps/backend/app/schemas/graph.py` — 新增 schema 类
 
 **Interfaces:**
+
 - Consumes: AcademicEdge 视图字段
 - Produces: `EvidenceHop`, `EvidenceChainPath`, `MultiHopQueryRequest`, `EvidenceChainEnvelope`
 
@@ -1025,9 +1139,11 @@ git commit -m "feat: EvidenceHop, EvidenceChainPath, MultiHopQueryRequest schema
 ### Task 8: multi_hop_query 在 GraphService 中
 
 **Files:**
+
 - Modify: `apps/backend/app/services/graph_service.py` — 新增 multi_hop_query 方法
 
 **Interfaces:**
+
 - Consumes: AcademicEdge 视图（通过 EntityRelation + evidence_level 过滤）、Task 7 的 schemas
 - Produces: `GraphService.multi_hop_query(session, request) -> list[EvidenceChainPath]`
 
@@ -1065,6 +1181,7 @@ async def multi_hop_query(
 
     # Build adjacency list: (type, id) -> list[EntityRelation]
     from collections import defaultdict
+
     adj: dict[tuple[str, str], list[EntityRelation]] = defaultdict(list)
     for edge in all_edges:
         adj[(edge.source_entity_type, edge.source_entity_id)].append(edge)
@@ -1122,6 +1239,7 @@ async def multi_hop_query(
 def _build_evidence_path(self, edges: list[EntityRelation]) -> EvidenceChainPath:
     """Build an EvidenceChainPath from a list of EntityRelation edges."""
     import hashlib
+
     hop_data: list[EvidenceHop] = []
     for er in edges:
         level = er.evidence_level
@@ -1129,22 +1247,22 @@ def _build_evidence_path(self, edges: list[EntityRelation]) -> EvidenceChainPath
         score_map = {2: 0.65, 3: 0.85, 4: 0.98}
         score = score_map.get(level, 0.0)
 
-        hop_data.append(EvidenceHop(
-            source_type=er.source_entity_type,
-            source_id=er.source_entity_id,
-            target_type=er.target_entity_type,
-            target_id=er.target_entity_id,
-            relation_type=er.relation_type,
-            evidence_level=level,
-            confidence_score=score,
-            citation=er.evidence_citation or "",
-            exact_quote=er.evidence_quote or "",
-            source_uri=getattr(er, "evidence_source_uri", "") or "",
-        ))
+        hop_data.append(
+            EvidenceHop(
+                source_type=er.source_entity_type,
+                source_id=er.source_entity_id,
+                target_type=er.target_entity_type,
+                target_id=er.target_entity_id,
+                relation_type=er.relation_type,
+                evidence_level=level,
+                confidence_score=score,
+                citation=er.evidence_citation or "",
+                exact_quote=er.evidence_quote or "",
+                source_uri=getattr(er, "evidence_source_uri", "") or "",
+            )
+        )
 
-    path_id = hashlib.sha256(
-        "|".join(e.id for e in edges).encode()
-    ).hexdigest()
+    path_id = hashlib.sha256("|".join(e.id for e in edges).encode()).hexdigest()
 
     total_confidence = 1.0
     for h in hop_data:
@@ -1177,9 +1295,12 @@ async def test_multi_hop_no_academic_edges_returns_empty(db_session):
     """When no edges meet academic criteria, result is empty."""
     svc = GraphService(db_session)
     paths = await svc.multi_hop_query(
-        source_type="person", source_id="p1",
-        target_type="book", target_id="b1",
-        min_evidence_level=2, max_hops=3,
+        source_type="person",
+        source_id="p1",
+        target_type="book",
+        target_id="b1",
+        min_evidence_level=2,
+        max_hops=3,
     )
     assert paths == []
 
@@ -1198,8 +1319,10 @@ async def test_multi_hop_single_hop_path(db_session):
 
     # Create an academic edge
     edge = EntityRelation(
-        source_entity_type="person", source_entity_id="p-test-1",
-        target_entity_type="book", target_entity_id="b-test-1",
+        source_entity_type="person",
+        source_entity_id="p-test-1",
+        target_entity_type="book",
+        target_entity_id="b-test-1",
         relation_type="authored",
         evidence_document_id="doc-1",
         evidence_chunk_id="chunk-1",
@@ -1218,9 +1341,12 @@ async def test_multi_hop_single_hop_path(db_session):
 
     svc = GraphService(db_session)
     paths = await svc.multi_hop_query(
-        source_type="person", source_id="p-test-1",
-        target_type="book", target_id="b-test-1",
-        min_evidence_level=2, max_hops=3,
+        source_type="person",
+        source_id="p-test-1",
+        target_type="book",
+        target_id="b-test-1",
+        min_evidence_level=2,
+        max_hops=3,
     )
     assert len(paths) == 1
     assert paths[0].min_evidence_level == 3
@@ -1242,35 +1368,52 @@ async def test_multi_hop_two_hop_path(db_session):
     await db_session.flush()
 
     edge1 = EntityRelation(
-        source_entity_type="person", source_entity_id="p-2h-1",
-        target_entity_type="book", target_entity_id="b-2h-1",
+        source_entity_type="person",
+        source_entity_id="p-2h-1",
+        target_entity_type="book",
+        target_entity_id="b-2h-1",
         relation_type="authored",
-        evidence_document_id="doc-1", evidence_chunk_id="chunk-1",
-        evidence_quote="quote1", evidence_citation="citation1",
-        evidence_version_id="ver-1", evidence_passage_id="pass-1",
+        evidence_document_id="doc-1",
+        evidence_chunk_id="chunk-1",
+        evidence_quote="quote1",
+        evidence_citation="citation1",
+        evidence_version_id="ver-1",
+        evidence_passage_id="pass-1",
         evidence_source_uri="https://ctext.org/test1",
-        evidence_status="verified", evidence_level=3,
-        claim_text="test", verified_by="user-1",
+        evidence_status="verified",
+        evidence_level=3,
+        claim_text="test",
+        verified_by="user-1",
     )
     edge2 = EntityRelation(
-        source_entity_type="book", source_entity_id="b-2h-1",
-        target_entity_type="book", target_entity_id="b-2h-2",
+        source_entity_type="book",
+        source_entity_id="b-2h-1",
+        target_entity_type="book",
+        target_entity_id="b-2h-2",
         relation_type="compiled_from",
-        evidence_document_id="doc-2", evidence_chunk_id="chunk-2",
-        evidence_quote="quote2", evidence_citation="citation2",
-        evidence_version_id="ver-2", evidence_passage_id="pass-2",
+        evidence_document_id="doc-2",
+        evidence_chunk_id="chunk-2",
+        evidence_quote="quote2",
+        evidence_citation="citation2",
+        evidence_version_id="ver-2",
+        evidence_passage_id="pass-2",
         evidence_source_uri="https://ctext.org/test2",
-        evidence_status="verified", evidence_level=2,
-        claim_text="test", verified_by="user-1",
+        evidence_status="verified",
+        evidence_level=2,
+        claim_text="test",
+        verified_by="user-1",
     )
     db_session.add_all([edge1, edge2])
     await db_session.flush()
 
     svc = GraphService(db_session)
     paths = await svc.multi_hop_query(
-        source_type="person", source_id="p-2h-1",
-        target_type="book", target_id="b-2h-2",
-        min_evidence_level=2, max_hops=3,
+        source_type="person",
+        source_id="p-2h-1",
+        target_type="book",
+        target_id="b-2h-2",
+        min_evidence_level=2,
+        max_hops=3,
     )
     assert len(paths) == 1
     assert len(paths[0].hops) == 2
@@ -1285,6 +1428,7 @@ async def test_multi_hop_two_hop_path(db_session):
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_multi_hop.py -v
 ```
+
 Expected: 3 tests PASS
 
 - [ ] **Step 4: Commit**
@@ -1299,10 +1443,12 @@ git commit -m "feat: multi_hop_query — BFS over academic edges with evidence c
 ### Task 9: evidence-chains API endpoint
 
 **Files:**
+
 - Create: `apps/backend/app/api/v2/graph.py`
 - Modify: `apps/backend/app/api/v2/__init__.py`
 
 **Interfaces:**
+
 - Consumes: Task 7 的 schemas、Task 8 的 multi_hop_query
 - Produces: `POST /api/v2/graph/evidence-chains`
 
@@ -1356,7 +1502,7 @@ async def evidence_chains(
     return EvidenceChainEnvelope(success=True, data=paths, message="ok")
 ```
 
-- [ ] **Step 2: 更新 v2 __init__.py**
+- [ ] **Step 2: 更新 v2 **init**.py**
 
 修改 `apps/backend/app/api/v2/__init__.py`：
 
@@ -1393,10 +1539,12 @@ git commit -m "feat: POST /api/v2/graph/evidence-chains endpoint"
 ### Task 10: Commentary 模型 + Alembic 迁移
 
 **Files:**
+
 - Create: `apps/backend/app/models/commentary.py`
 - Create: `apps/backend/app/db/migrations/versions/XXX_phase2b_commentary.py`
 
 **Interfaces:**
+
 - Consumes: 现有 `passages`, `versions`, `persons` 表 (FK)
 - Produces: `Commentary` ORM 模型 + 数据库表
 
@@ -1505,7 +1653,9 @@ class Commentary(BaseModel):
 
     def __repr__(self) -> str:
         author = self.author_id[:8] if self.author_id else "?"
-        return f"<Commentary type={self.commentary_type} layer={self.layer} by={author}>"
+        return (
+            f"<Commentary type={self.commentary_type} layer={self.layer} by={author}>"
+        )
 ```
 
 - [ ] **Step 2: 生成 Alembic 迁移**
@@ -1529,6 +1679,7 @@ cd /Users/likeming/Sites/hfb/apps/backend && ALEMBIC_CONFIG=alembic.ini DATABASE
 ```bash
 cd /Users/likeming/Sites/hfb/apps/backend && sqlite3 hfb_dev.db ".schema commentaries"
 ```
+
 Expected: 输出包含 commentaries 表的完整 DDL，含所有 CHECK 约束
 
 - [ ] **Step 6: 写测试 — 模型可创建**
@@ -1607,6 +1758,7 @@ async def test_commentary_invalid_type_raises(db_session):
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_commentary.py -v
 ```
+
 Expected: 3 tests PASS
 
 - [ ] **Step 8: Commit**
@@ -1621,12 +1773,14 @@ git commit -m "feat: Commentary model with self-referential 注疏链 + migratio
 ### Task 11: TEI Commentary CRUD + chain query
 
 **Files:**
+
 - Modify: `apps/backend/app/services/version_center.py` — 新增 CommentaryService 或直接在 VersionComparisonService 中加方法
 - Modify: `apps/backend/app/schemas/tei.py`（或新建 `app/schemas/commentary.py`）
 - Create: `apps/backend/app/api/v2/tei.py` — commentary endpoints
 - Modify: `apps/backend/app/api/v2/__init__.py`
 
 **Interfaces:**
+
 - Consumes: Commentary 模型
 - Produces: `POST /api/v2/tei/commentary`, `GET /api/v2/tei/passage/{id}/commentaries`, `GET /api/v2/tei/commentary/{id}/chain`, `GET /api/v2/tei/commentary-graph`
 
@@ -1655,16 +1809,20 @@ class CommentaryCreate(BaseModel):
     author_id: str | None = Field(default=None, description="注者 ID")
     commentary_type: str = Field(
         default="end_of_passage",
-        description="interlinear_gloss | end_of_passage | sub_commentary | commentary_work | critique"
+        description="interlinear_gloss | end_of_passage | sub_commentary | commentary_work | critique",
     )
     layer: str = Field(default="modern", description="年代层")
     content_text: str = Field(..., description="注文内容")
-    target_position_start: int | None = Field(default=None, description="段落中起始字符偏移")
-    target_position_end: int | None = Field(default=None, description="段落中结束字符偏移")
+    target_position_start: int | None = Field(
+        default=None, description="段落中起始字符偏移"
+    )
+    target_position_end: int | None = Field(
+        default=None, description="段落中结束字符偏移"
+    )
     parent_id: str | None = Field(default=None, description="自引用 — 回应另一条注疏")
     relation_type: str | None = Field(
         default=None,
-        description="supplements | refutes | expands | annotates | interprets"
+        description="supplements | refutes | expands | annotates | interprets",
     )
 
 
@@ -1703,13 +1861,20 @@ class CommentaryGraphResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     nodes: list[CommentaryResponse] = Field(default_factory=list)
-    edges: list[dict] = Field(default_factory=list)  # {parent_id, child_id, relation_type}
+    edges: list[dict] = Field(
+        default_factory=list
+    )  # {parent_id, child_id, relation_type}
 
 
 class CommentaryEnvelope(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     success: bool = Field(default=True)
-    data: CommentaryResponse | CommentaryChainResponse | CommentaryGraphResponse | list[CommentaryResponse]
+    data: (
+        CommentaryResponse
+        | CommentaryChainResponse
+        | CommentaryGraphResponse
+        | list[CommentaryResponse]
+    )
     message: str = Field(default="ok")
 ```
 
@@ -1780,14 +1945,21 @@ async def get_commentaries_for_passage(
     commentaries = result.scalars().all()
     return [
         CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
+            id=c.id,
+            passage_id=c.passage_id,
+            version_id=c.version_id,
+            author_id=c.author_id,
+            commentary_type=c.commentary_type,
+            layer=c.layer,
+            content_text=c.content_text,
             target_position_start=c.target_position_start,
             target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ) for c in commentaries
+            parent_id=c.parent_id,
+            relation_type=c.relation_type,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+        for c in commentaries
     ]
 
 
@@ -1810,15 +1982,23 @@ async def get_commentary_chain(
         c = result.scalar_one_or_none()
         if not c:
             break
-        chain.append(CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
-            target_position_start=c.target_position_start,
-            target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ))
+        chain.append(
+            CommentaryResponse(
+                id=c.id,
+                passage_id=c.passage_id,
+                version_id=c.version_id,
+                author_id=c.author_id,
+                commentary_type=c.commentary_type,
+                layer=c.layer,
+                content_text=c.content_text,
+                target_position_start=c.target_position_start,
+                target_position_end=c.target_position_end,
+                parent_id=c.parent_id,
+                relation_type=c.relation_type,
+                created_at=c.created_at,
+                updated_at=c.updated_at,
+            )
+        )
         current_id = c.parent_id
 
     chain.reverse()  # root first
@@ -1839,19 +2019,27 @@ async def get_commentary_graph(
 
     nodes = [
         CommentaryResponse(
-            id=c.id, passage_id=c.passage_id, version_id=c.version_id,
-            author_id=c.author_id, commentary_type=c.commentary_type,
-            layer=c.layer, content_text=c.content_text,
+            id=c.id,
+            passage_id=c.passage_id,
+            version_id=c.version_id,
+            author_id=c.author_id,
+            commentary_type=c.commentary_type,
+            layer=c.layer,
+            content_text=c.content_text,
             target_position_start=c.target_position_start,
             target_position_end=c.target_position_end,
-            parent_id=c.parent_id, relation_type=c.relation_type,
-            created_at=c.created_at, updated_at=c.updated_at,
-        ) for c in commentaries
+            parent_id=c.parent_id,
+            relation_type=c.relation_type,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+        for c in commentaries
     ]
 
     edges = [
         {"parent_id": c.parent_id, "child_id": c.id, "relation_type": c.relation_type}
-        for c in commentaries if c.parent_id
+        for c in commentaries
+        if c.parent_id
     ]
 
     return {"nodes": nodes, "edges": edges}
@@ -1958,7 +2146,7 @@ async def commentary_graph(
     )
 ```
 
-- [ ] **Step 4: 更新 v2 __init__.py**
+- [ ] **Step 4: 更新 v2 **init**.py**
 
 ```python
 from app.api.v2.academic import router as academic_router
@@ -1993,10 +2181,12 @@ git commit -m "feat: commentary CRUD + chain query + graph API endpoints"
 ### Task 12: version_tree + distance matrix API
 
 **Files:**
+
 - Modify: `apps/backend/app/services/version_center.py` — 新增 `compute_version_tree`、`compute_distance_matrix`、`find_divergence_points`
 - Modify: `apps/backend/app/api/v2/tei.py` — 新增 `/version-tree/{version_id}`、`/apparatus`、variant 聚合端点
 
 **Interfaces:**
+
 - Consumes: `VersionRelation`, `VersionDiff`, `PassageMapping`, `TextualVariant`, `TEISerializer`
 - Produces: `GET /api/v2/tei/version-tree/{id}`, `GET /api/v2/tei/passage/{id}/variants`, `GET /api/v2/tei/version/{id}/variants`, `GET /api/v2/tei/apparatus`
 
@@ -2008,6 +2198,7 @@ git commit -m "feat: commentary CRUD + chain query + graph API endpoints"
 # ======================================================================
 # Phase 2b: Version Tree & Distance Matrix
 # ======================================================================
+
 
 async def compute_distance_matrix(
     session: AsyncSession,
@@ -2026,9 +2217,12 @@ async def compute_distance_matrix(
         # Look for existing VersionDiff
         stmt = select(VersionDiff).where(
             (
-                (VersionDiff.source_version_id == va_id) & (VersionDiff.target_version_id == vb_id)
-            ) | (
-                (VersionDiff.source_version_id == vb_id) & (VersionDiff.target_version_id == va_id)
+                (VersionDiff.source_version_id == va_id)
+                & (VersionDiff.target_version_id == vb_id)
+            )
+            | (
+                (VersionDiff.source_version_id == vb_id)
+                & (VersionDiff.target_version_id == va_id)
             ),
             VersionDiff.is_deleted.is_(False),
         )
@@ -2037,7 +2231,12 @@ async def compute_distance_matrix(
 
         if diff and diff.diff_data:
             import json
-            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+
+            diff_data = (
+                json.loads(diff.diff_data)
+                if isinstance(diff.diff_data, str)
+                else diff.diff_data
+            )
             lines_changed = diff_data.get("lines_changed", 0)
             total_lines = diff_data.get("total_lines", 1)
             distance = lines_changed / max(total_lines, 1)
@@ -2064,7 +2263,9 @@ async def compute_version_tree(
     from collections import defaultdict
 
     # Get the root version
-    stmt = select(Version).where(Version.id == version_id, Version.is_deleted.is_(False))
+    stmt = select(Version).where(
+        Version.id == version_id, Version.is_deleted.is_(False)
+    )
     result = await session.execute(stmt)
     root = result.scalar_one_or_none()
     if not root:
@@ -2105,7 +2306,9 @@ async def compute_version_tree(
     # Fetch all version objects
     all_versions: dict[str, Version] = {}
     if version_set:
-        stmt = select(Version).where(Version.id.in_(version_set), Version.is_deleted.is_(False))
+        stmt = select(Version).where(
+            Version.id.in_(version_set), Version.is_deleted.is_(False)
+        )
         result = await session.execute(stmt)
         all_versions = {v.id: v for v in result.scalars().all()}
 
@@ -2115,9 +2318,11 @@ async def compute_version_tree(
         distance = 1.0
         # Check for diff
         from app.models.version_relation import VersionDiff
+
         diff_stmt = select(VersionDiff).where(
             (
-                (VersionDiff.source_version_id == rel.source_version_id) & (VersionDiff.target_version_id == rel.target_version_id)
+                (VersionDiff.source_version_id == rel.source_version_id)
+                & (VersionDiff.target_version_id == rel.target_version_id)
             ),
             VersionDiff.is_deleted.is_(False),
         )
@@ -2125,17 +2330,24 @@ async def compute_version_tree(
         diff = diff_result.scalar_one_or_none()
         if diff and diff.diff_data:
             import json
-            diff_data = json.loads(diff.diff_data) if isinstance(diff.diff_data, str) else diff.diff_data
+
+            diff_data = (
+                json.loads(diff.diff_data)
+                if isinstance(diff.diff_data, str)
+                else diff.diff_data
+            )
             lines_changed = diff_data.get("lines_changed", 0)
             total_lines = diff_data.get("total_lines", 1)
             distance = lines_changed / max(total_lines, 1)
 
-        tree_edges.append({
-            "parent_id": rel.source_version_id,
-            "child_id": rel.target_version_id,
-            "relation_type": rel.relation_type,
-            "distance": round(min(distance, 1.0), 4),
-        })
+        tree_edges.append(
+            {
+                "parent_id": rel.source_version_id,
+                "child_id": rel.target_version_id,
+                "relation_type": rel.relation_type,
+                "distance": round(min(distance, 1.0), 4),
+            }
+        )
 
     # Distance matrix
     version_list = sorted(version_set)
@@ -2153,11 +2365,13 @@ async def compute_version_tree(
 
     for other_id in sorted(root_distances, key=root_distances.get):
         v_obj = all_versions.get(other_id)
-        closest.append({
-            "version_id": other_id,
-            "name": v_obj.version_name if v_obj else other_id,
-            "distance": root_distances[other_id],
-        })
+        closest.append(
+            {
+                "version_id": other_id,
+                "name": v_obj.version_name if v_obj else other_id,
+                "distance": root_distances[other_id],
+            }
+        )
 
     # Divergence points: passage mappings with high variant counts
     divergence_points = []
@@ -2165,9 +2379,12 @@ async def compute_version_tree(
     for other_id in list(version_set - {version_id}):
         variant_stmt = select(TextualVariant).where(
             (
-                (TextualVariant.source_version_id == version_id) & (TextualVariant.target_version_id == other_id)
-            ) | (
-                (TextualVariant.source_version_id == other_id) & (TextualVariant.target_version_id == version_id)
+                (TextualVariant.source_version_id == version_id)
+                & (TextualVariant.target_version_id == other_id)
+            )
+            | (
+                (TextualVariant.source_version_id == other_id)
+                & (TextualVariant.target_version_id == version_id)
             ),
             TextualVariant.is_deleted.is_(False),
         )
@@ -2184,15 +2401,20 @@ async def compute_version_tree(
         for pid, vlist in passage_counts.items():
             if len(vlist) >= 1:  # at least one variant
                 from app.models.passage import Passage
-                pass_stmt = select(Passage).where(Passage.id == pid, Passage.is_deleted.is_(False))
+
+                pass_stmt = select(Passage).where(
+                    Passage.id == pid, Passage.is_deleted.is_(False)
+                )
                 pass_result = await session.execute(pass_stmt)
                 passage = pass_result.scalar_one_or_none()
-                divergence_points.append({
-                    "passage_id": pid,
-                    "passage_text": passage.content_text[:200] if passage else "",
-                    "diff_summary": f"{len(vlist)} variants between {version_id} and {other_id}",
-                    "variant_count": len(vlist),
-                })
+                divergence_points.append(
+                    {
+                        "passage_id": pid,
+                        "passage_text": passage.content_text[:200] if passage else "",
+                        "diff_summary": f"{len(vlist)} variants between {version_id} and {other_id}",
+                        "variant_count": len(vlist),
+                    }
+                )
 
     return {
         "root_version": {
@@ -2249,9 +2471,11 @@ async def passage_variants(
 ) -> VersionTreeEnvelope:
     """Get all variants for a passage across all versions, grouped by apparatus."""
     from app.models.tei import TextualVariant
+
     stmt = select(TextualVariant).where(
         (
-            (TextualVariant.source_passage_id == passage_id) | (TextualVariant.target_passage_id == passage_id)
+            (TextualVariant.source_passage_id == passage_id)
+            | (TextualVariant.target_passage_id == passage_id)
         ),
         TextualVariant.is_deleted.is_(False),
     )
@@ -2259,19 +2483,22 @@ async def passage_variants(
     variants = result.scalars().all()
     # Group by apparatus (lemma)
     from collections import defaultdict
+
     groups: dict[str, list] = defaultdict(list)
     for v in variants:
         key = v.lemma or v.location or "unknown"
-        groups[key].append({
-            "id": v.id,
-            "source_version_id": v.source_version_id,
-            "target_version_id": v.target_version_id,
-            "lemma": v.lemma,
-            "reading": v.reading,
-            "variant_type": v.variant_type,
-            "apparatus": v.apparatus,
-            "verification_status": v.verification_status,
-        })
+        groups[key].append(
+            {
+                "id": v.id,
+                "source_version_id": v.source_version_id,
+                "target_version_id": v.target_version_id,
+                "lemma": v.lemma,
+                "reading": v.reading,
+                "variant_type": v.variant_type,
+                "apparatus": v.apparatus,
+                "verification_status": v.verification_status,
+            }
+        )
     data = {"passage_id": passage_id, "groups": {k: v for k, v in groups.items()}}
     return VersionTreeEnvelope(success=True, data=data, message="ok")
 
@@ -2288,6 +2515,7 @@ async def version_variants(
 ) -> VersionTreeEnvelope:
     """Get all variants between a source version and optionally a target version."""
     from app.models.tei import TextualVariant
+
     stmt = select(TextualVariant).where(
         TextualVariant.source_version_id == source_id,
         TextualVariant.is_deleted.is_(False),
@@ -2329,14 +2557,19 @@ async def tei_apparatus(
 ) -> VersionTreeEnvelope:
     """Generate TEI XML critical apparatus for a passage between two versions."""
     from app.models.tei import TextualVariant
+
     stmt = select(TextualVariant).where(
         (
-            (TextualVariant.source_version_id == source_version) & (TextualVariant.target_version_id == target_version)
-        ) | (
-            (TextualVariant.source_version_id == target_version) & (TextualVariant.target_version_id == source_version)
+            (TextualVariant.source_version_id == source_version)
+            & (TextualVariant.target_version_id == target_version)
+        )
+        | (
+            (TextualVariant.source_version_id == target_version)
+            & (TextualVariant.target_version_id == source_version)
         ),
         (
-            (TextualVariant.source_passage_id == passage_id) | (TextualVariant.target_passage_id == passage_id)
+            (TextualVariant.source_passage_id == passage_id)
+            | (TextualVariant.target_passage_id == passage_id)
         ),
         TextualVariant.is_deleted.is_(False),
     )
@@ -2345,9 +2578,13 @@ async def tei_apparatus(
 
     # Build TEI XML apparatus
     from tcm_tei.serializer import TEISerializer
+
     # Get passage text
     from app.models.passage import Passage
-    pass_stmt = select(Passage).where(Passage.id == passage_id, Passage.is_deleted.is_(False))
+
+    pass_stmt = select(Passage).where(
+        Passage.id == passage_id, Passage.is_deleted.is_(False)
+    )
     pass_result = await session.execute(pass_stmt)
     passage = pass_result.scalar_one_or_none()
 
@@ -2428,10 +2665,12 @@ git commit -m "feat: version_tree API — distance matrix, divergence points, ap
 ### Task 13: ConflictDetector — 拓扑冲突 + 中医语义冲突检测
 
 **Files:**
+
 - Create: `apps/backend/app/services/conflict_detector.py`
 - Create: `tests/unit/test_conflict_detector.py`
 
 **Interfaces:**
+
 - Consumes: `EvidenceChainPath[]`（Task 8 输出）、`EntityRelation`（查 rejected 边）
 - Produces: `ConflictDetector.detect(paths, session) -> list[Conflict]`
 
@@ -2460,23 +2699,25 @@ from app.schemas.graph import EvidenceChainPath, EvidenceHop
 
 
 # TCM incompatibility pairs: herbs that must not be combined
-_EIGHTEEN_ANTAGONISMS: set[frozenset[str]] = frozenset({
-    frozenset({"甘草", "甘遂"}),
-    frozenset({"甘草", "大戟"}),
-    frozenset({"甘草", "海藻"}),
-    frozenset({"甘草", "芫花"}),
-    frozenset({"乌头", "贝母"}),
-    frozenset({"乌头", "瓜蒌"}),
-    frozenset({"乌头", "半夏"}),
-    frozenset({"乌头", "白蔹"}),
-    frozenset({"乌头", "白及"}),
-    frozenset({"藜芦", "人参"}),
-    frozenset({"藜芦", "沙参"}),
-    frozenset({"藜芦", "丹参"}),
-    frozenset({"藜芦", "玄参"}),
-    frozenset({"藜芦", "细辛"}),
-    frozenset({"藜芦", "芍药"}),
-})
+_EIGHTEEN_ANTAGONISMS: set[frozenset[str]] = frozenset(
+    {
+        frozenset({"甘草", "甘遂"}),
+        frozenset({"甘草", "大戟"}),
+        frozenset({"甘草", "海藻"}),
+        frozenset({"甘草", "芫花"}),
+        frozenset({"乌头", "贝母"}),
+        frozenset({"乌头", "瓜蒌"}),
+        frozenset({"乌头", "半夏"}),
+        frozenset({"乌头", "白蔹"}),
+        frozenset({"乌头", "白及"}),
+        frozenset({"藜芦", "人参"}),
+        frozenset({"藜芦", "沙参"}),
+        frozenset({"藜芦", "丹参"}),
+        frozenset({"藜芦", "玄参"}),
+        frozenset({"藜芦", "细辛"}),
+        frozenset({"藜芦", "芍药"}),
+    }
+)
 
 # Acupuncture contraindication keywords
 _ACUPUNCTURE_CONTRA_KEYWORDS: dict[str, str] = {
@@ -2533,17 +2774,29 @@ class ConflictDetector:
 
         for path in paths:
             for hop in path.hops:
-                forward = (hop.source_type, hop.source_id, hop.target_type, hop.target_id)
-                reverse = (hop.target_type, hop.target_id, hop.source_type, hop.source_id)
+                forward = (
+                    hop.source_type,
+                    hop.source_id,
+                    hop.target_type,
+                    hop.target_id,
+                )
+                reverse = (
+                    hop.target_type,
+                    hop.target_id,
+                    hop.source_type,
+                    hop.source_id,
+                )
 
                 if reverse in edges_seen:
-                    conflicts.append(Conflict(
-                        conflict_type="topological_reverse",
-                        description=f"反向关系: {hop.source_type}:{hop.source_id} ←→ {hop.target_type}:{hop.target_id} "
-                                    f"(路径 {edges_seen[reverse]} 与 {path.path_id})",
-                        affected_path_ids=[edges_seen[reverse], path.path_id],
-                        related_entities=[hop.source_id, hop.target_id],
-                    ))
+                    conflicts.append(
+                        Conflict(
+                            conflict_type="topological_reverse",
+                            description=f"反向关系: {hop.source_type}:{hop.source_id} ←→ {hop.target_type}:{hop.target_id} "
+                            f"(路径 {edges_seen[reverse]} 与 {path.path_id})",
+                            affected_path_ids=[edges_seen[reverse], path.path_id],
+                            related_entities=[hop.source_id, hop.target_id],
+                        )
+                    )
                 edges_seen[forward] = path.path_id
         return conflicts
 
@@ -2569,13 +2822,15 @@ class ConflictDetector:
                 result = await session.execute(stmt)
                 rejected = result.scalars().all()
                 if rejected:
-                    conflicts.append(Conflict(
-                        conflict_type="topological_rejected",
-                        description=f"发现 {len(rejected)} 条被驳回的关系与路径 {path.path_id} 中的边对应同一 claim",
-                        affected_path_ids=[path.path_id],
-                        related_entities=[hop.source_id, hop.target_id],
-                        severity="error",
-                    ))
+                    conflicts.append(
+                        Conflict(
+                            conflict_type="topological_rejected",
+                            description=f"发现 {len(rejected)} 条被驳回的关系与路径 {path.path_id} 中的边对应同一 claim",
+                            affected_path_ids=[path.path_id],
+                            related_entities=[hop.source_id, hop.target_id],
+                            severity="error",
+                        )
+                    )
         return conflicts
 
     @staticmethod
@@ -2596,12 +2851,14 @@ class ConflictDetector:
         for pair in _EIGHTEEN_ANTAGONISMS:
             found = [h for h in herb_names if any(p in h for p in pair)]
             if len(found) >= 2:
-                conflicts.append(Conflict(
-                    conflict_type="tcm_herb_incompatibility",
-                    description=f"配伍禁忌: {', '.join(found)} 可能存在十八反/十九畏冲突",
-                    related_entities=found,
-                    severity="error",
-                ))
+                conflicts.append(
+                    Conflict(
+                        conflict_type="tcm_herb_incompatibility",
+                        description=f"配伍禁忌: {', '.join(found)} 可能存在十八反/十九畏冲突",
+                        related_entities=found,
+                        severity="error",
+                    )
+                )
         return conflicts
 
     @staticmethod
@@ -2617,11 +2874,13 @@ class ConflictDetector:
                         contra_found.append(f"{keyword}({desc})")
 
             if len(contra_found) >= 2:
-                conflicts.append(Conflict(
-                    conflict_type="tcm_acupuncture_contra",
-                    description=f"针灸禁忌冲突: 路径 {path.path_id} 中同时出现 {' 和 '.join(contra_found)}",
-                    affected_path_ids=[path.path_id],
-                ))
+                conflicts.append(
+                    Conflict(
+                        conflict_type="tcm_acupuncture_contra",
+                        description=f"针灸禁忌冲突: 路径 {path.path_id} 中同时出现 {' 和 '.join(contra_found)}",
+                        affected_path_ids=[path.path_id],
+                    )
+                )
         return conflicts
 ```
 
@@ -2637,13 +2896,27 @@ from app.services.conflict_detector import ConflictDetector
 from app.schemas.graph import EvidenceChainPath, EvidenceHop
 
 
-def make_hop(source_type, source_id, target_type, target_id, relation_type="related_to", citation="", quote="", level=3):
+def make_hop(
+    source_type,
+    source_id,
+    target_type,
+    target_id,
+    relation_type="related_to",
+    citation="",
+    quote="",
+    level=3,
+):
     return EvidenceHop(
-        source_type=source_type, source_id=source_id,
-        target_type=target_type, target_id=target_id,
-        relation_type=relation_type, evidence_level=level,
-        confidence_score=0.85, citation=citation,
-        exact_quote=quote, source_uri="",
+        source_type=source_type,
+        source_id=source_id,
+        target_type=target_type,
+        target_id=target_id,
+        relation_type=relation_type,
+        evidence_level=level,
+        confidence_score=0.85,
+        citation=citation,
+        exact_quote=quote,
+        source_uri="",
     )
 
 
@@ -2660,12 +2933,14 @@ async def test_reverse_relation_detected(db_session):
     path1 = EvidenceChainPath(
         path_id="path1",
         hops=[make_hop("herb", "h1", "herb", "h2")],
-        total_confidence=0.85, min_evidence_level=3,
+        total_confidence=0.85,
+        min_evidence_level=3,
     )
     path2 = EvidenceChainPath(
         path_id="path2",
         hops=[make_hop("herb", "h2", "herb", "h1")],
-        total_confidence=0.85, min_evidence_level=3,
+        total_confidence=0.85,
+        min_evidence_level=3,
     )
     conflicts = await ConflictDetector.detect(db_session, [path1, path2])
     assert any(c.conflict_type == "topological_reverse" for c in conflicts)
@@ -2680,7 +2955,8 @@ async def test_herb_incompatibility_detected(db_session):
             make_hop("prescription", "rx1", "herb", "h1", citation="甘草"),
             make_hop("prescription", "rx1", "herb", "h2", citation="甘遂"),
         ],
-        total_confidence=0.72, min_evidence_level=2,
+        total_confidence=0.72,
+        min_evidence_level=2,
     )
     conflicts = await ConflictDetector.detect(db_session, [path])
     assert any(c.conflict_type == "tcm_herb_incompatibility" for c in conflicts)
@@ -2691,6 +2967,7 @@ async def test_herb_incompatibility_detected(db_session):
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_conflict_detector.py -v
 ```
+
 Expected: 3 tests PASS
 
 - [ ] **Step 4: Commit**
@@ -2705,9 +2982,11 @@ git commit -m "feat: ConflictDetector — topological + TCM semantic conflict de
 ### Task 14: PaperService — 8 模块论文组装
 
 **Files:**
+
 - Create: `apps/backend/app/services/paper_service.py`
 
 **Interfaces:**
+
 - Consumes: `GraphService.multi_hop_query`, TEI enricher functions, `ConflictDetector.detect`
 - Produces: `PaperService.generate_paper(query) -> dict`（含 8 模块 JSON + Markdown）
 
@@ -2764,9 +3043,12 @@ class PaperService:
         """
         # Phase 1: Evidence collection
         paths = await self.graph_svc.multi_hop_query(
-            source_type=source_type, source_id=source_id,
-            target_type=target_type, target_id=target_id,
-            min_evidence_level=min_evidence_level, max_hops=max_hops,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            min_evidence_level=min_evidence_level,
+            max_hops=max_hops,
             relation_types=relation_types,
         )
 
@@ -2775,8 +3057,12 @@ class PaperService:
         all_passage_ids: set[str] = set()
         for path in paths:
             for hop in path.hops:
-                all_version_ids.add(hop.source_id if hop.source_type == "version" else "")
-                all_version_ids.add(hop.target_id if hop.target_type == "version" else "")
+                all_version_ids.add(
+                    hop.source_id if hop.source_type == "version" else ""
+                )
+                all_version_ids.add(
+                    hop.target_id if hop.target_type == "version" else ""
+                )
 
         all_version_ids.discard("")
 
@@ -2795,11 +3081,16 @@ class PaperService:
 
         # Phase 4: Assemble 8 modules
         modules = self._assemble_modules(
-            source_type=source_type, source_id=source_id,
-            target_type=target_type, target_id=target_id,
-            paths=paths, version_ids=all_version_ids,
-            conflicts=conflicts, min_evidence_level=min_evidence_level,
-            max_hops=max_hops, relation_types=relation_types,
+            source_type=source_type,
+            source_id=source_id,
+            target_type=target_type,
+            target_id=target_id,
+            paths=paths,
+            version_ids=all_version_ids,
+            conflicts=conflicts,
+            min_evidence_level=min_evidence_level,
+            max_hops=max_hops,
+            relation_types=relation_types,
         )
 
         # Phase 5: Generate output
@@ -2813,10 +3104,14 @@ class PaperService:
             "relation_types": relation_types,
             "modules": modules,
         }
-        paper_json = json.dumps(paper_data, ensure_ascii=False, sort_keys=True, default=str)
+        paper_json = json.dumps(
+            paper_data, ensure_ascii=False, sort_keys=True, default=str
+        )
         paper_id = hashlib.sha256(paper_json.encode()).hexdigest()
 
-        markdown = self._render_markdown(modules, source_type, source_id, target_type, target_id)
+        markdown = self._render_markdown(
+            modules, source_type, source_id, target_type, target_id
+        )
 
         return {
             "paper_id": paper_id,
@@ -2832,8 +3127,16 @@ class PaperService:
         }
 
     def _assemble_modules(
-        self, source_type, source_id, target_type, target_id,
-        paths, version_ids, conflicts, min_evidence_level, max_hops,
+        self,
+        source_type,
+        source_id,
+        target_type,
+        target_id,
+        paths,
+        version_ids,
+        conflicts,
+        min_evidence_level,
+        max_hops,
         relation_types,
     ) -> dict:
         """Assemble 8 paper modules from evidence data."""
@@ -2869,18 +3172,24 @@ class PaperService:
         # Module 4: Evidence chains
         evidence_chains = []
         for path in paths:
-            chain = {"path_id": path.path_id, "hops": [], "total_confidence": path.total_confidence}
+            chain = {
+                "path_id": path.path_id,
+                "hops": [],
+                "total_confidence": path.total_confidence,
+            }
             for hop in path.hops:
-                chain["hops"].append({
-                    "source": f"{hop.source_type}:{hop.source_id}",
-                    "target": f"{hop.target_type}:{hop.target_id}",
-                    "relation": hop.relation_type,
-                    "evidence_level": hop.evidence_level,
-                    "confidence_score": hop.confidence_score,
-                    "citation": hop.citation,
-                    "exact_quote": hop.exact_quote,
-                    "source_uri": hop.source_uri,
-                })
+                chain["hops"].append(
+                    {
+                        "source": f"{hop.source_type}:{hop.source_id}",
+                        "target": f"{hop.target_type}:{hop.target_id}",
+                        "relation": hop.relation_type,
+                        "evidence_level": hop.evidence_level,
+                        "confidence_score": hop.confidence_score,
+                        "citation": hop.citation,
+                        "exact_quote": hop.exact_quote,
+                        "source_uri": hop.source_uri,
+                    }
+                )
             evidence_chains.append(chain)
 
         # Module 5: Variant appendix (placeholder — filled by TEI enricher)
@@ -2905,8 +3214,10 @@ class PaperService:
         # Module 8: Methodology
         methodology = {
             "query_parameters": {
-                "source_type": source_type, "source_id": source_id,
-                "target_type": target_type, "target_id": target_id,
+                "source_type": source_type,
+                "source_id": source_id,
+                "target_type": target_type,
+                "target_id": target_id,
                 "min_evidence_level": min_evidence_level,
                 "max_hops": max_hops,
                 "relation_types": relation_types,
@@ -2949,8 +3260,12 @@ class PaperService:
         # Abstract
         a = modules["abstract"]
         lines.append("## 摘要")
-        lines.append(f"共发现 **{a['path_count']}** 条证据路径，涉及 **{a['version_count']}** 个文献版本。")
-        lines.append(f"最高证据等级 **L{a['max_evidence_level']}**，平均置信度 **{a['avg_confidence']:.4f}**。")
+        lines.append(
+            f"共发现 **{a['path_count']}** 条证据路径，涉及 **{a['version_count']}** 个文献版本。"
+        )
+        lines.append(
+            f"最高证据等级 **L{a['max_evidence_level']}**，平均置信度 **{a['avg_confidence']:.4f}**。"
+        )
         lines.append("")
 
         # Literature Basis
@@ -2964,8 +3279,12 @@ class PaperService:
         for i, chain in enumerate(modules.get("evidence_chains", []), 1):
             lines.append(f"### 路径 {i} (置信度: {chain['total_confidence']:.4f})")
             for j, hop in enumerate(chain["hops"], 1):
-                lines.append(f"**跳步 {j}**: {hop['source']} --[{hop['relation']}]--> {hop['target']}")
-                lines.append(f"- 证据等级: L{hop['evidence_level']} (置信度: {hop['confidence_score']})")
+                lines.append(
+                    f"**跳步 {j}**: {hop['source']} --[{hop['relation']}]--> {hop['target']}"
+                )
+                lines.append(
+                    f"- 证据等级: L{hop['evidence_level']} (置信度: {hop['confidence_score']})"
+                )
                 lines.append(f"- 引用: {hop['citation']}")
                 if hop["exact_quote"]:
                     lines.append(f"- 原文: 「{hop['exact_quote']}」")
@@ -2976,7 +3295,9 @@ class PaperService:
 
         # Variant Appendix
         lines.append("## 异文附录")
-        lines.append("（无 L4 级别异文证据）" if not modules.get("variant_appendix") else "")
+        lines.append(
+            "（无 L4 级别异文证据）" if not modules.get("variant_appendix") else ""
+        )
         lines.append("")
 
         # Literature Review
@@ -2988,7 +3309,9 @@ class PaperService:
         lines.append("## 讨论与冲突检测")
         discussion = modules.get("discussion", {})
         for c in discussion.get("conflicts", []):
-            lines.append(f"- **[{c['type']}]** {c['description']} (严重度: {c['severity']})")
+            lines.append(
+                f"- **[{c['type']}]** {c['description']} (严重度: {c['severity']})"
+            )
         if not discussion.get("conflicts"):
             lines.append("未检测到证据冲突。")
         lines.append("")
@@ -3000,7 +3323,9 @@ class PaperService:
         lines.append(f"- 最低证据等级: L{m['query_parameters']['min_evidence_level']}")
         lines.append(f"- 最大跳数: {m['query_parameters']['max_hops']}")
         dist = m.get("evidence_level_distribution", {})
-        lines.append(f"- 证据等级分布: L2={dist.get('L2', 0)}, L3={dist.get('L3', 0)}, L4={dist.get('L4', 0)}")
+        lines.append(
+            f"- 证据等级分布: L2={dist.get('L2', 0)}, L3={dist.get('L3', 0)}, L4={dist.get('L4', 0)}"
+        )
         lines.append("")
 
         return "\n".join(lines)
@@ -3024,11 +3349,13 @@ git commit -m "feat: PaperService — 8-module structured academic paper assembl
 ### Task 15: Paper API endpoints + 集成测试
 
 **Files:**
+
 - Create: `apps/backend/app/api/v2/paper.py`
 - Modify: `apps/backend/app/api/v2/__init__.py`
 - Create: `tests/unit/test_paper_service.py`
 
 **Interfaces:**
+
 - Consumes: PaperService
 - Produces: `POST /api/v2/paper/generate`, `GET /api/v2/paper/{sha256}`, `GET /api/v2/paper/{sha256}/markdown`
 
@@ -3117,7 +3444,10 @@ async def get_paper(
     """Retrieve a previously generated paper by its SHA-256 ID."""
     paper = _paper_cache.get(paper_id)
     if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found. Generate it first via POST /generate.")
+        raise HTTPException(
+            status_code=404,
+            detail="Paper not found. Generate it first via POST /generate.",
+        )
     return PaperEnvelope(success=True, data=paper, message="ok")
 
 
@@ -3132,7 +3462,10 @@ async def get_paper_markdown(
     """Download a generated paper as Markdown."""
     paper = _paper_cache.get(paper_id)
     if not paper:
-        raise HTTPException(status_code=404, detail="Paper not found. Generate it first via POST /generate.")
+        raise HTTPException(
+            status_code=404,
+            detail="Paper not found. Generate it first via POST /generate.",
+        )
     return PaperEnvelope(
         success=True,
         data={"paper_id": paper_id, "markdown": paper.get("markdown", "")},
@@ -3140,7 +3473,7 @@ async def get_paper_markdown(
     )
 ```
 
-- [ ] **Step 2: 更新 v2 __init__.py**
+- [ ] **Step 2: 更新 v2 **init**.py**
 
 ```python
 from app.api.v2.academic import router as academic_router
@@ -3175,8 +3508,10 @@ async def test_generate_paper_empty_graph(db_session):
     """Paper generation with no academic edges should return empty chains."""
     svc = PaperService(db_session)
     paper = await svc.generate_paper(
-        source_type="person", source_id="nonexistent",
-        target_type="book", target_id="nonexistent",
+        source_type="person",
+        source_id="nonexistent",
+        target_type="book",
+        target_id="nonexistent",
     )
     assert paper["paper_id"] is not None
     assert len(paper["paper_id"]) == 64  # SHA-256 hex
@@ -3193,7 +3528,8 @@ async def test_generate_paper_produces_markdown(db_session):
     """Paper generation should produce well-formed Markdown."""
     svc = PaperService(db_session)
     paper = await svc.generate_paper(
-        source_type="person", source_id="p1",
+        source_type="person",
+        source_id="p1",
     )
     md = paper["markdown"]
     assert md.startswith("# ")
@@ -3209,12 +3545,16 @@ async def test_generate_paper_deterministic(db_session):
     svc1 = PaperService(db_session)
     svc2 = PaperService(db_session)
     paper1 = await svc1.generate_paper(
-        source_type="person", source_id="p1",
-        target_type="book", target_id="b1",
+        source_type="person",
+        source_id="p1",
+        target_type="book",
+        target_id="b1",
     )
     paper2 = await svc2.generate_paper(
-        source_type="person", source_id="p1",
-        target_type="book", target_id="b1",
+        source_type="person",
+        source_id="p1",
+        target_type="book",
+        target_id="b1",
     )
     assert paper1["paper_id"] == paper2["paper_id"]
 ```
@@ -3224,6 +3564,7 @@ async def test_generate_paper_deterministic(db_session):
 ```bash
 cd /Users/likeming/Sites/hfb && python -m pytest tests/unit/test_paper_service.py -v
 ```
+
 Expected: 3 tests PASS
 
 - [ ] **Step 5: 运行 lint + 完整测试套件**

@@ -7,6 +7,7 @@ Endpoints:
   POST /api/v1/search/ingest  — Ingest a plain-text document
   POST /api/v1/search/documents/{document_id}/append-passage — Append passage to document
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -37,7 +38,6 @@ _append_passage_guard = require_permission("document", "update")
 # Search/ingest use no required permission to allow integration
 # testing; user-level auth is applied through the frontend gateway
 # and will be wired via require_permission("search", "read") later.
-
 
 
 @router.post("", response_model=SearchResponse)
@@ -202,6 +202,7 @@ async def append_passage(
 
         from app.models.workspace import ResearchSession
         from app.repositories.document import DocumentRepository
+
         doc = await DocumentRepository(session).get_by_id(document_id)
         if doc is None or doc.is_deleted:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -237,4 +238,5 @@ async def append_passage(
         )
     except (ValueError, IngestionError) as e:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=400, detail=str(e))

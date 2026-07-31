@@ -23,16 +23,16 @@
 
 ## 验收矩阵
 
-| 验收项 | 结论 | 证据 |
-|---|---:|---|
-| 是否真的只采集元数据 | PASS | `LiteratureItem` 只定义 title、source_url、source、authors、year、abstract、keywords、doi、journal、is_open_access、language；`_save_items()` 只写入 `Paper` 的元数据字段，未写 `Paper.full_text`。 |
-| 是否没有下载 PDF | PASS | OpenAlex、Crossref、CORE、PubMed/Europe PMC、Internet Archive 客户端只调用搜索/元数据 API；专项测试扫描客户端源码，禁止 `.pdf`、`fulltext`、`full_text`、`full text`、`download.pdf` 请求痕迹。 |
-| 是否没有绕过登录 | PASS | 未发现 cookie、账号密码登录、付费墙绕过、模拟登录逻辑。CORE 仅在存在 `CORE_API_KEY` 时使用官方 `Authorization: Bearer` API key。 |
-| 是否每条记录有 `source_url` | PASS | `LiteratureItem.__post_init__()` 拒绝空 title/source/source_url，并要求 `source_url` 以 `http://` 或 `https://` 开头；客户端统一通过 `try_create()` 丢弃非法记录；`_save_items()` 保存前再次拒绝空 `source_url`。 |
-| 是否去重可靠 | PASS | `dedup_key()` 对 DOI 做小写规范化；无 DOI 记录使用规范化标题和年份。`filter_new_items()` 对 DB 现有无 DOI 记录执行规范化 title/year 比较；`_save_items()` 保存阶段也对无 DOI 记录二次检查，避免绕过过滤后重复入库。 |
-| 是否失败状态正确 | PASS | `IngestionJob.finish()` 仅在 `error_count == 0` 时 `success=True`；未知 source、页面错误、保存异常、flush 失败都会增加 `error_count` 并记录 `errors`。 |
-| 是否有测试覆盖 | PASS | 采集器专项测试增至 43 个，覆盖 source_url 非空/URL 校验、CORE work URL、无全文字段、无 PDF/fulltext 请求痕迹、大小写/空白去重、保存阶段去重、flush 失败状态。 |
-| 是否全量测试通过 | PASS | 必须命令 `cd backend && uv run pytest` 通过；仓库根 `uv run pytest` 也通过。 |
+| 验收项                      | 结论 | 证据                                                                                                                                                                                                                |
+| --------------------------- | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 是否真的只采集元数据        | PASS | `LiteratureItem` 只定义 title、source_url、source、authors、year、abstract、keywords、doi、journal、is_open_access、language；`_save_items()` 只写入 `Paper` 的元数据字段，未写 `Paper.full_text`。                 |
+| 是否没有下载 PDF            | PASS | OpenAlex、Crossref、CORE、PubMed/Europe PMC、Internet Archive 客户端只调用搜索/元数据 API；专项测试扫描客户端源码，禁止 `.pdf`、`fulltext`、`full_text`、`full text`、`download.pdf` 请求痕迹。                     |
+| 是否没有绕过登录            | PASS | 未发现 cookie、账号密码登录、付费墙绕过、模拟登录逻辑。CORE 仅在存在 `CORE_API_KEY` 时使用官方 `Authorization: Bearer` API key。                                                                                    |
+| 是否每条记录有 `source_url` | PASS | `LiteratureItem.__post_init__()` 拒绝空 title/source/source_url，并要求 `source_url` 以 `http://` 或 `https://` 开头；客户端统一通过 `try_create()` 丢弃非法记录；`_save_items()` 保存前再次拒绝空 `source_url`。   |
+| 是否去重可靠                | PASS | `dedup_key()` 对 DOI 做小写规范化；无 DOI 记录使用规范化标题和年份。`filter_new_items()` 对 DB 现有无 DOI 记录执行规范化 title/year 比较；`_save_items()` 保存阶段也对无 DOI 记录二次检查，避免绕过过滤后重复入库。 |
+| 是否失败状态正确            | PASS | `IngestionJob.finish()` 仅在 `error_count == 0` 时 `success=True`；未知 source、页面错误、保存异常、flush 失败都会增加 `error_count` 并记录 `errors`。                                                              |
+| 是否有测试覆盖              | PASS | 采集器专项测试增至 43 个，覆盖 source_url 非空/URL 校验、CORE work URL、无全文字段、无 PDF/fulltext 请求痕迹、大小写/空白去重、保存阶段去重、flush 失败状态。                                                       |
+| 是否全量测试通过            | PASS | 必须命令 `cd backend && uv run pytest` 通过；仓库根 `uv run pytest` 也通过。                                                                                                                                        |
 
 ## 关键源码证据
 

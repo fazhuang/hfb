@@ -51,23 +51,26 @@ import { computed, ref, useId, useSlots } from 'vue';
 
 const slots = useSlots();
 
-const props = withDefaults(defineProps<{
-  modelValue: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'url' | 'search';
-  label?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  readonly?: boolean;
-  error?: string;
-  hint?: string;
-  required?: boolean;
-  size?: 'sm' | 'md' | 'lg';
-  clearable?: boolean;
-}>(), {
-  type: 'text',
-  size: 'md',
-  clearable: false,
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    type?: 'text' | 'email' | 'password' | 'number' | 'url' | 'search';
+    label?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    readonly?: boolean;
+    error?: string;
+    hint?: string;
+    required?: boolean;
+    size?: 'sm' | 'md' | 'lg';
+    clearable?: boolean;
+  }>(),
+  {
+    type: 'text',
+    size: 'md',
+    clearable: false,
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -89,17 +92,25 @@ const describedBy = computed(() => {
   return ids.join(' ') || undefined;
 });
 
-const inputContainerClass = computed(() => [
-  'hfb-input__container',
-  slots?.prefix ? 'hfb-input__container--with-prefix' : '',
-  slots?.suffix ? 'hfb-input__container--with-suffix' : '',
-].filter(Boolean).join(' '));
+const inputContainerClass = computed(() =>
+  [
+    'hfb-input__container',
+    slots?.prefix ? 'hfb-input__container--with-prefix' : '',
+    slots?.suffix ? 'hfb-input__container--with-suffix' : '',
+  ]
+    .filter(Boolean)
+    .join(' '),
+);
 
-const inputClass = computed(() => [
-  'hfb-input__field',
-  props.size !== 'md' ? `hfb-input__field--${props.size}` : '',
-  props.error ? 'hfb-input__field--error' : '',
-].filter(Boolean).join(' '));
+const inputClass = computed(() =>
+  [
+    'hfb-input__field',
+    props.size !== 'md' ? `hfb-input__field--${props.size}` : '',
+    props.error ? 'hfb-input__field--error' : '',
+  ]
+    .filter(Boolean)
+    .join(' '),
+);
 
 function onInput(event: Event) {
   const target = event.target as HTMLInputElement;

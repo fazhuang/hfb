@@ -7,6 +7,7 @@ Covers:
   - Commercial/metadata-only docs excluded
   - No LLM hallucination path — answer is deterministic
 """
+
 from __future__ import annotations
 
 import pytest
@@ -102,9 +103,9 @@ class TestNoUnsupportedClaims:
         if not resp.refusal:
             # If we got results, they must be about 张仲景, not 相对论
             for e in resp.evidence:
-                assert "张仲景" in e.content or "伤寒" in e.content or "六经" in e.content, (
-                    f"Evidence should only match supported claims, got: {e.content[:50]}"
-                )
+                assert (
+                    "张仲景" in e.content or "伤寒" in e.content or "六经" in e.content
+                ), f"Evidence should only match supported claims, got: {e.content[:50]}"
                 assert "相对论" not in e.content, (
                     "Unsupported claim should not appear in evidence"
                 )
@@ -118,7 +119,11 @@ class TestNoUnsupportedClaims:
 
         assert resp.refusal is False
         # Deterministic answer markers
-        assert "证据" in resp.answer or "citation" in resp.answer.lower() or "条" in resp.answer
+        assert (
+            "证据" in resp.answer
+            or "citation" in resp.answer.lower()
+            or "条" in resp.answer
+        )
         # Should cite source
         assert "《" in resp.answer or "citation" in resp.answer.lower()
 

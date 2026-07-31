@@ -3,6 +3,7 @@ Tests for repository layer using in-memory SQLite.
 
 Requires: pytest-asyncio, aiosqlite
 """
+
 import pytest
 from app.repositories.document import DocumentRepository
 from app.repositories.person import PersonRepository
@@ -15,6 +16,7 @@ from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
 def _id() -> str:
     """Generate a fixed test UUID."""
     import uuid
+
     return str(uuid.uuid4())
 
 

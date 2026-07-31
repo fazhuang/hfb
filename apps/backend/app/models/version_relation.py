@@ -4,6 +4,7 @@ VersionRelation and PassageMapping models.
 VersionRelation — models the lineage between versions (derived_from, revised_from, etc.)
 PassageMapping — links equivalent passages across different versions.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -103,7 +104,11 @@ class PassageMapping(BaseModel):
         Text, nullable=True, comment="映射说明"
     )
     is_verified: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False, comment="是否已校核"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="是否已校核",
     )
 
     # Relationships

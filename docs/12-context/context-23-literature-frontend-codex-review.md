@@ -11,16 +11,16 @@
 
 ## 本轮复验摘要
 
-| 验收项 | 结果 | 证据 |
-| --- | --- | --- |
-| 是否有清晰入口 | PASS | `AppNavbar.vue:81-106` 保留 `/literature`，并按能力显示 `/admin/literature-review`、`/admin/ingestion-tasks`、`/admin/source-policy`；`router/index.ts:97-135` 声明对应路由。 |
+| 验收项                               | 结果 | 证据                                                                                                                                                                                                                                               |
+| ------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 是否有清晰入口                       | PASS | `AppNavbar.vue:81-106` 保留 `/literature`，并按能力显示 `/admin/literature-review`、`/admin/ingestion-tasks`、`/admin/source-policy`；`router/index.ts:97-135` 声明对应路由。                                                                      |
 | 是否区分普通用户、管理员、超级管理员 | PASS | `auth.ts:67-87` 明确拆分 `isSuperAdmin`、`isAdminRole`、`canReviewDocuments`、`canManageSourcePolicies`；`router/index.ts:158-172` 分别检查 `requiresAdmin` 与 `requiresSuperAdmin`；`AppNavbar.vue:95-105` 按审核权限和来源策略权限分别显示菜单。 |
-| 是否显示版权状态 | PASS | `LiteratureListView.vue:93-101` 列表展示版权列；`LiteratureDetailView.vue:17-40` 合规面板展示版权状态、许可类型、授权依据、审核状态、RAG 状态。 |
-| 是否显示来源链接 | PASS | `LiteratureDetailView.vue:70-74` 渲染 `source_url` 为“查看来源”外链，并已加 `rel="noopener noreferrer"`。 |
-| 是否能审核全文 | PASS | `LiteratureReviewQueue.vue:1-26` 提供全文审核队列并跳转详情；`LiteratureDetailView.vue:86-99` 仅在 `auth.canReviewDocuments` 时显示审核操作；`LiteratureDetailView.vue:208-223` 调用 `PATCH /api/v1/documents/{id}/review`。 |
-| 是否能撤回全文 | PASS | `LiteratureDetailView.vue:111-119` 仅在审核权限下显示撤回原因和确认撤回；`LiteratureDetailView.vue:242-258` 调用 `POST /api/v1/documents/{id}/withdraw` 并更新撤回状态。 |
-| 是否构建通过 | PASS | `pnpm --filter @hfb/frontend run build` 成功，Vite 输出 `✓ built in 6.04s`。 |
-| 是否测试通过 | PASS | `pnpm --filter @hfb/frontend run test` 成功，`4 passed (4)` test files，`26 passed (26)` tests。 |
+| 是否显示版权状态                     | PASS | `LiteratureListView.vue:93-101` 列表展示版权列；`LiteratureDetailView.vue:17-40` 合规面板展示版权状态、许可类型、授权依据、审核状态、RAG 状态。                                                                                                    |
+| 是否显示来源链接                     | PASS | `LiteratureDetailView.vue:70-74` 渲染 `source_url` 为“查看来源”外链，并已加 `rel="noopener noreferrer"`。                                                                                                                                          |
+| 是否能审核全文                       | PASS | `LiteratureReviewQueue.vue:1-26` 提供全文审核队列并跳转详情；`LiteratureDetailView.vue:86-99` 仅在 `auth.canReviewDocuments` 时显示审核操作；`LiteratureDetailView.vue:208-223` 调用 `PATCH /api/v1/documents/{id}/review`。                       |
+| 是否能撤回全文                       | PASS | `LiteratureDetailView.vue:111-119` 仅在审核权限下显示撤回原因和确认撤回；`LiteratureDetailView.vue:242-258` 调用 `POST /api/v1/documents/{id}/withdraw` 并更新撤回状态。                                                                           |
+| 是否构建通过                         | PASS | `pnpm --filter @hfb/frontend run build` 成功，Vite 输出 `✓ built in 6.04s`。                                                                                                                                                                       |
+| 是否测试通过                         | PASS | `pnpm --filter @hfb/frontend run test` 成功，`4 passed (4)` test files，`26 passed (26)` tests。                                                                                                                                                   |
 
 ## 阻塞项复验
 

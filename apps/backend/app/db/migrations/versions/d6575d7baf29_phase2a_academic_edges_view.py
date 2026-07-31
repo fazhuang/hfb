@@ -8,13 +8,14 @@ Revision ID: d6575d7baf29
 Revises: 452a2a7b5068
 Create Date: 2026-07-05 15:22:36.033217
 """
+
 from collections.abc import Sequence
 
 from alembic import op
 
 # revision identifiers
-revision: str = 'd6575d7baf29'
-down_revision: str | None = '452a2a7b5068'
+revision: str = "d6575d7baf29"
+down_revision: str | None = "452a2a7b5068"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

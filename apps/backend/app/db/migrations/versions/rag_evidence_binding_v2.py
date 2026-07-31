@@ -4,6 +4,7 @@ Revision ID: rag_evidence_binding_v2
 Revises: rag_evidence_binding_v1
 Create Date: 2026-07-14
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa

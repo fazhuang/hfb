@@ -66,9 +66,7 @@
 
         <!-- Entity Detail -->
         <div v-if="activeNode" class="entity-detail">
-          <h3 class="detail-title">
-            {{ getIcon(activeNode.entity_type) }} {{ activeNode.label }}
-          </h3>
+          <h3 class="detail-title">{{ getIcon(activeNode.entity_type) }} {{ activeNode.label }}</h3>
           <span class="detail-type">{{ activeNode.entity_type }}</span>
 
           <dl v-if="propertyEntries.length > 0" class="detail-props">
@@ -204,11 +202,7 @@ async function onSearch() {
   searchResults.value = [];
   const reqId = ++searchReqId;
   try {
-    const results = await searchEntities(
-      searchQuery.value,
-      selectedTypes.value,
-      20,
-    );
+    const results = await searchEntities(searchQuery.value, selectedTypes.value, 20);
     if (reqId === searchReqId) {
       searchResults.value = results;
     }
@@ -252,9 +246,7 @@ async function loadNeighborhood(node: GraphNodeData) {
     }
   } catch (e: unknown) {
     graphError.value =
-      (e as any)?.response?.data?.message ??
-      (e as Error).message ??
-      t('common.error');
+      (e as any)?.response?.data?.message ?? (e as Error).message ?? t('common.error');
   } finally {
     graphLoading.value = false;
   }
@@ -272,9 +264,7 @@ async function loadSubgraph(node: GraphNodeData) {
     }
   } catch (e: unknown) {
     graphError.value =
-      (e as any)?.response?.data?.message ??
-      (e as Error).message ??
-      t('common.error');
+      (e as any)?.response?.data?.message ?? (e as Error).message ?? t('common.error');
   } finally {
     graphLoading.value = false;
   }
@@ -307,9 +297,7 @@ const propertyEntries = computed(() => {
   if (!activeNode.value) return [];
   const p = activeNode.value.properties;
   if (!p) return [];
-  return Object.entries(p).filter(
-    ([, v]) => v !== null && v !== undefined && String(v).length > 0,
-  );
+  return Object.entries(p).filter(([, v]) => v !== null && v !== undefined && String(v).length > 0);
 });
 
 /** Only render source_uri as a clickable link when it uses https. */

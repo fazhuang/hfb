@@ -1,10 +1,5 @@
 <template>
-  <div
-    v-if="open"
-    class="dpd-backdrop"
-    @click.self="onCancel"
-    @keydown="onKeyDown"
-  >
+  <div v-if="open" class="dpd-backdrop" @click.self="onCancel" @keydown="onKeyDown">
     <div
       class="dpd-dialog"
       role="alertdialog"
@@ -17,15 +12,11 @@
       </div>
 
       <p id="dpd-message" class="dpd-message">
-        确定要删除课题「<strong>{{ projectTitle }}</strong>」吗？此操作不可撤销。
+        确定要删除课题「<strong>{{ projectTitle }}</strong
+        >」吗？此操作不可撤销。
       </p>
 
-      <div
-        v-if="errorMessage"
-        class="dpd-error"
-        role="alert"
-        aria-live="assertive"
-      >
+      <div v-if="errorMessage" class="dpd-error" role="alert" aria-live="assertive">
         {{ errorMessage }}
       </div>
 
@@ -101,10 +92,7 @@ async function onConfirm() {
     emit('deleted');
     emit('update:open', false);
   } catch (e: unknown) {
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '删除失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '删除失败';
     errorMessage.value = msg;
   } finally {
     submitting.value = false;
@@ -151,7 +139,7 @@ function onKeyDown(e: KeyboardEvent) {
 .dpd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-dropdown)00;
+  z-index: var(--z-dropdown) 00;
   display: flex;
   align-items: center;
   justify-content: center;

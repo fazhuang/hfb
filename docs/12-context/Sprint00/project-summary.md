@@ -1,12 +1,12 @@
 ---
-title: "Sprint 00 Context Package"
-version: "1.0"
-status: "Active"
-sprint: "Sprint 00"
-theme: "文档奠基"
-dates: "2026-06-24 → 2026-06-28"
-owner: "Chief Documentation Architect"
-ai_models: ["Claude", "Codex", "Gemini"]
+title: 'Sprint 00 Context Package'
+version: '1.0'
+status: 'Active'
+sprint: 'Sprint 00'
+theme: '文档奠基'
+dates: '2026-06-24 → 2026-06-28'
+owner: 'Chief Documentation Architect'
+ai_models: ['Claude', 'Codex', 'Gemini']
 ---
 
 # Sprint 00 — Context Package
@@ -20,12 +20,14 @@ AI 进入 Sprint 00 的完整上下文。读取本文件即理解项目全貌。
 **阶段：** 文档奠基。零代码。
 
 **已完成：**
+
 - V1 文档体系（22 份 Markdown）
 - Mermaid 架构图 + ER 图
 - Prompt 工程指令（3 份）
 - 模板体系（12 份）
 
 **升级中：**
+
 - AI Native Documentation Repository 升级
 - ADR 体系建立
 - Context Package 建立
@@ -33,17 +35,17 @@ AI 进入 Sprint 00 的完整上下文。读取本文件即理解项目全貌。
 
 ## 2. 技术栈
 
-| 层 | 选型 |
-|---|---|
-| 后端 | Python 3.12 + FastAPI |
-| 前端 | Vue 3 + TypeScript + Vite |
-| 主数据库 | PostgreSQL 16 + pgvector |
-| 图数据库 | Neo4j 5 Community |
-| 搜索引擎 | Elasticsearch 8 + IK |
+| 层         | 选型                        |
+| ---------- | --------------------------- |
+| 后端       | Python 3.12 + FastAPI       |
+| 前端       | Vue 3 + TypeScript + Vite   |
+| 主数据库   | PostgreSQL 16 + pgvector    |
+| 图数据库   | Neo4j 5 Community           |
+| 搜索引擎   | Elasticsearch 8 + IK        |
 | 向量数据库 | pgvector (V1) → Milvus (V2) |
-| LLM | Claude / GPT / Qwen |
-| 部署 | Docker Compose |
-| 代码组织 | Monorepo |
+| LLM        | Claude / GPT / Qwen         |
+| 部署       | Docker Compose              |
+| 代码组织   | Monorepo                    |
 
 ## 3. 架构总览
 

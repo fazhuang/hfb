@@ -38,24 +38,27 @@
 <script setup lang="ts">
 import { computed, ref, useId, nextTick } from 'vue';
 
-const props = withDefaults(defineProps<{
-  modelValue: string;
-  label?: string;
-  placeholder?: string;
-  disabled?: boolean;
-  readonly?: boolean;
-  error?: string;
-  hint?: string;
-  required?: boolean;
-  rows?: number;
-  maxlength?: number;
-  showCount?: boolean;
-  autoResize?: boolean;
-}>(), {
-  rows: 4,
-  autoResize: false,
-  showCount: false,
-});
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    label?: string;
+    placeholder?: string;
+    disabled?: boolean;
+    readonly?: boolean;
+    error?: string;
+    hint?: string;
+    required?: boolean;
+    rows?: number;
+    maxlength?: number;
+    showCount?: boolean;
+    autoResize?: boolean;
+  }>(),
+  {
+    rows: 4,
+    autoResize: false,
+    showCount: false,
+  },
+);
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -76,11 +79,11 @@ const describedBy = computed(() => {
   return ids.join(' ') || undefined;
 });
 
-const textareaClass = computed(() => [
-  'hfb-input__field',
-  'hfb-textarea__field',
-  props.error ? 'hfb-input__field--error' : '',
-].filter(Boolean).join(' '));
+const textareaClass = computed(() =>
+  ['hfb-input__field', 'hfb-textarea__field', props.error ? 'hfb-input__field--error' : '']
+    .filter(Boolean)
+    .join(' '),
+);
 
 const autoResizeStyle = computed(() => ({
   resize: 'none' as const,

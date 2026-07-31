@@ -52,7 +52,11 @@ async def search(
             source_url=source_url,
             authors=_join_creators(d.get("creator")),
             year=int(d.get("year", 0)) if d.get("year") else None,
-            abstract=" ".join(d.get("description", []) if isinstance(d.get("description"), list) else [d.get("description", "") or ""])[:1000],
+            abstract=" ".join(
+                d.get("description", [])
+                if isinstance(d.get("description"), list)
+                else [d.get("description", "") or ""]
+            )[:1000],
             keywords=", ".join(d.get("subject", []) or []),
             doi=doi,
             journal="",
@@ -87,7 +91,9 @@ def _extract_doi(doc: dict) -> str:
 def _is_ia_oa(doc: dict) -> bool:
     """Internet Archive texts are generally public domain or open access."""
     license_url = (doc.get("licenseurl", "") or "").lower()
-    if any(t in license_url for t in ("creativecommons", "publicdomain", "cc0", "cc-by")):
+    if any(
+        t in license_url for t in ("creativecommons", "publicdomain", "cc0", "cc-by")
+    ):
         return True
     return True  # ponytail: IA texts are by nature open-access
 

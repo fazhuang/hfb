@@ -56,13 +56,16 @@ async def main():
         # ========================================
         print("\n--- 1. SourceRef Integrity ---")
         r = await session.execute(
-            text("SELECT id, title, author, url FROM source_refs WHERE is_deleted=false")
+            text(
+                "SELECT id, title, author, url FROM source_refs WHERE is_deleted=false"
+            )
         )
         refs = r.fetchall()
         check("1a. source_refs non-empty", len(refs) > 0, f"count={len(refs)}")
 
         real_refs = [
-            row for row in refs
+            row
+            for row in refs
             if row[3] and row[3].startswith("https://") and "document:" not in row[3]
         ]
         check(
@@ -91,16 +94,32 @@ async def main():
         if pdf_docs:
             pdf_doc_id, _title, blob, checksum, source_url, cs, ab = pdf_docs[0]
             has_checksum = bool(checksum)
-            check("2b. Document has content_checksum", has_checksum, checksum[:16] if has_checksum else "missing")
+            check(
+                "2b. Document has content_checksum",
+                has_checksum,
+                checksum[:16] if has_checksum else "missing",
+            )
 
             has_source = bool(source_url) and source_url.startswith("https://")
-            check("2c. Document source_url is real HTTPS URL", has_source, str(source_url)[:100])
+            check(
+                "2c. Document source_url is real HTTPS URL",
+                has_source,
+                str(source_url)[:100],
+            )
 
             blob_size = len(blob) if blob else 0
-            check("2d. raw_pdf_blob size > 1000 bytes", blob_size > 1000, f"size={blob_size}")
+            check(
+                "2d. raw_pdf_blob size > 1000 bytes",
+                blob_size > 1000,
+                f"size={blob_size}",
+            )
 
             check("2e. copyright_status=public_domain", cs == "public_domain", str(cs))
-            check("2f. authorization_basis non-empty", bool(ab), str(ab)[:80] if ab else "empty")
+            check(
+                "2f. authorization_basis non-empty",
+                bool(ab),
+                str(ab)[:80] if ab else "empty",
+            )
 
         # ========================================
         # 3. Page Numbers on Chunks
@@ -114,7 +133,11 @@ async def main():
             )
         )
         total_chunks, paged_chunks = r.fetchone()
-        check("3a. At least 5 chunks have page_number", paged_chunks >= 5, f"{paged_chunks}/{total_chunks}")
+        check(
+            "3a. At least 5 chunks have page_number",
+            paged_chunks >= 5,
+            f"{paged_chunks}/{total_chunks}",
+        )
 
         r = await session.execute(
             text(
@@ -140,7 +163,11 @@ async def main():
             )
         )
         relations = r.fetchall()
-        check("4a. Verified EntityRelations exist", len(relations) > 0, f"count={len(relations)}")
+        check(
+            "4a. Verified EntityRelations exist",
+            len(relations) > 0,
+            f"count={len(relations)}",
+        )
 
         verified_with_real_uri = 0
         verified_with_chunk = 0
@@ -166,8 +193,12 @@ async def main():
         # 5. Five Auditable Facts
         # ========================================
         print("\n--- 5. Five Auditable Facts ---")
-        print(f"     {'Fact':<8} {'RelType':<16} {'Chunk':<14} {'Page':<6} {'Passage':<14} {'Version':<14} {'SourceRef':<14} {'QuoteMatch'}")
-        print(f"     {'-'*8} {'-'*16} {'-'*14} {'-'*6} {'-'*14} {'-'*14} {'-'*14} {'-'*10}")
+        print(
+            f"     {'Fact':<8} {'RelType':<16} {'Chunk':<14} {'Page':<6} {'Passage':<14} {'Version':<14} {'SourceRef':<14} {'QuoteMatch'}"
+        )
+        print(
+            f"     {'-' * 8} {'-' * 16} {'-' * 14} {'-' * 6} {'-' * 14} {'-' * 14} {'-' * 14} {'-' * 10}"
+        )
 
         audit_chain_ok = 0
         fact_num = 0
@@ -343,8 +374,10 @@ async def main():
 
             # Print citations for audit
             for i, c in enumerate(resp.citations[:10]):
-                print(f"     [{i+1}] doc={c.document_id[:12]}... "
-                      f"quote={c.exact_quote[:60]}...")
+                print(
+                    f"     [{i + 1}] doc={c.document_id[:12]}... "
+                    f"quote={c.exact_quote[:60]}..."
+                )
 
             check(
                 "6c. At least 3 distinct citations",
@@ -381,7 +414,9 @@ async def main():
         )
 
         if pdf_doc_id:
-            pdf_results = [r for r in search_resp.results if r.document_id == pdf_doc_id]
+            pdf_results = [
+                r for r in search_resp.results if r.document_id == pdf_doc_id
+            ]
             check(
                 "8b. Retrieval results include PDF document chunks",
                 len(pdf_results) > 0,
@@ -425,10 +460,12 @@ async def main():
         )
         for i, row in enumerate(r.fetchall(), 1):
             cit_id, _quote, _ev_id, ev_level, p_id, _p_text, _v_id, v_name, sr_url = row
-            print(f"  [{i}] citation={cit_id[:12]} → evidence(LEVEL_{ev_level}) → "
-                  f"passage={p_id[:12] if p_id else '?'} → "
-                  f"version={v_name or '?'} → "
-                  f"source_ref_url={sr_url[:60] if sr_url else '?'}")
+            print(
+                f"  [{i}] citation={cit_id[:12]} → evidence(LEVEL_{ev_level}) → "
+                f"passage={p_id[:12] if p_id else '?'} → "
+                f"version={v_name or '?'} → "
+                f"source_ref_url={sr_url[:60] if sr_url else '?'}"
+            )
 
         # ========================================
         # Summary

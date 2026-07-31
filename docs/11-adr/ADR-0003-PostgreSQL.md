@@ -1,16 +1,16 @@
 ---
-title: "ADR-0003 PostgreSQL"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "data"
+title: 'ADR-0003 PostgreSQL'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'data'
 related:
-  - "ADR-0004-Neo4j"
-  - "ADR-0005-Elasticsearch"
-  - "ADR-0007-Milvus"
-  - "docs/03-data/00_Data_Standard.md"
+  - 'ADR-0004-Neo4j'
+  - 'ADR-0005-Elasticsearch'
+  - 'ADR-0007-Milvus'
+  - 'docs/03-data/00_Data_Standard.md'
 ---
 
 # ADR-0003: 选择 PostgreSQL 作为主数据库
@@ -37,12 +37,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| PostgreSQL | ACID、JSONB、pgvector、成熟稳定、文档丰富 | 垂直扩展为主、水平扩展需 Citus | — |
-| MySQL | 简单、查询快 | JSON 支持弱、无向量扩展、中文全文搜索差 | 不满足 JSONB 和向量需求 |
-| MongoDB | Schema-less、灵活 | 无 ACID 事务（文档级）、关系查询弱、无向量扩展 | 核心数据是关系型，文档型不适合 |
-| CockroachDB | 分布式、兼容 PG 协议 | 社区小、运维复杂 | V1 不需要分布式 |
+| 方案        | 优点                                      | 缺点                                           | 放弃原因                       |
+| ----------- | ----------------------------------------- | ---------------------------------------------- | ------------------------------ |
+| PostgreSQL  | ACID、JSONB、pgvector、成熟稳定、文档丰富 | 垂直扩展为主、水平扩展需 Citus                 | —                              |
+| MySQL       | 简单、查询快                              | JSON 支持弱、无向量扩展、中文全文搜索差        | 不满足 JSONB 和向量需求        |
+| MongoDB     | Schema-less、灵活                         | 无 ACID 事务（文档级）、关系查询弱、无向量扩展 | 核心数据是关系型，文档型不适合 |
+| CockroachDB | 分布式、兼容 PG 协议                      | 社区小、运维复杂                               | V1 不需要分布式                |
 
 ## Consequences
 

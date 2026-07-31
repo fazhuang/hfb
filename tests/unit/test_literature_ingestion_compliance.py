@@ -32,6 +32,7 @@ async def db_session():
 # IngestionJob audit compliance
 # ---------------------------------------------------------------------------
 
+
 class TestIngestionJobCompliance:
     def test_every_job_has_started_at(self):
         job = IngestionJob(source="openalex", query="Huangfu Mi")
@@ -82,6 +83,7 @@ class TestIngestionJobCompliance:
 # source_url mandatory compliance
 # ---------------------------------------------------------------------------
 
+
 class TestSourceUrlMandatory:
     def test_literature_item_requires_source_url_in_constructor(self):
         """Every item MUST have source_url set."""
@@ -112,7 +114,9 @@ class TestSourceUrlMandatory:
 
     def test_empty_title_rejected(self):
         with pytest.raises(ValueError, match="title"):
-            LiteratureItem(title="", source="openalex", source_url="https://example.com")
+            LiteratureItem(
+                title="", source="openalex", source_url="https://example.com"
+            )
 
     def test_empty_source_rejected(self):
         with pytest.raises(ValueError, match="source"):
@@ -145,6 +149,7 @@ class TestSourceUrlMandatory:
 # No full-text download compliance
 # ---------------------------------------------------------------------------
 
+
 class TestNoFullTextDownload:
     def test_literature_item_has_no_fulltext_field(self):
         """LiteratureItem must not carry full-text content."""
@@ -169,10 +174,18 @@ class TestNoFullTextDownload:
             pubmed_client,
         )
 
-        for mod in (openalex_client, crossref_client, core_client, pubmed_client, internet_archive_client):
+        for mod in (
+            openalex_client,
+            crossref_client,
+            core_client,
+            pubmed_client,
+            internet_archive_client,
+        ):
             sig = inspect.signature(mod.search)
             return_annotation = sig.return_annotation
-            assert "LiteratureItem" in str(return_annotation), f"{mod.__name__} search returns LiteratureItem"
+            assert "LiteratureItem" in str(return_annotation), (
+                f"{mod.__name__} search returns LiteratureItem"
+            )
 
     def test_clients_never_request_pdf_or_fulltext_urls(self):
         """No client sends requests to PDF/full-text/download endpoints."""
@@ -186,14 +199,28 @@ class TestNoFullTextDownload:
             pubmed_client,
         )
 
-        clients = [openalex_client, crossref_client, core_client, pubmed_client, internet_archive_client]
+        clients = [
+            openalex_client,
+            crossref_client,
+            core_client,
+            pubmed_client,
+            internet_archive_client,
+        ]
         for mod in clients:
             source = inspect.getsource(mod)
             assert ".pdf" not in source.lower(), f"{mod.__name__} references .pdf"
-            assert "fulltext" not in source.lower(), f"{mod.__name__} references fulltext"
-            assert "full_text" not in source.lower(), f"{mod.__name__} references full_text"
-            assert "full text" not in source.lower(), f"{mod.__name__} references full text"
-            assert "download.pdf" not in source.lower(), f"{mod.__name__} references download.pdf"
+            assert "fulltext" not in source.lower(), (
+                f"{mod.__name__} references fulltext"
+            )
+            assert "full_text" not in source.lower(), (
+                f"{mod.__name__} references full_text"
+            )
+            assert "full text" not in source.lower(), (
+                f"{mod.__name__} references full text"
+            )
+            assert "download.pdf" not in source.lower(), (
+                f"{mod.__name__} references download.pdf"
+            )
 
     def test_core_client_uses_work_url_not_download_url(self):
         """CORE source_url must be the work/detail page, not downloadUrl."""
@@ -203,16 +230,25 @@ class TestNoFullTextDownload:
 
         source = inspect.getsource(core_client)
         # Must construct a core.ac.uk/works/ URL
-        assert 'core.ac.uk/works/' in source
+        assert "core.ac.uk/works/" in source
         # Must NOT save downloadUrl as source_url
-        assert 'source_url' not in source.split('downloadUrl')[1].split('source_url')[0] if 'downloadUrl' in source else True
+        assert (
+            "source_url" not in source.split("downloadUrl")[1].split("source_url")[0]
+            if "downloadUrl" in source
+            else True
+        )
         # downloadUrl should not appear as source_url value
-        assert 'source_url=' not in source or 'downloadUrl' not in source[source.index('source_url='):].split('\n')[0].lower()
+        assert (
+            "source_url=" not in source
+            or "downloadUrl"
+            not in source[source.index("source_url=") :].split("\n")[0].lower()
+        )
 
 
 # ---------------------------------------------------------------------------
 # _save_items compliance
 # ---------------------------------------------------------------------------
+
 
 class TestSaveItemsCompliance:
     @pytest.mark.asyncio
@@ -336,4 +372,6 @@ class TestSaveItemsCompliance:
             db_session.flush = original_flush
 
         assert job2.error_count > 0, f"Expected error_count>0, got {job2.error_count}"
-        assert any("Flush" in e for e in job2.errors), f"Expected Flush error in: {job2.errors}"
+        assert any("Flush" in e for e in job2.errors), (
+            f"Expected Flush error in: {job2.errors}"
+        )

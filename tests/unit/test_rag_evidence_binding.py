@@ -8,6 +8,7 @@ Covers:
   - OCR confidence: <0.7 → evidence_weight="reference"
   - No evidence → refusal
 """
+
 from __future__ import annotations
 
 import pytest
@@ -167,9 +168,11 @@ class TestRAGEnabledGate:
         assert len(resp.evidence) > 0
         # All results should be from rag_enabled=true docs
         for e in resp.evidence:
-            doc = (await seeded_session.execute(
-                select(Document).where(Document.id == e.document_id)
-            )).scalar_one()
+            doc = (
+                await seeded_session.execute(
+                    select(Document).where(Document.id == e.document_id)
+                )
+            ).scalar_one()
             assert doc.rag_enabled is True
 
     async def test_rag_enabled_false_docs_excluded(self, seeded_session):
@@ -182,9 +185,11 @@ class TestRAGEnabledGate:
         # May refuse or return from other docs — but must NOT include doc_c
         for e in resp.evidence:
             assert e.document_id != ""  # sanity
-            doc = (await seeded_session.execute(
-                select(Document).where(Document.id == e.document_id)
-            )).scalar_one()
+            doc = (
+                await seeded_session.execute(
+                    select(Document).where(Document.id == e.document_id)
+                )
+            ).scalar_one()
             assert doc.copyright_status != "commercial_restricted"
 
     async def test_deleted_docs_excluded(self, seeded_session):
@@ -195,9 +200,11 @@ class TestRAGEnabledGate:
         resp = await svc.query("已删除")
 
         for e in resp.evidence:
-            doc = (await seeded_session.execute(
-                select(Document).where(Document.id == e.document_id)
-            )).scalar_one()
+            doc = (
+                await seeded_session.execute(
+                    select(Document).where(Document.id == e.document_id)
+                )
+            ).scalar_one()
             assert doc.is_deleted is False
 
 
@@ -232,7 +239,9 @@ class TestEvidenceBinding:
         doc_a_chunks = [e for e in resp.evidence if "甲" in e.content]
         if doc_a_chunks:
             for e in doc_a_chunks:
-                assert e.source_url, "source_url must be non-empty for docs that have one"
+                assert e.source_url, (
+                    "source_url must be non-empty for docs that have one"
+                )
 
     async def test_page_number_bound(self, seeded_session):
         """Chunks with page_number set carry it through."""
@@ -310,7 +319,8 @@ class TestOCRConfidenceWeight:
         )
         if has_reference:
             ref_chunks = [
-                e for e in resp.evidence
+                e
+                for e in resp.evidence
                 if e.ocr_confidence is not None and e.ocr_confidence < 0.7
             ]
             for e in ref_chunks:
@@ -339,10 +349,7 @@ class TestOCRConfidenceWeight:
         svc = EvidenceRAGService(seeded_session)
         resp = await svc.query("本草")
 
-        ref_chunks = [
-            e for e in resp.evidence
-            if e.ocr_confidence is not None
-        ]
+        ref_chunks = [e for e in resp.evidence if e.ocr_confidence is not None]
         if ref_chunks:
             for e in ref_chunks:
                 assert "OCR:" in e.citation, (

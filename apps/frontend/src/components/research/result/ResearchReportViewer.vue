@@ -6,17 +6,9 @@
       <h3 class="rrv-report-title">{{ report.title }}</h3>
 
       <!-- Render sections from markdown -->
-      <div
-        v-for="(section, si) in sections"
-        :key="si"
-        class="rrv-section-block"
-      >
+      <div v-for="(section, si) in sections" :key="si" class="rrv-section-block">
         <h4 v-if="section.heading" class="rrv-section-heading">{{ section.heading }}</h4>
-        <p
-          v-for="(para, pi) in section.paragraphs"
-          :key="pi"
-          class="rrv-paragraph"
-        >
+        <p v-for="(para, pi) in section.paragraphs" :key="pi" class="rrv-paragraph">
           <template v-for="(token, ti) in para.tokens" :key="ti">
             <span v-if="token.bold" class="rrv-bold">{{ token.text }}</span>
             <button

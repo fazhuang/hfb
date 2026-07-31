@@ -12,6 +12,7 @@ POST   /api/v1/roles
 GET    /api/v1/roles/{id}
 DELETE /api/v1/roles/{id}
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -82,11 +83,15 @@ async def create_user(
 
     existing = await repo.get_by_username(body.username)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already taken")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Username already taken"
+        )
 
     existing = await repo.get_by_email(str(body.email))
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+        )
 
     user = await repo.create(
         username=body.username,
@@ -124,7 +129,9 @@ async def get_user(
     repo = UserRepository(session)
     user = await repo.get_by_id(user_id)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     return api_response(data=UserResponse.model_validate(user).model_dump(mode="json"))
 
 
@@ -142,7 +149,9 @@ async def update_user(
     repo = UserRepository(session)
     user = await repo.get_by_id(user_id)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     updates = body.model_dump(exclude_unset=True, exclude={"role_ids", "password"})
     for key, value in updates.items():
@@ -159,7 +168,10 @@ async def update_user(
                 user.roles.append(role)  # type: ignore[attr-defined]
     await session.flush()
 
-    return api_response(data=UserResponse.model_validate(user).model_dump(mode="json"), message="User updated")
+    return api_response(
+        data=UserResponse.model_validate(user).model_dump(mode="json"),
+        message="User updated",
+    )
 
 
 @router.delete(
@@ -175,13 +187,16 @@ async def delete_user(
     repo = UserRepository(session)
     ok = await repo.soft_delete(user_id)
     if not ok:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
     return api_response(data=None, message="User deleted")
 
 
 # ------------------------------------------------------------------
 # Roles
 # ------------------------------------------------------------------
+
 
 @router.get(
     "/roles",
@@ -216,7 +231,9 @@ async def create_role(
 
     existing = await role_repo.get_by_name(body.name)
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Role name already exists")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Role name already exists"
+        )
 
     role = await role_repo.create(name=body.name, description=body.description)
     for pid in body.permission_ids:
@@ -225,7 +242,10 @@ async def create_role(
             role.permissions.append(perm)
     await session.flush()
 
-    return api_response(data=RoleResponse.model_validate(role).model_dump(mode="json"), message="Role created")
+    return api_response(
+        data=RoleResponse.model_validate(role).model_dump(mode="json"),
+        message="Role created",
+    )
 
 
 @router.delete(
@@ -241,8 +261,13 @@ async def delete_role(
     repo = RoleRepository(session)
     role = await repo.get_by_id(role_id)
     if role is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Role not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Role not found"
+        )
     if role.is_system:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="System roles cannot be deleted")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="System roles cannot be deleted",
+        )
     await repo.soft_delete(role_id)
     return api_response(data=None, message="Role deleted")

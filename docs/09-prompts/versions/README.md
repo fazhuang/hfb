@@ -1,9 +1,9 @@
 ---
-title: "Prompt Version Index"
-version: "1.0"
-status: "Active"
-owner: "AI Lead"
-last_updated: "2026-06-24"
+title: 'Prompt Version Index'
+version: '1.0'
+status: 'Active'
+owner: 'AI Lead'
+last_updated: '2026-06-24'
 ---
 
 # Prompt Versions
@@ -25,11 +25,11 @@ last_updated: "2026-06-24"
 
 ## 可用 Prompt
 
-| 编号 | 名称 | 当前版本 | 状态 | 最近更新 |
-|---|---|---|---|---|
-| P001 | Claude Sprint 00 Docs Foundation | V0.1 | Active | 2026-06-24 |
-| P002 | Codex Docs Audit | V0.1 | Active | 2026-06-24 |
-| P003 | Gemini UI Academic Review | V0.1 | Active | 2026-06-24 |
+| 编号 | 名称                             | 当前版本 | 状态   | 最近更新   |
+| ---- | -------------------------------- | -------- | ------ | ---------- |
+| P001 | Claude Sprint 00 Docs Foundation | V0.1     | Active | 2026-06-24 |
+| P002 | Codex Docs Audit                 | V0.1     | Active | 2026-06-24 |
+| P003 | Gemini UI Academic Review        | V0.1     | Active | 2026-06-24 |
 
 ---
 

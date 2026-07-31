@@ -18,9 +18,18 @@ class TestUserModel:
     def test_user_has_expected_columns(self):
         cols = {c.name for c in User.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "username", "email", "hashed_password", "display_name",
-            "affiliation", "is_active", "is_superuser",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "username",
+            "email",
+            "hashed_password",
+            "display_name",
+            "affiliation",
+            "is_active",
+            "is_superuser",
         }
         assert expected.issubset(cols)
 
@@ -29,7 +38,13 @@ class TestUserModel:
         assert "testuser" in repr(u)
 
     def test_user_defaults(self):
-        u = User(username="u", email="u@x.com", hashed_password="x", is_active=True, is_superuser=False)
+        u = User(
+            username="u",
+            email="u@x.com",
+            hashed_password="x",
+            is_active=True,
+            is_superuser=False,
+        )
         assert u.is_active is True
         assert u.is_superuser is False
 
@@ -43,8 +58,14 @@ class TestRoleModel:
     def test_role_has_expected_columns(self):
         cols = {c.name for c in Role.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "name", "description", "is_system",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "name",
+            "description",
+            "is_system",
         }
         assert expected.issubset(cols)
 
@@ -66,8 +87,14 @@ class TestPermissionModel:
     def test_permission_has_expected_columns(self):
         cols = {c.name for c in Permission.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "resource", "action", "description",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "resource",
+            "action",
+            "description",
         }
         assert expected.issubset(cols)
 
@@ -77,8 +104,10 @@ class TestAssociationTables:
 
     def test_user_role_table_exists(self):
         from app.models.user import user_role
+
         assert user_role.name == "user_role"
 
     def test_role_permission_table_exists(self):
         from app.models.user import role_permission
+
         assert role_permission.name == "role_permission"

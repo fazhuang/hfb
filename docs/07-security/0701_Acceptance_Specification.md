@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Acceptance Specification
+
 ## 项目验收规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》唯一正式验收标准。
@@ -61,18 +62,18 @@ related_documents:
 
 平台统一验收对象包括：
 
-| 类型 | 内容 |
-|------|------|
-| Governance | 治理文档 |
+| 类型          | 内容               |
+| ------------- | ------------------ |
+| Governance    | 治理文档           |
 | Documentation | 全部 Markdown 文档 |
-| Source Code | 前后端代码 |
-| Database | 数据库 |
-| API | 接口 |
-| AI | Prompt、模型、RAG |
-| Academic Data | 学术资源 |
-| UI | 页面与交互 |
-| Deployment | 部署 |
-| Security | 安全 |
+| Source Code   | 前后端代码         |
+| Database      | 数据库             |
+| API           | 接口               |
+| AI            | Prompt、模型、RAG  |
+| Academic Data | 学术资源           |
+| UI            | 页面与交互         |
+| Deployment    | 部署               |
+| Security      | 安全               |
 
 ---
 
@@ -286,12 +287,12 @@ Critical：
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| API | ≤300ms |
-| Search | ≤1s |
-| AI | ≤3s |
-| 首屏 | ≤2.5s |
+| 指标   | 标准   |
+| ------ | ------ |
+| API    | ≤300ms |
+| Search | ≤1s    |
+| AI     | ≤3s    |
+| 首屏   | ≤2.5s  |
 
 所有指标必须达到目标。
 
@@ -315,12 +316,12 @@ Critical：
 
 统一评分：
 
-| 分数 | 结果 |
-|------|------|
-| ≥95 | Production Ready |
-| 90~94 | Pilot Ready |
+| 分数  | 结果             |
+| ----- | ---------------- |
+| ≥95   | Production Ready |
+| 90~94 | Pilot Ready      |
 | 80~89 | Internal Testing |
-| <80 | Rework Required |
+| <80   | Rework Required  |
 
 存在 P0 问题时：
 
@@ -392,7 +393,7 @@ Critical：
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一项目验收规范。 |
+| Version | Date       | Description                          |
+| ------- | ---------- | ------------------------------------ |
+| 1.1.0   | 2026-06-25 | 更新related_documents                |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一项目验收规范。 |

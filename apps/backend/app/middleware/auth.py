@@ -3,6 +3,7 @@ JWT authentication & RBAC authorization dependencies for FastAPI.
 
 Per HFB-SEC-0702 Ch.6: all endpoints must validate JWT + RBAC.
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -23,7 +24,9 @@ async def get_auth_service(
 
 def _extract_token(request: Request) -> str | None:
     """Extract Bearer token from Authorization header or cookie."""
-    auth_header = request.headers.get("Authorization") or request.headers.get("authorization")
+    auth_header = request.headers.get("Authorization") or request.headers.get(
+        "authorization"
+    )
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header.removeprefix("Bearer ").strip()
 

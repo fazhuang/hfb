@@ -1,6 +1,7 @@
 """
 Version and system info endpoint.
 """
+
 from fastapi import APIRouter
 
 from app.core.config import settings

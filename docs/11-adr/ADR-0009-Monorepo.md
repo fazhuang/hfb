@@ -1,15 +1,15 @@
 ---
-title: "ADR-0009 Monorepo"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "infrastructure"
+title: 'ADR-0009 Monorepo'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'infrastructure'
 related:
-  - "ADR-0001-FastAPI"
-  - "ADR-0002-Vue3"
-  - "ADR-0008-Docker"
+  - 'ADR-0001-FastAPI'
+  - 'ADR-0002-Vue3'
+  - 'ADR-0008-Docker'
 ---
 
 # ADR-0009: 选择 Monorepo 代码组织
@@ -40,10 +40,10 @@ hfb/
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| Monorepo | 统一版本、跨模块 PR 方便、AI 可访问全部代码、文档与代码同仓 | 仓库体积大 | — |
-| Polyrepo | 各模块独立、权限分离 | 跨模块变更需多 PR、版本管理复杂、AI 需要跨仓库访问 | 不符合 AI Native 策略 |
+| 方案     | 优点                                                        | 缺点                                               | 放弃原因              |
+| -------- | ----------------------------------------------------------- | -------------------------------------------------- | --------------------- |
+| Monorepo | 统一版本、跨模块 PR 方便、AI 可访问全部代码、文档与代码同仓 | 仓库体积大                                         | —                     |
+| Polyrepo | 各模块独立、权限分离                                        | 跨模块变更需多 PR、版本管理复杂、AI 需要跨仓库访问 | 不符合 AI Native 策略 |
 
 ## Consequences
 

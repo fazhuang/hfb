@@ -3,6 +3,7 @@ Tests for Unified Search — SearchService, schemas, and API.
 
 Per HFB-PS-1706 Unified Search Product Specification.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -143,12 +144,19 @@ class TestSearchService:
         db_session.add(p)
         await db_session.flush()
 
-        b = Book(title="针灸测试经", dynasty="唐", category="针灸", abstract="一部关于针灸的经典")
+        b = Book(
+            title="针灸测试经",
+            dynasty="唐",
+            category="针灸",
+            abstract="一部关于针灸的经典",
+        )
         db_session.add(b)
         await db_session.flush()
 
         svc = SearchService(db_session)
-        result = await svc.search(SearchParams(q="针灸", entity_types=["person", "book"]))
+        result = await svc.search(
+            SearchParams(q="针灸", entity_types=["person", "book"])
+        )
 
         assert result.total >= 2
         assert result.query == "针灸"
@@ -163,9 +171,7 @@ class TestSearchService:
         await db_session.flush()
 
         svc = SearchService(db_session)
-        result = await svc.search(
-            SearchParams(q="李医师", entity_types=["book"])
-        )
+        result = await svc.search(SearchParams(q="李医师", entity_types=["book"]))
         # Searching only "book" type — person shouldn't appear
         book_results = [r for r in result.items if r.entity_type == "person"]
         assert len(book_results) == 0
@@ -274,7 +280,9 @@ class TestSearchService:
         assert result["status"] == "completed"
         assert result["entities_indexed"] >= 1
 
-    async def test_search_result_has_required_fields(self, db_session: AsyncSession) -> None:
+    async def test_search_result_has_required_fields(
+        self, db_session: AsyncSession
+    ) -> None:
         b = Book(title="伤寒论研究", dynasty="东汉", abstract="张仲景著作研究")
         db_session.add(b)
         await db_session.flush()
@@ -297,12 +305,12 @@ class TestSearchService:
         await db_session.flush()
 
         svc = SearchService(db_session)
-        result = await svc.search(
-            SearchParams(q="针灸", entity_types=["book"])
-        )
+        result = await svc.search(SearchParams(q="针灸", entity_types=["book"]))
 
         book_results = [r for r in result.items if r.entity_type == "book"]
         if len(book_results) >= 2:
             # Title match (针灸甲乙经) should score higher than abstract-only match (本草纲目)
             scores = [r.score for r in book_results]
-            assert scores == sorted(scores, reverse=True), f"Results not score-sorted: {scores}"
+            assert scores == sorted(scores, reverse=True), (
+                f"Results not score-sorted: {scores}"
+            )

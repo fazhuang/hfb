@@ -1,5 +1,10 @@
 <template>
-  <PlaceholderPage icon="📚" :title="t('nav.documents')" :description="$t('onboarding.comingSoon')" type="coming-soon" />
+  <PlaceholderPage
+    icon="📚"
+    :title="t('nav.documents')"
+    :description="$t('onboarding.comingSoon')"
+    type="coming-soon"
+  />
 </template>
 
 <script setup lang="ts">

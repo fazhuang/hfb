@@ -49,8 +49,18 @@ describe('Router afterEach — title & focus management (P1, P3 repair)', () => 
       history: createWebHistory(),
       routes: [
         { path: '/', name: 'home', component: { template: '<div />' } },
-        { path: '/login', name: 'login', component: { template: '<div />' }, meta: { guest: true } },
-        { path: '/research', name: 'research', component: { template: '<div />' }, meta: { title: 'Research' } },
+        {
+          path: '/login',
+          name: 'login',
+          component: { template: '<div />' },
+          meta: { guest: true },
+        },
+        {
+          path: '/research',
+          name: 'research',
+          component: { template: '<div />' },
+          meta: { title: 'Research' },
+        },
       ],
     });
     installRepairedAfterEach(router);

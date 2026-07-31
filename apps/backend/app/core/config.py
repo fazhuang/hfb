@@ -3,6 +3,7 @@ Application settings management via Pydantic Settings.
 
 Loads from .env file and environment variables.
 """
+
 from __future__ import annotations
 
 import json

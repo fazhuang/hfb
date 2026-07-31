@@ -1,6 +1,7 @@
 """
 SourcePolicy — configurable source whitelist for literature ingestion.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

@@ -492,8 +492,13 @@ def _stable_hash(*parts: str) -> str:
 
 
 def _make_evidence(
-    document_id: str, chunk_id: str, exact_quote: str, citation: str | None = None,
-    passage_id: str = "", version_id: str = "", source_uri: str = "",
+    document_id: str,
+    chunk_id: str,
+    exact_quote: str,
+    citation: str | None = None,
+    passage_id: str = "",
+    version_id: str = "",
+    source_uri: str = "",
     claim_text: str = "",
 ) -> GraphEvidence:
     if citation is None:
@@ -1699,7 +1704,12 @@ class GraphService:
                 next_id = edge.target_entity_id
 
                 # Check if we reached the target (if target specified)
-                if target_type and target_id and next_type == target_type and next_id == target_id:
+                if (
+                    target_type
+                    and target_id
+                    and next_type == target_type
+                    and next_id == target_id
+                ):
                     paths.append(self._build_evidence_path(new_list, validated))
                     continue
 
@@ -1809,7 +1819,11 @@ class GraphService:
         all_edges, node_lookup = await self._collect_all_edges()
         subgraph_edges: list[GraphEdge] = []
         for edge in all_edges:
-            if edge.source_id in all_node_ids and edge.target_id in all_node_ids and edge.id not in all_edge_ids:
+            if (
+                edge.source_id in all_node_ids
+                and edge.target_id in all_node_ids
+                and edge.id not in all_edge_ids
+            ):
                 subgraph_edges.append(edge)
                 all_edge_ids.add(edge.id)
 

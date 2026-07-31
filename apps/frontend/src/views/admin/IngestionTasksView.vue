@@ -29,7 +29,9 @@
     <div v-if="total > limit" class="pagination">
       <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
       <span>{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">{{ t('common.next') }}</button>
+      <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">
+        {{ t('common.next') }}
+      </button>
     </div>
   </div>
 </template>
@@ -62,10 +64,20 @@ interface AuditRecord {
 
 const ACTIONS = ['fulltext_ingest', 'reject', 'skip', 'withdraw', 'chunk_delete', 'rag_disabled'];
 const ACTION_LABELS: Record<string, string> = {
-  fulltext_ingest: '全文摄入', reject: '拒绝', skip: '跳过', withdraw: '撤回', chunk_delete: '删除已处理片段', rag_disabled: '停用智能检索',
+  fulltext_ingest: '全文摄入',
+  reject: '拒绝',
+  skip: '跳过',
+  withdraw: '撤回',
+  chunk_delete: '删除已处理片段',
+  rag_disabled: '停用智能检索',
 };
 const STATUSES = ['success', 'skipped', 'rejected', 'withdrawn'];
-const STATUS_LABELS: Record<string, string> = { success: '成功', skipped: '已跳过', rejected: '已拒绝', withdrawn: '已撤回' };
+const STATUS_LABELS: Record<string, string> = {
+  success: '成功',
+  skipped: '已跳过',
+  rejected: '已拒绝',
+  withdrawn: '已撤回',
+};
 const SOURCES = ['openalex', 'crossref', 'core', 'pubmed', 'internet_archive', 'user_upload'];
 
 const items = ref<AuditRecord[]>([]);
@@ -81,17 +93,43 @@ const sourceFilter = ref('');
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
 
 const columns: TableColumn[] = [
-  { key: 'created_at', label: '时间', width: '150px', render: (r) => r.created_at ? new Date(r.created_at as string).toLocaleString('zh-CN') : '—' },
-  { key: 'action', label: '操作', width: '100px', render: (r) => String(ACTION_LABELS[r.action as string] || r.action) },
-  { key: 'status', label: '状态', width: '80px', render: (r) => `<span class="badge badge-status-${r.status}">${STATUS_LABELS[r.status as string] || r.status}</span>` },
+  {
+    key: 'created_at',
+    label: '时间',
+    width: '150px',
+    render: (r) => (r.created_at ? new Date(r.created_at as string).toLocaleString('zh-CN') : '—'),
+  },
+  {
+    key: 'action',
+    label: '操作',
+    width: '100px',
+    render: (r) => String(ACTION_LABELS[r.action as string] || r.action),
+  },
+  {
+    key: 'status',
+    label: '状态',
+    width: '80px',
+    render: (r) =>
+      `<span class="badge badge-status-${r.status}">${STATUS_LABELS[r.status as string] || r.status}</span>`,
+  },
   { key: 'source_name', label: '来源', width: '90px' },
   { key: 'copyright_status', label: '版权', width: '80px' },
   { key: 'result_entity_type', label: '结果类型', width: '80px' },
-  { key: 'details', label: '详情', width: '200px', render: (r) => {
-    const d = r.details as Record<string, unknown> | null | undefined;
-    return String(d?.title || r.reject_reason || r.skipped_reason || '—');
-  }},
-  { key: 'actor_id', label: '操作人', width: '100px', render: (r) => r.actor_id ? String(r.actor_id).slice(0, 8) : '—' },
+  {
+    key: 'details',
+    label: '详情',
+    width: '200px',
+    render: (r) => {
+      const d = r.details as Record<string, unknown> | null | undefined;
+      return String(d?.title || r.reject_reason || r.skipped_reason || '—');
+    },
+  },
+  {
+    key: 'actor_id',
+    label: '操作人',
+    width: '100px',
+    render: (r) => (r.actor_id ? String(r.actor_id).slice(0, 8) : '—'),
+  },
 ];
 
 async function fetchPage(p: number) {
@@ -119,22 +157,78 @@ onMounted(() => fetchPage(1));
 </script>
 
 <style scoped>
-.ingestion-page { max-width: 1200px; margin: 0 auto; padding: var(--space-8) 24px; }
-.page-header { margin-bottom: 16px; }
-.page-header h1 { font-size: 24px; font-weight: 700; color: var(--color-text-primary); margin: 0; }
+.ingestion-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-8) 24px;
+}
+.page-header {
+  margin-bottom: 16px;
+}
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
 
-.filter-bar { display: flex; gap: var(--space-2); margin-bottom: 16px; }
-.filter-select { padding: var(--space-2) 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); font-size: 13px; background: var(--color-navbar-bg, var(--color-surface)); color: var(--color-text-primary); }
+.filter-bar {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: 16px;
+}
+.filter-select {
+  padding: var(--space-2) 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  background: var(--color-navbar-bg, var(--color-surface));
+  color: var(--color-text-primary);
+}
 
-.pagination { display: flex; align-items: center; justify-content: center; gap: var(--space-4); margin-top: 24px; font-size: 13px; color: var(--color-text-secondary); }
-.pagination button { padding: var(--space-1-5) 16px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-navbar-bg, var(--color-surface)); cursor: pointer; font-size: 13px; }
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.pagination button {
+  padding: var(--space-1-5) 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-navbar-bg, var(--color-surface));
+  cursor: pointer;
+  font-size: 13px;
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 </style>
 
 <style>
-.badge { font-size: 12px; padding: var(--space-0-5) 8px; border-radius: var(--radius-sm); }
-.badge-status-success { background: var(--color-success-icon-bg); color: var(--color-success-text); }
-.badge-status-skipped { background: var(--color-hover); color: var(--color-text-muted); }
-.badge-status-rejected { background: var(--color-error-icon-bg); color: var(--color-error-text); }
-.badge-status-withdrawn { background: var(--color-border); color: var(--color-text-muted); }
+.badge {
+  font-size: 12px;
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
+}
+.badge-status-success {
+  background: var(--color-success-icon-bg);
+  color: var(--color-success-text);
+}
+.badge-status-skipped {
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+}
+.badge-status-rejected {
+  background: var(--color-error-icon-bg);
+  color: var(--color-error-text);
+}
+.badge-status-withdrawn {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
 </style>

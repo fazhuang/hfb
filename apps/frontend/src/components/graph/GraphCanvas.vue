@@ -11,7 +11,11 @@
     <div v-else-if="nodes.length === 0" class="graph-state graph-state--empty">
       {{ emptyText || t('graph.emptyHint') }}
     </div>
-    <div ref="networkRef" class="graph-network" :class="{ 'graph-network--ready': nodes.length > 0 }"></div>
+    <div
+      ref="networkRef"
+      class="graph-network"
+      :class="{ 'graph-network--ready': nodes.length > 0 }"
+    ></div>
   </div>
 </template>
 
@@ -127,7 +131,12 @@ function buildNetwork() {
       label: e.label,
       title: `${e.label} (${e.source})`,
       arrows: 'to',
-      font: { size: 10, color: 'var(--color-text-secondary)', strokeWidth: 0, align: 'middle' as const },
+      font: {
+        size: 10,
+        color: 'var(--color-text-secondary)',
+        strokeWidth: 0,
+        align: 'middle' as const,
+      },
       color: { color: 'var(--color-text-muted)', highlight: 'var(--color-accent)' },
       width: 1.5,
       smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
@@ -246,7 +255,10 @@ watch(
   () => props.centerNodeId,
   (newCenter) => {
     if (newCenter && network) {
-      network.focus(newCenter, { scale: 1.5, animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+      network.focus(newCenter, {
+        scale: 1.5,
+        animation: { duration: 500, easingFunction: 'easeInOutQuad' },
+      });
     }
   },
 );

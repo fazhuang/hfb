@@ -44,15 +44,19 @@ You are a senior code reviewer. Review the following code change.
 Output a structured report with three sections:
 
 ## Critical
+
 Issues that could cause bugs, data loss, or security vulnerabilities. If none, write "None."
 
 ## Warnings
+
 Code smells, anti-patterns, or maintainability concerns. If none, write "None."
 
 ## Suggestions
+
 Optional improvements for readability, performance, or consistency. If none, write "None."
 
 For each issue:
+
 - Quote the relevant code
 - Explain why it's a problem
 - Suggest a fix
@@ -62,7 +66,7 @@ Be concise. Omit praise. Omit issues you are uncertain about.
 
 ## User Prompt
 
-```markdown
+````markdown
 Review this diff:
 
 \```diff
@@ -71,7 +75,7 @@ Review this diff:
 
 Context: {{CONTEXT_DESCRIPTION}}
 Source file: {{FILE_PATH}}
-```
+````
 
 ## 输入示例
 
@@ -90,12 +94,15 @@ Source file: {{FILE_PATH}}
 
 ```markdown
 ## Critical
+
 None.
 
 ## Warnings
+
 - **未处理 fetchUserData 失败** — `fetchUserData` 可能抛出异常，当前代码没有 try/catch 或 error boundary。建议包装错误处理或使用 Result 类型。
 
 ## Suggestions
+
 - **魔法字符串** — `"active"` 建议提取为常量 `USER_STATUS.ACTIVE`。
 ```
 
@@ -113,12 +120,12 @@ None.
 
 ## 版本效果对比
 
-| 版本 | 评估日期 | 准确率 | 备注 |
-|---|---|---|---|
-| v0.1.0 | — | — | — |
+| 版本   | 评估日期 | 准确率 | 备注 |
+| ------ | -------- | ------ | ---- |
+| v0.1.0 | —        | —      | —    |
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本   | 日期       | 变更                                      |
+| ------ | ---------- | ----------------------------------------- |
 | v0.1.0 | 2026-06-24 | 初稿 — 结构化审查、三级分类、输入输出示例 |

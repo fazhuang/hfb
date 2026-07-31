@@ -1,6 +1,7 @@
 """
 Document repository — data access for documents (文献).
 """
+
 from __future__ import annotations
 
 from sqlalchemy import and_, func, or_, select
@@ -58,7 +59,13 @@ class DocumentRepository(BaseRepository[Document]):
             conditions.append(self.model.uploaded_by.is_(None))
 
         if query.strip():
-            search_fields = ["title", "title_pinyin", "title_english", "abstract", "content_text"]
+            search_fields = [
+                "title",
+                "title_pinyin",
+                "title_english",
+                "abstract",
+                "content_text",
+            ]
             search_conditions = [
                 getattr(self.model, field).contains(query.strip())
                 for field in search_fields

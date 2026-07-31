@@ -6,6 +6,7 @@ POST /api/v1/auth/register
 POST /api/v1/auth/refresh
 GET  /api/v1/auth/me
 """
+
 from __future__ import annotations
 
 import logging
@@ -37,9 +38,19 @@ def _user_to_dict(user: object) -> dict:
     roles = []
     try:
         raw_roles = getattr(user, "roles", None)
-        if raw_roles is not None and hasattr(raw_roles, "__iter__") and not isinstance(raw_roles, (str, bytes)):
+        if (
+            raw_roles is not None
+            and hasattr(raw_roles, "__iter__")
+            and not isinstance(raw_roles, (str, bytes))
+        ):
             for r in raw_roles:
-                roles.append({"id": getattr(r, "id", ""), "name": getattr(r, "name", ""), "description": getattr(r, "description", None)})
+                roles.append(
+                    {
+                        "id": getattr(r, "id", ""),
+                        "name": getattr(r, "name", ""),
+                        "description": getattr(r, "description", None),
+                    }
+                )
     except (AttributeError, TypeError, RuntimeError):
         logger.debug("Error iterating user roles", exc_info=True)
 
@@ -63,7 +74,9 @@ async def login(
     auth_svc: Annotated[AuthService, Depends(get_auth_service)],
 ) -> dict:
     """Authenticate with username and password. Returns JWT token pair."""
-    user, access_token, refresh_token = await auth_svc.authenticate(body.username, body.password)
+    user, access_token, refresh_token = await auth_svc.authenticate(
+        body.username, body.password
+    )
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -137,7 +150,9 @@ async def me(
     user_repo = UserRepository(session)
     user = await user_repo.get_by_id(user_id)
     if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     return api_response(
         data=_user_to_dict(user),

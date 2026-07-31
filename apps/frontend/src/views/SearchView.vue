@@ -130,8 +130,12 @@
         <p>{{ t('search.noResults') }}</p>
         <p class="empty-hint">{{ t('onboarding.searchNoResultHint') }}</p>
         <div class="empty-actions">
-          <router-link :to="{ name: 'books' }" class="empty-link">{{ t('onboarding.searchNoResultBrowseBooks') }}</router-link>
-          <router-link :to="{ name: 'persons' }" class="empty-link">{{ t('onboarding.searchNoResultBrowsePersons') }}</router-link>
+          <router-link :to="{ name: 'books' }" class="empty-link">{{
+            t('onboarding.searchNoResultBrowseBooks')
+          }}</router-link>
+          <router-link :to="{ name: 'persons' }" class="empty-link">{{
+            t('onboarding.searchNoResultBrowsePersons')
+          }}</router-link>
         </div>
       </div>
 
@@ -143,19 +147,11 @@
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="pagination">
-        <button
-          class="page-btn"
-          :disabled="page <= 1"
-          @click="goToPage(page - 1)"
-        >
+        <button class="page-btn" :disabled="page <= 1" @click="goToPage(page - 1)">
           {{ t('common.back') }}
         </button>
         <span class="page-info">{{ page }} / {{ totalPages }}</span>
-        <button
-          class="page-btn"
-          :disabled="page >= totalPages"
-          @click="goToPage(page + 1)"
-        >
+        <button class="page-btn" :disabled="page >= totalPages" @click="goToPage(page + 1)">
           {{ t('common.next') }}
         </button>
       </div>
@@ -250,7 +246,16 @@ function getTypeLabel(type: string): string {
 
 function visibleMeta(meta: Record<string, unknown>): Record<string, string> {
   // Filter to show only the most relevant meta fields
-  const priority = ['dynasty', 'era', 'authors', 'journal', 'year', 'category', 'repository', 'order'];
+  const priority = [
+    'dynasty',
+    'era',
+    'authors',
+    'journal',
+    'year',
+    'category',
+    'repository',
+    'order',
+  ];
   const visible: Record<string, string> = {};
   for (const key of priority) {
     if (meta[key] != null && meta[key] !== '') {
@@ -371,7 +376,7 @@ function navigateToItem(item: SearchResultItem) {
 function addToTopic(item: SearchResultItem) {
   if (researchStore.hasActiveResearch) {
     const confirmed = window.confirm(
-      `当前已有研究课题"${researchStore.currentTopic?.name}"，是否覆盖？`
+      `当前已有研究课题"${researchStore.currentTopic?.name}"，是否覆盖？`,
     );
     if (!confirmed) return;
   }
@@ -615,12 +620,30 @@ onMounted(() => {
   font-weight: 600;
 }
 
-.badge--person { background: var(--color-accent-light); color: var(--color-accent); }
-.badge--book { background: var(--color-warning-bg); color: var(--color-warning); }
-.badge--passage { background: var(--color-accent-light); color: var(--color-accent); }
-.badge--version { background: var(--color-success-bg); color: var(--color-success); }
-.badge--paper { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.badge--document { background: var(--color-page-bg); color: var(--color-text-secondary); }
+.badge--person {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.badge--book {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+.badge--passage {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+.badge--version {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.badge--paper {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.badge--document {
+  background: var(--color-page-bg);
+  color: var(--color-text-secondary);
+}
 
 .result-score {
   font-size: 11px;

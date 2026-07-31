@@ -3,6 +3,7 @@ Dashboard Service — system overview, entity stats, recent activity.
 
 Per MVP Chapter 8 — Dashboard and Admin Panel.
 """
+
 from __future__ import annotations
 
 import logging
@@ -85,12 +86,14 @@ class DashboardService:
         )
         result = await self.session.execute(stmt)
         for b in result.scalars().all():
-            activities.append({
-                "entity_type": "book",
-                "entity_id": b.id,
-                "title": f"新增古籍《{b.title}》",
-                "timestamp": b.created_at.isoformat() if b.created_at else None,
-            })
+            activities.append(
+                {
+                    "entity_type": "book",
+                    "entity_id": b.id,
+                    "title": f"新增古籍《{b.title}》",
+                    "timestamp": b.created_at.isoformat() if b.created_at else None,
+                }
+            )
 
         # Recent persons
         stmt = (
@@ -101,12 +104,14 @@ class DashboardService:
         )
         result = await self.session.execute(stmt)
         for p in result.scalars().all():
-            activities.append({
-                "entity_type": "person",
-                "entity_id": p.id,
-                "title": f"新增人物 {p.name}",
-                "timestamp": p.created_at.isoformat() if p.created_at else None,
-            })
+            activities.append(
+                {
+                    "entity_type": "person",
+                    "entity_id": p.id,
+                    "title": f"新增人物 {p.name}",
+                    "timestamp": p.created_at.isoformat() if p.created_at else None,
+                }
+            )
 
         # Recent passages
         stmt = (
@@ -117,12 +122,14 @@ class DashboardService:
         )
         result = await self.session.execute(stmt)
         for p in result.scalars().all():
-            activities.append({
-                "entity_type": "passage",
-                "entity_id": p.id,
-                "title": f"新增条文 {(p.content_text or '')[:50]}",
-                "timestamp": p.created_at.isoformat() if p.created_at else None,
-            })
+            activities.append(
+                {
+                    "entity_type": "passage",
+                    "entity_id": p.id,
+                    "title": f"新增条文 {(p.content_text or '')[:50]}",
+                    "timestamp": p.created_at.isoformat() if p.created_at else None,
+                }
+            )
 
         # Sort by timestamp descending, limit
         activities.sort(key=lambda a: a["timestamp"] or "", reverse=True)
@@ -136,7 +143,9 @@ class DashboardService:
         notes_count = 0
         try:
             stmt = select(func.count()).select_from(
-                select(ResearchSession.id).where(ResearchSession.is_deleted.is_(False)).subquery()
+                select(ResearchSession.id)
+                .where(ResearchSession.is_deleted.is_(False))
+                .subquery()
             )
             result = await self.session.execute(stmt)
             sessions_count = result.scalar_one()
@@ -145,7 +154,9 @@ class DashboardService:
 
         try:
             stmt = select(func.count()).select_from(
-                select(ResearchNote.id).where(ResearchNote.is_deleted.is_(False)).subquery()
+                select(ResearchNote.id)
+                .where(ResearchNote.is_deleted.is_(False))
+                .subquery()
             )
             result = await self.session.execute(stmt)
             notes_count = result.scalar_one()
@@ -170,18 +181,22 @@ class DashboardService:
 
         # Dynasty distribution
         dynasty_counts: dict[str, int] = {}
-        stmt = select(Person.dynasty, func.count(Person.id)).where(
-            Person.is_deleted.is_(False), Person.dynasty.isnot(None)
-        ).group_by(Person.dynasty)
+        stmt = (
+            select(Person.dynasty, func.count(Person.id))
+            .where(Person.is_deleted.is_(False), Person.dynasty.isnot(None))
+            .group_by(Person.dynasty)
+        )
         result = await self.session.execute(stmt)
         for dynasty, cnt in result:
             dynasty_counts[dynasty] = cnt
 
         # Book category distribution
         category_counts: dict[str, int] = {}
-        stmt = select(Book.category, func.count(Book.id)).where(
-            Book.is_deleted.is_(False), Book.category.isnot(None)
-        ).group_by(Book.category)
+        stmt = (
+            select(Book.category, func.count(Book.id))
+            .where(Book.is_deleted.is_(False), Book.category.isnot(None))
+            .group_by(Book.category)
+        )
         result = await self.session.execute(stmt)
         for cat, cnt in result:
             category_counts[cat] = cnt

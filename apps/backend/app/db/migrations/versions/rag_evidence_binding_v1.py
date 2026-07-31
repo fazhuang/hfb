@@ -4,6 +4,7 @@ Revision ID: rag_evidence_binding_v1
 Revises: c21f1a2b3c4d
 Create Date: 2026-07-10
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -18,10 +19,20 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     with op.batch_alter_table("document_chunks") as batch_op:
         batch_op.add_column(
-            sa.Column("page_number", sa.Integer(), nullable=True, comment="源文档页码 (1-based)")
+            sa.Column(
+                "page_number",
+                sa.Integer(),
+                nullable=True,
+                comment="源文档页码 (1-based)",
+            )
         )
         batch_op.add_column(
-            sa.Column("paragraph_index", sa.Integer(), nullable=True, comment="源文档段落索引 (0-based)")
+            sa.Column(
+                "paragraph_index",
+                sa.Integer(),
+                nullable=True,
+                comment="源文档段落索引 (0-based)",
+            )
         )
         batch_op.add_column(
             sa.Column(

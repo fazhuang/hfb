@@ -11,13 +11,14 @@
     <div v-else class="rcp-body">
       <!-- Citation list -->
       <nav class="rcp-citation-list" aria-label="引用列表">
-        <h3 class="rcp-subheading">
-          引用项（{{ citations.length }}）
-        </h3>
+        <h3 class="rcp-subheading">引用项（{{ citations.length }}）</h3>
         <div
           v-for="(citation, idx) in citations"
           :key="citation.trace_id"
-          :class="['rcp-citation-item', { 'rcp-citation-item--selected': citation.trace_id === selectedTraceId }]"
+          :class="[
+            'rcp-citation-item',
+            { 'rcp-citation-item--selected': citation.trace_id === selectedTraceId },
+          ]"
           role="button"
           tabindex="0"
           :aria-selected="citation.trace_id === selectedTraceId"
@@ -43,11 +44,7 @@
       <div class="rcp-evidence-area">
         <template v-if="selectedTraceId">
           <h3 class="rcp-subheading">证据详情</h3>
-          <EvidenceDetail
-            v-for="ev in selectedEvidence"
-            :key="ev.trace_id"
-            :evidence="ev"
-          />
+          <EvidenceDetail v-for="ev in selectedEvidence" :key="ev.trace_id" :evidence="ev" />
           <div v-if="selectedEvidence.length === 0" class="rcp-no-evidence">
             <span class="rcp-empty-icon" aria-hidden="true">🔍</span>
             <p>此引用缺少证据关联。</p>

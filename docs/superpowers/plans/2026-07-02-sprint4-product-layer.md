@@ -24,34 +24,37 @@
 
 ## File Manifest
 
-| # | File | Action | Purpose |
-|---|------|--------|---------|
-| F1 | `apps/backend/app/models/workspace.py` | Edit | Add QueryHistory, CitationCollection |
-| F2 | `apps/backend/app/models/__init__.py` | Edit | Export new models |
-| F3 | `apps/backend/app/db/migrations/` | Create | Alembic migration for 2 new tables |
-| F4 | `apps/backend/app/services/workspace_service.py` | Edit | Add query_history + citation methods |
-| F5 | `apps/backend/app/schemas/v4.py` | Create | V4 request/response + visualization strict schemas |
-| F6 | `apps/backend/app/api/v4/__init__.py` | Create | V4 router aggregation |
-| F7 | `apps/backend/app/api/v4/research.py` | Create | Session, query, workflow endpoints |
-| F8 | `apps/backend/app/api/v4/visualization.py` | Create | Graph endpoint |
-| F9 | `apps/backend/app/api/v4/education.py` | Create | Learn endpoint |
-| F10 | `apps/backend/app/api/__init__.py` | Edit | Register V4 router |
-| F11 | `tests/unit/test_sprint4_v4.py` | Create | All 21 tests |
+| #   | File                                             | Action | Purpose                                            |
+| --- | ------------------------------------------------ | ------ | -------------------------------------------------- |
+| F1  | `apps/backend/app/models/workspace.py`           | Edit   | Add QueryHistory, CitationCollection               |
+| F2  | `apps/backend/app/models/__init__.py`            | Edit   | Export new models                                  |
+| F3  | `apps/backend/app/db/migrations/`                | Create | Alembic migration for 2 new tables                 |
+| F4  | `apps/backend/app/services/workspace_service.py` | Edit   | Add query_history + citation methods               |
+| F5  | `apps/backend/app/schemas/v4.py`                 | Create | V4 request/response + visualization strict schemas |
+| F6  | `apps/backend/app/api/v4/__init__.py`            | Create | V4 router aggregation                              |
+| F7  | `apps/backend/app/api/v4/research.py`            | Create | Session, query, workflow endpoints                 |
+| F8  | `apps/backend/app/api/v4/visualization.py`       | Create | Graph endpoint                                     |
+| F9  | `apps/backend/app/api/v4/education.py`           | Create | Learn endpoint                                     |
+| F10 | `apps/backend/app/api/__init__.py`               | Edit   | Register V4 router                                 |
+| F11 | `tests/unit/test_sprint4_v4.py`                  | Create | All 21 tests                                       |
 
 ---
 
 ### Task 1: Add QueryHistory and CitationCollection models
 
 **Files:**
+
 - Modify: `apps/backend/app/models/workspace.py` (append at end)
 
 **Interfaces:**
+
 - Produces: `QueryHistory(id, session_id, query_text, query_type, result_summary, citation_count, created_at, updated_at)`, `CitationCollection(id, session_id, trace_json, citation_text, source_document, tags, notes, created_at, updated_at)`
 
 - [ ] **Step 1: Append new models to workspace.py**
 
 ```python
 # Add after ResearchNote class, before end of file
+
 
 class QueryHistory(BaseModel):
     """Records every research query executed within a session.
@@ -68,9 +71,7 @@ class QueryHistory(BaseModel):
         index=True,
         comment="所属研究会话 ID",
     )
-    query_text: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="查询原文"
-    )
+    query_text: Mapped[str] = mapped_column(Text, nullable=False, comment="查询原文")
     query_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -146,12 +147,14 @@ git commit -m "feat(sprint4): add QueryHistory and CitationCollection models"
 
 ---
 
-### Task 2: Export new models from models/__init__.py
+### Task 2: Export new models from models/**init**.py
 
 **Files:**
+
 - Modify: `apps/backend/app/models/__init__.py`
 
 **Interfaces:**
+
 - Produces: `QueryHistory`, `CitationCollection` exported from models package
 
 - [ ] **Step 1: Add imports and exports**
@@ -159,7 +162,12 @@ git commit -m "feat(sprint4): add QueryHistory and CitationCollection models"
 Read the current `__init__.py` first, find the import line for ResearchSession/ResearchNote, and add:
 
 ```python
-from app.models.workspace import ResearchSession, ResearchNote, QueryHistory, CitationCollection
+from app.models.workspace import (
+    ResearchSession,
+    ResearchNote,
+    QueryHistory,
+    CitationCollection,
+)
 ```
 
 And add `"QueryHistory"`, `"CitationCollection"` to `__all__`.
@@ -181,9 +189,11 @@ git commit -m "feat(sprint4): export QueryHistory and CitationCollection from mo
 ### Task 3: Create Alembic migration for new tables
 
 **Files:**
+
 - Create: `apps/backend/app/db/migrations/versions/` (new migration file)
 
 **Interfaces:**
+
 - Consumes: QueryHistory, CitationCollection model definitions from Task 1
 - Produces: database tables query_histories, citation_collections
 
@@ -231,9 +241,11 @@ git commit -m "feat(sprint4): add query_histories and citation_collections table
 ### Task 4: Add WorkspaceService methods for QueryHistory and CitationCollection
 
 **Files:**
+
 - Modify: `apps/backend/app/services/workspace_service.py` (append new methods)
 
 **Interfaces:**
+
 - Consumes: QueryHistory, CitationCollection models from Task 1
 - Produces:
   - `async def create_query_history(self, session_id, query_text, query_type, result_summary=None, citation_count=0) -> QueryHistory`
@@ -246,116 +258,125 @@ git commit -m "feat(sprint4): add query_histories and citation_collections table
 - [ ] **Step 1: Add import for new models at top of workspace_service.py**
 
 Add to existing imports:
+
 ```python
-from app.models.workspace import CitationCollection, QueryHistory, ResearchNote, ResearchSession
+from app.models.workspace import (
+    CitationCollection,
+    QueryHistory,
+    ResearchNote,
+    ResearchSession,
+)
 ```
 
 - [ ] **Step 2: Append new methods to WorkspaceService class**
 
 ```python
-    # ------------------------------------------------------------------
-    # QueryHistory — V4 product layer
-    # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# QueryHistory — V4 product layer
+# ------------------------------------------------------------------
 
-    async def create_query_history(
-        self,
-        session_id: UUID | str,
-        query_text: str,
-        query_type: str,
-        result_summary: str | None = None,
-        citation_count: int = 0,
-    ) -> QueryHistory:
-        qh = QueryHistory(
-            session_id=str(session_id),
-            query_text=query_text,
-            query_type=query_type,
-            result_summary=result_summary,
-            citation_count=citation_count,
-        )
-        self.session.add(qh)
-        await self.session.flush()
-        return qh
 
-    async def get_query_history(
-        self, session_id: UUID | str, limit: int = 50
-    ) -> list[QueryHistory]:
-        stmt = (
-            select(QueryHistory)
-            .where(QueryHistory.session_id == str(session_id))
-            .order_by(QueryHistory.created_at.desc())
-            .limit(limit)
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
+async def create_query_history(
+    self,
+    session_id: UUID | str,
+    query_text: str,
+    query_type: str,
+    result_summary: str | None = None,
+    citation_count: int = 0,
+) -> QueryHistory:
+    qh = QueryHistory(
+        session_id=str(session_id),
+        query_text=query_text,
+        query_type=query_type,
+        result_summary=result_summary,
+        citation_count=citation_count,
+    )
+    self.session.add(qh)
+    await self.session.flush()
+    return qh
 
-    # ------------------------------------------------------------------
-    # CitationCollection — V4 product layer
-    # ------------------------------------------------------------------
 
-    async def create_citation(
-        self,
-        session_id: UUID | str,
-        trace_json: str,
-        citation_text: str,
-        source_document: str,
-        tags: str | None = None,
-        notes: str | None = None,
-    ) -> CitationCollection:
-        cc = CitationCollection(
-            session_id=str(session_id),
-            trace_json=trace_json,
-            citation_text=citation_text,
-            source_document=source_document,
-            tags=tags,
-            notes=notes,
-        )
-        self.session.add(cc)
-        await self.session.flush()
-        return cc
+async def get_query_history(
+    self, session_id: UUID | str, limit: int = 50
+) -> list[QueryHistory]:
+    stmt = (
+        select(QueryHistory)
+        .where(QueryHistory.session_id == str(session_id))
+        .order_by(QueryHistory.created_at.desc())
+        .limit(limit)
+    )
+    result = await self.session.execute(stmt)
+    return list(result.scalars().all())
 
-    async def list_citations(
-        self, session_id: UUID | str, limit: int = 100
-    ) -> list[CitationCollection]:
-        stmt = (
-            select(CitationCollection)
-            .where(CitationCollection.session_id == str(session_id))
-            .order_by(CitationCollection.created_at.desc())
-            .limit(limit)
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
 
-    async def update_citation(
-        self,
-        citation_id: UUID | str,
-        tags: str | None = None,
-        notes: str | None = None,
-    ) -> CitationCollection | None:
-        stmt = select(CitationCollection).where(
-            CitationCollection.id == str(citation_id)
-        )
-        result = await self.session.execute(stmt)
-        citation = result.scalar_one_or_none()
-        if citation is None:
-            return None
-        if tags is not None:
-            citation.tags = tags
-        if notes is not None:
-            citation.notes = notes
-        await self.session.flush()
-        return citation
+# ------------------------------------------------------------------
+# CitationCollection — V4 product layer
+# ------------------------------------------------------------------
 
-    async def delete_citation(self, citation_id: UUID | str) -> bool:
-        stmt = select(CitationCollection).where(
-            CitationCollection.id == str(citation_id)
-        )
-        result = await self.session.execute(stmt)
-        citation = result.scalar_one_or_none()
-        if citation is None:
-            return False
-        await self.session.delete(citation)
-        await self.session.flush()
-        return True
+
+async def create_citation(
+    self,
+    session_id: UUID | str,
+    trace_json: str,
+    citation_text: str,
+    source_document: str,
+    tags: str | None = None,
+    notes: str | None = None,
+) -> CitationCollection:
+    cc = CitationCollection(
+        session_id=str(session_id),
+        trace_json=trace_json,
+        citation_text=citation_text,
+        source_document=source_document,
+        tags=tags,
+        notes=notes,
+    )
+    self.session.add(cc)
+    await self.session.flush()
+    return cc
+
+
+async def list_citations(
+    self, session_id: UUID | str, limit: int = 100
+) -> list[CitationCollection]:
+    stmt = (
+        select(CitationCollection)
+        .where(CitationCollection.session_id == str(session_id))
+        .order_by(CitationCollection.created_at.desc())
+        .limit(limit)
+    )
+    result = await self.session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def update_citation(
+    self,
+    citation_id: UUID | str,
+    tags: str | None = None,
+    notes: str | None = None,
+) -> CitationCollection | None:
+    stmt = select(CitationCollection).where(CitationCollection.id == str(citation_id))
+    result = await self.session.execute(stmt)
+    citation = result.scalar_one_or_none()
+    if citation is None:
+        return None
+    if tags is not None:
+        citation.tags = tags
+    if notes is not None:
+        citation.notes = notes
+    await self.session.flush()
+    return citation
+
+
+async def delete_citation(self, citation_id: UUID | str) -> bool:
+    stmt = select(CitationCollection).where(CitationCollection.id == str(citation_id))
+    result = await self.session.execute(stmt)
+    citation = result.scalar_one_or_none()
+    if citation is None:
+        return False
+    await self.session.delete(citation)
+    await self.session.flush()
+    return True
 ```
 
 - [ ] **Step 3: Verify methods exist**
@@ -386,9 +407,11 @@ git commit -m "feat(sprint4): add QueryHistory and CitationCollection methods to
 ### Task 5: Create V4 schemas
 
 **Files:**
+
 - Create: `apps/backend/app/schemas/v4.py`
 
 **Interfaces:**
+
 - Produces:
   - `V4ResearchSessionRequest(query?, title?)`
   - `V4ResearchQueryRequest(session_id, query, mode)`
@@ -405,6 +428,7 @@ git commit -m "feat(sprint4): add QueryHistory and CitationCollection methods to
 
 ```python
 """V4 product layer schemas — strict, extra="forbid"."""
+
 from __future__ import annotations
 
 from typing import Literal, Any
@@ -419,6 +443,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class V4ResearchSessionRequest(BaseModel):
     """Create/initialize a research session."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     title: str | None = Field(default=None)
     query: str | None = Field(default=None)
@@ -426,6 +451,7 @@ class V4ResearchSessionRequest(BaseModel):
 
 class V4ResearchQueryRequest(BaseModel):
     """Execute a research query within a session."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     query: str = Field(..., min_length=1)
@@ -436,16 +462,16 @@ class V4ResearchQueryRequest(BaseModel):
 
 class V4ResearchWorkflowRequest(BaseModel):
     """Execute a structured research workflow."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     topic: str = Field(..., min_length=1)
-    workflow_type: Literal["full_research_flow"] = Field(
-        default="full_research_flow"
-    )
+    workflow_type: Literal["full_research_flow"] = Field(default="full_research_flow")
 
 
 class V4VisualizationGraphRequest(BaseModel):
     """Generate visualization data."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     concept_labels: list[str] = Field(..., min_length=1, max_length=20)
     graph_type: Literal["concept", "citation", "timeline", "document"] = Field(
@@ -455,12 +481,11 @@ class V4VisualizationGraphRequest(BaseModel):
 
 class V4EducationLearnRequest(BaseModel):
     """Education mode — grounded explanations only."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     session_id: str = Field(..., min_length=1)
     topic: str = Field(..., min_length=1)
-    level: Literal["beginner", "intermediate", "advanced"] = Field(
-        default="beginner"
-    )
+    level: Literal["beginner", "intermediate", "advanced"] = Field(default="beginner")
 
 
 # ---------------------------------------------------------------------------
@@ -470,6 +495,7 @@ class V4EducationLearnRequest(BaseModel):
 
 class VisualizationNode(BaseModel):
     """Strict visualization node — no free-form fields."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     id: str
     type: Literal["concept", "document", "entity"]
@@ -480,6 +506,7 @@ class VisualizationNode(BaseModel):
 
 class VisualizationEdge(BaseModel):
     """Strict visualization edge — every edge carries evidence backlinks."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     source: str
     target: str
@@ -490,6 +517,7 @@ class VisualizationEdge(BaseModel):
 
 class VisualizationGraph(BaseModel):
     """Full graph output — no untyped structures."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     nodes: list[VisualizationNode] = Field(default_factory=list)
     edges: list[VisualizationEdge] = Field(default_factory=list)
@@ -502,6 +530,7 @@ class VisualizationGraph(BaseModel):
 
 class V4TraceabilityBlock(BaseModel):
     """API-visible traceability — stable IDs only."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     query_id: str
     trace_ids: list[str] = Field(default_factory=list)
@@ -516,6 +545,7 @@ class V4TraceabilityBlock(BaseModel):
 
 class V4WorkflowStep(BaseModel):
     """One step in a ResearchRun execution trace."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     name: str
     status: Literal["pending", "running", "completed", "failed"]
@@ -525,6 +555,7 @@ class V4WorkflowStep(BaseModel):
 
 class V4WorkflowResponse(BaseModel):
     """Full workflow response with ResearchRun data."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     run_id: str
     session_id: str
@@ -539,6 +570,7 @@ class V4WorkflowResponse(BaseModel):
 
 class V4ApiEnvelope(BaseModel):
     """V4 API response envelope — always includes traceability."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     success: bool = True
     data: Any
@@ -550,30 +582,36 @@ class V4ApiEnvelope(BaseModel):
 
 Run: `cd /Users/likeming/Sites/hfb && uv run python -c "
 from app.schemas.v4 import (
-    V4ResearchSessionRequest, V4ResearchQueryRequest, V4VisualizationGraphRequest,
-    V4EducationLearnRequest, VisualizationNode, VisualizationEdge, VisualizationGraph,
-    V4TraceabilityBlock, V4ApiEnvelope
+V4ResearchSessionRequest, V4ResearchQueryRequest, V4VisualizationGraphRequest,
+V4EducationLearnRequest, VisualizationNode, VisualizationEdge, VisualizationGraph,
+V4TraceabilityBlock, V4ApiEnvelope
 )
+
 # Test node validation
+
 node = VisualizationNode(id='n1', type='concept', label='针灸', metadata={'era': 'Song'}, trace_ids=['t1'])
 print('NODE OK:', node.label)
 
 # Test edge validation
+
 edge = VisualizationEdge(source='n1', target='n2', type='citation', weight=0.85, evidence_ids=['e1'])
 print('EDGE OK:', edge.weight)
 
 # Test extra fields forbidden
+
 try:
-    bad = VisualizationNode(id='n1', type='concept', label='test', extra_field='no')
-    print('ERROR: should have rejected extra field')
+bad = VisualizationNode(id='n1', type='concept', label='test', extra_field='no')
+print('ERROR: should have rejected extra field')
 except Exception as e:
-    print('EXTRA FORBID OK:', type(e).__name__)
+print('EXTRA FORBID OK:', type(e).**name**)
 
 # Test graph
+
 graph = VisualizationGraph(nodes=[node], edges=[edge])
 print('GRAPH OK:', len(graph.nodes), 'nodes,', len(graph.edges), 'edges')
 
 # Test envelope
+
 trace = V4TraceabilityBlock(query_id='q1', trace_ids=['t1'], citation_count=1, source_documents=['甲乙经'])
 env = V4ApiEnvelope(success=True, data={'key': 'val'}, message='ok', traceability=trace)
 print('ENVELOPE OK, trace:', env.traceability.query_id)
@@ -592,9 +630,11 @@ git commit -m "feat(sprint4): add V4 schemas with strict visualization and trace
 ### Task 6: Create V4 research endpoints (session, query, workflow)
 
 **Files:**
+
 - Create: `apps/backend/app/api/v4/research.py`
 
 **Interfaces:**
+
 - Consumes: WorkspaceService (create_session, create_query_history, get_query_history, list_sessions), AcademicService (generate_report, synthesize, research, educate), GraphService (intelligence), DashboardService (get_overview), V4 schemas
 - Produces: 3 POST endpoints — `/research/session`, `/research/query`, `/research/workflow`
 
@@ -607,6 +647,7 @@ git commit -m "feat(sprint4): add V4 schemas with strict visualization and trace
 
 STRICT: No ORM access. All data through existing services.
 """
+
 from __future__ import annotations
 
 import json
@@ -685,11 +726,16 @@ async def create_research_session(
             session_id=research_session.id,
             query_text=body.query,
             query_type="research",
-            result_summary=json.dumps({
-                "trace_ids": trace_ids,
-                "citation_count": len(result.citations),
-                "source_documents": list({t.document_id for t in result.evidence_trace}),
-            }, ensure_ascii=False),
+            result_summary=json.dumps(
+                {
+                    "trace_ids": trace_ids,
+                    "citation_count": len(result.citations),
+                    "source_documents": list(
+                        {t.document_id for t in result.evidence_trace}
+                    ),
+                },
+                ensure_ascii=False,
+            ),
             citation_count=len(result.citations),
         )
         traceability = V4TraceabilityBlock(
@@ -701,7 +747,9 @@ async def create_research_session(
         data["query_id"] = qh.id
         data["result"] = result.model_dump()
 
-    return V4ApiEnvelope(success=True, data=data, message="ok", traceability=traceability)
+    return V4ApiEnvelope(
+        success=True, data=data, message="ok", traceability=traceability
+    )
 
 
 # ======================================================================
@@ -725,7 +773,9 @@ async def execute_research_query(
     # Verify session exists and is owned
     research_session = await ws.get_session(body.session_id)
     if research_session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
     # ponytail: session ownership check is implicit via user-scoped list; explicit
     # check added only if multi-user session access becomes a requirement
 
@@ -761,11 +811,14 @@ async def execute_research_query(
         session_id=body.session_id,
         query_text=body.query,
         query_type=body.mode,
-        result_summary=json.dumps({
-            "trace_ids": trace_ids,
-            "citation_count": len(citations),
-            "source_documents": source_docs,
-        }, ensure_ascii=False),
+        result_summary=json.dumps(
+            {
+                "trace_ids": trace_ids,
+                "citation_count": len(citations),
+                "source_documents": source_docs,
+            },
+            ensure_ascii=False,
+        ),
         citation_count=len(citations),
     )
 
@@ -816,7 +869,9 @@ async def execute_research_workflow(
     ws = WorkspaceService(db)
     research_session = await ws.get_session(body.session_id)
     if research_session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     run_id = str(uuid4())
     academic = AcademicService(db)
@@ -829,14 +884,20 @@ async def execute_research_workflow(
             if step_name == "topic_selection":
                 # Step 1: Decompose topic into research questions
                 result = await academic.research(query=body.topic)
-                step_result = {"topic": body.topic, "sub_questions": len(result.decomposition)}
+                step_result = {
+                    "topic": body.topic,
+                    "sub_questions": len(result.decomposition),
+                }
                 step_trace = [t.chunk_id for t in result.evidence_trace]
                 step_docs = list({t.document_id for t in result.evidence_trace})
 
             elif step_name == "literature_retrieval":
                 # Step 2: Broader synthesis
                 result = await academic.synthesize(query=body.topic)
-                step_result = {"themes": len(result.themes), "claims": len(result.evidence_trace)}
+                step_result = {
+                    "themes": len(result.themes),
+                    "claims": len(result.evidence_trace),
+                }
                 step_trace = [t.chunk_id for t in result.evidence_trace]
                 step_docs = list({t.document_id for t in result.evidence_trace})
 
@@ -845,7 +906,10 @@ async def execute_research_workflow(
                 result = await academic.generate_report(
                     query=body.topic, report_type="thematic_analysis"
                 )
-                step_result = {"sections": len(result.sections), "claims": len(result.evidence_trace)}
+                step_result = {
+                    "sections": len(result.sections),
+                    "claims": len(result.evidence_trace),
+                }
                 step_trace = [t.chunk_id for t in result.evidence_trace]
                 step_docs = list({t.document_id for t in result.evidence_trace})
 
@@ -861,7 +925,10 @@ async def execute_research_workflow(
             elif step_name == "citation_export":
                 # Step 5: Collect all citations from previous steps
                 all_citations = list(set(all_trace_ids))
-                step_result = {"total_citations": len(all_citations), "citations": all_citations}
+                step_result = {
+                    "total_citations": len(all_citations),
+                    "citations": all_citations,
+                }
                 step_trace = all_citations
                 step_docs = all_source_docs
                 # Record final query history for export step
@@ -869,10 +936,13 @@ async def execute_research_workflow(
                     session_id=body.session_id,
                     query_text=body.topic,
                     query_type="workflow_export",
-                    result_summary=json.dumps({
-                        "trace_ids": all_citations,
-                        "source_documents": all_source_docs,
-                    }, ensure_ascii=False),
+                    result_summary=json.dumps(
+                        {
+                            "trace_ids": all_citations,
+                            "source_documents": all_source_docs,
+                        },
+                        ensure_ascii=False,
+                    ),
                     citation_count=len(all_citations),
                 )
 
@@ -883,28 +953,35 @@ async def execute_research_workflow(
                 session_id=body.session_id,
                 query_text=f"[workflow step] {step_name}: {body.topic}",
                 query_type="workflow_step",
-                result_summary=json.dumps({
-                    "step": step_name,
-                    "trace_ids": step_trace,
-                    "source_documents": step_docs,
-                }, ensure_ascii=False),
+                result_summary=json.dumps(
+                    {
+                        "step": step_name,
+                        "trace_ids": step_trace,
+                        "source_documents": step_docs,
+                    },
+                    ensure_ascii=False,
+                ),
                 citation_count=len(step_trace),
             )
 
-            steps.append(V4WorkflowStep(
-                name=step_name,
-                status="completed",
-                result=step_result,
-                trace_ids=step_trace,
-            ))
+            steps.append(
+                V4WorkflowStep(
+                    name=step_name,
+                    status="completed",
+                    result=step_result,
+                    trace_ids=step_trace,
+                )
+            )
 
         except Exception as exc:
-            steps.append(V4WorkflowStep(
-                name=step_name,
-                status="failed",
-                result={"error": str(exc)},
-                trace_ids=[],
-            ))
+            steps.append(
+                V4WorkflowStep(
+                    name=step_name,
+                    status="failed",
+                    result={"error": str(exc)},
+                    trace_ids=[],
+                )
+            )
 
     # Persist ResearchRun in workflow_state
     existing_state = {}
@@ -915,13 +992,15 @@ async def execute_research_workflow(
             existing_state = {}
 
     runs = existing_state.get("runs", [])
-    runs.append({
-        "run_id": run_id,
-        "session_id": body.session_id,
-        "topic": body.topic,
-        "started_at": datetime.now(timezone.utc).isoformat(),
-        "steps": [s.model_dump() for s in steps],
-    })
+    runs.append(
+        {
+            "run_id": run_id,
+            "session_id": body.session_id,
+            "topic": body.topic,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "steps": [s.model_dump() for s in steps],
+        }
+    )
     existing_state["runs"] = runs
     research_session.workflow_state = json.dumps(existing_state, ensure_ascii=False)
     research_session.updated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
@@ -964,9 +1043,11 @@ git commit -m "feat(sprint4): add V4 research endpoints (session, query, workflo
 ### Task 7: Create V4 visualization endpoint
 
 **Files:**
+
 - Create: `apps/backend/app/api/v4/visualization.py`
 
 **Interfaces:**
+
 - Consumes: GraphService (build_concept_graph, compute_concept_similarity, cross_document_analysis, intelligence), V4 schemas
 - Produces: `POST /visualization/graph`
 
@@ -974,6 +1055,7 @@ git commit -m "feat(sprint4): add V4 research endpoints (session, query, workflo
 
 ```python
 """V4 Visualization API — strict typed graph output, corpus-bound."""
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -1006,7 +1088,9 @@ def _convert_concept_graph_to_viz(cg) -> VisualizationGraph:
             type=n.type if n.type in ("concept", "document", "entity") else "concept",
             label=n.label,
             metadata=n.metadata if n.metadata else {},
-            trace_ids=n.evidence_refs if hasattr(n, "evidence_refs") and n.evidence_refs else [],
+            trace_ids=n.evidence_refs
+            if hasattr(n, "evidence_refs") and n.evidence_refs
+            else [],
         )
         for n in cg.nodes
     ]
@@ -1014,11 +1098,14 @@ def _convert_concept_graph_to_viz(cg) -> VisualizationGraph:
         VisualizationEdge(
             source=e.source,
             target=e.target,
-            type=e.relation if e.relation in (
-                "citation", "hierarchy", "co_occurrence", "similarity", "timeline"
-            ) else "co_occurrence",
+            type=e.relation
+            if e.relation
+            in ("citation", "hierarchy", "co_occurrence", "similarity", "timeline")
+            else "co_occurrence",
             weight=e.weight if hasattr(e, "weight") else 0.5,
-            evidence_ids=e.evidence_refs if hasattr(e, "evidence_refs") and e.evidence_refs else [],
+            evidence_ids=e.evidence_refs
+            if hasattr(e, "evidence_refs") and e.evidence_refs
+            else [],
         )
         for e in cg.edges
     ]
@@ -1054,7 +1141,9 @@ async def generate_visualization_graph(
 
     elif body.graph_type == "timeline":
         # Timeline: cross-document analysis gives temporal relationship
-        cda = await gs.cross_document_analysis(body.concept_labels[0] if body.concept_labels else "针灸")
+        cda = await gs.cross_document_analysis(
+            body.concept_labels[0] if body.concept_labels else "针灸"
+        )
         nodes = [
             VisualizationNode(
                 id=c.trace_id if hasattr(c, "trace_id") else c.document_id,
@@ -1067,7 +1156,10 @@ async def generate_visualization_graph(
         ]
         edges = []  # timeline is node-ordered, no explicit edges needed
         graph = VisualizationGraph(nodes=nodes, edges=edges)
-        source_entities = [c.document_id for c in (cda.claims if hasattr(cda, "claims") and cda.claims else [])]
+        source_entities = [
+            c.document_id
+            for c in (cda.claims if hasattr(cda, "claims") and cda.claims else [])
+        ]
         edge_evidence = []
 
     elif body.graph_type == "document":
@@ -1134,9 +1226,11 @@ git commit -m "feat(sprint4): add V4 visualization endpoint with strict graph sc
 ### Task 8: Create V4 education endpoint
 
 **Files:**
+
 - Create: `apps/backend/app/api/v4/education.py`
 
 **Interfaces:**
+
 - Consumes: AcademicService (educate), WorkspaceService (create_query_history, get_session), V4 schemas
 - Produces: `POST /education/learn`
 
@@ -1146,6 +1240,7 @@ git commit -m "feat(sprint4): add V4 visualization endpoint with strict graph sc
 
 ```python
 """V4 Education API — grounded explanations, no inference beyond corpus."""
+
 from __future__ import annotations
 
 import json
@@ -1212,12 +1307,15 @@ async def education_learn(
         session_id=body.session_id,
         query_text=body.topic,
         query_type="education",
-        result_summary=json.dumps({
-            "level": body.level,
-            "trace_ids": trace_ids,
-            "citation_count": len(result.citations),
-            "source_documents": source_docs,
-        }, ensure_ascii=False),
+        result_summary=json.dumps(
+            {
+                "level": body.level,
+                "trace_ids": trace_ids,
+                "citation_count": len(result.citations),
+                "source_documents": source_docs,
+            },
+            ensure_ascii=False,
+        ),
         citation_count=len(result.citations),
     )
 
@@ -1250,19 +1348,22 @@ git commit -m "feat(sprint4): add V4 education endpoint with corpus-bound safety
 
 ---
 
-### Task 9: Create V4 router __init__ and register in api
+### Task 9: Create V4 router **init** and register in api
 
 **Files:**
+
 - Create: `apps/backend/app/api/v4/__init__.py`
 - Modify: `apps/backend/app/api/__init__.py`
 
 **Interfaces:**
+
 - Produces: `v4_router` aggregating research, visualization, education sub-routers
 
-- [ ] **Step 1: Create api/v4/__init__.py**
+- [ ] **Step 1: Create api/v4/**init**.py**
 
 ```python
 """API V4 — Digital Humanities Research Platform product layer."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter
@@ -1277,7 +1378,7 @@ v4_router.include_router(visualization_router)
 v4_router.include_router(education_router)
 ```
 
-- [ ] **Step 2: Register v4_router in api/__init__.py**
+- [ ] **Step 2: Register v4_router in api/**init**.py**
 
 Read the current `apps/backend/app/api/__init__.py`, find the router registration lines, and add:
 
@@ -1298,11 +1399,13 @@ assert any('/research/query' in p for p in paths)
 assert any('/research/workflow' in p for p in paths)
 assert any('/visualization/graph' in p for p in paths)
 assert any('/education/learn' in p for p in paths)
+
 # Also check total count — sub-routers contribute their routes
+
 # For APIRouter with prefix, the full path appears in the app router
+
 print('ALL ROUTES OK')
-"`
-Expected: all routes listed, `ALL ROUTES OK`
+"`Expected: all routes listed,`ALL ROUTES OK`
 
 - [ ] **Step 4: Verify no ORM access in v4/**
 
@@ -1321,9 +1424,11 @@ git commit -m "feat(sprint4): register V4 router in API with research/visualizat
 ### Task 10: Create V4 tests (21 tests)
 
 **Files:**
+
 - Create: `tests/unit/test_sprint4_v4.py`
 
 **Interfaces:**
+
 - Consumes: All V4 schemas, all V4 endpoints, test fixtures from conftest.py
 
 - [ ] **Step 1: Create test file**
@@ -1334,6 +1439,7 @@ git commit -m "feat(sprint4): register V4 router in API with research/visualizat
 P0: All tests use HTTPX ASGI transport for real request/response validation.
 P0: Traceability checks verify internal full-fidelity + API surface cleanliness.
 """
+
 from __future__ import annotations
 
 import json
@@ -1400,7 +1506,9 @@ async def test_create_session_with_custom_title(client: AsyncClient):
 async def test_query_history_recorded(client: AsyncClient):
     """Query history is recorded when executing a research query."""
     # Create session first
-    r1 = await client.post("/api/v4/research/session", json={"title": "query history test"})
+    r1 = await client.post(
+        "/api/v4/research/session", json={"title": "query history test"}
+    )
     session_id = r1.json()["data"]["session_id"]
 
     # Execute query — query history must be written
@@ -1477,14 +1585,22 @@ async def test_workflow_researchrun_decoupling(client: AsyncClient):
     # Execute two workflows in same session
     r2 = await client.post(
         "/api/v4/research/workflow",
-        json={"session_id": session_id, "topic": "经络", "workflow_type": "full_research_flow"},
+        json={
+            "session_id": session_id,
+            "topic": "经络",
+            "workflow_type": "full_research_flow",
+        },
     )
     assert r2.status_code == 200
     run_id_1 = r2.json()["data"]["run_id"]
 
     r3 = await client.post(
         "/api/v4/research/workflow",
-        json={"session_id": session_id, "topic": "针灸", "workflow_type": "full_research_flow"},
+        json={
+            "session_id": session_id,
+            "topic": "针灸",
+            "workflow_type": "full_research_flow",
+        },
     )
     assert r3.status_code == 200
     run_id_2 = r3.json()["data"]["run_id"]
@@ -1496,12 +1612,18 @@ async def test_workflow_researchrun_decoupling(client: AsyncClient):
 @pytest.mark.anyio
 async def test_workflow_step_traceability(client: AsyncClient):
     """Each workflow step carries trace_ids."""
-    r1 = await client.post("/api/v4/research/session", json={"title": "traceability test"})
+    r1 = await client.post(
+        "/api/v4/research/session", json={"title": "traceability test"}
+    )
     session_id = r1.json()["data"]["session_id"]
 
     r2 = await client.post(
         "/api/v4/research/workflow",
-        json={"session_id": session_id, "topic": "经络", "workflow_type": "full_research_flow"},
+        json={
+            "session_id": session_id,
+            "topic": "经络",
+            "workflow_type": "full_research_flow",
+        },
     )
     assert r2.status_code == 200
     body = r2.json()
@@ -1522,7 +1644,11 @@ async def test_workflow_export_markdown_full(client: AsyncClient):
 
     r2 = await client.post(
         "/api/v4/research/workflow",
-        json={"session_id": session_id, "topic": "针灸", "workflow_type": "full_research_flow"},
+        json={
+            "session_id": session_id,
+            "topic": "针灸",
+            "workflow_type": "full_research_flow",
+        },
     )
     assert r2.status_code == 200
     body = r2.json()
@@ -1576,7 +1702,13 @@ async def test_visualization_concept_graph_strict_schema(client: AsyncClient):
         assert "source" in edge
         assert "target" in edge
         assert "type" in edge
-        assert edge["type"] in ("citation", "hierarchy", "co_occurrence", "similarity", "timeline")
+        assert edge["type"] in (
+            "citation",
+            "hierarchy",
+            "co_occurrence",
+            "similarity",
+            "timeline",
+        )
         assert "weight" in edge
         assert "evidence_ids" in edge
 
@@ -1658,7 +1790,9 @@ async def test_education_beginner_level(client: AsyncClient):
 @pytest.mark.anyio
 async def test_education_citation_binding(client: AsyncClient):
     """Every education concept has evidence trace — citation-bound."""
-    r1 = await client.post("/api/v4/research/session", json={"title": "citation binding"})
+    r1 = await client.post(
+        "/api/v4/research/session", json={"title": "citation binding"}
+    )
     session_id = r1.json()["data"]["session_id"]
 
     r2 = await client.post(
@@ -1724,8 +1858,14 @@ async def test_traceability_block_in_all_responses(client: AsyncClient):
     session_id = r1.json()["data"]["session_id"]
 
     endpoints = [
-        ("/api/v4/research/query", {"session_id": session_id, "query": "针灸", "mode": "research"}),
-        ("/api/v4/education/learn", {"session_id": session_id, "topic": "经络", "level": "beginner"}),
+        (
+            "/api/v4/research/query",
+            {"session_id": session_id, "query": "针灸", "mode": "research"},
+        ),
+        (
+            "/api/v4/education/learn",
+            {"session_id": session_id, "topic": "经络", "level": "beginner"},
+        ),
     ]
     for url, payload in endpoints:
         r = await client.post(url, json=payload)
@@ -1745,7 +1885,9 @@ async def test_every_trace_id_resolves_to_passage(client: AsyncClient):
 
     Verification: run a query, get trace_ids, verify they map to EvidenceTrace entries.
     """
-    r1 = await client.post("/api/v4/research/session", json={"title": "resolution test"})
+    r1 = await client.post(
+        "/api/v4/research/session", json={"title": "resolution test"}
+    )
     session_id = r1.json()["data"]["session_id"]
 
     r2 = await client.post(

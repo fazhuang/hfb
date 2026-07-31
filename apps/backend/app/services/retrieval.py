@@ -10,6 +10,7 @@ Compliance: strict_compliance=True enforces copyright_status allowlist
 and requires rag_enabled=True. Forbidden statuses (commercial_restricted,
 metadata_only, forbidden_fulltext, pirated, unknown) are excluded.
 """
+
 from __future__ import annotations
 
 import logging
@@ -25,12 +26,14 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 
 # Copyright statuses allowed for retrieval when strict_compliance=True
-_COMPLIANT_COPYRIGHT_STATUSES = frozenset({
-    "public_domain",
-    "open_access",
-    "licensed",
-    "user_uploaded_with_permission",
-})
+_COMPLIANT_COPYRIGHT_STATUSES = frozenset(
+    {
+        "public_domain",
+        "open_access",
+        "licensed",
+        "user_uploaded_with_permission",
+    }
+)
 
 
 def _compliance_clauses(
@@ -53,6 +56,8 @@ def _compliance_clauses(
       4. withdrawn_at IS NULL — guards against rows soft-deleted via withdrawal
          that still have is_deleted=False / rag_enabled=True
     """
+
+
 # Simplified → traditional character variants for matching classical woodblock OCR.
 # The 1601 NLC scan uses traditional/variant characters (鐵/鍼 for 针, 經 for 经).
 # Without variant expansion, keyword-based retrieval returns zero candidates for
@@ -217,20 +222,24 @@ class RetrievalService:
         # Fetch candidate chunks: ILIKE any keyword
         # Context 21: filter BOTH DocumentChunk.is_deleted AND Document.is_deleted
         # Context 22: optional strict_compliance adds rag_enabled + copyright gate
-        stmt = select(DocumentChunk).join(
-            Document, DocumentChunk.document_id == Document.id
-        ).where(
-            DocumentChunk.is_deleted.is_(False),
-            Document.is_deleted.is_(False),
+        stmt = (
+            select(DocumentChunk)
+            .join(Document, DocumentChunk.document_id == Document.id)
+            .where(
+                DocumentChunk.is_deleted.is_(False),
+                Document.is_deleted.is_(False),
+            )
         )
         if strict_compliance:
-            stmt = stmt.where(*_compliance_clauses(
-                rag_col=Document.rag_enabled,
-                status_col=Document.copyright_status,
-                auth_col=Document.authorization_basis,
-                license_col=Document.license_type,
-                withdrawn_col=Document.withdrawn_at,
-            ))
+            stmt = stmt.where(
+                *_compliance_clauses(
+                    rag_col=Document.rag_enabled,
+                    status_col=Document.copyright_status,
+                    auth_col=Document.authorization_basis,
+                    license_col=Document.license_type,
+                    withdrawn_col=Document.withdrawn_at,
+                )
+            )
             # Page-level evidence quality gate: PDF-backed documents MUST
             # have a verified page_number on the chunk. Non-PDF documents
             # (ctext, etc.) pass through freely (raw_pdf_blob IS NULL).
@@ -251,9 +260,7 @@ class RetrievalService:
             stmt = stmt.where(Document.author_id == author_id)
 
         # Build OR of keyword ILIKE conditions
-        keyword_filters = [
-            DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords
-        ]
+        keyword_filters = [DocumentChunk.content.ilike(f"%{kw}%") for kw in keywords]
         stmt = stmt.where(or_(*keyword_filters))
 
         # Fetch ALL candidate chunks matching any keyword
@@ -267,8 +274,11 @@ class RetrievalService:
         if doc_ids:
             doc_result = await self.session.execute(
                 select(
-                    Document.id, Document.title, Document.source_url,
-                    Document.copyright_status, Document.rag_enabled,
+                    Document.id,
+                    Document.title,
+                    Document.source_url,
+                    Document.copyright_status,
+                    Document.rag_enabled,
                 ).where(Document.id.in_(doc_ids))
             )
             for row in doc_result:
@@ -352,9 +362,9 @@ class RetrievalService:
 
         # If query already contains spaces (pre-tokenized), split on whitespace
         if " " in query.strip():
-            terms = list(dict.fromkeys(
-                kw for kw in query.strip().split() if kw and len(kw) >= 2
-            ))
+            terms = list(
+                dict.fromkeys(kw for kw in query.strip().split() if kw and len(kw) >= 2)
+            )
             # P2T1: Apply variant expansion even for pre-tokenized queries.
             # build_academic_retrieval_query inserts spaces between keyword
             # segments, which would otherwise bypass simplified→traditional
@@ -362,22 +372,24 @@ class RetrievalService:
             return _expand_variants(terms)
         else:
             # Strip question markers
-            clean = re.sub(r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)", " ", query)
+            clean = re.sub(
+                r"(是否|能否|是不是|有没有|可不|是什么|什么是|如何|怎么|怎样|为何|为什么|是谁)",
+                " ",
+                query,
+            )
             clean = re.sub(r"\s+", " ", clean).strip()
 
             # Segment Chinese text: keep only Chinese chars, build bigrams+trigrams
             chinese = re.findall(r"[一-鿿]", clean)
             terms = []
             for i in range(len(chinese) - 1):
-                terms.append("".join(chinese[i:i+2]))
+                terms.append("".join(chinese[i : i + 2]))
             for i in range(len(chinese) - 2):
-                terms.append("".join(chinese[i:i+3]))
+                terms.append("".join(chinese[i : i + 3]))
             terms = list(dict.fromkeys(terms))
 
             if not terms:
-                return list(dict.fromkeys(
-                    kw for kw in clean.split() if kw
-                ))
+                return list(dict.fromkeys(kw for kw in clean.split() if kw))
 
         return _expand_variants(terms)
 

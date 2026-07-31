@@ -88,14 +88,15 @@ def ocr_all_pages(pdf_path: str) -> dict[int, str]:
         processed = _preprocess_for_tesseract(img)
 
         text = pytesseract.image_to_string(
-            processed, lang=OCR_LANG,
+            processed,
+            lang=OCR_LANG,
             config="--psm 6 -c preserve_interword_spaces=1",
         )
         page_num = i + 1  # 1-indexed
         page_texts[page_num] = text
 
         if (i + 1) % 10 == 0:
-            print(f"    ... page {i+1}/{total}")
+            print(f"    ... page {i + 1}/{total}")
 
     doc.close()
     print(f"  OCR complete: {len(page_texts)} pages extracted")
@@ -108,13 +109,17 @@ def verify_pdf_checksum(pdf_path: str) -> str:
         raw = f.read()
     sha = hashlib.sha256(raw).hexdigest()
     if sha != EXPECTED_SHA256:
-        print(f"  WARNING: SHA-256 mismatch! Expected {EXPECTED_SHA256[:16]}..., got {sha[:16]}...")
+        print(
+            f"  WARNING: SHA-256 mismatch! Expected {EXPECTED_SHA256[:16]}..., got {sha[:16]}..."
+        )
     else:
         print(f"  SHA-256 verified: {sha[:16]}...")
     return sha
 
 
-def build_page_chunk_mapping(page_texts: dict[int, str], chunks_data: list[dict]) -> dict[str, int]:
+def build_page_chunk_mapping(
+    page_texts: dict[int, str], chunks_data: list[dict]
+) -> dict[str, int]:
     """Match each chunk's content to the page whose OCR text contains it.
 
     For each chunk, find the PDF page where its text appears.
@@ -129,13 +134,13 @@ def build_page_chunk_mapping(page_texts: dict[int, str], chunks_data: list[dict]
             continue
 
         # Normalize: strip whitespace for matching
-        norm_content = re.sub(r'\s+', '', content)
+        norm_content = re.sub(r"\s+", "", content)
 
         best_page = None
         best_score = 0
 
         for page_num, ocr_text in page_texts.items():
-            norm_ocr = re.sub(r'\s+', '', ocr_text)
+            norm_ocr = re.sub(r"\s+", "", ocr_text)
             if not norm_ocr:
                 continue
 
@@ -196,7 +201,9 @@ async def main():
 
         # Get existing PDF document
         r = await session.execute(
-            text("SELECT id, content_checksum FROM documents WHERE raw_pdf_blob IS NOT NULL AND is_deleted=false")
+            text(
+                "SELECT id, content_checksum FROM documents WHERE raw_pdf_blob IS NOT NULL AND is_deleted=false"
+            )
         )
         doc_row = r.fetchone()
         if not doc_row:
@@ -211,7 +218,12 @@ async def main():
         # Save OCR output artifact
         ocr_artifact_path = "/Users/likeming/Sites/hfb/output/p0_ocr_page_texts.json"
         with open(ocr_artifact_path, "w", encoding="utf-8") as f:
-            json.dump({str(k): v for k, v in page_texts.items()}, f, ensure_ascii=False, indent=2)
+            json.dump(
+                {str(k): v for k, v in page_texts.items()},
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
         print(f"  OCR artifact saved: {ocr_artifact_path}")
 
         # Get all current DocumentChunks
@@ -224,8 +236,14 @@ async def main():
             {"did": pdf_doc_id},
         )
         all_chunks = [
-            {"id": row[0], "document_id": row[1], "content": row[2] or "",
-             "old_page": row[3], "passage_id": row[4], "chunk_index": row[5]}
+            {
+                "id": row[0],
+                "document_id": row[1],
+                "content": row[2] or "",
+                "old_page": row[3],
+                "passage_id": row[4],
+                "chunk_index": row[5],
+            }
             for row in r.fetchall()
         ]
         print(f"  Found {len(all_chunks)} chunks for document {pdf_doc_id}")
@@ -238,7 +256,7 @@ async def main():
         print("\n  [2c] OCR text samples for verification pages (5-13):")
         for pn in range(5, 14):
             text = page_texts.get(pn, "")
-            sample = text[:200].replace('\n', ' ') if text else "(empty)"
+            sample = text[:200].replace("\n", " ") if text else "(empty)"
             print(f"    Page {pn}: {sample}")
 
         # Update chunks with verified page numbers
@@ -258,7 +276,9 @@ async def main():
                 else:
                     unknown_count += 1
 
-        print(f"  Updated {fixed_count} chunks with verified pages, {unknown_count} -> NULL")
+        print(
+            f"  Updated {fixed_count} chunks with verified pages, {unknown_count} -> NULL"
+        )
         await session.flush()
 
         # ================================================================
@@ -289,16 +309,22 @@ async def main():
             )
         )
         broken = [
-            {"cit_id": row[0], "note": row[1], "target_type": row[2],
-             "target_id": row[3], "ev_id": row[4], "source_passage_id": row[5]}
+            {
+                "cit_id": row[0],
+                "note": row[1],
+                "target_type": row[2],
+                "target_id": row[3],
+                "ev_id": row[4],
+                "source_passage_id": row[5],
+            }
             for row in r.fetchall()
         ]
         print(f"  Found {len(broken)} citations with NULL source_ref_id")
 
         # 1b. Classify: traceable vs untraceable
-        traceable = []   # has real chunk/doc info we can trace
+        traceable = []  # has real chunk/doc info we can trace
         deletion_test = []  # from deleted test documents
-        untraceable = []   # can't determine source
+        untraceable = []  # can't determine source
 
         for b in broken:
             # Check target document
@@ -342,14 +368,20 @@ async def main():
                 else:
                     untraceable.append(b)
 
-        print(f"  Traceable: {len(traceable)}, Deletion test: {len(deletion_test)}, Untraceable: {len(untraceable)}")
+        print(
+            f"  Traceable: {len(traceable)}, Deletion test: {len(deletion_test)}, Untraceable: {len(untraceable)}"
+        )
 
         # 1c. Soft-delete deletion test citations (they point to deleted documents)
         if deletion_test:
-            print(f"\n  [1c] Soft-deleting {len(deletion_test)} deletion-test citations...")
+            print(
+                f"\n  [1c] Soft-deleting {len(deletion_test)} deletion-test citations..."
+            )
             for b in deletion_test:
                 await session.execute(
-                    text("UPDATE citations SET is_deleted=true, deleted_at=NOW() WHERE id=:cid"),
+                    text(
+                        "UPDATE citations SET is_deleted=true, deleted_at=NOW() WHERE id=:cid"
+                    ),
                     {"cid": b["cit_id"]},
                 )
             print(f"  Soft-deleted {len(deletion_test)} citations")
@@ -359,19 +391,25 @@ async def main():
             print(f"\n  [1d] Soft-deleting {len(untraceable)} untraceable citations...")
             for b in untraceable:
                 await session.execute(
-                    text("UPDATE citations SET is_deleted=true, deleted_at=NOW() WHERE id=:cid"),
+                    text(
+                        "UPDATE citations SET is_deleted=true, deleted_at=NOW() WHERE id=:cid"
+                    ),
                     {"cid": b["cit_id"]},
                 )
             print(f"  Soft-deleted {len(untraceable)} citations")
 
         # 1e. Backfill source_ref_id on traceable citations
         if traceable:
-            print(f"\n  [1e] Backfilling source_ref_id on {len(traceable)} traceable citations...")
+            print(
+                f"\n  [1e] Backfilling source_ref_id on {len(traceable)} traceable citations..."
+            )
             backfilled = 0
             for b in traceable:
                 # Set source_ref_id on the evidence
                 await session.execute(
-                    text("UPDATE evidences SET source_ref_id=:sr_id WHERE id=:eid AND source_ref_id IS NULL"),
+                    text(
+                        "UPDATE evidences SET source_ref_id=:sr_id WHERE id=:eid AND source_ref_id IS NULL"
+                    ),
                     {"sr_id": sr_id, "eid": b["ev_id"]},
                 )
                 backfilled += 1
@@ -454,16 +492,31 @@ async def main():
         print(f"  Found {len(facts)} facts to audit\n")
 
         for i, f in enumerate(facts[:5], 1):
-            cid, quote, note, ev_id, src_ref_id, src_url, doc_id, page_num, chunk_id, _chunk_content, ver_id, ver_name = f
+            (
+                cid,
+                quote,
+                note,
+                ev_id,
+                src_ref_id,
+                src_url,
+                doc_id,
+                page_num,
+                chunk_id,
+                _chunk_content,
+                ver_id,
+                ver_name,
+            ) = f
 
             # Get PDF OCR text for the page
-            ocr_text = page_texts.get(int(page_num) if page_num else -1, "(not available)")
-            ocr_sample = ocr_text[:300].replace('\n', ' ') if ocr_text else "(empty)"
+            ocr_text = page_texts.get(
+                int(page_num) if page_num else -1, "(not available)"
+            )
+            ocr_sample = ocr_text[:300].replace("\n", " ") if ocr_text else "(empty)"
 
             # Quote vs OCR comparison
             if quote and ocr_text:
-                norm_quote = re.sub(r'\s+', '', quote)
-                norm_ocr = re.sub(r'\s+', '', ocr_text)
+                norm_quote = re.sub(r"\s+", "", quote)
+                norm_ocr = re.sub(r"\s+", "", ocr_text)
                 # Check if quote text appears in OCR
                 if len(norm_quote) >= 5 and norm_quote[:20] in norm_ocr:
                     quote_match = "MATCH"
@@ -519,7 +572,9 @@ async def main():
                 print(f"    cit={row[0][:12]} quote={row[1][:50] if row[1] else ''}")
 
         # Count total active citations
-        r = await session.execute(text("SELECT count(*) FROM citations WHERE is_deleted=false"))
+        r = await session.execute(
+            text("SELECT count(*) FROM citations WHERE is_deleted=false")
+        )
         total = r.scalar()
         print(f"  Active citations: {total}")
 

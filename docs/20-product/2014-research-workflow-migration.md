@@ -13,12 +13,12 @@
 
 ## 1. Migration Sources
 
-| Source File | Capability Absorbed | How Absorbed |
-|---|---|---|
-| `views/V4ResearchView.vue` | Full research workflow (topic → 5-step pipeline → report + citations + export + note) | Extracted into composable `useResearchWorkflow.ts` + 5 step components |
-| `views/ResearchWorkspaceView.vue` (v4-research tab) | Inline V4 workflow + report list + citation extraction | Deduplicated — workflow now standalone; report list stays in workspace |
-| `components/research/ResearchAssistantEntry.vue` | sessionStorage question passing | Renamed key from `hfb.research.pending-question` to `hfb.research.{projectId}.pending-question` for project isolation |
-| `components/research/ContinueResearchCard.vue` | Resumable run detection | Stays in workspace; now linked to `/research/:projectId/workflow` |
+| Source File                                         | Capability Absorbed                                                                   | How Absorbed                                                                                                          |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `views/V4ResearchView.vue`                          | Full research workflow (topic → 5-step pipeline → report + citations + export + note) | Extracted into composable `useResearchWorkflow.ts` + 5 step components                                                |
+| `views/ResearchWorkspaceView.vue` (v4-research tab) | Inline V4 workflow + report list + citation extraction                                | Deduplicated — workflow now standalone; report list stays in workspace                                                |
+| `components/research/ResearchAssistantEntry.vue`    | sessionStorage question passing                                                       | Renamed key from `hfb.research.pending-question` to `hfb.research.{projectId}.pending-question` for project isolation |
+| `components/research/ContinueResearchCard.vue`      | Resumable run detection                                                               | Stays in workspace; now linked to `/research/:projectId/workflow`                                                     |
 
 ## 2. Real Workflow API Contract
 
@@ -32,12 +32,13 @@ POST /api/v4/research/workflow
 
 ```python
 class V4ResearchWorkflowRequest(BaseModel):
-    session_id: str      # Required — ResearchSession.id
-    topic: str           # Required — research question
+    session_id: str  # Required — ResearchSession.id
+    topic: str  # Required — research question
     workflow_type: Literal["full_research_flow"]  # default: "full_research_flow"
 ```
 
 **Not supported by backend:**
+
 - `document_ids` — no document selection field exists
 - `supplementary_notes` — no secondary text field exists
 - `search_scope` — no retrieval scope parameter exists
@@ -48,16 +49,18 @@ class V4ResearchWorkflowRequest(BaseModel):
 
 ```python
 class V4WorkflowResponse(BaseModel):
-    run_id: str                              # Server-generated UUID
-    session_id: str                          # Echo back
-    steps: list[V4WorkflowStep]              # 5-step results
+    run_id: str  # Server-generated UUID
+    session_id: str  # Echo back
+    steps: list[V4WorkflowStep]  # 5-step results
     traceability: V4TraceabilityBlock | None
 
+
 class V4WorkflowStep(BaseModel):
-    name: str                                # "topic_selection" | "literature_retrieval" | ...
+    name: str  # "topic_selection" | "literature_retrieval" | ...
     status: Literal["pending", "running", "completed", "failed"]
     result: dict[str, Any] | None
     trace_ids: list[str]
+
 
 class V4TraceabilityBlock(BaseModel):
     query_id: str
@@ -70,6 +73,7 @@ class V4TraceabilityBlock(BaseModel):
 ### Execution Model
 
 Backend executes ALL 5 steps synchronously in a single HTTP request/response cycle:
+
 1. `topic_selection` — breaks topic into sub-questions
 2. `literature_retrieval` — queries Elasticsearch + builds snapshot
 3. `evidence_synthesis` — groups snapshot into evidence
@@ -81,13 +85,13 @@ If literature retrieval returns zero records, workflow fails with `NO_EVIDENCE`.
 
 ## 3. Five-Step → Synchronous Execution Mapping
 
-| UI Step | Backend Step | User Input? | Backend Action |
-|---|---|---|---|
-| 1. Research Question | (none) | Yes — user types topic | Nothing triggered |
-| 2. Document Selection | (none — not supported) | No — system auto-retrieves | Nothing triggered |
-| 3. AI Analysis | All 5 backend steps execute | No | `POST /workflow` → synchronous execution |
-| 4. Evidence Review | (from run artifacts) | Yes — user reviews | `GET /session/{id}/runs` |
-| 5. Research Report | (from run artifacts) | Yes — user reviews | Same runs response |
+| UI Step               | Backend Step                | User Input?                | Backend Action                           |
+| --------------------- | --------------------------- | -------------------------- | ---------------------------------------- |
+| 1. Research Question  | (none)                      | Yes — user types topic     | Nothing triggered                        |
+| 2. Document Selection | (none — not supported)      | No — system auto-retrieves | Nothing triggered                        |
+| 3. AI Analysis        | All 5 backend steps execute | No                         | `POST /workflow` → synchronous execution |
+| 4. Evidence Review    | (from run artifacts)        | Yes — user reviews         | `GET /session/{id}/runs`                 |
+| 5. Research Report    | (from run artifacts)        | Yes — user reviews         | Same runs response                       |
 
 **Key insight:** Steps 1 and 2 are pure client-side UI. Step 3 triggers a single API call that completes steps 3-4-5 in the backend within one HTTP response.
 
@@ -98,6 +102,7 @@ If literature retrieval returns zero records, workflow fails with `NO_EVIDENCE`.
 The `V4ResearchWorkflowRequest` schema has only three fields: `session_id`, `topic`, `workflow_type`. There is no `document_ids`, `search_scope`, or `library_filter` field.
 
 **Implementation decision:** Step 2 "Document Selection" displays a system notice:
+
 > 系统将根据您的研究问题自动检索相关文献。当前版本不支持手动选择特定文献，所有可检索到的相关文献都将纳入分析范围。
 
 The user sees their question (for confirmation) and clicks "开始分析" to proceed.
@@ -109,14 +114,15 @@ The user sees their question (for confirmation) and clicks "开始分析" to pro
 Evidence is extracted from `GET /api/v4/research/session/{id}/runs` → `output_artifacts.citations` OR `replay_manifest.retrieval_snapshot` + `replay_manifest.traces`.
 
 Each evidence entry has:
+
 ```typescript
 interface WorkflowEvidence {
-  trace_id: string;       // Trace lineage identifier
-  document_id: string;    // Source document UUID
-  chunk_id: string;       // Document chunk UUID
-  claim_text: string;     // AI-generated claim (归纳)
-  quote: string;          // Original text excerpt (原文)
-  citation_text: string;  // Citation identifier string
+  trace_id: string; // Trace lineage identifier
+  document_id: string; // Source document UUID
+  chunk_id: string; // Document chunk UUID
+  claim_text: string; // AI-generated claim (归纳)
+  quote: string; // Original text excerpt (原文)
+  citation_text: string; // Citation identifier string
 }
 ```
 
@@ -140,12 +146,12 @@ interface WorkflowCitation {
 
 ### Available User Actions
 
-| Action | API Supported? | Implemented? |
-|---|---|---|
-| 保存引用 (Save Citation) | Yes — `POST /api/v1/workspace/sessions/{id}/citations` | Yes |
-| 查看原文 (View Original) | No — no passage/chapter read API in scope | No |
-| 保存证据 (Save Evidence) | No — no evidence save API | No |
-| 加入笔记 (Add Note) | Yes — `POST /api/v1/workspace/sessions/{id}/notes` | Available via composable |
+| Action                   | API Supported?                                         | Implemented?             |
+| ------------------------ | ------------------------------------------------------ | ------------------------ |
+| 保存引用 (Save Citation) | Yes — `POST /api/v1/workspace/sessions/{id}/citations` | Yes                      |
+| 查看原文 (View Original) | No — no passage/chapter read API in scope              | No                       |
+| 保存证据 (Save Evidence) | No — no evidence save API                              | No                       |
+| 加入笔记 (Add Note)      | Yes — `POST /api/v1/workspace/sessions/{id}/notes`     | Available via composable |
 
 ## 6. Report / run_id
 
@@ -153,14 +159,14 @@ interface WorkflowCitation {
 
 ```typescript
 interface WorkflowReport {
-  run_id: string;          // Server-generated UUID
-  topic: string;           // Original research question
-  title: string;           // "研究报告：{topic}"
-  markdown: string;        // Full Markdown artifact
-  completed_at: string | null;  // ISO timestamp
-  artifact_id?: string;    // Content hash (first 16 chars of SHA-256)
-  evidence_count: number;  // From extracted evidence
-  citation_count: number;  // From extracted citations
+  run_id: string; // Server-generated UUID
+  topic: string; // Original research question
+  title: string; // "研究报告：{topic}"
+  markdown: string; // Full Markdown artifact
+  completed_at: string | null; // ISO timestamp
+  artifact_id?: string; // Content hash (first 16 chars of SHA-256)
+  evidence_count: number; // From extracted evidence
+  citation_count: number; // From extracted citations
 }
 ```
 
@@ -201,6 +207,7 @@ New key: `hfb.research.{projectId}.pending-question` (scoped to ResearchSession.
 ## 8. No Pause/Resume
 
 Backend executes synchronously — all 5 steps in one HTTP response. There is no:
+
 - Step-by-step polling API
 - Pause/resume API
 - Partial execution persistence
@@ -210,22 +217,23 @@ Backend executes synchronously — all 5 steps in one HTTP response. There is no
 
 ## 9. Error Handling
 
-| Status | Description | User Message |
-|---|---|---|
-| 400 | Bad Request | 输入不合法，请检查研究问题后重试 |
-| 401 | Unauthorized | 登录已过期，请重新登录 |
-| 403 | Forbidden | 您没有权限执行此操作 |
-| 404 | Not Found | 研究课题或文献不存在 |
-| 409 | Conflict | 状态冲突，该工作流可能已在执行中 |
-| 422 | Validation Error | 输入格式校验失败，请检查后重试 |
-| 429 | Too Many Requests | 请求过于频繁，请稍后再试 |
-| 5xx | Server Error | 服务端错误，请稍后重试 |
-| Network | Connection failed | 网络连接失败，请检查网络后重试 |
-| Timeout | Request timeout | 请求超时。服务端可能已完成处理...请勿重复提交 |
+| Status  | Description       | User Message                                  |
+| ------- | ----------------- | --------------------------------------------- |
+| 400     | Bad Request       | 输入不合法，请检查研究问题后重试              |
+| 401     | Unauthorized      | 登录已过期，请重新登录                        |
+| 403     | Forbidden         | 您没有权限执行此操作                          |
+| 404     | Not Found         | 研究课题或文献不存在                          |
+| 409     | Conflict          | 状态冲突，该工作流可能已在执行中              |
+| 422     | Validation Error  | 输入格式校验失败，请检查后重试                |
+| 429     | Too Many Requests | 请求过于频繁，请稍后再试                      |
+| 5xx     | Server Error      | 服务端错误，请稍后重试                        |
+| Network | Connection failed | 网络连接失败，请检查网络后重试                |
+| Timeout | Request timeout   | 请求超时。服务端可能已完成处理...请勿重复提交 |
 
 ### Timeout Handling
 
 On timeout (`ECONNABORTED`), the page:
+
 1. Displays the timeout message with the "server may have completed" warning
 2. Attempts to fetch runs — if a completed run is found, transitions to evidence review
 3. Does NOT auto-retry
@@ -247,40 +255,45 @@ composables/useResearchWorkflow.ts       (state machine, API calls, extraction)
 
 ## 11. Not Migrated (Remaining in Old Views)
 
-| Capability | Location | Reason |
-|---|---|---|
-| Education mode | V4ResearchView | Belongs in Knowledge Explorer (future) |
-| Visualization mode | V4ResearchView | Belongs in Knowledge Explorer (future) |
-| Inline report list + detail | ResearchWorkspaceView | Stays in workspace (separate concern) |
-| Version comparison workflow | ResearchWorkspaceView (research tab) | Already standalone ResearchWorkflowView |
-| AI chat (SSE) | ResearchWorkspaceView (assistant tab) | Deferred |
-| Replay verification | V4ResearchView | Will be part of Research Result page |
+| Capability                  | Location                              | Reason                                  |
+| --------------------------- | ------------------------------------- | --------------------------------------- |
+| Education mode              | V4ResearchView                        | Belongs in Knowledge Explorer (future)  |
+| Visualization mode          | V4ResearchView                        | Belongs in Knowledge Explorer (future)  |
+| Inline report list + detail | ResearchWorkspaceView                 | Stays in workspace (separate concern)   |
+| Version comparison workflow | ResearchWorkspaceView (research tab)  | Already standalone ResearchWorkflowView |
+| AI chat (SSE)               | ResearchWorkspaceView (assistant tab) | Deferred                                |
+| Replay verification         | V4ResearchView                        | Will be part of Research Result page    |
 
 ## 12. Blocking Issues
 
 **STATUS: ALL RESOLVED (2026-07-18).**
 
 ### Batch 1: 删除假进度 + 同步执行语义 ✅
+
 - `AnalysisPendingState.vue`: 删除 `setInterval` 伪阶段阈值文字
 - 统一为单一 loading 文案："正在执行研究工作流，请稍候。"
 - 保留 `onBeforeUnmount` clearInterval 安全机制
 
 ### Batch 2: 严格按当前 run_id 读取报告、证据与引用 ✅
+
 - `useResearchWorkflow.ts`: `extractEvidenceFromSingleRun()` 仅从当前 run 提取
 - `fetchRuns()`: 严格定位 `run.run_id === 当前 runId`，无回退到历史 run
 - `hasReport`: 改为 `report !== null && markdown.length > 0`
 
 ### Batch 3: 重复提交 + stale-response 防护 ✅
+
 - `submitWorkflow()`: `if (submitting.value) return` 函数级防护
 - `fetchRuns()`: AbortController + reqId stale-response 检查
 - `reset()`: 递增 submitToken + abort 待处理请求
 
 ### Batch 4: SourceRef、lineage 与不完整证据呈现 ✅
+
 - `WorkflowEvidence` 接口新增: `source_ref_title?`, `passage_id?`
 - `EvidenceReviewStep.vue`: 真实字段定位，缺失显示"来源定位不完整"/"證據鏈不完整"
 - 分离 evidence/citation 去重集合，修复 citation 先行处理导致 evidence 被跳过
 
 ### Batch 5: Playwright E2E Tests ✅
+
 - 新增 `TestResearchWorkflowPageE2E` 类 (7 个测试) 位于 `tests/e2e/test_critical_journeys.py`
 - 覆盖: 页面加载、无效 session、NO_EVIDENCE 错误横幅、重试回到问题步、跨用户隔离、步骤导航、前后步导航
 - 所有测试使用真实 UI 登录 (`_login_via_ui`)，无 `page.evaluate`/`page.route`/`route.fulfill`
@@ -293,6 +306,7 @@ composables/useResearchWorkflow.ts       (state machine, API calls, extraction)
 `apps/backend/tests/test_v4_workflow.py` — **12/12 PASS** (requires `PYTHONPATH="apps/backend:tests:."` because `testpaths = ["tests"]` excludes `apps/backend/tests/` from default discovery).
 
 Test classes:
+
 - `TestWorkflowWithEvidence` — 4 tests: snapshot→evidence, synthesis, report generation, citation export (all with non-empty data)
 - `TestWorkflowNoEvidence` — 4 tests: zero-return for empty inputs across synthesis, report, citation export, markdown artifact
 - `TestCitationIntegrity` — 2 tests: snapshot-origin trace_ids, dedup by trace_id
@@ -335,6 +349,7 @@ Vite production build succeeds. **0 warnings.**
 `TestCrossProjectIsolation` (6 tests) + `TestResearchWorkflowPageE2E` (7 tests) — **13/13 PASS** (Chromium, real login + real backend + in-memory SQLite).
 
 **TestResearchWorkflowPageE2E (Batch 5 — NEW):**
+
 - `test_workflow_page_loads_with_valid_session` — 页面加载显示步骤导航 + 研究问题输入
 - `test_workflow_page_shows_not_found_for_invalid_session` — 无效 UUID → "课题不存在"
 - `test_workflow_no_evidence_shows_error_banner` — 无 RAG 文档 → NO_EVIDENCE 错误横幅
@@ -344,6 +359,7 @@ Vite production build succeeds. **0 warnings.**
 - `test_workflow_step_navigation_visible` — 步骤导航当前/已完成状态正确
 
 **TestCrossProjectIsolation (pre-existing, 6 tests — 6/6 PASS):**
+
 - `test_a_workspace_loads` — own workspace accessible
 - `test_a_project_detail_loads` — own project detail accessible
 - `test_switch_own_projects_no_residue` — switching own projects doesn't leak data
@@ -363,10 +379,12 @@ Vite production build succeeds. **0 warnings.**
 ### 13.8 CI
 
 `.github/workflows/test.yml` includes:
+
 ```yaml
 - name: Install Chromium for browser E2E
   run: uv run python -m playwright install chromium --with-deps
 ```
+
 Followed by `uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProjectIsolation -v --browser chromium`.
 
 **Migration status:** VERIFIED COMPLETE — all 5 Batches resolved.
@@ -375,25 +393,25 @@ Followed by `uv run pytest tests/e2e/test_critical_journeys.py::TestCrossProject
 
 ### New Files
 
-| File | Purpose |
-|---|---|
-| `pages/research/ResearchWorkflowPage.vue` | Main workflow page (replaced placeholder) |
-| `composables/useResearchWorkflow.ts` | Single-source-of-truth state + API composable |
-| `components/research/workflow/ResearchQuestionStep.vue` | Step 1: question input |
-| `components/research/workflow/DocumentSelectionStep.vue` | Step 2: auto-retrieval notice |
-| `components/research/workflow/AnalysisPendingState.vue` | Step 3: loading indicator |
-| `components/research/workflow/EvidenceReviewStep.vue` | Step 4: evidence/citation display |
-| `components/research/workflow/ResearchReportStep.vue` | Step 5: report preview + nav |
-| `components/research/workflow/WorkflowStepNavigation.vue` | 5-step progress indicator |
-| `__tests__/research-workflow-page.test.ts` | 36 comprehensive tests |
-| `docs/20-product/2014-research-workflow-migration.md` | This document |
+| File                                                      | Purpose                                       |
+| --------------------------------------------------------- | --------------------------------------------- |
+| `pages/research/ResearchWorkflowPage.vue`                 | Main workflow page (replaced placeholder)     |
+| `composables/useResearchWorkflow.ts`                      | Single-source-of-truth state + API composable |
+| `components/research/workflow/ResearchQuestionStep.vue`   | Step 1: question input                        |
+| `components/research/workflow/DocumentSelectionStep.vue`  | Step 2: auto-retrieval notice                 |
+| `components/research/workflow/AnalysisPendingState.vue`   | Step 3: loading indicator                     |
+| `components/research/workflow/EvidenceReviewStep.vue`     | Step 4: evidence/citation display             |
+| `components/research/workflow/ResearchReportStep.vue`     | Step 5: report preview + nav                  |
+| `components/research/workflow/WorkflowStepNavigation.vue` | 5-step progress indicator                     |
+| `__tests__/research-workflow-page.test.ts`                | 36 comprehensive tests                        |
+| `docs/20-product/2014-research-workflow-migration.md`     | This document                                 |
 
 ### Modified Files
 
-| File | Change |
-|---|---|
-| `docs/20-product/2007-page-disposition.md` | Updated Item 16 (V4 Research) — marked workflow as MIGRATED |
-| `router/index.ts` | Route `/research/:projectId/workflow` already existed (placeholder → real page) |
+| File                                       | Change                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------- |
+| `docs/20-product/2007-page-disposition.md` | Updated Item 16 (V4 Research) — marked workflow as MIGRATED                     |
+| `router/index.ts`                          | Route `/research/:projectId/workflow` already existed (placeholder → real page) |
 
 ### Not Modified
 

@@ -4,6 +4,7 @@ Document ingestion pipeline — PDF and plain-text input → stored document →
 Real PDF extraction via pypdf, transactional safety (no half-created documents),
 deterministic paragraph-based chunking, full-text compliance gate (Context 21).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -30,22 +31,39 @@ logger = logging.getLogger(__name__)
 # Whitelist: allowed metadata keys that can be stored on the Document model.
 # Prevents mass-assignment of internal fields (is_deleted, deleted_at, etc.)
 # through the ingest metadata parameter.
-_ALLOWED_METADATA_KEYS = frozenset({
-    "dynasty", "category", "source_url", "raw_pdf_blob",
-    "copyright_status", "license_type", "authorization_basis",
-    "source_name",
-})
+_ALLOWED_METADATA_KEYS = frozenset(
+    {
+        "dynasty",
+        "category",
+        "source_url",
+        "raw_pdf_blob",
+        "copyright_status",
+        "license_type",
+        "authorization_basis",
+        "source_name",
+    }
+)
 
 # Copyright statuses that permit full-text storage and chunking.
-_ALLOWED_COPYRIGHT_STATUSES = frozenset({
-    "public_domain", "open_access", "licensed", "user_uploaded_with_permission",
-})
+_ALLOWED_COPYRIGHT_STATUSES = frozenset(
+    {
+        "public_domain",
+        "open_access",
+        "licensed",
+        "user_uploaded_with_permission",
+    }
+)
 
 # Copyright statuses that explicitly forbid full-text storage.
-_FORBIDDEN_COPYRIGHT_STATUSES = frozenset({
-    "unknown", "metadata_only", "forbidden_fulltext",
-    "commercial_restricted", "pirated",
-})
+_FORBIDDEN_COPYRIGHT_STATUSES = frozenset(
+    {
+        "unknown",
+        "metadata_only",
+        "forbidden_fulltext",
+        "commercial_restricted",
+        "pirated",
+    }
+)
 
 
 class IngestionError(Exception):
@@ -137,12 +155,18 @@ class IngestionService:
 
         # Explicit forbidden values
         if copyright_status in _FORBIDDEN_COPYRIGHT_STATUSES:
-            return False, f"copyright_status={copyright_status} forbids full-text storage"
+            return (
+                False,
+                f"copyright_status={copyright_status} forbids full-text storage",
+            )
 
         # Explicit allowed values
         if copyright_status in _ALLOWED_COPYRIGHT_STATUSES:
-            authorization_basis = (metadata.get("authorization_basis") or
-                                   metadata.get("license_type") or "").strip()
+            authorization_basis = (
+                metadata.get("authorization_basis")
+                or metadata.get("license_type")
+                or ""
+            ).strip()
             if not authorization_basis:
                 return False, (
                     f"copyright_status={copyright_status} requires "
@@ -262,6 +286,7 @@ class IngestionService:
             from sqlalchemy import select as sql_select
 
             from app.models.passage import Passage
+
             p_stmt = sql_select(Passage.id).where(
                 Passage.id == passage_id.strip(),
                 Passage.is_deleted.is_(False),
@@ -324,8 +349,9 @@ class IngestionService:
 
         # ------ 1. Store document ------
         copyright_status = (meta.get("copyright_status") or "").strip()
-        authorization_basis = (meta.get("authorization_basis")
-                               or meta.get("license_type") or "").strip()
+        authorization_basis = (
+            meta.get("authorization_basis") or meta.get("license_type") or ""
+        ).strip()
         doc_data: dict = {
             "title": title.strip(),
             "content_text": stripped,
@@ -344,12 +370,15 @@ class IngestionService:
 
         # P0: Create SourceRef on every ingest (title-based dedup —
         # survives source_url being empty).
-        source_url = doc_data.get("source_url") or (meta.get("source_url") if metadata else None)
+        source_url = doc_data.get("source_url") or (
+            meta.get("source_url") if metadata else None
+        )
         await self._ensure_source_ref(
             self.session,
             title=title.strip(),
             url=source_url or "",
-            author=doc_data.get("source_name") or (meta.get("source_name") if metadata else None),
+            author=doc_data.get("source_name")
+            or (meta.get("source_name") if metadata else None),
             page_location=f"document:{doc.id}",
             edition_info=meta.get("edition") if metadata else None,
         )
@@ -363,7 +392,8 @@ class IngestionService:
             # ponytail: backward compat — if old chunk_text returns list[str], wrap
             if chunks_with_indices and isinstance(chunks_with_indices[0], str):
                 chunk_data: list[tuple[str, int]] = [
-                    (t, -1) for t in chunks_with_indices  # type: ignore[arg-type]
+                    (t, -1)
+                    for t in chunks_with_indices  # type: ignore[arg-type]
                 ]
             else:
                 chunk_data = chunks_with_indices  # type: ignore[assignment]
@@ -467,7 +497,9 @@ class IngestionService:
             extra.update(metadata)
         if store_raw_pdf:
             extra["raw_pdf_blob"] = raw_bytes
-            extra["source_url"] = extra.get("source_url") or f"pdf:{len(raw_bytes)}bytes"
+            extra["source_url"] = (
+                extra.get("source_url") or f"pdf:{len(raw_bytes)}bytes"
+            )
 
         return await self.ingest_text(
             title=title,
@@ -577,9 +609,7 @@ class IngestionService:
         # 1. Create document
         copyright_status = (meta.get("copyright_status") or "").strip()
         authorization_basis = (
-            meta.get("authorization_basis")
-            or meta.get("license_type")
-            or ""
+            meta.get("authorization_basis") or meta.get("license_type") or ""
         ).strip()
         doc_data: dict = {
             "title": title.strip(),
@@ -621,7 +651,8 @@ class IngestionService:
                 )
                 if page_chunks and isinstance(page_chunks[0], str):
                     page_chunk_pairs: list[tuple[str, int]] = [
-                        (t, -1) for t in page_chunks  # type: ignore[arg-type]
+                        (t, -1)
+                        for t in page_chunks  # type: ignore[arg-type]
                     ]
                 else:
                     page_chunk_pairs = page_chunks  # type: ignore[assignment]
@@ -771,9 +802,7 @@ class IngestionService:
                 result_entity_id=document_id,
                 details={"passage_id": passage_id},
             )
-            raise FulltextRejectedError(
-                "Append rejected: document is metadata_only"
-            )
+            raise FulltextRejectedError("Append rejected: document is metadata_only")
         allowed, reason = self._is_fulltext_allowed(meta)
         if not allowed:
             await self._write_audit(
@@ -789,18 +818,14 @@ class IngestionService:
                 result_entity_id=document_id,
                 details={"passage_id": passage_id},
             )
-            raise FulltextRejectedError(
-                f"Append rejected by compliance gate: {reason}"
-            )
+            raise FulltextRejectedError(f"Append rejected by compliance gate: {reason}")
 
         # 4. Chunk the new text
         chunks_with_indices = chunk_text(
             stripped, max_chars=max_chunk_chars, return_indices=True
         )
         if chunks_with_indices and isinstance(chunks_with_indices[0], str):
-            chunk_list: list[tuple[str, int]] = [
-                (t, -1) for t in chunks_with_indices
-            ]
+            chunk_list: list[tuple[str, int]] = [(t, -1) for t in chunks_with_indices]
         else:
             chunk_list = chunks_with_indices
 
@@ -813,15 +838,16 @@ class IngestionService:
             # 5. Row-lock the document (FOR UPDATE) to prevent concurrent
             #    append races on chunk_index and checksum.
             await self.session.execute(
-                _sel(Document.id).where(
+                _sel(Document.id)
+                .where(
                     Document.id == document_id,
-                ).with_for_update()
+                )
+                .with_for_update()
             )
 
             # 6. Compute next chunk_index under the lock
             max_idx_result = await self.session.execute(
-                _sel(_func.coalesce(_func.max(DocumentChunk.chunk_index), -1))
-                .where(
+                _sel(_func.coalesce(_func.max(DocumentChunk.chunk_index), -1)).where(
                     DocumentChunk.document_id == document_id,
                     DocumentChunk.is_deleted.is_(False),
                 )
@@ -845,7 +871,9 @@ class IngestionService:
                     content=chunk_text_val,
                     token_count=len(chunk_text_val),
                     passage_id=passage_id.strip(),
-                    paragraph_index=para_idx if para_idx >= 0 else (next_index + offset),
+                    paragraph_index=para_idx
+                    if para_idx >= 0
+                    else (next_index + offset),
                     evidence_weight="primary",
                 )
                 self.session.add(chunk)
@@ -855,10 +883,12 @@ class IngestionService:
 
             # 8. Rebuild full content text and recompute checksum
             all_chunks_result = await self.session.execute(
-                _sel(DocumentChunk.content).where(
+                _sel(DocumentChunk.content)
+                .where(
                     DocumentChunk.document_id == document_id,
                     DocumentChunk.is_deleted.is_(False),
-                ).order_by(DocumentChunk.chunk_index)
+                )
+                .order_by(DocumentChunk.chunk_index)
             )
             all_text = "\n\n".join(row[0] for row in all_chunks_result)
             new_checksum = hashlib.sha256(all_text.encode("utf-8")).hexdigest()
@@ -1014,9 +1044,13 @@ class IngestionService:
                 chunk_index=idx,
                 content=text,
                 token_count=len(text),
-                passage_id=passage_id.strip() if passage_id and passage_id.strip() else None,
+                passage_id=passage_id.strip()
+                if passage_id and passage_id.strip()
+                else None,
                 page_number=pn,
-                paragraph_index=para_idx if para_idx >= 0 else idx,  # fallback to chunk_index
+                paragraph_index=para_idx
+                if para_idx >= 0
+                else idx,  # fallback to chunk_index
                 ocr_confidence=ocr,
                 evidence_weight=evidence_weight,
             )
@@ -1072,7 +1106,6 @@ class IngestionService:
                 norm_url = raw
 
         loc = (page_location or "").strip()
-
 
         if norm_url:
             # URL is the stable identity

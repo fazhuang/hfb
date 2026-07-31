@@ -62,19 +62,22 @@ class TestEntityRegistry:
         assert EntityType.PERSON in types
 
     def test_validate_required_properties(self, registry: EntityRegistry) -> None:
-        assert registry.validate(EntityType.PERSON, {
-            "name": "皇甫谧",
-            "name_zh": "皇甫谧",
-            "courtesy_name": "士安",
-            "pseudonym": "玄晏先生",
-            "dynasty": "魏晋",
-            "birth_year": 215,
-            "death_year": 282,
-            "birth_place": "安定朝那",
-            "biography": "魏晋时期著名医学家",
-            "expertise": "针灸",
-            "notable_works": "针灸甲乙经",
-        })
+        assert registry.validate(
+            EntityType.PERSON,
+            {
+                "name": "皇甫谧",
+                "name_zh": "皇甫谧",
+                "courtesy_name": "士安",
+                "pseudonym": "玄晏先生",
+                "dynasty": "魏晋",
+                "birth_year": 215,
+                "death_year": 282,
+                "birth_place": "安定朝那",
+                "biography": "魏晋时期著名医学家",
+                "expertise": "针灸",
+                "notable_works": "针灸甲乙经",
+            },
+        )
 
     def test_validate_missing_property_raises(self, registry: EntityRegistry) -> None:
         with pytest.raises(ValueError, match="name"):
@@ -82,12 +85,23 @@ class TestEntityRegistry:
 
     def test_validate_allows_extra_properties(self, registry: EntityRegistry) -> None:
         # Open-world assumption
-        assert registry.validate(EntityType.PERSON, {
-            "name": "张仲景", "name_zh": "张仲景", "courtesy_name": "",
-            "pseudonym": "", "dynasty": "东汉", "birth_year": 150, "death_year": 219,
-            "birth_place": "", "biography": "", "expertise": "", "notable_works": "",
-            "extra_field": "should be allowed",
-        })
+        assert registry.validate(
+            EntityType.PERSON,
+            {
+                "name": "张仲景",
+                "name_zh": "张仲景",
+                "courtesy_name": "",
+                "pseudonym": "",
+                "dynasty": "东汉",
+                "birth_year": 150,
+                "death_year": 219,
+                "birth_place": "",
+                "biography": "",
+                "expertise": "",
+                "notable_works": "",
+                "extra_field": "should be allowed",
+            },
+        )
 
     def test_get_valid_relations(self, registry: EntityRegistry) -> None:
         rels = registry.get_valid_relations(EntityType.HERB)
@@ -128,9 +142,7 @@ class TestSchemaLoader:
                     "@id": "tcm:Person",
                     "@type": "tcm:EntityType",
                     "tcm:properties": ["name", "name_zh"],
-                    "tcm:relations": [
-                        {"name": "authored", "target": "tcm:Text"}
-                    ],
+                    "tcm:relations": [{"name": "authored", "target": "tcm:Text"}],
                 }
             ],
         }
@@ -143,32 +155,59 @@ class TestSchemaLoader:
 
     def test_loads_from_string(self) -> None:
         loader = SchemaLoader()
-        schemas = loader.loads(json.dumps({
-            "@context": {},
-            "@graph": [
-                {"@id": "tcm:Herb", "@type": "tcm:EntityType",
-                 "tcm:properties": ["name"], "tcm:relations": []}
-            ],
-        }))
+        schemas = loader.loads(
+            json.dumps(
+                {
+                    "@context": {},
+                    "@graph": [
+                        {
+                            "@id": "tcm:Herb",
+                            "@type": "tcm:EntityType",
+                            "tcm:properties": ["name"],
+                            "tcm:relations": [],
+                        }
+                    ],
+                }
+            )
+        )
         assert len(schemas) == 1
         assert schemas[0].entity_type == EntityType.HERB
 
     def test_loads_unknown_type_raises(self) -> None:
         loader = SchemaLoader()
         with pytest.raises(ValueError, match="Unknown"):
-            loader.loads({"@context": {}, "@graph": [
-                {"@id": "tcm:Bogus", "@type": "tcm:EntityType",
-                 "tcm:properties": [], "tcm:relations": []}
-            ]})
+            loader.loads(
+                {
+                    "@context": {},
+                    "@graph": [
+                        {
+                            "@id": "tcm:Bogus",
+                            "@type": "tcm:EntityType",
+                            "tcm:properties": [],
+                            "tcm:relations": [],
+                        }
+                    ],
+                }
+            )
 
     def test_loads_unknown_target_raises(self) -> None:
         loader = SchemaLoader()
         with pytest.raises(ValueError, match="Unknown target"):
-            loader.loads({"@context": {}, "@graph": [
-                {"@id": "tcm:Person", "@type": "tcm:EntityType",
-                 "tcm:properties": ["name"],
-                 "tcm:relations": [{"name": "authored", "target": "tcm:Nope"}]}
-            ]})
+            loader.loads(
+                {
+                    "@context": {},
+                    "@graph": [
+                        {
+                            "@id": "tcm:Person",
+                            "@type": "tcm:EntityType",
+                            "tcm:properties": ["name"],
+                            "tcm:relations": [
+                                {"name": "authored", "target": "tcm:Nope"}
+                            ],
+                        }
+                    ],
+                }
+            )
 
     def test_dumps_roundtrip(self) -> None:
         loader = SchemaLoader()
@@ -180,9 +219,7 @@ class TestSchemaLoader:
     def test_load_file(self) -> None:
         loader = SchemaLoader()
         doc = loader.dumps([ENTITY_SCHEMA[EntityType.TEXT]])
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(doc, f)
             tmp_path = f.name
 
@@ -195,9 +232,7 @@ class TestSchemaLoader:
 
     def test_dump_file(self) -> None:
         loader = SchemaLoader()
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             tmp_path = f.name
 
         try:

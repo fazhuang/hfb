@@ -1,4 +1,5 @@
 """Evidence-bound RAG API — POST /api/v1/rag/evidence-query"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends

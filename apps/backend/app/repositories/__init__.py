@@ -6,6 +6,7 @@ Current repositories (Sprint 3 scope):
   - DocumentRepository
   - PersonRepository
 """
+
 from __future__ import annotations
 
 from app.repositories.base import BaseRepository

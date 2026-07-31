@@ -7,18 +7,20 @@
 ## 1. 当前 codebase 状态说明 (已完成部分)
 
 重构的 **第一阶段（模型层声明）** 已经执行完毕：
-* 💡 [models/__init__.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/__init__.py) 已正确导入并导出所有重构模型。
-* 💡 [passage.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/passage.py) 已扩展 `sentences` 关联。
-* 💡 新增的 3 个模型文件已就绪：
-  * [version_criticism.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/version_criticism.py)：断句 `Sentence`、词元 `Token`、异文 `Variant`。
-  * [academic_evidence.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/academic_evidence.py)：物理出处 `SourceRef`、证据 `Evidence`、引文 `Citation`。
-  * [academic_relation.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/academic_relation.py)：学术实体 `AcademicEntity`、学术命题关系 `AcademicRelation`、关系置信度 `RelationConfidence`。
+
+- 💡 [models/**init**.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/__init__.py) 已正确导入并导出所有重构模型。
+- 💡 [passage.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/passage.py) 已扩展 `sentences` 关联。
+- 💡 新增的 3 个模型文件已就绪：
+  - [version_criticism.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/version_criticism.py)：断句 `Sentence`、词元 `Token`、异文 `Variant`。
+  - [academic_evidence.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/academic_evidence.py)：物理出处 `SourceRef`、证据 `Evidence`、引文 `Citation`。
+  - [academic_relation.py](file:///Users/likeming/Sites/hfb/apps/backend/app/models/academic_relation.py)：学术实体 `AcademicEntity`、学术命题关系 `AcademicRelation`、关系置信度 `RelationConfidence`。
 
 ---
 
 ## 2. 实施步骤一：数据库 Alembic 迁移
 
 ### 执行任务
+
 1. **生成迁移脚本**：
    在 backend 开发环境下运行以下命令生成 Alembic 迁移脚本：
    ```bash
@@ -38,20 +40,24 @@
 请在 `apps/backend/app/api/v1/` 目录下创建或修改对应的路由。
 
 ### 3.1 段落与异文详情路由 (`passages.py`)
-* **路径**：`GET /api/v1/passages/{id}`
-* **逻辑**：加载 `Passage` 时，必须使用 SQLAlchemy `selectinload` 加载 `sentences.tokens` 和关联的 `variants`。
-* **Pydantic Schema 结构**：
+
+- **路径**：`GET /api/v1/passages/{id}`
+- **逻辑**：加载 `Passage` 时，必须使用 SQLAlchemy `selectinload` 加载 `sentences.tokens` 和关联的 `variants`。
+- **Pydantic Schema 结构**：
+
   ```python
   class TokenResponse(BaseModel):
       id: str
       char_text: str
       position: int
 
+
   class SentenceResponse(BaseModel):
       id: str
       content_text: str
       order: int
       tokens: list[TokenResponse]
+
 
   class VariantResponse(BaseModel):
       id: str
@@ -62,17 +68,22 @@
   ```
 
 ### 3.2 学术证据录入路由 (`evidences.py`)
-* **路径**：`POST /api/v1/evidences`
-* **逻辑**：
+
+- **路径**：`POST /api/v1/evidences`
+- **逻辑**：
   1. 若 Payload 中含有 `source_ref` 字典，先创建 `SourceRef` 记录并保存。
   2. 创建 `Evidence` 记录，并绑定 `source_ref_id`。
   3. 返回创建好的 `Evidence` 详情。
 
 ### 3.3 学术关系置信度计算服务 (`relations.py`)
-* **路径**：`POST /api/v1/relations/{id}/calculate-confidence`
-* **置信度运算核心逻辑（请直接转译为 Python 代码）**：
+
+- **路径**：`POST /api/v1/relations/{id}/calculate-confidence`
+- **置信度运算核心逻辑（请直接转译为 Python 代码）**：
+
   ```python
-  async def calculate_relation_confidence(session: AsyncSession, relation_id: str) -> float:
+  async def calculate_relation_confidence(
+      session: AsyncSession, relation_id: str
+  ) -> float:
       # 1. 查找学术关系及其关联的证据
       result = await session.execute(
           select(AcademicRelation)
@@ -82,27 +93,27 @@
       relation = result.scalar_one_or_none()
       if not relation or not relation.evidences:
           return 0.0
-      
+
       # 2. 证据等级对应的可信度系数
       level_weights = {
           EvidenceLevel.LEVEL_1: 1.0,  # 出土实物
           EvidenceLevel.LEVEL_2: 0.9,  # 传世善本/校勘本
           EvidenceLevel.LEVEL_3: 0.6,  # 旁证/转引注疏
-          EvidenceLevel.LEVEL_4: 0.3   # 现代推论
+          EvidenceLevel.LEVEL_4: 0.3,  # 现代推论
       }
-      
+
       # 3. 累积可信度公式：1 - 乘积(1 - W_i)
       weights = [level_weights.get(ev.evidence_level, 0.1) for ev in relation.evidences]
       combined_score = 1.0
       for w in weights:
-          combined_score *= (1.0 - w)
+          combined_score *= 1.0 - w
       score = round(1.0 - combined_score, 3)
-      
+
       # 4. 一致性逻辑校验（防止中医药理悖论）
       # 读取该关系源实体（腧穴）与靶实体（病症）是否存在逆命题冲突
       # 如：商阳穴主治齿痛 vs. 商阳穴禁刺齿痛
       # 若冲突，score = score * 0.5 (扣减一半分数) 并记录逻辑异常
-      
+
       # 5. 更新或创建 RelationConfidence
       conf_result = await session.execute(
           select(RelationConfidence).filter(RelationConfidence.relation_id == relation_id)
@@ -111,7 +122,7 @@
       if not confidence:
           confidence = RelationConfidence(relation_id=relation_id)
           session.add(confidence)
-      
+
       confidence.calculated_score = score
       confidence.calculation_log = f"Evidences weight: {weights}."
       await session.commit()
@@ -128,10 +139,23 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import (
-    Book, Version, Chapter, Passage, Sentence, Token, 
-    Variant, VariantType, SourceRef, Evidence, EvidenceLevel,
-    AcademicEntity, AcademicEntityType, AcademicRelation, RelationConfidence
+    Book,
+    Version,
+    Chapter,
+    Passage,
+    Sentence,
+    Token,
+    Variant,
+    VariantType,
+    SourceRef,
+    Evidence,
+    EvidenceLevel,
+    AcademicEntity,
+    AcademicEntityType,
+    AcademicRelation,
+    RelationConfidence,
 )
+
 
 @pytest.mark.asyncio
 async def test_academic_minimal_viable_loop(db_session: AsyncSession):
@@ -151,7 +175,12 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     await db_session.flush()
 
     # 3. 宋校本 Passage
-    p_song = Passage(chapter_id=chapter.id, edition_id=v_song.id, content_text="齿痛，商阳主之。", order=1)
+    p_song = Passage(
+        chapter_id=chapter.id,
+        edition_id=v_song.id,
+        content_text="齿痛，商阳主之。",
+        order=1,
+    )
     db_session.add(p_song)
     await db_session.flush()
 
@@ -164,7 +193,12 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     await db_session.flush()
 
     # 4. 明抄本 Passage
-    p_ming = Passage(chapter_id=chapter.id, edition_id=v_ming.id, content_text="齿痛，商阴主之。", order=1)
+    p_ming = Passage(
+        chapter_id=chapter.id,
+        edition_id=v_ming.id,
+        content_text="齿痛，商阴主之。",
+        order=1,
+    )
     db_session.add(p_ming)
     await db_session.flush()
 
@@ -178,30 +212,34 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
 
     # 5. 创建异文记录（宋校本的 阳 ↔ 明抄本的 阴）
     variant = Variant(
-        base_token_id=t_yang.id, 
-        compare_token_id=t_yin.id, 
+        base_token_id=t_yang.id,
+        compare_token_id=t_yin.id,
         variant_type=VariantType.SUBSTITUTION,
-        description="宋校本作阳，明抄本作阴。"
+        description="宋校本作阳，明抄本作阴。",
     )
     db_session.add(variant)
     await db_session.flush()
 
     # 6. 物理出处的学术证据
-    ref = SourceRef(title="宋刻针灸甲乙经", author="高保衡等校", page_location="卷十一 p245")
+    ref = SourceRef(
+        title="宋刻针灸甲乙经", author="高保衡等校", page_location="卷十一 p245"
+    )
     db_session.add(ref)
     await db_session.flush()
 
     evidence = Evidence(
-        description="宋校本《针灸甲乙经》原字为阳", 
+        description="宋校本《针灸甲乙经》原字为阳",
         evidence_level=EvidenceLevel.LEVEL_2,
         source_ref_id=ref.id,
-        source_passage_id=p_song.id
+        source_passage_id=p_song.id,
     )
     db_session.add(evidence)
     await db_session.flush()
 
     # 7. 学术命题 (商阳穴, 主治, 齿痛)
-    entity_acupoint = AcademicEntity(name="商阳", entity_type=AcademicEntityType.ACUPOINT)
+    entity_acupoint = AcademicEntity(
+        name="商阳", entity_type=AcademicEntityType.ACUPOINT
+    )
     entity_disease = AcademicEntity(name="齿痛", entity_type=AcademicEntityType.DISEASE)
     db_session.add_all([entity_acupoint, entity_disease])
     await db_session.flush()
@@ -210,7 +248,7 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
         source_entity_id=entity_acupoint.id,
         target_entity_id=entity_disease.id,
         relation_type="TREAT",
-        description="商阳穴主治齿痛"
+        description="商阳穴主治齿痛",
     )
     db_session.add(relation)
     await db_session.flush()
@@ -220,7 +258,10 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     await db_session.flush()
 
     # 8. 执行置信度计算
-    from app.services.relations import calculate_relation_confidence # 假设在service层实现
+    from app.services.relations import (
+        calculate_relation_confidence,
+    )  # 假设在service层实现
+
     score = await calculate_relation_confidence(db_session, relation.id)
 
     # 9. 闭环断言校验
@@ -228,6 +269,6 @@ async def test_academic_minimal_viable_loop(db_session: AsyncSession):
     assert variant.variant_type == VariantType.SUBSTITUTION
     assert variant.base_token.char_text == "阳"
     assert variant.compare_token.char_text == "阴"
-    
+
     print("✅ 最低学术闭环自动测试全部通过！")
 ```

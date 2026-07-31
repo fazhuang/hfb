@@ -21,10 +21,21 @@ class TestBookModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Book.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "title", "title_pinyin", "title_english",
-            "author_id", "dynasty", "year", "category",
-            "abstract", "language", "source_url",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "title",
+            "title_pinyin",
+            "title_english",
+            "author_id",
+            "dynasty",
+            "year",
+            "category",
+            "abstract",
+            "language",
+            "source_url",
         }
         assert expected.issubset(cols)
 
@@ -36,9 +47,20 @@ class TestVersionModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Version.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "book_id", "version_name", "era", "year",
-            "repository", "shelf_mark", "editor", "description", "source_url",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "book_id",
+            "version_name",
+            "era",
+            "year",
+            "repository",
+            "shelf_mark",
+            "editor",
+            "description",
+            "source_url",
         }
         assert expected.issubset(cols)
 
@@ -50,8 +72,16 @@ class TestChapterModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Chapter.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "book_id", "parent_id", "title", "order", "description",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "book_id",
+            "parent_id",
+            "title",
+            "order",
+            "description",
         }
         assert expected.issubset(cols)
 
@@ -63,9 +93,18 @@ class TestPassageModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Passage.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "chapter_id", "version_id", "content_text",
-            "translation", "notes", "order", "tags",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "chapter_id",
+            "version_id",
+            "content_text",
+            "translation",
+            "notes",
+            "order",
+            "tags",
         }
         assert expected.issubset(cols)
 
@@ -77,10 +116,26 @@ class TestPaperModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Paper.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "title", "title_english", "authors", "journal", "year",
-            "doi", "volume", "issue", "pages", "abstract", "keywords",
-            "language", "paper_type", "source_url", "full_text",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "title",
+            "title_english",
+            "authors",
+            "journal",
+            "year",
+            "doi",
+            "volume",
+            "issue",
+            "pages",
+            "abstract",
+            "keywords",
+            "language",
+            "paper_type",
+            "source_url",
+            "full_text",
         }
         assert expected.issubset(cols)
 
@@ -92,8 +147,17 @@ class TestImageModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in Image.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "related_entity_type", "related_entity_id",
-            "url", "caption", "source", "license_info", "order",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "related_entity_type",
+            "related_entity_id",
+            "url",
+            "caption",
+            "source",
+            "license_info",
+            "order",
         }
         assert expected.issubset(cols)

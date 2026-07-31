@@ -13,6 +13,7 @@ Architecture (matching test_critical_journeys.py):
 No mock, no page.route, no localStorage token injection, no seed API, no
 replay, no pseudo document:{id} IDs.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,11 +29,16 @@ logger = logging.getLogger(__name__)
 # Helpers (inlined — no import from test_critical_journeys to keep isolation)
 # =============================================================================
 
+
 def _seed_user(backend_port: int, username: str, password: str) -> dict:
     base = f"http://127.0.0.1:{backend_port}"
     r = httpx.post(
         f"{base}/api/v1/auth/register",
-        json={"username": username, "email": f"{username}@example.com", "password": password},
+        json={
+            "username": username,
+            "email": f"{username}@example.com",
+            "password": password,
+        },
         timeout=10,
     )
     assert r.status_code in (200, 201), f"Register: {r.status_code} {r.text[:300]}"
@@ -66,10 +72,10 @@ def _login_via_ui(page, frontend_url: str, username: str, password: str) -> None
 class TestV4RealSourceRefBrowserClosure:
     """Single browser session that proves the complete SourceRef chain.
 
-           login → submit workflow (real RAG doc) → result page
-         → click Citation → Evidence shows real source_ref_title
-         → SourceRef card shows real source_ref_id (not document:{...})
-         → click source link → API / page returns 200
+      login → submit workflow (real RAG doc) → result page
+    → click Citation → Evidence shows real source_ref_title
+    → SourceRef card shows real source_ref_id (not document:{...})
+    → click source link → API / page returns 200
     """
 
     # ------------------------------------------------------------------
@@ -87,7 +93,10 @@ class TestV4RealSourceRefBrowserClosure:
 
     @staticmethod
     def _create_controlled_document(
-        backend_port: int, user: dict, doc_title: str, source_url: str,
+        backend_port: int,
+        user: dict,
+        doc_title: str,
+        source_url: str,
     ) -> dict:
         """Create Book→Version→Chapter→Passage, ingest text, admin-review.
 
@@ -101,7 +110,8 @@ class TestV4RealSourceRefBrowserClosure:
         p_resp = httpx.post(
             f"{base}/api/v1/persons",
             json={"name": "皇甫谧（SourceRef闭环保真）", "dynasty": "西晋"},
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert p_resp.status_code in (200, 201), f"Person: {p_resp.text[:200]}"
         person_id = p_resp.json()["data"]["id"]
@@ -110,7 +120,8 @@ class TestV4RealSourceRefBrowserClosure:
         b_resp = httpx.post(
             f"{base}/api/v1/books",
             json={"title": doc_title, "dynasty": "西晋", "author_id": person_id},
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert b_resp.status_code in (200, 201), f"Book: {b_resp.text[:200]}"
         book_id = b_resp.json()["data"]["id"]
@@ -119,11 +130,15 @@ class TestV4RealSourceRefBrowserClosure:
         v_resp = httpx.post(
             f"{base}/api/v1/versions",
             json={
-                "book_id": book_id, "version_name": "SourceRef闭环保真本",
-                "era": "验证数据", "repository": "SourceRef闭环保真库",
-                "shelf_mark": "SR-CLOSURE-001", "source_url": source_url,
+                "book_id": book_id,
+                "version_name": "SourceRef闭环保真本",
+                "era": "验证数据",
+                "repository": "SourceRef闭环保真库",
+                "shelf_mark": "SR-CLOSURE-001",
+                "source_url": source_url,
             },
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert v_resp.status_code in (200, 201), f"Version: {v_resp.text[:200]}"
         version_id = v_resp.json()["data"]["id"]
@@ -132,7 +147,8 @@ class TestV4RealSourceRefBrowserClosure:
         ch_resp = httpx.post(
             f"{base}/api/v1/chapters",
             json={"book_id": book_id, "title": "SourceRef闭环保真章", "order": 1},
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert ch_resp.status_code in (200, 201), f"Chapter: {ch_resp.text[:200]}"
         chapter_id = ch_resp.json()["data"]["id"]
@@ -141,11 +157,14 @@ class TestV4RealSourceRefBrowserClosure:
         pass_resp = httpx.post(
             f"{base}/api/v1/passages",
             json={
-                "chapter_id": chapter_id, "version_id": version_id,
+                "chapter_id": chapter_id,
+                "version_id": version_id,
                 "content_text": "SrcRefClosure标识 黄帝问曰：余闻九针于夫子，众多博大。",
-                "order": 1, "tags": "SourceRef闭环保真",
+                "order": 1,
+                "tags": "SourceRef闭环保真",
             },
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert pass_resp.status_code in (200, 201), f"Passage: {pass_resp.text[:200]}"
         passage_id = pass_resp.json()["data"]["id"]
@@ -171,7 +190,9 @@ class TestV4RealSourceRefBrowserClosure:
         }
         ingest_resp = httpx.post(
             f"{base}/api/v1/search/ingest",
-            json=ingest_body, headers=h, timeout=15,
+            json=ingest_body,
+            headers=h,
+            timeout=15,
         )
         assert ingest_resp.status_code in (200, 201), (
             f"Ingest: {ingest_resp.status_code} {ingest_resp.text[:300]}"
@@ -182,7 +203,8 @@ class TestV4RealSourceRefBrowserClosure:
         # ---- Admin review (RAG enable) ----
         admin_login = httpx.post(
             f"{base}/api/v1/auth/login",
-            json={"username": "admin", "password": "admin123"}, timeout=5,
+            json={"username": "admin", "password": "admin123"},
+            timeout=5,
         )
         assert admin_login.status_code == 200, f"Admin login: {admin_login.text[:200]}"
         admin_token = admin_login.json()["data"]["access_token"]
@@ -190,14 +212,16 @@ class TestV4RealSourceRefBrowserClosure:
         review_resp = httpx.patch(
             f"{base}/api/v1/documents/{doc_id}/review",
             json={"review_status": "approved", "rag_enabled": True},
-            headers={"Authorization": f"Bearer {admin_token}"}, timeout=10,
+            headers={"Authorization": f"Bearer {admin_token}"},
+            timeout=10,
         )
         assert review_resp.status_code == 200, f"Review: {review_resp.text[:200]}"
 
         # ---- Read the SourceRef that ingestion created ----
         sr_resp = httpx.get(
             f"{base}/api/v1/source-refs?page_location=document:{doc_id}",
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         source_ref_id = None
         source_ref_title = None
@@ -225,7 +249,9 @@ class TestV4RealSourceRefBrowserClosure:
 
     @pytest.mark.e2e
     def test_source_ref_chain_full_browser_closure(
-        self, live_servers, page,
+        self,
+        live_servers,
+        page,
     ):
         """Full browser closure:
 
@@ -246,21 +272,28 @@ class TestV4RealSourceRefBrowserClosure:
         h = {"Authorization": f"Bearer {user['access_token']}"}
 
         doc_info = self._create_controlled_document(
-            backend_port, user, UNIQUE_DOC_TITLE, UNIQUE_SOURCE_URL,
+            backend_port,
+            user,
+            UNIQUE_DOC_TITLE,
+            UNIQUE_SOURCE_URL,
         )
 
         # ---- Phase 2: Create session ----
         sess_resp = httpx.post(
             f"{base}/api/v1/workspace/sessions",
             json={"title": "SourceRef闭环保真研究"},
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert sess_resp.status_code in (200, 201), f"Session: {sess_resp.text[:200]}"
         session_id = sess_resp.json()["data"]["id"]
 
         # ---- Phase 3: Browser login + workflow submit ----
         _login_via_ui(
-            page, frontend_url, user["username"], "SrcClose_Pass123!",
+            page,
+            frontend_url,
+            user["username"],
+            "SrcClose_Pass123!",
         )
 
         page.goto(f"{frontend_url}/research/{session_id}/workflow")
@@ -312,7 +345,7 @@ class TestV4RealSourceRefBrowserClosure:
         assert evidence_items.count() > 0, "At least one evidence item expected"
 
         # ---- Phase 5: Go to report step, click "查看完整结果" ----
-        page.locator('text=查看研究报告').first.click()
+        page.locator("text=查看研究报告").first.click()
         page.wait_for_selector(".rrs-step", timeout=5000)
 
         # Find the result link
@@ -321,7 +354,10 @@ class TestV4RealSourceRefBrowserClosure:
 
         # Navigate to result page
         result_href = result_link.get_attribute("href")
-        page.goto(frontend_url + (result_href if result_href.startswith("/") else f"/{result_href}"))
+        page.goto(
+            frontend_url
+            + (result_href if result_href.startswith("/") else f"/{result_href}")
+        )
         page.wait_for_load_state("networkidle", timeout=10000)
         page.wait_for_timeout(2000)
 
@@ -421,7 +457,8 @@ class TestV4RealSourceRefBrowserClosure:
         # Access the runs API directly to verify the snapshot has real fields
         runs_resp = httpx.get(
             f"{base}/api/v4/research/session/{session_id}/runs",
-            headers=h, timeout=10,
+            headers=h,
+            timeout=10,
         )
         assert runs_resp.status_code == 200, f"Runs API: {runs_resp.text[:200]}"
         runs_data = runs_resp.json().get("data", {}).get("runs", [])
@@ -447,10 +484,14 @@ class TestV4RealSourceRefBrowserClosure:
 
             # source_ref_title must match if source_ref_id is present
             if sr_id and sr_title:
-                assert len(sr_title) > 0, "source_ref_title must be non-empty when id is present"
+                assert len(sr_title) > 0, (
+                    "source_ref_title must be non-empty when id is present"
+                )
 
             # source_ref_url must be a safe string (may be empty)
-            assert isinstance(sr_url, str), f"source_ref_url should be str, got {type(sr_url)}"
+            assert isinstance(sr_url, str), (
+                f"source_ref_url should be str, got {type(sr_url)}"
+            )
 
         print("\n✓ SourceRef closure verified:")
         print(f"  Run: {runs_data[0].get('run_id', '?')}")

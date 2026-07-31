@@ -15,21 +15,21 @@ What is being reviewed? (PR link, document link, etc.)
 
 ### Critical (must fix)
 
-| # | Finding | Location | Recommendation |
-|---|---------|----------|----------------|
-| 1 | ... | ... | ... |
+| #   | Finding | Location | Recommendation |
+| --- | ------- | -------- | -------------- |
+| 1   | ...     | ...      | ...            |
 
 ### Major (should fix)
 
-| # | Finding | Location | Recommendation |
-|---|---------|----------|----------------|
-| 1 | ... | ... | ... |
+| #   | Finding | Location | Recommendation |
+| --- | ------- | -------- | -------------- |
+| 1   | ...     | ...      | ...            |
 
 ### Minor (nice to fix)
 
-| # | Finding | Location | Recommendation |
-|---|---------|----------|----------------|
-| 1 | ... | ... | ... |
+| #   | Finding | Location | Recommendation |
+| --- | ------- | -------- | -------------- |
+| 1   | ...     | ...      | ...            |
 
 ## AI-Assisted Review Notes
 

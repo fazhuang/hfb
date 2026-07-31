@@ -50,7 +50,7 @@ discovery through evidence-backed export in the first public version?
 Approved by the Product Owner on 2026-06-28.
 
 The first complete workflow is the **Evidence-backed Version Comparison
-Workflow** for invited researchers of the *Zhenjiu Jiayi Jing*:
+Workflow** for invited researchers of the _Zhenjiu Jiayi Jing_:
 
 1. Find a passage.
 2. Compare the passage across two editions.
@@ -79,7 +79,7 @@ The platform is built for research institutions. The first release is an
 invitation-only pilot within a partner research institution for 3-5 people. It
 must include:
 
-- At least one *Zhenjiu Jiayi Jing* subject researcher.
+- At least one _Zhenjiu Jiayi Jing_ subject researcher.
 - At least one versionology or textual-criticism researcher.
 - The Product Owner.
 

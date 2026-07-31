@@ -50,14 +50,14 @@ related_documents:
 
 ## 3. 术语与不变量
 
-| 术语 | 定义 |
-| --- | --- |
-| ResearchRun | 一次以锁定检索快照为输入的研究执行记录。 |
+| 术语             | 定义                                                    |
+| ---------------- | ------------------------------------------------------- |
+| ResearchRun      | 一次以锁定检索快照为输入的研究执行记录。                |
 | ResearchPassport | 绑定一个 run 与版本的、可验证的事实和 provenance 契约。 |
-| Gate 1 | 证据集确认：决定哪些 evidence 可进入综合。 |
-| Gate 2 | 声明完整性确认：决定报告是否可发布或导出当前视图。 |
-| 静态归档 | 已定稿的报告工件，受报告/项目 ACL 保护，正文不可变。 |
-| 在线穿透 | Citation/Evidence 到原文的交互导航，必须重新鉴权。 |
+| Gate 1           | 证据集确认：决定哪些 evidence 可进入综合。              |
+| Gate 2           | 声明完整性确认：决定报告是否可发布或导出当前视图。      |
+| 静态归档         | 已定稿的报告工件，受报告/项目 ACL 保护，正文不可变。    |
+| 在线穿透         | Citation/Evidence 到原文的交互导航，必须重新鉴权。      |
 
 不变量：
 
@@ -75,12 +75,12 @@ related_documents:
 
 建议的关系型元数据模型如下。实际表名、迁移号和索引由实施 ADR 固化。
 
-| 记录 | 最小字段 | 用途 |
-| --- | --- | --- |
-| ResearchRun | `id`、`session_id`、`state`、`passport_version`、`idempotency_key`、时间戳 | 生命周期与并发控制 |
-| ResearchPassport | `run_id`、`version`、`content_hash`、`payload_key`、`payload_hash` | 不可变 Passport 版本索引 |
-| ResearchGateDecision | `run_id`、`passport_version`、`gate`、`decision`、`actor_id`、`reason`、时间戳 | Gate 1/2 追加式决定记录 |
-| ResearchAuditEvent | `run_id`、事件类型、旧/新状态、actor、请求关联 ID、时间戳 | 追加式审计轨迹 |
+| 记录                 | 最小字段                                                                       | 用途                     |
+| -------------------- | ------------------------------------------------------------------------------ | ------------------------ |
+| ResearchRun          | `id`、`session_id`、`state`、`passport_version`、`idempotency_key`、时间戳     | 生命周期与并发控制       |
+| ResearchPassport     | `run_id`、`version`、`content_hash`、`payload_key`、`payload_hash`             | 不可变 Passport 版本索引 |
+| ResearchGateDecision | `run_id`、`passport_version`、`gate`、`decision`、`actor_id`、`reason`、时间戳 | Gate 1/2 追加式决定记录  |
+| ResearchAuditEvent   | `run_id`、事件类型、旧/新状态、actor、请求关联 ID、时间戳                      | 追加式审计轨迹           |
 
 完整检索快照、Trace Matrix、PromptSnapshot、拒绝日志和运行日志保存到对象存储；数据库只保存索引与加密校验所需的 hash。未变 evidence 在 Passport 新版本中引用上一版本，不重复复制。读取 payload 时必须复算 `payload_hash`；不一致则进入 `DRAFT` 并写入审计事件。
 
@@ -92,17 +92,19 @@ related_documents:
   "run_id": "uuid",
   "version": 1,
   "research_question": "string",
-  "retrieval": {"executed_at": "RFC3339", "snapshot_hash": "sha256"},
-  "evidence": [{
-    "trace_id": "string",
-    "document_id": "uuid",
-    "chunk_hash": "sha256",
-    "start_offset": 0,
-    "end_offset": 0,
-    "inclusion_reason": "string"
-  }],
-  "provenance": {"model_version": "string", "prompt_version": "string"},
-  "payload_ref": {"object_key": "string", "content_hash": "sha256"}
+  "retrieval": { "executed_at": "RFC3339", "snapshot_hash": "sha256" },
+  "evidence": [
+    {
+      "trace_id": "string",
+      "document_id": "uuid",
+      "chunk_hash": "sha256",
+      "start_offset": 0,
+      "end_offset": 0,
+      "inclusion_reason": "string"
+    }
+  ],
+  "provenance": { "model_version": "string", "prompt_version": "string" },
+  "payload_ref": { "object_key": "string", "content_hash": "sha256" }
 }
 ```
 
@@ -110,18 +112,18 @@ related_documents:
 
 ### 4.3 状态机与恢复
 
-| 状态 | 允许进入 | 允许离开 | 说明 |
-| --- | --- | --- | --- |
-| CREATED | 创建命令 | SEARCH_COMPLETED, DRAFT | 尚未锁定证据快照。 |
-| SEARCH_COMPLETED | 检索完成 | EVIDENCE_PENDING_APPROVAL, DRAFT | 快照和 Passport v1 已锁定。 |
-| EVIDENCE_PENDING_APPROVAL | Gate 1 请求 | EVIDENCE_APPROVED, EVIDENCE_REVISION, DRAFT | 等待有权研究员决定。 |
-| EVIDENCE_APPROVED | Gate 1 批准 | REPORT_GENERATING | 仅短暂转换状态。 |
-| EVIDENCE_REVISION | Gate 1 驳回 | SEARCH_COMPLETED | 可调整范围、补充受权 locator 或重新检索。 |
-| REPORT_GENERATING | 后台任务 | INTEGRITY_CHECKING, DRAFT | 只使用指定 Passport 版本。 |
-| INTEGRITY_CHECKING | Gate 2 请求 | PUBLISHED, REPORT_REVISION, DRAFT | 显示硬失败和风险信号。 |
-| REPORT_REVISION | Gate 2 驳回 | REPORT_GENERATING | 生成并处理 R&R 问题单。 |
-| DRAFT | 超时或可恢复失败 | 原中断状态的合法后继 | 不自动批准；需原快照与幂等键恢复。 |
-| PUBLISHED / REJECTED | 终态 | 无 | 分别为归档完成、取消且有理由。 |
+| 状态                      | 允许进入         | 允许离开                                    | 说明                                      |
+| ------------------------- | ---------------- | ------------------------------------------- | ----------------------------------------- |
+| CREATED                   | 创建命令         | SEARCH_COMPLETED, DRAFT                     | 尚未锁定证据快照。                        |
+| SEARCH_COMPLETED          | 检索完成         | EVIDENCE_PENDING_APPROVAL, DRAFT            | 快照和 Passport v1 已锁定。               |
+| EVIDENCE_PENDING_APPROVAL | Gate 1 请求      | EVIDENCE_APPROVED, EVIDENCE_REVISION, DRAFT | 等待有权研究员决定。                      |
+| EVIDENCE_APPROVED         | Gate 1 批准      | REPORT_GENERATING                           | 仅短暂转换状态。                          |
+| EVIDENCE_REVISION         | Gate 1 驳回      | SEARCH_COMPLETED                            | 可调整范围、补充受权 locator 或重新检索。 |
+| REPORT_GENERATING         | 后台任务         | INTEGRITY_CHECKING, DRAFT                   | 只使用指定 Passport 版本。                |
+| INTEGRITY_CHECKING        | Gate 2 请求      | PUBLISHED, REPORT_REVISION, DRAFT           | 显示硬失败和风险信号。                    |
+| REPORT_REVISION           | Gate 2 驳回      | REPORT_GENERATING                           | 生成并处理 R&R 问题单。                   |
+| DRAFT                     | 超时或可恢复失败 | 原中断状态的合法后继                        | 不自动批准；需原快照与幂等键恢复。        |
+| PUBLISHED / REJECTED      | 终态             | 无                                          | 分别为归档完成、取消且有理由。            |
 
 审批超时阈值、通知渠道和取消权限属于产品策略，必须在实施前单独批准；超时默认进入 `DRAFT`，绝不自动批准。重复请求使用同一 `idempotency_key` 返回同一运行或确定性冲突，不得重复生成报告或推进状态。
 
@@ -168,12 +170,12 @@ Gate 2 展示未锚定声明、漂移 chunk、低置信度声明和冲突引文�
 
 ## 7. 备选方案
 
-| 方案 | 优点 | 缺点 | 结论 |
-| --- | --- | --- | --- |
-| 保持 `workflow_state` JSON | 改动最小 | 无并发/审计/大 payload 治理，难以长期暂停 | 放弃 |
-| 只增加前端关口 | 交付快 | 可被 API 绕过，不具备治理效力 | 放弃 |
-| 本提案：关系元数据 + 对象 payload +后端状态机 | 可审计、可恢复、扩展性好 | 有迁移与运维成本 | 推荐，待 ADR 接受 |
-| 直接引入 ARS/多 Agent 运行时 | 复用表面流程 | 许可证、产品模型、RBAC 与复杂度不匹配 | 放弃 |
+| 方案                                          | 优点                     | 缺点                                      | 结论              |
+| --------------------------------------------- | ------------------------ | ----------------------------------------- | ----------------- |
+| 保持 `workflow_state` JSON                    | 改动最小                 | 无并发/审计/大 payload 治理，难以长期暂停 | 放弃              |
+| 只增加前端关口                                | 交付快                   | 可被 API 绕过，不具备治理效力             | 放弃              |
+| 本提案：关系元数据 + 对象 payload +后端状态机 | 可审计、可恢复、扩展性好 | 有迁移与运维成本                          | 推荐，待 ADR 接受 |
+| 直接引入 ARS/多 Agent 运行时                  | 复用表面流程             | 许可证、产品模型、RBAC 与复杂度不匹配     | 放弃              |
 
 ## 8. 验收与审查清单
 
@@ -187,6 +189,6 @@ Gate 2 展示未锚定声明、漂移 chunk、低置信度声明和冲突引文�
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-| --- | --- | --- |
+| 版本   | 日期       | 变更                      |
+| ------ | ---------- | ------------------------- |
 | v0.1.0 | 2026-07-27 | 基于 ARS 对标基线创建初稿 |

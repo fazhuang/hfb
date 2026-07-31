@@ -5,18 +5,10 @@
       <h3 class="rre-title">{{ title }}</h3>
       <p class="rre-message">{{ message }}</p>
       <div v-if="showRetry" class="rre-actions">
-        <router-link
-          v-if="workspaceLink"
-          :to="workspaceLink"
-          class="rre-btn rre-btn--secondary"
-        >
+        <router-link v-if="workspaceLink" :to="workspaceLink" class="rre-btn rre-btn--secondary">
           返回工作区
         </router-link>
-        <router-link
-          v-if="workflowLink"
-          :to="workflowLink"
-          class="rre-btn rre-btn--secondary"
-        >
+        <router-link v-if="workflowLink" :to="workflowLink" class="rre-btn rre-btn--secondary">
           返回研究流程
         </router-link>
         <button

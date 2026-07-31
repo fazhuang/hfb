@@ -22,6 +22,7 @@
 ## 1. SQLAlchemy 模型设计
 
 所有新模型遵循现有代码规范：
+
 - 继承 `BaseModel`（`id` UUID4 String(36) PK + `created_at` + `updated_at` + `deleted_at` + `is_deleted`）
 - `mapped_column` + 中文 `comment`
 - FK 使用 `ForeignKey("table.id", ondelete="...")` 模式
@@ -38,6 +39,7 @@ robots 协议、许可证说明等元数据。为合规采集提供平台级配�
 
 用于支撑：文献发现库、采集任务管理、版权合规审计。
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -60,8 +62,11 @@ class SourcePlatform(BaseModel):
         String(2000), nullable=True, comment="平台首页 URL"
     )
     type: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="web", server_default="web",
-        comment="平台类型: web/library_api/academic_db/open_repository/digital_archive"
+        String(50),
+        nullable=False,
+        default="web",
+        server_default="web",
+        comment="平台类型: web/library_api/academic_db/open_repository/digital_archive",
     )
     access_policy: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="访问策略说明（开放获取/注册访问/付费/IP限制）"
@@ -73,12 +78,18 @@ class SourcePlatform(BaseModel):
         Text, nullable=True, comment="平台内容许可证说明（CC0/CC-BY/CC-BY-NC/自定义）"
     )
     is_allowed_for_metadata: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False,
-        comment="是否允许采集元数据"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="是否允许采集元数据",
     )
     is_allowed_for_fulltext: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False,
-        comment="是否允许采集全文。false 时 IngestionItem 不得执行 fulltext_download 或生成 FullTextDocument"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="是否允许采集全文。false 时 IngestionItem 不得执行 fulltext_download 或生成 FullTextDocument",
     )
 
     def __repr__(self) -> str:
@@ -87,18 +98,19 @@ class SourcePlatform(BaseModel):
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `name` | String(200) | ✅ | 平台名称，唯一索引 |
-| `url` | String(2000) | | 平台首页 URL |
-| `type` | String(50) | ✅ | web / library_api / academic_db / open_repository / digital_archive |
-| `access_policy` | Text | | 访问策略说明 |
-| `robots_policy` | Text | | robots.txt 规则摘要 |
-| `license_note` | Text | | 平台内容许可证说明 |
-| `is_allowed_for_metadata` | Boolean | ✅ | 是否允许采集元数据，默认 false |
-| `is_allowed_for_fulltext` | Boolean | ✅ | 是否允许采集全文，默认 false。**这是全文采集的必要条件之一** |
+| 字段                      | 类型         | 必填 | 说明                                                                |
+| ------------------------- | ------------ | ---- | ------------------------------------------------------------------- |
+| `name`                    | String(200)  | ✅   | 平台名称，唯一索引                                                  |
+| `url`                     | String(2000) |      | 平台首页 URL                                                        |
+| `type`                    | String(50)   | ✅   | web / library_api / academic_db / open_repository / digital_archive |
+| `access_policy`           | Text         |      | 访问策略说明                                                        |
+| `robots_policy`           | Text         |      | robots.txt 规则摘要                                                 |
+| `license_note`            | Text         |      | 平台内容许可证说明                                                  |
+| `is_allowed_for_metadata` | Boolean      | ✅   | 是否允许采集元数据，默认 false                                      |
+| `is_allowed_for_fulltext` | Boolean      | ✅   | 是否允许采集全文，默认 false。**这是全文采集的必要条件之一**        |
 
 **设计决策:**
+
 - `type` 使用字符串而非枚举：外部平台类型会持续增长，字符串更灵活。ponytail: 如果平台类型超过 10 种且需要校验，再改为枚举。
 - `robots_policy` 存文本摘要而非结构化规则：各平台 robots 格式差异大，摘要足够合规审计用。
 - `is_allowed_for_*` 双重开关：允许元数据采集的平台未必允许全文采集（如 CNKI）。
@@ -116,6 +128,7 @@ LiteratureRecord (文献记录) domain model.
 
 用于支撑：文献发现库、引文证据库。
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
@@ -143,19 +156,24 @@ class LiteratureRecord(BaseModel):
         String(1000), nullable=True, comment="原始语言标题（如英文文献的原题）"
     )
     authors: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="作者列表（JSON 数组字符串，含姓名+机构）。服务层必须校验 JSON 格式。推荐后续迁移到 JSONB。"
+        Text,
+        nullable=True,
+        comment="作者列表（JSON 数组字符串，含姓名+机构）。服务层必须校验 JSON 格式。推荐后续迁移到 JSONB。",
     )
     institutions: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="作者所属机构列表（JSON 数组字符串）。服务层必须校验 JSON 格式。推荐后续迁移到 JSONB。"
+        Text,
+        nullable=True,
+        comment="作者所属机构列表（JSON 数组字符串）。服务层必须校验 JSON 格式。推荐后续迁移到 JSONB。",
     )
     year: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True, comment="出版年份"
     )
     publication_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="journal_article", server_default="journal_article",
-        comment="出版类型: journal_article/thesis/conference/book_chapter/preprint/report/other"
+        String(50),
+        nullable=False,
+        default="journal_article",
+        server_default="journal_article",
+        comment="出版类型: journal_article/thesis/conference/book_chapter/preprint/report/other",
     )
     journal: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="期刊/会议/出版社名称"
@@ -163,9 +181,7 @@ class LiteratureRecord(BaseModel):
     publisher: Mapped[Optional[str]] = mapped_column(
         String(500), nullable=True, comment="出版社名称"
     )
-    abstract: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True, comment="摘要"
-    )
+    abstract: Mapped[Optional[str]] = mapped_column(Text, nullable=True, comment="摘要")
     keywords: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="关键词（JSON 数组字符串）"
     )
@@ -181,27 +197,41 @@ class LiteratureRecord(BaseModel):
         String(2000), nullable=True, comment="来源 URL"
     )
     language: Mapped[str] = mapped_column(
-        String(20), default="zh", server_default="zh", nullable=False, comment="文献语言"
+        String(20),
+        default="zh",
+        server_default="zh",
+        nullable=False,
+        comment="文献语言",
     )
 
     # --- 来源追溯 ---
     source_platform_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("source_platforms.id", ondelete="SET NULL"), nullable=True,
-        comment="来源平台 ID"
+        ForeignKey("source_platforms.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="来源平台 ID",
     )
 
     # --- 版权与状态 ---
     metadata_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="draft", server_default="draft",
-        comment="元数据状态: draft/reviewed/approved/published/rejected"
+        String(30),
+        nullable=False,
+        default="draft",
+        server_default="draft",
+        comment="元数据状态: draft/reviewed/approved/published/rejected",
     )
     copyright_status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="unknown", server_default="unknown",
-        comment="版权状态: public_domain/in_copyright/orphan_work/licensed/unknown"
+        String(50),
+        nullable=False,
+        default="unknown",
+        server_default="unknown",
+        comment="版权状态: public_domain/in_copyright/orphan_work/licensed/unknown",
     )
     fulltext_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="none", server_default="none",
-        comment="全文状态: none/metadata_only/abstract_only/open_access/authorized/embargoed"
+        String(30),
+        nullable=False,
+        default="none",
+        server_default="none",
+        comment="全文状态: none/metadata_only/abstract_only/open_access/authorized/embargoed",
     )
 
     # --- 关系 ---
@@ -218,28 +248,29 @@ class LiteratureRecord(BaseModel):
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `title` | String(1000) | ✅ | 文献标题，索引 |
-| `original_title` | String(1000) | | 原始语言标题 |
-| `authors` | Text | | JSON 数组。服务层必须校验 JSON 格式；推荐后续迁移到 JSONB。 |
-| `institutions` | Text | | JSON 数组。服务层必须校验 JSON 格式；推荐后续迁移到 JSONB。 |
-| `year` | Integer | | 出版年份 |
-| `publication_type` | String(50) | ✅ | journal_article/thesis/conference/book_chapter/preprint/report/other |
-| `journal` | String(500) | | 期刊/会议/出版社名 |
-| `publisher` | String(500) | | 出版社 |
-| `abstract` | Text | | 摘要 |
-| `keywords` | Text | | JSON 数组 |
-| `doi` | String(500) | | 唯一索引 |
-| `external_id` | String(500) | | 外部系统标识符 |
-| `source_url` | String(2000) | | 来源链接 |
-| `language` | String(20) | ✅ | 默认 "zh" |
-| `source_platform_id` | FK | | → source_platforms.id |
-| `metadata_status` | String(30) | ✅ | draft → reviewed → approved → published / rejected |
-| `copyright_status` | String(50) | ✅ | public_domain / in_copyright / orphan_work / licensed / unknown |
-| `fulltext_status` | String(30) | ✅ | none / metadata_only / abstract_only / open_access / authorized / embargoed |
+| 字段                 | 类型         | 必填 | 说明                                                                        |
+| -------------------- | ------------ | ---- | --------------------------------------------------------------------------- |
+| `title`              | String(1000) | ✅   | 文献标题，索引                                                              |
+| `original_title`     | String(1000) |      | 原始语言标题                                                                |
+| `authors`            | Text         |      | JSON 数组。服务层必须校验 JSON 格式；推荐后续迁移到 JSONB。                 |
+| `institutions`       | Text         |      | JSON 数组。服务层必须校验 JSON 格式；推荐后续迁移到 JSONB。                 |
+| `year`               | Integer      |      | 出版年份                                                                    |
+| `publication_type`   | String(50)   | ✅   | journal_article/thesis/conference/book_chapter/preprint/report/other        |
+| `journal`            | String(500)  |      | 期刊/会议/出版社名                                                          |
+| `publisher`          | String(500)  |      | 出版社                                                                      |
+| `abstract`           | Text         |      | 摘要                                                                        |
+| `keywords`           | Text         |      | JSON 数组                                                                   |
+| `doi`                | String(500)  |      | 唯一索引                                                                    |
+| `external_id`        | String(500)  |      | 外部系统标识符                                                              |
+| `source_url`         | String(2000) |      | 来源链接                                                                    |
+| `language`           | String(20)   | ✅   | 默认 "zh"                                                                   |
+| `source_platform_id` | FK           |      | → source_platforms.id                                                       |
+| `metadata_status`    | String(30)   | ✅   | draft → reviewed → approved → published / rejected                          |
+| `copyright_status`   | String(50)   | ✅   | public_domain / in_copyright / orphan_work / licensed / unknown             |
+| `fulltext_status`    | String(30)   | ✅   | none / metadata_only / abstract_only / open_access / authorized / embargoed |
 
 **设计决策:**
+
 - `authors` 存 JSON 字符串而非外键关联：外部文献的作者可能未在系统 Person 中注册，且批量导入时无需先创建 Person。ponytail: 需要作者实体关联时，通过 `authors` JSON 中的 name 匹配 Person 表。
 - `metadata_status` 独立状态机：与 BaseModel 的软删除不同，这是学术审核流程的状态。
 - `fulltext_status` 区分 6 种状态：embargoed（禁运期）和 authorized（授权访问）是不同的合规场景。
@@ -263,6 +294,7 @@ VersionBibliography 是 Version 的 1:1 目录学扩展，记录与文本校勘�
 
 用于支撑：版本目录库、馆藏管理、公版状态追踪。
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
@@ -284,8 +316,10 @@ class VersionBibliography(BaseModel):
 
     # --- 强制关联现有 Version ---
     version_id: Mapped[str] = mapped_column(
-        ForeignKey("versions.id", ondelete="CASCADE"), nullable=False, unique=True,
-        comment="关联的系统内 Version 记录 ID。NOT NULL + UNIQUE，确保 1:1 附属关系。"
+        ForeignKey("versions.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        comment="关联的系统内 Version 记录 ID。NOT NULL + UNIQUE，确保 1:1 附属关系。",
     )
 
     # --- 馆藏信息 ---
@@ -307,30 +341,38 @@ class VersionBibliography(BaseModel):
         String(2000), nullable=True, comment="书影/卷端图片 URL"
     )
     ocr_text_available: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False,
-        comment="是否已有 OCR 文本"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="是否已有 OCR 文本",
     )
 
     # --- 版权 ---
     public_domain_status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="needs_investigation",
+        String(50),
+        nullable=False,
+        default="needs_investigation",
         server_default="needs_investigation",
         comment="公版状态: confirmed_public_domain/likely_public_domain/needs_investigation/in_copyright。"
-                "默认 needs_investigation，人工确认后方可升级为 confirmed_public_domain。"
+        "默认 needs_investigation，人工确认后方可升级为 confirmed_public_domain。",
     )
 
     # --- 版权判定记录 ---
     copyright_decision: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True,
-        comment="版权判定结论: public_domain/licensed/in_copyright/orphan_work/unknown"
+        String(50),
+        nullable=True,
+        comment="版权判定结论: public_domain/licensed/in_copyright/orphan_work/unknown",
     )
     copyright_decision_basis: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="版权判定依据（如'作者卒于1802年，超过70年'、'CC0 声明 URL'）"
+        Text,
+        nullable=True,
+        comment="版权判定依据（如'作者卒于1802年，超过70年'、'CC0 声明 URL'）",
     )
     copyright_reviewed_by: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
-        comment="版权判定审核人 ID"
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="版权判定审核人 ID",
     )
     copyright_reviewed_at: Mapped[Optional[str]] = mapped_column(
         nullable=True, comment="版权判定审核时间"
@@ -356,24 +398,25 @@ class VersionBibliography(BaseModel):
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `version_id` | FK | ✅ | → versions.id，**NOT NULL + UNIQUE**。强制 1:1 附属关系。这是关键约束。 |
-| `repository` | String(500) | | 收藏机构 |
-| `repository_location` | String(200) | | 收藏地 |
-| `shelf_mark` | String(200) | | 索书号 |
-| `source_url` | String(2000) | | 数字影像 URL |
-| `image_url` | String(2000) | | 书影 URL |
-| `ocr_text_available` | Boolean | ✅ | 默认 false |
-| `public_domain_status` | String(50) | ✅ | **默认 `needs_investigation`**（不是 `confirmed_public_domain`）。人工确认后方可升级。 |
-| `copyright_decision` | String(50) | | 版权判定结论 |
-| `copyright_decision_basis` | Text | | 版权判定依据 |
-| `copyright_reviewed_by` | FK | | → users.id |
-| `copyright_reviewed_at` | String(100) | | 审核时间 |
-| `citation_note` | Text | | 标准引文注记 |
-| `academic_note` | Text | | 学术考释注记 |
+| 字段                       | 类型         | 必填 | 说明                                                                                   |
+| -------------------------- | ------------ | ---- | -------------------------------------------------------------------------------------- |
+| `version_id`               | FK           | ✅   | → versions.id，**NOT NULL + UNIQUE**。强制 1:1 附属关系。这是关键约束。                |
+| `repository`               | String(500)  |      | 收藏机构                                                                               |
+| `repository_location`      | String(200)  |      | 收藏地                                                                                 |
+| `shelf_mark`               | String(200)  |      | 索书号                                                                                 |
+| `source_url`               | String(2000) |      | 数字影像 URL                                                                           |
+| `image_url`                | String(2000) |      | 书影 URL                                                                               |
+| `ocr_text_available`       | Boolean      | ✅   | 默认 false                                                                             |
+| `public_domain_status`     | String(50)   | ✅   | **默认 `needs_investigation`**（不是 `confirmed_public_domain`）。人工确认后方可升级。 |
+| `copyright_decision`       | String(50)   |      | 版权判定结论                                                                           |
+| `copyright_decision_basis` | Text         |      | 版权判定依据                                                                           |
+| `copyright_reviewed_by`    | FK           |      | → users.id                                                                             |
+| `copyright_reviewed_at`    | String(100)  |      | 审核时间                                                                               |
+| `citation_note`            | Text         |      | 标准引文注记                                                                           |
+| `academic_note`            | Text         |      | 学术考释注记                                                                           |
 
 **设计决策（P0-2 修订）:**
+
 - **这是附属表，不是独立版本主表。** 系统的版本主数据仍然是 `Version`。`VersionBibliography` 只存储与文本校勘无关的目录学元数据。
 - `version_id` 为 NOT NULL + UNIQUE，确保每条目录学记录必须对应一个现有 Version，且 1:1。
 - **不再重复 Version 已有字段**（work_title、version_name、dynasty、year、edition_type 均在 Version 中）。
@@ -405,11 +448,20 @@ FullTextDocument (合规全文) domain model.
 
 用于支撑：合规全文库、全文检索、引文证据提取。
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
 
-from sqlalchemy import BigInteger, CheckConstraint, Float, Integer, String, Text, ForeignKey
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    Float,
+    Integer,
+    String,
+    Text,
+    ForeignKey,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import BaseModel
@@ -452,38 +504,44 @@ class FullTextDocument(BaseModel):
 
     # --- 关联 ---
     literature_record_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("literature_records.id", ondelete="SET NULL"), nullable=True,
-        comment="关联的文献记录 ID（现代论文）"
+        ForeignKey("literature_records.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联的文献记录 ID（现代论文）",
     )
     version_bibliography_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("version_bibliographies.id", ondelete="SET NULL"), nullable=True,
-        comment="关联的版本目录学记录 ID（古籍）"
+        ForeignKey("version_bibliographies.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联的版本目录学记录 ID（古籍）",
     )
     ingestion_job_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("ingestion_jobs.id", ondelete="SET NULL"), nullable=True,
-        comment="关联的采集任务 ID"
+        ForeignKey("ingestion_jobs.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="关联的采集任务 ID",
     )
 
     # --- 文件信息 ---
     file_path: Mapped[Optional[str]] = mapped_column(
-        String(2000), nullable=True,
-        comment="文件存储路径（MinIO object key）。受 ck_full_text_documents_file_path_copyright_gate 约束。"
+        String(2000),
+        nullable=True,
+        comment="文件存储路径（MinIO object key）。受 ck_full_text_documents_file_path_copyright_gate 约束。",
     )
     file_format: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="txt", server_default="txt",
-        comment="文件格式: txt/pdf/djvu/docx/html/markdown"
+        String(20),
+        nullable=False,
+        default="txt",
+        server_default="txt",
+        comment="文件格式: txt/pdf/djvu/docx/html/markdown",
     )
     file_size: Mapped[Optional[int]] = mapped_column(
         BigInteger, nullable=True, comment="文件大小（字节）"
     )
-    page_count: Mapped[Optional[int]] = mapped_column(
-        nullable=True, comment="页数"
-    )
+    page_count: Mapped[Optional[int]] = mapped_column(nullable=True, comment="页数")
 
     # --- 文本内容 ---
     text_content: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="全文文本内容（纯文本/OCR 结果）。受 ck_full_text_documents_text_content_copyright_gate 约束。"
+        Text,
+        nullable=True,
+        comment="全文文本内容（纯文本/OCR 结果）。受 ck_full_text_documents_text_content_copyright_gate 约束。",
     )
     text_hash: Mapped[Optional[str]] = mapped_column(
         String(64), nullable=True, index=True, comment="文本内容 SHA-256 哈希"
@@ -491,8 +549,11 @@ class FullTextDocument(BaseModel):
 
     # --- OCR ---
     ocr_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="none", server_default="none",
-        comment="OCR 状态: none/pending/processing/done/manual_review/failed"
+        String(30),
+        nullable=False,
+        default="none",
+        server_default="none",
+        comment="OCR 状态: none/pending/processing/done/manual_review/failed",
     )
     ocr_engine: Mapped[Optional[str]] = mapped_column(
         String(100), nullable=True, comment="OCR 引擎名称及版本"
@@ -503,29 +564,42 @@ class FullTextDocument(BaseModel):
 
     # --- 版权与许可证 ---
     license_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="unknown", server_default="unknown",
-        comment="许可证类型: cc0/cc_by/cc_by_nc/cc_by_nc_sa/custom/public_domain/unknown"
+        String(50),
+        nullable=False,
+        default="unknown",
+        server_default="unknown",
+        comment="许可证类型: cc0/cc_by/cc_by_nc/cc_by_nc_sa/custom/public_domain/unknown",
     )
     copyright_status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default="unknown", server_default="unknown",
+        String(50),
+        nullable=False,
+        default="unknown",
+        server_default="unknown",
         comment="版权状态: public_domain/in_copyright/orphan_work/licensed/unknown。"
-                "public_domain 或 licensed 才允许保存全文。"
+        "public_domain 或 licensed 才允许保存全文。",
     )
     authorization_basis: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
+        Text,
+        nullable=True,
         comment="授权依据（如'CC0 声明 URL'、'与版权方签署的授权协议编号'、'公版确认依据'）。"
-                "copyright_status IN ('public_domain','licensed') 时必填；是 text_content/file_path 非空的前提条件。"
+        "copyright_status IN ('public_domain','licensed') 时必填；是 text_content/file_path 非空的前提条件。",
     )
     access_level: Mapped[str] = mapped_column(
-        String(20), nullable=False, default="restricted", server_default="restricted",
+        String(20),
+        nullable=False,
+        default="restricted",
+        server_default="restricted",
         comment="访问级别: open/registered/restricted/embargoed。"
-                "注意：这只是访问控制，不是入库许可。入库许可由 copyright_status + authorization_basis 决定。"
+        "注意：这只是访问控制，不是入库许可。入库许可由 copyright_status + authorization_basis 决定。",
     )
 
     # --- 采集 ---
     ingestion_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="pending", server_default="pending",
-        comment="入库状态: pending/ingesting/ingested/verified/rejected"
+        String(30),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        comment="入库状态: pending/ingesting/ingested/verified/rejected",
     )
 
     # --- 关系 ---
@@ -536,7 +610,9 @@ class FullTextDocument(BaseModel):
         "VersionBibliography", back_populates="full_text_documents"
     )
     ingestion_job: Mapped[Optional["IngestionJob"]] = relationship(
-        "IngestionJob", back_populates="full_text_documents", foreign_keys=[ingestion_job_id]
+        "IngestionJob",
+        back_populates="full_text_documents",
+        foreign_keys=[ingestion_job_id],
     )
 
     def __repr__(self) -> str:
@@ -545,48 +621,51 @@ class FullTextDocument(BaseModel):
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `literature_record_id` | FK | | → literature_records.id。与 `version_bibliography_id` exactly one 互斥。 |
-| `version_bibliography_id` | FK | | → version_bibliographies.id。与 `literature_record_id` exactly one 互斥。 |
-| `ingestion_job_id` | FK | | → ingestion_jobs.id |
-| `file_path` | String(2000) | | MinIO object key。受 copyright gate 约束。 |
-| `file_format` | String(20) | ✅ | txt/pdf/djvu/docx/html/markdown |
-| `file_size` | BigInteger | | 字节数 |
-| `page_count` | Integer | | 页数 |
-| `text_content` | Text | | 全文纯文本。受 copyright gate 约束。 |
-| `text_hash` | String(64) | | SHA-256，索引（去重） |
-| `ocr_status` | String(30) | ✅ | none → pending → processing → done → manual_review / failed |
-| `ocr_engine` | String(100) | | 引擎名+版本 |
-| `ocr_confidence` | Float | | 平均置信度 |
-| `license_type` | String(50) | ✅ | cc0/cc_by/cc_by_nc/cc_by_nc_sa/custom/public_domain/unknown |
-| `copyright_status` | String(50) | ✅ | public_domain/in_copyright/orphan_work/licensed/unknown |
-| `authorization_basis` | Text | | **版权授权依据。copyright_status IN ('public_domain','licensed') 时必填。** |
-| `access_level` | String(20) | ✅ | 访问控制，不是入库许可。默认 restricted。 |
-| `ingestion_status` | String(30) | ✅ | pending → ingesting → ingested → verified / rejected |
+| 字段                      | 类型         | 必填 | 说明                                                                        |
+| ------------------------- | ------------ | ---- | --------------------------------------------------------------------------- |
+| `literature_record_id`    | FK           |      | → literature_records.id。与 `version_bibliography_id` exactly one 互斥。    |
+| `version_bibliography_id` | FK           |      | → version_bibliographies.id。与 `literature_record_id` exactly one 互斥。   |
+| `ingestion_job_id`        | FK           |      | → ingestion_jobs.id                                                         |
+| `file_path`               | String(2000) |      | MinIO object key。受 copyright gate 约束。                                  |
+| `file_format`             | String(20)   | ✅   | txt/pdf/djvu/docx/html/markdown                                             |
+| `file_size`               | BigInteger   |      | 字节数                                                                      |
+| `page_count`              | Integer      |      | 页数                                                                        |
+| `text_content`            | Text         |      | 全文纯文本。受 copyright gate 约束。                                        |
+| `text_hash`               | String(64)   |      | SHA-256，索引（去重）                                                       |
+| `ocr_status`              | String(30)   | ✅   | none → pending → processing → done → manual_review / failed                 |
+| `ocr_engine`              | String(100)  |      | 引擎名+版本                                                                 |
+| `ocr_confidence`          | Float        |      | 平均置信度                                                                  |
+| `license_type`            | String(50)   | ✅   | cc0/cc_by/cc_by_nc/cc_by_nc_sa/custom/public_domain/unknown                 |
+| `copyright_status`        | String(50)   | ✅   | public_domain/in_copyright/orphan_work/licensed/unknown                     |
+| `authorization_basis`     | Text         |      | **版权授权依据。copyright_status IN ('public_domain','licensed') 时必填。** |
+| `access_level`            | String(20)   | ✅   | 访问控制，不是入库许可。默认 restricted。                                   |
+| `ingestion_status`        | String(30)   | ✅   | pending → ingesting → ingested → verified / rejected                        |
 
 **设计决策（P0-1 修订）:**
 
 **入库版权门控（数据库层 + 服务层双重保障）:**
 
-| copyright_status | authorization_basis | text_content | file_path | 允许的操作 |
-|---|---|---|---|---|
-| `public_domain` | 非空 | **允许** | **允许** | 全文存储、OCR、检索 |
-| `licensed` | 非空 | **允许** | **允许** | 按许可证范围使用 |
-| `unknown` | NULL | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url、版权判定记录 |
-| `in_copyright` | NULL | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url |
-| `orphan_work` | NULL | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url、孤儿作品判定记录 |
+| copyright_status | authorization_basis | text_content  | file_path     | 允许的操作                                        |
+| ---------------- | ------------------- | ------------- | ------------- | ------------------------------------------------- |
+| `public_domain`  | 非空                | **允许**      | **允许**      | 全文存储、OCR、检索                               |
+| `licensed`       | 非空                | **允许**      | **允许**      | 按许可证范围使用                                  |
+| `unknown`        | NULL                | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url、版权判定记录     |
+| `in_copyright`   | NULL                | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url                   |
+| `orphan_work`    | NULL                | **必须 NULL** | **必须 NULL** | 仅元数据、摘要、DOI、source_url、孤儿作品判定记录 |
 
 **数据库层约束：**
+
 - `ck_full_text_documents_text_content_copyright_gate`: `text_content IS NULL OR (copyright_status IN ('public_domain','licensed') AND authorization_basis IS NOT NULL)`
 - `ck_full_text_documents_file_path_copyright_gate`: `file_path IS NULL OR (copyright_status IN ('public_domain','licensed') AND authorization_basis IS NOT NULL)`
 
 **服务层约束（补充，无法在 CHECK 中表达）：**
+
 - `copyright_status = 'unknown'` 的记录，即使 `license_type`/`authorization_basis` 有值，也不得写入 `text_content` 或 `file_path`
 - `SourcePlatform.is_allowed_for_fulltext = false` 时，采集任务不得为此来源创建任何 `FullTextDocument`
 - `access_level` 只是访问控制，不作为入库许可依据
 
 **来源 FK 约束（P1 修正）:**
+
 - `ck_full_text_documents_exactly_one_source`: `literature_record_id` 和 `version_bibliography_id` exactly one 非空（XOR）
 
 ---
@@ -608,6 +687,7 @@ EvidenceCitation (引文证据) domain model.
 
 用于支撑：引文证据库、版本校勘引用、RAG 上下文溯源。
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -625,25 +705,33 @@ class EvidenceCitation(BaseModel):
 
     # --- 来源 ---
     document_id: Mapped[str] = mapped_column(
-        ForeignKey("full_text_documents.id", ondelete="CASCADE"), nullable=False, index=True,
-        comment="来源全文文档 ID"
+        ForeignKey("full_text_documents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="来源全文文档 ID",
     )
 
     # --- 状态流 ---
     status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="extracted", server_default="extracted", index=True,
+        String(30),
+        nullable=False,
+        default="extracted",
+        server_default="extracted",
+        index=True,
         comment="状态: extracted → draft → reviewed → promoted_to_evidence / rejected。"
-                "只有 reviewed 及以上才允许进入 RAG/Graph/Evidence 链。"
+        "只有 reviewed 及以上才允许进入 RAG/Graph/Evidence 链。",
     )
 
     # --- 定位（优先绑定现有 Passage / Version）---
     passage_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("passages.id", ondelete="SET NULL"), nullable=True,
-        comment="优先定位：关联的系统内 Passage ID。如 OCR 文本已映射到 Passage。"
+        ForeignKey("passages.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="优先定位：关联的系统内 Passage ID。如 OCR 文本已映射到 Passage。",
     )
     version_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("versions.id", ondelete="SET NULL"), nullable=True,
-        comment="优先定位：关联的系统内 Version ID。"
+        ForeignKey("versions.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="优先定位：关联的系统内 Version ID。",
     )
     # 以下为补充定位，在 passage_id/version_id 不可用时使用
     page_number: Mapped[Optional[int]] = mapped_column(
@@ -657,9 +745,7 @@ class EvidenceCitation(BaseModel):
     )
 
     # --- 内容 ---
-    quote_text: Mapped[str] = mapped_column(
-        Text, nullable=False, comment="引文原文"
-    )
+    quote_text: Mapped[str] = mapped_column(Text, nullable=False, comment="引文原文")
     normalized_text: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="标准化/标点化后的文本"
     )
@@ -667,12 +753,14 @@ class EvidenceCitation(BaseModel):
     # 当来源 FullTextDocument.copyright_status IN ('unknown','in_copyright','orphan_work') 时，
     # context_before 和 context_after 必须为空 —— 只能保存 quote_text 本身（合理引用）。
     context_before: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="引文前文（上下文）。受版权规则限制：未知/受限版权来源不得保存上下文。"
+        Text,
+        nullable=True,
+        comment="引文前文（上下文）。受版权规则限制：未知/受限版权来源不得保存上下文。",
     )
     context_after: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="引文后文（上下文）。受版权规则限制：未知/受限版权来源不得保存上下文。"
+        Text,
+        nullable=True,
+        comment="引文后文（上下文）。受版权规则限制：未知/受限版权来源不得保存上下文。",
     )
 
     # --- 链接 ---
@@ -688,9 +776,11 @@ class EvidenceCitation(BaseModel):
 
     # --- 与现有 Evidence 的强桥接（P0-3）---
     evidence_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("evidences.id", ondelete="SET NULL"), nullable=True, unique=True,
+        ForeignKey("evidences.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=True,
         comment="桥接到现有 Evidence 模型。promoted_to_evidence 时创建 Evidence 并回写此 FK。"
-               "UNIQUE 确保一条 EvidenceCitation 只生成一条 Evidence。"
+        "UNIQUE 确保一条 EvidenceCitation 只生成一条 Evidence。",
     )
 
     # --- 质量 ---
@@ -698,12 +788,14 @@ class EvidenceCitation(BaseModel):
         Float, nullable=True, comment="提取置信度 (0.0-1.0)"
     )
     extraction_method: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="manual", server_default="manual",
-        comment="提取方式: manual/ocr/regex/llm/hybrid"
+        String(30),
+        nullable=False,
+        default="manual",
+        server_default="manual",
+        comment="提取方式: manual/ocr/regex/llm/hybrid",
     )
     reviewed_by: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL"), nullable=True,
-        comment="审核人 ID"
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, comment="审核人 ID"
     )
     reviewed_at: Mapped[Optional[str]] = mapped_column(
         nullable=True, comment="审核时间"
@@ -716,33 +808,39 @@ class EvidenceCitation(BaseModel):
     evidence: Mapped[Optional["Evidence"]] = relationship("Evidence")
 
     def __repr__(self) -> str:
-        preview = (self.quote_text[:50] + "...") if len(self.quote_text) > 50 else self.quote_text
-        return f"<EvidenceCitation id={self.id} status={self.status!r} quote={preview!r}>"
+        preview = (
+            (self.quote_text[:50] + "...")
+            if len(self.quote_text) > 50
+            else self.quote_text
+        )
+        return (
+            f"<EvidenceCitation id={self.id} status={self.status!r} quote={preview!r}>"
+        )
 ```
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `document_id` | FK | ✅ | → full_text_documents.id，级联删除 |
-| `status` | String(30) | ✅ | **extracted → draft → reviewed → promoted_to_evidence / rejected** |
-| `passage_id` | FK | | **优先定位**：→ passages.id |
-| `version_id` | FK | | **优先定位**：→ versions.id |
-| `page_number` | Integer | | 补充定位 |
-| `paragraph_index` | Integer | | 补充定位 |
-| `line_range` | String(50) | | 补充定位 |
-| `quote_text` | Text | ✅ | 引文原文 |
-| `normalized_text` | Text | | 标准化文本 |
-| `context_before` | Text | | 前文上下文。**受版权规则限制。** |
-| `context_after` | Text | | 后文上下文。**受版权规则限制。** |
-| `source_url` | String(2000) | | 来源 URL |
-| `citation_format` | String(100) | | gb7714/chicago/apa/mla |
-| `formatted_citation` | Text | | 格式化引文 |
-| `evidence_id` | FK | | **桥接现有 Evidence。UNIQUE**。promoted_to_evidence 时回写。 |
-| `confidence_score` | Float | | 0.0-1.0 |
-| `extraction_method` | String(30) | ✅ | manual/ocr/regex/llm/hybrid |
-| `reviewed_by` | FK | | → users.id |
-| `reviewed_at` | String(100) | | 审核时间 |
+| 字段                 | 类型         | 必填 | 说明                                                               |
+| -------------------- | ------------ | ---- | ------------------------------------------------------------------ |
+| `document_id`        | FK           | ✅   | → full_text_documents.id，级联删除                                 |
+| `status`             | String(30)   | ✅   | **extracted → draft → reviewed → promoted_to_evidence / rejected** |
+| `passage_id`         | FK           |      | **优先定位**：→ passages.id                                        |
+| `version_id`         | FK           |      | **优先定位**：→ versions.id                                        |
+| `page_number`        | Integer      |      | 补充定位                                                           |
+| `paragraph_index`    | Integer      |      | 补充定位                                                           |
+| `line_range`         | String(50)   |      | 补充定位                                                           |
+| `quote_text`         | Text         | ✅   | 引文原文                                                           |
+| `normalized_text`    | Text         |      | 标准化文本                                                         |
+| `context_before`     | Text         |      | 前文上下文。**受版权规则限制。**                                   |
+| `context_after`      | Text         |      | 后文上下文。**受版权规则限制。**                                   |
+| `source_url`         | String(2000) |      | 来源 URL                                                           |
+| `citation_format`    | String(100)  |      | gb7714/chicago/apa/mla                                             |
+| `formatted_citation` | Text         |      | 格式化引文                                                         |
+| `evidence_id`        | FK           |      | **桥接现有 Evidence。UNIQUE**。promoted_to_evidence 时回写。       |
+| `confidence_score`   | Float        |      | 0.0-1.0                                                            |
+| `extraction_method`  | String(30)   | ✅   | manual/ocr/regex/llm/hybrid                                        |
+| `reviewed_by`        | FK           |      | → users.id                                                         |
+| `reviewed_at`        | String(100)  |      | 审核时间                                                           |
 
 **设计决策（P0-3 修订）:**
 
@@ -767,10 +865,12 @@ extracted ──→ draft ──→ reviewed ──→ promoted_to_evidence
 - `rejected`: 审核不通过，**不得进入任何证据链**
 
 **门控规则:**
+
 - `status NOT IN ('reviewed', 'promoted_to_evidence')` → 不得进入 RAG、Graph、AcademicRelation、Citation 证据链
 - `context_before`/`context_after` 受版权规则限制：当 `FullTextDocument.copyright_status IN ('unknown','in_copyright','orphan_work')` 时，服务层必须拒绝保存上下文，仅允许 `quote_text` 本身（合理引用）
 
 **定位优先级:**
+
 1. `passage_id` + `version_id`（优先：绑定系统内 Passage/Version）
 2. `page_number` + `paragraph_index` + `line_range`（补充：物理页码定位）
 
@@ -789,6 +889,7 @@ IngestionJob (采集任务) domain model.
 
 用于支撑：采集任务管理、批量导入追踪、错误重试。
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional
@@ -812,21 +913,28 @@ class IngestionJob(BaseModel):
 
     # --- 任务定义 ---
     job_type: Mapped[str] = mapped_column(
-        String(50), nullable=False, index=True,
-        comment="任务类型: metadata_harvest/fulltext_download/ocr_pipeline/citation_extract/bulk_import"
+        String(50),
+        nullable=False,
+        index=True,
+        comment="任务类型: metadata_harvest/fulltext_download/ocr_pipeline/citation_extract/bulk_import",
     )
     query: Mapped[Optional[str]] = mapped_column(
         Text, nullable=True, comment="查询参数/搜索词（JSON 字符串）"
     )
     source_platform_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("source_platforms.id", ondelete="SET NULL"), nullable=True,
-        comment="来源平台 ID"
+        ForeignKey("source_platforms.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="来源平台 ID",
     )
 
     # --- 执行状态 ---
     status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="pending", server_default="pending", index=True,
-        comment="批次状态: pending/running/completed/failed/cancelled/partial"
+        String(30),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        index=True,
+        comment="批次状态: pending/running/completed/failed/cancelled/partial",
     )
     started_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="开始时间"
@@ -843,7 +951,11 @@ class IngestionJob(BaseModel):
         Integer, default=0, server_default="0", nullable=False, comment="错误条数"
     )
     skipped_count: Mapped[int] = mapped_column(
-        Integer, default=0, server_default="0", nullable=False, comment="跳过条数（重复/不符合条件）"
+        Integer,
+        default=0,
+        server_default="0",
+        nullable=False,
+        comment="跳过条数（重复/不符合条件）",
     )
 
     # --- 日志 ---
@@ -863,12 +975,16 @@ class IngestionJob(BaseModel):
         "IngestionItem", back_populates="job", lazy="selectin"
     )
     full_text_documents: Mapped[list["FullTextDocument"]] = relationship(
-        "FullTextDocument", back_populates="ingestion_job",
-        foreign_keys="FullTextDocument.ingestion_job_id", lazy="selectin"
+        "FullTextDocument",
+        back_populates="ingestion_job",
+        foreign_keys="FullTextDocument.ingestion_job_id",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:
-        return f"<IngestionJob id={self.id} type={self.job_type!r} status={self.status!r}>"
+        return (
+            f"<IngestionJob id={self.id} type={self.job_type!r} status={self.status!r}>"
+        )
 ```
 
 ### 1.7 IngestionItem — 采集任务明细（P1-1 新增）
@@ -884,6 +1000,7 @@ fulltext_download 必须依赖 SourcePlatform.is_allowed_for_fulltext 和版权�
 
 用于支撑：item-level 采集审计、版权判定追踪、错误重试。
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -901,12 +1018,15 @@ class IngestionItem(BaseModel):
 
     # --- 关联 ---
     ingestion_job_id: Mapped[str] = mapped_column(
-        ForeignKey("ingestion_jobs.id", ondelete="CASCADE"), nullable=False, index=True,
-        comment="所属采集批次 ID"
+        ForeignKey("ingestion_jobs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="所属采集批次 ID",
     )
     source_platform_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey("source_platforms.id", ondelete="SET NULL"), nullable=True,
-        comment="来源平台 ID（可覆盖 Job 级设置）"
+        ForeignKey("source_platforms.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="来源平台 ID（可覆盖 Job 级设置）",
     )
 
     # --- 目标标识 ---
@@ -917,28 +1037,35 @@ class IngestionItem(BaseModel):
         String(500), nullable=True, comment="采集目标标识符（DOI/ISBN/索书号）"
     )
     harvest_type: Mapped[str] = mapped_column(
-        String(30), nullable=False,
+        String(30),
+        nullable=False,
         comment="采集类型: metadata/fulltext/ocr/citation_extract。"
-                "metadata 成功不等于 fulltext 可执行。"
+        "metadata 成功不等于 fulltext 可执行。",
     )
 
     # --- 执行状态 ---
     status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="pending", server_default="pending", index=True,
-        comment="明细状态: pending/running/completed/failed/skipped/cancelled"
+        String(30),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        index=True,
+        comment="明细状态: pending/running/completed/failed/skipped/cancelled",
     )
     error_detail: Mapped[Optional[dict]] = mapped_column(
         JSON, nullable=True, comment="结构化错误详情"
     )
     skipped_reason: Mapped[Optional[str]] = mapped_column(
-        String(500), nullable=True,
-        comment="跳过原因（如'重复DOI'、'平台不允许全文采集'、'版权不明'、'不在公版范围'）"
+        String(500),
+        nullable=True,
+        comment="跳过原因（如'重复DOI'、'平台不允许全文采集'、'版权不明'、'不在公版范围'）",
     )
 
     # --- 结果 ---
     result_entity_type: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True,
-        comment="生成实体类型: literature_record/full_text_document/evidence_citation/none"
+        String(50),
+        nullable=True,
+        comment="生成实体类型: literature_record/full_text_document/evidence_citation/none",
     )
     result_entity_id: Mapped[Optional[str]] = mapped_column(
         String(36), nullable=True, comment="生成实体 ID"
@@ -946,12 +1073,14 @@ class IngestionItem(BaseModel):
 
     # --- 版权判定 ---
     copyright_decision: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True,
-        comment="版权判定结论: public_domain/licensed/in_copyright/orphan_work/unknown/skipped"
+        String(50),
+        nullable=True,
+        comment="版权判定结论: public_domain/licensed/in_copyright/orphan_work/unknown/skipped",
     )
     copyright_decision_basis: Mapped[Optional[str]] = mapped_column(
-        Text, nullable=True,
-        comment="版权判定依据（如'来源平台声明CC0'、'作者卒年>70年'、'未找到版权信息'）"
+        Text,
+        nullable=True,
+        comment="版权判定依据（如'来源平台声明CC0'、'作者卒年>70年'、'未找到版权信息'）",
     )
 
     # --- 审核 ---
@@ -972,22 +1101,22 @@ class IngestionItem(BaseModel):
 
 **字段说明:**
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `ingestion_job_id` | FK | ✅ | → ingestion_jobs.id，级联删除 |
-| `source_platform_id` | FK | | → source_platforms.id |
-| `target_url` | String(2000) | | 采集目标 URL |
-| `target_identifier` | String(500) | | DOI/ISBN/索书号 |
-| `harvest_type` | String(30) | ✅ | **metadata / fulltext / ocr / citation_extract** |
-| `status` | String(30) | ✅ | pending → running → completed / failed / skipped / cancelled |
-| `error_detail` | JSON | | 结构化错误 |
-| `skipped_reason` | String(500) | | 跳过原因 |
-| `result_entity_type` | String(50) | | 生成实体类型 |
-| `result_entity_id` | String(36) | | 生成实体 ID |
-| `copyright_decision` | String(50) | | 版权判定结论 |
-| `copyright_decision_basis` | Text | | 版权判定依据 |
-| `reviewed_by` | FK | | → users.id |
-| `reviewed_at` | String(100) | | 审核时间 |
+| 字段                       | 类型         | 必填 | 说明                                                         |
+| -------------------------- | ------------ | ---- | ------------------------------------------------------------ |
+| `ingestion_job_id`         | FK           | ✅   | → ingestion_jobs.id，级联删除                                |
+| `source_platform_id`       | FK           |      | → source_platforms.id                                        |
+| `target_url`               | String(2000) |      | 采集目标 URL                                                 |
+| `target_identifier`        | String(500)  |      | DOI/ISBN/索书号                                              |
+| `harvest_type`             | String(30)   | ✅   | **metadata / fulltext / ocr / citation_extract**             |
+| `status`                   | String(30)   | ✅   | pending → running → completed / failed / skipped / cancelled |
+| `error_detail`             | JSON         |      | 结构化错误                                                   |
+| `skipped_reason`           | String(500)  |      | 跳过原因                                                     |
+| `result_entity_type`       | String(50)   |      | 生成实体类型                                                 |
+| `result_entity_id`         | String(36)   |      | 生成实体 ID                                                  |
+| `copyright_decision`       | String(50)   |      | 版权判定结论                                                 |
+| `copyright_decision_basis` | Text         |      | 版权判定依据                                                 |
+| `reviewed_by`              | FK           |      | → users.id                                                   |
+| `reviewed_at`              | String(100)  |      | 审核时间                                                     |
 
 **设计决策（P1-1 修订）:**
 
@@ -1010,6 +1139,7 @@ apps/backend/app/models/huangfu_meta.py
 ```
 
 所有 7 个模型放在 **一个文件** 中，因为：
+
 1. 它们紧密相关（通过 FK 互相关联）
 2. 导入关系简洁 — 只需在 `__init__.py` 加一行
 
@@ -1069,14 +1199,15 @@ Create Date: 2026-07-10
   - ingestion_jobs
   - ingestion_items
 """
+
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = '<auto-generated>'
-down_revision: Union[str, None] = '291a1dce8d65'
+revision: str = "<auto-generated>"
+down_revision: Union[str, None] = "291a1dce8d65"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -1084,171 +1215,290 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # --- 1. source_platforms ---
     op.create_table(
-        'source_platforms',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('name', sa.String(200), nullable=False),
-        sa.Column('url', sa.String(2000), nullable=True),
-        sa.Column('type', sa.String(50), nullable=False, server_default='web'),
-        sa.Column('access_policy', sa.Text(), nullable=True),
-        sa.Column('robots_policy', sa.Text(), nullable=True),
-        sa.Column('license_note', sa.Text(), nullable=True),
-        sa.Column('is_allowed_for_metadata', sa.Boolean(), nullable=False, server_default='false'),
-        sa.Column('is_allowed_for_fulltext', sa.Boolean(), nullable=False, server_default='false'),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "source_platforms",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("name", sa.String(200), nullable=False),
+        sa.Column("url", sa.String(2000), nullable=True),
+        sa.Column("type", sa.String(50), nullable=False, server_default="web"),
+        sa.Column("access_policy", sa.Text(), nullable=True),
+        sa.Column("robots_policy", sa.Text(), nullable=True),
+        sa.Column("license_note", sa.Text(), nullable=True),
+        sa.Column(
+            "is_allowed_for_metadata",
+            sa.Boolean(),
+            nullable=False,
+            server_default="false",
+        ),
+        sa.Column(
+            "is_allowed_for_fulltext",
+            sa.Boolean(),
+            nullable=False,
+            server_default="false",
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_index('ix_source_platforms_name', 'source_platforms', ['name'], unique=True)
+    op.create_index(
+        "ix_source_platforms_name", "source_platforms", ["name"], unique=True
+    )
 
     # --- 2. literature_records ---
     op.create_table(
-        'literature_records',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('title', sa.String(1000), nullable=False),
-        sa.Column('original_title', sa.String(1000), nullable=True),
-        sa.Column('authors', sa.Text(), nullable=True),
-        sa.Column('institutions', sa.Text(), nullable=True),
-        sa.Column('year', sa.Integer(), nullable=True),
-        sa.Column('publication_type', sa.String(50), nullable=False, server_default='journal_article'),
-        sa.Column('journal', sa.String(500), nullable=True),
-        sa.Column('publisher', sa.String(500), nullable=True),
-        sa.Column('abstract', sa.Text(), nullable=True),
-        sa.Column('keywords', sa.Text(), nullable=True),
-        sa.Column('doi', sa.String(500), nullable=True, unique=True),
-        sa.Column('external_id', sa.String(500), nullable=True),
-        sa.Column('source_url', sa.String(2000), nullable=True),
-        sa.Column('language', sa.String(20), nullable=False, server_default='zh'),
-        sa.Column('source_platform_id', sa.String(36), nullable=True),
-        sa.Column('metadata_status', sa.String(30), nullable=False, server_default='draft'),
-        sa.Column('copyright_status', sa.String(50), nullable=False, server_default='unknown'),
-        sa.Column('fulltext_status', sa.String(30), nullable=False, server_default='none'),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "literature_records",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("title", sa.String(1000), nullable=False),
+        sa.Column("original_title", sa.String(1000), nullable=True),
+        sa.Column("authors", sa.Text(), nullable=True),
+        sa.Column("institutions", sa.Text(), nullable=True),
+        sa.Column("year", sa.Integer(), nullable=True),
+        sa.Column(
+            "publication_type",
+            sa.String(50),
+            nullable=False,
+            server_default="journal_article",
+        ),
+        sa.Column("journal", sa.String(500), nullable=True),
+        sa.Column("publisher", sa.String(500), nullable=True),
+        sa.Column("abstract", sa.Text(), nullable=True),
+        sa.Column("keywords", sa.Text(), nullable=True),
+        sa.Column("doi", sa.String(500), nullable=True, unique=True),
+        sa.Column("external_id", sa.String(500), nullable=True),
+        sa.Column("source_url", sa.String(2000), nullable=True),
+        sa.Column("language", sa.String(20), nullable=False, server_default="zh"),
+        sa.Column("source_platform_id", sa.String(36), nullable=True),
+        sa.Column(
+            "metadata_status", sa.String(30), nullable=False, server_default="draft"
+        ),
+        sa.Column(
+            "copyright_status", sa.String(50), nullable=False, server_default="unknown"
+        ),
+        sa.Column(
+            "fulltext_status", sa.String(30), nullable=False, server_default="none"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_index('ix_literature_records_title', 'literature_records', ['title'])
+    op.create_index("ix_literature_records_title", "literature_records", ["title"])
     op.create_foreign_key(
-        'fk_literature_records_source_platform',
-        'literature_records', 'source_platforms',
-        ['source_platform_id'], ['id'], ondelete='SET NULL',
+        "fk_literature_records_source_platform",
+        "literature_records",
+        "source_platforms",
+        ["source_platform_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
 
     # --- 3. version_bibliographies ---
     op.create_table(
-        'version_bibliographies',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('version_id', sa.String(36), nullable=False),
-        sa.Column('repository', sa.String(500), nullable=True),
-        sa.Column('repository_location', sa.String(200), nullable=True),
-        sa.Column('shelf_mark', sa.String(200), nullable=True),
-        sa.Column('source_url', sa.String(2000), nullable=True),
-        sa.Column('image_url', sa.String(2000), nullable=True),
-        sa.Column('ocr_text_available', sa.Boolean(), nullable=False, server_default='false'),
-        sa.Column('public_domain_status', sa.String(50), nullable=False, server_default='needs_investigation'),
-        sa.Column('copyright_decision', sa.String(50), nullable=True),
-        sa.Column('copyright_decision_basis', sa.Text(), nullable=True),
-        sa.Column('copyright_reviewed_by', sa.String(36), nullable=True),
-        sa.Column('copyright_reviewed_at', sa.String(100), nullable=True),
-        sa.Column('citation_note', sa.Text(), nullable=True),
-        sa.Column('academic_note', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "version_bibliographies",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("version_id", sa.String(36), nullable=False),
+        sa.Column("repository", sa.String(500), nullable=True),
+        sa.Column("repository_location", sa.String(200), nullable=True),
+        sa.Column("shelf_mark", sa.String(200), nullable=True),
+        sa.Column("source_url", sa.String(2000), nullable=True),
+        sa.Column("image_url", sa.String(2000), nullable=True),
+        sa.Column(
+            "ocr_text_available", sa.Boolean(), nullable=False, server_default="false"
+        ),
+        sa.Column(
+            "public_domain_status",
+            sa.String(50),
+            nullable=False,
+            server_default="needs_investigation",
+        ),
+        sa.Column("copyright_decision", sa.String(50), nullable=True),
+        sa.Column("copyright_decision_basis", sa.Text(), nullable=True),
+        sa.Column("copyright_reviewed_by", sa.String(36), nullable=True),
+        sa.Column("copyright_reviewed_at", sa.String(100), nullable=True),
+        sa.Column("citation_note", sa.Text(), nullable=True),
+        sa.Column("academic_note", sa.Text(), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_unique_constraint('uq_version_bibliographies_version_id', 'version_bibliographies', ['version_id'])
+    op.create_unique_constraint(
+        "uq_version_bibliographies_version_id", "version_bibliographies", ["version_id"]
+    )
     op.create_foreign_key(
-        'fk_version_bibliographies_version',
-        'version_bibliographies', 'versions',
-        ['version_id'], ['id'], ondelete='CASCADE',
+        "fk_version_bibliographies_version",
+        "version_bibliographies",
+        "versions",
+        ["version_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
 
     # --- 4. ingestion_jobs ---
     op.create_table(
-        'ingestion_jobs',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('job_type', sa.String(50), nullable=False, index=True),
-        sa.Column('query', sa.Text(), nullable=True),
-        sa.Column('source_platform_id', sa.String(36), nullable=True),
-        sa.Column('status', sa.String(30), nullable=False, server_default='pending', index=True),
-        sa.Column('started_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('finished_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('result_count', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('error_count', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('skipped_count', sa.Integer(), nullable=False, server_default='0'),
-        sa.Column('log', sa.Text(), nullable=True),
-        sa.Column('created_by', sa.String(36), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "ingestion_jobs",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("job_type", sa.String(50), nullable=False, index=True),
+        sa.Column("query", sa.Text(), nullable=True),
+        sa.Column("source_platform_id", sa.String(36), nullable=True),
+        sa.Column(
+            "status",
+            sa.String(30),
+            nullable=False,
+            server_default="pending",
+            index=True,
+        ),
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("finished_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("result_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("error_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("skipped_count", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column("log", sa.Text(), nullable=True),
+        sa.Column("created_by", sa.String(36), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
     op.create_foreign_key(
-        'fk_ingestion_jobs_source_platform',
-        'ingestion_jobs', 'source_platforms',
-        ['source_platform_id'], ['id'], ondelete='SET NULL',
+        "fk_ingestion_jobs_source_platform",
+        "ingestion_jobs",
+        "source_platforms",
+        ["source_platform_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_ingestion_jobs_created_by',
-        'ingestion_jobs', 'users',
-        ['created_by'], ['id'], ondelete='SET NULL',
+        "fk_ingestion_jobs_created_by",
+        "ingestion_jobs",
+        "users",
+        ["created_by"],
+        ["id"],
+        ondelete="SET NULL",
     )
 
     # --- 5. full_text_documents ---
     op.create_table(
-        'full_text_documents',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('literature_record_id', sa.String(36), nullable=True),
-        sa.Column('version_bibliography_id', sa.String(36), nullable=True),
-        sa.Column('ingestion_job_id', sa.String(36), nullable=True),
-        sa.Column('file_path', sa.String(2000), nullable=True),
-        sa.Column('file_format', sa.String(20), nullable=False, server_default='txt'),
-        sa.Column('file_size', sa.BigInteger(), nullable=True),
-        sa.Column('page_count', sa.Integer(), nullable=True),
-        sa.Column('text_content', sa.Text(), nullable=True),
-        sa.Column('text_hash', sa.String(64), nullable=True),
-        sa.Column('ocr_status', sa.String(30), nullable=False, server_default='none'),
-        sa.Column('ocr_engine', sa.String(100), nullable=True),
-        sa.Column('ocr_confidence', sa.Float(), nullable=True),
-        sa.Column('license_type', sa.String(50), nullable=False, server_default='unknown'),
-        sa.Column('copyright_status', sa.String(50), nullable=False, server_default='unknown'),
-        sa.Column('authorization_basis', sa.Text(), nullable=True),
-        sa.Column('access_level', sa.String(20), nullable=False, server_default='restricted'),
-        sa.Column('ingestion_status', sa.String(30), nullable=False, server_default='pending'),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "full_text_documents",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("literature_record_id", sa.String(36), nullable=True),
+        sa.Column("version_bibliography_id", sa.String(36), nullable=True),
+        sa.Column("ingestion_job_id", sa.String(36), nullable=True),
+        sa.Column("file_path", sa.String(2000), nullable=True),
+        sa.Column("file_format", sa.String(20), nullable=False, server_default="txt"),
+        sa.Column("file_size", sa.BigInteger(), nullable=True),
+        sa.Column("page_count", sa.Integer(), nullable=True),
+        sa.Column("text_content", sa.Text(), nullable=True),
+        sa.Column("text_hash", sa.String(64), nullable=True),
+        sa.Column("ocr_status", sa.String(30), nullable=False, server_default="none"),
+        sa.Column("ocr_engine", sa.String(100), nullable=True),
+        sa.Column("ocr_confidence", sa.Float(), nullable=True),
+        sa.Column(
+            "license_type", sa.String(50), nullable=False, server_default="unknown"
+        ),
+        sa.Column(
+            "copyright_status", sa.String(50), nullable=False, server_default="unknown"
+        ),
+        sa.Column("authorization_basis", sa.Text(), nullable=True),
+        sa.Column(
+            "access_level", sa.String(20), nullable=False, server_default="restricted"
+        ),
+        sa.Column(
+            "ingestion_status", sa.String(30), nullable=False, server_default="pending"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_index('ix_full_text_documents_text_hash', 'full_text_documents', ['text_hash'])
-    op.create_foreign_key(
-        'fk_full_text_documents_literature_record',
-        'full_text_documents', 'literature_records',
-        ['literature_record_id'], ['id'], ondelete='SET NULL',
+    op.create_index(
+        "ix_full_text_documents_text_hash", "full_text_documents", ["text_hash"]
     )
     op.create_foreign_key(
-        'fk_full_text_documents_version_bibliography',
-        'full_text_documents', 'version_bibliographies',
-        ['version_bibliography_id'], ['id'], ondelete='SET NULL',
+        "fk_full_text_documents_literature_record",
+        "full_text_documents",
+        "literature_records",
+        ["literature_record_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_full_text_documents_ingestion_job',
-        'full_text_documents', 'ingestion_jobs',
-        ['ingestion_job_id'], ['id'], ondelete='SET NULL',
+        "fk_full_text_documents_version_bibliography",
+        "full_text_documents",
+        "version_bibliographies",
+        ["version_bibliography_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
+    op.create_foreign_key(
+        "fk_full_text_documents_ingestion_job",
+        "full_text_documents",
+        "ingestion_jobs",
+        ["ingestion_job_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     # source FK: exactly one
     op.create_check_constraint(
-        'ck_full_text_documents_exactly_one_source',
-        'full_text_documents',
-        '(literature_record_id IS NOT NULL AND version_bibliography_id IS NULL) OR '
-        '(literature_record_id IS NULL AND version_bibliography_id IS NOT NULL)',
+        "ck_full_text_documents_exactly_one_source",
+        "full_text_documents",
+        "(literature_record_id IS NOT NULL AND version_bibliography_id IS NULL) OR "
+        "(literature_record_id IS NULL AND version_bibliography_id IS NOT NULL)",
     )
     # copyright gate: text_content
     op.create_check_constraint(
-        'ck_full_text_documents_text_content_copyright_gate',
-        'full_text_documents',
+        "ck_full_text_documents_text_content_copyright_gate",
+        "full_text_documents",
         "text_content IS NULL OR ("
         "  copyright_status IN ('public_domain', 'licensed')"
         "  AND authorization_basis IS NOT NULL"
@@ -1256,8 +1506,8 @@ def upgrade() -> None:
     )
     # copyright gate: file_path
     op.create_check_constraint(
-        'ck_full_text_documents_file_path_copyright_gate',
-        'full_text_documents',
+        "ck_full_text_documents_file_path_copyright_gate",
+        "full_text_documents",
         "file_path IS NULL OR ("
         "  copyright_status IN ('public_domain', 'licensed')"
         "  AND authorization_basis IS NOT NULL"
@@ -1266,110 +1516,160 @@ def upgrade() -> None:
 
     # --- 6. evidence_citations ---
     op.create_table(
-        'evidence_citations',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('document_id', sa.String(36), nullable=False),
-        sa.Column('status', sa.String(30), nullable=False, server_default='extracted'),
-        sa.Column('passage_id', sa.String(36), nullable=True),
-        sa.Column('version_id', sa.String(36), nullable=True),
-        sa.Column('page_number', sa.Integer(), nullable=True),
-        sa.Column('paragraph_index', sa.Integer(), nullable=True),
-        sa.Column('line_range', sa.String(50), nullable=True),
-        sa.Column('quote_text', sa.Text(), nullable=False),
-        sa.Column('normalized_text', sa.Text(), nullable=True),
-        sa.Column('context_before', sa.Text(), nullable=True),
-        sa.Column('context_after', sa.Text(), nullable=True),
-        sa.Column('source_url', sa.String(2000), nullable=True),
-        sa.Column('citation_format', sa.String(100), nullable=True),
-        sa.Column('formatted_citation', sa.Text(), nullable=True),
-        sa.Column('evidence_id', sa.String(36), nullable=True, unique=True),
-        sa.Column('confidence_score', sa.Float(), nullable=True),
-        sa.Column('extraction_method', sa.String(30), nullable=False, server_default='manual'),
-        sa.Column('reviewed_by', sa.String(36), nullable=True),
-        sa.Column('reviewed_at', sa.String(100), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "evidence_citations",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("document_id", sa.String(36), nullable=False),
+        sa.Column("status", sa.String(30), nullable=False, server_default="extracted"),
+        sa.Column("passage_id", sa.String(36), nullable=True),
+        sa.Column("version_id", sa.String(36), nullable=True),
+        sa.Column("page_number", sa.Integer(), nullable=True),
+        sa.Column("paragraph_index", sa.Integer(), nullable=True),
+        sa.Column("line_range", sa.String(50), nullable=True),
+        sa.Column("quote_text", sa.Text(), nullable=False),
+        sa.Column("normalized_text", sa.Text(), nullable=True),
+        sa.Column("context_before", sa.Text(), nullable=True),
+        sa.Column("context_after", sa.Text(), nullable=True),
+        sa.Column("source_url", sa.String(2000), nullable=True),
+        sa.Column("citation_format", sa.String(100), nullable=True),
+        sa.Column("formatted_citation", sa.Text(), nullable=True),
+        sa.Column("evidence_id", sa.String(36), nullable=True, unique=True),
+        sa.Column("confidence_score", sa.Float(), nullable=True),
+        sa.Column(
+            "extraction_method", sa.String(30), nullable=False, server_default="manual"
+        ),
+        sa.Column("reviewed_by", sa.String(36), nullable=True),
+        sa.Column("reviewed_at", sa.String(100), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_index('ix_evidence_citations_document_id', 'evidence_citations', ['document_id'])
-    op.create_index('ix_evidence_citations_status', 'evidence_citations', ['status'])
+    op.create_index(
+        "ix_evidence_citations_document_id", "evidence_citations", ["document_id"]
+    )
+    op.create_index("ix_evidence_citations_status", "evidence_citations", ["status"])
     op.create_foreign_key(
-        'fk_evidence_citations_document',
-        'evidence_citations', 'full_text_documents',
-        ['document_id'], ['id'], ondelete='CASCADE',
+        "fk_evidence_citations_document",
+        "evidence_citations",
+        "full_text_documents",
+        ["document_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
     op.create_foreign_key(
-        'fk_evidence_citations_passage',
-        'evidence_citations', 'passages',
-        ['passage_id'], ['id'], ondelete='SET NULL',
+        "fk_evidence_citations_passage",
+        "evidence_citations",
+        "passages",
+        ["passage_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_evidence_citations_version',
-        'evidence_citations', 'versions',
-        ['version_id'], ['id'], ondelete='SET NULL',
+        "fk_evidence_citations_version",
+        "evidence_citations",
+        "versions",
+        ["version_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_evidence_citations_evidence',
-        'evidence_citations', 'evidences',
-        ['evidence_id'], ['id'], ondelete='SET NULL',
+        "fk_evidence_citations_evidence",
+        "evidence_citations",
+        "evidences",
+        ["evidence_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_evidence_citations_reviewed_by',
-        'evidence_citations', 'users',
-        ['reviewed_by'], ['id'], ondelete='SET NULL',
+        "fk_evidence_citations_reviewed_by",
+        "evidence_citations",
+        "users",
+        ["reviewed_by"],
+        ["id"],
+        ondelete="SET NULL",
     )
 
     # --- 7. ingestion_items ---
     op.create_table(
-        'ingestion_items',
-        sa.Column('id', sa.String(36), primary_key=True),
-        sa.Column('ingestion_job_id', sa.String(36), nullable=False),
-        sa.Column('source_platform_id', sa.String(36), nullable=True),
-        sa.Column('target_url', sa.String(2000), nullable=True),
-        sa.Column('target_identifier', sa.String(500), nullable=True),
-        sa.Column('harvest_type', sa.String(30), nullable=False),
-        sa.Column('status', sa.String(30), nullable=False, server_default='pending'),
-        sa.Column('error_detail', sa.JSON(), nullable=True),
-        sa.Column('skipped_reason', sa.String(500), nullable=True),
-        sa.Column('result_entity_type', sa.String(50), nullable=True),
-        sa.Column('result_entity_id', sa.String(36), nullable=True),
-        sa.Column('copyright_decision', sa.String(50), nullable=True),
-        sa.Column('copyright_decision_basis', sa.Text(), nullable=True),
-        sa.Column('reviewed_by', sa.String(36), nullable=True),
-        sa.Column('reviewed_at', sa.String(100), nullable=True),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
-        sa.Column('deleted_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('is_deleted', sa.Boolean(), nullable=False, server_default='false'),
+        "ingestion_items",
+        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column("ingestion_job_id", sa.String(36), nullable=False),
+        sa.Column("source_platform_id", sa.String(36), nullable=True),
+        sa.Column("target_url", sa.String(2000), nullable=True),
+        sa.Column("target_identifier", sa.String(500), nullable=True),
+        sa.Column("harvest_type", sa.String(30), nullable=False),
+        sa.Column("status", sa.String(30), nullable=False, server_default="pending"),
+        sa.Column("error_detail", sa.JSON(), nullable=True),
+        sa.Column("skipped_reason", sa.String(500), nullable=True),
+        sa.Column("result_entity_type", sa.String(50), nullable=True),
+        sa.Column("result_entity_id", sa.String(36), nullable=True),
+        sa.Column("copyright_decision", sa.String(50), nullable=True),
+        sa.Column("copyright_decision_basis", sa.Text(), nullable=True),
+        sa.Column("reviewed_by", sa.String(36), nullable=True),
+        sa.Column("reviewed_at", sa.String(100), nullable=True),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            nullable=False,
+            server_default=sa.func.now(),
+        ),
+        sa.Column("deleted_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column("is_deleted", sa.Boolean(), nullable=False, server_default="false"),
     )
-    op.create_index('ix_ingestion_items_job_id', 'ingestion_items', ['ingestion_job_id'])
-    op.create_index('ix_ingestion_items_status', 'ingestion_items', ['status'])
+    op.create_index(
+        "ix_ingestion_items_job_id", "ingestion_items", ["ingestion_job_id"]
+    )
+    op.create_index("ix_ingestion_items_status", "ingestion_items", ["status"])
     op.create_foreign_key(
-        'fk_ingestion_items_job',
-        'ingestion_items', 'ingestion_jobs',
-        ['ingestion_job_id'], ['id'], ondelete='CASCADE',
+        "fk_ingestion_items_job",
+        "ingestion_items",
+        "ingestion_jobs",
+        ["ingestion_job_id"],
+        ["id"],
+        ondelete="CASCADE",
     )
     op.create_foreign_key(
-        'fk_ingestion_items_source_platform',
-        'ingestion_items', 'source_platforms',
-        ['source_platform_id'], ['id'], ondelete='SET NULL',
+        "fk_ingestion_items_source_platform",
+        "ingestion_items",
+        "source_platforms",
+        ["source_platform_id"],
+        ["id"],
+        ondelete="SET NULL",
     )
     op.create_foreign_key(
-        'fk_ingestion_items_reviewed_by',
-        'ingestion_items', 'users',
-        ['reviewed_by'], ['id'], ondelete='SET NULL',
+        "fk_ingestion_items_reviewed_by",
+        "ingestion_items",
+        "users",
+        ["reviewed_by"],
+        ["id"],
+        ondelete="SET NULL",
     )
 
 
 def downgrade() -> None:
-    op.drop_table('ingestion_items')
-    op.drop_table('evidence_citations')
-    op.drop_table('full_text_documents')
-    op.drop_table('ingestion_jobs')
-    op.drop_table('version_bibliographies')
-    op.drop_table('literature_records')
-    op.drop_table('source_platforms')
+    op.drop_table("ingestion_items")
+    op.drop_table("evidence_citations")
+    op.drop_table("full_text_documents")
+    op.drop_table("ingestion_jobs")
+    op.drop_table("version_bibliographies")
+    op.drop_table("literature_records")
+    op.drop_table("source_platforms")
 ```
 
 ### 2.3 执行命令
@@ -1403,86 +1703,86 @@ apps/backend/app/api/v1/huangfu_meta.py
 
 #### SourcePlatform — `/api/v1/source-platforms`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/source-platforms` | `source_platform.read` | 列表（分页 + 搜索） |
-| POST | `/source-platforms` | `source_platform.create` | 创建平台 |
-| GET | `/source-platforms/{id}` | `source_platform.read` | 获取详情 |
-| PATCH | `/source-platforms/{id}` | `source_platform.update` | 更新平台 |
-| DELETE | `/source-platforms/{id}` | `source_platform.delete` | 软删除 |
-| POST | `/source-platforms/{id}/check-policy` | `source_platform.read` | 检查平台访问策略是否允许采集 |
+| 方法   | 路径                                  | 权限                     | 说明                         |
+| ------ | ------------------------------------- | ------------------------ | ---------------------------- |
+| GET    | `/source-platforms`                   | `source_platform.read`   | 列表（分页 + 搜索）          |
+| POST   | `/source-platforms`                   | `source_platform.create` | 创建平台                     |
+| GET    | `/source-platforms/{id}`              | `source_platform.read`   | 获取详情                     |
+| PATCH  | `/source-platforms/{id}`              | `source_platform.update` | 更新平台                     |
+| DELETE | `/source-platforms/{id}`              | `source_platform.delete` | 软删除                       |
+| POST   | `/source-platforms/{id}/check-policy` | `source_platform.read`   | 检查平台访问策略是否允许采集 |
 
 #### LiteratureRecord — `/api/v1/literature-records`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/literature-records` | `literature_record.read` | 列表（分页 + 搜索 + 筛选） |
-| POST | `/literature-records` | `literature_record.create` | 创建记录（metadata-only 入口） |
-| GET | `/literature-records/{id}` | `literature_record.read` | 获取详情 |
-| PATCH | `/literature-records/{id}` | `literature_record.update` | 更新记录 |
-| DELETE | `/literature-records/{id}` | `literature_record.delete` | 软删除 |
-| POST | `/literature-records/bulk-import` | `literature_record.create` | 批量导入（CSV/JSON） |
-| POST | `/literature-records/{id}/approve` | `literature_record.review` | 审核通过 |
-| POST | `/literature-records/{id}/reject` | `literature_record.review` | 审核退回 |
-| GET | `/literature-records/check-duplicate` | `literature_record.read` | 查重（按 title + year 相似度） |
+| 方法   | 路径                                  | 权限                       | 说明                           |
+| ------ | ------------------------------------- | -------------------------- | ------------------------------ |
+| GET    | `/literature-records`                 | `literature_record.read`   | 列表（分页 + 搜索 + 筛选）     |
+| POST   | `/literature-records`                 | `literature_record.create` | 创建记录（metadata-only 入口） |
+| GET    | `/literature-records/{id}`            | `literature_record.read`   | 获取详情                       |
+| PATCH  | `/literature-records/{id}`            | `literature_record.update` | 更新记录                       |
+| DELETE | `/literature-records/{id}`            | `literature_record.delete` | 软删除                         |
+| POST   | `/literature-records/bulk-import`     | `literature_record.create` | 批量导入（CSV/JSON）           |
+| POST   | `/literature-records/{id}/approve`    | `literature_record.review` | 审核通过                       |
+| POST   | `/literature-records/{id}/reject`     | `literature_record.review` | 审核退回                       |
+| GET    | `/literature-records/check-duplicate` | `literature_record.read`   | 查重（按 title + year 相似度） |
 
 #### VersionBibliography — `/api/v1/version-bibliographies`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/version-bibliographies` | `version_bibliography.read` | 列表（分页 + 搜索） |
-| POST | `/version-bibliographies` | `version_bibliography.create` | 为已有 Version 创建目录学扩展 |
-| GET | `/version-bibliographies/{id}` | `version_bibliography.read` | 获取详情 |
-| PATCH | `/version-bibliographies/{id}` | `version_bibliography.update` | 更新 |
-| DELETE | `/version-bibliographies/{id}` | `version_bibliography.delete` | 软删除 |
-| GET | `/versions/{version_id}/bibliography` | `version_bibliography.read` | 获取某 Version 的目录学扩展 |
+| 方法   | 路径                                  | 权限                          | 说明                          |
+| ------ | ------------------------------------- | ----------------------------- | ----------------------------- |
+| GET    | `/version-bibliographies`             | `version_bibliography.read`   | 列表（分页 + 搜索）           |
+| POST   | `/version-bibliographies`             | `version_bibliography.create` | 为已有 Version 创建目录学扩展 |
+| GET    | `/version-bibliographies/{id}`        | `version_bibliography.read`   | 获取详情                      |
+| PATCH  | `/version-bibliographies/{id}`        | `version_bibliography.update` | 更新                          |
+| DELETE | `/version-bibliographies/{id}`        | `version_bibliography.delete` | 软删除                        |
+| GET    | `/versions/{version_id}/bibliography` | `version_bibliography.read`   | 获取某 Version 的目录学扩展   |
 
 #### FullTextDocument — `/api/v1/full-text-documents`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/full-text-documents` | `full_text_document.read` | 列表（分页 + 筛选） |
-| POST | `/full-text-documents/upload` | `full_text_document.create` | 上传文件（multipart/form-data → MinIO） |
-| GET | `/full-text-documents/{id}` | `full_text_document.read` | 获取详情 |
-| GET | `/full-text-documents/{id}/content` | `full_text_document.read` | 获取文本内容（access_level + copyright_status 双重门控） |
-| PATCH | `/full-text-documents/{id}` | `full_text_document.update` | 更新元数据 |
-| DELETE | `/full-text-documents/{id}` | `full_text_document.delete` | 软删除 |
-| POST | `/full-text-documents/{id}/ocr` | `full_text_document.update` | 触发 OCR 管道 |
-| GET | `/full-text-documents/{id}/ocr-status` | `full_text_document.read` | 查询 OCR 状态 |
+| 方法   | 路径                                   | 权限                        | 说明                                                     |
+| ------ | -------------------------------------- | --------------------------- | -------------------------------------------------------- |
+| GET    | `/full-text-documents`                 | `full_text_document.read`   | 列表（分页 + 筛选）                                      |
+| POST   | `/full-text-documents/upload`          | `full_text_document.create` | 上传文件（multipart/form-data → MinIO）                  |
+| GET    | `/full-text-documents/{id}`            | `full_text_document.read`   | 获取详情                                                 |
+| GET    | `/full-text-documents/{id}/content`    | `full_text_document.read`   | 获取文本内容（access_level + copyright_status 双重门控） |
+| PATCH  | `/full-text-documents/{id}`            | `full_text_document.update` | 更新元数据                                               |
+| DELETE | `/full-text-documents/{id}`            | `full_text_document.delete` | 软删除                                                   |
+| POST   | `/full-text-documents/{id}/ocr`        | `full_text_document.update` | 触发 OCR 管道                                            |
+| GET    | `/full-text-documents/{id}/ocr-status` | `full_text_document.read`   | 查询 OCR 状态                                            |
 
 #### EvidenceCitation — `/api/v1/evidence-citations`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/evidence-citations` | `evidence_citation.read` | 列表（分页 + 按文档/状态筛选） |
-| POST | `/evidence-citations` | `evidence_citation.create` | 手动创建引文 |
-| GET | `/evidence-citations/{id}` | `evidence_citation.read` | 获取详情 |
-| PATCH | `/evidence-citations/{id}` | `evidence_citation.update` | 更新引文 |
-| DELETE | `/evidence-citations/{id}` | `evidence_citation.delete` | 软删除 |
-| POST | `/evidence-citations/extract` | `evidence_citation.create` | 从全文自动提取引文（regex/LLM） |
-| POST | `/evidence-citations/{id}/review` | `evidence_citation.review` | 人工审核 → status=reviewed |
-| POST | `/evidence-citations/{id}/promote` | `evidence_citation.review` | **提升为 Evidence：创建 Evidence 记录 + 回写 evidence_id** |
-| POST | `/evidence-citations/{id}/reject` | `evidence_citation.review` | 退回 → status=rejected |
+| 方法   | 路径                               | 权限                       | 说明                                                       |
+| ------ | ---------------------------------- | -------------------------- | ---------------------------------------------------------- |
+| GET    | `/evidence-citations`              | `evidence_citation.read`   | 列表（分页 + 按文档/状态筛选）                             |
+| POST   | `/evidence-citations`              | `evidence_citation.create` | 手动创建引文                                               |
+| GET    | `/evidence-citations/{id}`         | `evidence_citation.read`   | 获取详情                                                   |
+| PATCH  | `/evidence-citations/{id}`         | `evidence_citation.update` | 更新引文                                                   |
+| DELETE | `/evidence-citations/{id}`         | `evidence_citation.delete` | 软删除                                                     |
+| POST   | `/evidence-citations/extract`      | `evidence_citation.create` | 从全文自动提取引文（regex/LLM）                            |
+| POST   | `/evidence-citations/{id}/review`  | `evidence_citation.review` | 人工审核 → status=reviewed                                 |
+| POST   | `/evidence-citations/{id}/promote` | `evidence_citation.review` | **提升为 Evidence：创建 Evidence 记录 + 回写 evidence_id** |
+| POST   | `/evidence-citations/{id}/reject`  | `evidence_citation.review` | 退回 → status=rejected                                     |
 
 #### IngestionJob — `/api/v1/ingestion-jobs`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/ingestion-jobs` | `ingestion_job.read` | 列表（分页 + 按状态/类型筛选） |
-| POST | `/ingestion-jobs` | `ingestion_job.create` | 创建采集任务（自动生成 IngestionItems） |
-| GET | `/ingestion-jobs/{id}` | `ingestion_job.read` | 获取详情（含 items 列表） |
-| PATCH | `/ingestion-jobs/{id}` | `ingestion_job.update` | 更新任务（如取消） |
-| POST | `/ingestion-jobs/{id}/run` | `ingestion_job.execute` | 执行任务 |
+| 方法  | 路径                       | 权限                    | 说明                                    |
+| ----- | -------------------------- | ----------------------- | --------------------------------------- |
+| GET   | `/ingestion-jobs`          | `ingestion_job.read`    | 列表（分页 + 按状态/类型筛选）          |
+| POST  | `/ingestion-jobs`          | `ingestion_job.create`  | 创建采集任务（自动生成 IngestionItems） |
+| GET   | `/ingestion-jobs/{id}`     | `ingestion_job.read`    | 获取详情（含 items 列表）               |
+| PATCH | `/ingestion-jobs/{id}`     | `ingestion_job.update`  | 更新任务（如取消）                      |
+| POST  | `/ingestion-jobs/{id}/run` | `ingestion_job.execute` | 执行任务                                |
 
 #### IngestionItem — `/api/v1/ingestion-items`
 
-| 方法 | 路径 | 权限 | 说明 |
-|------|------|------|------|
-| GET | `/ingestion-items` | `ingestion_job.read` | 列表（分页 + 按 job/状态/类型筛选） |
-| GET | `/ingestion-items/{id}` | `ingestion_job.read` | 获取详情（含错误和版权判定） |
-| POST | `/ingestion-items/{id}/retry` | `ingestion_job.execute` | 重试单条 |
-| POST | `/ingestion-items/{id}/skip` | `ingestion_job.update` | 标记跳过 + skipped_reason |
-| POST | `/ingestion-items/{id}/review` | `ingestion_job.review` | 人工审核 by reviewed_by |
+| 方法 | 路径                           | 权限                    | 说明                                |
+| ---- | ------------------------------ | ----------------------- | ----------------------------------- |
+| GET  | `/ingestion-items`             | `ingestion_job.read`    | 列表（分页 + 按 job/状态/类型筛选） |
+| GET  | `/ingestion-items/{id}`        | `ingestion_job.read`    | 获取详情（含错误和版权判定）        |
+| POST | `/ingestion-items/{id}/retry`  | `ingestion_job.execute` | 重试单条                            |
+| POST | `/ingestion-items/{id}/skip`   | `ingestion_job.update`  | 标记跳过 + skipped_reason           |
+| POST | `/ingestion-items/{id}/review` | `ingestion_job.review`  | 人工审核 by reviewed_by             |
 
 ### 3.4 路由伪代码
 
@@ -1550,11 +1850,12 @@ class SourcePlatformCreate(BaseModel):
     is_allowed_for_metadata: bool = False
     is_allowed_for_fulltext: bool = False
 
+
 # LiteratureRecord — 默认 metadata-only
 class LiteratureRecordCreate(BaseModel):
     title: str = Field(..., max_length=1000)
     original_title: str | None = None
-    authors: str | None = None          # JSON array string，服务层校验格式
+    authors: str | None = None  # JSON array string，服务层校验格式
     year: int | None = None
     publication_type: str = "journal_article"
     journal: str | None = None
@@ -1563,10 +1864,15 @@ class LiteratureRecordCreate(BaseModel):
     # metadata_status defaults to "draft", copyright_status to "unknown"
     # 不包含 text_content 或 file 字段 — metadata-only 入口
 
+
 # FullTextDocument upload — 版权门控严格
 class FullTextUploadRequest(BaseModel):
-    literature_record_id: str | None = Field(default=None, description="与 version_bibliography_id 二选一")
-    version_bibliography_id: str | None = Field(default=None, description="与 literature_record_id 二选一")
+    literature_record_id: str | None = Field(
+        default=None, description="与 version_bibliography_id 二选一"
+    )
+    version_bibliography_id: str | None = Field(
+        default=None, description="与 literature_record_id 二选一"
+    )
     copyright_status: str = Field(..., description="必须为 public_domain 或 licensed")
     authorization_basis: str = Field(..., min_length=1, description="授权依据，必填")
     license_type: str = Field(..., description="许可证类型")
@@ -1574,15 +1880,21 @@ class FullTextUploadRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_source_exactly_one(self):
-        if (self.literature_record_id is None) == (self.version_bibliography_id is None):
-            raise ValueError("exactly one of literature_record_id / version_bibliography_id required")
+        if (self.literature_record_id is None) == (
+            self.version_bibliography_id is None
+        ):
+            raise ValueError(
+                "exactly one of literature_record_id / version_bibliography_id required"
+            )
         return self
 
     @model_validator(mode="after")
     def validate_copyright_for_fulltext(self):
         if self.copyright_status not in ("public_domain", "licensed"):
-            raise ValueError("copyright_status must be public_domain or licensed to upload full text. "
-                             "Unknown/in_copyright/orphan_work → use metadata-only endpoint.")
+            raise ValueError(
+                "copyright_status must be public_domain or licensed to upload full text. "
+                "Unknown/in_copyright/orphan_work → use metadata-only endpoint."
+            )
         return self
 ```
 
@@ -1594,32 +1906,33 @@ class FullTextUploadRequest(BaseModel):
 
 扩展现有 RBAC 体系，在 `permissions` 表中注册以下新资源：
 
-| 资源 | 操作 | 权限码 |
-|------|------|--------|
-| `source_platform` | create, read, update, delete | `source_platform.{action}` |
-| `literature_record` | create, read, update, delete, review, export | `literature_record.{action}` |
-| `version_bibliography` | create, read, update, delete | `version_bibliography.{action}` |
-| `full_text_document` | create, read, update, delete, upload | `full_text_document.{action}` |
-| `evidence_citation` | create, read, update, delete, review, extract | `evidence_citation.{action}` |
-| `ingestion_job` | create, read, update, delete, execute, review | `ingestion_job.{action}` |
-| `ingestion_item` | read, update, execute, review | `ingestion_item.{action}` |
+| 资源                   | 操作                                          | 权限码                          |
+| ---------------------- | --------------------------------------------- | ------------------------------- |
+| `source_platform`      | create, read, update, delete                  | `source_platform.{action}`      |
+| `literature_record`    | create, read, update, delete, review, export  | `literature_record.{action}`    |
+| `version_bibliography` | create, read, update, delete                  | `version_bibliography.{action}` |
+| `full_text_document`   | create, read, update, delete, upload          | `full_text_document.{action}`   |
+| `evidence_citation`    | create, read, update, delete, review, extract | `evidence_citation.{action}`    |
+| `ingestion_job`        | create, read, update, delete, execute, review | `ingestion_job.{action}`        |
+| `ingestion_item`       | read, update, execute, review                 | `ingestion_item.{action}`       |
 
 ### 4.2 角色-权限映射建议
 
-| 角色 | 新增权限 |
-|------|---------|
-| **平台管理员** (Platform Admin) | 全部资源的全部操作 |
-| **学术管理员** (Academic Admin) | 全部资源的 read + review + export；literature_record.create/update；full_text_document.upload |
-| **研究负责人** (Research Leader) | 全部资源的 read；literature_record.create；evidence_citation.create/extract/review |
-| **研究员** (Researcher) | 全部资源的 read；evidence_citation.create |
-| **审核员** (Reviewer) | 全部资源的 read + review |
-| **学生** (Student) | 全部资源的 read（full_text_document 受 access_level 限制） |
-| **访客** (Visitor) | open access_level 资源的 read |
+| 角色                             | 新增权限                                                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------------------- |
+| **平台管理员** (Platform Admin)  | 全部资源的全部操作                                                                            |
+| **学术管理员** (Academic Admin)  | 全部资源的 read + review + export；literature_record.create/update；full_text_document.upload |
+| **研究负责人** (Research Leader) | 全部资源的 read；literature_record.create；evidence_citation.create/extract/review            |
+| **研究员** (Researcher)          | 全部资源的 read；evidence_citation.create                                                     |
+| **审核员** (Reviewer)            | 全部资源的 read + review                                                                      |
+| **学生** (Student)               | 全部资源的 read（full_text_document 受 access_level 限制）                                    |
+| **访客** (Visitor)               | open access_level 资源的 read                                                                 |
 
 ### 4.3 access_level 中间件
 
 ```python
 # 建议在 middleware/auth.py 中增加:
+
 
 def require_document_access(document_id_param: str = "id"):
     """Factory: check copyright_status + access_level on FullTextDocument.
@@ -1635,6 +1948,7 @@ def require_document_access(document_id_param: str = "id"):
     - restricted → 有 full_text_document.read 权限
     - embargoed → 仅管理员
     """
+
     async def checker(
         request: Request,
         user_id: Annotated[str | None, Depends(OptionalUser())],
@@ -1647,10 +1961,16 @@ def require_document_access(document_id_param: str = "id"):
             raise HTTPException(status_code=404)
 
         # Copyright gate
-        if doc.copyright_status not in ('public_domain', 'licensed'):
-            if doc.copyright_status == 'unknown':
-                raise HTTPException(status_code=403, detail="Copyright status unknown — full text not available. Use metadata endpoint.")
-            raise HTTPException(status_code=403, detail="Full text not available due to copyright restrictions.")
+        if doc.copyright_status not in ("public_domain", "licensed"):
+            if doc.copyright_status == "unknown":
+                raise HTTPException(
+                    status_code=403,
+                    detail="Copyright status unknown — full text not available. Use metadata endpoint.",
+                )
+            raise HTTPException(
+                status_code=403,
+                detail="Full text not available due to copyright restrictions.",
+            )
 
         # Access level gate
         level = doc.access_level
@@ -1659,13 +1979,18 @@ def require_document_access(document_id_param: str = "id"):
         if level == "registered" and user_id is not None:
             return document_id
         if level == "restricted":
-            if user_id is not None and await auth_svc.has_permission(user_id, "full_text_document", "read"):
+            if user_id is not None and await auth_svc.has_permission(
+                user_id, "full_text_document", "read"
+            ):
                 return document_id
         if level == "embargoed":
-            if user_id is not None and await auth_svc.has_permission(user_id, "full_text_document", "read"):
+            if user_id is not None and await auth_svc.has_permission(
+                user_id, "full_text_document", "read"
+            ):
                 # additional admin check
                 ...
         raise HTTPException(status_code=403, detail="Access restricted")
+
     return checker
 ```
 
@@ -1829,16 +2154,16 @@ HUANGFU_MI_PERMISSIONS = [
 
 ### 5.3 不重复造轮子（修订后）
 
-| 能力 | 使用现有 | 不使用新的 | 原因 |
-|------|---------|-----------|------|
-| 人物管理 | `Person` | 不在 LiteratureRecord 外键关联作者 | 外部文献作者可能不在系统中 |
-| **古籍版本** | **`Version`（主轴）** | **VersionBibliography 只是附属扩展** | **Version 是唯一版本主数据** |
-| 版本谱系 | `VersionRelation` | 不新建第二套谱系 | 现有系统已成熟 |
-| 段落对照 | `PassageMapping` | 不新建第二套对照 | 现有系统已成熟 |
-| **引文证据链** | **`Evidence` + `Citation`** | **EvidenceCitation 通过 evidence_id FK 接入** | **强桥接，非应用层** |
-| 知识图谱关系 | `EntityRelation` | 不新建关系表 | 现有图谱系统可表达所有关系类型 |
-| 文档分块 | `DocumentChunk` | FullTextDocument 只存全文 | 分块由现有 chunking.py 处理 |
-| RBAC | `User` + `Role` + `Permission` | 不新建权限系统 | 扩展现有体系即可 |
+| 能力           | 使用现有                       | 不使用新的                                    | 原因                           |
+| -------------- | ------------------------------ | --------------------------------------------- | ------------------------------ |
+| 人物管理       | `Person`                       | 不在 LiteratureRecord 外键关联作者            | 外部文献作者可能不在系统中     |
+| **古籍版本**   | **`Version`（主轴）**          | **VersionBibliography 只是附属扩展**          | **Version 是唯一版本主数据**   |
+| 版本谱系       | `VersionRelation`              | 不新建第二套谱系                              | 现有系统已成熟                 |
+| 段落对照       | `PassageMapping`               | 不新建第二套对照                              | 现有系统已成熟                 |
+| **引文证据链** | **`Evidence` + `Citation`**    | **EvidenceCitation 通过 evidence_id FK 接入** | **强桥接，非应用层**           |
+| 知识图谱关系   | `EntityRelation`               | 不新建关系表                                  | 现有图谱系统可表达所有关系类型 |
+| 文档分块       | `DocumentChunk`                | FullTextDocument 只存全文                     | 分块由现有 chunking.py 处理    |
+| RBAC           | `User` + `Role` + `Permission` | 不新建权限系统                                | 扩展现有体系即可               |
 
 ---
 
@@ -1847,6 +2172,7 @@ HUANGFU_MI_PERMISSIONS = [
 执行本设计将创建/修改以下文件：
 
 **新建:**
+
 - `apps/backend/app/models/huangfu_meta.py` — 7 个 SQLAlchemy 模型
 - `apps/backend/app/schemas/huangfu_meta.py` — Pydantic 校验模型
 - `apps/backend/app/services/huangfu_meta.py` — 业务逻辑服务（含版权门控）
@@ -1855,15 +2181,17 @@ HUANGFU_MI_PERMISSIONS = [
 - `apps/backend/app/db/migrations/versions/<rev>_huangfu_mi_literature_ingestion.py` — 迁移
 
 **修改:**
+
 - `apps/backend/app/models/__init__.py` — 注册新模型
 - `apps/backend/app/db/seed_rbac.py` — 添加新权限种子
 - `apps/backend/app/api/v1/__init__.py` — 注册新路由
 
 ---
 
-*本设计文档为阶段 1 的规划产物，不包含任何可执行代码变更。所有模型、迁移、API 设计需经审核后方可进入实施。*
+_本设计文档为阶段 1 的规划产物，不包含任何可执行代码变更。所有模型、迁移、API 设计需经审核后方可进入实施。_
 
 **修订历史:**
+
 - v1.0 (2026-07-10): 初始设计草案
 - v1.1 (2026-07-10): Codex 审查修订 — 5 项阻塞修正
 

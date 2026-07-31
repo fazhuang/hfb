@@ -15,6 +15,7 @@ Creates:
 
 Text source: ctext.org public-domain excerpts (not PDF/OCR).
 """
+
 import asyncio
 import os
 import sys
@@ -37,7 +38,9 @@ async def _seed_rbac(session) -> dict:
 
     # Build role name → id mapping
     role_map: dict[str, str] = {}
-    r = await session.execute(select(Role.id, Role.name).where(Role.is_deleted.is_(False)))
+    r = await session.execute(
+        select(Role.id, Role.name).where(Role.is_deleted.is_(False))
+    )
     for row in r:
         role_map[row[1]] = row[0]
 
@@ -83,6 +86,7 @@ async def _create_researcher(session, role_map: dict[str, str]) -> str | None:
 async def _create_huangfumi_person(session) -> str:
     """Create 皇甫谧 person record. Returns person_id."""
     from sqlalchemy import text
+
     r = await session.execute(
         text("SELECT id FROM persons WHERE name='皇甫谧' AND is_deleted=false")
     )
@@ -91,15 +95,18 @@ async def _create_huangfumi_person(session) -> str:
         return row[0]
 
     pid = str(uuid_mod.uuid4())
-    await session.execute(text(
-        "INSERT INTO persons (id, name, dynasty, biography, is_deleted) "
-        "VALUES (:id, :name, :dynasty, :bio, false)"
-    ), {
-        "id": pid,
-        "name": "皇甫谧",
-        "dynasty": "魏晋",
-        "bio": "皇甫谧（215-282），字士安，幼名静，自号玄晏先生。魏晋时期著名医学家、史学家，编撰《针灸甲乙经》，系统整理了针灸经络理论。",
-    })
+    await session.execute(
+        text(
+            "INSERT INTO persons (id, name, dynasty, biography, is_deleted) "
+            "VALUES (:id, :name, :dynasty, :bio, false)"
+        ),
+        {
+            "id": pid,
+            "name": "皇甫谧",
+            "dynasty": "魏晋",
+            "bio": "皇甫谧（215-282），字士安，幼名静，自号玄晏先生。魏晋时期著名医学家、史学家，编撰《针灸甲乙经》，系统整理了针灸经络理论。",
+        },
+    )
     await session.flush()
     return pid
 
@@ -107,6 +114,7 @@ async def _create_huangfumi_person(session) -> str:
 async def _create_book(session, author_id: str) -> str:
     """Create 针灸甲乙经 book. Returns book_id."""
     from sqlalchemy import text
+
     r = await session.execute(
         text("SELECT id FROM books WHERE title='针灸甲乙经' AND is_deleted=false")
     )
@@ -115,22 +123,25 @@ async def _create_book(session, author_id: str) -> str:
         return row[0]
 
     bid = str(uuid_mod.uuid4())
-    await session.execute(text(
-        "INSERT INTO books (id, title, title_pinyin, author_id, dynasty, year, category, "
-        "abstract, language, source_url, is_deleted) "
-        "VALUES (:id, :title, :pinyin, :author_id, :dynasty, :year, :category, "
-        ":abstract, 'zh', :source_url, false)"
-    ), {
-        "id": bid,
-        "title": "针灸甲乙经",
-        "pinyin": "Zhenjiu Jiayi Jing",
-        "author_id": author_id,
-        "dynasty": "晋",
-        "year": 282,
-        "category": "针灸",
-        "abstract": "《针灸甲乙经》是中国现存最早的针灸学专著，由皇甫谧编撰于晋太康三年（282年）。全书十二卷，一百二十八篇，系统论述了经络、腧穴、针灸方法及临床治疗，为后世针灸学奠定了基础。",
-        "source_url": "https://ctext.org/wiki.pl?if=gb&res=77431",
-    })
+    await session.execute(
+        text(
+            "INSERT INTO books (id, title, title_pinyin, author_id, dynasty, year, category, "
+            "abstract, language, source_url, is_deleted) "
+            "VALUES (:id, :title, :pinyin, :author_id, :dynasty, :year, :category, "
+            ":abstract, 'zh', :source_url, false)"
+        ),
+        {
+            "id": bid,
+            "title": "针灸甲乙经",
+            "pinyin": "Zhenjiu Jiayi Jing",
+            "author_id": author_id,
+            "dynasty": "晋",
+            "year": 282,
+            "category": "针灸",
+            "abstract": "《针灸甲乙经》是中国现存最早的针灸学专著，由皇甫谧编撰于晋太康三年（282年）。全书十二卷，一百二十八篇，系统论述了经络、腧穴、针灸方法及临床治疗，为后世针灸学奠定了基础。",
+            "source_url": "https://ctext.org/wiki.pl?if=gb&res=77431",
+        },
+    )
     await session.flush()
     return bid
 
@@ -138,6 +149,7 @@ async def _create_book(session, author_id: str) -> str:
 async def _create_version(session, book_id: str) -> str:
     """Create 明代刻本 version. Returns version_id."""
     from sqlalchemy import text
+
     r = await session.execute(
         text("SELECT id FROM versions WHERE book_id=:bid AND is_deleted=false"),
         {"bid": book_id},
@@ -147,20 +159,23 @@ async def _create_version(session, book_id: str) -> str:
         return row[0]
 
     vid = str(uuid_mod.uuid4())
-    await session.execute(text(
-        "INSERT INTO versions (id, book_id, version_name, era, year, repository, "
-        "description, source_url, is_deleted) "
-        "VALUES (:id, :book_id, :name, :era, :year, :repo, :desc, :url, false)"
-    ), {
-        "id": vid,
-        "book_id": book_id,
-        "name": "明代刻本",
-        "era": "明",
-        "year": 1601,
-        "repo": "中国国家图书馆",
-        "desc": "明万历二十九年（1601年）刻本《针灸甲乙经》，为现存较早的完整刻本之一。",
-        "url": "https://ctext.org/library.pl?if=gb&res=77431",
-    })
+    await session.execute(
+        text(
+            "INSERT INTO versions (id, book_id, version_name, era, year, repository, "
+            "description, source_url, is_deleted) "
+            "VALUES (:id, :book_id, :name, :era, :year, :repo, :desc, :url, false)"
+        ),
+        {
+            "id": vid,
+            "book_id": book_id,
+            "name": "明代刻本",
+            "era": "明",
+            "year": 1601,
+            "repo": "中国国家图书馆",
+            "desc": "明万历二十九年（1601年）刻本《针灸甲乙经》，为现存较早的完整刻本之一。",
+            "url": "https://ctext.org/library.pl?if=gb&res=77431",
+        },
+    )
     await session.flush()
     return vid
 
@@ -235,15 +250,20 @@ _BASELINE_CHAPTERS = [
 ]
 
 
-async def _create_chapters_passages(session, book_id: str, version_id: str, creator_id: str) -> list[dict]:
+async def _create_chapters_passages(
+    session, book_id: str, version_id: str, creator_id: str
+) -> list[dict]:
     """Create chapters and passages. Returns list of {chapter_id, passage_id, passage_order, content}."""
     from sqlalchemy import text
+
     created: list[dict] = []
 
     for ch_data in _BASELINE_CHAPTERS:
         # Check existing chapter
         r = await session.execute(
-            text("SELECT id FROM chapters WHERE book_id=:bid AND title=:t AND is_deleted=false"),
+            text(
+                "SELECT id FROM chapters WHERE book_id=:bid AND title=:t AND is_deleted=false"
+            ),
             {"bid": book_id, "t": ch_data["title"]},
         )
         ch_row = r.fetchone()
@@ -251,14 +271,24 @@ async def _create_chapters_passages(session, book_id: str, version_id: str, crea
             chapter_id = ch_row[0]
         else:
             chapter_id = str(uuid_mod.uuid4())
-            await session.execute(text(
-                "INSERT INTO chapters (id, book_id, title, \"order\", is_deleted) "
-                "VALUES (:id, :book_id, :title, :order, false)"
-            ), {"id": chapter_id, "book_id": book_id, "title": ch_data["title"], "order": ch_data["order"]})
+            await session.execute(
+                text(
+                    'INSERT INTO chapters (id, book_id, title, "order", is_deleted) '
+                    "VALUES (:id, :book_id, :title, :order, false)"
+                ),
+                {
+                    "id": chapter_id,
+                    "book_id": book_id,
+                    "title": ch_data["title"],
+                    "order": ch_data["order"],
+                },
+            )
 
         for p_data in ch_data["passages"]:
             r = await session.execute(
-                text("SELECT id FROM passages WHERE chapter_id=:cid AND \"order\"=:o AND is_deleted=false"),
+                text(
+                    'SELECT id FROM passages WHERE chapter_id=:cid AND "order"=:o AND is_deleted=false'
+                ),
                 {"cid": chapter_id, "o": p_data["order"]},
             )
             p_row = r.fetchone()
@@ -266,32 +296,39 @@ async def _create_chapters_passages(session, book_id: str, version_id: str, crea
                 passage_id = p_row[0]
             else:
                 passage_id = str(uuid_mod.uuid4())
-                await session.execute(text(
-                    "INSERT INTO passages (id, chapter_id, version_id, content_text, translation, "
-                    "\"order\", is_deleted) "
-                    "VALUES (:id, :chapter_id, :version_id, :content, :trans, :order, false)"
-                ), {
-                    "id": passage_id,
+                await session.execute(
+                    text(
+                        "INSERT INTO passages (id, chapter_id, version_id, content_text, translation, "
+                        '"order", is_deleted) '
+                        "VALUES (:id, :chapter_id, :version_id, :content, :trans, :order, false)"
+                    ),
+                    {
+                        "id": passage_id,
+                        "chapter_id": chapter_id,
+                        "version_id": version_id,
+                        "content": p_data["content"],
+                        "trans": p_data["translation"],
+                        "order": p_data["order"],
+                    },
+                )
+            created.append(
+                {
                     "chapter_id": chapter_id,
-                    "version_id": version_id,
+                    "chapter_title": ch_data["title"],
+                    "passage_id": passage_id,
+                    "passage_order": p_data["order"],
                     "content": p_data["content"],
-                    "trans": p_data["translation"],
-                    "order": p_data["order"],
-                })
-            created.append({
-                "chapter_id": chapter_id,
-                "chapter_title": ch_data["title"],
-                "passage_id": passage_id,
-                "passage_order": p_data["order"],
-                "content": p_data["content"],
-                "translation": p_data["translation"],
-            })
+                    "translation": p_data["translation"],
+                }
+            )
 
     await session.flush()
     return created
 
 
-async def _create_document_and_chunks(session, book_id: str, version_id: str, passages: list[dict]) -> str:
+async def _create_document_and_chunks(
+    session, book_id: str, version_id: str, passages: list[dict]
+) -> str:
     """Create full-text Document with DocumentChunks linked to passages. Returns document_id."""
     from sqlalchemy import text
 
@@ -307,40 +344,48 @@ async def _create_document_and_chunks(session, book_id: str, version_id: str, pa
     # Build full text from all passages
     full_text_parts: list[str] = []
     for p in passages:
-        full_text_parts.append(f"【{p['chapter_title']}·第{p['passage_order']}条】{p['content']}")
+        full_text_parts.append(
+            f"【{p['chapter_title']}·第{p['passage_order']}条】{p['content']}"
+        )
     full_text = "\n\n".join(full_text_parts)
 
-    await session.execute(text(
-        "INSERT INTO documents (id, title, dynasty, category, abstract, content_text, "
-        "source_url, language, copyright_status, review_status, rag_enabled, is_deleted) "
-        "VALUES (:id, :title, :dynasty, :category, :abstract, :content, "
-        ":url, 'zh', 'public_domain', 'approved', true, false)"
-    ), {
-        "id": doc_id,
-        "title": "针灸甲乙经",
-        "dynasty": "晋",
-        "category": "针灸",
-        "abstract": "《针灸甲乙经》是中国现存最早的针灸学专著。全文取自 ctext.org 公开版域文本，非 PDF/OCR。",
-        "content": full_text,
-        "url": "https://ctext.org/wiki.pl?if=gb&res=77431",
-    })
+    await session.execute(
+        text(
+            "INSERT INTO documents (id, title, dynasty, category, abstract, content_text, "
+            "source_url, language, copyright_status, review_status, rag_enabled, is_deleted) "
+            "VALUES (:id, :title, :dynasty, :category, :abstract, :content, "
+            ":url, 'zh', 'public_domain', 'approved', true, false)"
+        ),
+        {
+            "id": doc_id,
+            "title": "针灸甲乙经",
+            "dynasty": "晋",
+            "category": "针灸",
+            "abstract": "《针灸甲乙经》是中国现存最早的针灸学专著。全文取自 ctext.org 公开版域文本，非 PDF/OCR。",
+            "content": full_text,
+            "url": "https://ctext.org/wiki.pl?if=gb&res=77431",
+        },
+    )
 
     # Create document_chunks linked to passages
     for idx, p in enumerate(passages, start=1):
         chunk_id = str(uuid_mod.uuid4())
-        await session.execute(text(
-            "INSERT INTO document_chunks (id, document_id, passage_id, content, "
-            "chunk_index, paragraph_index, is_deleted) "
-            "VALUES (:id, :doc_id, :passage_id, :content, "
-            ":chunk_index, :para_index, false)"
-        ), {
-            "id": chunk_id,
-            "doc_id": doc_id,
-            "passage_id": p["passage_id"],
-            "content": p["content"],
-            "chunk_index": idx,
-            "para_index": idx,
-        })
+        await session.execute(
+            text(
+                "INSERT INTO document_chunks (id, document_id, passage_id, content, "
+                "chunk_index, paragraph_index, is_deleted) "
+                "VALUES (:id, :doc_id, :passage_id, :content, "
+                ":chunk_index, :para_index, false)"
+            ),
+            {
+                "id": chunk_id,
+                "doc_id": doc_id,
+                "passage_id": p["passage_id"],
+                "content": p["content"],
+                "chunk_index": idx,
+                "para_index": idx,
+            },
+        )
 
     await session.flush()
     return doc_id
@@ -353,7 +398,9 @@ async def _create_evidence_citation_chain(
     from sqlalchemy import text
 
     # Check existing
-    r = await session.execute(text("SELECT count(*) FROM evidences WHERE is_deleted=false"))
+    r = await session.execute(
+        text("SELECT count(*) FROM evidences WHERE is_deleted=false")
+    )
     if r.scalar() > 0:
         return 0, 0
 
@@ -364,34 +411,40 @@ async def _create_evidence_citation_chain(
         ev_id = str(uuid_mod.uuid4())
         ev_level = "LEVEL_1" if p["passage_order"] <= 2 else "LEVEL_2"
 
-        await session.execute(text(
-            "INSERT INTO evidences (id, description, evidence_level, "
-            "source_passage_id, creator_id, is_deleted) "
-            "VALUES (:id, :desc, :level, :passage_id, :creator_id, false)"
-        ), {
-            "id": ev_id,
-            "desc": f"《针灸甲乙经》{p['chapter_title']}第{p['passage_order']}条文本证据",
-            "level": ev_level,
-            "passage_id": p["passage_id"],
-            "creator_id": creator_id,
-        })
+        await session.execute(
+            text(
+                "INSERT INTO evidences (id, description, evidence_level, "
+                "source_passage_id, creator_id, is_deleted) "
+                "VALUES (:id, :desc, :level, :passage_id, :creator_id, false)"
+            ),
+            {
+                "id": ev_id,
+                "desc": f"《针灸甲乙经》{p['chapter_title']}第{p['passage_order']}条文本证据",
+                "level": ev_level,
+                "passage_id": p["passage_id"],
+                "creator_id": creator_id,
+            },
+        )
         evidence_count += 1
 
         # Create citation: citation -> evidence -> passage -> version
         cid = str(uuid_mod.uuid4())
-        await session.execute(text(
-            "INSERT INTO citations (id, target_type, target_id, evidence_id, "
-            "quote_text, note, is_deleted) "
-            "VALUES (:id, :target_type, :target_id, :evidence_id, "
-            ":quote_text, :note, false)"
-        ), {
-            "id": cid,
-            "target_type": "passage",
-            "target_id": p["passage_id"],
-            "evidence_id": ev_id,
-            "quote_text": p["content"][:2000],
-            "note": f"ctext 公版文本·{p['chapter_title']}第{p['passage_order']}条",
-        })
+        await session.execute(
+            text(
+                "INSERT INTO citations (id, target_type, target_id, evidence_id, "
+                "quote_text, note, is_deleted) "
+                "VALUES (:id, :target_type, :target_id, :evidence_id, "
+                ":quote_text, :note, false)"
+            ),
+            {
+                "id": cid,
+                "target_type": "passage",
+                "target_id": p["passage_id"],
+                "evidence_id": ev_id,
+                "quote_text": p["content"][:2000],
+                "note": f"ctext 公版文本·{p['chapter_title']}第{p['passage_order']}条",
+            },
+        )
         citation_count += 1
 
     await session.flush()
@@ -401,57 +454,78 @@ async def _create_evidence_citation_chain(
 async def _print_db_stats(session) -> None:
     """Print table row counts."""
     from sqlalchemy import text
+
     tables = [
-        "users", "roles", "books", "versions", "chapters", "passages",
-        "documents", "document_chunks", "evidences", "citations",
-        "entity_relations", "source_refs",
+        "users",
+        "roles",
+        "books",
+        "versions",
+        "chapters",
+        "passages",
+        "documents",
+        "document_chunks",
+        "evidences",
+        "citations",
+        "entity_relations",
+        "source_refs",
     ]
     print("\n=== Database Statistics ===")
     for t in tables:
-        r = await session.execute(text(f"SELECT count(*) FROM {t} WHERE is_deleted=false"))
+        r = await session.execute(
+            text(f"SELECT count(*) FROM {t} WHERE is_deleted=false")
+        )
         print(f"  {t}: {r.scalar()}")
     # Also print complete citation chain count
-    r = await session.execute(text(
-        "SELECT count(*) FROM citations c "
-        "JOIN evidences e ON c.evidence_id = e.id "
-        "JOIN passages p ON e.source_passage_id = p.id "
-        "JOIN versions v ON p.version_id = v.id "
-        "WHERE c.is_deleted=false AND e.is_deleted=false "
-        "AND p.is_deleted=false AND v.is_deleted=false"
-    ))
+    r = await session.execute(
+        text(
+            "SELECT count(*) FROM citations c "
+            "JOIN evidences e ON c.evidence_id = e.id "
+            "JOIN passages p ON e.source_passage_id = p.id "
+            "JOIN versions v ON p.version_id = v.id "
+            "WHERE c.is_deleted=false AND e.is_deleted=false "
+            "AND p.is_deleted=false AND v.is_deleted=false"
+        )
+    )
     print(f"  complete_citation_chains: {r.scalar()}")
 
 
 async def _print_citation_chain(session) -> None:
     """Print citation chain: citations -> evidences -> passages -> versions."""
     from sqlalchemy import text
+
     print("\n=== Citation Chain Verification ===")
-    r = await session.execute(text(
-        "SELECT c.id, c.target_type, e.id as ev_id, e.evidence_level, "
-        "p.id as passage_id, v.id as version_id, v.version_name "
-        "FROM citations c "
-        "JOIN evidences e ON c.evidence_id = e.id "
-        "JOIN passages p ON e.source_passage_id = p.id "
-        "JOIN versions v ON p.version_id = v.id "
-        "WHERE c.is_deleted=false AND e.is_deleted=false "
-        "AND p.is_deleted=false AND v.is_deleted=false "
-        "LIMIT 5"
-    ))
+    r = await session.execute(
+        text(
+            "SELECT c.id, c.target_type, e.id as ev_id, e.evidence_level, "
+            "p.id as passage_id, v.id as version_id, v.version_name "
+            "FROM citations c "
+            "JOIN evidences e ON c.evidence_id = e.id "
+            "JOIN passages p ON e.source_passage_id = p.id "
+            "JOIN versions v ON p.version_id = v.id "
+            "WHERE c.is_deleted=false AND e.is_deleted=false "
+            "AND p.is_deleted=false AND v.is_deleted=false "
+            "LIMIT 5"
+        )
+    )
     chains = r.fetchall()
     if not chains:
         print("  NO CHAINS FOUND — citation chain is broken!")
     else:
         for c in chains:
-            print(f"  citation={c[0][:12]} -> evidence={c[2][:12]} "
-                  f"-> passage={c[4][:12]} -> version={c[5][:12]} ({c[6]})")
-    r2 = await session.execute(text(
-        "SELECT count(*) FROM citations c "
-        "JOIN evidences e ON c.evidence_id = e.id "
-        "JOIN passages p ON e.source_passage_id = p.id "
-        "JOIN versions v ON p.version_id = v.id "
-        "WHERE c.is_deleted=false AND e.is_deleted=false "
-        "AND p.is_deleted=false AND v.is_deleted=false"
-    ))
+            print(
+                f"  citation={c[0][:12]} -> evidence={c[2][:12]} "
+                f"-> passage={c[4][:12]} -> version={c[5][:12]} ({c[6]})"
+            )
+    r2 = await session.execute(
+        text(
+            "SELECT count(*) FROM citations c "
+            "JOIN evidences e ON c.evidence_id = e.id "
+            "JOIN passages p ON e.source_passage_id = p.id "
+            "JOIN versions v ON p.version_id = v.id "
+            "WHERE c.is_deleted=false AND e.is_deleted=false "
+            "AND p.is_deleted=false AND v.is_deleted=false"
+        )
+    )
     print(f"  Total complete citation chains: {r2.scalar()}")
 
 
@@ -477,12 +551,17 @@ async def main():
         # --- Phase 2: Researcher user ---
         print("\n[2/7] Creating researcher user...")
         researcher_id = await _create_researcher(session, role_map)
-        print(f"  Researcher ID: {researcher_id} (researcher@huangfumi.org / researcher123)")
+        print(
+            f"  Researcher ID: {researcher_id} (researcher@huangfumi.org / researcher123)"
+        )
 
         # Get admin ID for creator references
         from sqlalchemy import text
+
         r = await session.execute(
-            text("SELECT id FROM users WHERE email='admin@huangfumi.org' AND is_deleted=false")
+            text(
+                "SELECT id FROM users WHERE email='admin@huangfumi.org' AND is_deleted=false"
+            )
         )
         admin_id = r.scalar_one()
 
@@ -503,12 +582,16 @@ async def main():
 
         # --- Phase 6: Chapters + Passages ---
         print("\n[6/7] Creating chapters and passages...")
-        passages = await _create_chapters_passages(session, book_id, version_id, admin_id)
+        passages = await _create_chapters_passages(
+            session, book_id, version_id, admin_id
+        )
         print(f"  Passages created: {len(passages)}")
 
         # --- Phase 7: Document + Chunks + Evidence + Citations ---
         print("\n[7/7] Creating document, chunks, evidence, and citation chain...")
-        doc_id = await _create_document_and_chunks(session, book_id, version_id, passages)
+        doc_id = await _create_document_and_chunks(
+            session, book_id, version_id, passages
+        )
         print(f"  Document ID: {doc_id}")
         ev_count, cit_count = await _create_evidence_citation_chain(
             session, doc_id, version_id, passages, admin_id

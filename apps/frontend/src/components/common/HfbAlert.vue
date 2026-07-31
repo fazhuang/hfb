@@ -31,22 +31,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{
-  variant?: 'info' | 'success' | 'warning' | 'error';
-  title?: string;
-  closable?: boolean;
-  icon?: boolean;
-}>(), {
-  variant: 'info',
-  closable: false,
-  icon: true,
-});
+const props = withDefaults(
+  defineProps<{
+    variant?: 'info' | 'success' | 'warning' | 'error';
+    title?: string;
+    closable?: boolean;
+    icon?: boolean;
+  }>(),
+  {
+    variant: 'info',
+    closable: false,
+    icon: true,
+  },
+);
 
 defineEmits<{
   close: [];
 }>();
 
-const showIcon = computed(() => props.icon && ['info', 'success', 'warning', 'error'].includes(props.variant));
+const showIcon = computed(
+  () => props.icon && ['info', 'success', 'warning', 'error'].includes(props.variant),
+);
 
 const alertIcon = computed(() => {
   const icons: Record<string, string> = {
@@ -58,10 +63,7 @@ const alertIcon = computed(() => {
   return icons[props.variant] || '';
 });
 
-const alertClass = computed(() => [
-  'hfb-alert',
-  `hfb-alert--${props.variant}`,
-].join(' '));
+const alertClass = computed(() => ['hfb-alert', `hfb-alert--${props.variant}`].join(' '));
 </script>
 
 <style scoped>

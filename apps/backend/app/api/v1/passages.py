@@ -26,6 +26,7 @@ router = APIRouter(tags=["Passages"])
 # Response schemas
 # ---------------------------------------------------------------------------
 
+
 class _TokenBrief(BaseModel):
     """Minimal token representation to avoid recursion on base_token/compare_token."""
 

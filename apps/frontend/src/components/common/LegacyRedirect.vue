@@ -35,9 +35,11 @@ const router = useRouter();
 // ---------------------------------------------------------------------------
 // Tab → canonical route resolver (for ?tab= on /research/workspace)
 // ---------------------------------------------------------------------------
-type CanonicalResolver = (
-  projectId: string,
-) => { name: string; params: Record<string, string>; query?: Record<string, string> };
+type CanonicalResolver = (projectId: string) => {
+  name: string;
+  params: Record<string, string>;
+  query?: Record<string, string>;
+};
 
 const TAB_MAP: Record<string, CanonicalResolver> = {
   materials: () => ({ name: 'library-search', params: {} }),

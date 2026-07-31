@@ -1,16 +1,64 @@
 {
   "entity_types": [
-    {"type": "Person", "table": "persons", "description": "历史/现代人物", "key_fields": ["name", "name_zh", "birth_year", "death_year", "dynasty"]},
-    {"type": "Book", "table": "books", "description": "古籍", "key_fields": ["title", "author", "dynasty", "genre"]},
-    {"type": "Version", "table": "versions", "description": "书籍版本", "key_fields": ["version_type", "version_name", "era"]},
-    {"type": "Chapter", "table": "chapters", "description": "章节", "key_fields": ["chapter_number", "title"]},
-    {"type": "Passage", "table": "passages", "description": "段落（最小文本单元）", "key_fields": ["content_original", "content_modern", "source_type"]},
-    {"type": "Paper", "table": "papers", "description": "现代研究论文", "key_fields": ["title", "authors", "year", "doi"]},
-    {"type": "Entity", "table": "entities", "description": "通用实体基表", "key_fields": ["entity_type", "name", "attributes"]},
-    {"type": "Relation", "table": "relations", "description": "实体间关系", "key_fields": ["relation_type", "confidence", "is_verified"]},
-    {"type": "User", "table": "users", "description": "学术用户", "key_fields": ["username", "email", "role"]}
+    {
+      "type": "Person",
+      "table": "persons",
+      "description": "历史/现代人物",
+      "key_fields": ["name", "name_zh", "birth_year", "death_year", "dynasty"]
+    },
+    {
+      "type": "Book",
+      "table": "books",
+      "description": "古籍",
+      "key_fields": ["title", "author", "dynasty", "genre"]
+    },
+    {
+      "type": "Version",
+      "table": "versions",
+      "description": "书籍版本",
+      "key_fields": ["version_type", "version_name", "era"]
+    },
+    {
+      "type": "Chapter",
+      "table": "chapters",
+      "description": "章节",
+      "key_fields": ["chapter_number", "title"]
+    },
+    {
+      "type": "Passage",
+      "table": "passages",
+      "description": "段落（最小文本单元）",
+      "key_fields": ["content_original", "content_modern", "source_type"]
+    },
+    {
+      "type": "Paper",
+      "table": "papers",
+      "description": "现代研究论文",
+      "key_fields": ["title", "authors", "year", "doi"]
+    },
+    {
+      "type": "Entity",
+      "table": "entities",
+      "description": "通用实体基表",
+      "key_fields": ["entity_type", "name", "attributes"]
+    },
+    {
+      "type": "Relation",
+      "table": "relations",
+      "description": "实体间关系",
+      "key_fields": ["relation_type", "confidence", "is_verified"]
+    },
+    {
+      "type": "User",
+      "table": "users",
+      "description": "学术用户",
+      "key_fields": ["username", "email", "role"]
+    }
   ],
   "entity_hierarchy": [
-    {"type": "Entity", "subtypes": ["Person", "Place", "Event", "Concept", "Book", "Organization", "Artifact"]}
+    {
+      "type": "Entity",
+      "subtypes": ["Person", "Place", "Event", "Concept", "Book", "Organization", "Artifact"]
+    }
   ]
 }

@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Unified Search & Knowledge Discovery Specification
+
 ## 统一检索与知识发现规格书
 
 > 本规格书定义《皇甫谧数字人文与中医经典智能研究平台》的统一检索中心（Unified Search Center）与知识发现中心（Knowledge Discovery Center）的产品设计。
@@ -529,6 +530,6 @@ MCP Search。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-|1.0.0|2026-06-24|首版发布，定义统一检索与知识发现中心产品规格，为平台提供统一科研入口。|
+| Version | Date       | Description                                                            |
+| ------- | ---------- | ---------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，定义统一检索与知识发现中心产品规格，为平台提供统一科研入口。 |

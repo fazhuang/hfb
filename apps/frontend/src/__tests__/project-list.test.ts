@@ -72,9 +72,7 @@ async function mountPage(sessions: Array<Record<string, unknown>> = []) {
   await router.push('/research');
   await router.isReady();
 
-  const { default: ProjectListPage } = await import(
-    '@/pages/research/ProjectListPage.vue'
-  );
+  const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
   const wrapper = mount(ProjectListPage, {
     global: {
@@ -113,7 +111,11 @@ describe('ProjectListPage', () => {
     // ticks) from one test leaking into another, which can cause mock
     // call-count drift — especially in C8 which asserts exact call counts.
     for (const w of activeWrappers) {
-      try { w.unmount(); } catch { /* already unmounted */ }
+      try {
+        w.unmount();
+      } catch {
+        /* already unmounted */
+      }
     }
     activeWrappers = [];
     vi.clearAllTimers();
@@ -195,9 +197,7 @@ describe('ProjectListPage', () => {
 
   // 6. Search with no results shows different empty state
   it('6. search-no-results shows distinct empty state', async () => {
-    const { wrapper } = await mountPage([
-      makeSession({ id: 's1', title: 'Project A' }),
-    ]);
+    const { wrapper } = await mountPage([makeSession({ id: 's1', title: 'Project A' })]);
 
     const searchInput = wrapper.find('#plt-search-input');
     await searchInput.setValue('nonexistent');
@@ -216,9 +216,7 @@ describe('ProjectListPage', () => {
     await router.push('/research');
     await router.isReady();
 
-    const { default: ProjectListPage } = await import(
-      '@/pages/research/ProjectListPage.vue'
-    );
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
     const wrapper = mount(ProjectListPage, {
       global: {
@@ -406,8 +404,16 @@ describe('ProjectListPage', () => {
     // First GET = mount's loadProjects (never resolves initially)
     // Second GET = onProjectCreated's loadProjects (also pending)
     mockApiGet
-      .mockReturnValueOnce(new Promise((r) => { resolve1 = r; }))
-      .mockReturnValueOnce(new Promise((r) => { resolve2 = r; }));
+      .mockReturnValueOnce(
+        new Promise((r) => {
+          resolve1 = r;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((r) => {
+          resolve2 = r;
+        }),
+      );
 
     mockApiPost.mockResolvedValue({ data: {} });
 
@@ -415,9 +421,7 @@ describe('ProjectListPage', () => {
     await router.push('/research');
     await router.isReady();
 
-    const { default: ProjectListPage } = await import(
-      '@/pages/research/ProjectListPage.vue'
-    );
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
     const wrapper = mount(ProjectListPage, {
       global: {
@@ -462,20 +466,19 @@ describe('ProjectListPage', () => {
   // 18. No state write warnings on unmount
   it('18. no state write warnings on unmount', async () => {
     mockApiGet.mockImplementation(
-      () => new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ data: { data: [makeSession()] } });
-        }, 100);
-      }),
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ data: { data: [makeSession()] } });
+          }, 100);
+        }),
     );
 
     const router = buildRouter();
     await router.push('/research');
     await router.isReady();
 
-    const { default: ProjectListPage } = await import(
-      '@/pages/research/ProjectListPage.vue'
-    );
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
     const wrapper = mount(ProjectListPage, {
       global: {
@@ -512,7 +515,11 @@ describe('Domain mapping contract', () => {
 
   afterEach(() => {
     for (const w of activeWrappers) {
-      try { w.unmount(); } catch { /* already unmounted */ }
+      try {
+        w.unmount();
+      } catch {
+        /* already unmounted */
+      }
     }
     activeWrappers = [];
     vi.clearAllTimers();
@@ -528,9 +535,7 @@ describe('Domain mapping contract', () => {
     await router.push('/research');
     await router.isReady();
 
-    const { default: ProjectListPage } = await import(
-      '@/pages/research/ProjectListPage.vue'
-    );
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
     const wrapper = mount(ProjectListPage, {
       global: {
@@ -597,9 +602,7 @@ describe('Domain mapping contract', () => {
     await router.push('/research');
     await router.isReady();
 
-    const { default: ProjectListPage } = await import(
-      '@/pages/research/ProjectListPage.vue'
-    );
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
 
     const wrapper = mount(ProjectListPage, {
       global: {
@@ -638,8 +641,8 @@ describe('Domain mapping contract', () => {
 
     const text = wrapper.text();
     // Both dates should appear separately — not the same value repeated
-    expect(text).toContain('2026/1/1');  // created
-    expect(text).toContain('2026/6/1');  // updated (different)
+    expect(text).toContain('2026/1/1'); // created
+    expect(text).toContain('2026/6/1'); // updated (different)
   });
 
   // C6. No fake status field generated
@@ -685,9 +688,7 @@ describe('Domain mapping contract', () => {
       data: { data: makeSession({ id: 'new-session', title: 'New Session' }) },
     });
 
-    const { wrapper } = await mountPage([
-      makeSession({ id: 'initial', title: 'Initial' }),
-    ]);
+    const { wrapper } = await mountPage([makeSession({ id: 'initial', title: 'Initial' })]);
 
     // Baseline: exactly 1 GET from mount → loadProjects()
     const baselineGetCalls = mockApiGet.mock.calls.length;
@@ -720,16 +721,14 @@ describe('Domain mapping contract', () => {
     const totalGetCalls = mockApiGet.mock.calls.length;
     expect(
       totalGetCalls,
-      'Create must trigger exactly one additional GET refresh (no local-only insertion)'
+      'Create must trigger exactly one additional GET refresh (no local-only insertion)',
     ).toBe(baselineGetCalls + 1);
 
     // The refresh GET uses the same endpoint and params.
     const refreshCall = mockApiGet.mock.calls[baselineGetCalls];
     expect(refreshCall).toBeDefined();
     expect(refreshCall![0]).toBe('/api/v1/workspace/sessions');
-    expect(refreshCall![1]).toEqual(
-      expect.objectContaining({ params: { limit: 100 } }),
-    );
+    expect(refreshCall![1]).toEqual(expect.objectContaining({ params: { limit: 100 } }));
 
     // Verify the UI reflects the unified data source — both old and new are visible.
     const text = wrapper.text();
@@ -740,9 +739,7 @@ describe('Domain mapping contract', () => {
 
   // C9. No server-side search parameter sent
   it('C9. does not send search parameter to backend', async () => {
-    const { wrapper } = await mountPage([
-      makeSession({ id: 's1', title: 'A' }),
-    ]);
+    const { wrapper } = await mountPage([makeSession({ id: 's1', title: 'A' })]);
 
     // Trigger search input
     const searchInput = wrapper.find('#plt-search-input');
@@ -752,12 +749,10 @@ describe('Domain mapping contract', () => {
     await flushPromises();
 
     // Verify that no GET call ever includes q/search/keyword params
-    const allGetCalls = mockApiGet.mock.calls.filter(
-      (call: Array<unknown>) => {
-        const url = call[0] as string;
-        return url === '/api/v1/workspace/sessions';
-      },
-    );
+    const allGetCalls = mockApiGet.mock.calls.filter((call: Array<unknown>) => {
+      const url = call[0] as string;
+      return url === '/api/v1/workspace/sessions';
+    });
     for (const call of allGetCalls) {
       const callArgs = call[1] as Record<string, unknown> | undefined;
       if (callArgs?.params) {
@@ -898,9 +893,7 @@ describe('ErrorState', () => {
 
 describe('ProjectListItem', () => {
   it('renders project title', async () => {
-    const { default: ProjectListItem } = await import(
-      '@/components/research/ProjectListItem.vue'
-    );
+    const { default: ProjectListItem } = await import('@/components/research/ProjectListItem.vue');
 
     const wrapper = mount(ProjectListItem, {
       props: {
@@ -928,9 +921,7 @@ describe('ProjectListItem', () => {
   });
 
   it('provides link to project detail', async () => {
-    const { default: ProjectListItem } = await import(
-      '@/components/research/ProjectListItem.vue'
-    );
+    const { default: ProjectListItem } = await import('@/components/research/ProjectListItem.vue');
 
     const wrapper = mount(ProjectListItem, {
       props: {
@@ -959,9 +950,7 @@ describe('ProjectListItem', () => {
   });
 
   it('handles null dates gracefully', async () => {
-    const { default: ProjectListItem } = await import(
-      '@/components/research/ProjectListItem.vue'
-    );
+    const { default: ProjectListItem } = await import('@/components/research/ProjectListItem.vue');
 
     const wrapper = mount(ProjectListItem, {
       props: {
@@ -991,9 +980,8 @@ describe('ProjectListItem', () => {
 
 describe('CreateProjectDialog', () => {
   it('renders form fields when open', async () => {
-    const { default: CreateProjectDialog } = await import(
-      '@/components/research/CreateProjectDialog.vue'
-    );
+    const { default: CreateProjectDialog } =
+      await import('@/components/research/CreateProjectDialog.vue');
 
     const wrapper = mount(CreateProjectDialog, {
       props: { open: true },
@@ -1005,9 +993,8 @@ describe('CreateProjectDialog', () => {
   });
 
   it('does not render when closed', async () => {
-    const { default: CreateProjectDialog } = await import(
-      '@/components/research/CreateProjectDialog.vue'
-    );
+    const { default: CreateProjectDialog } =
+      await import('@/components/research/CreateProjectDialog.vue');
 
     const wrapper = mount(CreateProjectDialog, {
       props: { open: false },
@@ -1018,9 +1005,8 @@ describe('CreateProjectDialog', () => {
   });
 
   it('emits close on cancel button', async () => {
-    const { default: CreateProjectDialog } = await import(
-      '@/components/research/CreateProjectDialog.vue'
-    );
+    const { default: CreateProjectDialog } =
+      await import('@/components/research/CreateProjectDialog.vue');
 
     const wrapper = mount(CreateProjectDialog, {
       props: { open: true },
@@ -1032,9 +1018,8 @@ describe('CreateProjectDialog', () => {
   });
 
   it('emits close on backdrop click', async () => {
-    const { default: CreateProjectDialog } = await import(
-      '@/components/research/CreateProjectDialog.vue'
-    );
+    const { default: CreateProjectDialog } =
+      await import('@/components/research/CreateProjectDialog.vue');
 
     const wrapper = mount(CreateProjectDialog, {
       props: { open: true },
@@ -1048,9 +1033,8 @@ describe('CreateProjectDialog', () => {
 
 describe('ProjectListToolbar', () => {
   it('emits search on input', async () => {
-    const { default: ProjectListToolbar } = await import(
-      '@/components/research/ProjectListToolbar.vue'
-    );
+    const { default: ProjectListToolbar } =
+      await import('@/components/research/ProjectListToolbar.vue');
 
     const wrapper = mount(ProjectListToolbar, {
       props: { modelValue: '' },
@@ -1068,9 +1052,8 @@ describe('ProjectListToolbar', () => {
   });
 
   it('shows clear button when query is non-empty', async () => {
-    const { default: ProjectListToolbar } = await import(
-      '@/components/research/ProjectListToolbar.vue'
-    );
+    const { default: ProjectListToolbar } =
+      await import('@/components/research/ProjectListToolbar.vue');
 
     const wrapper = mount(ProjectListToolbar, {
       props: { modelValue: 'test' },

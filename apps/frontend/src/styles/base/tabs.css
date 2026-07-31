@@ -10,8 +10,12 @@
   overflow-x: auto;
 }
 
-.hfb-tabs__nav--center { justify-content: center; }
-.hfb-tabs__nav--end { justify-content: flex-end; }
+.hfb-tabs__nav--center {
+  justify-content: center;
+}
+.hfb-tabs__nav--end {
+  justify-content: flex-end;
+}
 
 .hfb-tabs__tab {
   display: inline-flex;

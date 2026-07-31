@@ -26,11 +26,7 @@
     </form>
 
     <div v-if="results.length" class="vc-search-results">
-      <article
-        v-for="item in results"
-        :key="item.id"
-        class="vc-result-item"
-      >
+      <article v-for="item in results" :key="item.id" class="vc-result-item">
         <div class="vc-result-main">
           <div class="vc-result-meta">
             <span>{{ item.metadata.version_name || '未知版本' }}</span>

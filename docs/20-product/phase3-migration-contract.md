@@ -21,24 +21,24 @@
 
 ### 1.1 Legacy 页面（3 个视图，仍在服役）
 
-| 视图 | 路由 | 行数 | 功能 |
-|------|------|------|------|
-| `views/ResearchWorkspaceView.vue` | `/research/workspace` | ~2200 | 7 tab 单体：资料、版本、笔记、报告、研究（嵌入 ResearchWorkflowView）、V4 研究、助手 |
-| `views/ResearchWorkflowView.vue` | 无独立路由（嵌入 workspace tab `research`） | ~510 | 版本比较工作流（4 步：检索条文 → 选版本 → 运行比较 → 验证证据 + 笔记） |
-| `views/V4ResearchView.vue` | `/v4/research-internal` | ~1200 | 3 tab：完整研究（5 步 pipeline）、教育模式、可视化 |
+| 视图                              | 路由                                        | 行数  | 功能                                                                                 |
+| --------------------------------- | ------------------------------------------- | ----- | ------------------------------------------------------------------------------------ |
+| `views/ResearchWorkspaceView.vue` | `/research/workspace`                       | ~2200 | 7 tab 单体：资料、版本、笔记、报告、研究（嵌入 ResearchWorkflowView）、V4 研究、助手 |
+| `views/ResearchWorkflowView.vue`  | 无独立路由（嵌入 workspace tab `research`） | ~510  | 版本比较工作流（4 步：检索条文 → 选版本 → 运行比较 → 验证证据 + 笔记）               |
+| `views/V4ResearchView.vue`        | `/v4/research-internal`                     | ~1200 | 3 tab：完整研究（5 步 pipeline）、教育模式、可视化                                   |
 
 ### 1.2 Canonical 页面（已迁移，per-project 作用域）
 
-| 页面 | 路由 | 状态 |
-|------|------|------|
-| `pages/research/ProjectListPage.vue` | `/research` | 已闭合 — 直接渲染 |
-| `pages/research/ProjectDetailPage.vue` | `/research/:projectId` | 已闭合 — 项目详情 + 操作入口 |
-| `pages/research/ResearchWorkspacePage.vue` | `/research/:projectId/workspace` | 已迁移 — 6 段（ContinueResearch、Activity、Reports、Notes、Resources、AssistantEntry） |
-| `pages/research/ResearchWorkflowPage.vue` | `/research/:projectId/workflow` | 已迁移 — 5 步 V4 topic→pipeline 工作流（**注意：非版本比较**） |
-| `pages/research/ResearchResultPage.vue` | `/research/:projectId/result/:runId` | 已迁移 — 报告、引用、证据、SourceRef、导出 |
-| `pages/reports/ReportListPage.vue` | `/reports` | 已迁移 — 跨会话报告聚合 |
-| `pages/library/LibrarySearchPage.vue` | `/library` | 已迁移 — 统一文献搜索 |
-| `pages/knowledge/KnowledgeExplorerPage.vue` | `/knowledge` | **占位页** — 功能迁移中，模板明确声明 Knowledge Explorer / Entity Detail 后续 Sprint 实现 |
+| 页面                                        | 路由                                 | 状态                                                                                      |
+| ------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `pages/research/ProjectListPage.vue`        | `/research`                          | 已闭合 — 直接渲染                                                                         |
+| `pages/research/ProjectDetailPage.vue`      | `/research/:projectId`               | 已闭合 — 项目详情 + 操作入口                                                              |
+| `pages/research/ResearchWorkspacePage.vue`  | `/research/:projectId/workspace`     | 已迁移 — 6 段（ContinueResearch、Activity、Reports、Notes、Resources、AssistantEntry）    |
+| `pages/research/ResearchWorkflowPage.vue`   | `/research/:projectId/workflow`      | 已迁移 — 5 步 V4 topic→pipeline 工作流（**注意：非版本比较**）                            |
+| `pages/research/ResearchResultPage.vue`     | `/research/:projectId/result/:runId` | 已迁移 — 报告、引用、证据、SourceRef、导出                                                |
+| `pages/reports/ReportListPage.vue`          | `/reports`                           | 已迁移 — 跨会话报告聚合                                                                   |
+| `pages/library/LibrarySearchPage.vue`       | `/library`                           | 已迁移 — 统一文献搜索                                                                     |
+| `pages/knowledge/KnowledgeExplorerPage.vue` | `/knowledge`                         | **占位页** — 功能迁移中，模板明确声明 Knowledge Explorer / Entity Detail 后续 Sprint 实现 |
 
 ### 1.3 关键架构事实
 
@@ -59,36 +59,37 @@
 
 **Canonical 目标**：
 
-| Legacy Tab | Canonical 归宿 | 状态 |
-|---|---|---|
-| 资料 (materials) | `LibrarySearchPage` `/library` — 统一文献搜索 | 已就绪 |
-| 版本 (versions) | `LibrarySearchPage` `/library` — 古籍版本搜索 | 已就绪 |
-| 笔记 (notes) | `ResearchWorkspacePage` `/research/:projectId/workspace` — RecentNotes 段 | 已就绪 |
-| 报告 (reports) | `ReportListPage` `/reports`（跨项目）+ `ResearchWorkspacePage` RecentReports 段（单项目） | **待验证** — 实测：项目详情页显示已有报告，但其 canonical workspace "最近研究运行"为空，未证明单项目 Reports 等价行为 |
-| 研究 (research) | `VersionComparisonPage` `/research/:projectId/version-comparison`（**方案 B 新建**） | **待 M2 构建** |
+| Legacy Tab            | Canonical 归宿                                                                                                | 状态                                                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 资料 (materials)      | `LibrarySearchPage` `/library` — 统一文献搜索                                                                 | 已就绪                                                                                                                                        |
+| 版本 (versions)       | `LibrarySearchPage` `/library` — 古籍版本搜索                                                                 | 已就绪                                                                                                                                        |
+| 笔记 (notes)          | `ResearchWorkspacePage` `/research/:projectId/workspace` — RecentNotes 段                                     | 已就绪                                                                                                                                        |
+| 报告 (reports)        | `ReportListPage` `/reports`（跨项目）+ `ResearchWorkspacePage` RecentReports 段（单项目）                     | **待验证** — 实测：项目详情页显示已有报告，但其 canonical workspace "最近研究运行"为空，未证明单项目 Reports 等价行为                         |
+| 研究 (research)       | `VersionComparisonPage` `/research/:projectId/version-comparison`（**方案 B 新建**）                          | **待 M2 构建**                                                                                                                                |
 | V4 研究 (v4-research) | `ResearchWorkflowPage` `/research/:projectId/workflow`（V4 pipeline）+ `ResearchResultPage`（报告/引用/导出） | ⚠️ **未完成迁移** — `/v4/research-internal` 仍直接加载 V4ResearchView（legacy 服役中）；re-search 缺失；写入/下载能力未在真实浏览器端到端验证 |
-| 助手 (assistant) | **推迟** — 未来 AI 助手页面（不在本次迁移范围） | 推迟 |
+| 助手 (assistant)      | **推迟** — 未来 AI 助手页面（不在本次迁移范围）                                                               | 推迟                                                                                                                                          |
 
 **URL 兼容规则**：
 
 **实现方式**：`LegacyRedirect.vue` 组件 — 在 mount 时 `GET /api/v1/workspace/sessions?limit=1` 获取用户最近更新的 session，解析 `?tab=` 或路由名称，`router.replace` 至 canonical 路由。无 session 或 API 失败时降级至 `/research`（项目列表）。
 
-| 旧 URL | 修复后行为 | Canonical 目标 |
-|--------|---------|------|
-| `/research/workspace` | 解析最近 session → `router.replace({ name: 'research-project-workspace', params: { projectId } })` | `/research/:projectId/workspace` |
-| `/research/workspace?tab=materials` | Tab-aware: `→ router.replace({ name: 'library-search' })` | `/library` |
-| `/research/workspace?tab=versions` | Tab-aware: `→ router.replace({ name: 'library-search' })` | `/library` |
-| `/research/workspace?tab=notes` | Tab-aware: `→ router.replace({ name: 'research-project-workspace', params: { projectId } })` | `/research/:projectId/workspace` |
-| `/research/workspace?tab=reports` | Tab-aware: `→ router.replace({ name: 'report-list' })` | `/reports` |
-| `/research/workspace?tab=research` | Tab-aware: `→ router.replace({ name: 'research-project-version-comparison', params: { projectId } })` | `/research/:projectId/version-comparison` |
-| `/research/workspace?tab=v4-research` | Tab-aware: `→ router.replace({ name: 'research-project-workflow', params: { projectId } })` | `/research/:projectId/workflow` |
-| `/workspace` | 路由名 `legacy-workspace-short`: `→ research-project-workspace` | `/research/:projectId/workspace` |
-| `/v4/research` | 路由名 `legacy-v4-research`: `→ research-project-workflow` | `/research/:projectId/workflow` |
-| `/v4` | 路由名 `legacy-v4`: `→ research-project-workflow` | `/research/:projectId/workflow` |
-| `/v4/research-internal` | 路由名 `legacy-v4-research-internal`: `→ research-project-workflow` | `/research/:projectId/workflow` |
-| `/research` | 路由名 `legacy-research`: `→ research-project-list` (直接，无 API 调用) | `/research` |
+| 旧 URL                                | 修复后行为                                                                                            | Canonical 目标                            |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `/research/workspace`                 | 解析最近 session → `router.replace({ name: 'research-project-workspace', params: { projectId } })`    | `/research/:projectId/workspace`          |
+| `/research/workspace?tab=materials`   | Tab-aware: `→ router.replace({ name: 'library-search' })`                                             | `/library`                                |
+| `/research/workspace?tab=versions`    | Tab-aware: `→ router.replace({ name: 'library-search' })`                                             | `/library`                                |
+| `/research/workspace?tab=notes`       | Tab-aware: `→ router.replace({ name: 'research-project-workspace', params: { projectId } })`          | `/research/:projectId/workspace`          |
+| `/research/workspace?tab=reports`     | Tab-aware: `→ router.replace({ name: 'report-list' })`                                                | `/reports`                                |
+| `/research/workspace?tab=research`    | Tab-aware: `→ router.replace({ name: 'research-project-version-comparison', params: { projectId } })` | `/research/:projectId/version-comparison` |
+| `/research/workspace?tab=v4-research` | Tab-aware: `→ router.replace({ name: 'research-project-workflow', params: { projectId } })`           | `/research/:projectId/workflow`           |
+| `/workspace`                          | 路由名 `legacy-workspace-short`: `→ research-project-workspace`                                       | `/research/:projectId/workspace`          |
+| `/v4/research`                        | 路由名 `legacy-v4-research`: `→ research-project-workflow`                                            | `/research/:projectId/workflow`           |
+| `/v4`                                 | 路由名 `legacy-v4`: `→ research-project-workflow`                                                     | `/research/:projectId/workflow`           |
+| `/v4/research-internal`               | 路由名 `legacy-v4-research-internal`: `→ research-project-workflow`                                   | `/research/:projectId/workflow`           |
+| `/research`                           | 路由名 `legacy-research`: `→ research-project-list` (直接，无 API 调用)                               | `/research`                               |
 
 **降级处理**：
+
 - 无 session → `/research`（项目列表）
 - API 错误 (network/500) → `/research`（项目列表）
 - 未知 `?tab=` 值 → 按路由名称解析（无 tab 处理）
@@ -101,6 +102,7 @@
 - [x] ResearchWorkspaceView.vue 可安全变为纯兼容 adapter 或删除（M4） — **Task 2B**: `/v4/research-internal` 不再直接加载 V4ResearchView，LegacyRedirect 替代
 
 **停止条件**：
+
 - 助手 tab（SSE AI chat + evidence sidebar + graph preview）推迟，但必须在 M0 中标记为「已知未迁移」，不是「静默丢失」
 - 如版本比较（tab=research）无 canonical 目标，则此能力整体 BLOCK，直至 §2.2 解决
 
@@ -109,6 +111,7 @@
 ### 2.2 能力 #2：版本比较 Workflow
 
 **Legacy 描述**：`ResearchWorkflowView.vue`（~510 行），嵌入在 Workspace 的 "研究" tab 内（`/research/workspace?tab=research`），无独立路由。实现古籍版本差异比较：
+
 - 步骤 1：全文搜索经文（`GET /api/v1/search?types=passage`）
 - 步骤 2：选择源版本 / 目标版本
 - 步骤 3：运行差异引擎（`PUT /api/v1/research/sessions/:id/version-comparison`），输出差异计数、相似度比率、操作表
@@ -121,6 +124,7 @@
 **Canonical 目标**：新建 `pages/research/VersionComparisonPage.vue`，路由 `/research/:projectId/version-comparison`。
 
 **实现范围**：
+
 - 新路由 `research-project-version-comparison`，加入 `ResearchAppLayout` children
 - 新 composable `composables/useVersionComparison.ts`（拥有状态机、API 调用、session 恢复、导出）
 - 4 个步骤组件 `components/research/version-comparison/`：`PassageSearchStep`、`VersionSelectStep`、`DiffResultStep`、`EvidenceVerifyStep`
@@ -128,16 +132,17 @@
 - **不修改** `ResearchWorkflowPage.vue` 或 `useResearchWorkflow.ts`
 
 **设计原则**：
+
 - 独立 composable，不污染 V4 workflow 的 `useResearchWorkflow`
 - 遵循 canonical 模式：sessionStorage 隔离 (`hfb.version-comparison.{projectId}.state`)、per-projectId 作用域、stale-response 丢弃
 - API 不变：复用现有 `GET /api/v1/search?types=passage`、`PUT /api/v1/research/sessions/:id/version-comparison`、`POST /api/v1/workspace/sessions/:id/notes`
 
 **URL 兼容规则**：
 
-| 旧入口 | 兼容行为 |
-|--------|---------|
-| `/research/workspace?tab=research` | → `/research/:projectId/version-comparison`（需先解析项目上下文，取最近活跃 session 的 projectId） |
-| Workspace 内嵌 ResearchWorkflowView | → 不再嵌入；独立路由 `/research/:projectId/version-comparison` 访问 |
+| 旧入口                              | 兼容行为                                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `/research/workspace?tab=research`  | → `/research/:projectId/version-comparison`（需先解析项目上下文，取最近活跃 session 的 projectId） |
+| Workspace 内嵌 ResearchWorkflowView | → 不再嵌入；独立路由 `/research/:projectId/version-comparison` 访问                                |
 
 **等价验收标准**（无论方案 A/B）：
 
@@ -156,11 +161,11 @@
 
 **Legacy 测试映射**（`apps/frontend/src/__tests__/research-workflow.test.ts`，3 个测试）：
 
-| Legacy 测试 | M1 等价测试要求 |
-|------------|---------------|
+| Legacy 测试                                                          | M1 等价测试要求                                                                     |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | skips sessions with data:null → probes all, renders valid comparison | Canonical 页面：多个 session 中部分返回 null 时，继续探测其余，最终渲染有效比较数据 |
-| renders UI with empty session list | Canonical 页面：零 session 时仍渲染 UI（检索条文、验证语料标签可见） |
-| survives network errors probing comparison | Canonical 页面：API 网络错误不抛异常，UI 可用 |
+| renders UI with empty session list                                   | Canonical 页面：零 session 时仍渲染 UI（检索条文、验证语料标签可见）                |
+| survives network errors probing comparison                           | Canonical 页面：API 网络错误不抛异常，UI 可用                                       |
 
 ---
 
@@ -168,31 +173,31 @@
 
 **Legacy 描述**：`V4ResearchView.vue`（~1200 行），路由 `/v4/research-internal`。3 个 tab：
 
-| Tab | 功能 | API |
-|-----|------|-----|
-| 完整研究 (research) | topic → 5 步 pipeline（topic_selection → literature_retrieval → evidence_synthesis → report_generation → citation_export） | `POST /api/v4/research/session`、`POST /api/v4/research/workflow`、`GET /api/v4/research/session/:id/runs`、`POST /api/v4/research/runs/:id/replay` |
-| 教育模式 (education) | 概念学习（初级/中级/高级），段落 + 引用计数 | `POST /api/v4/education/learn` |
-| 可视化 (visualization) | 知识图谱（概念/引用/时间线/文档 graph_type） | `POST /api/v4/visualization/graph` |
+| Tab                    | 功能                                                                                                                       | API                                                                                                                                                 |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 完整研究 (research)    | topic → 5 步 pipeline（topic_selection → literature_retrieval → evidence_synthesis → report_generation → citation_export） | `POST /api/v4/research/session`、`POST /api/v4/research/workflow`、`GET /api/v4/research/session/:id/runs`、`POST /api/v4/research/runs/:id/replay` |
+| 教育模式 (education)   | 概念学习（初级/中级/高级），段落 + 引用计数                                                                                | `POST /api/v4/education/learn`                                                                                                                      |
+| 可视化 (visualization) | 知识图谱（概念/引用/时间线/文档 graph_type）                                                                               | `POST /api/v4/visualization/graph`                                                                                                                  |
 
 **Canonical 目标**：
 
-| # | Legacy 功能 | V4 源代码位置 | Canonical 归宿 | 路由 | 真实 API | 浏览器测试 | 状态 |
-|---|------------|-------------|------------|------|---------|----------|------|
-| 1 | Workflow 执行 — topic 输入 + 5 步 pipeline | `V4ResearchView.vue:536-603` | `ResearchWorkflowPage` + `useResearchWorkflow.submitWorkflow()` | `/research/:projectId/workflow` | `POST /api/v4/research/workflow` | E2E: `test_successful_workflow_uses_current_run_artifacts` (L686), UT: M1-V4-001 | **已迁移** |
-| 2 | 5 步状态展示 — step list 含完成/失败/待定标识 | `V4ResearchView.vue:64-78` | `WorkflowStepNavigation` + `.wsn-step` items in `ResearchWorkflowPage` | `/research/:projectId/workflow` | `POST /api/v4/research/workflow`（响应含 steps 数组） | UT: M1-V4-002 (5 步导航可见) | **已迁移** |
-| 3 | 报告预览 — markdown 文本渲染（截断 2000 字） | `V4ResearchView.vue:90-93, 372-376` | `ResearchReportStep`（workflow 内）+ `ResearchReportViewer`（result page） | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `output_artifacts.markdown` | UT: M1-V4-013 (报告渲染为可读 sections) | **已迁移** |
-| 4 | 引用展示 — claim_text/quote/citation_text/trace_id/document_id/source_ref_id | `V4ResearchView.vue:96-120` | `EvidenceReviewStep`（workflow）+ `CitationPanel`（result page） | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `replay_manifest` | UT: M1-V4-007 (evidence items 渲染), M1-V4-014 (source info 存在) | **已迁移** |
-| 5 | 从引用创建笔记 — 每个引用旁的专用按钮 | `V4ResearchView.vue:111-117, 694-713` | `useResearchWorkflow.saveCitation()` → `POST /api/v1/workspace/sessions/{id}/citations` | `/research/:projectId/workflow` | `POST /api/v1/workspace/sessions/{id}/citations` | UT: citationSaveState 追踪 (idle/saving/saved) | **已迁移** |
-| 6 | 导出 — 报告 + 笔记的客户端 Blob 下载 | `V4ResearchView.vue:123-131, 623-657` | `ResearchResultPage` + `useResearchResult.exportMarkdown()` | `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs/{runId}/export` | E2E: `TestResearchResultPageE2E` 导出测试, UT: M1-V4-015 | **已迁移** |
-| 7 | 保存笔记 — `POST /api/v1/workspace/sessions/{id}/notes` | `V4ResearchView.vue:133-141, 659-683` | `useResearchWorkflow.saveNote()` | `/research/:projectId/workflow` | `POST /api/v1/workspace/sessions/{id}/notes` | UT: saveNote → savingMessage 反馈 | **已迁移** |
-| 8 | 基于报告重新搜索 — 提取关键词 → 搜索页 | `V4ResearchView.vue:169-177, 686-692` | `useResearchWorkflow.navigateToLibrarySearch()` → `ResearchReportStep` 按钮 | `/research/:projectId/workflow` → `/library` | `router.push({ name: 'library-search', query: { q } })` | UT: M1-V4-016 [RESOLVED] | **已迁移** (Task 2B) |
-| 9 | **重放验证** — `POST /api/v4/research/runs/{id}/replay`，显示 matched + SHA256 | `V4ResearchView.vue:180-197, 605-621` | `ResearchResultPage` + `useResearchResult.replayRun()` | `/research/:projectId/result/:runId` | `POST /api/v4/research/runs/{id}/replay` | UT: M1-V4-003/004 (组件回归), E2E: `test_gap_replay_verification_matched` + `test_gap_replay_verification_mismatched` (真实浏览器闭环) | **已迁移** (d08fbbd, 101e9ef, e6a5153) |
-| 10 | 运行历史列表 — 显示 session 所有 run | `V4ResearchView.vue:200-206` | `ResearchWorkspacePage` (RecentReports) + `ReportListPage` | `/research/:projectId/workspace` + `/reports` | `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchReportsPageE2E` | **已迁移** |
-| 11 | 开始新工作流 (reset) — 清除所有状态 | `V4ResearchView.vue:208-210, 715-731` | `useResearchWorkflow.reset()` | `/research/:projectId/workflow` | 纯客户端状态重置 | UT: reset → stepState='question' | **已迁移** |
-| 12 | 通过 ?run= 加载历史 — 遍历 sessions 查找匹配 run | `V4ResearchView.vue:399-436` | 直接 URL `/research/:projectId/result/:runId` | `/research/:projectId/result/:runId` | `GET /api/v1/workspace/sessions` + `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchResultPageE2E` (L2481+) | **已迁移**（改进 — 无需遍历） |
-| 13 | 已用时间计数器 — 自 workflow 开始计秒 | `V4ResearchView.vue:59-60, 381-394` | `AnalysisPendingState`（不确定进度指示器） | `/research/:projectId/workflow` | — | E2E: workflow 提交 loading 态 | **已迁移**（等价 UX） |
-| 14 | 教育模式 — topic + level → 概念学习 | `V4ResearchView.vue:218-261, 737-770` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/education/learn` | N/A | **推迟** — 占位页 |
-| 15 | 可视化 — concept labels + graph_type → 图谱 | `V4ResearchView.vue:264-310, 776-808` | `KnowledgeExplorerPage` | `/knowledge` | `POST /api/v4/visualization/graph` | N/A | **推迟** — 占位页 |
+| #   | Legacy 功能                                                                    | V4 源代码位置                         | Canonical 归宿                                                                          | 路由                                                                   | 真实 API                                                                    | 浏览器测试                                                                                                                             | 状态                                   |
+| --- | ------------------------------------------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| 1   | Workflow 执行 — topic 输入 + 5 步 pipeline                                     | `V4ResearchView.vue:536-603`          | `ResearchWorkflowPage` + `useResearchWorkflow.submitWorkflow()`                         | `/research/:projectId/workflow`                                        | `POST /api/v4/research/workflow`                                            | E2E: `test_successful_workflow_uses_current_run_artifacts` (L686), UT: M1-V4-001                                                       | **已迁移**                             |
+| 2   | 5 步状态展示 — step list 含完成/失败/待定标识                                  | `V4ResearchView.vue:64-78`            | `WorkflowStepNavigation` + `.wsn-step` items in `ResearchWorkflowPage`                  | `/research/:projectId/workflow`                                        | `POST /api/v4/research/workflow`（响应含 steps 数组）                       | UT: M1-V4-002 (5 步导航可见)                                                                                                           | **已迁移**                             |
+| 3   | 报告预览 — markdown 文本渲染（截断 2000 字）                                   | `V4ResearchView.vue:90-93, 372-376`   | `ResearchReportStep`（workflow 内）+ `ResearchReportViewer`（result page）              | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `output_artifacts.markdown`      | UT: M1-V4-013 (报告渲染为可读 sections)                                                                                                | **已迁移**                             |
+| 4   | 引用展示 — claim_text/quote/citation_text/trace_id/document_id/source_ref_id   | `V4ResearchView.vue:96-120`           | `EvidenceReviewStep`（workflow）+ `CitationPanel`（result page）                        | `/research/:projectId/workflow` + `/research/:projectId/result/:runId` | `GET /api/v4/research/session/{id}/runs` → `replay_manifest`                | UT: M1-V4-007 (evidence items 渲染), M1-V4-014 (source info 存在)                                                                      | **已迁移**                             |
+| 5   | 从引用创建笔记 — 每个引用旁的专用按钮                                          | `V4ResearchView.vue:111-117, 694-713` | `useResearchWorkflow.saveCitation()` → `POST /api/v1/workspace/sessions/{id}/citations` | `/research/:projectId/workflow`                                        | `POST /api/v1/workspace/sessions/{id}/citations`                            | UT: citationSaveState 追踪 (idle/saving/saved)                                                                                         | **已迁移**                             |
+| 6   | 导出 — 报告 + 笔记的客户端 Blob 下载                                           | `V4ResearchView.vue:123-131, 623-657` | `ResearchResultPage` + `useResearchResult.exportMarkdown()`                             | `/research/:projectId/result/:runId`                                   | `GET /api/v4/research/session/{id}/runs/{runId}/export`                     | E2E: `TestResearchResultPageE2E` 导出测试, UT: M1-V4-015                                                                               | **已迁移**                             |
+| 7   | 保存笔记 — `POST /api/v1/workspace/sessions/{id}/notes`                        | `V4ResearchView.vue:133-141, 659-683` | `useResearchWorkflow.saveNote()`                                                        | `/research/:projectId/workflow`                                        | `POST /api/v1/workspace/sessions/{id}/notes`                                | UT: saveNote → savingMessage 反馈                                                                                                      | **已迁移**                             |
+| 8   | 基于报告重新搜索 — 提取关键词 → 搜索页                                         | `V4ResearchView.vue:169-177, 686-692` | `useResearchWorkflow.navigateToLibrarySearch()` → `ResearchReportStep` 按钮             | `/research/:projectId/workflow` → `/library`                           | `router.push({ name: 'library-search', query: { q } })`                     | UT: M1-V4-016 [RESOLVED]                                                                                                               | **已迁移** (Task 2B)                   |
+| 9   | **重放验证** — `POST /api/v4/research/runs/{id}/replay`，显示 matched + SHA256 | `V4ResearchView.vue:180-197, 605-621` | `ResearchResultPage` + `useResearchResult.replayRun()`                                  | `/research/:projectId/result/:runId`                                   | `POST /api/v4/research/runs/{id}/replay`                                    | UT: M1-V4-003/004 (组件回归), E2E: `test_gap_replay_verification_matched` + `test_gap_replay_verification_mismatched` (真实浏览器闭环) | **已迁移** (d08fbbd, 101e9ef, e6a5153) |
+| 10  | 运行历史列表 — 显示 session 所有 run                                           | `V4ResearchView.vue:200-206`          | `ResearchWorkspacePage` (RecentReports) + `ReportListPage`                              | `/research/:projectId/workspace` + `/reports`                          | `GET /api/v4/research/session/{id}/runs`                                    | E2E: `TestResearchReportsPageE2E`                                                                                                      | **已迁移**                             |
+| 11  | 开始新工作流 (reset) — 清除所有状态                                            | `V4ResearchView.vue:208-210, 715-731` | `useResearchWorkflow.reset()`                                                           | `/research/:projectId/workflow`                                        | 纯客户端状态重置                                                            | UT: reset → stepState='question'                                                                                                       | **已迁移**                             |
+| 12  | 通过 ?run= 加载历史 — 遍历 sessions 查找匹配 run                               | `V4ResearchView.vue:399-436`          | 直接 URL `/research/:projectId/result/:runId`                                           | `/research/:projectId/result/:runId`                                   | `GET /api/v1/workspace/sessions` + `GET /api/v4/research/session/{id}/runs` | E2E: `TestResearchResultPageE2E` (L2481+)                                                                                              | **已迁移**（改进 — 无需遍历）          |
+| 13  | 已用时间计数器 — 自 workflow 开始计秒                                          | `V4ResearchView.vue:59-60, 381-394`   | `AnalysisPendingState`（不确定进度指示器）                                              | `/research/:projectId/workflow`                                        | —                                                                           | E2E: workflow 提交 loading 态                                                                                                          | **已迁移**（等价 UX）                  |
+| 14  | 教育模式 — topic + level → 概念学习                                            | `V4ResearchView.vue:218-261, 737-770` | `KnowledgeExplorerPage`                                                                 | `/knowledge`                                                           | `POST /api/v4/education/learn`                                              | N/A                                                                                                                                    | **推迟** — 占位页                      |
+| 15  | 可视化 — concept labels + graph_type → 图谱                                    | `V4ResearchView.vue:264-310, 776-808` | `KnowledgeExplorerPage`                                                                 | `/knowledge`                                                           | `POST /api/v4/visualization/graph`                                          | N/A                                                                                                                                    | **推迟** — 占位页                      |
 
 **✅ 停止条件 #9 — 重放验证（已解决，2026-07-29）**：
 
@@ -207,11 +212,11 @@
 
 **URL 兼容规则**：
 
-| 旧 URL | 兼容行为 | 当前实际 | 状态 |
-|--------|---------|---------|------|
+| 旧 URL                  | 兼容行为                                                                | 当前实际                                   | 状态      |
+| ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------ | --------- |
 | `/v4/research-internal` | → LegacyRedirect → session-aware 跳转至 `/research/:projectId/workflow` | **LegacyRedirect 处理**（router/index.ts） | ✅ 已清退 |
-| `/v4/research` | → LegacyRedirect → `/research/:projectId/workflow` | **LegacyRedirect 处理** | ✅ 已清退 |
-| `/v4` | → LegacyRedirect → `/research/:projectId/workflow` | **LegacyRedirect 处理** | ✅ 已清退 |
+| `/v4/research`          | → LegacyRedirect → `/research/:projectId/workflow`                      | **LegacyRedirect 处理**                    | ✅ 已清退 |
+| `/v4`                   | → LegacyRedirect → `/research/:projectId/workflow`                      | **LegacyRedirect 处理**                    | ✅ 已清退 |
 
 **逐项迁移完成判定**：
 
@@ -230,26 +235,28 @@
 
 **Legacy 测试映射**（`apps/frontend/src/__tests__/v4-research.test.ts`，10 个测试）：
 
-| Legacy 测试 | M1 等价测试要求 |
-|------------|---------------|
-| renders all three tabs | Canonical 等价页面的所有功能入口可见 |
-| clicking run workflow calls /session and /workflow | Canonical workflow page：POST session + POST workflow + GET runs 调用链等价 |
-| clicking replay with matched=true | Canonical result page：replay → matched=true → .rpage-replay-matched "重放一致"（真实浏览器 E2E 闭环） |
-| clicking replay with matched=false | Canonical result page：replay → matched=false → .rpage-replay-mismatched "重放不一致"（真实浏览器 E2E 闭环，tampered manifest fixture） |
-| education sends level parameter | 推迟 — M1 标记为 deferred，不 skip/xfail |
-| education shows error on API failure | 推迟 — M1 标记为 deferred |
-| visualization sends graph_type | 推迟 — M1 标记为 deferred |
-| visualization shows empty state | 推迟 — M1 标记为 deferred |
-| no-evidence state when success=false, records=0 | Canonical workflow page：NO_EVIDENCE error banner，不渲染 report body / citations，导出禁用 |
-| hides save-citation when citation fields empty | Canonical workflow page：无 snapshot citation → 不渲染 save-citation |
-| shows save-citation when citation has real content | Canonical workflow page：有 snapshot citation → citation body 渲染，导出启用 |
+| Legacy 测试                                        | M1 等价测试要求                                                                                                                         |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| renders all three tabs                             | Canonical 等价页面的所有功能入口可见                                                                                                    |
+| clicking run workflow calls /session and /workflow | Canonical workflow page：POST session + POST workflow + GET runs 调用链等价                                                             |
+| clicking replay with matched=true                  | Canonical result page：replay → matched=true → .rpage-replay-matched "重放一致"（真实浏览器 E2E 闭环）                                  |
+| clicking replay with matched=false                 | Canonical result page：replay → matched=false → .rpage-replay-mismatched "重放不一致"（真实浏览器 E2E 闭环，tampered manifest fixture） |
+| education sends level parameter                    | 推迟 — M1 标记为 deferred，不 skip/xfail                                                                                                |
+| education shows error on API failure               | 推迟 — M1 标记为 deferred                                                                                                               |
+| visualization sends graph_type                     | 推迟 — M1 标记为 deferred                                                                                                               |
+| visualization shows empty state                    | 推迟 — M1 标记为 deferred                                                                                                               |
+| no-evidence state when success=false, records=0    | Canonical workflow page：NO_EVIDENCE error banner，不渲染 report body / citations，导出禁用                                             |
+| hides save-citation when citation fields empty     | Canonical workflow page：无 snapshot citation → 不渲染 save-citation                                                                    |
+| shows save-citation when citation has real content | Canonical workflow page：有 snapshot citation → citation body 渲染，导出启用                                                            |
 
 ---
+
 section: 2.4
 
 ### 2.4 ✅ 停止条件已解决：重放验证 (replay) — canonical 等价实现 (2026-07-29)
 
 **Legacy 行为** (`V4ResearchView.vue:605-621`):
+
 ```typescript
 async function replayRun() {
   if (!workflowRunId.value) return;
@@ -263,15 +270,18 @@ async function replayRun() {
   };
 }
 ```
+
 — 对已完成的工作流运行进行确定性验证，比较 SHA256 哈希值，显示 matched/mismatched badge。
 
 **Canonical 实现**（d08fbbd, 101e9ef, e6a5153）：
+
 - **`ResearchResultPage.vue:39-78`** — `.rpage-replay` 区域、`data-testid="canonical-replay"` button、`data-testid="canonical-replay-result"` 结果展示、"重放一致"/"重放不一致" + 原始/重放 SHA-256
 - **`useResearchResult.ts:598-639`** — `replayRun()` 函数，含 stale-response 丢弃保护、concurrent-guard
 - **路由**：`/research/:projectId/result/:runId`
 - **API**：`POST /api/v4/research/runs/{runId}/replay`，直接通过 `api.post()` 调用
 
 **验证**：
+
 - M1-V4-003 (matched=true) / M1-V4-004 (matched=false) — 组件回归测试通过（mock API，验证 UI 渲染）
 - `test_gap_replay_verification_matched` — 真实浏览器 E2E 通过（完整 UI 导航闭环: /login → /research → 点击项目 → 项目详情 → 点击报告链接 → result page → 点击 replay 按钮 → 断言 matched=true + 2x SHA-256）
 - `test_gap_replay_verification_mismatched` — 真实浏览器 E2E 通过（完整 UI 导航闭环: 隔离测试夹具通过文件级 SQLite 直接注入 fabricated canonical_output_sha256 创建持久化 tampered run → 浏览器仅读取已存在状态 → 断言 matched=false + 2x 不同 SHA-256）
@@ -282,12 +292,12 @@ async function replayRun() {
 
 ## 3. 推迟声明（不在本次迁移范围）
 
-| 功能 | Legacy 位置 | 推迟去向 | 理由 |
-|------|-----------|---------|------|
-| AI 助手（SSE 流式 chat + evidence sidebar + graph preview） | `ResearchWorkspaceView.vue` assistant tab | 未来 AI 助手页面 | 需要独立的 SSE 流式架构设计，不可仓促迁入 workspace |
-| 教育模式（概念学习） | `V4ResearchView.vue` education tab | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需产品设计后在后续 Sprint 实现 |
-| 可视化工作流（graph_type 选择 + 图谱渲染） | `V4ResearchView.vue` visualization tab | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需后续 Sprint 实现 |
-| 材料/版本浏览（独立于项目的数据浏览） | `ResearchWorkspaceView.vue` materials/versions tab | `LibrarySearchPage` | 已就绪 — Library 是 canonical 替代，URL 兼容规则见 §2.1 |
+| 功能                                                        | Legacy 位置                                        | 推迟去向                                 | 理由                                                           |
+| ----------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------- |
+| AI 助手（SSE 流式 chat + evidence sidebar + graph preview） | `ResearchWorkspaceView.vue` assistant tab          | 未来 AI 助手页面                         | 需要独立的 SSE 流式架构设计，不可仓促迁入 workspace            |
+| 教育模式（概念学习）                                        | `V4ResearchView.vue` education tab                 | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需产品设计后在后续 Sprint 实现 |
+| 可视化工作流（graph_type 选择 + 图谱渲染）                  | `V4ResearchView.vue` visualization tab             | `KnowledgeExplorerPage` 后续 Sprint 实现 | KnowledgeExplorer 当前为占位页，需后续 Sprint 实现             |
+| 材料/版本浏览（独立于项目的数据浏览）                       | `ResearchWorkspaceView.vue` materials/versions tab | `LibrarySearchPage`                      | 已就绪 — Library 是 canonical 替代，URL 兼容规则见 §2.1        |
 
 ---
 
@@ -390,7 +400,6 @@ M0（本契约 FROZEN ✅）
 
 **当前状态：BLOCK_RELEASE** — 2026-07-28 验收。Task 2B 修复了 7/8 阻断条件。**重放验证已解决 (2026-07-29)**：canonical 等价实现在 ResearchResultPage + useResearchResult (d08fbbd, 101e9ef, e6a5153)；真实浏览器 E2E 覆盖 matched=true + matched=false（完整 UI 导航闭环）。**下载已验证 (2026-07-29)**：`test_export_markdown_real_browser_download` 通过完整 UI 导航（login → 项目列表 → 项目详情 → 报告 → 导出）触发真实浏览器 download，HTTP 200 + 正确文件名 + Markdown 内容验证。**Citation/SourceRef 已验证 (2026-07-29)**：`test_real_workflow_sourceref_link_routes` 同 document / 不同 passage 双链点击 canonical /library/{doc_id}?passage={psg_id} 通过，新增 append-passage API 提供真实数据路径。所有 8 项阻断条件均已解决。
 
-
 ## M5 发布验收命令（需在当前 HEAD 执行后方可判定）
 
 以下命令需在目标 HEAD 逐一执行，结果不得臆造：
@@ -432,38 +441,38 @@ git status --short && git rev-parse --short HEAD && git log --oneline -1
 
 ## 附录 A：路由名称映射表（当前状态）
 
-| 路由名称 | URL | 组件 | 状态 |
-|---------|-----|------|------|
-| `research-project-list` | `/research` | `ProjectListPage.vue` | ACTIVE canonical |
-| `research-project-detail` | `/research/:projectId` | `ProjectDetailPage.vue` | ACTIVE canonical |
-| `research-project-workspace` | `/research/:projectId/workspace` | `ResearchWorkspacePage.vue` | ACTIVE canonical |
-| `research-project-workflow` | `/research/:projectId/workflow` | `ResearchWorkflowPage.vue` | ACTIVE canonical |
-| `research-project-version-comparison` | `/research/:projectId/version-comparison` | `VersionComparisonPage.vue` | **ACTIVE canonical — M2 完成** |
-| `research-project-result` | `/research/:projectId/result/:runId` | `ResearchResultPage.vue` | ACTIVE canonical |
-| `library-search` | `/library` | `LibrarySearchPage.vue` | ACTIVE canonical |
-| `report-list` | `/reports` | `ReportListPage.vue` | ACTIVE canonical |
-| `knowledge-explorer` | `/knowledge` | `KnowledgeExplorerPage.vue` | **占位页** — 功能迁移中，后续 Sprint 实现 |
-| `research-workspace` | `/research/workspace` | `ResearchWorkspaceView.vue` | RETIRED — M4 已重定向至 `/research`（⚠️ 无条件重定向，丢失 tab 与项目上下文 — 不等价） |
-| `v4-research` | `/v4/research-internal` | `V4ResearchView.vue` | **LEGACY 仍在服役** — 路由仍直接加载 V4ResearchView，未经清退 |
-| `research-home` | `/research/home` | `ResearchHomeView.vue` | COMPATIBILITY — 渲染 ProjectListPage |
-| `research-new` | `/research/new` | `ResearchNewView.vue` | COMPATIBILITY — 渲染 ProjectListPage |
-| — | `/v4/research` | （redirect） | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文） |
-| — | `/v4` | （redirect） | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文） |
-| — | `/workspace` | （redirect） | COMPATIBILITY → `/research/workspace`（M4 更新） |
+| 路由名称                              | URL                                       | 组件                        | 状态                                                                                   |
+| ------------------------------------- | ----------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------- |
+| `research-project-list`               | `/research`                               | `ProjectListPage.vue`       | ACTIVE canonical                                                                       |
+| `research-project-detail`             | `/research/:projectId`                    | `ProjectDetailPage.vue`     | ACTIVE canonical                                                                       |
+| `research-project-workspace`          | `/research/:projectId/workspace`          | `ResearchWorkspacePage.vue` | ACTIVE canonical                                                                       |
+| `research-project-workflow`           | `/research/:projectId/workflow`           | `ResearchWorkflowPage.vue`  | ACTIVE canonical                                                                       |
+| `research-project-version-comparison` | `/research/:projectId/version-comparison` | `VersionComparisonPage.vue` | **ACTIVE canonical — M2 完成**                                                         |
+| `research-project-result`             | `/research/:projectId/result/:runId`      | `ResearchResultPage.vue`    | ACTIVE canonical                                                                       |
+| `library-search`                      | `/library`                                | `LibrarySearchPage.vue`     | ACTIVE canonical                                                                       |
+| `report-list`                         | `/reports`                                | `ReportListPage.vue`        | ACTIVE canonical                                                                       |
+| `knowledge-explorer`                  | `/knowledge`                              | `KnowledgeExplorerPage.vue` | **占位页** — 功能迁移中，后续 Sprint 实现                                              |
+| `research-workspace`                  | `/research/workspace`                     | `ResearchWorkspaceView.vue` | RETIRED — M4 已重定向至 `/research`（⚠️ 无条件重定向，丢失 tab 与项目上下文 — 不等价） |
+| `v4-research`                         | `/v4/research-internal`                   | `V4ResearchView.vue`        | **LEGACY 仍在服役** — 路由仍直接加载 V4ResearchView，未经清退                          |
+| `research-home`                       | `/research/home`                          | `ResearchHomeView.vue`      | COMPATIBILITY — 渲染 ProjectListPage                                                   |
+| `research-new`                        | `/research/new`                           | `ResearchNewView.vue`       | COMPATIBILITY — 渲染 ProjectListPage                                                   |
+| —                                     | `/v4/research`                            | （redirect）                | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文）                         |
+| —                                     | `/v4`                                     | （redirect）                | COMPATIBILITY — M3 更新：→ `/research`（无条件，无项目上下文）                         |
+| —                                     | `/workspace`                              | （redirect）                | COMPATIBILITY → `/research/workspace`（M4 更新）                                       |
 
 ## 附录 B：测试资产清单
 
-| 文件 | 测试数 | 覆盖范围 | 状态 |
-|------|--------|---------|------|
-| `apps/frontend/src/__tests__/research-workflow.test.ts` | 3 | Legacy 版本比较 Workflow | REGRESSION — 保持，M2 回归对照 |
-| `apps/frontend/src/__tests__/v4-research.test.ts` | 10 | Legacy V4 Research（3 tab） | REGRESSION — 保持，M3 回归对照 |
-| `apps/frontend/src/__tests__/evidence-to-graph-e2e.test.ts` | 8 | Legacy AI→证据→图谱链 | REGRESSION — 助手 tab 推迟 |
-| `tests/e2e/test_critical_journeys.py` | ~57 | 全链路 E2E | REGRESSION — M5 发布前扩展 |
-| `apps/frontend/src/__tests__/research-workflow-page.test.ts` | 39 | Canonical Workflow Page | ACTIVE — 已是 canonical 等价 |
-| `apps/frontend/src/__tests__/research-result-page.test.ts` | 77 | Canonical Result Page | ACTIVE — 已是 canonical 等价 |
-| `apps/frontend/src/__tests__/research-workspace.test.ts` | ~28 | Canonical Workspace Page | ACTIVE — 已是 canonical 等价 |
-| `apps/frontend/src/__tests__/version-comparison-page.test.ts` | **10 (M1 新增)** | 能力 #2 版本比较：3 legacy 等价 + 7 扩展覆盖（成功/空/错误/隔离） | **M1 — 占位通过，M2 激活** |
-| `apps/frontend/src/__tests__/v4-to-canonical-equivalence.test.ts` | **15 (M1 新增)** | 能力 #3 V4 Research：12 legacy→canonical 映射 + 3 结果页等价 | **M1 — 11/11 通过，4 deferred** |
+| 文件                                                              | 测试数           | 覆盖范围                                                          | 状态                            |
+| ----------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------- | ------------------------------- |
+| `apps/frontend/src/__tests__/research-workflow.test.ts`           | 3                | Legacy 版本比较 Workflow                                          | REGRESSION — 保持，M2 回归对照  |
+| `apps/frontend/src/__tests__/v4-research.test.ts`                 | 10               | Legacy V4 Research（3 tab）                                       | REGRESSION — 保持，M3 回归对照  |
+| `apps/frontend/src/__tests__/evidence-to-graph-e2e.test.ts`       | 8                | Legacy AI→证据→图谱链                                             | REGRESSION — 助手 tab 推迟      |
+| `tests/e2e/test_critical_journeys.py`                             | ~57              | 全链路 E2E                                                        | REGRESSION — M5 发布前扩展      |
+| `apps/frontend/src/__tests__/research-workflow-page.test.ts`      | 39               | Canonical Workflow Page                                           | ACTIVE — 已是 canonical 等价    |
+| `apps/frontend/src/__tests__/research-result-page.test.ts`        | 77               | Canonical Result Page                                             | ACTIVE — 已是 canonical 等价    |
+| `apps/frontend/src/__tests__/research-workspace.test.ts`          | ~28              | Canonical Workspace Page                                          | ACTIVE — 已是 canonical 等价    |
+| `apps/frontend/src/__tests__/version-comparison-page.test.ts`     | **10 (M1 新增)** | 能力 #2 版本比较：3 legacy 等价 + 7 扩展覆盖（成功/空/错误/隔离） | **M1 — 占位通过，M2 激活**      |
+| `apps/frontend/src/__tests__/v4-to-canonical-equivalence.test.ts` | **15 (M1 新增)** | 能力 #3 V4 Research：12 legacy→canonical 映射 + 3 结果页等价      | **M1 — 11/11 通过，4 deferred** |
 
 ## 附录 C：已知技术债务（与迁移相关）
 

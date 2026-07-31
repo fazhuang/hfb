@@ -42,7 +42,10 @@ async def search(
 
 
 async def _search_europe_pmc(
-    client: httpx.AsyncClient, query: str, page: int, per_page: int,
+    client: httpx.AsyncClient,
+    query: str,
+    page: int,
+    per_page: int,
 ) -> tuple[list[LiteratureItem], int]:
     params = {
         "query": query,
@@ -66,13 +69,18 @@ async def _search_europe_pmc(
         item = LiteratureItem.try_create(
             title=r.get("title", ""),
             source="pubmed",
-            source_url=f"https://europepmc.org/article/MED/{r.get('id', '')}" if r.get("id") else "",
+            source_url=f"https://europepmc.org/article/MED/{r.get('id', '')}"
+            if r.get("id")
+            else "",
             authors=r.get("authorString", ""),
             year=int(r.get("pubYear", 0)) if r.get("pubYear") else None,
             abstract=r.get("abstractText", "") or "",
-            keywords=r.get("keywordList", {}).get("keyword", []) if isinstance(r.get("keywordList"), dict) else "",
+            keywords=r.get("keywordList", {}).get("keyword", [])
+            if isinstance(r.get("keywordList"), dict)
+            else "",
             doi=doi,
-            journal=r.get("journalTitle", "") or r.get("journalInfo", {}).get("journal", {}).get("title", ""),
+            journal=r.get("journalTitle", "")
+            or r.get("journalInfo", {}).get("journal", {}).get("title", ""),
             is_open_access=_check_epmc_oa(r),
             language=r.get("language", "en") or "en",
         )
@@ -86,7 +94,10 @@ async def _search_europe_pmc(
 
 
 async def _search_pubmed(
-    client: httpx.AsyncClient, query: str, page: int, per_page: int,
+    client: httpx.AsyncClient,
+    query: str,
+    page: int,
+    per_page: int,
 ) -> tuple[list[LiteratureItem], int]:
     # 1. ESearch — get IDs
     esearch_params = {

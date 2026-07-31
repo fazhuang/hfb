@@ -3,6 +3,7 @@ Base repository with common CRUD operations.
 
 All entity repositories inherit from this base.
 """
+
 from __future__ import annotations
 
 from datetime import UTC

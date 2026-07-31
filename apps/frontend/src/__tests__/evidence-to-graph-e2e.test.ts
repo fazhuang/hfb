@@ -55,10 +55,16 @@ const { mockUseAuthStore } = vi.hoisted(() => {
     accessToken: 'mock-jwt-token',
     refreshToken: null as string | null,
     user: {
-      id: 'u1', username: 'tester', email: 't@example.com',
-      display_name: 'Tester', affiliation: null, is_active: true,
-      is_superuser: false, roles: [],
-      created_at: null, updated_at: null,
+      id: 'u1',
+      username: 'tester',
+      email: 't@example.com',
+      display_name: 'Tester',
+      affiliation: null,
+      is_active: true,
+      is_superuser: false,
+      roles: [],
+      created_at: null,
+      updated_at: null,
     } as unknown as null,
     loading: false,
     error: null,
@@ -85,7 +91,11 @@ function makeRouter() {
       { path: '/research/home', component: { template: '<div/>' }, name: 'research-home' },
       { path: '/research/new', component: { template: '<div/>' }, name: 'research-new' },
       { path: '/literature', component: { template: '<div/>' }, name: 'literature' },
-      { path: '/classical-versions', component: { template: '<div/>' }, name: 'classical-versions' },
+      {
+        path: '/classical-versions',
+        component: { template: '<div/>' },
+        name: 'classical-versions',
+      },
       { path: '/research', redirect: '/research/workspace?tab=research' },
       { path: '/research/workspace', name: 'research-workspace', component: ResearchWorkspaceView },
       { path: '/graph', name: 'graph', component: GraphExplorerView },
@@ -120,7 +130,7 @@ function sessionResponse() {
  */
 function fakeSSEStream(chunks: Array<string>) {
   const encoder = new TextEncoder();
-  const lines = chunks.flatMap(c => [`data: ${JSON.stringify({ content: c })}\n\n`]);
+  const lines = chunks.flatMap((c) => [`data: ${JSON.stringify({ content: c })}\n\n`]);
   lines.push(`data: ${JSON.stringify({ done: true })}\n\n`);
   let i = 0;
   return new ReadableStream({
@@ -265,17 +275,14 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
     );
 
     // ---- Assert: search API was called ----
-    expect(mockGet).toHaveBeenCalledWith(
-      '/api/v1/search',
-      { params: { q: '针灸甲乙经有哪些腧穴理论贡献？', limit: 5 } },
-    );
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/search', {
+      params: { q: '针灸甲乙经有哪些腧穴理论贡献？', limit: 5 },
+    });
 
     // ---- Assert: graph neighbors API was called for first entity ----
     // The search response id is "passage:test-abc-1" which is what the
     // evidence item carries, so the graph call uses that full id.
-    expect(mockGet).toHaveBeenCalledWith(
-      '/api/v1/graph/neighbors/passage/passage:test-abc-1',
-    );
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/graph/neighbors/passage/passage:test-abc-1');
 
     // ---- Assert: evidence items are populated (real component state) ----
     expect(vm.evidence.length).toBe(2);
@@ -322,7 +329,12 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
         return {
           data: {
             data: {
-              center: { id: 'person:test-person', entity_type: 'person', label: '皇甫谧', properties: {} },
+              center: {
+                id: 'person:test-person',
+                entity_type: 'person',
+                label: '皇甫谧',
+                properties: {},
+              },
               neighbors: [],
               edges: [],
             },
@@ -332,10 +344,13 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
       return emptyList();
     });
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      body: fakeSSEStream(['皇甫谧（215-282），字士安，号玄晏先生。']),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        body: fakeSSEStream(['皇甫谧（215-282），字士安，号玄晏先生。']),
+      }),
+    );
 
     const wrapper = mount(ResearchWorkspaceView, {
       global: {
@@ -401,7 +416,12 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
         return {
           data: {
             data: {
-              center: { id: 'book:test-book-2', entity_type: 'book', label: '针灸甲乙经', properties: {} },
+              center: {
+                id: 'book:test-book-2',
+                entity_type: 'book',
+                label: '针灸甲乙经',
+                properties: {},
+              },
               neighbors: [],
               edges: [],
             },
@@ -411,10 +431,13 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
       return emptyList();
     });
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      body: fakeSSEStream(['《针灸甲乙经》是现存最早的针灸学专著。']),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        body: fakeSSEStream(['《针灸甲乙经》是现存最早的针灸学专著。']),
+      }),
+    );
 
     const wrapper = mount(ResearchWorkspaceView, {
       global: {
@@ -538,7 +561,13 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
       .mockResolvedValueOnce({
         data: {
           data: {
-            center: { id: 'book:test-book-2', entity_type: 'book', entity_id: 'test-book-2', label: '针灸甲乙经', properties: {} },
+            center: {
+              id: 'book:test-book-2',
+              entity_type: 'book',
+              entity_id: 'test-book-2',
+              label: '针灸甲乙经',
+              properties: {},
+            },
             neighbors: [],
             edges: [],
           },
@@ -596,12 +625,29 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
         return {
           data: {
             data: {
-              center: { id: 'person:c6d1f2a3', entity_type: 'person', label: '皇甫谧', properties: {} },
+              center: {
+                id: 'person:c6d1f2a3',
+                entity_type: 'person',
+                label: '皇甫谧',
+                properties: {},
+              },
               neighbors: [
-                { id: 'book:test-book-2', entity_type: 'book', label: '针灸甲乙经', properties: {} },
+                {
+                  id: 'book:test-book-2',
+                  entity_type: 'book',
+                  label: '针灸甲乙经',
+                  properties: {},
+                },
               ],
               edges: [
-                { id: 'e-chain', source_id: 'c6d1f2a3', target_id: 'test-book-2', relation_type: 'compiled', label: '编纂', source: 'person' },
+                {
+                  id: 'e-chain',
+                  source_id: 'c6d1f2a3',
+                  target_id: 'test-book-2',
+                  relation_type: 'compiled',
+                  label: '编纂',
+                  source: 'person',
+                },
               ],
             },
           },
@@ -610,10 +656,13 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
       return emptyList();
     });
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      body: fakeSSEStream(['皇甫谧是晋代著名医学家，他编纂了《针灸甲乙经》。']),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        body: fakeSSEStream(['皇甫谧是晋代著名医学家，他编纂了《针灸甲乙经》。']),
+      }),
+    );
 
     const wsWrapper = mount(ResearchWorkspaceView, {
       global: {
@@ -665,7 +714,13 @@ describe('AI → Evidence → Graph E2E chain (real sendMessage path)', () => {
     mockGet.mockResolvedValueOnce({
       data: {
         data: {
-          center: { id: 'person:c6d1f2a3', entity_type: 'person', entity_id: 'c6d1f2a3', label: '皇甫谧', properties: {} },
+          center: {
+            id: 'person:c6d1f2a3',
+            entity_type: 'person',
+            entity_id: 'c6d1f2a3',
+            label: '皇甫谧',
+            properties: {},
+          },
           neighbors: [],
           edges: [],
         },

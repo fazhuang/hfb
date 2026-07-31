@@ -4,6 +4,7 @@ FulltextIngestionAudit — persistent audit log for full-text ingestion operatio
 Context 21: Every full-text ingest, reject, skip, and withdraw action
 must produce a durable DB record.
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

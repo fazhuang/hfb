@@ -27,9 +27,11 @@ KNOWN_ARCHIVE = [
 ]
 
 RENAME = {
-    ROOT / "03-data" / "0302_Ontology_Specification.md.md":
-    ROOT / "03-data" / "0302_Ontology_Specification.md"
+    ROOT / "03-data" / "0302_Ontology_Specification.md.md": ROOT
+    / "03-data"
+    / "0302_Ontology_Specification.md"
 }
+
 
 def archive_file(path: Path, actions):
     if not path.exists():
@@ -39,6 +41,7 @@ def archive_file(path: Path, actions):
     target = ARCHIVE / f"{path.parent.name}__{path.stem}__{ts}{path.suffix}"
     shutil.move(str(path), str(target))
     actions.append(f"Archived {path} -> {target}")
+
 
 def main():
     if not ROOT.exists():
@@ -60,7 +63,12 @@ def main():
 
     report = ROOT / "UPGRADE_REPORT.md"
     if not report.exists():
-        report.write_text("# Docs Upgrade Report\n\n## Actions\n\n" + "\n".join(f"- {a}" for a in actions) + "\n", encoding="utf-8")
+        report.write_text(
+            "# Docs Upgrade Report\n\n## Actions\n\n"
+            + "\n".join(f"- {a}" for a in actions)
+            + "\n",
+            encoding="utf-8",
+        )
     else:
         with report.open("a", encoding="utf-8") as f:
             f.write("\n## Scaffold Actions\n\n")
@@ -69,7 +77,12 @@ def main():
 
     changelog = ROOT / "DOCS_CHANGELOG.md"
     if not changelog.exists():
-        changelog.write_text("# Docs Changelog\n\n## Initial Upgrade Scaffold\n\n" + "\n".join(f"- {a}" for a in actions) + "\n", encoding="utf-8")
+        changelog.write_text(
+            "# Docs Changelog\n\n## Initial Upgrade Scaffold\n\n"
+            + "\n".join(f"- {a}" for a in actions)
+            + "\n",
+            encoding="utf-8",
+        )
 
     inv = Path("scripts/docs_inventory.py")
     if inv.exists():
@@ -78,6 +91,7 @@ def main():
     print("Completed scaffold actions:")
     for a in actions:
         print("-", a)
+
 
 if __name__ == "__main__":
     main()

@@ -301,7 +301,9 @@ async def main():
     if os.path.exists(OCR_ARTIFACTS_PATH):
         print(f"[1/6] Loading cached OCR artifacts from {OCR_ARTIFACTS_PATH}")
         ocr_pages = load_ocr_artifacts(OCR_ARTIFACTS_PATH)
-        print(f"  Loaded {len(ocr_pages)} pages, {sum(1 for v in ocr_pages.values() if v)} with text")
+        print(
+            f"  Loaded {len(ocr_pages)} pages, {sum(1 for v in ocr_pages.values() if v)} with text"
+        )
     else:
         print("[1/6] Generating PaddleOCR artifacts (first run only)")
         ocr_pages = generate_ocr_artifacts(PDF_CACHE, OCR_ARTIFACTS_PATH)
@@ -339,7 +341,9 @@ async def main():
 
         existing_blob_len = doc_row[3]
         if existing_blob_len and existing_blob_len > 0:
-            print(f"  raw_pdf_blob already stored ({existing_blob_len} octets), skipping")
+            print(
+                f"  raw_pdf_blob already stored ({existing_blob_len} octets), skipping"
+            )
         else:
             await session.execute(
                 text("UPDATE documents SET raw_pdf_blob=:blob WHERE id=:did"),
@@ -376,7 +380,9 @@ async def main():
         existing_url = r.scalar()
         if not existing_url:
             await session.execute(
-                text("UPDATE documents SET source_url=:url, copyright_status=:cs WHERE id=:did"),
+                text(
+                    "UPDATE documents SET source_url=:url, copyright_status=:cs WHERE id=:did"
+                ),
                 {
                     "url": PDF_SOURCE_URL,
                     "cs": "public_domain",
@@ -395,7 +401,7 @@ async def main():
             text(
                 "SELECT dc.id AS chunk_id, dc.passage_id, dc.chunk_index, "
                 "dc.content AS chunk_content, dc.page_number AS current_pg, "
-                "p.content_text AS passage_text, p.\"order\" AS passage_order, "
+                'p.content_text AS passage_text, p."order" AS passage_order, '
                 "p.chapter_id "
                 "FROM document_chunks dc "
                 "JOIN passages p ON dc.passage_id = p.id AND p.is_deleted = false "
@@ -415,7 +421,9 @@ async def main():
     # 4. Match each passage against OCR'd pages
     # ------------------------------------------------------------------
     print("\n[4/6] Matching passage texts against OCR'd pages...")
-    print(f"  Match strategy: exact normalized-substring -> LCS (ratio>={LCS_MIN_RATIO}, len>={LCS_MIN_MATCH_CHARS}) -> NULL")
+    print(
+        f"  Match strategy: exact normalized-substring -> LCS (ratio>={LCS_MIN_RATIO}, len>={LCS_MIN_MATCH_CHARS}) -> NULL"
+    )
     print()
 
     # Collect unique passages (some may have multiple chunks, but here it's 1:1)
@@ -423,17 +431,30 @@ async def main():
 
     seen_passages: set[str] = set()
     for row in chunk_rows:
-        chunk_id, passage_id, chunk_idx, chunk_content, current_pg, passage_text, passage_order, chapter_id = row
+        (
+            chunk_id,
+            passage_id,
+            chunk_idx,
+            chunk_content,
+            current_pg,
+            passage_text,
+            passage_order,
+            chapter_id,
+        ) = row
 
         if passage_id in seen_passages:
             continue
         seen_passages.add(passage_id)
 
-        page_num, method, result_json = match_passage_to_page(passage_text or chunk_content or "", ocr_pages)
+        page_num, method, result_json = match_passage_to_page(
+            passage_text or chunk_content or "", ocr_pages
+        )
 
         # Re-match using chunk_content if passage_text differs (unlikely but safe)
         if page_num is None and chunk_content and chunk_content != (passage_text or ""):
-            page_num, method, result_json = match_passage_to_page(chunk_content, ocr_pages)
+            page_num, method, result_json = match_passage_to_page(
+                chunk_content, ocr_pages
+            )
 
         match_results[str(passage_id)] = {
             "page_number": page_num,
@@ -446,7 +467,9 @@ async def main():
 
         status = "MATCH" if page_num else "NULL "
         page_display = str(page_num) if page_num else "-"
-        print(f"  [{status}] passage order={passage_order:>3} pg={page_display:>3} | {(passage_text or chunk_content or '')[:60]}")
+        print(
+            f"  [{status}] passage order={passage_order:>3} pg={page_display:>3} | {(passage_text or chunk_content or '')[:60]}"
+        )
 
     # ------------------------------------------------------------------
     # 5. Update document_chunks with verified page numbers
@@ -455,7 +478,16 @@ async def main():
         print("\n[5/6] Updating document_chunks...")
         updated_chunks = 0
         for row in chunk_rows:
-            chunk_id, passage_id, chunk_idx, chunk_content, current_pg, passage_text, passage_order, chapter_id = row
+            (
+                chunk_id,
+                passage_id,
+                chunk_idx,
+                chunk_content,
+                current_pg,
+                passage_text,
+                passage_order,
+                chapter_id,
+            ) = row
             mr = match_results.get(str(passage_id))
             if mr is None:
                 continue
@@ -516,7 +548,16 @@ async def main():
         # Build map: passage_id -> chunk_id on target document
         chunk_by_passage: dict[str, tuple[str, int | None]] = {}
         for row in chunk_rows:
-            chunk_id, passage_id, chunk_idx, chunk_content, current_pg, passage_text, passage_order, chapter_id = row
+            (
+                chunk_id,
+                passage_id,
+                chunk_idx,
+                chunk_content,
+                current_pg,
+                passage_text,
+                passage_order,
+                chapter_id,
+            ) = row
             mr = match_results.get(str(passage_id))
             pg = mr["page_number"] if mr else None
             chunk_by_passage[str(passage_id)] = (str(chunk_id), pg)
@@ -553,7 +594,9 @@ async def main():
             passage_key = str(er_passage_id)
 
             if passage_key not in chunk_by_passage:
-                print(f"  SKIP {rel_type}: passage {passage_key[:12]} has no chunk on target doc")
+                print(
+                    f"  SKIP {rel_type}: passage {passage_key[:12]} has no chunk on target doc"
+                )
                 continue
 
             new_chunk_id, new_pg = chunk_by_passage[passage_key]
@@ -577,7 +620,9 @@ async def main():
             )
             er_updated += 1
             pg_str = str(new_pg) if new_pg else "NULL"
-            print(f"  [OK] {rel_type}: {claim[:60] if claim else 'N/A'} -> chunk pg={pg_str}")
+            print(
+                f"  [OK] {rel_type}: {claim[:60] if claim else 'N/A'} -> chunk pg={pg_str}"
+            )
 
         print(f"  Updated {er_updated}/{len(relations)} entity_relations")
 
@@ -592,11 +637,22 @@ async def main():
         print("AUDIT TABLE — OCR Page Matching Results")
         print("=" * 60)
 
-        print(f"\n{'Order':>5} {'Page':>5} {'Method':<28} {'LCS/Ratio':>10} {'Passage Preview'}")
+        print(
+            f"\n{'Order':>5} {'Page':>5} {'Method':<28} {'LCS/Ratio':>10} {'Passage Preview'}"
+        )
         print("-" * 95)
 
         for row in chunk_rows:
-            chunk_id, passage_id, _chunk_idx, chunk_content, _current_pg, passage_text, passage_order, _chapter_id = row
+            (
+                chunk_id,
+                passage_id,
+                _chunk_idx,
+                chunk_content,
+                _current_pg,
+                passage_text,
+                passage_order,
+                _chapter_id,
+            ) = row
             mr = match_results.get(str(passage_id))
             if mr is None:
                 continue
@@ -613,15 +669,17 @@ async def main():
             try:
                 rd = json.loads(result_json)
                 if rd.get("method") == "lcs":
-                    lcs_info = f"{rd.get('lcs_len',0)}/{rd.get('ratio',0):.2f}"
+                    lcs_info = f"{rd.get('lcs_len', 0)}/{rd.get('ratio', 0):.2f}"
                 elif rd.get("method") == "no_match":
-                    lcs_info = f"best={rd.get('best_ratio',0):.2f}"
+                    lcs_info = f"best={rd.get('best_ratio', 0):.2f}"
                 else:
                     lcs_info = "exact"
             except Exception:
                 pass
 
-            print(f"{passage_order:>5} {pg_str:>5} {method:<28} {lcs_info:>10} {preview}")
+            print(
+                f"{passage_order:>5} {pg_str:>5} {method:<28} {lcs_info:>10} {preview}"
+            )
 
         print("-" * 95)
 

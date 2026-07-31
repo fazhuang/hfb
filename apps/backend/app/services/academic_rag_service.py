@@ -364,9 +364,9 @@ class AcademicRAGService:
 
         # P0: Persist citations to the citations database table (Codex requirement)
         try:
-            await CitationPersistenceService(self.session).persist_academic_rag_citations(
-                citations, query=query
-            )
+            await CitationPersistenceService(
+                self.session
+            ).persist_academic_rag_citations(citations, query=query)
         except Exception:
             logger.exception("Failed to persist academic RAG citations")
 
@@ -429,12 +429,14 @@ class AcademicRAGService:
 
         # Prioritize variant forms that are more likely to match classical OCR:
         # traditional character variants (鐵/鍼) before simplified (针/针灸).
-        search_terms.sort(key=lambda t: (
-            # Boost: terms with traditional chars first
-            not any(c in t for c in '鐵鍼針經脈氣臟陰陽'),
-            # Then sort by length (longer = more specific)
-            -len(t),
-        ))
+        search_terms.sort(
+            key=lambda t: (
+                # Boost: terms with traditional chars first
+                not any(c in t for c in "鐵鍼針經脈氣臟陰陽"),
+                # Then sort by length (longer = more specific)
+                -len(t),
+            )
+        )
 
         seen: set[tuple[str, str]] = set()
 
@@ -542,7 +544,9 @@ class AcademicRAGService:
             for edge in neighbors.edges:
                 target_node = None
                 for n in neighbors.neighbors:
-                    if (n.id == edge.target_id or n.id == edge.source_id) and n.id != start_node.id:
+                    if (
+                        n.id == edge.target_id or n.id == edge.source_id
+                    ) and n.id != start_node.id:
                         target_node = n
                         break
                 if target_node is None:
@@ -672,11 +676,13 @@ class AcademicRAGService:
                     break
 
                 from sqlalchemy import text
+
                 # P2T1: edge.relation_id is "er:{uuid}" — strip "er:" prefix for DB lookup
                 raw_rid = edge.relation_id
                 raw_rid = raw_rid.removeprefix("er:")
                 # Query-time deep physical verification of the evidence path
-                r_check = await self.session.execute(text("""
+                r_check = await self.session.execute(
+                    text("""
                     SELECT er.id
                     FROM entity_relations er
                     JOIN document_chunks dc ON dc.id = er.evidence_chunk_id
@@ -689,7 +695,9 @@ class AcademicRAGService:
                       AND dc.is_deleted = false
                       AND d.is_deleted = false
                       AND (v.id IS NULL OR (v.is_deleted = false AND v.withdrawn_at IS NULL))
-                """), {"rid": raw_rid})
+                """),
+                    {"rid": raw_rid},
+                )
                 if not r_check.fetchone():
                     all_valid = False
                     break

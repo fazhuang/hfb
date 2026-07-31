@@ -1,10 +1,10 @@
 ---
-title: "Sprint 00 Architecture Status"
-version: "1.0"
-status: "Draft"
-sprint: "Sprint 00"
-last_updated: "2026-06-24"
-related: ["../../02-architecture/00_Technical_Blueprint.md", "../../11-adr/README.md"]
+title: 'Sprint 00 Architecture Status'
+version: '1.0'
+status: 'Draft'
+sprint: 'Sprint 00'
+last_updated: '2026-06-24'
+related: ['../../02-architecture/00_Technical_Blueprint.md', '../../11-adr/README.md']
 ---
 
 # Sprint 00 — Architecture Status
@@ -21,18 +21,18 @@ L1 Nginx → L2 FastAPI → L3 Domain Services → L4 AI Pipeline → L5 Postgre
 
 ## 技术决策一览
 
-| ADR | 决策 | 状态 |
-|---|---|---|
-| ADR-0001 | FastAPI | Accepted |
-| ADR-0002 | Vue 3 | Accepted |
+| ADR      | 决策                  | 状态     |
+| -------- | --------------------- | -------- |
+| ADR-0001 | FastAPI               | Accepted |
+| ADR-0002 | Vue 3                 | Accepted |
 | ADR-0003 | PostgreSQL + pgvector | Accepted |
-| ADR-0004 | Neo4j 5 | Accepted |
-| ADR-0005 | Elasticsearch 8 | Accepted |
-| ADR-0006 | GraphRAG 自研 | Accepted |
-| ADR-0007 | Milvus (V2) | Accepted |
-| ADR-0008 | Docker Compose | Accepted |
-| ADR-0009 | Monorepo | Accepted |
-| ADR-0010 | AI Native Docs | Accepted |
+| ADR-0004 | Neo4j 5               | Accepted |
+| ADR-0005 | Elasticsearch 8       | Accepted |
+| ADR-0006 | GraphRAG 自研         | Accepted |
+| ADR-0007 | Milvus (V2)           | Accepted |
+| ADR-0008 | Docker Compose        | Accepted |
+| ADR-0009 | Monorepo              | Accepted |
+| ADR-0010 | AI Native Docs        | Accepted |
 
 ## 待定事项
 

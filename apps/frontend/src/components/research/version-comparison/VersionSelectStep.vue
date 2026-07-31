@@ -27,9 +27,7 @@
       </div>
     </div>
 
-    <p v-if="sameVersion" class="vc-inline-warning" role="alert">
-      请选择不同的版本进行比较。
-    </p>
+    <p v-if="sameVersion" class="vc-inline-warning" role="alert">请选择不同的版本进行比较。</p>
 
     <button
       class="button button--primary button--wide"

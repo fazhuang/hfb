@@ -121,7 +121,9 @@ class VersionComparator:
 
             assert para_a is not None and para_b is not None
             # LCS-align sentences, then compare aligned pairs
-            aligned = _lcs_align_sentences(para_a.sentences, para_b.sentences, ignore_whitespace)
+            aligned = _lcs_align_sentences(
+                para_a.sentences, para_b.sentences, ignore_whitespace
+            )
             for idx, (s_a, s_b) in enumerate(aligned):
                 text_a = _clean(s_a.text, ignore_whitespace) if s_a else ""
                 text_b = _clean(s_b.text, ignore_whitespace) if s_b else ""

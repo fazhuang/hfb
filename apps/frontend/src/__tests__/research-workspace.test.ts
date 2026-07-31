@@ -171,16 +171,31 @@ const SESSION_B = `/api/v1/workspace/sessions/${PROJ_B}`;
 const RUNS_A = `/api/v4/research/session/${PROJ_A}/runs`;
 const RUNS_B = `/api/v4/research/session/${PROJ_B}/runs`;
 
-function setupDefaultMocks(session?: Record<string, unknown>, runs?: Array<Record<string, unknown>>) {
+function setupDefaultMocks(
+  session?: Record<string, unknown>,
+  runs?: Array<Record<string, unknown>>,
+) {
   mockApiGet.mockImplementation((url: string) => {
     if (url.includes('/history')) {
       return Promise.resolve({
-        data: { data: { session_id: (new URLSearchParams(url.split('?')[1] || '')).get('session_id') || PROJ_A, history: [makeHistoryEntry()], total: 1 } },
+        data: {
+          data: {
+            session_id: new URLSearchParams(url.split('?')[1] || '').get('session_id') || PROJ_A,
+            history: [makeHistoryEntry()],
+            total: 1,
+          },
+        },
       });
     }
     if (url.includes('/runs')) {
       return Promise.resolve({
-        data: { data: { session_id: url.includes(PROJ_B) ? PROJ_B : PROJ_A, runs: runs ?? [makeRun()], total: (runs ?? [makeRun()]).length } },
+        data: {
+          data: {
+            session_id: url.includes(PROJ_B) ? PROJ_B : PROJ_A,
+            runs: runs ?? [makeRun()],
+            total: (runs ?? [makeRun()]).length,
+          },
+        },
       });
     }
     if (url.includes('/notes')) {
@@ -221,22 +236,36 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -246,7 +275,9 @@ describe('ResearchWorkspacePage', () => {
 
     await flushPromises();
 
-    const runsCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => (c[0] as string).includes('/runs'));
+    const runsCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) =>
+      (c[0] as string).includes('/runs'),
+    );
     expect(runsCalls.length).toBe(1);
   });
 
@@ -255,22 +286,36 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -281,7 +326,10 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
 
     const sessionCalls = mockApiGet.mock.calls.filter(
-      (c: Array<unknown>) => (c[0] as string).includes('/workspace/sessions/') && !(c[0] as string).includes('/notes') && !(c[0] as string).includes('/citations'),
+      (c: Array<unknown>) =>
+        (c[0] as string).includes('/workspace/sessions/') &&
+        !(c[0] as string).includes('/notes') &&
+        !(c[0] as string).includes('/citations'),
     );
     expect(sessionCalls.length).toBe(1);
   });
@@ -295,22 +343,36 @@ describe('ResearchWorkspacePage', () => {
 
     expect(router.currentRoute.value.params.projectId).toBe(PROJ_A);
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -335,16 +397,24 @@ describe('ResearchWorkspacePage', () => {
     mockApiGet.mockImplementation((url: string) => {
       const urlStr = String(url);
       if (urlStr === SESSION_A) {
-        return new Promise((r) => { resolveOldSession = r; });
+        return new Promise((r) => {
+          resolveOldSession = r;
+        });
       }
       if (urlStr === RUNS_A) {
-        return new Promise((r) => { resolveOldRuns = r; });
+        return new Promise((r) => {
+          resolveOldRuns = r;
+        });
       }
       if (urlStr === SESSION_B) {
-        return new Promise((r) => { resolveNewSession = r; });
+        return new Promise((r) => {
+          resolveNewSession = r;
+        });
       }
       if (urlStr === RUNS_B) {
-        return new Promise((r) => { resolveNewRuns = r; });
+        return new Promise((r) => {
+          resolveNewRuns = r;
+        });
       }
       return Promise.resolve({ data: { data: [] } });
     });
@@ -353,22 +423,36 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -384,12 +468,28 @@ describe('ResearchWorkspacePage', () => {
 
     // Resolve B first
     resolveNewSession!({ data: { data: makeSession({ id: PROJ_B, title: 'Project B' }) } });
-    resolveNewRuns!({ data: { data: { session_id: PROJ_B, runs: [makeRun({ run_id: 'run-b', topic: 'B Run' })], total: 1 } } });
+    resolveNewRuns!({
+      data: {
+        data: {
+          session_id: PROJ_B,
+          runs: [makeRun({ run_id: 'run-b', topic: 'B Run' })],
+          total: 1,
+        },
+      },
+    });
     await flushPromises();
 
     // Now resolve stale A responses
     resolveOldSession!({ data: { data: makeSession({ id: PROJ_A, title: 'Old Project' }) } });
-    resolveOldRuns!({ data: { data: { session_id: PROJ_A, runs: [makeRun({ run_id: 'run-a-old', topic: 'Stale' })], total: 1 } } });
+    resolveOldRuns!({
+      data: {
+        data: {
+          session_id: PROJ_A,
+          runs: [makeRun({ run_id: 'run-a-old', topic: 'Stale' })],
+          total: 1,
+        },
+      },
+    });
     await flushPromises();
 
     // Verify B was loaded correctly — at minimum the API was called
@@ -401,28 +501,46 @@ describe('ResearchWorkspacePage', () => {
 
   it('no state writes after unmount', async () => {
     let resolveAfterUnmount!: (value: unknown) => void;
-    mockApiGet.mockReturnValue(new Promise((r) => { resolveAfterUnmount = r; }));
+    mockApiGet.mockReturnValue(
+      new Promise((r) => {
+        resolveAfterUnmount = r;
+      }),
+    );
 
     const router = buildRouter();
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -444,9 +562,8 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchAssistantEntry } = await import(
-      '@/components/research/ResearchAssistantEntry.vue'
-    );
+    const { default: ResearchAssistantEntry } =
+      await import('@/components/research/ResearchAssistantEntry.vue');
 
     const wrapper = mount(ResearchAssistantEntry, {
       props: { projectId: PROJ_A },
@@ -476,13 +593,13 @@ describe('ResearchWorkspacePage', () => {
 
     // Mount the workflow page (it calls initPendingQuestion)
     mockApiGet.mockImplementation(async (url: string) => {
-      if (url === SESSION_B) return { data: { data: makeSession({ id: PROJ_B, title: 'B Project' }) } };
+      if (url === SESSION_B)
+        return { data: { data: makeSession({ id: PROJ_B, title: 'B Project' }) } };
       return { data: { data: {} } };
     });
 
-    const { default: ResearchWorkflowPage } = await import(
-      '@/pages/research/ResearchWorkflowPage.vue'
-    );
+    const { default: ResearchWorkflowPage } =
+      await import('@/pages/research/ResearchWorkflowPage.vue');
 
     const wrapper = mount(ResearchWorkflowPage, {
       global: {
@@ -492,13 +609,38 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          WorkflowStepNavigation: { template: '<div><div v-for="s in steps" class="wsn-step">{{ s.label }}</div></div>', props: ['steps', 'currentIndex', 'submitting'] },
-          ResearchQuestionStep: { template: '<div><input id="rqs-input" :value="question" :disabled="disabled" /><button class="rqs-submit-btn" :disabled="!question || disabled" @click="$emit(\'next\')">Next</button></div>', props: ['question', 'disabled'], emits: ['update:question', 'next'] },
-          DocumentSelectionStep: { template: '<div><button class="dss-submit-btn" :disabled="disabled" @click="$emit(\'submit\')">Submit</button></div>', props: ['question', 'disabled'], emits: ['back', 'submit'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          WorkflowStepNavigation: {
+            template: '<div><div v-for="s in steps" class="wsn-step">{{ s.label }}</div></div>',
+            props: ['steps', 'currentIndex', 'submitting'],
+          },
+          ResearchQuestionStep: {
+            template:
+              '<div><input id="rqs-input" :value="question" :disabled="disabled" /><button class="rqs-submit-btn" :disabled="!question || disabled" @click="$emit(\'next\')">Next</button></div>',
+            props: ['question', 'disabled'],
+            emits: ['update:question', 'next'],
+          },
+          DocumentSelectionStep: {
+            template:
+              '<div><button class="dss-submit-btn" :disabled="disabled" @click="$emit(\'submit\')">Submit</button></div>',
+            props: ['question', 'disabled'],
+            emits: ['back', 'submit'],
+          },
           AnalysisPendingState: { template: '<div class="aps-step" />', props: ['active'] },
-          EvidenceReviewStep: { template: '<div class="ers-step" />', props: ['evidence', 'citations', 'citationSaveState'], emits: ['save-citation', 'go-to-report'] },
-          ResearchReportStep: { template: '<div class="rrs-step" />', props: ['report', 'projectId'], emits: ['back-to-evidence', 'new-workflow'] },
+          EvidenceReviewStep: {
+            template: '<div class="ers-step" />',
+            props: ['evidence', 'citations', 'citationSaveState'],
+            emits: ['save-citation', 'go-to-report'],
+          },
+          ResearchReportStep: {
+            template: '<div class="rrs-step" />',
+            props: ['report', 'projectId'],
+            emits: ['back-to-evidence', 'new-workflow'],
+          },
         },
       },
     });
@@ -521,13 +663,13 @@ describe('ResearchWorkspacePage', () => {
     await router.isReady();
 
     mockApiGet.mockImplementation(async (url: string) => {
-      if (url === SESSION_A) return { data: { data: makeSession({ id: PROJ_A, title: 'A Project' }) } };
+      if (url === SESSION_A)
+        return { data: { data: makeSession({ id: PROJ_A, title: 'A Project' }) } };
       return { data: { data: {} } };
     });
 
-    const { default: ResearchWorkflowPage } = await import(
-      '@/pages/research/ResearchWorkflowPage.vue'
-    );
+    const { default: ResearchWorkflowPage } =
+      await import('@/pages/research/ResearchWorkflowPage.vue');
 
     const wrapper = mount(ResearchWorkflowPage, {
       global: {
@@ -537,13 +679,38 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          WorkflowStepNavigation: { template: '<div><div v-for="s in steps" class="wsn-step">{{ s.label }}</div></div>', props: ['steps', 'currentIndex', 'submitting'] },
-          ResearchQuestionStep: { template: '<div><input id="rqs-input" :value="question" :disabled="disabled" /><button class="rqs-submit-btn" :disabled="!question || disabled" @click="$emit(\'next\')">Next</button></div>', props: ['question', 'disabled'], emits: ['update:question', 'next'] },
-          DocumentSelectionStep: { template: '<div><button class="dss-submit-btn" :disabled="disabled" @click="$emit(\'submit\')">Submit</button></div>', props: ['question', 'disabled'], emits: ['back', 'submit'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          WorkflowStepNavigation: {
+            template: '<div><div v-for="s in steps" class="wsn-step">{{ s.label }}</div></div>',
+            props: ['steps', 'currentIndex', 'submitting'],
+          },
+          ResearchQuestionStep: {
+            template:
+              '<div><input id="rqs-input" :value="question" :disabled="disabled" /><button class="rqs-submit-btn" :disabled="!question || disabled" @click="$emit(\'next\')">Next</button></div>',
+            props: ['question', 'disabled'],
+            emits: ['update:question', 'next'],
+          },
+          DocumentSelectionStep: {
+            template:
+              '<div><button class="dss-submit-btn" :disabled="disabled" @click="$emit(\'submit\')">Submit</button></div>',
+            props: ['question', 'disabled'],
+            emits: ['back', 'submit'],
+          },
           AnalysisPendingState: { template: '<div class="aps-step" />', props: ['active'] },
-          EvidenceReviewStep: { template: '<div class="ers-step" />', props: ['evidence', 'citations', 'citationSaveState'], emits: ['save-citation', 'go-to-report'] },
-          ResearchReportStep: { template: '<div class="rrs-step" />', props: ['report', 'projectId'], emits: ['back-to-evidence', 'new-workflow'] },
+          EvidenceReviewStep: {
+            template: '<div class="ers-step" />',
+            props: ['evidence', 'citations', 'citationSaveState'],
+            emits: ['save-citation', 'go-to-report'],
+          },
+          ResearchReportStep: {
+            template: '<div class="rrs-step" />',
+            props: ['report', 'projectId'],
+            emits: ['back-to-evidence', 'new-workflow'],
+          },
         },
       },
     });
@@ -565,9 +732,8 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchAssistantEntry } = await import(
-      '@/components/research/ResearchAssistantEntry.vue'
-    );
+    const { default: ResearchAssistantEntry } =
+      await import('@/components/research/ResearchAssistantEntry.vue');
 
     const wrapper = mount(ResearchAssistantEntry, {
       props: { projectId: PROJ_A },
@@ -596,15 +762,16 @@ describe('ResearchWorkspacePage', () => {
 
   it('AI assistant — sessionStorage exception still navigates', async () => {
     const origSetItem = sessionStorage.setItem;
-    sessionStorage.setItem = () => { throw new Error('Storage full'); };
+    sessionStorage.setItem = () => {
+      throw new Error('Storage full');
+    };
 
     const router = buildRouter();
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchAssistantEntry } = await import(
-      '@/components/research/ResearchAssistantEntry.vue'
-    );
+    const { default: ResearchAssistantEntry } =
+      await import('@/components/research/ResearchAssistantEntry.vue');
 
     const wrapper = mount(ResearchAssistantEntry, {
       props: { projectId: PROJ_A },
@@ -630,9 +797,8 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchAssistantEntry } = await import(
-      '@/components/research/ResearchAssistantEntry.vue'
-    );
+    const { default: ResearchAssistantEntry } =
+      await import('@/components/research/ResearchAssistantEntry.vue');
 
     const wrapper = mount(ResearchAssistantEntry, {
       props: { projectId: PROJ_A },
@@ -653,9 +819,8 @@ describe('ResearchWorkspacePage', () => {
   // ---- Batch 3: No resume API → no "继续研究" ----
 
   it('ContinueResearchCard does not show "继续研究" (no resume API)', async () => {
-    const { default: ContinueResearchCard } = await import(
-      '@/components/research/ContinueResearchCard.vue'
-    );
+    const { default: ContinueResearchCard } =
+      await import('@/components/research/ContinueResearchCard.vue');
 
     const wrapper = mount(ContinueResearchCard, {
       props: { projectId: PROJ_A, loading: false, error: null },
@@ -663,7 +828,11 @@ describe('ResearchWorkspacePage', () => {
         stubs: {
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
-          ErrorState: { template: '<div class="mock-error">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -677,24 +846,32 @@ describe('ResearchWorkspacePage', () => {
   // ---- Batch 3: RecentReports only shows completed runs with report artifacts ----
 
   it('RecentReports only shows completed runs with report_generation completed', async () => {
-    const { default: RecentReports } = await import(
-      '@/components/research/RecentReports.vue'
-    );
+    const { default: RecentReports } = await import('@/components/research/RecentReports.vue');
 
     const runs = [
       makeRun({ run_id: 'r1', topic: 'Complete', completed_at: '2026-07-16T10:00:00Z' }),
-      makeRun({ run_id: 'r2', topic: 'No Report', completed_at: '2026-07-16T09:00:00Z', step_execution_trace: [
-        { name: 'topic_selection', status: 'completed' },
-        { name: 'literature_retrieval', status: 'completed' },
-        { name: 'evidence_synthesis', status: 'pending' },
-        { name: 'report_generation', status: 'pending' },
-        { name: 'citation_export', status: 'pending' },
-      ] }),
-      makeRun({ run_id: 'r3', topic: 'Failed Report', completed_at: '2026-07-16T08:00:00Z', step_execution_trace: [
-        { name: 'topic_selection', status: 'completed' },
-        { name: 'literature_retrieval', status: 'completed' },
-        { name: 'report_generation', status: 'failed' },
-      ] }),
+      makeRun({
+        run_id: 'r2',
+        topic: 'No Report',
+        completed_at: '2026-07-16T09:00:00Z',
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'literature_retrieval', status: 'completed' },
+          { name: 'evidence_synthesis', status: 'pending' },
+          { name: 'report_generation', status: 'pending' },
+          { name: 'citation_export', status: 'pending' },
+        ],
+      }),
+      makeRun({
+        run_id: 'r3',
+        topic: 'Failed Report',
+        completed_at: '2026-07-16T08:00:00Z',
+        step_execution_trace: [
+          { name: 'topic_selection', status: 'completed' },
+          { name: 'literature_retrieval', status: 'completed' },
+          { name: 'report_generation', status: 'failed' },
+        ],
+      }),
     ];
 
     const wrapper = mount(RecentReports, {
@@ -704,7 +881,11 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -723,9 +904,7 @@ describe('ResearchWorkspacePage', () => {
   });
 
   it('RecentReports — incomplete run does not get view link', async () => {
-    const { default: RecentReports } = await import(
-      '@/components/research/RecentReports.vue'
-    );
+    const { default: RecentReports } = await import('@/components/research/RecentReports.vue');
 
     const runs = [
       makeRun({
@@ -748,7 +927,11 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -766,9 +949,7 @@ describe('ResearchWorkspacePage', () => {
   });
 
   it('RecentReports — sorts by completed_at DESC, missing times last', async () => {
-    const { default: RecentReports } = await import(
-      '@/components/research/RecentReports.vue'
-    );
+    const { default: RecentReports } = await import('@/components/research/RecentReports.vue');
 
     const runs = [
       makeRun({ run_id: 'r-old', topic: 'Old', completed_at: '2026-01-01T00:00:00Z' }),
@@ -784,7 +965,11 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -804,9 +989,7 @@ describe('ResearchWorkspacePage', () => {
   });
 
   it('RecentReports — max 5 items', async () => {
-    const { default: RecentReports } = await import(
-      '@/components/research/RecentReports.vue'
-    );
+    const { default: RecentReports } = await import('@/components/research/RecentReports.vue');
 
     const runs = Array.from({ length: 8 }, (_, i) =>
       makeRun({
@@ -823,7 +1006,11 @@ describe('ResearchWorkspacePage', () => {
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -865,22 +1052,39 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div class="mock-crc"><span v-if="error">{{ error }}</span><button v-if="error" class="mock-retry-btn" @click="$emit(\'retry\')">Retry</button></div>', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template:
+              '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template:
+              '<div class="mock-crc"><span v-if="error">{{ error }}</span><button v-if="error" class="mock-retry-btn" @click="$emit(\'retry\')">Retry</button></div>',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div class="mock-rr"><span v-if="error">{{ error }}</span><button v-if="error" class="mock-retry-btn" @click="$emit(\'retry\')">Retry</button></div>', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template:
+              '<div class="mock-rr"><span v-if="error">{{ error }}</span><button v-if="error" class="mock-retry-btn" @click="$emit(\'retry\')">Retry</button></div>',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -913,26 +1117,40 @@ describe('ResearchWorkspacePage', () => {
       if ((url as string).includes('/history')) {
         // First call hangs, second succeeds
         if ((url as string).includes(PROJ_A)) {
-          return new Promise((r) => { resolveSlow = r; });
+          return new Promise((r) => {
+            resolveSlow = r;
+          });
         }
         return Promise.resolve({
-          data: { data: { session_id: PROJ_B, history: [makeHistoryEntry({ query_text: 'B Activity' })], total: 1 } },
+          data: {
+            data: {
+              session_id: PROJ_B,
+              history: [makeHistoryEntry({ query_text: 'B Activity' })],
+              total: 1,
+            },
+          },
         });
       }
       return Promise.resolve({ data: { data: [] } });
     });
 
-    const { default: RecentResearchActivity } = await import(
-      '@/components/research/RecentResearchActivity.vue'
-    );
+    const { default: RecentResearchActivity } =
+      await import('@/components/research/RecentResearchActivity.vue');
 
     const wrapper = mount(RecentResearchActivity, {
       props: { projectId: PROJ_A },
       global: {
         stubs: {
-          LoadingState: { template: '<div class="mock-loading" role="status" />', props: ['message'] },
+          LoadingState: {
+            template: '<div class="mock-loading" role="status" />',
+            props: ['message'],
+          },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error" role="alert">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -945,7 +1163,13 @@ describe('ResearchWorkspacePage', () => {
 
     // Now resolve A's slow response — it should be discarded
     resolveSlow!({
-      data: { data: { session_id: PROJ_A, history: [makeHistoryEntry({ query_text: 'A Stale Activity' })], total: 1 } },
+      data: {
+        data: {
+          session_id: PROJ_A,
+          history: [makeHistoryEntry({ query_text: 'A Stale Activity' })],
+          total: 1,
+        },
+      },
     });
     await flushPromises();
 
@@ -964,24 +1188,33 @@ describe('ResearchWorkspacePage', () => {
     mockApiGet.mockImplementation((url: string) => {
       if ((url as string).includes('/notes')) {
         if ((url as string).includes(PROJ_A)) {
-          return new Promise((r) => { resolveSlow = r; });
+          return new Promise((r) => {
+            resolveSlow = r;
+          });
         }
-        return Promise.resolve({ data: { data: [makeNote({ id: 'n-b', content: 'B Note', session_id: PROJ_B })] } });
+        return Promise.resolve({
+          data: { data: [makeNote({ id: 'n-b', content: 'B Note', session_id: PROJ_B })] },
+        });
       }
       return Promise.resolve({ data: { data: [] } });
     });
 
-    const { default: RecentNotes } = await import(
-      '@/components/research/RecentNotes.vue'
-    );
+    const { default: RecentNotes } = await import('@/components/research/RecentNotes.vue');
 
     const wrapper = mount(RecentNotes, {
       props: { projectId: PROJ_A },
       global: {
         stubs: {
-          LoadingState: { template: '<div class="mock-loading" role="status" />', props: ['message'] },
+          LoadingState: {
+            template: '<div class="mock-loading" role="status" />',
+            props: ['message'],
+          },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error" role="alert">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -991,7 +1224,9 @@ describe('ResearchWorkspacePage', () => {
     await wrapper.setProps({ projectId: PROJ_B });
     await flushPromises();
 
-    resolveSlow!({ data: { data: [makeNote({ id: 'n-a', content: 'A Stale Note', session_id: PROJ_A })] } });
+    resolveSlow!({
+      data: { data: [makeNote({ id: 'n-a', content: 'A Stale Note', session_id: PROJ_A })] },
+    });
     await flushPromises();
 
     const text = wrapper.text();
@@ -1008,24 +1243,36 @@ describe('ResearchWorkspacePage', () => {
     mockApiGet.mockImplementation((url: string) => {
       if ((url as string).includes('/citations')) {
         if ((url as string).includes(PROJ_A)) {
-          return new Promise((r) => { resolveSlow = r; });
+          return new Promise((r) => {
+            resolveSlow = r;
+          });
         }
-        return Promise.resolve({ data: { data: [makeCitation({ id: 'c-b', session_id: PROJ_B, citation_text: 'B Citation' })] } });
+        return Promise.resolve({
+          data: {
+            data: [makeCitation({ id: 'c-b', session_id: PROJ_B, citation_text: 'B Citation' })],
+          },
+        });
       }
       return Promise.resolve({ data: { data: [] } });
     });
 
-    const { default: ResearchResources } = await import(
-      '@/components/research/ResearchResources.vue'
-    );
+    const { default: ResearchResources } =
+      await import('@/components/research/ResearchResources.vue');
 
     const wrapper = mount(ResearchResources, {
       props: { projectId: PROJ_A },
       global: {
         stubs: {
-          LoadingState: { template: '<div class="mock-loading" role="status" />', props: ['message'] },
+          LoadingState: {
+            template: '<div class="mock-loading" role="status" />',
+            props: ['message'],
+          },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error" role="alert">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -1035,7 +1282,11 @@ describe('ResearchWorkspacePage', () => {
     await wrapper.setProps({ projectId: PROJ_B });
     await flushPromises();
 
-    resolveSlow!({ data: { data: [makeCitation({ id: 'c-a', session_id: PROJ_A, citation_text: 'A Stale Citation' })] } });
+    resolveSlow!({
+      data: {
+        data: [makeCitation({ id: 'c-a', session_id: PROJ_A, citation_text: 'A Stale Citation' })],
+      },
+    });
     await flushPromises();
 
     const text = wrapper.text();
@@ -1051,22 +1302,30 @@ describe('ResearchWorkspacePage', () => {
 
     mockApiGet.mockImplementation((url: string) => {
       if ((url as string).includes('/history')) {
-        return new Promise((r) => { resolve = r; });
+        return new Promise((r) => {
+          resolve = r;
+        });
       }
       return Promise.resolve({ data: { data: [] } });
     });
 
-    const { default: RecentResearchActivity } = await import(
-      '@/components/research/RecentResearchActivity.vue'
-    );
+    const { default: RecentResearchActivity } =
+      await import('@/components/research/RecentResearchActivity.vue');
 
     const wrapper = mount(RecentResearchActivity, {
       props: { projectId: PROJ_A },
       global: {
         stubs: {
-          LoadingState: { template: '<div class="mock-loading" role="status" />', props: ['message'] },
+          LoadingState: {
+            template: '<div class="mock-loading" role="status" />',
+            props: ['message'],
+          },
           EmptyState: false,
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}</div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div class="mock-error" role="alert">{{ message }}</div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -1138,19 +1397,29 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
-          EmptyState: { template: '<div class="mock-empty" role="status">{{ title }}<slot name="action" /></div>', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          EmptyState: {
+            template:
+              '<div class="mock-empty" role="status">{{ title }}<slot name="action" /></div>',
+            props: ['title', 'description', 'icon'],
+          },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -1170,19 +1439,26 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template:
+              '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -1202,19 +1478,26 @@ describe('ResearchWorkspacePage', () => {
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
+          ErrorState: {
+            template:
+              '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
         },
       },
     });
@@ -1239,33 +1522,56 @@ describe('ResearchWorkspacePage', () => {
   it('does not render internal technical fields', async () => {
     vi.clearAllMocks();
     mockApiGet.mockImplementation((url: string) => {
-      if (url.includes('/history')) return Promise.resolve({ data: { data: { session_id: PROJ_A, history: [], total: 0 } } });
-      if (url.includes('/runs')) return Promise.resolve({ data: { data: { session_id: PROJ_A, runs: [], total: 0 } } });
+      if (url.includes('/history'))
+        return Promise.resolve({ data: { data: { session_id: PROJ_A, history: [], total: 0 } } });
+      if (url.includes('/runs'))
+        return Promise.resolve({ data: { data: { session_id: PROJ_A, runs: [], total: 0 } } });
       if (url.includes('/notes')) return Promise.resolve({ data: { data: [] } });
       if (url.includes('/citations')) return Promise.resolve({ data: { data: [] } });
-      return Promise.resolve({ data: { data: makeSession({ active_entities: '["entity-1"]', context_notes: 'internal state data' }) } });
+      return Promise.resolve({
+        data: {
+          data: makeSession({
+            active_entities: '["entity-1"]',
+            context_notes: 'internal state data',
+          }),
+        },
+      });
     });
 
     const router = buildRouter();
     await router.push(PAGE_A);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header">{{ description }}<slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header">{{ description }}<slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },
@@ -1285,11 +1591,13 @@ describe('ResearchWorkspacePage', () => {
     vi.clearAllMocks();
     const customId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
     mockApiGet.mockImplementation((url: string) => {
-      if (url.includes('/history')) return Promise.resolve({ data: { data: { history: [], total: 0 } } });
+      if (url.includes('/history'))
+        return Promise.resolve({ data: { data: { history: [], total: 0 } } });
       if (url.includes('/runs')) return Promise.resolve({ data: { data: { runs: [], total: 0 } } });
       if (url.includes('/notes')) return Promise.resolve({ data: { data: [] } });
       if (url.includes('/citations')) return Promise.resolve({ data: { data: [] } });
-      if (url.includes(customId)) return Promise.resolve({ data: { data: makeSession({ id: customId, title: 'Custom' }) } });
+      if (url.includes(customId))
+        return Promise.resolve({ data: { data: makeSession({ id: customId, title: 'Custom' }) } });
       return Promise.resolve({ data: { data: {} } });
     });
 
@@ -1297,22 +1605,36 @@ describe('ResearchWorkspacePage', () => {
     await router.push(`/research/${customId}/workspace`);
     await router.isReady();
 
-    const { default: ResearchWorkspacePage } = await import(
-      '@/pages/research/ResearchWorkspacePage.vue'
-    );
+    const { default: ResearchWorkspacePage } =
+      await import('@/pages/research/ResearchWorkspacePage.vue');
 
     const wrapper = mount(ResearchWorkspacePage, {
       global: {
         plugins: [router],
         stubs: {
-          ResearchPageHeader: { template: '<div class="mock-header"><slot name="actions" /></div>', props: ['title', 'description', 'breadcrumbs'] },
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
           RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
           LoadingState: { template: '<div />', props: ['message'] },
           EmptyState: { template: '<div />', props: ['title', 'description', 'icon'] },
-          ErrorState: { template: '<div />', props: ['title', 'message', 'showRetry'], emits: ['retry'] },
-          ContinueResearchCard: { template: '<div />', props: ['projectId', 'loading', 'error'], emits: ['retry'] },
+          ErrorState: {
+            template: '<div />',
+            props: ['title', 'message', 'showRetry'],
+            emits: ['retry'],
+          },
+          ContinueResearchCard: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error'],
+            emits: ['retry'],
+          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
-          RecentReports: { template: '<div />', props: ['projectId', 'loading', 'error', 'runs'], emits: ['retry'] },
+          RecentReports: {
+            template: '<div />',
+            props: ['projectId', 'loading', 'error', 'runs'],
+            emits: ['retry'],
+          },
           RecentNotes: { template: '<div />', props: ['projectId'] },
           ResearchResources: { template: '<div />', props: ['projectId'] },
           ResearchAssistantEntry: { template: '<div />', props: ['projectId'] },

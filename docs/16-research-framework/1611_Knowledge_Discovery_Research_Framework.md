@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Knowledge Discovery Research Framework
+
 ## 知识发现研究框架
 
 > 本框架定义《皇甫谧数字人文与中医经典智能研究平台》关于知识发现（Knowledge Discovery）的总体研究体系。
@@ -516,6 +517,6 @@ Knowledge Innovation Framework。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，建立平台知识发现研究框架（Knowledge Discovery Research Framework），作为原创研究方法论体系的重要组成部分。 |
+| Version | Date       | Description                                                                                                          |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，建立平台知识发现研究框架（Knowledge Discovery Research Framework），作为原创研究方法论体系的重要组成部分。 |

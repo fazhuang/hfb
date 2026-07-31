@@ -1,6 +1,11 @@
 <template>
   <Teleport to="body">
-    <div v-if="toasts.length > 0" class="hfb-toast-container" aria-live="polite" aria-relevant="additions removals">
+    <div
+      v-if="toasts.length > 0"
+      class="hfb-toast-container"
+      aria-live="polite"
+      aria-relevant="additions removals"
+    >
       <div
         v-for="t in toasts"
         :key="t.id"

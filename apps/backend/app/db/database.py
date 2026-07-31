@@ -5,6 +5,7 @@ Uses SQLAlchemy 2.0 async engine with connection pooling.
 
 Supports SQLite (for testing) via the DATABASE_URL environment variable.
 """
+
 from __future__ import annotations
 
 import os
@@ -43,6 +44,7 @@ async def init_database() -> None:
     if _db_url.startswith("sqlite"):
         async with engine.begin() as conn:
             from app.db.base import Base
+
             await conn.run_sync(Base.metadata.create_all)
         logger.info("sqlite_tables_created")
         return
@@ -50,7 +52,11 @@ async def init_database() -> None:
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
-        logger.info("database_connected host=%s db=%s", settings.POSTGRES_HOST, settings.POSTGRES_DB)
+        logger.info(
+            "database_connected host=%s db=%s",
+            settings.POSTGRES_HOST,
+            settings.POSTGRES_DB,
+        )
     except SQLAlchemyError as e:
         logger.error("database_connection_failed error=%s", str(e))
         raise

@@ -4,6 +4,7 @@ Seed data for RBAC — default roles, permissions, and admin user.
 Per 1704 Ch.3 — seven platform roles.
 Per 1704 Ch.5 — resource × action permissions.
 """
+
 from __future__ import annotations
 
 from app.models.user import (
@@ -129,42 +130,88 @@ _STUDENT_PERMS = _VISITOR_READS + [
 ]
 
 _RESEARCHER_PERMS = _STUDENT_PERMS + [
-    "person.create", "person.update",
-    "book.create", "book.update",
-    "version.create", "version.update",
-    "chapter.create", "chapter.update",
-    "passage.create", "passage.update",
-    "paper.create", "paper.update",
-    "document.create", "document.update",
-    "evidence.create", "evidence.read", "evidence.update",
-    "citation.create", "citation.read", "citation.update",
-    "research.create", "research.read", "research.update", "research.delete", "research.export",
-    "workspace.create", "workspace.update",
-    "project.create", "project.read", "project.update",
-    "person.export", "book.export", "chapter.export", "passage.export",
+    "person.create",
+    "person.update",
+    "book.create",
+    "book.update",
+    "version.create",
+    "version.update",
+    "chapter.create",
+    "chapter.update",
+    "passage.create",
+    "passage.update",
+    "paper.create",
+    "paper.update",
+    "document.create",
+    "document.update",
+    "evidence.create",
+    "evidence.read",
+    "evidence.update",
+    "citation.create",
+    "citation.read",
+    "citation.update",
+    "research.create",
+    "research.read",
+    "research.update",
+    "research.delete",
+    "research.export",
+    "workspace.create",
+    "workspace.update",
+    "project.create",
+    "project.read",
+    "project.update",
+    "person.export",
+    "book.export",
+    "chapter.export",
+    "passage.export",
 ]
 
 _REVIEWER_PERMS = _RESEARCHER_PERMS + [
-    "person.review", "book.review", "version.review", "chapter.review", "passage.review",
-    "evidence.review", "citation.review", "research.review",
-    "person.approve", "book.approve", "version.approve",
+    "person.review",
+    "book.review",
+    "version.review",
+    "chapter.review",
+    "passage.review",
+    "evidence.review",
+    "citation.review",
+    "research.review",
+    "person.approve",
+    "book.approve",
+    "version.approve",
     "research.approve",
 ]
 
 _LEADER_PERMS = _REVIEWER_PERMS + [
-    "person.publish", "book.publish", "version.publish", "chapter.publish", "passage.publish",
-    "evidence.publish", "citation.publish",
+    "person.publish",
+    "book.publish",
+    "version.publish",
+    "chapter.publish",
+    "passage.publish",
+    "evidence.publish",
+    "citation.publish",
     "research.publish",
-    "person.delete", "book.delete", "version.delete", "chapter.delete", "passage.delete", "paper.delete",
-    "evidence.delete", "citation.delete",
+    "person.delete",
+    "book.delete",
+    "version.delete",
+    "chapter.delete",
+    "passage.delete",
+    "paper.delete",
+    "evidence.delete",
+    "citation.delete",
     "workspace.delete",
     "project.delete",
     "project.publish",
 ]
 
 _ACADEMIC_ADMIN_PERMS = _LEADER_PERMS + [
-    "person.approve", "book.approve", "evidence.approve", "citation.approve",
-    "person.review", "book.review", "evidence.review", "citation.review",
+    "person.approve",
+    "book.approve",
+    "evidence.approve",
+    "citation.approve",
+    "person.review",
+    "book.review",
+    "evidence.review",
+    "citation.review",
 ]
 
 # Platform Admin gets ALL permissions (resolved dynamically after permission seed)
@@ -200,6 +247,7 @@ SEED_ADMIN_USER = {
 # Seed function
 # ============================================================
 
+
 async def seed_rbac(session: AsyncSession) -> dict[str, int]:
     """Insert RBAC seed data — permissions, roles, admin user.
 
@@ -234,9 +282,7 @@ async def seed_rbac(session: AsyncSession) -> dict[str, int]:
     role_perm_map = _resolve_role_permission_codes()
 
     for data in SEED_ROLES:
-        existing = await session.execute(
-            select(Role).where(Role.name == data["name"])
-        )
+        existing = await session.execute(select(Role).where(Role.name == data["name"]))
         role = existing.scalar_one_or_none()
         if role is None:
             role = Role(**data)
@@ -268,9 +314,7 @@ async def seed_rbac(session: AsyncSession) -> dict[str, int]:
         for perm in permissions:
             if perm.id in planned_permission_ids:
                 continue
-            new_links.append(
-                {"role_id": role.id, "permission_id": perm.id}
-            )
+            new_links.append({"role_id": role.id, "permission_id": perm.id})
             planned_permission_ids.add(perm.id)
         if new_links:
             await session.execute(role_permission.insert(), new_links)

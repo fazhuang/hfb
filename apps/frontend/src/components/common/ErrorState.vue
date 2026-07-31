@@ -3,11 +3,7 @@
     <span class="error-icon" aria-hidden="true">⚠️</span>
     <h3 class="error-title">{{ title || t('common.error') }}</h3>
     <p v-if="message" class="error-message">{{ message }}</p>
-    <button
-      v-if="retryLabel || showRetry"
-      class="error-retry-btn"
-      @click="$emit('retry')"
-    >
+    <button v-if="retryLabel || showRetry" class="error-retry-btn" @click="$emit('retry')">
       {{ retryLabel || t('common.retry') }}
     </button>
   </div>
@@ -18,14 +14,17 @@ import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 
-withDefaults(defineProps<{
-  title?: string;
-  message?: string;
-  showRetry?: boolean;
-  retryLabel?: string;
-}>(), {
-  showRetry: true,
-});
+withDefaults(
+  defineProps<{
+    title?: string;
+    message?: string;
+    showRetry?: boolean;
+    retryLabel?: string;
+  }>(),
+  {
+    showRetry: true,
+  },
+);
 
 defineEmits<{
   retry: [];

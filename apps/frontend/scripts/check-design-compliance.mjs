@@ -21,8 +21,8 @@
  * Usage: node apps/frontend/scripts/check-design-compliance.mjs
  */
 
-import { readFileSync, readdirSync, statSync, existsSync } from "fs";
-import { resolve, relative, dirname } from "path";
+import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { resolve, relative, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -39,7 +39,7 @@ const X = '\x1b[0m';
 
 function parseTokenValues() {
   const vals = { spacings: new Set(), radii: new Set() };
-  const files = readdirSync(TOKENS_DIR).filter(f => f.endsWith('.css'));
+  const files = readdirSync(TOKENS_DIR).filter((f) => f.endsWith('.css'));
   for (const f of files) {
     const content = readFileSync(resolve(TOKENS_DIR, f), 'utf-8');
     for (const block of content.matchAll(/(?::root|html\.dark)\s*\{([^}]+)\}/g)) {
@@ -64,7 +64,11 @@ function walkDir(dir) {
     for (const entry of readdirSync(dir)) {
       const full = resolve(dir, entry);
       let st;
-      try { st = statSync(full); } catch { continue; }
+      try {
+        st = statSync(full);
+      } catch {
+        continue;
+      }
       if (st.isDirectory()) {
         if (entry === 'node_modules' || entry === 'dist' || entry === 'coverage') continue;
         for (const f of walkDir(full)) results.push(f);
@@ -72,11 +76,16 @@ function walkDir(dir) {
         results.push(full);
       }
     }
-  } catch {} { /* dir may not exist */ }
+  } catch {}
+  {
+    /* dir may not exist */
+  }
   return results;
 }
 
-function isTokenFile(fp) { return fp.includes('/styles/tokens/'); }
+function isTokenFile(fp) {
+  return fp.includes('/styles/tokens/');
+}
 
 // ─── Collect ────────────────────────────────────────────────────────────
 
@@ -104,7 +113,9 @@ function collectViolations(source, lineOffset) {
       v.push({ line: ln, value: m[0].slice(0, 30), rule: 'color:hsl/hsla' });
     }
     // var() fallback
-    for (const m of code.matchAll(/var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi)) {
+    for (const m of code.matchAll(
+      /var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi,
+    )) {
       v.push({ line: ln, value: m[1], rule: 'color:var-fallback' });
     }
     // shadow
@@ -146,7 +157,12 @@ function collectViolations(source, lineOffset) {
 
 // ─── Main ───────────────────────────────────────────────────────────────
 
-const scanDirs = [resolve(SRC, 'styles', 'base'), resolve(SRC, 'components'), resolve(SRC, 'pages'), resolve(SRC, 'layouts')];
+const scanDirs = [
+  resolve(SRC, 'styles', 'base'),
+  resolve(SRC, 'components'),
+  resolve(SRC, 'pages'),
+  resolve(SRC, 'layouts'),
+];
 if (existsSync(resolve(SRC, 'views'))) scanDirs.push(resolve(SRC, 'views'));
 
 const all = [];
@@ -172,7 +188,12 @@ for (const dir of scanDirs) {
 // ─── Report ─────────────────────────────────────────────────────────────
 
 console.log(`\n${B}HFB Design System Compliance Check${X}\n`);
-console.log(`Scanned: ${scanDirs.filter(d => existsSync(d)).map(d => relative(ROOT, d)).join(', ')}`);
+console.log(
+  `Scanned: ${scanDirs
+    .filter((d) => existsSync(d))
+    .map((d) => relative(ROOT, d))
+    .join(', ')}`,
+);
 console.log(`Allowed spacings: [${[...TOKEN_VALUES.spacings].sort((a, b) => a - b).join(', ')}]`);
 console.log(`Allowed radii: [${[...TOKEN_VALUES.radii].sort((a, b) => a - b).join(', ')}]\n`);
 
@@ -184,7 +205,10 @@ if (all.length === 0) {
 console.log(`${R}${B}BLOCKING VIOLATIONS (${all.length}):${X}\n`);
 
 const byFile = {};
-for (const v of all) { if (!byFile[v.file]) byFile[v.file] = []; byFile[v.file].push(v); }
+for (const v of all) {
+  if (!byFile[v.file]) byFile[v.file] = [];
+  byFile[v.file].push(v);
+}
 for (const [file, vs] of Object.entries(byFile).sort()) {
   console.log(`  ${B}${file}${X} (${vs.length}):`);
   for (const v of vs) console.log(`    ${R}L${v.line}:${X} ${v.rule} → "${v.value}"`);

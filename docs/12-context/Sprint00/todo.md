@@ -1,9 +1,9 @@
 ---
-title: "Sprint 00 Todo"
-version: "1.0"
-status: "Active"
-sprint: "Sprint 00"
-last_updated: "2026-06-24"
+title: 'Sprint 00 Todo'
+version: '1.0'
+status: 'Active'
+sprint: 'Sprint 00'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 00 — Todo

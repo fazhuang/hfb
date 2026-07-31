@@ -13,6 +13,7 @@
 ### Phase 1 — 审计
 
 **关键发现：**
+
 - `LiteratureDetailView` (`/literature/:id`) — 当前唯一阅读器，但混合了阅读+合规+管理+AI功能
 - `LibraryDetailPage` (`/library/:id`) — 仅展示元数据+统计，通过"全文阅读"按钮重定向到旧 Reader
 - `PassageReader.vue` — 孤立死代码，从未被任何文件导入
@@ -22,6 +23,7 @@
 ### Phase 2 — Reader 页面
 
 新增 `/library/:id/reader` 路由，创建 `ReaderPage.vue`，包含：
+
 - Document Header（ResearchPageHeader + 元标签）
 - Metadata（作者、朝代、分类、年份、语言、页数、来源、拼音、英文）
 - Original Text（展开/收起、scroll）
@@ -33,11 +35,13 @@
 ### Phase 3 — Citation / Evidence 定位
 
 新增后端聚合端点 `GET /api/v1/documents/{id}/reader`：
+
 - 返回文档详情 + OCR chunks + linked passages (含翻译) + citations + evidence
 - 避免 N+1 请求
 - 继承所有权检查 + 跨项目隔离
 
 前端支持：
+
 - Citation 高亮定位（highlight + scrollIntoView）
 - Evidence 定位（highlight + scrollIntoView）
 - 段落跳转（offset 比例计算）
@@ -75,13 +79,13 @@
 
 ## 测试结果
 
-| 类别 | 结果 |
-|------|------|
-| Type Check (vue-tsc) | PASS — 0 errors |
-| Frontend Tests | 361 PASS (14 files) |
-| Reader Tests | 20 PASS |
-| Library Tests | 18 PASS |
-| Ruff (backend) | PASS — 0 issues |
+| 类别                 | 结果                |
+| -------------------- | ------------------- |
+| Type Check (vue-tsc) | PASS — 0 errors     |
+| Frontend Tests       | 361 PASS (14 files) |
+| Reader Tests         | 20 PASS             |
+| Library Tests        | 18 PASS             |
+| Ruff (backend)       | PASS — 0 issues     |
 
 ## Build 结果
 

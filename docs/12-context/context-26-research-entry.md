@@ -69,10 +69,10 @@
 
 新增 2 条路由：
 
-| 路径 | 名称 | 视图 | 认证 |
-|---|---|---|---|
-| `/research/new` | research-new | ResearchNewView | Yes |
-| `/research/home` | research-home | ResearchHomeView | Yes |
+| 路径             | 名称          | 视图             | 认证 |
+| ---------------- | ------------- | ---------------- | ---- |
+| `/research/new`  | research-new  | ResearchNewView  | Yes  |
+| `/research/home` | research-home | ResearchHomeView | Yes  |
 
 ---
 
@@ -92,10 +92,12 @@
 ## 新增 i18n Keys
 
 ### `nav`
+
 - `startResearch`: "开始研究" / "Start Research"
 - `currentResearch`: "当前研究" / "Current Research"
 
 ### `researchEntry`
+
 - `startNew`, `startNewDesc`, `newTitle`, `newSubtitle`
 - `topicName`, `topicNamePlaceholder`, `topicDesc`, `topicDescPlaceholder`
 - `create`, `toolsTitle`
@@ -103,6 +105,7 @@
 - `endResearch`, `backToResearch`, `noActiveResearch`
 
 ### `dashboard`
+
 - `goToResearch`: "进入研究" / "Go to Research"
 
 ---
@@ -169,11 +172,11 @@ apps/backend/
 
 `apps/frontend/src/__tests__/research-workflow.test.ts` — 3 个新测试：
 
-| 测试 | 覆盖 |
-|---|---|
+| 测试                                                      | 覆盖                                                           |
+| --------------------------------------------------------- | -------------------------------------------------------------- |
 | skips sessions whose version-comparison returns data:null | 3 sessions → 前 2 返回 null（跳过），第 3 返回有效数据（恢复） |
-| renders workflow UI even when session list is empty | 0 sessions → 零 version-comparison 请求 |
-| survives network errors while probing comparison sessions | 1 session → 网络异常，页面不崩溃 |
+| renders workflow UI even when session list is empty       | 0 sessions → 零 version-comparison 请求                        |
+| survives network errors while probing comparison sessions | 1 session → 网络异常，页面不崩溃                               |
 
 ### 浏览器验证
 

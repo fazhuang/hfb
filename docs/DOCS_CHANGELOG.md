@@ -15,9 +15,9 @@ priority: P2
 ## Initial Upgrade Scaffold
 
 - Renamed docs/03-data/0302_Ontology_Specification.md.md -> docs/03-data/0302_Ontology_Specification.md
-- Archived docs/00-governance/00_Project_Charter.md -> docs/_archive/legacy/00-governance__00_Project_Charter__20260625014208.md
-- Archived docs/00-governance/01_Project_Constitution.md -> docs/_archive/legacy/00-governance__01_Project_Constitution__20260625014208.md
-- Archived docs/07-security/00_Acceptance_Specification.md -> docs/_archive/legacy/07-security__00_Acceptance_Specification__20260625014208.md
+- Archived docs/00-governance/00_Project_Charter.md -> docs/\_archive/legacy/00-governance**00_Project_Charter**20260625014208.md
+- Archived docs/00-governance/01_Project_Constitution.md -> docs/\_archive/legacy/00-governance**01_Project_Constitution**20260625014208.md
+- Archived docs/07-security/00_Acceptance_Specification.md -> docs/\_archive/legacy/07-security**00_Acceptance_Specification**20260625014208.md
 
 ## Run: 2026-06-25T02:34:23
 
@@ -128,7 +128,7 @@ Fixed all acceptance blockers from audit:
 - **documentation-index.md** — rebuilt from real file tree (291 files); removed nonexistent paths (`08-sprints/`, `0002-constitution.md`); corrected all file references
 - **P0 README YAML headers** — added to 9 files (`00-governance/` through `08-domain/sprint-notes/`)
 - **01-product** — rewrote `00_Product_Roadmap.md` (GraphRAG removed from MVP, aligned with HFB-PS-1709/1710) and `README.md`
-- **HFB-STD-* purge** — replaced all 7 occurrences across 9 files with real document_ids
+- **HFB-STD-\* purge** — replaced all 7 occurrences across 9 files with real document_ids
 - **.DS_Store** — deleted 4 files
 - **DOCS_STRUCTURE_AUDIT.md** — updated to current state (0 missing YAML, 0 missing README)
 
@@ -136,4 +136,4 @@ Verification: .md.md=0, HFB-STD-=0, .DS_Store=0, no broken paths, all P0 READMEs
 
 ## Final Summary: 2026-06-25
 
-Complete docs upgrade and acceptance fix concluded. **18 directories, ~100 files modified.** All blockers resolved. Zero HFB-STD-*, zero .DS_Store, zero .md.md, zero broken paths, zero duplicate document_ids.
+Complete docs upgrade and acceptance fix concluded. **18 directories, ~100 files modified.** All blockers resolved. Zero HFB-STD-\*, zero .DS_Store, zero .md.md, zero broken paths, zero duplicate document_ids.

@@ -12,6 +12,7 @@ MVP approach:
   - Citation attachment: auto-tags retrieved sources
   - Vector retrieval: reserved for pgvector integration
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -93,9 +94,13 @@ class RAGService:
             return None
 
         model = config["model"]
-        stmt = __import__("sqlalchemy").select(model).where(
-            model.id == entity_id,
-            model.is_deleted.is_(False),
+        stmt = (
+            __import__("sqlalchemy")
+            .select(model)
+            .where(
+                model.id == entity_id,
+                model.is_deleted.is_(False),
+            )
         )
         result = await self.session.execute(stmt)
         obj = result.scalar_one_or_none()
@@ -113,7 +118,9 @@ class RAGService:
             chunk["content"] = getattr(obj, "content_text", "")
             chunk["translation"] = getattr(obj, "translation", "")
             chunk["notes"] = getattr(obj, "notes", "")
-            chunk["citation"] = f"《{await self._get_book_title(obj)}》#{getattr(obj, 'order', '')}"
+            chunk["citation"] = (
+                f"《{await self._get_book_title(obj)}》#{getattr(obj, 'order', '')}"
+            )
             # Also fetch version info
             ver_id = getattr(obj, "version_id", None)
             if ver_id:
@@ -123,7 +130,9 @@ class RAGService:
 
         elif entity_type == "book":
             chunk["content"] = getattr(obj, "abstract", "")
-            chunk["citation"] = f"《{getattr(obj, 'title', '')}》({getattr(obj, 'dynasty', '')})"
+            chunk["citation"] = (
+                f"《{getattr(obj, 'title', '')}》({getattr(obj, 'dynasty', '')})"
+            )
             # Fetch author
             author_id = getattr(obj, "author_id", None)
             if author_id:
@@ -133,12 +142,16 @@ class RAGService:
 
         elif entity_type == "person":
             chunk["content"] = getattr(obj, "biography", "")
-            chunk["citation"] = f"{getattr(obj, 'name', '')} ({getattr(obj, 'dynasty', '')})"
+            chunk["citation"] = (
+                f"{getattr(obj, 'name', '')} ({getattr(obj, 'dynasty', '')})"
+            )
             chunk["notable_works"] = getattr(obj, "notable_works", "")
 
         elif entity_type == "version":
             chunk["content"] = getattr(obj, "description", "")
-            chunk["citation"] = f"「{getattr(obj, 'version_name', '')}」({getattr(obj, 'era', '')})"
+            chunk["citation"] = (
+                f"「{getattr(obj, 'version_name', '')}」({getattr(obj, 'era', '')})"
+            )
             chunk["repository"] = getattr(obj, "repository", "")
 
         return chunk

@@ -40,7 +40,12 @@
       <!-- Versions -->
       <div v-if="versions.length" class="book-versions">
         <h3>{{ t('book.versions') }} ({{ versions.length }})</h3>
-        <div v-for="v in versions" :key="v.id" class="version-item" @click="$router.push(`/versions/${v.id}`)">
+        <div
+          v-for="v in versions"
+          :key="v.id"
+          class="version-item"
+          @click="$router.push(`/versions/${v.id}`)"
+        >
           <strong>{{ v.version_name }}</strong>
           <span v-if="v.era">{{ v.era }}</span>
           <span v-if="v.repository">{{ v.repository }}</span>
@@ -185,7 +190,8 @@ onMounted(fetchBook);
   margin: 0;
 }
 
-.book-chapters h3, .book-versions h3 {
+.book-chapters h3,
+.book-versions h3 {
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -241,7 +247,8 @@ onMounted(fetchBook);
   color: var(--color-text-primary);
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   text-align: center;
   padding: var(--space-20) 20px;
   color: var(--color-text-muted);

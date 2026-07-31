@@ -8,6 +8,7 @@ Endpoints:
   GET  /api/v1/search/suggest  — Autocomplete suggestions
   POST /api/v1/search/reindex  — Trigger reindex (admin)
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -40,7 +41,9 @@ guard_admin = require_permission("search", "reindex")
 async def unified_search(
     session: Annotated[AsyncSession, Depends(get_session)],
     q: str = Query(default="", description="Search query"),
-    types: str = Query(default="book,version,passage,person,paper", description="Entity types"),
+    types: str = Query(
+        default="book,version,passage,person,paper", description="Entity types"
+    ),
     dynasty: str | None = Query(default=None, description="Filter by dynasty"),
     category: str | None = Query(default=None, description="Filter by category"),
     page: int = Query(default=1, ge=1),

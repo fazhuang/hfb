@@ -78,6 +78,7 @@ async def ingest(
     if enforce_whitelist:
         try:
             from app.services.source_whitelist import get_whitelist
+
             wl = get_whitelist()
         except (OSError, ValueError):
             # ponytail: if whitelist file is missing, default-deny everything.
@@ -89,14 +90,18 @@ async def ingest(
             if wl is None:
                 job = IngestionJob(source=s, query="<whitelist gate>")
                 job.error_count += 1
-                job.errors.append("SourceWhitelistNotFound: runtime policy unavailable, denying all sources")
+                job.errors.append(
+                    "SourceWhitelistNotFound: runtime policy unavailable, denying all sources"
+                )
                 job.finish()
                 gate_jobs.append(job)
                 continue
             if not wl.is_source_allowed(s, metadata=True):
                 job = IngestionJob(source=s, query="<whitelist gate>")
                 job.error_count += 1
-                job.errors.append(f"SourceNotWhitelisted: {s} is not in the approved source whitelist")
+                job.errors.append(
+                    f"SourceNotWhitelisted: {s} is not in the approved source whitelist"
+                )
                 job.finish()
                 gate_jobs.append(job)
                 continue

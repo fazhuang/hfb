@@ -1,4 +1,5 @@
 """API V4 — Digital Humanities Research Platform product layer."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter

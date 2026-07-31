@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Development Specification
+
 ## 软件开发规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的统一软件开发标准。
@@ -78,18 +79,18 @@ infra/
 
 # 第三章 技术栈
 
-| 模块 | 技术 |
-|------|------|
-| Backend | FastAPI |
-| Frontend | Vue3 + TypeScript |
-| ORM | SQLAlchemy 2.x |
-| Migration | Alembic |
-| Database | PostgreSQL |
-| Cache | Redis |
-| Search | Elasticsearch |
-| Object Storage | MinIO |
-| Container | Docker Compose |
-| CI | GitHub Actions |
+| 模块           | 技术              |
+| -------------- | ----------------- |
+| Backend        | FastAPI           |
+| Frontend       | Vue3 + TypeScript |
+| ORM            | SQLAlchemy 2.x    |
+| Migration      | Alembic           |
+| Database       | PostgreSQL        |
+| Cache          | Redis             |
+| Search         | Elasticsearch     |
+| Object Storage | MinIO             |
+| Container      | Docker Compose    |
+| CI             | GitHub Actions    |
 
 任何技术替换必须建立 ADR。
 
@@ -554,6 +555,6 @@ Merge
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一软件开发规范。 |
+| Version | Date       | Description                          |
+| ------- | ---------- | ------------------------------------ |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一软件开发规范。 |

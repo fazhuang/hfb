@@ -3,6 +3,7 @@
 Sprint 4 P0: backfill only maps exact normalized text matches.
 Never fabricates passage_id. Never fuzzy-matches. Never maps ambiguous.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -13,9 +14,11 @@ from tests.conftest_db import db_session_persistent  # noqa: F401
 # Importability
 # =============================================================================
 
+
 def test_backfill_script_importable():
     """P0: Script must import without ModuleNotFoundError."""
     from scripts.backfill_passage import _normalize, _run_backfill, backfill
+
     assert backfill is not None
     assert _normalize is not None
     assert _run_backfill is not None
@@ -25,8 +28,10 @@ def test_backfill_script_importable():
 # Normalize
 # =============================================================================
 
+
 def test_normalize_whitespace():
     from scripts.backfill_passage import _normalize
+
     assert _normalize("  a   b  ") == "a b"
     assert _normalize("a\n\nb") == "a b"
     assert _normalize("针灸  经络") == "针灸 经络"
@@ -35,6 +40,7 @@ def test_normalize_whitespace():
 # =============================================================================
 # Exact match success
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_backfill_exact_match_unique(db_session_persistent):
@@ -53,16 +59,31 @@ async def test_backfill_exact_match_unique(db_session_persistent):
     db_session_persistent.add(ver)
     ch = Chapter(id="ch-bf1", title="Ch", book_id=book.id)
     db_session_persistent.add(ch)
-    passage = Passage(id="passage-bf1", chapter_id=ch.id, version_id=ver.id,
-                      content_text="经络是运行气血的通道。", order=1)
+    passage = Passage(
+        id="passage-bf1",
+        chapter_id=ch.id,
+        version_id=ver.id,
+        content_text="经络是运行气血的通道。",
+        order=1,
+    )
     db_session_persistent.add(passage)
 
     doc = Document(id="doc-bf1", title="T", dynasty="汉")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf1-0", document_id=doc.id, chunk_index=0,
-                       content="  经络是运行气血的通道。  ", token_count=15)
-    c2 = DocumentChunk(id="chk-bf1-1", document_id=doc.id, chunk_index=1,
-                       content="无关内容", token_count=5)
+    c1 = DocumentChunk(
+        id="chk-bf1-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="  经络是运行气血的通道。  ",
+        token_count=15,
+    )
+    c2 = DocumentChunk(
+        id="chk-bf1-1",
+        document_id=doc.id,
+        chunk_index=1,
+        content="无关内容",
+        token_count=5,
+    )
     db_session_persistent.add_all([c1, c2])
     await db_session_persistent.flush()
 
@@ -74,6 +95,7 @@ async def test_backfill_exact_match_unique(db_session_persistent):
 # =============================================================================
 # No match → unresolved
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_backfill_no_match_unresolved(db_session_persistent):
@@ -92,14 +114,24 @@ async def test_backfill_no_match_unresolved(db_session_persistent):
     db_session_persistent.add(ver)
     ch = Chapter(id="ch-bf2", title="Ch2", book_id=book.id)
     db_session_persistent.add(ch)
-    passage = Passage(id="passage-bf2", chapter_id=ch.id, version_id=ver.id,
-                      content_text="完全不同的内容。", order=1)
+    passage = Passage(
+        id="passage-bf2",
+        chapter_id=ch.id,
+        version_id=ver.id,
+        content_text="完全不同的内容。",
+        order=1,
+    )
     db_session_persistent.add(passage)
 
     doc = Document(id="doc-bf2", title="T2", dynasty="唐")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf2-0", document_id=doc.id, chunk_index=0,
-                       content="这是一段不在任何passage中的文本。", token_count=15)
+    c1 = DocumentChunk(
+        id="chk-bf2-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="这是一段不在任何passage中的文本。",
+        token_count=15,
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 
@@ -111,6 +143,7 @@ async def test_backfill_no_match_unresolved(db_session_persistent):
 # =============================================================================
 # Multiple candidates → ambiguous
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_backfill_multiple_candidates_ambiguous(db_session_persistent):
@@ -132,16 +165,31 @@ async def test_backfill_multiple_candidates_ambiguous(db_session_persistent):
     ch2 = Chapter(id="ch-bf3-2", title="ChB", book_id=book.id)
     db_session_persistent.add(ch2)
     # Two passages with the same text
-    p1 = Passage(id="passage-bf3-a", chapter_id=ch1.id, version_id=ver.id,
-                 content_text="重复内容。", order=1)
-    p2 = Passage(id="passage-bf3-b", chapter_id=ch2.id, version_id=ver.id,
-                 content_text="重复内容。", order=2)
+    p1 = Passage(
+        id="passage-bf3-a",
+        chapter_id=ch1.id,
+        version_id=ver.id,
+        content_text="重复内容。",
+        order=1,
+    )
+    p2 = Passage(
+        id="passage-bf3-b",
+        chapter_id=ch2.id,
+        version_id=ver.id,
+        content_text="重复内容。",
+        order=2,
+    )
     db_session_persistent.add_all([p1, p2])
 
     doc = Document(id="doc-bf3", title="T3", dynasty="宋")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf3-0", document_id=doc.id, chunk_index=0,
-                       content="重复内容。", token_count=5)
+    c1 = DocumentChunk(
+        id="chk-bf3-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="重复内容。",
+        token_count=5,
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 
@@ -156,6 +204,7 @@ async def test_backfill_multiple_candidates_ambiguous(db_session_persistent):
 # =============================================================================
 # Dry-run does not write
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_backfill_dry_run_no_write(db_session_persistent):
@@ -174,14 +223,24 @@ async def test_backfill_dry_run_no_write(db_session_persistent):
     db_session_persistent.add(ver)
     ch = Chapter(id="ch-bf4", title="Ch4", book_id=book.id)
     db_session_persistent.add(ch)
-    passage = Passage(id="passage-bf4", chapter_id=ch.id, version_id=ver.id,
-                      content_text="dry-run测试。", order=1)
+    passage = Passage(
+        id="passage-bf4",
+        chapter_id=ch.id,
+        version_id=ver.id,
+        content_text="dry-run测试。",
+        order=1,
+    )
     db_session_persistent.add(passage)
 
     doc = Document(id="doc-bf4", title="T4", dynasty="明")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf4-0", document_id=doc.id, chunk_index=0,
-                       content="dry-run测试。", token_count=10)
+    c1 = DocumentChunk(
+        id="chk-bf4-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="dry-run测试。",
+        token_count=10,
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 
@@ -195,6 +254,7 @@ async def test_backfill_dry_run_no_write(db_session_persistent):
 # =============================================================================
 # Second run → newly_mapped=0
 # =============================================================================
+
 
 @pytest.mark.asyncio
 async def test_backfill_second_run_no_new(db_session_persistent):
@@ -213,14 +273,24 @@ async def test_backfill_second_run_no_new(db_session_persistent):
     db_session_persistent.add(ver)
     ch = Chapter(id="ch-bf5", title="Ch5", book_id=book.id)
     db_session_persistent.add(ch)
-    passage = Passage(id="passage-bf5", chapter_id=ch.id, version_id=ver.id,
-                      content_text="第二次运行测试。", order=1)
+    passage = Passage(
+        id="passage-bf5",
+        chapter_id=ch.id,
+        version_id=ver.id,
+        content_text="第二次运行测试。",
+        order=1,
+    )
     db_session_persistent.add(passage)
 
     doc = Document(id="doc-bf5", title="T5", dynasty="清")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf5-0", document_id=doc.id, chunk_index=0,
-                       content="第二次运行测试。", token_count=10)
+    c1 = DocumentChunk(
+        id="chk-bf5-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="第二次运行测试。",
+        token_count=10,
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 
@@ -236,6 +306,7 @@ async def test_backfill_second_run_no_new(db_session_persistent):
 # Orphan detection
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_backfill_orphan_detection(db_session_persistent):
     """P0: orphan_passage_ids correctly identifies passage_ids pointing to deleted passages."""
@@ -245,9 +316,14 @@ async def test_backfill_orphan_detection(db_session_persistent):
 
     doc = Document(id="doc-bf6", title="T6", dynasty="晋")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf6-0", document_id=doc.id, chunk_index=0,
-                       content="孤儿passage测试。", token_count=10,
-                       passage_id="passage-nonexistent")
+    c1 = DocumentChunk(
+        id="chk-bf6-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="孤儿passage测试。",
+        token_count=10,
+        passage_id="passage-nonexistent",
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 
@@ -259,6 +335,7 @@ async def test_backfill_orphan_detection(db_session_persistent):
 # Already-mapped chunks skipped
 # =============================================================================
 
+
 @pytest.mark.asyncio
 async def test_backfill_already_mapped_skipped(db_session_persistent):
     """P0: chunk with existing passage_id is skipped."""
@@ -268,9 +345,14 @@ async def test_backfill_already_mapped_skipped(db_session_persistent):
 
     doc = Document(id="doc-bf7", title="T7", dynasty="汉")
     db_session_persistent.add(doc)
-    c1 = DocumentChunk(id="chk-bf7-0", document_id=doc.id, chunk_index=0,
-                       content="已有映射。", token_count=5,
-                       passage_id="existing-passage")
+    c1 = DocumentChunk(
+        id="chk-bf7-0",
+        document_id=doc.id,
+        chunk_index=0,
+        content="已有映射。",
+        token_count=5,
+        passage_id="existing-passage",
+    )
     db_session_persistent.add(c1)
     await db_session_persistent.flush()
 

@@ -1,6 +1,7 @@
 """
 Infrastructure connectivity checks on startup.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -28,6 +29,7 @@ class InfrastructureStatus:
 async def _check_postgres() -> ServiceStatus:
     """Check PostgreSQL connectivity."""
     from app.db.database import check_database_health
+
     t0 = __import__("time").time()
     try:
         result = await check_database_health()

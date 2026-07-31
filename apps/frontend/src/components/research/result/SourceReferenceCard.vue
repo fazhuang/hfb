@@ -19,11 +19,7 @@
       <!-- Internal document route (preferred) -->
       <div v-if="hasInternalRoute" class="esrc-field">
         <span class="esrc-field-label">查看原文</span>
-        <router-link
-          v-if="internalRoute"
-          :to="internalRoute"
-          class="esrc-link esrc-link--internal"
-        >
+        <router-link v-if="internalRoute" :to="internalRoute" class="esrc-link esrc-link--internal">
           打开原文 →
         </router-link>
       </div>
@@ -31,12 +27,7 @@
       <!-- External link (fallback, only when no internal route) -->
       <div v-else-if="safeSourceUrl" class="esrc-field">
         <span class="esrc-field-label">原文链接</span>
-        <a
-          :href="safeSourceUrl"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="esrc-link"
-        >
+        <a :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="esrc-link">
           打开原文 →
         </a>
       </div>

@@ -86,38 +86,41 @@ export interface TableColumn {
   render?: (row: Record<string, unknown>) => string;
 }
 
-const props = withDefaults(defineProps<{
-  columns: TableColumn[];
-  rows: Record<string, unknown>[];
-  loading?: boolean;
-  error?: string | null;
-  clickable?: boolean;
-  rowKey?: (row: Record<string, unknown>, index: number) => string | number;
-  /** Enhanced props */
-  sortable?: boolean;
-  sortKey?: string;
-  sortDirection?: 'asc' | 'desc';
-  selectable?: boolean;
-  selectedRows?: Array<string | number>;
-  striped?: boolean;
-  hoverable?: boolean;
-  bordered?: boolean;
-  dense?: boolean;
-  /**
-   * Allow render() to output raw HTML. Default false for safety.
-   * Enable ONLY for pre-existing consumers that return <span> badge markup.
-   * New code should use text-only render() with :html-render="false".
-   */
-  htmlRender?: boolean;
-  emptyMessage?: string;
-  loadingMessage?: string;
-}>(), {
-  hoverable: true,
-  sortDirection: undefined,
-  selectedRows: () => [],
-  emptyMessage: 'No data',
-  loadingMessage: 'Loading...',
-});
+const props = withDefaults(
+  defineProps<{
+    columns: TableColumn[];
+    rows: Record<string, unknown>[];
+    loading?: boolean;
+    error?: string | null;
+    clickable?: boolean;
+    rowKey?: (row: Record<string, unknown>, index: number) => string | number;
+    /** Enhanced props */
+    sortable?: boolean;
+    sortKey?: string;
+    sortDirection?: 'asc' | 'desc';
+    selectable?: boolean;
+    selectedRows?: Array<string | number>;
+    striped?: boolean;
+    hoverable?: boolean;
+    bordered?: boolean;
+    dense?: boolean;
+    /**
+     * Allow render() to output raw HTML. Default false for safety.
+     * Enable ONLY for pre-existing consumers that return <span> badge markup.
+     * New code should use text-only render() with :html-render="false".
+     */
+    htmlRender?: boolean;
+    emptyMessage?: string;
+    loadingMessage?: string;
+  }>(),
+  {
+    hoverable: true,
+    sortDirection: undefined,
+    selectedRows: () => [],
+    emptyMessage: 'No data',
+    loadingMessage: 'Loading...',
+  },
+);
 
 const emit = defineEmits<{
   rowClick: [row: Record<string, unknown>];
@@ -127,20 +130,26 @@ const emit = defineEmits<{
   'update:sortDirection': [dir: 'asc' | 'desc' | undefined];
 }>();
 
-const tableClass = computed(() => [
-  'hfb-table',
-  props.striped ? 'hfb-table--striped' : '',
-  props.hoverable ? 'hfb-table--hoverable' : '',
-  props.clickable ? 'hfb-table--clickable' : '',
-  props.bordered ? 'hfb-table--bordered' : '',
-  props.dense ? 'hfb-table--dense' : '',
-].filter(Boolean).join(' '));
+const tableClass = computed(() =>
+  [
+    'hfb-table',
+    props.striped ? 'hfb-table--striped' : '',
+    props.hoverable ? 'hfb-table--hoverable' : '',
+    props.clickable ? 'hfb-table--clickable' : '',
+    props.bordered ? 'hfb-table--bordered' : '',
+    props.dense ? 'hfb-table--dense' : '',
+  ]
+    .filter(Boolean)
+    .join(' '),
+);
 
 function thClass(col: TableColumn) {
   return [
     props.sortable && col.sortable !== false ? 'hfb-table__th--sortable' : '',
     col.key === props.sortKey ? 'hfb-table__th--sorted' : '',
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 function getSortIcon(key: string): string {
@@ -150,12 +159,13 @@ function getSortIcon(key: string): string {
 
 function getAriaSort(key: string): 'none' | 'ascending' | 'descending' | undefined {
   if (key !== props.sortKey) return undefined;
-  return props.sortDirection === 'asc' ? 'ascending' as const : 'descending' as const;
+  return props.sortDirection === 'asc' ? ('ascending' as const) : ('descending' as const);
 }
 
 function onSort(key: string) {
   if (props.sortKey === key) {
-    const next = props.sortDirection === 'asc' ? 'desc' : props.sortDirection === 'desc' ? undefined : 'asc';
+    const next =
+      props.sortDirection === 'asc' ? 'desc' : props.sortDirection === 'desc' ? undefined : 'asc';
     emit('update:sortDirection', next);
     if (!next) emit('update:sortKey', '');
   } else {
@@ -166,9 +176,7 @@ function onSort(key: string) {
 }
 
 // Selection
-const allSelected = computed(() =>
-  props.rows.length > 0 && props.rows.every(r => isSelected(r))
-);
+const allSelected = computed(() => props.rows.length > 0 && props.rows.every((r) => isSelected(r)));
 
 function isSelected(row: Record<string, unknown>): boolean {
   const key = getRowKey(row);
@@ -186,7 +194,7 @@ function getRowKey(row: Record<string, unknown>): string | number {
 function toggleRow(row: Record<string, unknown>) {
   const key = getRowKey(row);
   const updated = isSelected(row)
-    ? props.selectedRows!.filter(r => r !== key)
+    ? props.selectedRows!.filter((r) => r !== key)
     : [...props.selectedRows!, key];
   emit('update:selectedRows', updated);
 }
@@ -195,14 +203,15 @@ function toggleAll() {
   if (allSelected.value) {
     emit('update:selectedRows', []);
   } else {
-    emit('update:selectedRows', props.rows.map((_r, _i) => getRowKey(_r)));
+    emit(
+      'update:selectedRows',
+      props.rows.map((_r, _i) => getRowKey(_r)),
+    );
   }
 }
 
 function rowClass(row: Record<string, unknown>) {
-  return [
-    isSelected(row) ? 'hfb-table__row--selected' : '',
-  ].filter(Boolean).join(' ');
+  return [isSelected(row) ? 'hfb-table__row--selected' : ''].filter(Boolean).join(' ');
 }
 </script>
 

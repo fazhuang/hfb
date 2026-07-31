@@ -21,7 +21,10 @@ function loadTheme(): Theme {
 
 function resolveTheme(value: Theme): 'light' | 'dark' {
   if (value === 'auto') {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches
+    ) {
       return 'dark';
     }
     return 'light';

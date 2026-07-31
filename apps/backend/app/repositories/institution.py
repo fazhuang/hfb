@@ -5,6 +5,7 @@ Extends BaseRepository with:
   - transition_status (validates via state machine before writing)
   - soft_delete (sets status=deleted + is_deleted + deleted_at in sync)
 """
+
 from __future__ import annotations
 
 from datetime import UTC, datetime

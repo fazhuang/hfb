@@ -1,9 +1,9 @@
 ---
-title: "Book Knowledge"
-version: "1.0"
-status: "Active"
-domain: "book"
-last_updated: "2026-06-24"
+title: 'Book Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'book'
+last_updated: '2026-06-24'
 ---
 
 # Book — 古籍知识

@@ -137,9 +137,10 @@ function classifyError(err: unknown): { status: number; message: string } {
  * Mirrors extractEvidenceFromSingleRun in useResearchWorkflow.ts.
  * Does NOT aggregate across runs — strict run-scoped isolation.
  */
-function extractEvidenceFromSingleRun(
-  run: Record<string, unknown>,
-): { evidence: Array<ResultEvidence>; citations: Array<ResultCitation> } {
+function extractEvidenceFromSingleRun(run: Record<string, unknown>): {
+  evidence: Array<ResultEvidence>;
+  citations: Array<ResultCitation>;
+} {
   const evidenceList: Array<ResultEvidence> = [];
   const citationList: Array<ResultCitation> = [];
   const evidenceSeen = new Set<string>();
@@ -431,8 +432,7 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
       const steps = targetRun.step_execution_trace as Array<Record<string, unknown>> | undefined;
 
       // Helper to find a specific step by name
-      const findStep = (name: string) =>
-        steps?.find((s) => (s.name as string) === name);
+      const findStep = (name: string) => steps?.find((s) => (s.name as string) === name);
 
       if (!steps || steps.length === 0) {
         // Rule 1: no run / no step trace
@@ -452,7 +452,10 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
           // Rule 4: non-report_generation critical step failed
           status.value = 'run-failed';
           statusMessage.value = '研究流程执行失败。';
-        } else if (reportStep && (reportStep.status === 'pending' || reportStep.status === 'running')) {
+        } else if (
+          reportStep &&
+          (reportStep.status === 'pending' || reportStep.status === 'running')
+        ) {
           // Rule 2: report_generation step not yet completed
           status.value = 'report-pending';
           statusMessage.value = '报告正在生成中，请稍后刷新查看。';
@@ -506,13 +509,14 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
 
       // Use real backend export endpoint with session/run authorization.
       // axios config for blob response.
-      const response = await api.get(
-        `/api/v4/research/session/${pid}/runs/${rid}/export`,
-        { responseType: 'blob', params: { format: 'markdown' } },
-      );
+      const response = await api.get(`/api/v4/research/session/${pid}/runs/${rid}/export`, {
+        responseType: 'blob',
+        params: { format: 'markdown' },
+      });
 
       // Extract filename from Content-Disposition header
-      const disposition = (response.headers as Record<string, string>)?.['content-disposition'] || '';
+      const disposition =
+        (response.headers as Record<string, string>)?.['content-disposition'] || '';
       const filenameMatch = disposition.match(/filename="?(.+?)"?$/);
       const filename = filenameMatch?.[1] || `hfb-research-report-${rid.slice(0, 8)}.md`;
 

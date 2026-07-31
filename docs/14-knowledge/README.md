@@ -1,14 +1,14 @@
 ---
-title: "Knowledge Package Index"
-version: "1.1"
-status: "Active"
-owner: "Domain Expert + AI Lead"
-last_updated: "2026-06-25"
-domain: "knowledge"
+title: 'Knowledge Package Index'
+version: '1.1'
+status: 'Active'
+owner: 'Domain Expert + AI Lead'
+last_updated: '2026-06-25'
+domain: 'knowledge'
 related:
-  - "docs/03-data/0302_Ontology_Specification.md"
-  - "docs/08-domain/0809_Master_Knowledge_Graph_Model.md"
-  - "docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md"
+  - 'docs/03-data/0302_Ontology_Specification.md'
+  - 'docs/08-domain/0809_Master_Knowledge_Graph_Model.md'
+  - 'docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md'
 ---
 
 # 14 Knowledge — 领域知识包
@@ -26,15 +26,15 @@ related:
 
 ## 知识域
 
-| 域 | 路径 | 说明 | 状态 |
-|---|---|---|---|
-| Person | [person/](person/) | 人物知识库 | Active |
-| Book | [book/](book/) | 古籍知识库 | Active |
-| Paper | [paper/](paper/) | 论文知识库 | Active |
-| Image | [image/](image/) | 图像知识规范 | Active |
-| OCR | [ocr/](ocr/) | OCR 处理规范 | Active |
-| Metadata | [metadata/](metadata/) | 元数据标准 | Active |
-| Ontology | [ontology/](ontology/) | 领域本体 | Active |
+| 域       | 路径                   | 说明         | 状态   |
+| -------- | ---------------------- | ------------ | ------ |
+| Person   | [person/](person/)     | 人物知识库   | Active |
+| Book     | [book/](book/)         | 古籍知识库   | Active |
+| Paper    | [paper/](paper/)       | 论文知识库   | Active |
+| Image    | [image/](image/)       | 图像知识规范 | Active |
+| OCR      | [ocr/](ocr/)           | OCR 处理规范 | Active |
+| Metadata | [metadata/](metadata/) | 元数据标准   | Active |
+| Ontology | [ontology/](ontology/) | 领域本体     | Active |
 
 ## AI 使用
 
@@ -52,11 +52,11 @@ AI 读取 Knowledge Package 的顺序：
 
 ## 关联目录
 
-| 目录 | 关系 | 说明 |
-|---|---|---|
-| [docs/03-data/](../03-data/) | 数据规范基础 | 知识建模遵循 Ontology、Entity、Relation |
-| [docs/08-domain/](../08-domain/) | 领域知识模型 | Person/Book/Version 等知识模型 |
-| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | MVP 数据边界 | 知识包以 HFB-PS-1709 数据范围为边界 |
+| 目录                                                               | 关系         | 说明                                    |
+| ------------------------------------------------------------------ | ------------ | --------------------------------------- |
+| [docs/03-data/](../03-data/)                                       | 数据规范基础 | 知识建模遵循 Ontology、Entity、Relation |
+| [docs/08-domain/](../08-domain/)                                   | 领域知识模型 | Person/Book/Version 等知识模型          |
+| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | MVP 数据边界 | 知识包以 HFB-PS-1709 数据范围为边界     |
 
 ---
 

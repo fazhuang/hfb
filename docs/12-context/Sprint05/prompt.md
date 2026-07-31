@@ -1,9 +1,9 @@
 ---
-title: "Sprint 05 — prompt"
-version: "1.0"
-status: "Pending"
-sprint: "Sprint 05"
-last_updated: "2026-06-24"
+title: 'Sprint 05 — prompt'
+version: '1.0'
+status: 'Pending'
+sprint: 'Sprint 05'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 05 — prompt

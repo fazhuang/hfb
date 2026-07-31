@@ -1,7 +1,7 @@
 # HFB Research Platform
 
 HFB is a digital humanities research platform centered on Huangfu Mi and the
-*Zhenjiu Jiayi Jing*. Its domain language prioritizes verifiable research
+_Zhenjiu Jiayi Jing_. Its domain language prioritizes verifiable research
 objects and evidence-backed scholarly work.
 
 ## Language

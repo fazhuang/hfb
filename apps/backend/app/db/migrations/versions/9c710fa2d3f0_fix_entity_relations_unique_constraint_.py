@@ -35,20 +35,24 @@ def upgrade() -> None:
     dialect_name = conn.dialect.name
 
     if dialect_name == "postgresql":
-        op.execute(sa.text(
-            "CREATE UNIQUE INDEX ix_entity_relations_active_dedup "
-            "ON entity_relations (source_entity_type, source_entity_id, "
-            "target_entity_type, target_entity_id, relation_type) "
-            "WHERE is_deleted = false"
-        ))
+        op.execute(
+            sa.text(
+                "CREATE UNIQUE INDEX ix_entity_relations_active_dedup "
+                "ON entity_relations (source_entity_type, source_entity_id, "
+                "target_entity_type, target_entity_id, relation_type) "
+                "WHERE is_deleted = false"
+            )
+        )
     else:
         # SQLite and others — use WHERE is_deleted = 0 (SQLite stores bool as int)
-        op.execute(sa.text(
-            "CREATE UNIQUE INDEX ix_entity_relations_active_dedup "
-            "ON entity_relations (source_entity_type, source_entity_id, "
-            "target_entity_type, target_entity_id, relation_type) "
-            "WHERE is_deleted = 0"
-        ))
+        op.execute(
+            sa.text(
+                "CREATE UNIQUE INDEX ix_entity_relations_active_dedup "
+                "ON entity_relations (source_entity_type, source_entity_id, "
+                "target_entity_type, target_entity_id, relation_type) "
+                "WHERE is_deleted = 0"
+            )
+        )
 
 
 def downgrade() -> None:

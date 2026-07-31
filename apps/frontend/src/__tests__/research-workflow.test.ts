@@ -62,7 +62,10 @@ function validComparisonResponse() {
           citation: '卷第一',
           evidence_complete: false,
           version: {
-            id: 'v1', name: '明刻本', repository: null, shelf_mark: null,
+            id: 'v1',
+            name: '明刻本',
+            repository: null,
+            shelf_mark: null,
           },
         },
         target: {
@@ -71,15 +74,16 @@ function validComparisonResponse() {
           citation: '卷第一',
           evidence_complete: false,
           version: {
-            id: 'v2', name: '宋刻本', repository: null, shelf_mark: null,
+            id: 'v2',
+            name: '宋刻本',
+            repository: null,
+            shelf_mark: null,
           },
         },
         comparison: {
           differences: 1,
           similarity_ratio: 0.85,
-          operations: [
-            { op: 'replace', source_text: '甲', target_text: '丙' },
-          ],
+          operations: [{ op: 'replace', source_text: '甲', target_text: '丙' }],
         },
       },
     },
@@ -125,9 +129,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
 
     // Verify all 3 sessions were probed
     const calls = mockGet.mock.calls.map((c: Array<string>) => c[0]) as Array<string>;
-    const comparisonCalls = calls.filter((u: string) =>
-      u.includes('/version-comparison'),
-    );
+    const comparisonCalls = calls.filter((u: string) => u.includes('/version-comparison'));
     expect(comparisonCalls).toHaveLength(3);
 
     // Page rendered with the valid comparison
@@ -158,9 +160,7 @@ describe('ResearchWorkflowView — restoreLatestWorkflow', () => {
     expect(text).toContain('检索条文');
 
     const calls = mockGet.mock.calls.map((c: Array<string>) => c[0]) as Array<string>;
-    const comparisonCalls = calls.filter((u: string) =>
-      u.includes('/version-comparison'),
-    );
+    const comparisonCalls = calls.filter((u: string) => u.includes('/version-comparison'));
     expect(comparisonCalls).toHaveLength(0);
   });
 

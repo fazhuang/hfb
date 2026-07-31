@@ -93,6 +93,7 @@ async def main():
         print(f"  Chunks: {result.chunk_count}")
         # Enable RAG on the test document for retrieval verification
         from app.models.document import Document
+
         doc = await session.get(Document, doc_id)
         if doc:
             doc.rag_enabled = True
@@ -160,7 +161,11 @@ async def main():
             {"did": doc_id},
         )
         active_chunks = r.scalar()
-        check("4d. Zero active chunks for withdrawn document", active_chunks == 0, f"count={active_chunks}")
+        check(
+            "4d. Zero active chunks for withdrawn document",
+            active_chunks == 0,
+            f"count={active_chunks}",
+        )
 
         # ---- Step 5: Verify NOT in retrieval after withdrawal ----
         print("\n[5/7] Verifying document NOT in retrieval after withdrawal...")
@@ -216,6 +221,7 @@ async def main():
 
         # Hard delete
         from app.repositories.document import DocumentRepository
+
         doc_repo = DocumentRepository(session)
         await doc_repo.hard_delete(doc_id2)
         await session.commit()

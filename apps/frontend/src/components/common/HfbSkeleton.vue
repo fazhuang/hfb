@@ -4,7 +4,10 @@
       <div
         v-for="i in lines"
         :key="i"
-        :class="['hfb-skeleton__line', animation !== 'none' ? `hfb-skeleton__line--${animation}` : '']"
+        :class="[
+          'hfb-skeleton__line',
+          animation !== 'none' ? `hfb-skeleton__line--${animation}` : '',
+        ]"
       />
     </div>
   </template>
@@ -22,22 +25,27 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
-const props = withDefaults(defineProps<{
-  variant?: 'text' | 'circle' | 'rect';
-  width?: string | number;
-  height?: string | number;
-  /** Number of lines (text variant only, >1 renders a multi-line block) */
-  lines?: number;
-  animation?: 'pulse' | 'wave' | 'none';
-}>(), {
-  variant: 'text',
-  lines: 1,
-  animation: 'pulse',
-});
+const props = withDefaults(
+  defineProps<{
+    variant?: 'text' | 'circle' | 'rect';
+    width?: string | number;
+    height?: string | number;
+    /** Number of lines (text variant only, >1 renders a multi-line block) */
+    lines?: number;
+    animation?: 'pulse' | 'wave' | 'none';
+  }>(),
+  {
+    variant: 'text',
+    lines: 1,
+    animation: 'pulse',
+  },
+);
 
 const widthValue = computed((): string => {
-  if (props.width !== undefined) return typeof props.width === 'number' ? `${props.width}px` : props.width;
-  if (props.variant === 'circle') return props.height !== undefined ? cssValue(props.height) : '40px';
+  if (props.width !== undefined)
+    return typeof props.width === 'number' ? `${props.width}px` : props.width;
+  if (props.variant === 'circle')
+    return props.height !== undefined ? cssValue(props.height) : '40px';
   return '100%';
 });
 
@@ -58,7 +66,11 @@ const skeletonStyle = computed(() => ({
 }));
 
 const ariaLabel = computed(() => {
-  const labels = { text: 'Loading text...', circle: 'Loading avatar...', rect: 'Loading content...' };
+  const labels = {
+    text: 'Loading text...',
+    circle: 'Loading avatar...',
+    rect: 'Loading content...',
+  };
   return labels[props.variant];
 });
 </script>

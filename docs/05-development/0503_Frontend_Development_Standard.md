@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Frontend Development Standard
+
 ## 前端开发规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》前端开发的统一标准。
@@ -50,15 +51,15 @@ related_documents:
 
 统一采用：
 
-| 模块 | 技术 |
-|------|------|
-| Framework | Vue 3 |
-| Language | TypeScript |
-| Build | Vite |
-| Router | Vue Router |
-| State | Pinia |
-| HTTP | Axios |
-| UI | 自研 Design System |
+| 模块      | 技术               |
+| --------- | ------------------ |
+| Framework | Vue 3              |
+| Language  | TypeScript         |
+| Build     | Vite               |
+| Router    | Vue Router         |
+| State     | Pinia              |
+| HTTP      | Axios              |
+| UI        | 自研 Design System |
 
 未经 ADR 不得更换。
 
@@ -450,13 +451,13 @@ WCAG 2.1 AA。
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| 首屏加载 | ≤2 秒 |
-| 路由切换 | ≤300ms |
-| Lighthouse | ≥90 |
-| CLS | ≤0.1 |
-| LCP | ≤2.5s |
+| 指标       | 标准   |
+| ---------- | ------ |
+| 首屏加载   | ≤2 秒  |
+| 路由切换   | ≤300ms |
+| Lighthouse | ≥90    |
+| CLS        | ≤0.1   |
+| LCP        | ≤2.5s  |
 
 ---
 
@@ -512,6 +513,6 @@ Playwright（E2E）。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台前端开发统一规范。 |
+| Version | Date       | Description                          |
+| ------- | ---------- | ------------------------------------ |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台前端开发统一规范。 |

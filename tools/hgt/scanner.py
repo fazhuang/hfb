@@ -17,6 +17,7 @@ class ScanResult:
     missing_readmes: list[Path]
     known_duplicate_candidates: list[Path]
 
+
 def scan_docs(root: Path = DOCS_ROOT) -> ScanResult:
     if not root.exists():
         return ScanResult(False, [], [], [], {}, [], [], [])

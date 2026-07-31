@@ -1,9 +1,9 @@
 ---
-title: "Sprint 01 — review"
-version: "1.0"
-status: "Pending"
-sprint: "Sprint 01"
-last_updated: "2026-06-24"
+title: 'Sprint 01 — review'
+version: '1.0'
+status: 'Pending'
+sprint: 'Sprint 01'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 01 — review

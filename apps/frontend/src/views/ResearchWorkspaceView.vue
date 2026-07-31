@@ -1242,10 +1242,21 @@ async function sendMessage() {
                   score: (e.score as number) || 0,
                 }));
               }
-              if (se.graph_context && Array.isArray(se.graph_context) && se.graph_context.length > 0) {
+              if (
+                se.graph_context &&
+                Array.isArray(se.graph_context) &&
+                se.graph_context.length > 0
+              ) {
                 evidenceGraphData.value = {
-                  nodes: se.graph_context.flatMap((g: Record<string, unknown>) => [g.center, ...((g.neighbors as Array<unknown>) || [])]).filter(Boolean) as Array<{ id: string; type: string; label?: string }>,
-                  edges: se.graph_context.flatMap((g: Record<string, unknown>) => (g.edges as Array<unknown>) || []) as Array<{ source: string; target: string; evidence_ids?: string[] }>,
+                  nodes: se.graph_context
+                    .flatMap((g: Record<string, unknown>) => [
+                      g.center,
+                      ...((g.neighbors as Array<unknown>) || []),
+                    ])
+                    .filter(Boolean) as Array<{ id: string; type: string; label?: string }>,
+                  edges: se.graph_context.flatMap(
+                    (g: Record<string, unknown>) => (g.edges as Array<unknown>) || [],
+                  ) as Array<{ source: string; target: string; evidence_ids?: string[] }>,
                 };
               }
             }

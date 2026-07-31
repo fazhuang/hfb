@@ -81,7 +81,9 @@ describe('V4ResearchView', () => {
         },
       });
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { data: { runs: [{ run_id: 'run-1', output_artifacts: { markdown: '# Test Report' } }] } },
+      data: {
+        data: { runs: [{ run_id: 'run-1', output_artifacts: { markdown: '# Test Report' } }] },
+      },
     });
 
     const wrapper = mount(V4ResearchView, {
@@ -317,10 +319,16 @@ describe('V4ResearchView', () => {
             run_id: 'run-1',
             session_id: 'sess-1',
             steps: [
-              { name: 'topic_selection', status: 'completed',
-                result: { topic: 'xyz', sub_questions: 4 } },
-              { name: 'literature_retrieval', status: 'completed',
-                result: { themes: 0, records: 0 } },
+              {
+                name: 'topic_selection',
+                status: 'completed',
+                result: { topic: 'xyz', sub_questions: 4 },
+              },
+              {
+                name: 'literature_retrieval',
+                status: 'completed',
+                result: { themes: 0, records: 0 },
+              },
               { name: 'evidence_synthesis', status: 'pending' },
               { name: 'report_generation', status: 'pending' },
               { name: 'citation_export', status: 'pending' },
@@ -377,14 +385,16 @@ describe('V4ResearchView', () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
         data: {
-          runs: [{
-            run_id: 'run-2',
-            output_artifacts: { markdown: '# Test\n\n检索快照记录数: 0' },
-            step_execution_trace: [
-              { name: 'citation_export', status: 'completed', trace_ids: ['tid-1', 'tid-2'] },
-            ],
-            replay_manifest: null,
-          }],
+          runs: [
+            {
+              run_id: 'run-2',
+              output_artifacts: { markdown: '# Test\n\n检索快照记录数: 0' },
+              step_execution_trace: [
+                { name: 'citation_export', status: 'completed', trace_ids: ['tid-1', 'tid-2'] },
+              ],
+              replay_manifest: null,
+            },
+          ],
         },
       },
     });
@@ -425,32 +435,36 @@ describe('V4ResearchView', () => {
     (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: {
         data: {
-          runs: [{
-            run_id: 'run-3',
-            output_artifacts: { markdown: '# 研究报告：经络' },
-            replay_manifest: {
-              retrieval_snapshot: [
-                {
-                  trace_id: 'real-trace-001',
-                  document_id: 'doc-01',
-                  chunk_id: 'chk-01',
-                  claim_text: '经络是人体运行气血的通道',
-                  quote: '经络者，所以行血气而营阴阳。',
-                  citation_text: '[doc-01:chk-01]',
-                  source_ref_id: null,
-                },
-              ],
-              traces: [{
-                trace_id: 'real-trace-001',
-                document_id: 'doc-01',
-                chunk_id: 'chk-01',
-                passage_id: 'passage-01',
-                provenance_kind: 'retrieval',
-                retrieval_score: 0.95,
-                retrieval_method: 'ili_keyword_search',
-              }],
+          runs: [
+            {
+              run_id: 'run-3',
+              output_artifacts: { markdown: '# 研究报告：经络' },
+              replay_manifest: {
+                retrieval_snapshot: [
+                  {
+                    trace_id: 'real-trace-001',
+                    document_id: 'doc-01',
+                    chunk_id: 'chk-01',
+                    claim_text: '经络是人体运行气血的通道',
+                    quote: '经络者，所以行血气而营阴阳。',
+                    citation_text: '[doc-01:chk-01]',
+                    source_ref_id: null,
+                  },
+                ],
+                traces: [
+                  {
+                    trace_id: 'real-trace-001',
+                    document_id: 'doc-01',
+                    chunk_id: 'chk-01',
+                    passage_id: 'passage-01',
+                    provenance_kind: 'retrieval',
+                    retrieval_score: 0.95,
+                    retrieval_method: 'ili_keyword_search',
+                  },
+                ],
+              },
             },
-          }],
+          ],
         },
       },
     });

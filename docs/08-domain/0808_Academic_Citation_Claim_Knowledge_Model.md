@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Academic Citation & Claim Knowledge Model
+
 ## 学术引文与学术观点知识模型
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的**学术观点（Claim）—证据（Evidence）—引文（Citation）**知识模型。
@@ -106,15 +107,15 @@ Claim 是平台一级知识实体。
 
 统一字段：
 
-| 字段 | 说明 |
-|------|------|
-| id | UUID |
-| claim_code | 观点编号 |
-| title | 观点标题 |
-| statement | 完整观点 |
-| confidence | 可信度 |
-| status | 学术状态 |
-| paper_id | 来源论文 |
+| 字段        | 说明     |
+| ----------- | -------- |
+| id          | UUID     |
+| claim_code  | 观点编号 |
+| title       | 观点标题 |
+| statement   | 完整观点 |
+| confidence  | 可信度   |
+| status      | 学术状态 |
+| paper_id    | 来源论文 |
 | metadata_id | Metadata |
 
 ---
@@ -164,14 +165,14 @@ Evidence 必须可追溯。
 
 统一：
 
-| 字段 | 内容 |
-|------|------|
-| evidence_id | UUID |
-| type | 类型 |
-| source | 来源 |
-| quotation | 引文 |
-| location | 定位信息 |
-| confidence | 可信度 |
+| 字段        | 内容     |
+| ----------- | -------- |
+| evidence_id | UUID     |
+| type        | 类型     |
+| source      | 来源     |
+| quotation   | 引文     |
+| location    | 定位信息 |
+| confidence  | 可信度   |
 
 ---
 
@@ -453,13 +454,13 @@ Consensus Score。
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| Claim 来源率 | 100% |
+| 指标              | 标准 |
+| ----------------- | ---- |
+| Claim 来源率      | 100% |
 | Evidence 可追溯率 | 100% |
 | Citation 标准化率 | 100% |
-| AI 引证完整率 | ≥99% |
-| 共识分析准确率 | ≥95% |
+| AI 引证完整率     | ≥99% |
+| 共识分析准确率    | ≥95% |
 
 ---
 
@@ -528,6 +529,6 @@ Consensus Score。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台学术观点、证据与引文知识模型统一规范。 |
+| Version | Date       | Description                                              |
+| ------- | ---------- | -------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台学术观点、证据与引文知识模型统一规范。 |

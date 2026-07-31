@@ -14,6 +14,7 @@ Core entities:
   - SourceRef, Evidence, Citation, EvidenceLevel  [Phase 2] Academic evidence
   - AcademicEntity, AcademicRelation, RelationConfidence, AcademicEntityType  [Phase 2] Academic relations
 """
+
 from __future__ import annotations
 
 from app.models.academic_evidence import Citation, Evidence, EvidenceLevel, SourceRef

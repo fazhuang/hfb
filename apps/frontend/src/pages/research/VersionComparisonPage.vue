@@ -9,11 +9,7 @@
       ]"
     >
       <template v-if="comparison" #actions>
-        <button
-          class="button button--secondary"
-          :disabled="exporting"
-          @click="exportRecord"
-        >
+        <button class="button button--secondary" :disabled="exporting" @click="exportRecord">
           {{ exporting ? '导出中...' : '导出 Markdown' }}
         </button>
       </template>
@@ -23,10 +19,7 @@
       <!-- ============================================================ -->
       <!-- Page-level states -->
       <!-- ============================================================ -->
-      <LoadingState
-        v-if="sessionLoading"
-        message="正在加载研究课题..."
-      />
+      <LoadingState v-if="sessionLoading" message="正在加载研究课题..." />
 
       <EmptyState
         v-else-if="notFound"
@@ -35,9 +28,7 @@
         icon="🔍"
       >
         <template #action>
-          <router-link to="/research" class="vc-back-link">
-            返回研究课题列表
-          </router-link>
+          <router-link to="/research" class="vc-back-link"> 返回研究课题列表 </router-link>
         </template>
       </EmptyState>
 

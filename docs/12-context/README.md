@@ -1,14 +1,14 @@
 ---
-title: "Context Package Index"
-version: "1.1"
-status: "Active"
-owner: "Chief Documentation Architect"
-last_updated: "2026-06-25"
-domain: "documentation"
+title: 'Context Package Index'
+version: '1.1'
+status: 'Active'
+owner: 'Chief Documentation Architect'
+last_updated: '2026-06-25'
+domain: 'documentation'
 related:
-  - "docs/README.md"
-  - "docs/00-governance/0005_AI_Execution_Protocol.md"
-  - "docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md"
+  - 'docs/README.md'
+  - 'docs/00-governance/0005_AI_Execution_Protocol.md'
+  - 'docs/17-Platform-Specifications/1709_MVP_Implementation_Specification.md'
 ---
 
 # 12 Context — AI 上下文包
@@ -46,15 +46,15 @@ Context Package：每个 Sprint 一个目录，7 份文件覆盖全部维度，A
 
 ## Sprint 列表
 
-| Sprint | 主题 | 状态 |
-|---|---|---|
-| [Sprint 00](Sprint00/) | 文档奠基 | Active |
-| [Sprint 01](Sprint01/) | 基础骨架 | Pending |
-| [Sprint 02](Sprint02/) | 核心领域 | Pending |
-| [Sprint 03](Sprint03/) | AI 集成 | Pending |
-| [Sprint 04](Sprint04/) | UI 完善 | Pending |
-| [Sprint 05](Sprint05/) | 验收上线 | Pending |
-| [Sprint 06–16](Sprint06/) | 后续 | Pending |
+| Sprint                    | 主题     | 状态    |
+| ------------------------- | -------- | ------- |
+| [Sprint 00](Sprint00/)    | 文档奠基 | Active  |
+| [Sprint 01](Sprint01/)    | 基础骨架 | Pending |
+| [Sprint 02](Sprint02/)    | 核心领域 | Pending |
+| [Sprint 03](Sprint03/)    | AI 集成  | Pending |
+| [Sprint 04](Sprint04/)    | UI 完善  | Pending |
+| [Sprint 05](Sprint05/)    | 验收上线 | Pending |
+| [Sprint 06–16](Sprint06/) | 后续     | Pending |
 
 ## 每 Sprint 的文件结构
 
@@ -72,6 +72,7 @@ SprintNN/
 ## MVP 上下文约束
 
 依据 [HFB-PS-1709](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md)：
+
 - Sprint 1–10 为 MVP 阶段，上下文包聚焦于 HFB-PS-1709 定义的 11 个模块
 - 超出 MVP 范围的功能不进入当前 Sprint Context
 

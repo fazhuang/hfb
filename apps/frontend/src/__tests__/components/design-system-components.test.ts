@@ -62,7 +62,8 @@ import ErrorState from '@/components/common/ErrorState.vue';
 
 function hasClass(wrapper: VueWrapper | DOMWrapper<Element>, className: string): boolean {
   const classes = wrapper.classes();
-  if (typeof classes === 'function') return (classes as () => Array<string>)().some((c: string) => c.includes(className));
+  if (typeof classes === 'function')
+    return (classes as () => Array<string>)().some((c: string) => c.includes(className));
   return (classes as Array<string>).some((c: string) => c.includes(className));
 }
 
@@ -110,7 +111,10 @@ describe('HfbButton — States & Accessibility', () => {
   });
 
   it('loading disables interactivity regardless of disabled prop', () => {
-    const wrapper = mount(HfbButton, { props: { loading: true, disabled: false }, slots: { default: 'X' } });
+    const wrapper = mount(HfbButton, {
+      props: { loading: true, disabled: false },
+      slots: { default: 'X' },
+    });
     expect(wrapper.attributes('disabled')).toBeDefined();
   });
 
@@ -706,7 +710,7 @@ describe('HfbDropdown — States & Accessibility', () => {
     await nextTick();
     // Find disabled item (Item C)
     const allButtons = wrapper.findAll('button');
-    const disabledBtn = allButtons.find(b => b.attributes('disabled') !== undefined);
+    const disabledBtn = allButtons.find((b) => b.attributes('disabled') !== undefined);
     expect(disabledBtn).toBeTruthy();
   });
 
@@ -840,7 +844,7 @@ describe('HfbPagination — States & Accessibility', () => {
       props: { page: 2, totalPages: 5 },
     });
     const pageBtns = wrapper.findAll('.hfb-pagination__btn');
-    const pageBtn = pageBtns.find(b => b.text() === '3');
+    const pageBtn = pageBtns.find((b) => b.text() === '3');
     if (pageBtn) {
       await pageBtn.trigger('click');
       expect(wrapper.emitted('update:page')?.[0]).toEqual([3]);
@@ -1016,7 +1020,7 @@ describe('Design Token Contrast — Component States', () => {
   }
 
   function relativeLuminance(r: number, g: number, b: number): number {
-    const vals = [r, g, b].map(c => {
+    const vals = [r, g, b].map((c) => {
       const s = c / 255;
       return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
     });

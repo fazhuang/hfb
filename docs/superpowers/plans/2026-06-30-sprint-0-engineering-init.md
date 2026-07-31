@@ -132,14 +132,14 @@ hfb/
 
 ### 1.3 New Module Definitions
 
-| Path | Responsibility | Module Boundary | Dependency Rules |
-|------|---------------|-----------------|------------------|
-| `app/ports/` | Abstract interfaces (Protocol/ABC) for L3→L4 and L3→L5 communication | Pure Python, no framework imports, no DB imports | Imported by services and adapters. Never imports from adapters. |
-| `app/adapters/` | Concrete implementations of ports — LLM Gateway, PG Knowledge repo, PG Search repo | May import httpx, SQLAlchemy, elasticsearch | Implements ports. Never imported by domain services directly. |
-| `services/` | Future independent service stubs (Post-MVP) | Empty now, `.gitkeep` only | No import from apps/ |
-| `knowledge_graph/` | Future Neo4j sync worker stubs (Post-MVP) | Empty now | Post-MVP only |
-| `rag/` | Future RAG engine stubs (Post-MVP) | Empty now | Post-MVP only |
-| `ai_pipeline/` | Future AI pipeline stubs (Post-MVP) | Empty now | Post-MVP only |
+| Path               | Responsibility                                                                     | Module Boundary                                  | Dependency Rules                                                |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
+| `app/ports/`       | Abstract interfaces (Protocol/ABC) for L3→L4 and L3→L5 communication               | Pure Python, no framework imports, no DB imports | Imported by services and adapters. Never imports from adapters. |
+| `app/adapters/`    | Concrete implementations of ports — LLM Gateway, PG Knowledge repo, PG Search repo | May import httpx, SQLAlchemy, elasticsearch      | Implements ports. Never imported by domain services directly.   |
+| `services/`        | Future independent service stubs (Post-MVP)                                        | Empty now, `.gitkeep` only                       | No import from apps/                                            |
+| `knowledge_graph/` | Future Neo4j sync worker stubs (Post-MVP)                                          | Empty now                                        | Post-MVP only                                                   |
+| `rag/`             | Future RAG engine stubs (Post-MVP)                                                 | Empty now                                        | Post-MVP only                                                   |
+| `ai_pipeline/`     | Future AI pipeline stubs (Post-MVP)                                                | Empty now                                        | Post-MVP only                                                   |
 
 ---
 
@@ -188,6 +188,7 @@ Current `apps/backend/app/core/config.py` uses Pydantic `BaseSettings`. Required
 ```
 
 **Sprint-0 audit tasks:**
+
 - Verify all routes return unified `{success, timestamp, data, message}` envelope
 - Verify all routes have appropriate `require_permission` guards
 - Verify error responses go through unified exception handlers (not individual try/except in controllers)
@@ -197,6 +198,7 @@ Current `apps/backend/app/core/config.py` uses Pydantic `BaseSettings`. Required
 Current state: `User`, `Role`, `Permission` models exist. `require_permission(resource, action)` decorator works for AI and Workspace routes.
 
 **Sprint-0 additions:**
+
 - No new RBAC features. Re-audit existing guards.
 - Add `X-Request-ID` middleware for trace propagation.
 - Add request access log middleware (method, path, status, user_id, duration_ms).
@@ -206,6 +208,7 @@ Current state: `User`, `Role`, `Permission` models exist. `require_permission(re
 Current: `app/core/logging.py` — basic logger.
 
 **Sprint-0 upgrades:**
+
 1. Structured JSON logging (logfmt or JSON lines)
 2. Every log line includes: `request_id`, `user_id`, `timestamp`, `level`, `message`
 3. `request_id` propagation: inbound HTTP header → context variable → outbound (to PG/ES/AI)
@@ -215,12 +218,13 @@ Current: `app/core/logging.py` — basic logger.
 
 Two distinct audit streams (per HFB-ARC-0203 §8.4):
 
-| Stream | Purpose | Retention | Immutable |
-|--------|---------|-----------|-----------|
-| Request Access Log | HTTP access log (method, path, status, user_id, duration) | 90 days | No |
-| Business Audit Log | Entity/Relation lifecycle changes (CREATE, REVIEW, PUBLISH, etc.) | ≥ 5 years | Yes |
+| Stream             | Purpose                                                           | Retention | Immutable |
+| ------------------ | ----------------------------------------------------------------- | --------- | --------- |
+| Request Access Log | HTTP access log (method, path, status, user_id, duration)         | 90 days   | No        |
+| Business Audit Log | Entity/Relation lifecycle changes (CREATE, REVIEW, PUBLISH, etc.) | ≥ 5 years | Yes       |
 
 **Sprint-0 implementation:**
+
 1. `AuditMixin` base class: `created_by`, `created_at`, `updated_by`, `updated_at` — add to all models lacking it
 2. `BusinessAuditLog` model and migration
 3. Request access logging middleware (separate from business audit)
@@ -228,6 +232,7 @@ Two distinct audit streams (per HFB-ARC-0203 §8.4):
 ### 2.6 Unified Error Handling
 
 **Sprint-0 implementation:**
+
 ```python
 # app/core/error_handlers.py — register on FastAPI app
 
@@ -251,18 +256,18 @@ Two distinct audit streams (per HFB-ARC-0203 §8.4):
 
 ### 3.1 Schema Bootstrap Order
 
-| Order | Table(s) | Status | Migration |
-|-------|----------|--------|-----------|
-| 1 | `users`, `roles`, `permissions`, `user_roles` | ✅ Existing | `221e630d3f7b` |
-| 2 | `persons`, `books`, `versions`, `chapters`, `passages` | ✅ Existing | Same |
-| 3 | `papers`, `images`, `documents` | ✅ Existing | Same |
-| 4 | `entity_relations`, `version_relations`, `passage_mappings`, `version_diffs` | ✅ Existing | Same |
-| 5 | `research_sessions`, `research_notes` | ✅ Existing | Same |
-| 6 | `metadata` | 🆕 | New migration: `create_metadata_table` |
-| 7 | `evidence`, `relation_evidence`, `citation` | 🆕 | New migration: `create_evidence_tables` |
-| 8 | `business_audit_log` | 🆕 | New migration: `create_audit_log_table` |
-| 9 | `review_queue` | 🆕 | New migration: `create_review_queue_table` |
-| 10 | `graph_events` | 🆕 Post-MVP | Deferred per ADR-0004/0006 |
+| Order | Table(s)                                                                     | Status      | Migration                                  |
+| ----- | ---------------------------------------------------------------------------- | ----------- | ------------------------------------------ |
+| 1     | `users`, `roles`, `permissions`, `user_roles`                                | ✅ Existing | `221e630d3f7b`                             |
+| 2     | `persons`, `books`, `versions`, `chapters`, `passages`                       | ✅ Existing | Same                                       |
+| 3     | `papers`, `images`, `documents`                                              | ✅ Existing | Same                                       |
+| 4     | `entity_relations`, `version_relations`, `passage_mappings`, `version_diffs` | ✅ Existing | Same                                       |
+| 5     | `research_sessions`, `research_notes`                                        | ✅ Existing | Same                                       |
+| 6     | `metadata`                                                                   | 🆕          | New migration: `create_metadata_table`     |
+| 7     | `evidence`, `relation_evidence`, `citation`                                  | 🆕          | New migration: `create_evidence_tables`    |
+| 8     | `business_audit_log`                                                         | 🆕          | New migration: `create_audit_log_table`    |
+| 9     | `review_queue`                                                               | 🆕          | New migration: `create_review_queue_table` |
+| 10    | `graph_events`                                                               | 🆕 Post-MVP | Deferred per ADR-0004/0006                 |
 
 ### 3.2 Neo4j Initialization Strategy (Post-MVP)
 
@@ -288,12 +293,12 @@ alembic upgrade head
 
 **EMPTY SAFE SEED ONLY** — no production data in migrations.
 
-| Seed | Content | When |
-|------|---------|------|
-| `roles` | admin, editor, reviewer — fixed system roles | Migration seed |
-| `permissions` | ai.read, workspace.read, workspace.create — fixed permissions | Migration seed |
-| `users` | Single admin user from env vars (ADMIN_EMAIL, ADMIN_PASSWORD) | Migration seed |
-| Domain data | NO seed — loaded via admin API after deployment | Never in migration |
+| Seed          | Content                                                       | When               |
+| ------------- | ------------------------------------------------------------- | ------------------ |
+| `roles`       | admin, editor, reviewer — fixed system roles                  | Migration seed     |
+| `permissions` | ai.read, workspace.read, workspace.create — fixed permissions | Migration seed     |
+| `users`       | Single admin user from env vars (ADMIN_EMAIL, ADMIN_PASSWORD) | Migration seed     |
+| Domain data   | NO seed — loaded via admin API after deployment               | Never in migration |
 
 ---
 
@@ -411,14 +416,14 @@ Output: StructuredAIResponse {answer, evidence[], citations[], graph_context[]}
 
 Six assistants defined in HFB-ARC-0203 §3.2 Module 5:
 
-| Assistant | Pipeline Input | Pipeline Output | Status |
-|-----------|---------------|-----------------|--------|
-| 文献综述 | research topic string | topic classification, key papers, gaps, suggested titles | Post-MVP |
-| 证据链 | passage/entity reference | original text, related passages, citations, modern interpretations | Post-MVP |
-| 版本比较 | two version IDs | text diff, chapter diff, term diff, collation suggestions | Post-MVP |
-| 论文选题 | research area | suggested topics, innovation points, literature basis, methodology | Post-MVP |
-| 教学问答 | student question | plain-language answer, flashcard, quiz question | Post-MVP |
-| 学术审校 | paper/claim text | citation accuracy report, evidence chain check, hallucination detection | Post-MVP |
+| Assistant | Pipeline Input           | Pipeline Output                                                         | Status   |
+| --------- | ------------------------ | ----------------------------------------------------------------------- | -------- |
+| 文献综述  | research topic string    | topic classification, key papers, gaps, suggested titles                | Post-MVP |
+| 证据链    | passage/entity reference | original text, related passages, citations, modern interpretations      | Post-MVP |
+| 版本比较  | two version IDs          | text diff, chapter diff, term diff, collation suggestions               | Post-MVP |
+| 论文选题  | research area            | suggested topics, innovation points, literature basis, methodology      | Post-MVP |
+| 教学问答  | student question         | plain-language answer, flashcard, quiz question                         | Post-MVP |
+| 学术审校  | paper/claim text         | citation accuracy report, evidence chain check, hallucination detection | Post-MVP |
 
 **MVP status:** None of the six assistants are implemented as independent pipelines. Current AI chat is a single general-purpose Q&A endpoint.
 
@@ -503,6 +508,7 @@ Post-MVP:
 ### Sprint 0 (THIS SPRINT — Engineering Initialization)
 
 **Goals:**
+
 - Harden the existing foundation before feature work continues
 - Establish Port/Adapter boundaries
 - Add audit infrastructure
@@ -512,27 +518,28 @@ Post-MVP:
 
 **Deliverables:**
 
-| # | Deliverable | File(s) | Verification |
-|---|-------------|---------|--------------|
-| 0.1 | Port interfaces defined | `app/ports/knowledge_repository.py`, `ai_service.py`, `search_repository.py` | All 3 ports are abstract (ABC/Protocol), no concrete imports |
-| 0.2 | Adapter stubs | `app/adapters/pg_knowledge.py`, `llm_gateway.py`, `pg_search.py` | Implements ports, registers in DI |
-| 0.3 | AuditMixin base class | `app/db/audit_mixin.py` | `created_by`, `created_at`, `updated_by`, `updated_at` columns |
-| 0.4 | Metadata table migration | `app/db/migrations/versions/` | `alembic upgrade head` succeeds |
-| 0.5 | Evidence + relation_evidence + citation table migration | Same | FK integrity verified |
-| 0.6 | BusinessAuditLog table migration | Same | Immutable log table created |
-| 0.7 | Unified error handlers | `app/core/error_handlers.py` | All exception types → unified envelope |
-| 0.8 | Request ID middleware | `app/middleware/request_id.py` | `X-Request-ID` in all responses |
-| 0.9 | Request access log middleware | `app/middleware/audit_logger.py` | Structured log per request |
-| 0.10 | Structured logging upgrade | `app/core/logging.py` | JSON output with request_id, user_id |
-| 0.11 | Compose variable hardening | `docker-compose.prod.yml` | ✅ Already done in prior remediation |
-| 0.12 | Readiness HTTP 503 | `app/api/ready.py` | ✅ Already done |
-| 0.13 | Config audit section | `app/core/config.py` | `AUDIT_RETENTION_DAYS`, `AUDIT_ENABLED` |
-| 0.14 | Future service stubs | `services/`, `knowledge_graph/`, `rag/`, `ai_pipeline/` | `.gitkeep` only |
-| 0.15 | Updated .env.example | `.env.example` | All new env vars documented |
+| #    | Deliverable                                             | File(s)                                                                      | Verification                                                   |
+| ---- | ------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| 0.1  | Port interfaces defined                                 | `app/ports/knowledge_repository.py`, `ai_service.py`, `search_repository.py` | All 3 ports are abstract (ABC/Protocol), no concrete imports   |
+| 0.2  | Adapter stubs                                           | `app/adapters/pg_knowledge.py`, `llm_gateway.py`, `pg_search.py`             | Implements ports, registers in DI                              |
+| 0.3  | AuditMixin base class                                   | `app/db/audit_mixin.py`                                                      | `created_by`, `created_at`, `updated_by`, `updated_at` columns |
+| 0.4  | Metadata table migration                                | `app/db/migrations/versions/`                                                | `alembic upgrade head` succeeds                                |
+| 0.5  | Evidence + relation_evidence + citation table migration | Same                                                                         | FK integrity verified                                          |
+| 0.6  | BusinessAuditLog table migration                        | Same                                                                         | Immutable log table created                                    |
+| 0.7  | Unified error handlers                                  | `app/core/error_handlers.py`                                                 | All exception types → unified envelope                         |
+| 0.8  | Request ID middleware                                   | `app/middleware/request_id.py`                                               | `X-Request-ID` in all responses                                |
+| 0.9  | Request access log middleware                           | `app/middleware/audit_logger.py`                                             | Structured log per request                                     |
+| 0.10 | Structured logging upgrade                              | `app/core/logging.py`                                                        | JSON output with request_id, user_id                           |
+| 0.11 | Compose variable hardening                              | `docker-compose.prod.yml`                                                    | ✅ Already done in prior remediation                           |
+| 0.12 | Readiness HTTP 503                                      | `app/api/ready.py`                                                           | ✅ Already done                                                |
+| 0.13 | Config audit section                                    | `app/core/config.py`                                                         | `AUDIT_RETENTION_DAYS`, `AUDIT_ENABLED`                        |
+| 0.14 | Future service stubs                                    | `services/`, `knowledge_graph/`, `rag/`, `ai_pipeline/`                      | `.gitkeep` only                                                |
+| 0.15 | Updated .env.example                                    | `.env.example`                                                               | All new env vars documented                                    |
 
 **Risk:** Existing tests may break due to new middleware or config changes. Run full test suite after each deliverable.
 
 **Acceptance Criteria:**
+
 - All 197 existing tests pass
 - New migrations apply cleanly
 - `GET /ready` returns 200 (when all services healthy)
@@ -547,20 +554,21 @@ Post-MVP:
 
 **Deliverables:**
 
-| # | Deliverable |
-|---|-------------|
-| 1.1 | Institution model + API |
-| 1.2 | Place model + API |
-| 1.3 | Event model + API |
-| 1.4 | Dynasty model + API |
+| #   | Deliverable                                                                     |
+| --- | ------------------------------------------------------------------------------- |
+| 1.1 | Institution model + API                                                         |
+| 1.2 | Place model + API                                                               |
+| 1.3 | Event model + API                                                               |
+| 1.4 | Dynasty model + API                                                             |
 | 1.5 | Status lifecycle enforcement (Draft→Review→Published) — app-layer state machine |
-| 1.6 | Graph node type expansion (Chapter, Paper, Image, Document → graph.py) |
-| 1.7 | Elasticsearch integration in SearchService (replace/coexist with ILIKE) |
-| 1.8 | Metadata CRUD (create metadata table + API) |
+| 1.6 | Graph node type expansion (Chapter, Paper, Image, Document → graph.py)          |
+| 1.7 | Elasticsearch integration in SearchService (replace/coexist with ILIKE)         |
+| 1.8 | Metadata CRUD (create metadata table + API)                                     |
 
 **Risk:** ES integration is first production use of ES in query path.
 
 **Acceptance Criteria:**
+
 - All 12 Core Entities have CRUD API
 - Published entities visible in unified search
 - ES returns relevant results with highlighting
@@ -574,19 +582,20 @@ Post-MVP:
 
 **Deliverables:**
 
-| # | Deliverable |
-|---|-------------|
-| 2.1 | Evidence CRUD API |
-| 2.2 | Citation CRUD API |
-| 2.3 | Relation evidence binding (link evidence to relation) |
-| 2.4 | ReviewService (Draft→Review→Published flow) |
-| 2.5 | Expert Workbench UI (basic: queue + approve/reject) |
-| 2.6 | BusinessAuditLog read API |
+| #   | Deliverable                                                  |
+| --- | ------------------------------------------------------------ |
+| 2.1 | Evidence CRUD API                                            |
+| 2.2 | Citation CRUD API                                            |
+| 2.3 | Relation evidence binding (link evidence to relation)        |
+| 2.4 | ReviewService (Draft→Review→Published flow)                  |
+| 2.5 | Expert Workbench UI (basic: queue + approve/reject)          |
+| 2.6 | BusinessAuditLog read API                                    |
 | 2.7 | Alias graph.py relation names to HFB-DAT-0305 standard names |
 
 **Risk:** Expert Workbench UI is first new frontend component since Sprint 0.
 
 **Acceptance Criteria:**
+
 - Published Relation forced to have ≥1 Evidence
 - Review queue shows pending entities/relations
 - Reviewer cannot approve their own submissions
@@ -600,17 +609,18 @@ Post-MVP:
 
 **Deliverables:**
 
-| # | Deliverable |
-|---|-------------|
+| #   | Deliverable                                                                |
+| --- | -------------------------------------------------------------------------- |
 | 3.1 | ES integrated into SearchService query path (if not completed in Sprint 1) |
-| 3.2 | Citation auto-generation from Passage metadata |
-| 3.3 | Huangfu Mi timeline page (static) |
-| 3.4 | Research workflow: find passage → compare → record note → export |
-| 3.5 | Production readiness checklist audit |
-| 3.6 | Security audit (OWASP, dependency scan) |
-| 3.7 | Performance baseline (k6 load test) |
+| 3.2 | Citation auto-generation from Passage metadata                             |
+| 3.3 | Huangfu Mi timeline page (static)                                          |
+| 3.4 | Research workflow: find passage → compare → record note → export           |
+| 3.5 | Production readiness checklist audit                                       |
+| 3.6 | Security audit (OWASP, dependency scan)                                    |
+| 3.7 | Performance baseline (k6 load test)                                        |
 
 **Acceptance Criteria (MVP Gate):**
+
 - All 5 MVP capabilities per HFB-ARC-0203 §9.2
 - All published relations have ≥1 evidence
 - All published entities have metadata
@@ -681,14 +691,14 @@ Post-MVP:
 
 Copied from HFB-ARC-0203. These are NOT Sprint-0 tasks; they track what's missing before production.
 
-| # | Gap | Severity | Target Sprint |
-|---|-----|----------|---------------|
-| PG-1 | No `metadata` table | High | Sprint 0 ✓ |
-| PG-2 | No `relation_evidence` table | High | Sprint 0 ✓ |
-| PG-3 | No `graph_events` outbox | Medium | Post-MVP |
-| PG-4 | No task queue (Celery/ARQ) | Medium | Post-MVP |
-| PG-5 | ES not in SearchService query path | Medium | Sprint 1 |
-| PG-6 | Backup RPO/RTO not met | High | Sprint 3 |
-| PG-7 | No ReviewService implementation | High | Sprint 2 |
-| PG-8 | Redis/MinIO runtime health not verified | Medium | Sprint 0 (verify in compose) |
-| PG-9 | Neo4j not deployed | Post-MVP | Post-MVP |
+| #    | Gap                                     | Severity | Target Sprint                |
+| ---- | --------------------------------------- | -------- | ---------------------------- |
+| PG-1 | No `metadata` table                     | High     | Sprint 0 ✓                   |
+| PG-2 | No `relation_evidence` table            | High     | Sprint 0 ✓                   |
+| PG-3 | No `graph_events` outbox                | Medium   | Post-MVP                     |
+| PG-4 | No task queue (Celery/ARQ)              | Medium   | Post-MVP                     |
+| PG-5 | ES not in SearchService query path      | Medium   | Sprint 1                     |
+| PG-6 | Backup RPO/RTO not met                  | High     | Sprint 3                     |
+| PG-7 | No ReviewService implementation         | High     | Sprint 2                     |
+| PG-8 | Redis/MinIO runtime health not verified | Medium   | Sprint 0 (verify in compose) |
+| PG-9 | Neo4j not deployed                      | Post-MVP | Post-MVP                     |

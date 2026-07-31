@@ -12,7 +12,9 @@ import sys
 from pathlib import Path
 
 _root = str(Path(__file__).resolve().parent.parent)
-os.environ["PYTHONPATH"] = f"{_root}/apps/backend:{_root}/packages:{os.environ.get('PYTHONPATH', '')}"
+os.environ["PYTHONPATH"] = (
+    f"{_root}/apps/backend:{_root}/packages:{os.environ.get('PYTHONPATH', '')}"
+)
 sys.path.insert(0, f"{_root}/apps/backend")
 sys.path.insert(0, f"{_root}/packages")
 
@@ -47,14 +49,21 @@ TRIAL_QUERIES = [
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Run literature ingestion")
-    p.add_argument("--live", action="store_true",
-                   help="Actually write to DB (default: dry-run, no writes)")
+    p.add_argument(
+        "--live",
+        action="store_true",
+        help="Actually write to DB (default: dry-run, no writes)",
+    )
     p.add_argument("--source", type=str, choices=list(SOURCES.keys()), default=None)
     p.add_argument("--query", type=str, default=None)
-    p.add_argument("--page", type=int, default=1,
-                   help="Pages per source per query (default: 1)")
-    p.add_argument("--db-url", type=str,
-                   default=os.getenv("DATABASE_URL", "sqlite+aiosqlite:///ingestion_run.db"))
+    p.add_argument(
+        "--page", type=int, default=1, help="Pages per source per query (default: 1)"
+    )
+    p.add_argument(
+        "--db-url",
+        type=str,
+        default=os.getenv("DATABASE_URL", "sqlite+aiosqlite:///ingestion_run.db"),
+    )
     p.add_argument("--json", dest="json_out", action="store_true")
     return p.parse_args()
 
@@ -72,27 +81,45 @@ async def main() -> int:
         await conn.run_sync(Base.metadata.create_all)
         await conn.exec_driver_sql("PRAGMA foreign_keys=ON")
 
-    async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = async_sessionmaker(
+        engine, class_=AsyncSession, expire_on_commit=False
+    )
 
     async with async_session() as session:
-        jobs = await ingest(session, queries=queries, sources=sources, max_pages=args.page)
+        jobs = await ingest(
+            session, queries=queries, sources=sources, max_pages=args.page
+        )
 
         for j in jobs:
             status = "OK" if j.success else "FAIL"
-            print(f"[{status}] {j.source:20s} | {j.query[:45]:45s} | "
-                  f"found={j.total_found:3d} new={j.new_added:3d} "
-                  f"dup={j.duplicates_skipped:3d} errs={j.error_count}")
+            print(
+                f"[{status}] {j.source:20s} | {j.query[:45]:45s} | "
+                f"found={j.total_found:3d} new={j.new_added:3d} "
+                f"dup={j.duplicates_skipped:3d} errs={j.error_count}"
+            )
             for e in j.errors:
                 print(f"       └─ {e}")
 
     if args.json_out:
-        print(json.dumps(
-            [{"source": j.source, "query": j.query, "success": j.success,
-              "total_found": j.total_found, "new_added": j.new_added,
-              "duplicates_skipped": j.duplicates_skipped, "error_count": j.error_count,
-              "errors": j.errors} for j in jobs],
-            ensure_ascii=False, indent=2,
-        ))
+        print(
+            json.dumps(
+                [
+                    {
+                        "source": j.source,
+                        "query": j.query,
+                        "success": j.success,
+                        "total_found": j.total_found,
+                        "new_added": j.new_added,
+                        "duplicates_skipped": j.duplicates_skipped,
+                        "error_count": j.error_count,
+                        "errors": j.errors,
+                    }
+                    for j in jobs
+                ],
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
     return 0
 
 
@@ -147,29 +174,58 @@ async def _dry_run(queries, sources, args):
             job.finish()
             jobs.append(job)
 
-            print(f"[{'OK' if job.success else 'FAIL'}] {job.source:20s} | "
-                  f"{job.query[:45]:45s} | found={job.total_found:3d} "
-                  f"new={job.new_added:3d} dup={job.duplicates_skipped:3d} "
-                  f"errs={job.error_count}")
+            print(
+                f"[{'OK' if job.success else 'FAIL'}] {job.source:20s} | "
+                f"{job.query[:45]:45s} | found={job.total_found:3d} "
+                f"new={job.new_added:3d} dup={job.duplicates_skipped:3d} "
+                f"errs={job.error_count}"
+            )
 
     total_found = sum(j.total_found for j in jobs)
     total_new = sum(j.new_added for j in jobs)
     ok_jobs = sum(1 for j in jobs if j.success)
 
-    print(f"\nDRY-RUN: {ok_jobs}/{len(jobs)} OK, {total_new} unique / {total_found} found. "
-          "No data written. Use --live to persist.")
+    print(
+        f"\nDRY-RUN: {ok_jobs}/{len(jobs)} OK, {total_new} unique / {total_found} found. "
+        "No data written. Use --live to persist."
+    )
 
     if args.json_out:
-        print(json.dumps({
-            "mode": "dry-run", "total_found": total_found, "total_new": total_new,
-            "jobs_ok": ok_jobs, "jobs_total": len(jobs),
-            "jobs": [{"source": j.source, "query": j.query, "success": j.success,
-                      "total_found": j.total_found, "new_added": j.new_added,
-                      "duplicates_skipped": j.duplicates_skipped, "error_count": j.error_count,
-                      "errors": j.errors} for j in jobs],
-            "sample": [{"title": it.title, "source": it.source, "year": it.year,
-                        "source_url": it.source_url} for it in list(all_unique.values())[:10]],
-        }, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "mode": "dry-run",
+                    "total_found": total_found,
+                    "total_new": total_new,
+                    "jobs_ok": ok_jobs,
+                    "jobs_total": len(jobs),
+                    "jobs": [
+                        {
+                            "source": j.source,
+                            "query": j.query,
+                            "success": j.success,
+                            "total_found": j.total_found,
+                            "new_added": j.new_added,
+                            "duplicates_skipped": j.duplicates_skipped,
+                            "error_count": j.error_count,
+                            "errors": j.errors,
+                        }
+                        for j in jobs
+                    ],
+                    "sample": [
+                        {
+                            "title": it.title,
+                            "source": it.source,
+                            "year": it.year,
+                            "source_url": it.source_url,
+                        }
+                        for it in list(all_unique.values())[:10]
+                    ],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
 
     return 0
 

@@ -8,6 +8,7 @@ Phase 6: Knowledge Graph (entity relations, neighborhood, path finding).
 Phase 7: Unified Search (full-text ILIKE, autocomplete, reindex).
 Phase 8: AI Research Workspace (chat, summarize, translate, compare; sessions & notes).
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter

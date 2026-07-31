@@ -7,18 +7,16 @@
       <span class="ers-warning-icon" aria-hidden="true">⚠️</span>
       <div>
         <strong>未找到相关文献证据</strong>
-        <p>系统未能检索到与您的研究问题相关的文献证据。您仍然可以查看系统生成的报告，但其中的结论缺乏证据支持。</p>
+        <p>
+          系统未能检索到与您的研究问题相关的文献证据。您仍然可以查看系统生成的报告，但其中的结论缺乏证据支持。
+        </p>
       </div>
     </div>
 
     <!-- Evidence list -->
     <div v-else class="ers-summary-bar">
       <span>共找到 {{ evidence.length }} 条证据，{{ citations.length }} 条引用</span>
-      <button
-        type="button"
-        class="ers-action-btn"
-        @click="$emit('go-to-report')"
-      >
+      <button type="button" class="ers-action-btn" @click="$emit('go-to-report')">
         查看研究报告 →
       </button>
     </div>
@@ -53,9 +51,7 @@
           <span v-if="getLocatorText(ev)" class="ers-locator-hint">
             {{ getLocatorText(ev) }}
           </span>
-          <span v-else class="ers-locator-hint ers-locator-hint--incomplete">
-            来源定位不完整
-          </span>
+          <span v-else class="ers-locator-hint ers-locator-hint--incomplete"> 来源定位不完整 </span>
         </div>
 
         <!-- Lineage completeness indicator -->
@@ -70,10 +66,19 @@
           <button
             type="button"
             class="ers-item-action-btn"
-            :disabled="citationSaveState[ev.trace_id] === 'saving' || citationSaveState[ev.trace_id] === 'saved'"
+            :disabled="
+              citationSaveState[ev.trace_id] === 'saving' ||
+              citationSaveState[ev.trace_id] === 'saved'
+            "
             @click="$emit('save-citation', ev)"
           >
-            {{ citationSaveState[ev.trace_id] === 'saved' ? '已保存 ✓' : citationSaveState[ev.trace_id] === 'saving' ? '保存中...' : '保存引用' }}
+            {{
+              citationSaveState[ev.trace_id] === 'saved'
+                ? '已保存 ✓'
+                : citationSaveState[ev.trace_id] === 'saving'
+                  ? '保存中...'
+                  : '保存引用'
+            }}
           </button>
         </div>
       </li>

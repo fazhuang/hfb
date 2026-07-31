@@ -1,6 +1,8 @@
 <template>
   <div class="passage-reader">
-    <div v-if="loading" class="loading-state" role="status" aria-live="polite">{{ t('common.loading') }}</div>
+    <div v-if="loading" class="loading-state" role="status" aria-live="polite">
+      {{ t('common.loading') }}
+    </div>
     <div v-else-if="error" class="error-state" role="alert" aria-live="assertive">{{ error }}</div>
     <div v-else-if="passage" class="passage-content">
       <div class="passage-header">
@@ -49,13 +51,19 @@ interface PassageDetail {
   tags: string | null;
 }
 
-const { entity: passage, loading, error, fetch } = useEntityDetail<PassageDetail>(
-  (id) => `/api/v1/passages/${id}`,
-);
+const {
+  entity: passage,
+  loading,
+  error,
+  fetch,
+} = useEntityDetail<PassageDetail>((id) => `/api/v1/passages/${id}`);
 
 const tagList = computed(() => {
   if (!passage.value?.tags) return [];
-  return passage.value.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+  return passage.value.tags
+    .split(',')
+    .map((t: string) => t.trim())
+    .filter(Boolean);
 });
 
 onMounted(() => fetch(props.passageId));
@@ -162,7 +170,8 @@ onMounted(() => fetch(props.passageId));
   color: var(--color-text-muted);
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   text-align: center;
   padding: var(--space-15) 20px;
   color: var(--color-text-muted);

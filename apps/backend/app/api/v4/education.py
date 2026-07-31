@@ -5,6 +5,7 @@ P0: beginner filters citations/traces/source_docs consistently.
 P0: advanced source_comparison from verified evidence only.
 P0: V4 education DTO — never leaks internal trace fields.
 """
+
 from __future__ import annotations
 
 import json
@@ -112,11 +113,13 @@ def _build_education_public_data(result, level: str, evidence_traces) -> dict:
             did = t.document_id
             if did not in docs:
                 docs[did] = []
-            docs[did].append({
-                "claim_text": t.claim_text,
-                "chunk_id": t.chunk_id,
-                "trace_id": make_trace_id(t.document_id, t.chunk_id),
-            })
+            docs[did].append(
+                {
+                    "claim_text": t.claim_text,
+                    "chunk_id": t.chunk_id,
+                    "trace_id": make_trace_id(t.document_id, t.chunk_id),
+                }
+            )
 
         source_comparison = [
             {
@@ -173,7 +176,9 @@ async def education_learn(
 
     research_session = await ws.get_session(body.session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     academic = AcademicService(db)
     result = await academic.educate(query=body.topic)
@@ -202,7 +207,8 @@ async def education_learn(
 
     # Build full-fidelity internal traces with real retrieval snapshot
     internal_records = await build_internal_traces(
-        db, result.evidence_trace,
+        db,
+        result.evidence_trace,
         retrieval_snapshot=academic.last_snapshot,
     )
 
@@ -211,12 +217,15 @@ async def education_learn(
         session_id=body.session_id,
         query_text=body.topic,
         query_type="education",
-        result_summary=json.dumps({
-            "level": body.level,
-            "traces": [r.to_dict() for r in internal_records],
-            "citation_count": len(result.citations),
-            "source_documents": extract_source_documents(result.evidence_trace),
-        }, ensure_ascii=False),
+        result_summary=json.dumps(
+            {
+                "level": body.level,
+                "traces": [r.to_dict() for r in internal_records],
+                "citation_count": len(result.citations),
+                "source_documents": extract_source_documents(result.evidence_trace),
+            },
+            ensure_ascii=False,
+        ),
         citation_count=len(result.citations),
     )
 

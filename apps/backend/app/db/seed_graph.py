@@ -39,7 +39,10 @@ async def seed_graph(session: AsyncSession) -> dict[str, int]:
     """
     from datetime import datetime
 
-    counts: dict[str, int] = {"entity_relations_created": 0, "orphan_relations_deleted": 0}
+    counts: dict[str, int] = {
+        "entity_relations_created": 0,
+        "orphan_relations_deleted": 0,
+    }
 
     # ---- Step 1: Soft-delete all existing evidence-free EntityRelations ----
     # ponytail: old seed data without structured evidence gets soft-deleted,
@@ -165,46 +168,78 @@ async def seed_graph(session: AsyncSession) -> dict[str, int]:
 
     # Person → Book (authored)
     await _add_evidenced(
-        "person", "皇甫谧", "book", "针灸甲乙经", "authored",
+        "person",
+        "皇甫谧",
+        "book",
+        "针灸甲乙经",
+        "authored",
         ["皇甫谧", "针灸甲乙经"],
         "皇甫谧编撰《针灸甲乙经》",
     )
     await _add_evidenced(
-        "person", "张仲景", "book", "伤寒杂病论", "authored",
+        "person",
+        "张仲景",
+        "book",
+        "伤寒杂病论",
+        "authored",
         ["张仲景", "伤寒杂病论"],
         "张仲景著《伤寒杂病论》",
     )
     await _add_evidenced(
-        "person", "李时珍", "book", "本草纲目", "authored",
+        "person",
+        "李时珍",
+        "book",
+        "本草纲目",
+        "authored",
         ["李时珍", "本草纲目"],
         "李时珍著《本草纲目》",
     )
 
     # Person → Person (studied)
     await _add_evidenced(
-        "person", "李时珍", "person", "张仲景", "studied",
+        "person",
+        "李时珍",
+        "person",
+        "张仲景",
+        "studied",
         ["李时珍", "张仲景"],
         "李时珍对张仲景《伤寒论》有深入研究",
     )
     await _add_evidenced(
-        "person", "李时珍", "person", "皇甫谧", "studied",
+        "person",
+        "李时珍",
+        "person",
+        "皇甫谧",
+        "studied",
         ["李时珍", "皇甫谧"],
         "李时珍引用皇甫谧《针灸甲乙经》的腧穴体系",
     )
 
     # Book → Book (cited_in)
     await _add_evidenced(
-        "book", "本草纲目", "book", "伤寒杂病论", "cited_in",
+        "book",
+        "本草纲目",
+        "book",
+        "伤寒杂病论",
+        "cited_in",
         ["本草纲目", "伤寒杂病论"],
         "《本草纲目》引用《伤寒杂病论》方剂",
     )
     await _add_evidenced(
-        "book", "本草纲目", "book", "针灸甲乙经", "cited_in",
+        "book",
+        "本草纲目",
+        "book",
+        "针灸甲乙经",
+        "cited_in",
         ["本草纲目", "针灸甲乙经"],
         "《本草纲目》引用《针灸甲乙经》腧穴",
     )
     await _add_evidenced(
-        "book", "针灸甲乙经", "book", "伤寒杂病论", "cited_in",
+        "book",
+        "针灸甲乙经",
+        "book",
+        "伤寒杂病论",
+        "cited_in",
         ["针灸甲乙经", "伤寒杂病论"],
         "《针灸甲乙经》参考《伤寒杂病论》辨证体系",
     )

@@ -2,12 +2,7 @@
   <div class="rrt-root" role="toolbar" aria-label="报告筛选工具栏">
     <div class="rrt-filter-group">
       <label for="report-status-filter" class="rrt-label">状态筛选</label>
-      <select
-        id="report-status-filter"
-        class="rrt-select"
-        :value="statusFilter"
-        @change="onChange"
-      >
+      <select id="report-status-filter" class="rrt-select" :value="statusFilter" @change="onChange">
         <option value="">全部</option>
         <option value="ready">报告就绪</option>
         <option value="missing">报告缺失</option>

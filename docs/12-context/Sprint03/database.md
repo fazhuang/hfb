@@ -1,9 +1,9 @@
 ---
-title: "Sprint 03 — database"
-version: "1.0"
-status: "Pending"
-sprint: "Sprint 03"
-last_updated: "2026-06-24"
+title: 'Sprint 03 — database'
+version: '1.0'
+status: 'Pending'
+sprint: 'Sprint 03'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 03 — database

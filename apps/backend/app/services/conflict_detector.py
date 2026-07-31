@@ -16,23 +16,25 @@ from app.models.graph import EntityRelation
 from app.schemas.graph import EvidenceChainPath
 
 # TCM incompatibility pairs: herbs that must not be combined
-_EIGHTEEN_ANTAGONISMS: set[frozenset[str]] = frozenset({
-    frozenset({"甘草", "甘遂"}),
-    frozenset({"甘草", "大戟"}),
-    frozenset({"甘草", "海藻"}),
-    frozenset({"甘草", "芫花"}),
-    frozenset({"乌头", "贝母"}),
-    frozenset({"乌头", "瓜蒌"}),
-    frozenset({"乌头", "半夏"}),
-    frozenset({"乌头", "白蔹"}),
-    frozenset({"乌头", "白及"}),
-    frozenset({"藜芦", "人参"}),
-    frozenset({"藜芦", "沙参"}),
-    frozenset({"藜芦", "丹参"}),
-    frozenset({"藜芦", "玄参"}),
-    frozenset({"藜芦", "细辛"}),
-    frozenset({"藜芦", "芍药"}),
-})
+_EIGHTEEN_ANTAGONISMS: set[frozenset[str]] = frozenset(
+    {
+        frozenset({"甘草", "甘遂"}),
+        frozenset({"甘草", "大戟"}),
+        frozenset({"甘草", "海藻"}),
+        frozenset({"甘草", "芫花"}),
+        frozenset({"乌头", "贝母"}),
+        frozenset({"乌头", "瓜蒌"}),
+        frozenset({"乌头", "半夏"}),
+        frozenset({"乌头", "白蔹"}),
+        frozenset({"乌头", "白及"}),
+        frozenset({"藜芦", "人参"}),
+        frozenset({"藜芦", "沙参"}),
+        frozenset({"藜芦", "丹参"}),
+        frozenset({"藜芦", "玄参"}),
+        frozenset({"藜芦", "细辛"}),
+        frozenset({"藜芦", "芍药"}),
+    }
+)
 
 # Acupuncture contraindication keywords
 _ACUPUNCTURE_CONTRA_KEYWORDS: dict[str, str] = {
@@ -89,17 +91,29 @@ class ConflictDetector:
 
         for path in paths:
             for hop in path.hops:
-                forward = (hop.source_type, hop.source_id, hop.target_type, hop.target_id)
-                reverse = (hop.target_type, hop.target_id, hop.source_type, hop.source_id)
+                forward = (
+                    hop.source_type,
+                    hop.source_id,
+                    hop.target_type,
+                    hop.target_id,
+                )
+                reverse = (
+                    hop.target_type,
+                    hop.target_id,
+                    hop.source_type,
+                    hop.source_id,
+                )
 
                 if reverse in edges_seen:
-                    conflicts.append(Conflict(
-                        conflict_type="topological_reverse",
-                        description=f"反向关系: {hop.source_type}:{hop.source_id} <-> {hop.target_type}:{hop.target_id} "
-                                    f"(路径 {edges_seen[reverse]} 与 {path.path_id})",
-                        affected_path_ids=[edges_seen[reverse], path.path_id],
-                        related_entities=[hop.source_id, hop.target_id],
-                    ))
+                    conflicts.append(
+                        Conflict(
+                            conflict_type="topological_reverse",
+                            description=f"反向关系: {hop.source_type}:{hop.source_id} <-> {hop.target_type}:{hop.target_id} "
+                            f"(路径 {edges_seen[reverse]} 与 {path.path_id})",
+                            affected_path_ids=[edges_seen[reverse], path.path_id],
+                            related_entities=[hop.source_id, hop.target_id],
+                        )
+                    )
                 edges_seen[forward] = path.path_id
         return conflicts
 
@@ -125,13 +139,15 @@ class ConflictDetector:
                 result = await session.execute(stmt)
                 rejected = result.scalars().all()
                 if rejected:
-                    conflicts.append(Conflict(
-                        conflict_type="topological_rejected",
-                        description=f"发现 {len(rejected)} 条被驳回的关系与路径 {path.path_id} 中的边对应同一 claim",
-                        affected_path_ids=[path.path_id],
-                        related_entities=[hop.source_id, hop.target_id],
-                        severity="error",
-                    ))
+                    conflicts.append(
+                        Conflict(
+                            conflict_type="topological_rejected",
+                            description=f"发现 {len(rejected)} 条被驳回的关系与路径 {path.path_id} 中的边对应同一 claim",
+                            affected_path_ids=[path.path_id],
+                            related_entities=[hop.source_id, hop.target_id],
+                            severity="error",
+                        )
+                    )
         return conflicts
 
     @staticmethod
@@ -150,12 +166,14 @@ class ConflictDetector:
         for pair in _EIGHTEEN_ANTAGONISMS:
             found = [h for h in herb_names if any(p in h for p in pair)]
             if len(found) >= 2:
-                conflicts.append(Conflict(
-                    conflict_type="tcm_herb_incompatibility",
-                    description=f"配伍禁忌: {', '.join(found)} 可能存在十八反/十九畏冲突",
-                    related_entities=found,
-                    severity="error",
-                ))
+                conflicts.append(
+                    Conflict(
+                        conflict_type="tcm_herb_incompatibility",
+                        description=f"配伍禁忌: {', '.join(found)} 可能存在十八反/十九畏冲突",
+                        related_entities=found,
+                        severity="error",
+                    )
+                )
         return conflicts
 
     @staticmethod
@@ -171,9 +189,11 @@ class ConflictDetector:
                         contra_found.append(f"{keyword}({desc})")
 
             if len(contra_found) >= 2:
-                conflicts.append(Conflict(
-                    conflict_type="tcm_acupuncture_contra",
-                    description=f"针灸禁忌冲突: 路径 {path.path_id} 中同时出现 {' 和 '.join(contra_found)}",
-                    affected_path_ids=[path.path_id],
-                ))
+                conflicts.append(
+                    Conflict(
+                        conflict_type="tcm_acupuncture_contra",
+                        description=f"针灸禁忌冲突: 路径 {path.path_id} 中同时出现 {' 和 '.join(contra_found)}",
+                        affected_path_ids=[path.path_id],
+                    )
+                )
         return conflicts

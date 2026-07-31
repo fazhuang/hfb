@@ -4,6 +4,7 @@ LLM MUST return a single JSON object with exactly {"claims": [...]}.
 Server validates every quote, then renders the answer deterministically.
 Pydantic strict schemas with extra="forbid" enforce no field injection.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,16 +15,23 @@ from pydantic import BaseModel, ConfigDict, Field
 # LLM output contract — strict Pydantic with extra="forbid"
 # ---------------------------------------------------------------------------
 
+
 class LLMClaim(BaseModel):
     """A single claim the LLM asserts, bound to exactly one chunk."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    citation: str = Field(..., min_length=1, description="[document_id:chunk_id] format")
-    quote: str = Field(..., min_length=1, description="Exact contiguous substring from chunk.content")
+    citation: str = Field(
+        ..., min_length=1, description="[document_id:chunk_id] format"
+    )
+    quote: str = Field(
+        ..., min_length=1, description="Exact contiguous substring from chunk.content"
+    )
 
 
 class LLMClaimsResponse(BaseModel):
     """Strict JSON the LLM MUST return. No other fields. No free text."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     claims: list[LLMClaim] = Field(..., min_length=1, max_length=20)

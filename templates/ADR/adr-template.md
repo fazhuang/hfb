@@ -33,9 +33,9 @@ How will we address the negative consequences?
 ## Alternatives Considered
 
 | Alternative | Pros | Cons | Why Rejected |
-|-------------|------|------|--------------|
-| Option A | ... | ... | ... |
-| Option B | ... | ... | ... |
+| ----------- | ---- | ---- | ------------ |
+| Option A    | ...  | ...  | ...          |
+| Option B    | ...  | ...  | ...          |
 
 ## References
 

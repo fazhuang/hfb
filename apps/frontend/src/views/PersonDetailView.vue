@@ -42,7 +42,9 @@
       </div>
 
       <div v-if="person.external_ref" class="external-ref">
-        <a :href="person.external_ref" target="_blank" rel="noopener">{{ t('person.externalRef') }}</a>
+        <a :href="person.external_ref" target="_blank" rel="noopener">{{
+          t('person.externalRef')
+        }}</a>
       </div>
     </div>
   </div>
@@ -75,9 +77,12 @@ interface PersonDetail {
   external_ref: string | null;
 }
 
-const { entity: person, loading, error, fetch } = useEntityDetail<PersonDetail>(
-  (id) => `/api/v1/persons/${id}`,
-);
+const {
+  entity: person,
+  loading,
+  error,
+  fetch,
+} = useEntityDetail<PersonDetail>((id) => `/api/v1/persons/${id}`);
 
 const lifeSpan = computed(() => {
   if (!person.value) return null;
@@ -90,7 +95,10 @@ const lifeSpan = computed(() => {
 
 const workList = computed(() => {
   if (!person.value?.notable_works) return [];
-  return person.value.notable_works.split(',').map((w: string) => w.trim()).filter(Boolean);
+  return person.value.notable_works
+    .split(',')
+    .map((w: string) => w.trim())
+    .filter(Boolean);
 });
 
 onMounted(() => fetch(route.params.id as string));
@@ -214,7 +222,8 @@ onMounted(() => fetch(route.params.id as string));
   text-decoration: underline;
 }
 
-.loading-state, .error-state {
+.loading-state,
+.error-state {
   text-align: center;
   padding: var(--space-20) 20px;
   color: var(--color-text-muted);

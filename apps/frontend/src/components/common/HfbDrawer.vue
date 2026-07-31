@@ -48,21 +48,24 @@
 import { computed, ref, watch, nextTick } from 'vue';
 import { useFocusTrap } from '@/composables/useFocusTrap';
 
-const props = withDefaults(defineProps<{
-  open: boolean;
-  title?: string;
-  placement?: 'left' | 'right' | 'top' | 'bottom';
-  size?: 'sm' | 'md' | 'lg' | 'xl';
-  closable?: boolean;
-  closeOnBackdrop?: boolean;
-  closeOnEscape?: boolean;
-}>(), {
-  placement: 'right',
-  size: 'md',
-  closable: true,
-  closeOnBackdrop: true,
-  closeOnEscape: true,
-});
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    title?: string;
+    placement?: 'left' | 'right' | 'top' | 'bottom';
+    size?: 'sm' | 'md' | 'lg' | 'xl';
+    closable?: boolean;
+    closeOnBackdrop?: boolean;
+    closeOnEscape?: boolean;
+  }>(),
+  {
+    placement: 'right',
+    size: 'md',
+    closable: true,
+    closeOnBackdrop: true,
+    closeOnEscape: true,
+  },
+);
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
@@ -71,11 +74,9 @@ const emit = defineEmits<{
 const focusTrap = useFocusTrap();
 const isOpen = ref(props.open);
 
-const drawerClass = computed(() => [
-  'hfb-drawer',
-  `hfb-drawer--${props.placement}`,
-  `hfb-drawer--${props.size}`,
-].join(' '));
+const drawerClass = computed(() =>
+  ['hfb-drawer', `hfb-drawer--${props.placement}`, `hfb-drawer--${props.size}`].join(' '),
+);
 
 function close() {
   emit('update:open', false);
@@ -89,17 +90,21 @@ function onEscape() {
   if (props.closeOnEscape) close();
 }
 
-watch(() => props.open, async (val) => {
-  isOpen.value = val;
-  if (val) {
-    await nextTick();
-    document.body.style.overflow = 'hidden';
-    focusTrap.activate();
-  } else {
-    document.body.style.overflow = '';
-    focusTrap.deactivate();
-  }
-}, { immediate: true });
+watch(
+  () => props.open,
+  async (val) => {
+    isOpen.value = val;
+    if (val) {
+      await nextTick();
+      document.body.style.overflow = 'hidden';
+      focusTrap.activate();
+    } else {
+      document.body.style.overflow = '';
+      focusTrap.deactivate();
+    }
+  },
+  { immediate: true },
+);
 
 watch(isOpen, (val) => {
   if (!val) {

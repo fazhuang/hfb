@@ -12,6 +12,7 @@ POST   /api/v1/passages/mappings
 GET    /api/v1/versions/{id}/mappings
 GET    /api/v1/passages/{id1}/diff/{id2}
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -33,10 +34,14 @@ router = APIRouter(tags=["Version Center"])
 # Request schemas
 # ------------------------------------------------------------------
 
+
 class VersionRelationCreate(BaseModel):
     source_version_id: UUID
     target_version_id: UUID
-    relation_type: str = Field(..., description="derived_from, revised_from, corrected_by, annotated_by, compared_with, referenced_by")
+    relation_type: str = Field(
+        ...,
+        description="derived_from, revised_from, corrected_by, annotated_by, compared_with, referenced_by",
+    )
     description: str | None = None
     evidence: str | None = None
 
@@ -49,13 +54,16 @@ class VersionCompareRequest(BaseModel):
 class PassageMappingCreate(BaseModel):
     source_passage_id: UUID
     target_passage_id: UUID
-    mapping_type: str = Field(default="equivalent", description="equivalent, variant, missing, added")
+    mapping_type: str = Field(
+        default="equivalent", description="equivalent, variant, missing, added"
+    )
     description: str | None = None
 
 
 # ------------------------------------------------------------------
 # Lineage
 # ------------------------------------------------------------------
+
 
 @router.get(
     "/versions/{version_id}/lineage",
@@ -79,6 +87,7 @@ async def get_version_lineage(
 # Version Relations (CRUD for version_relations table)
 # ------------------------------------------------------------------
 
+
 @router.post(
     "/versions/relations",
     response_model=dict,
@@ -100,7 +109,9 @@ async def create_version_relation(
             evidence=body.evidence,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     return api_response(
         data={
             "id": str(relation.id),
@@ -115,6 +126,7 @@ async def create_version_relation(
 # ------------------------------------------------------------------
 # Comparison / Diff
 # ------------------------------------------------------------------
+
 
 @router.post(
     "/versions/compare",
@@ -150,7 +162,9 @@ async def get_saved_diff(
     svc = VersionComparisonService(session)
     diff = await svc.get_saved_diff(diff_id)
     if diff is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Diff not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Diff not found"
+        )
     return api_response(data=diff)
 
 
@@ -177,6 +191,7 @@ async def diff_passages(
 # Passage Mappings
 # ------------------------------------------------------------------
 
+
 @router.post(
     "/passages/mappings",
     response_model=dict,
@@ -197,7 +212,9 @@ async def create_passage_mapping(
             description=body.description,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
     return api_response(
         data={
             "id": str(mapping.id),

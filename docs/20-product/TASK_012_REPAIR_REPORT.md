@@ -12,14 +12,14 @@ This repair is based on the **Phase 0 Supplemental Audit** (`docs/20-product/TAS
 
 ### Summary
 
-| Issue | Impact | Status | Fix |
-|-------|--------|--------|-----|
-| **P1** | Low | ✅ Fixed | Corrected misleading "Scroll behavior" comment in `router/index.ts` |
-| **P2** | Low | ✅ Fixed | Removed empty `onMounted(() => {})` and `onBeforeUnmount(() => {})` from `ResearchAppLayout.vue` |
-| **P3** | Style | ✅ Fixed | Merged two `router.afterEach` hooks into a single registration |
-| **P6** | Medium | ✅ Fixed | Added design documentation for `ral-mobile-toggle` (z-index:300) + sidebar in-flow |
-| P4 | Flake | ⬜ Not in scope | Intermittent B2 Tablet "Page crashed" — CI resource competition, not a code defect |
-| P5 | None | ⬜ Not in scope | `sr-only` class pre-dates Task 012; no code change needed |
+| Issue  | Impact | Status          | Fix                                                                                              |
+| ------ | ------ | --------------- | ------------------------------------------------------------------------------------------------ |
+| **P1** | Low    | ✅ Fixed        | Corrected misleading "Scroll behavior" comment in `router/index.ts`                              |
+| **P2** | Low    | ✅ Fixed        | Removed empty `onMounted(() => {})` and `onBeforeUnmount(() => {})` from `ResearchAppLayout.vue` |
+| **P3** | Style  | ✅ Fixed        | Merged two `router.afterEach` hooks into a single registration                                   |
+| **P6** | Medium | ✅ Fixed        | Added design documentation for `ral-mobile-toggle` (z-index:300) + sidebar in-flow               |
+| P4     | Flake  | ⬜ Not in scope | Intermittent B2 Tablet "Page crashed" — CI resource competition, not a code defect               |
+| P5     | None   | ⬜ Not in scope | `sr-only` class pre-dates Task 012; no code change needed                                        |
 
 ### Not Modified
 
@@ -55,8 +55,8 @@ Rewrote the combined block comment to accurately describe the actual behavior:
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
+| File                                | Change                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/frontend/src/router/index.ts` | L311–330: Replaced misleading "Scroll behavior" + separate "Focus management" sections with a single accurate block comment and merged hook |
 
 ---
@@ -73,9 +73,9 @@ Removed the two empty lifecycle calls and their imports. Replaced with expanded 
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
-| `apps/frontend/src/layouts/ResearchAppLayout.vue` | L54: `import { ref } from 'vue'` (removed `onMounted, onBeforeUnmount`) |
+| File                                              | Change                                                                                                              |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/frontend/src/layouts/ResearchAppLayout.vue` | L54: `import { ref } from 'vue'` (removed `onMounted, onBeforeUnmount`)                                             |
 | `apps/frontend/src/layouts/ResearchAppLayout.vue` | L61–69: Removed `onMounted(() => {}); onBeforeUnmount(() => {});`, replaced with design documentation comment block |
 
 ---
@@ -92,8 +92,8 @@ Merged into one `router.afterEach` that handles both `document.title` and `focus
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
+| File                                | Change                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------- |
 | `apps/frontend/src/router/index.ts` | L311–330: Single `afterEach` registration (was two) with combined comment block |
 
 ---
@@ -118,8 +118,8 @@ Added an explicit design comment in the `<script>` block explaining the spatial 
 
 ### Files Changed
 
-| File | Change |
-|------|--------|
+| File                                              | Change                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------ |
 | `apps/frontend/src/layouts/ResearchAppLayout.vue` | L61–69: Documentation comment replaces empty lifecycle hooks |
 
 ---
@@ -128,10 +128,10 @@ Added an explicit design comment in the `<script>` block explaining the spatial 
 
 ### New Tests (13 added)
 
-| Test File | Tests | Covers |
-|-----------|-------|--------|
-| `src/__tests__/router-aftereach-repair.test.ts` | 6 | P1 (accurate title behavior + comment semantics), P3 (single merged hook) |
-| `src/__tests__/research-app-layout-repair.test.ts` | 7 | P2 (layout renders without empty hooks), P6 (mobile toggle design contract + sidebar invariants + data-main-content) |
+| Test File                                          | Tests | Covers                                                                                                               |
+| -------------------------------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------- |
+| `src/__tests__/router-aftereach-repair.test.ts`    | 6     | P1 (accurate title behavior + comment semantics), P3 (single merged hook)                                            |
+| `src/__tests__/research-app-layout-repair.test.ts` | 7     | P2 (layout renders without empty hooks), P6 (mobile toggle design contract + sidebar invariants + data-main-content) |
 
 All 13 new tests verify specific repair assertions:
 
@@ -146,13 +146,13 @@ No existing test assertions were modified, relaxed, skipped, or deleted. All 371
 
 ## Verification Results
 
-| Check | Command | Result |
-|-------|---------|--------|
-| Type Check | `npx vue-tsc --noEmit` | ✅ Zero errors |
-| Unit Tests | `npx vitest run` | ✅ **384/384** (371 original + 13 new, 16 files, 8.95s) |
-| Build | `npx vite build` | ✅ 4.12s (363 modules, zero warnings) |
-| Task 012 E2E | `npx playwright test ... task012-interaction-responsive.spec.ts` | ✅ **184/184** (4.2m, 0 fail/skip/fixme) |
-| Task 011 E2E (regression) | `npx playwright test ... task011-navigation-consistency.spec.ts` | ✅ **116/116** (3.7m, 0 fail) |
+| Check                     | Command                                                          | Result                                                  |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| Type Check                | `npx vue-tsc --noEmit`                                           | ✅ Zero errors                                          |
+| Unit Tests                | `npx vitest run`                                                 | ✅ **384/384** (371 original + 13 new, 16 files, 8.95s) |
+| Build                     | `npx vite build`                                                 | ✅ 4.12s (363 modules, zero warnings)                   |
+| Task 012 E2E              | `npx playwright test ... task012-interaction-responsive.spec.ts` | ✅ **184/184** (4.2m, 0 fail/skip/fixme)                |
+| Task 011 E2E (regression) | `npx playwright test ... task011-navigation-consistency.spec.ts` | ✅ **116/116** (3.7m, 0 fail)                           |
 
 All E2E tests executed against real backend (`127.0.0.1:8000`, health=200) + real seed data + `researcher` account across 4 viewports (Mobile 375×812 / Tablet 768×1024 / Desktop 1280×800 / Wide 1440×900).
 
@@ -160,12 +160,12 @@ All E2E tests executed against real backend (`127.0.0.1:8000`, health=200) + rea
 
 ## Changed Files Summary
 
-| File | Lines Changed | Purpose |
-|------|---------------|---------|
-| `apps/frontend/src/router/index.ts` | ~10 | P1: comment correction + P3: hook merge |
-| `apps/frontend/src/layouts/ResearchAppLayout.vue` | ~4 | P2: remove empty hooks + P6: design doc |
-| `apps/frontend/src/__tests__/router-aftereach-repair.test.ts` | +161 new | P1 + P3 test coverage |
-| `apps/frontend/src/__tests__/research-app-layout-repair.test.ts` | +160 new | P2 + P6 test coverage |
+| File                                                             | Lines Changed | Purpose                                 |
+| ---------------------------------------------------------------- | ------------- | --------------------------------------- |
+| `apps/frontend/src/router/index.ts`                              | ~10           | P1: comment correction + P3: hook merge |
+| `apps/frontend/src/layouts/ResearchAppLayout.vue`                | ~4            | P2: remove empty hooks + P6: design doc |
+| `apps/frontend/src/__tests__/router-aftereach-repair.test.ts`    | +161 new      | P1 + P3 test coverage                   |
+| `apps/frontend/src/__tests__/research-app-layout-repair.test.ts` | +160 new      | P2 + P6 test coverage                   |
 
 **Total: 4 files modified/created, ~24 lines changed in source, ~321 lines of new test code.**
 

@@ -1,6 +1,7 @@
 """
 Tests for the service layer validation hooks (Sprint 3 scope).
 """
+
 import pytest
 from app.schemas.document import DocumentCreate
 from app.schemas.person import PersonCreate

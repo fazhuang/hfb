@@ -1,10 +1,10 @@
 ---
-title: "Decision Tree — AI"
-version: "1.0"
-status: "Accepted"
-owner: "AI Lead"
-last_updated: "2026-06-24"
-related_adr: ["ADR-0006", "ADR-0007"]
+title: 'Decision Tree — AI'
+version: '1.0'
+status: 'Accepted'
+owner: 'AI Lead'
+last_updated: '2026-06-24'
+related_adr: ['ADR-0006', 'ADR-0007']
 ---
 
 # Decision Tree — AI

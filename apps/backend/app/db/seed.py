@@ -6,6 +6,7 @@ Herbs and Prescriptions deferred to future sprints.
 
 Run via: python -m app.db.seed
 """
+
 from __future__ import annotations
 
 from app.models.document import Document

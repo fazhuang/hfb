@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Metadata Standard
+
 ## 元数据标准规范
 
 > 元数据（Metadata）是本平台最重要的数据资产之一。
@@ -44,16 +45,16 @@ related_documents:
 
 平台元数据划分为八类：
 
-| 类别 | 说明 |
-|------|------|
-| Core Metadata | 核心元数据 |
-| Bibliographic Metadata | 文献元数据 |
-| Provenance Metadata | 来源元数据 |
-| Version Metadata | 版本元数据 |
-| Rights Metadata | 权限元数据 |
-| AI Metadata | AI处理元数据 |
-| Relationship Metadata | 关系元数据 |
-| Preservation Metadata | 长期保存元数据 |
+| 类别                   | 说明           |
+| ---------------------- | -------------- |
+| Core Metadata          | 核心元数据     |
+| Bibliographic Metadata | 文献元数据     |
+| Provenance Metadata    | 来源元数据     |
+| Version Metadata       | 版本元数据     |
+| Rights Metadata        | 权限元数据     |
+| AI Metadata            | AI处理元数据   |
+| Relationship Metadata  | 关系元数据     |
+| Preservation Metadata  | 长期保存元数据 |
 
 ---
 
@@ -61,16 +62,16 @@ related_documents:
 
 所有资源必须包含以下字段：
 
-| 字段 | 必填 | 说明 |
-|------|------|------|
-| id | √ | UUID |
-| resource_type | √ | 资源类型 |
-| title | √ | 标题 |
-| language | √ | 语言 |
-| abstract | √ | 摘要 |
-| keywords | √ | 关键词 |
-| description | √ | 描述 |
-| status | √ | 生命周期状态 |
+| 字段          | 必填 | 说明         |
+| ------------- | ---- | ------------ |
+| id            | √    | UUID         |
+| resource_type | √    | 资源类型     |
+| title         | √    | 标题         |
+| language      | √    | 语言         |
+| abstract      | √    | 摘要         |
+| keywords      | √    | 关键词       |
+| description   | √    | 描述         |
+| status        | √    | 生命周期状态 |
 
 ---
 
@@ -86,18 +87,18 @@ related_documents:
 
 字段：
 
-| 字段 | 说明 |
-|------|------|
-| author | 作者 |
-| editor | 编者 |
-| translator | 译者 |
-| publisher | 出版者 |
+| 字段             | 说明     |
+| ---------------- | -------- |
+| author           | 作者     |
+| editor           | 编者     |
+| translator       | 译者     |
+| publisher        | 出版者   |
 | publication_year | 出版时间 |
-| edition | 版次 |
-| isbn | ISBN |
-| issn | ISSN |
-| doi | DOI |
-| citation | 标准引用 |
+| edition          | 版次     |
+| isbn             | ISBN     |
+| issn             | ISSN     |
+| doi              | DOI      |
+| citation         | 标准引用 |
 
 ---
 
@@ -131,14 +132,14 @@ related_documents:
 
 字段：
 
-| 字段 | 说明 |
-|------|------|
-| version_no | 版本号 |
-| parent_version | 父版本 |
-| version_type | 类型 |
-| created_by | 创建者 |
-| created_at | 创建时间 |
-| change_log | 修改说明 |
+| 字段           | 说明     |
+| -------------- | -------- |
+| version_no     | 版本号   |
+| parent_version | 父版本   |
+| version_type   | 类型     |
+| created_by     | 创建者   |
+| created_at     | 创建时间 |
+| change_log     | 修改说明 |
 
 ---
 
@@ -160,15 +161,15 @@ related_documents:
 
 所有 AI 处理结果必须保存：
 
-| 字段 | 说明 |
-|------|------|
-| ai_model | 模型名称 |
-| ai_version | 模型版本 |
-| prompt_version | Prompt版本 |
-| processing_time | 处理时间 |
-| confidence | 置信度 |
-| reviewer | 审核人 |
-| review_status | 审核状态 |
+| 字段            | 说明       |
+| --------------- | ---------- |
+| ai_model        | 模型名称   |
+| ai_version      | 模型版本   |
+| prompt_version  | Prompt版本 |
+| processing_time | 处理时间   |
+| confidence      | 置信度     |
+| reviewer        | 审核人     |
+| review_status   | 审核状态   |
 
 AI 输出不得覆盖原始数据。
 
@@ -242,12 +243,12 @@ AI 输出不得覆盖原始数据。
 
 要求：
 
-| 指标 | 标准 |
-|------|------|
-| 完整率 | ≥98% |
-| 来源记录率 | 100% |
-| 引用完整率 | 100% |
-| UUID覆盖率 | 100% |
+| 指标         | 标准 |
+| ------------ | ---- |
+| 完整率       | ≥98% |
+| 来源记录率   | 100% |
+| 引用完整率   | 100% |
+| UUID覆盖率   | 100% |
 | AI处理记录率 | 100% |
 
 ---
@@ -327,7 +328,7 @@ MVP 阶段元数据范围以 [HFB-PS-1709](../17-Platform-Specifications/1709_MV
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 新增第十六章(MVP与上线约束)；更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一元数据规范。 |
+| Version | Date       | Description                                        |
+| ------- | ---------- | -------------------------------------------------- |
+| 1.1.0   | 2026-06-25 | 新增第十六章(MVP与上线约束)；更新related_documents |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一元数据规范。                 |

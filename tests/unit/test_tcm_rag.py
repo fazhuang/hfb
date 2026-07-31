@@ -118,9 +118,17 @@ class TestRAGPipeline:
         kg = KGBuilder.from_triples(
             [
                 (
-                    Node("person_huangfumi", "Person", {"name": "皇甫谧", "dynasty": "魏晋"}),
+                    Node(
+                        "person_huangfumi",
+                        "Person",
+                        {"name": "皇甫谧", "dynasty": "魏晋"},
+                    ),
                     "authored",
-                    Node("text_zhenjiu", "Text", {"title": "针灸甲乙经", "category": "针灸"}),
+                    Node(
+                        "text_zhenjiu",
+                        "Text",
+                        {"title": "针灸甲乙经", "category": "针灸"},
+                    ),
                 ),
                 (
                     Node("text_zhenjiu", "Text", {"title": "针灸甲乙经"}),

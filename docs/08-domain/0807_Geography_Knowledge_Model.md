@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Geography Knowledge Model
+
 ## 地域知识模型
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的地域知识建模标准。
@@ -114,18 +115,18 @@ PLACE-000001
 
 统一字段：
 
-| 字段 | 说明 |
-|------|------|
-| id | UUID |
-| place_code | 地域编码 |
-| standard_name | 标准名称 |
-| historical_name | 历史名称 |
-| aliases | 别称 |
-| latitude | 纬度 |
-| longitude | 经度 |
-| administrative_level | 行政层级 |
-| historical_period | 所属历史时期 |
-| metadata_id | Metadata |
+| 字段                 | 说明         |
+| -------------------- | ------------ |
+| id                   | UUID         |
+| place_code           | 地域编码     |
+| standard_name        | 标准名称     |
+| historical_name      | 历史名称     |
+| aliases              | 别称         |
+| latitude             | 纬度         |
+| longitude            | 经度         |
+| administrative_level | 行政层级     |
+| historical_period    | 所属历史时期 |
+| metadata_id          | Metadata     |
 
 ---
 
@@ -147,11 +148,11 @@ GIS 坐标
 
 例如：
 
-| 古称 | 今称 |
-|------|------|
+| 古称   | 今称         |
+| ------ | ------------ |
 | 安定郡 | 甘肃平凉地区 |
-| 京兆 | 陕西西安 |
-| 长安 | 西安 |
+| 京兆   | 陕西西安     |
+| 长安   | 西安         |
 
 支持一对多映射。
 
@@ -435,12 +436,12 @@ Regional Characteristics Engine。
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| 地名标准化率 | 100% |
-| 古今映射率 | ≥95% |
-| GIS 覆盖率 | ≥95% |
-| 地域关系完整率 | ≥95% |
+| 指标              | 标准 |
+| ----------------- | ---- |
+| 地名标准化率      | 100% |
+| 古今映射率        | ≥95% |
+| GIS 覆盖率        | ≥95% |
+| 地域关系完整率    | ≥95% |
 | AI 地域分析准确率 | ≥98% |
 
 ---
@@ -511,6 +512,6 @@ Regional Characteristics Engine。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台地域知识模型统一规范。 |
+| Version | Date       | Description                              |
+| ------- | ---------- | ---------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台地域知识模型统一规范。 |

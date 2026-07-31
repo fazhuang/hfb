@@ -23,17 +23,17 @@ related_documents:
 
 ## 安全规范体系
 
-| # | 文档 | document_id | 状态 |
-|---|---|---|---|
-| 0701 | [Acceptance](0701_Acceptance_Specification.md) | HFB-SEC-0701 | Approved |
-| 0702 | [Security Standard](0702_Security_Standard.md) | HFB-SEC-0702 | Approved |
-| 0703 | [Privacy & Data](0703_Privacy_Standard.md) | HFB-SEC-0703 | Approved |
-| 0704 | [Backup & Recovery](0704_Backup_Recovery_Standard.md) | HFB-SEC-0704 | Approved |
+| #    | 文档                                                              | document_id  | 状态     |
+| ---- | ----------------------------------------------------------------- | ------------ | -------- |
+| 0701 | [Acceptance](0701_Acceptance_Specification.md)                    | HFB-SEC-0701 | Approved |
+| 0702 | [Security Standard](0702_Security_Standard.md)                    | HFB-SEC-0702 | Approved |
+| 0703 | [Privacy & Data](0703_Privacy_Standard.md)                        | HFB-SEC-0703 | Approved |
+| 0704 | [Backup & Recovery](0704_Backup_Recovery_Standard.md)             | HFB-SEC-0704 | Approved |
 | 0705 | [Operation & Maintenance](0705_Operation_Maintenance_Standard.md) | HFB-SEC-0705 | Approved |
 
 ## 关联目录
 
-| 目录 | 关系 |
-|---|---|
+| 目录                                                               | 关系         |
+| ------------------------------------------------------------------ | ------------ |
 | [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 上线准入依据 |
-| [docs/05-development/](../05-development/) | 开发实现 |
+| [docs/05-development/](../05-development/)                         | 开发实现     |

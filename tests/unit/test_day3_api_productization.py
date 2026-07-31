@@ -7,6 +7,7 @@ Covers:
   - Citation validation: format, traceability, no generated citations
   - Concurrency: multiple concurrent requests, stability under repeated calls
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -48,6 +49,7 @@ def _make_test_app():
     register_error_handlers(app)
 
     from app.api.v1 import router as v1_router
+
     app.include_router(v1_router)
     return app
 
@@ -64,7 +66,12 @@ async def _seed_data(session):
             "该书对后世针灸学发展有深远影响。\n\n"
             "系统总结了腧穴定位和刺灸方法。"
         ),
-        metadata={"dynasty": "西晋", "category": "针灸", "copyright_status": "public_domain", "authorization_basis": "test seed"},
+        metadata={
+            "dynasty": "西晋",
+            "category": "针灸",
+            "copyright_status": "public_domain",
+            "authorization_basis": "test seed",
+        },
     )
     await svc.ingest_text(
         title="伤寒杂病论",
@@ -73,7 +80,12 @@ async def _seed_data(session):
             "该书系统论述了伤寒病证治。\n\n"
             "对后世医学发展影响深远。"
         ),
-        metadata={"dynasty": "东汉", "category": "伤寒", "copyright_status": "public_domain", "authorization_basis": "test seed"},
+        metadata={
+            "dynasty": "东汉",
+            "category": "伤寒",
+            "copyright_status": "public_domain",
+            "authorization_basis": "test seed",
+        },
     )
     await session.flush()
 
@@ -95,9 +107,9 @@ class TestAPIContract:
         app = FastAPI()
         app.include_router(search_router, prefix="/api/v1")
         openapi = app.openapi()
-        response_schema = openapi["paths"]["/api/v1/search"]["post"]["responses"]["200"][
-            "content"
-        ]["application/json"]["schema"]
+        response_schema = openapi["paths"]["/api/v1/search"]["post"]["responses"][
+            "200"
+        ]["content"]["application/json"]["schema"]
         assert response_schema == {"$ref": "#/components/schemas/SearchResponse"}
 
         schemas = openapi["components"]["schemas"]
@@ -125,8 +137,10 @@ class TestAPIContract:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -151,8 +165,10 @@ class TestAPIContract:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -182,8 +198,10 @@ class TestAPIContract:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -217,8 +235,10 @@ class TestAPIContract:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -230,7 +250,14 @@ class TestAPIContract:
             assert r.status_code == 200
             body = r.json()
 
-            forbidden = {"answer", "generated_answer", "response", "chunks", "citations", "execution_time"}
+            forbidden = {
+                "answer",
+                "generated_answer",
+                "response",
+                "chunks",
+                "citations",
+                "execution_time",
+            }
             for key in forbidden:
                 assert key not in body, f"Frozen contract must not contain '{key}'"
 
@@ -241,8 +268,10 @@ class TestAPIContract:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -270,14 +299,18 @@ class TestFilters:
         await _seed_data(app_db_session)
 
         # Find the document_id for "针灸甲乙经"
-        doc = (await app_db_session.execute(
-            select(Document).where(Document.title == "针灸甲乙经")
-        )).scalar_one()
+        doc = (
+            await app_db_session.execute(
+                select(Document).where(Document.title == "针灸甲乙经")
+            )
+        ).scalar_one()
         target_doc_id = doc.id
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -315,17 +348,21 @@ class TestFilters:
         await _seed_data(app_db_session)
 
         # Manually set years on the seeded documents
-        docs = (await app_db_session.execute(
-            select(Document).order_by(Document.title)
-        )).scalars().all()
+        docs = (
+            (await app_db_session.execute(select(Document).order_by(Document.title)))
+            .scalars()
+            .all()
+        )
         for i, doc in enumerate(docs):
             # 西晋 ≈ 265 CE, 东汉 ≈ 200 CE
             doc.year = 265 if "针灸" in doc.title else 200
         await app_db_session.flush()
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -340,9 +377,11 @@ class TestFilters:
 
             if results:
                 for result in results:
-                    doc = (await app_db_session.execute(
-                        select(Document).where(Document.id == result["document_id"])
-                    )).scalar_one()
+                    doc = (
+                        await app_db_session.execute(
+                            select(Document).where(Document.id == result["document_id"])
+                        )
+                    ).scalar_one()
                     assert doc.year == 265
 
             # Filter to year 200 only
@@ -353,9 +392,11 @@ class TestFilters:
             results2 = r2.json()["results"]
             if results2:
                 for result in results2:
-                    doc = (await app_db_session.execute(
-                        select(Document).where(Document.id == result["document_id"])
-                    )).scalar_one()
+                    doc = (
+                        await app_db_session.execute(
+                            select(Document).where(Document.id == result["document_id"])
+                        )
+                    ).scalar_one()
                     assert doc.year == 200
 
             # Year with no match returns empty results (valid contract)
@@ -374,16 +415,20 @@ class TestFilters:
 
         await _seed_data(app_db_session)
 
-        doc = (await app_db_session.execute(
-            select(Document).where(Document.title == "针灸甲乙经")
-        )).scalar_one()
+        doc = (
+            await app_db_session.execute(
+                select(Document).where(Document.title == "针灸甲乙经")
+            )
+        ).scalar_one()
         doc.year = 265
         target_doc_id = doc.id
         await app_db_session.flush()
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -432,8 +477,10 @@ class TestCitationValidation:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -472,8 +519,10 @@ class TestCitationValidation:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -486,20 +535,24 @@ class TestCitationValidation:
 
             for result in r.json()["results"]:
                 # Document exists
-                doc = (await app_db_session.execute(
-                    select(Document).where(Document.id == result["document_id"])
-                )).scalar_one_or_none()
+                doc = (
+                    await app_db_session.execute(
+                        select(Document).where(Document.id == result["document_id"])
+                    )
+                ).scalar_one_or_none()
                 assert doc is not None, (
                     f"Document {result['document_id']} referenced in citation not found"
                 )
 
                 # Chunk exists and belongs to the document
-                chunk = (await app_db_session.execute(
-                    select(DocumentChunk).where(
-                        DocumentChunk.id == result["chunk_id"],
-                        DocumentChunk.document_id == result["document_id"],
+                chunk = (
+                    await app_db_session.execute(
+                        select(DocumentChunk).where(
+                            DocumentChunk.id == result["chunk_id"],
+                            DocumentChunk.document_id == result["document_id"],
+                        )
                     )
-                )).scalar_one_or_none()
+                ).scalar_one_or_none()
                 assert chunk is not None, (
                     f"Chunk {result['chunk_id']} referenced in citation not found"
                 )
@@ -514,8 +567,10 @@ class TestCitationValidation:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
@@ -527,13 +582,13 @@ class TestCitationValidation:
             assert r.status_code == 200
 
             # Collect all document_ids and chunk_ids from DB
-            all_docs = (await app_db_session.execute(
-                select(Document.id)
-            )).scalars().all()
+            all_docs = (
+                (await app_db_session.execute(select(Document.id))).scalars().all()
+            )
             all_doc_ids = set(all_docs)
-            all_chunks = (await app_db_session.execute(
-                select(DocumentChunk.id)
-            )).scalars().all()
+            all_chunks = (
+                (await app_db_session.execute(select(DocumentChunk.id))).scalars().all()
+            )
             all_chunk_ids = set(all_chunks)
 
             for result in r.json()["results"]:
@@ -561,8 +616,10 @@ class TestConcurrency:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         queries = [
@@ -598,8 +655,10 @@ class TestConcurrency:
         await _seed_data(app_db_session)
 
         app = _make_test_app()
+
         async def override_get_session():
             yield app_db_session
+
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)

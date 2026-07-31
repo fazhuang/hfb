@@ -1,6 +1,7 @@
 """
 Document (文献) schemas.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,24 +9,28 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-COPYRIGHT_STATUSES = frozenset({
-    "public_domain",
-    "open_access",
-    "licensed",
-    "user_uploaded_with_permission",
-    "unknown",
-    "metadata_only",
-    "forbidden_fulltext",
-    "commercial_restricted",
-    "pirated",
-})
+COPYRIGHT_STATUSES = frozenset(
+    {
+        "public_domain",
+        "open_access",
+        "licensed",
+        "user_uploaded_with_permission",
+        "unknown",
+        "metadata_only",
+        "forbidden_fulltext",
+        "commercial_restricted",
+        "pirated",
+    }
+)
 
-REVIEW_STATUSES = frozenset({
-    "pending_review",
-    "under_review",
-    "approved",
-    "rejected",
-})
+REVIEW_STATUSES = frozenset(
+    {
+        "pending_review",
+        "under_review",
+        "approved",
+        "rejected",
+    }
+)
 
 
 class DocumentBase(BaseModel):
@@ -48,7 +53,6 @@ class DocumentBase(BaseModel):
 
 class DocumentCreate(DocumentBase):
     """Schema for creating a new document."""
-
 
 
 class DocumentUpdate(BaseModel):

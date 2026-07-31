@@ -36,7 +36,6 @@ async function login(page: any) {
 // ─── Suite ───────────────────────────────────────────────────────────
 
 test.describe('Task 010 E2E — Design System Integration', () => {
-
   test.beforeAll(async ({ request }) => {
     // Get real JWT
     const resp = await request.post(`${API}/api/v1/auth/login`, {
@@ -81,7 +80,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     expect(docsResp.ok(), 'Documents API must succeed').toBeTruthy();
     const docsBody = await docsResp.json();
     const items = docsBody.data?.items ?? [];
-    expect(items.length, 'No documents found — test data missing for Reader tests').toBeGreaterThan(0);
+    expect(items.length, 'No documents found — test data missing for Reader tests').toBeGreaterThan(
+      0,
+    );
     docId = items[0].id;
   });
 
@@ -89,7 +90,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
   test('LoadingState spinner is rendered during page load', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
 
@@ -112,7 +115,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const content = page.locator('.rp-content, .empty-state').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const criticalErrors = errors.filter(e => !e.includes('favicon'));
+    const criticalErrors = errors.filter((e) => !e.includes('favicon'));
     expect(criticalErrors.length).toBe(0);
   });
 
@@ -123,7 +126,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await page.waitForLoadState('networkidle');
 
     // P0-3: Must assert specific error/empty role, not any bare content area
-    const errorOrEmpty = page.locator('.error-state[role="alert"], .empty-state[role="status"], [role="alert"]').first();
+    const errorOrEmpty = page
+      .locator('.error-state[role="alert"], .empty-state[role="status"], [role="alert"]')
+      .first();
     await expect(errorOrEmpty).toBeVisible({ timeout: 10_000 });
   });
 
@@ -146,7 +151,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
   test('Page 1: /research — ProjectListPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/research`);
@@ -157,13 +164,15 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const content = page.locator('.rpp-body, .empty-state[role="status"]').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 2: /research/:id — ProjectDetailPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}`);
@@ -173,19 +182,23 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(page.locator('.rph-breadcrumbs')).toBeVisible();
     await expect(page.locator('.pdp-body')).toBeVisible({ timeout: 10_000 });
 
-    const headings = page.locator('.pdp-body h2, .po-heading, .ral-heading, .pr-heading, .pn-heading');
+    const headings = page.locator(
+      '.pdp-body h2, .po-heading, .ral-heading, .pr-heading, .pn-heading',
+    );
     expect(await headings.count()).toBeGreaterThanOrEqual(1);
 
     const continueBtn = page.locator('a:has-text("继续研究")');
     await expect(continueBtn.first()).toBeVisible();
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 3: /research/:id/workspace — ResearchWorkspacePage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}/workspace`);
@@ -199,13 +212,15 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
     await expect(page.locator('.rae-sidebar')).toBeVisible();
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 4: /research/:id/workflow — ResearchWorkflowPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}/workflow`);
@@ -231,13 +246,15 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const step2 = page.locator('.dss-step, #dss-heading, h2:has-text("文献选择")').first();
     await expect(step2).toBeVisible({ timeout: 10_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 5: /research/:id/result/:runId — ResearchResultPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
@@ -249,13 +266,15 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const body = page.locator('.rpage-body, .rpage-loading, .rpage-notice, [role="alert"]').first();
     await expect(body).toBeVisible({ timeout: 15_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 6: /reports — ReportListPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/reports`);
@@ -264,17 +283,21 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(page.locator('.research-page-header')).toBeVisible();
     await expect(page.locator('.rph-title, h1').filter({ hasText: /研究|报告/ })).toBeVisible();
 
-    await expect(page.locator('[role="toolbar"], .rrt-root').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[role="toolbar"], .rrt-root').first()).toBeVisible({
+      timeout: 10_000,
+    });
 
     await expect(page.locator('.rp-content')).toBeVisible();
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 7: /library — LibrarySearchPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/library`);
@@ -284,17 +307,21 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const title = page.locator('.rph-title, h1');
     await expect(title.first()).toBeVisible();
 
-    const search = page.locator('.lib-body input[type="search"], .lib-body input[type="text"]').first();
+    const search = page
+      .locator('.lib-body input[type="search"], .lib-body input[type="text"]')
+      .first();
     await expect(search).toBeVisible({ timeout: 10_000 });
 
     // P0-3: No HTTP 500 filtering — Library data must succeed
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
   test('Page 8: /reader/:id — ReaderPage', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     // P0-3: Must use resolved docId — no fallback to sessionId
@@ -304,7 +331,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const content = page.locator('.reader-page').first();
     await expect(content).toBeVisible({ timeout: 10_000 });
 
-    const critical = errors.filter(e => !e.includes('favicon'));
+    const critical = errors.filter((e) => !e.includes('favicon'));
     expect(critical.length).toBe(0);
   });
 
@@ -324,7 +351,12 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog.first()).toBeVisible({ timeout: 5_000 });
 
-    await expect(page.locator('h2').filter({ hasText: /新建|课题/ }).first()).toBeVisible();
+    await expect(
+      page
+        .locator('h2')
+        .filter({ hasText: /新建|课题/ })
+        .first(),
+    ).toBeVisible();
 
     // Close with Escape
     await page.keyboard.press('Escape');
@@ -340,7 +372,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     await expect(dialog.first()).not.toBeVisible({ timeout: 5_000 });
   });
 
-  test('DeleteProjectDialog — alertdialog with danger button, keyboard and click dismissal', async ({ page }) => {
+  test('DeleteProjectDialog — alertdialog with danger button, keyboard and click dismissal', async ({
+    page,
+  }) => {
     await login(page);
     await page.goto(`${BASE}/research/${sessionId}`);
     await page.waitForLoadState('networkidle');
@@ -384,7 +418,10 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       if (!el) return false;
       return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
     });
-    expect(focusIsMoreBtnAfterCancel, 'Focus must return to "更多操作" button after dialog closes').toBe(true);
+    expect(
+      focusIsMoreBtnAfterCancel,
+      'Focus must return to "更多操作" button after dialog closes',
+    ).toBe(true);
 
     // Reopen menu, then reopen dialog
     await moreBtn.click();
@@ -400,10 +437,14 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       if (!el) return false;
       return el.getAttribute('aria-label') === '更多操作' && el.tagName === 'BUTTON';
     });
-    expect(focusIsMoreBtnAfterEscape, 'Focus must return to "更多操作" button after Escape').toBe(true);
+    expect(focusIsMoreBtnAfterEscape, 'Focus must return to "更多操作" button after Escape').toBe(
+      true,
+    );
   });
 
-  test('Dialog focus management — open gives focus to dialog, close returns focus to trigger', async ({ page }) => {
+  test('Dialog focus management — open gives focus to dialog, close returns focus to trigger', async ({
+    page,
+  }) => {
     await login(page);
     await page.goto(`${BASE}/research`);
     await page.waitForLoadState('networkidle');
@@ -442,7 +483,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       // The trigger button has aria-label="新建课题"
       return el.getAttribute('aria-label') === '新建课题' && el.tagName === 'BUTTON';
     });
-    expect(focusIsCreateBtnAfterEscape, 'Focus must return to "新建课题" button after Escape').toBe(true);
+    expect(focusIsCreateBtnAfterEscape, 'Focus must return to "新建课题" button after Escape').toBe(
+      true,
+    );
 
     // Reopen with click, close with Cancel button
     await page.locator('button:has-text("新建课题")').first().click();
@@ -458,7 +501,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       if (!el) return false;
       return el.getAttribute('aria-label') === '新建课题' && el.tagName === 'BUTTON';
     });
-    expect(focusIsCreateBtnAfterCancel, 'Focus must return to "新建课题" button after Cancel').toBe(true);
+    expect(focusIsCreateBtnAfterCancel, 'Focus must return to "新建课题" button after Cancel').toBe(
+      true,
+    );
 
     // ── DeleteProjectDialog: focus return ──────────────────────────
 
@@ -501,7 +546,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     });
     expect(
       focusIsMoreBtnAfterEscape,
-      'Focus must return to "更多操作" button after Escape closes alertdialog'
+      'Focus must return to "更多操作" button after Escape closes alertdialog',
     ).toBe(true);
 
     // Reopen menu → reopen dialog → close with Cancel
@@ -522,7 +567,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     });
     expect(
       focusIsMoreBtnAfterCancel,
-      'Focus must return to "更多操作" button after Cancel closes alertdialog'
+      'Focus must return to "更多操作" button after Cancel closes alertdialog',
     ).toBe(true);
   });
 
@@ -551,8 +596,13 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     }
 
     // P0-3: Must assert focusable elements exist and are interactive
-    const interactiveTags = focusedElements.filter(t => ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(t));
-    expect(interactiveTags.length, `Expected interactive elements via Tab, got: ${focusedElements.join(', ')}`).toBeGreaterThanOrEqual(1);
+    const interactiveTags = focusedElements.filter((t) =>
+      ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(t),
+    );
+    expect(
+      interactiveTags.length,
+      `Expected interactive elements via Tab, got: ${focusedElements.join(', ')}`,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   test('Focus-visible ring applies on Tab navigation', async ({ page }) => {
@@ -581,11 +631,19 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       // Touch devices suppress focus rings by OS/browser convention — this is expected.
       // Verify that focus DID move to a real element (accessibility is not degraded).
       const focusedTag = await page.evaluate(() => document.activeElement?.tagName ?? '');
-      expect(focusedTag, 'Tab must move focus to an interactive element on touch viewports').toBeTruthy();
+      expect(
+        focusedTag,
+        'Tab must move focus to an interactive element on touch viewports',
+      ).toBeTruthy();
       // Focus-visible rings are absent on touch — confirm the absence is real, not a bug.
-      expect(hasVisibleFocus, 'Touch viewport: focus-visible ring suppression is expected').toBe(false);
+      expect(hasVisibleFocus, 'Touch viewport: focus-visible ring suppression is expected').toBe(
+        false,
+      );
     } else {
-      expect(hasVisibleFocus, 'Focus-visible ring not applied: no visible outline or box-shadow on active element').toBe(true);
+      expect(
+        hasVisibleFocus,
+        'Focus-visible ring not applied: no visible outline or box-shadow on active element',
+      ).toBe(true);
     }
   });
 
@@ -612,7 +670,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
       // Check that the main content area does not overflow the viewport.
       const overflow = await page.evaluate(() => {
         const main = document.querySelector(
-          '.research-page, .rpp-body, .pdp-body, .rwp-body, .rwf-body, .rpage-body, .rp-body, .lib-body, .reports-page'
+          '.research-page, .rpp-body, .pdp-body, .rwp-body, .rwf-body, .rpage-body, .rp-body, .lib-body, .reports-page',
         );
         if (!main) return { ok: true };
         const rect = main.getBoundingClientRect();
@@ -624,7 +682,10 @@ test.describe('Task 010 E2E — Design System Integration', () => {
         };
       });
 
-      expect(overflow.ok, `Overflow on ${route}: rect.right=${overflow.rectRight}, vw=${overflow.vw}`).toBeTruthy();
+      expect(
+        overflow.ok,
+        `Overflow on ${route}: rect.right=${overflow.rectRight}, vw=${overflow.vw}`,
+      ).toBeTruthy();
     }
   });
 
@@ -649,7 +710,10 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
     // Real click — no dispatchEvent
     await crumb.click();
-    await page.waitForURL((url: URL) => url.pathname === '/research' || url.pathname.startsWith('/research'), { timeout: 10_000 });
+    await page.waitForURL(
+      (url: URL) => url.pathname === '/research' || url.pathname.startsWith('/research'),
+      { timeout: 10_000 },
+    );
     await expect(page.locator('.rph-title, h1').filter({ hasText: /研究课题/ })).toBeVisible();
   });
 
@@ -668,7 +732,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
     // P0-3: MUST find and click 全文阅读 button — no else fallback
     // Wait for the detail page to fully render
-    await expect(page.locator('.lib-detail-body, .lib-detail-page').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.lib-detail-body, .lib-detail-page').first()).toBeVisible({
+      timeout: 10_000,
+    });
 
     // The LibraryDetailPage has two "全文阅读" buttons:
     //   1. Header actions slot: button.lib-read-btn → 📖 全文阅读
@@ -681,11 +747,16 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const headerVisible = await headerBtn.isVisible().catch(() => false);
     const clickTarget = headerVisible ? headerBtn : ctaBtn;
 
-    await expect(clickTarget, '全文阅读 button must exist on document detail page').toBeVisible({ timeout: 10_000 });
+    await expect(clickTarget, '全文阅读 button must exist on document detail page').toBeVisible({
+      timeout: 10_000,
+    });
 
     // Use Promise.all to capture SPA navigation
     await Promise.all([
-      page.waitForURL((url: URL) => url.pathname.includes('/literature') || url.pathname.includes('/reader'), { timeout: 10_000 }),
+      page.waitForURL(
+        (url: URL) => url.pathname.includes('/literature') || url.pathname.includes('/reader'),
+        { timeout: 10_000 },
+      ),
       clickTarget.click(),
     ]);
 
@@ -693,7 +764,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     const url = page.url();
     expect(
       url.includes('/reader') || url.includes('/literature'),
-      `Expected to navigate to reader page, got: ${url}`
+      `Expected to navigate to reader page, got: ${url}`,
     ).toBeTruthy();
 
     // LiteratureDetailView uses .lit-detail-page as root class
@@ -705,7 +776,9 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
   test('Reports page — export button triggers real export for ready reports', async ({ page }) => {
     const errors: Array<string> = [];
-    page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
 
     await login(page);
     await page.goto(`${BASE}/reports`);
@@ -721,11 +794,14 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     // the test data MUST contain at least one ready report to prove export works.
     await expect(
       exportBtn,
-      'No ready report with export button found — test data must include a ready report'
+      'No ready report with export button found — test data must include a ready report',
     ).toBeVisible({ timeout: 10_000 });
 
     // Confirm the report has the ready status badge near the export button
-    const readyBadge = page.locator('.rrli-badges').filter({ hasText: /就绪|ready/i }).first();
+    const readyBadge = page
+      .locator('.rrli-badges')
+      .filter({ hasText: /就绪|ready/i })
+      .first();
     await expect(readyBadge).toBeVisible({ timeout: 5_000 });
 
     // Real click on export — capture the download event
@@ -740,7 +816,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     expect(filename, 'Export download must have a non-empty filename').toBeTruthy();
     expect(
       filename.endsWith('.md') || filename.endsWith('.markdown'),
-      `Export filename should end with .md or .markdown, got: ${filename}`
+      `Export filename should end with .md or .markdown, got: ${filename}`,
     ).toBe(true);
 
     // Verify the downloaded file has content
@@ -753,7 +829,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
     expect(content.length, 'Exported markdown file must not be empty').toBeGreaterThan(0);
 
     // Verify no console errors
-    const criticalErrors = errors.filter(e => !e.includes('favicon'));
+    const criticalErrors = errors.filter((e) => !e.includes('favicon'));
     expect(criticalErrors.length).toBe(0);
   });
 

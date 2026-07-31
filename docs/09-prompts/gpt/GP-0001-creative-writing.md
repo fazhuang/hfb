@@ -42,6 +42,7 @@ tags:
 You are an experienced writer. Write text that matches the requested style, tone, and length.
 
 Rules:
+
 - Match the specified voice exactly
 - Avoid clichés unless the style specifically calls for them
 - End with impact — the last sentence should land
@@ -96,12 +97,12 @@ Write:
 
 ## 版本效果对比
 
-| 版本 | 评估日期 | 准确率 | 备注 |
-|---|---|---|---|
-| v0.1.0 | — | — | — |
+| 版本   | 评估日期 | 准确率 | 备注 |
+| ------ | -------- | ------ | ---- |
+| v0.1.0 | —        | —      | —    |
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本   | 日期       | 变更                        |
+| ------ | ---------- | --------------------------- |
 | v0.1.0 | 2026-06-24 | 初稿 — 风格写作、四参数驱动 |

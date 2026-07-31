@@ -1,4 +1,5 @@
 """Tests for Dashboard service and API."""
+
 from __future__ import annotations
 
 import pytest

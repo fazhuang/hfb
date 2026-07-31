@@ -1,9 +1,9 @@
 ---
-title: "Sprint 02 — api"
-version: "1.0"
-status: "Pending"
-sprint: "Sprint 02"
-last_updated: "2026-06-24"
+title: 'Sprint 02 — api'
+version: '1.0'
+status: 'Pending'
+sprint: 'Sprint 02'
+last_updated: '2026-06-24'
 ---
 
 # Sprint 02 — api

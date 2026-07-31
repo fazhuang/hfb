@@ -18,6 +18,7 @@ related_documents:
 ---
 
 # Operation & Maintenance Standard
+
 ## 平台运维规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的统一运行维护标准。
@@ -44,18 +45,18 @@ related_documents:
 
 统一纳入运维管理：
 
-| 模块 | 内容 |
-|------|------|
-| Application | 前端、后端服务 |
-| Database | PostgreSQL |
-| Search | Elasticsearch |
-| Object Storage | MinIO |
-| AI Service | RAG、LLM 服务 |
-| Knowledge Graph | Neo4j（规划） |
-| Vector Database | Milvus（规划） |
-| Documentation | docs/ 文档体系 |
-| CI/CD | GitHub Actions |
-| Infrastructure | Docker、服务器、网络 |
+| 模块            | 内容                 |
+| --------------- | -------------------- |
+| Application     | 前端、后端服务       |
+| Database        | PostgreSQL           |
+| Search          | Elasticsearch        |
+| Object Storage  | MinIO                |
+| AI Service      | RAG、LLM 服务        |
+| Knowledge Graph | Neo4j（规划）        |
+| Vector Database | Milvus（规划）       |
+| Documentation   | docs/ 文档体系       |
+| CI/CD           | GitHub Actions       |
+| Infrastructure  | Docker、服务器、网络 |
 
 ---
 
@@ -114,14 +115,14 @@ Production
 
 统一日志分类：
 
-| 类型 | 内容 |
-|------|------|
-| Application | 应用日志 |
-| Access | 访问日志 |
-| Security | 安全日志 |
-| Audit | 审计日志 |
-| AI | AI 调用日志 |
-| System | 系统日志 |
+| 类型        | 内容        |
+| ----------- | ----------- |
+| Application | 应用日志    |
+| Access      | 访问日志    |
+| Security    | 安全日志    |
+| Audit       | 审计日志    |
+| AI          | AI 调用日志 |
+| System      | 系统日志    |
 
 日志格式统一采用结构化输出（JSON）。
 
@@ -131,11 +132,11 @@ Production
 
 平台建立三级告警：
 
-| 等级 | 响应要求 |
-|------|----------|
-| P1 | 立即处理 |
-| P2 | 30 分钟内响应 |
-| P3 | 24 小时内处理 |
+| 等级 | 响应要求      |
+| ---- | ------------- |
+| P1   | 立即处理      |
+| P2   | 30 分钟内响应 |
+| P3   | 24 小时内处理 |
 
 所有告警均生成事件编号。
 
@@ -252,11 +253,11 @@ AI 服务异常必须优先定位。
 
 建立固定巡检：
 
-| 周期 | 内容 |
-|------|------|
-| 每日 | 服务状态、日志 |
-| 每周 | 数据质量、备份 |
-| 每月 | 安全检查、性能分析 |
+| 周期   | 内容               |
+| ------ | ------------------ |
+| 每日   | 服务状态、日志     |
+| 每周   | 数据质量、备份     |
+| 每月   | 安全检查、性能分析 |
 | 每季度 | 架构评估、容量规划 |
 
 巡检结果形成正式报告。
@@ -267,12 +268,12 @@ AI 服务异常必须优先定位。
 
 平台目标：
 
-| 指标 | 标准 |
-|------|------|
-| 系统可用率 | ≥99.9% |
-| API 可用率 | ≥99.9% |
+| 指标          | 标准   |
+| ------------- | ------ |
+| 系统可用率    | ≥99.9% |
+| API 可用率    | ≥99.9% |
 | AI 服务可用率 | ≥99.5% |
-| 检索可用率 | ≥99.9% |
+| 检索可用率    | ≥99.9% |
 
 ---
 
@@ -370,7 +371,7 @@ AI 服务异常必须优先定位。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一运行维护规范。 |
+| Version | Date       | Description                          |
+| ------- | ---------- | ------------------------------------ |
+| 1.1.0   | 2026-06-25 | 更新related_documents                |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一运行维护规范。 |

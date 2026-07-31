@@ -1,6 +1,7 @@
 """
 Person (人物) schemas.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -30,7 +31,6 @@ class PersonBase(BaseModel):
 
 class PersonCreate(PersonBase):
     """Schema for creating a new person."""
-
 
 
 class PersonBrief(BaseModel):

@@ -20,6 +20,7 @@ related_documents:
 ---
 
 # Technical Blueprint
+
 ## 技术白皮书
 
 > 本文档定义本项目唯一认可的技术架构。
@@ -244,25 +245,25 @@ scripts/
 
 # 第五章 技术选型
 
-| 模块 | 技术 | 决策依据 |
-|------|------|----------|
-| Backend | FastAPI | [ADR-0001](../11-adr/ADR-0001-FastAPI.md) |
-| Frontend | Vue3 | [ADR-0002](../11-adr/ADR-0002-Vue3.md) |
-| Database | PostgreSQL | [ADR-0003](../11-adr/ADR-0003-PostgreSQL.md) |
-| Cache | Redis | — |
-| Search | Elasticsearch | [ADR-0005](../11-adr/ADR-0005-Elasticsearch.md) |
-| Object Storage | MinIO | — |
-| Migration | Alembic | — |
-| Container | Docker Compose | [ADR-0008](../11-adr/ADR-0008-Docker.md) |
-| Package Manager | pnpm | — |
+| 模块            | 技术           | 决策依据                                        |
+| --------------- | -------------- | ----------------------------------------------- |
+| Backend         | FastAPI        | [ADR-0001](../11-adr/ADR-0001-FastAPI.md)       |
+| Frontend        | Vue3           | [ADR-0002](../11-adr/ADR-0002-Vue3.md)          |
+| Database        | PostgreSQL     | [ADR-0003](../11-adr/ADR-0003-PostgreSQL.md)    |
+| Cache           | Redis          | —                                               |
+| Search          | Elasticsearch  | [ADR-0005](../11-adr/ADR-0005-Elasticsearch.md) |
+| Object Storage  | MinIO          | —                                               |
+| Migration       | Alembic        | —                                               |
+| Container       | Docker Compose | [ADR-0008](../11-adr/ADR-0008-Docker.md)        |
+| Package Manager | pnpm           | —                                               |
 
 以下技术属于后续阶段，**不属于 MVP**：
 
-| 技术 | 决策依据 | 引入阶段 |
-|------|----------|----------|
-| Neo4j | [ADR-0004](../11-adr/ADR-0004-Neo4j.md) | Post-MVP |
+| 技术     | 决策依据                                   | 引入阶段 |
+| -------- | ------------------------------------------ | -------- |
+| Neo4j    | [ADR-0004](../11-adr/ADR-0004-Neo4j.md)    | Post-MVP |
 | GraphRAG | [ADR-0006](../11-adr/ADR-0006-GraphRAG.md) | Post-MVP |
-| Milvus | [ADR-0007](../11-adr/ADR-0007-Milvus.md) | Post-MVP |
+| Milvus   | [ADR-0007](../11-adr/ADR-0007-Milvus.md)   | Post-MVP |
 
 MVP 阶段不得引入上述技术。
 
@@ -383,12 +384,12 @@ Service 直接写 SQL。
 
 AI 分四阶段实施，不跳阶段：
 
-| Phase | 内容 | 对应 Roadmap | 状态 |
-|---|---|---|---|
-| Phase 1 | AI 接口预留 | MVP | 当前 |
-| Phase 2 | RAG | Post-MVP | 排队 |
-| Phase 3 | GraphRAG | Post-MVP | 排队 |
-| Phase 4 | Research Agent | Post-MVP | 排队 |
+| Phase   | 内容           | 对应 Roadmap | 状态 |
+| ------- | -------------- | ------------ | ---- |
+| Phase 1 | AI 接口预留    | MVP          | 当前 |
+| Phase 2 | RAG            | Post-MVP     | 排队 |
+| Phase 3 | GraphRAG       | Post-MVP     | 排队 |
+| Phase 4 | Research Agent | Post-MVP     | 排队 |
 
 任何阶段不得提前开发下一阶段能力。
 
@@ -549,7 +550,7 @@ MVP 范围为 Sprint 1–10。具体 Sprint 范围以各 Sprint Context 文档�
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 新增第十六章(MVP与上线约束)；补充各章对17系列的交叉引用；更新related_documents；更新技术演进路线对齐MVP范围；补充AI架构规划的阶段表格；补充架构红线中的MVP和上线约束 |
-| 1.0.0 | 2026-06-24 | 首版发布，作为项目唯一技术架构规范。 |
+| Version | Date       | Description                                                                                                                                                          |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1.0   | 2026-06-25 | 新增第十六章(MVP与上线约束)；补充各章对17系列的交叉引用；更新related_documents；更新技术演进路线对齐MVP范围；补充AI架构规划的阶段表格；补充架构红线中的MVP和上线约束 |
+| 1.0.0   | 2026-06-24 | 首版发布，作为项目唯一技术架构规范。                                                                                                                                 |

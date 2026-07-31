@@ -33,25 +33,13 @@ class AcademicEdge(Base):
     target_entity_id: Mapped[str] = mapped_column(String(36))
     relation_type: Mapped[str] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evidence_document_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True
-    )
-    evidence_chunk_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True
-    )
+    evidence_document_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    evidence_chunk_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     evidence_quote: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evidence_citation: Mapped[str | None] = mapped_column(
-        String(200), nullable=True
-    )
-    evidence_version_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True
-    )
-    evidence_passage_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True
-    )
-    evidence_source_uri: Mapped[str | None] = mapped_column(
-        String(500), nullable=True
-    )
+    evidence_citation: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    evidence_version_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    evidence_passage_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    evidence_source_uri: Mapped[str | None] = mapped_column(String(500), nullable=True)
     evidence_status: Mapped[str] = mapped_column(String(20))
     claim_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     verified_by: Mapped[str | None] = mapped_column(String(36), nullable=True)

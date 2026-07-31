@@ -11,41 +11,41 @@
 
 ### Old Functionality Sources
 
-| Source File | What Was Used | Mapped To |
-|---|---|---|
-| `views/ResearchNewView.vue` | Topic creation form (name + description) | `CreateProjectDialog.vue` — modal dialog replacing the standalone page |
-| `views/ResearchWorkspaceView.vue` | `GET /api/v1/workspace/sessions` call pattern, pagination pattern, formatDate helper | Direct API call in `ProjectListPage.vue`, same pagination controls |
-| `api/client.ts` | Axios `api` instance | Reused directly — no new API wrapper |
-| - | API response from `GET /api/v1/workspace/sessions` | Mapped via `toProjectSummary()` to `ResearchProjectSummary` — a view-model, not a separate entity |
-| `composables/useApi.ts` | `useEntityList` pattern | NOT reused — sessions endpoint does not support `page`/`q` params, so custom loading/pagination logic is needed |
-| `stores/research.ts` | `ResearchTopic` interface shape (name, description, createdAt) | NOT reused — new page uses `ResearchProjectSummary` type from `types/research.ts` backed by server API |
+| Source File                       | What Was Used                                                                        | Mapped To                                                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `views/ResearchNewView.vue`       | Topic creation form (name + description)                                             | `CreateProjectDialog.vue` — modal dialog replacing the standalone page                                          |
+| `views/ResearchWorkspaceView.vue` | `GET /api/v1/workspace/sessions` call pattern, pagination pattern, formatDate helper | Direct API call in `ProjectListPage.vue`, same pagination controls                                              |
+| `api/client.ts`                   | Axios `api` instance                                                                 | Reused directly — no new API wrapper                                                                            |
+| -                                 | API response from `GET /api/v1/workspace/sessions`                                   | Mapped via `toProjectSummary()` to `ResearchProjectSummary` — a view-model, not a separate entity               |
+| `composables/useApi.ts`           | `useEntityList` pattern                                                              | NOT reused — sessions endpoint does not support `page`/`q` params, so custom loading/pagination logic is needed |
+| `stores/research.ts`              | `ResearchTopic` interface shape (name, description, createdAt)                       | NOT reused — new page uses `ResearchProjectSummary` type from `types/research.ts` backed by server API          |
 
 ### Shared Components Reused
 
-| Component | File | Usage |
-|---|---|---|
-| `ResearchPageHeader` | `components/layout/ResearchPageHeader.vue` | Page title, description, actions slot ("新建课题" button) |
-| (None) | Pagination is inline in `ProjectListPage` — matches pattern from `EntityListPage.vue` and `ResearchWorkspaceView.vue` | Same prev/next button + page-info pattern |
+| Component            | File                                                                                                                  | Usage                                                     |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `ResearchPageHeader` | `components/layout/ResearchPageHeader.vue`                                                                            | Page title, description, actions slot ("新建课题" button) |
+| (None)               | Pagination is inline in `ProjectListPage` — matches pattern from `EntityListPage.vue` and `ResearchWorkspaceView.vue` | Same prev/next button + page-info pattern                 |
 
 ### New Components Created
 
-| Component | File | Purpose |
-|---|---|---|
-| `LoadingState` | `components/common/LoadingState.vue` | Reusable loading spinner with message |
-| `EmptyState` | `components/common/EmptyState.vue` | Reusable empty state with icon, title, description, action slot |
-| `ErrorState` | `components/common/ErrorState.vue` | Reusable error display with retry button |
-| `ProjectListToolbar` | `components/research/ProjectListToolbar.vue` | Search bar with debounced input + clear filter |
-| `ProjectListItem` | `components/research/ProjectListItem.vue` | Single project card — name, description, dates, enter button |
-| `CreateProjectDialog` | `components/research/CreateProjectDialog.vue` | Modal form: name (required) + description (optional) |
+| Component             | File                                          | Purpose                                                         |
+| --------------------- | --------------------------------------------- | --------------------------------------------------------------- |
+| `LoadingState`        | `components/common/LoadingState.vue`          | Reusable loading spinner with message                           |
+| `EmptyState`          | `components/common/EmptyState.vue`            | Reusable empty state with icon, title, description, action slot |
+| `ErrorState`          | `components/common/ErrorState.vue`            | Reusable error display with retry button                        |
+| `ProjectListToolbar`  | `components/research/ProjectListToolbar.vue`  | Search bar with debounced input + clear filter                  |
+| `ProjectListItem`     | `components/research/ProjectListItem.vue`     | Single project card — name, description, dates, enter button    |
+| `CreateProjectDialog` | `components/research/CreateProjectDialog.vue` | Modal form: name (required) + description (optional)            |
 
 ---
 
 ## API Endpoints Used
 
-| Method | Endpoint | Purpose | Real Backend Capabilities |
-|---|---|---|---|
-| `GET` | `/api/v1/workspace/sessions` | List user's research sessions | No query params accepted; hardcoded `limit=20` default; no search/pagination/status support; no `total` in response |
-| `POST` | `/api/v1/workspace/sessions` | Create new research session | Only accepts `{ title: string }` (title defaults to "未命名研究"); no description or status fields |
+| Method | Endpoint                     | Purpose                       | Real Backend Capabilities                                                                                           |
+| ------ | ---------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/workspace/sessions` | List user's research sessions | No query params accepted; hardcoded `limit=20` default; no search/pagination/status support; no `total` in response |
+| `POST` | `/api/v1/workspace/sessions` | Create new research session   | Only accepts `{ title: string }` (title defaults to "未命名研究"); no description or status fields                  |
 
 > **Important:** The backend route handler does not accept `limit` as a query parameter. The `limit=100` sent by the frontend is silently ignored by the server — `WorkspaceService.list_sessions()` always uses the default of 20.
 
@@ -68,11 +68,11 @@
  * in the current system.
  */
 interface ResearchProjectSummary {
-  id: string;                    // UUID from ResearchSession.id — the sole identifier
-  title: string;                 // from ResearchSession.title
-  description?: string | null;   // NOT provided by backend; optional, not added by mapping
-  created_at: string | null;     // ISO timestamp from ResearchSession.created_at
-  updated_at: string | null;     // ISO timestamp from ResearchSession.updated_at
+  id: string; // UUID from ResearchSession.id — the sole identifier
+  title: string; // from ResearchSession.title
+  description?: string | null; // NOT provided by backend; optional, not added by mapping
+  created_at: string | null; // ISO timestamp from ResearchSession.created_at
+  updated_at: string | null; // ISO timestamp from ResearchSession.updated_at
 }
 ```
 
@@ -118,6 +118,7 @@ Single pagination state: `page` ref. No duplicate page/offset/cursor models.
 ### Unmigrated Fields
 
 The old `ResearchNewView.vue` had:
+
 - `description` field — **NOT sent to API** because `POST /api/v1/workspace/sessions` only accepts `title`
 - `researchStore.setTopic()` — **NOT used** because the new flow uses server-persisted sessions
 
@@ -125,15 +126,15 @@ The old `ResearchNewView.vue` had:
 
 ## State Handling
 
-| State | Implementation |
-|---|---|
-| Initial loading | `LoadingState` component with spinner |
-| Search loading | Same loading state with "正在搜索..." message |
-| Empty list | `EmptyState` with "还没有研究课题" + create button |
+| State             | Implementation                                             |
+| ----------------- | ---------------------------------------------------------- |
+| Initial loading   | `LoadingState` component with spinner                      |
+| Search loading    | Same loading state with "正在搜索..." message              |
+| Empty list        | `EmptyState` with "还没有研究课题" + create button         |
 | Search no results | `EmptyState` with "未找到匹配的课题" + clear filter button |
-| API error | `ErrorState` with error message + retry button |
-| Create success | Green toast "课题创建成功" (auto-dismiss 3s) |
-| Create failure | Red error text in dialog showing backend message |
+| API error         | `ErrorState` with error message + retry button             |
+| Create success    | Green toast "课题创建成功" (auto-dismiss 3s)               |
+| Create failure    | Red error text in dialog showing backend message           |
 
 ---
 
@@ -163,23 +164,23 @@ The old `ResearchNewView.vue` had:
 
 ### Test Coverage Summary
 
-| # | Test | Status |
-|---|---|---|
-| 1 | Page loads and requests session list | PASS |
-| 2 | Successfully renders project names | PASS |
-| 3 | Search filters client-side | PASS |
-| 4 | Clear filter restores full list | PASS |
-| 5 | Empty list shows empty state | PASS |
-| 6 | Search-no-results shows distinct empty state | PASS |
-| 7 | API failure shows error state | PASS |
-| 8 | Retry button re-fetches | PASS |
-| 9 | Create button opens dialog | PASS |
-| 10 | Missing name disables submit | PASS |
-| 11 | Prevents double submission | PASS |
-| 12 | Create success refreshes list | PASS |
-| 13 | Create failure shows backend error | PASS |
-| 14 | Click project navigates to /research/:projectId | PASS |
-| 15 | Pagination present when items exceed page size | PASS |
-| 16 | No internal technical fields rendered | PASS |
-| 17 | Race condition guard | PASS |
-| 18 | No state write warnings on unmount | PASS |
+| #   | Test                                            | Status |
+| --- | ----------------------------------------------- | ------ |
+| 1   | Page loads and requests session list            | PASS   |
+| 2   | Successfully renders project names              | PASS   |
+| 3   | Search filters client-side                      | PASS   |
+| 4   | Clear filter restores full list                 | PASS   |
+| 5   | Empty list shows empty state                    | PASS   |
+| 6   | Search-no-results shows distinct empty state    | PASS   |
+| 7   | API failure shows error state                   | PASS   |
+| 8   | Retry button re-fetches                         | PASS   |
+| 9   | Create button opens dialog                      | PASS   |
+| 10  | Missing name disables submit                    | PASS   |
+| 11  | Prevents double submission                      | PASS   |
+| 12  | Create success refreshes list                   | PASS   |
+| 13  | Create failure shows backend error              | PASS   |
+| 14  | Click project navigates to /research/:projectId | PASS   |
+| 15  | Pagination present when items exceed page size  | PASS   |
+| 16  | No internal technical fields rendered           | PASS   |
+| 17  | Race condition guard                            | PASS   |
+| 18  | No state write warnings on unmount              | PASS   |

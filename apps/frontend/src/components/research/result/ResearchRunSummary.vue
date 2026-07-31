@@ -10,16 +10,14 @@
     </div>
     <div v-if="report?.completed_at" class="rrs-row">
       <span class="rrs-label">完成时间</span>
-      <time class="rrs-value" :datetime="report.completed_at">{{ formatDate(report.completed_at) }}</time>
+      <time class="rrs-value" :datetime="report.completed_at">{{
+        formatDate(report.completed_at)
+      }}</time>
     </div>
     <div v-if="steps.length > 0" class="rrs-row rrs-row--steps">
       <span class="rrs-label">流程步骤</span>
       <div class="rrs-steps">
-        <span
-          v-for="(step, idx) in steps"
-          :key="idx"
-          :class="['rrs-step-badge', stepClass(step)]"
-        >
+        <span v-for="(step, idx) in steps" :key="idx" :class="['rrs-step-badge', stepClass(step)]">
           {{ stepLabels[step.name as string] || step.name }}
         </span>
       </div>
@@ -61,8 +59,8 @@ const steps = computed(() => {
 });
 
 const hasFailed = computed(() => steps.value.some((s) => s.status === 'failed'));
-const allCompleted = computed(() =>
-  steps.value.length > 0 && steps.value.every((s) => s.status === 'completed')
+const allCompleted = computed(
+  () => steps.value.length > 0 && steps.value.every((s) => s.status === 'completed'),
 );
 
 const statusClass = computed(() => {

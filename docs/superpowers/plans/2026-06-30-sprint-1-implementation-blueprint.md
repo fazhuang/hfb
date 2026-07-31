@@ -463,22 +463,22 @@ Phase F — Integration & Polish (Day 5-6)
 
 ### 3.1 Existing (unchanged) — 14 route groups
 
-| Route Group | Base Path | Existing |
-|------------|-----------|----------|
-| Auth | `/api/v1/auth` | ✅ POST login, register, GET me |
-| Entities | `/api/v1/{resource}` | ✅ CRUD for 8 types (book, version, chapter, passage, paper, image, person, document) |
-| AI | `/api/v1/ai` | ✅ POST chat, summarize, translate, compare |
-| Search | `/api/v1/search` | ✅ GET search, suggest, POST reindex |
-| Graph | `/api/v1/graph` | ✅ GET neighbors, paths, subgraph |
-| Version Center | `/api/v1/version-center` | ✅ Version comparison |
-| Workspace | `/api/v1/workspace` | ✅ CRUD sessions, notes |
-| Research | `/api/v1/research` | ✅ Research workflow |
-| Dashboard | `/api/v1/dashboard` | ✅ Dashboard stats |
-| Users | `/api/v1/users` | ✅ User management |
-| Health | `/health` | ✅ GET 200 |
-| Ready | `/ready` | ✅ GET 200 or 503 |
-| Version | `/version` | ✅ GET version info |
-| Config | `/config` | ✅ GET public config |
+| Route Group    | Base Path                | Existing                                                                              |
+| -------------- | ------------------------ | ------------------------------------------------------------------------------------- |
+| Auth           | `/api/v1/auth`           | ✅ POST login, register, GET me                                                       |
+| Entities       | `/api/v1/{resource}`     | ✅ CRUD for 8 types (book, version, chapter, passage, paper, image, person, document) |
+| AI             | `/api/v1/ai`             | ✅ POST chat, summarize, translate, compare                                           |
+| Search         | `/api/v1/search`         | ✅ GET search, suggest, POST reindex                                                  |
+| Graph          | `/api/v1/graph`          | ✅ GET neighbors, paths, subgraph                                                     |
+| Version Center | `/api/v1/version-center` | ✅ Version comparison                                                                 |
+| Workspace      | `/api/v1/workspace`      | ✅ CRUD sessions, notes                                                               |
+| Research       | `/api/v1/research`       | ✅ Research workflow                                                                  |
+| Dashboard      | `/api/v1/dashboard`      | ✅ Dashboard stats                                                                    |
+| Users          | `/api/v1/users`          | ✅ User management                                                                    |
+| Health         | `/health`                | ✅ GET 200                                                                            |
+| Ready          | `/ready`                 | ✅ GET 200 or 503                                                                     |
+| Version        | `/version`               | ✅ GET version info                                                                   |
+| Config         | `/config`                | ✅ GET public config                                                                  |
 
 ### 3.2 New (Sprint 1 additions) — 4 entity types
 
@@ -564,14 +564,14 @@ All follow the existing pattern from `_make_crud` factory in `api/v1/entities.py
 
 ### 3.4 Validation Rules
 
-| Field | Rule | Enforced By |
-|-------|------|-------------|
-| name | required, 1–300 chars | Pydantic Field(min_length=1, max_length=300) |
-| id (path) | valid UUID | FastAPI UUID type |
-| page (query) | int ≥ 1, default 1 | Query(default=1, ge=1) |
-| size (query) | int 1–100, default 20 | Query(default=20, ge=1, le=100) |
-| status | enum: draft/review/published/archived/deprecated | status_machine.py |
-| status transition | draft→published rejected | Service layer validate_transition() |
+| Field             | Rule                                             | Enforced By                                  |
+| ----------------- | ------------------------------------------------ | -------------------------------------------- |
+| name              | required, 1–300 chars                            | Pydantic Field(min_length=1, max_length=300) |
+| id (path)         | valid UUID                                       | FastAPI UUID type                            |
+| page (query)      | int ≥ 1, default 1                               | Query(default=1, ge=1)                       |
+| size (query)      | int 1–100, default 20                            | Query(default=20, ge=1, le=100)              |
+| status            | enum: draft/review/published/archived/deprecated | status_machine.py                            |
+| status transition | draft→published rejected                         | Service layer validate_transition()          |
 
 ---
 
@@ -852,33 +852,33 @@ Afternoon (4h):
 
 ## 7. New Files Created (Sprint 1)
 
-| File | Lines (est.) | Purpose |
-|------|-------------|---------|
-| `models/institution.py` | ~35 | Institution model |
-| `models/place.py` | ~35 | Place model |
-| `models/event.py` | ~40 | Event model |
-| `models/dynasty.py` | ~40 | Dynasty model |
-| `core/status_machine.py` | ~30 | State machine |
-| `core/exceptions.py` | ~15 | Custom exceptions |
-| `core/error_handlers.py` | ~35 | Exception→HTTP mapping |
-| `middleware/request_id.py` | ~25 | X-Request-ID |
-| `db/migrations/versions/{4 hashes}_*.py` | ~200 (auto) | 4 migrations |
+| File                                     | Lines (est.) | Purpose                |
+| ---------------------------------------- | ------------ | ---------------------- |
+| `models/institution.py`                  | ~35          | Institution model      |
+| `models/place.py`                        | ~35          | Place model            |
+| `models/event.py`                        | ~40          | Event model            |
+| `models/dynasty.py`                      | ~40          | Dynasty model          |
+| `core/status_machine.py`                 | ~30          | State machine          |
+| `core/exceptions.py`                     | ~15          | Custom exceptions      |
+| `core/error_handlers.py`                 | ~35          | Exception→HTTP mapping |
+| `middleware/request_id.py`               | ~25          | X-Request-ID           |
+| `db/migrations/versions/{4 hashes}_*.py` | ~200 (auto)  | 4 migrations           |
 
 ## 8. Files Modified (Sprint 1)
 
-| File | Lines added (est.) | Change |
-|------|-------------------|--------|
-| `schemas/entities.py` | ~80 | 16 schemas (4 entities × 4) |
-| `repositories/entities.py` | ~120 | 4 repositories |
-| `services/entities.py` | ~160 | 4 services + lifecycle integration |
-| `api/v1/entities.py` | ~25 | 4 route registrations |
-| `models/__init__.py` | ~10 | 4 imports |
-| `services/search_service.py` | ~80 | ENTITY_CONFIG + ES query path |
-| `core/config.py` | ~5 | ES feature flags |
-| `main.py` | ~10 | Error handlers + middleware |
-| `tests/unit/test_entity_models.py` | ~80 | 4 test classes |
-| `tests/unit/test_search.py` | ~40 | ES fallback tests |
-| `tests/unit/test_health.py` | ~15 | Request ID test |
+| File                               | Lines added (est.) | Change                             |
+| ---------------------------------- | ------------------ | ---------------------------------- |
+| `schemas/entities.py`              | ~80                | 16 schemas (4 entities × 4)        |
+| `repositories/entities.py`         | ~120               | 4 repositories                     |
+| `services/entities.py`             | ~160               | 4 services + lifecycle integration |
+| `api/v1/entities.py`               | ~25                | 4 route registrations              |
+| `models/__init__.py`               | ~10                | 4 imports                          |
+| `services/search_service.py`       | ~80                | ENTITY_CONFIG + ES query path      |
+| `core/config.py`                   | ~5                 | ES feature flags                   |
+| `main.py`                          | ~10                | Error handlers + middleware        |
+| `tests/unit/test_entity_models.py` | ~80                | 4 test classes                     |
+| `tests/unit/test_search.py`        | ~40                | ES fallback tests                  |
+| `tests/unit/test_health.py`        | ~15                | Request ID test                    |
 
 **Total: ~1,000 new lines, ~600 modified lines, 0 deleted lines.**
 
@@ -886,27 +886,27 @@ Afternoon (4h):
 
 ## 7. Post-MVP Explicitly Excluded List
 
-| Feature | When | Trigger |
-|---------|------|---------|
-| Neo4j deployment | Phase 2 | ADR-0004 Active |
-| GraphRAG | Phase 2 | Neo4j deployed |
-| pgvector / Text RAG | Phase 2 | Embedding model selected |
-| Citation RAG | Phase 2 | PG vector search live |
-| Milvus | Phase 3 | >100K vectors |
-| Evidence / Citation tables | Sprint 2 | Sprint 1 complete |
-| ReviewService / Expert Workbench | Sprint 2 | Evidence tables exist |
-| Metadata table | Sprint 2 | ReviewService exists |
-| BusinessAuditLog | Sprint 2 | ReviewService exists |
-| Acupoint/Meridian/Disease/Symptom/Herb/Formula/Treatment | Phase 2 | HFB-DAT-0304 approval |
-| OCR pipeline | Phase 2 | Corpus acquired |
-| NER pipeline | Phase 2 | Model fine-tuned |
-| Relation extraction | Phase 2 | NER operational |
-| Literature review assistant | Phase 2 | RAG + GraphRAG live |
-| Evidence chain assistant | Phase 2 | GraphRAG live |
-| Version comparison assistant | Phase 2 | Multi-version data |
-| Topic suggestion assistant | Phase 2 | >500 papers |
-| Teaching assistant | Phase 3 | Learning center built |
-| Academic audit assistant | Phase 3 | All assistants live |
-| Structured logging (structlog) | Never | Not needed |
-| Port/Adapter interfaces (ABC) | Never | Existing layering adequate |
-| Request audit middleware | Sprint 3 | Ops requirement |
+| Feature                                                  | When     | Trigger                    |
+| -------------------------------------------------------- | -------- | -------------------------- |
+| Neo4j deployment                                         | Phase 2  | ADR-0004 Active            |
+| GraphRAG                                                 | Phase 2  | Neo4j deployed             |
+| pgvector / Text RAG                                      | Phase 2  | Embedding model selected   |
+| Citation RAG                                             | Phase 2  | PG vector search live      |
+| Milvus                                                   | Phase 3  | >100K vectors              |
+| Evidence / Citation tables                               | Sprint 2 | Sprint 1 complete          |
+| ReviewService / Expert Workbench                         | Sprint 2 | Evidence tables exist      |
+| Metadata table                                           | Sprint 2 | ReviewService exists       |
+| BusinessAuditLog                                         | Sprint 2 | ReviewService exists       |
+| Acupoint/Meridian/Disease/Symptom/Herb/Formula/Treatment | Phase 2  | HFB-DAT-0304 approval      |
+| OCR pipeline                                             | Phase 2  | Corpus acquired            |
+| NER pipeline                                             | Phase 2  | Model fine-tuned           |
+| Relation extraction                                      | Phase 2  | NER operational            |
+| Literature review assistant                              | Phase 2  | RAG + GraphRAG live        |
+| Evidence chain assistant                                 | Phase 2  | GraphRAG live              |
+| Version comparison assistant                             | Phase 2  | Multi-version data         |
+| Topic suggestion assistant                               | Phase 2  | >500 papers                |
+| Teaching assistant                                       | Phase 3  | Learning center built      |
+| Academic audit assistant                                 | Phase 3  | All assistants live        |
+| Structured logging (structlog)                           | Never    | Not needed                 |
+| Port/Adapter interfaces (ABC)                            | Never    | Existing layering adequate |
+| Request audit middleware                                 | Sprint 3 | Ops requirement            |

@@ -5,6 +5,7 @@ Bug fix: all passages shared the same version_id (明代刻本), making
 version comparison impossible. This script creates a second version
 (清代刻本) with its own passages, enabling meaningful cross-version diffs.
 """
+
 import asyncio
 import os
 import sys
@@ -21,64 +22,76 @@ from sqlalchemy import text
 async def main():
     async with async_session_factory() as session:
         # Check if we already have 2+ versions
-        r = await session.execute(text(
-            "SELECT COUNT(*) FROM versions WHERE is_deleted=false"
-        ))
+        r = await session.execute(
+            text("SELECT COUNT(*) FROM versions WHERE is_deleted=false")
+        )
         count = r.scalar()
         if count >= 2:
-            print(f'{count} versions already exist. Skipping.')
+            print(f"{count} versions already exist. Skipping.")
             return
 
         # Get the existing book
-        r = await session.execute(text(
-            "SELECT id, title FROM books WHERE title='针灸甲乙经' AND is_deleted=false"
-        ))
+        r = await session.execute(
+            text(
+                "SELECT id, title FROM books WHERE title='针灸甲乙经' AND is_deleted=false"
+            )
+        )
         book = r.fetchone()
         if not book:
-            print('Book 针灸甲乙经 not found. Run seed_kg_relations.py first.')
+            print("Book 针灸甲乙经 not found. Run seed_kg_relations.py first.")
             return
         book_id, _book_title = book
 
         # Get admin user
-        r = await session.execute(text(
-            "SELECT id FROM users WHERE email='admin@huangfumi.org' AND is_deleted=false"
-        ))
+        r = await session.execute(
+            text(
+                "SELECT id FROM users WHERE email='admin@huangfumi.org' AND is_deleted=false"
+            )
+        )
         admin_row = r.fetchone()
         admin_row[0] if admin_row else None
 
         # Get existing version for reference
-        r = await session.execute(text(
-            "SELECT id, version_name FROM versions WHERE is_deleted=false"
-        ))
+        r = await session.execute(
+            text("SELECT id, version_name FROM versions WHERE is_deleted=false")
+        )
         existing = r.fetchone()
         existing_version_id = existing[0]
-        print(f'Existing version: {existing[1]} ({existing_version_id})')
+        print(f"Existing version: {existing[1]} ({existing_version_id})")
 
         # Create second version: 清代刻本
         new_version_id = str(uuid_mod.uuid4())
-        await session.execute(text(
-            "INSERT INTO versions (id, book_id, version_name, era, year, repository, "
-            "description, is_deleted) "
-            "VALUES (:id, :book_id, :name, :era, :year, :repo, :desc, false)"
-        ), {
-            "id": new_version_id,
-            "book_id": book_id,
-            "name": "清代刻本",
-            "era": "清",
-            "year": 1776,
-            "repo": "武英殿",
-            "desc": "清代武英殿刻《针灸甲乙经》，据明刻本校正重刊，部分文字有修订，增加校勘记。",
-        })
-        print(f'Created version 清代刻本: {new_version_id}')
+        await session.execute(
+            text(
+                "INSERT INTO versions (id, book_id, version_name, era, year, repository, "
+                "description, is_deleted) "
+                "VALUES (:id, :book_id, :name, :era, :year, :repo, :desc, false)"
+            ),
+            {
+                "id": new_version_id,
+                "book_id": book_id,
+                "name": "清代刻本",
+                "era": "清",
+                "year": 1776,
+                "repo": "武英殿",
+                "desc": "清代武英殿刻《针灸甲乙经》，据明刻本校正重刊，部分文字有修订，增加校勘记。",
+            },
+        )
+        print(f"Created version 清代刻本: {new_version_id}")
 
         # Get existing passages from the 明代刻本 as templates
-        r = await session.execute(text(
-            "SELECT id, chapter_id, content_text, \"order\" "
-            "FROM passages WHERE version_id=:vid AND is_deleted=false "
-            "ORDER BY \"order\""
-        ), {"vid": existing_version_id})
+        r = await session.execute(
+            text(
+                'SELECT id, chapter_id, content_text, "order" '
+                "FROM passages WHERE version_id=:vid AND is_deleted=false "
+                'ORDER BY "order"'
+            ),
+            {"vid": existing_version_id},
+        )
         existing_passages = r.fetchall()
-        print(f'Found {len(existing_passages)} existing passages to derive variants from')
+        print(
+            f"Found {len(existing_passages)} existing passages to derive variants from"
+        )
 
         # Create variant passages for the new version — slightly modified text
         variant_texts = {
@@ -93,23 +106,27 @@ async def main():
         }
 
         # Create a new chapter for the Qing version (or reuse existing)
-        r = await session.execute(text(
-            "SELECT id FROM chapters WHERE book_id=:bid AND is_deleted=false"
-        ), {"bid": book_id})
+        r = await session.execute(
+            text("SELECT id FROM chapters WHERE book_id=:bid AND is_deleted=false"),
+            {"bid": book_id},
+        )
         chapter_row = r.fetchone()
         if chapter_row:
             chapter_id = chapter_row[0]
         else:
             chapter_id = str(uuid_mod.uuid4())
-            await session.execute(text(
-                "INSERT INTO chapters (id, book_id, title, \"order\", "
-                "is_deleted) VALUES (:id, :book_id, :title, :num, false)"
-            ), {
-                "id": chapter_id,
-                "book_id": book_id,
-                "title": "针灸甲乙经 清刻本全文",
-                "num": 1,
-            })
+            await session.execute(
+                text(
+                    'INSERT INTO chapters (id, book_id, title, "order", '
+                    "is_deleted) VALUES (:id, :book_id, :title, :num, false)"
+                ),
+                {
+                    "id": chapter_id,
+                    "book_id": book_id,
+                    "title": "针灸甲乙经 清刻本全文",
+                    "num": 1,
+                },
+            )
 
         passage_count = 0
         for i, ep in enumerate(existing_passages):
@@ -117,24 +134,27 @@ async def main():
             variant_text = variant_texts.get(passage_order)
             if variant_text:
                 pid = str(uuid_mod.uuid4())
-                await session.execute(text(
-                    "INSERT INTO passages (id, version_id, chapter_id, "
-                    "content_text, \"order\", is_deleted) "
-                    "VALUES (:id, :version_id, :chapter_id, :content_text, "
-                    ":order, false)"
-                ), {
-                    "id": pid,
-                    "version_id": new_version_id,
-                    "chapter_id": chapter_id,
-                    "content_text": variant_text,
-                    "order": passage_order,
-                })
+                await session.execute(
+                    text(
+                        "INSERT INTO passages (id, version_id, chapter_id, "
+                        'content_text, "order", is_deleted) '
+                        "VALUES (:id, :version_id, :chapter_id, :content_text, "
+                        ":order, false)"
+                    ),
+                    {
+                        "id": pid,
+                        "version_id": new_version_id,
+                        "chapter_id": chapter_id,
+                        "content_text": variant_text,
+                        "order": passage_order,
+                    },
+                )
                 passage_count += 1
 
-        print(f'Created {passage_count} variant passages for 清代刻本')
+        print(f"Created {passage_count} variant passages for 清代刻本")
 
         await session.commit()
-        print('Done. Two versions now available for comparison.')
+        print("Done. Two versions now available for comparison.")
 
 
 asyncio.run(main())

@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Entity Specification
+
 ## 实体规范
 
 > 本文档定义平台所有实体（Entity）的统一规范。
@@ -68,20 +69,20 @@ Entity（实体）是平台中具有独立身份、独立属性、可持续存�
 
 包括：
 
-| 实体 | 说明 |
-|------|------|
-| Person | 人物 |
-| Book | 古籍 |
-| Version | 版本 |
-| Chapter | 章节 |
-| Passage | 段落 |
-| Paper | 学术论文 |
-| Image | 图片 |
-| Institution | 机构 |
-| Place | 地点 |
-| Event | 历史事件 |
-| Dynasty | 朝代 |
-| Document | 综合资源 |
+| 实体        | 说明     |
+| ----------- | -------- |
+| Person      | 人物     |
+| Book        | 古籍     |
+| Version     | 版本     |
+| Chapter     | 章节     |
+| Passage     | 段落     |
+| Paper       | 学术论文 |
+| Image       | 图片     |
+| Institution | 机构     |
+| Place       | 地点     |
+| Event       | 历史事件 |
+| Dynasty     | 朝代     |
+| Document    | 综合资源 |
 
 ---
 
@@ -163,20 +164,20 @@ id
 
 所有实体必须继承以下基础字段。
 
-| 字段 | 类型 | 必填 |
-|------|------|------|
-| id | UUID | √ |
-| entity_type | String | √ |
-| title | String | √ |
-| description | Text | |
-| status | Enum | √ |
-| created_at | Datetime | √ |
-| updated_at | Datetime | √ |
-| created_by | UUID | |
-| updated_by | UUID | |
-| version | Integer | √ |
-| source_id | UUID | |
-| metadata_id | UUID | |
+| 字段        | 类型     | 必填 |
+| ----------- | -------- | ---- |
+| id          | UUID     | √    |
+| entity_type | String   | √    |
+| title       | String   | √    |
+| description | Text     |      |
+| status      | Enum     | √    |
+| created_at  | Datetime | √    |
+| updated_at  | Datetime | √    |
+| created_by  | UUID     |      |
+| updated_by  | UUID     |      |
+| version     | Integer  | √    |
+| source_id   | UUID     |      |
+| metadata_id | UUID     |      |
 
 不得删除上述字段。
 
@@ -512,7 +513,7 @@ Entity Specification 是平台唯一实体标准。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 新增MVP边界交叉引用(第三章)；更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一实体规范。 |
+| Version | Date       | Description                                        |
+| ------- | ---------- | -------------------------------------------------- |
+| 1.1.0   | 2026-06-25 | 新增MVP边界交叉引用(第三章)；更新related_documents |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一实体规范。                   |

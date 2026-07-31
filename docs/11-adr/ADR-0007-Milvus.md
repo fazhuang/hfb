@@ -1,14 +1,14 @@
 ---
-title: "ADR-0007 Milvus"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "ai"
+title: 'ADR-0007 Milvus'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'ai'
 related:
-  - "ADR-0003-PostgreSQL"
-  - "docs/04-ai/01_RAG_GraphRAG_Architecture.md"
+  - 'ADR-0003-PostgreSQL'
+  - 'docs/04-ai/01_RAG_GraphRAG_Architecture.md'
 ---
 
 # ADR-0007: 选择 Milvus 作为向量数据库
@@ -36,12 +36,12 @@ RAG 流水线的核心是向量检索。需要一个向量数据库来存储古�
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 选择时机 |
-|---|---|---|---|
-| pgvector | 零额外部署、PostgreSQL 原生、足够 V1 使用 | 性能 < 1M 向量、缺少高级索引 | V1 阶段 |
-| Milvus | 性能优秀、混合检索、分布式、10M+ 向量 | 需要独立部署、运维复杂 | V2 阶段 |
-| Qdrant | Rust 实现、性能好、API 优雅 | 社区规模、生产案例少于 Milvus | 备选 |
-| Weaviate | GraphQL API、自动向量化 | 中文 Embedding 适配差、社区小 | 不选 |
+| 方案     | 优点                                      | 缺点                          | 选择时机 |
+| -------- | ----------------------------------------- | ----------------------------- | -------- |
+| pgvector | 零额外部署、PostgreSQL 原生、足够 V1 使用 | 性能 < 1M 向量、缺少高级索引  | V1 阶段  |
+| Milvus   | 性能优秀、混合检索、分布式、10M+ 向量     | 需要独立部署、运维复杂        | V2 阶段  |
+| Qdrant   | Rust 实现、性能好、API 优雅               | 社区规模、生产案例少于 Milvus | 备选     |
+| Weaviate | GraphQL API、自动向量化                   | 中文 Embedding 适配差、社区小 | 不选     |
 
 ## Consequences
 

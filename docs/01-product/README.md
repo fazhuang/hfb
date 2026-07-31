@@ -26,23 +26,23 @@ related_documents:
 
 ## 目录
 
-| # | 文档 | document_id | 状态 | 作用 |
-|---|---|---|---|---|
-| — | [Product Roadmap](00_Product_Roadmap.md) | HFB-PRD-0001 | Draft | 产品路线图 — Sprint 规划、版本里程碑 |
+| #   | 文档                                     | document_id  | 状态  | 作用                                 |
+| --- | ---------------------------------------- | ------------ | ----- | ------------------------------------ |
+| —   | [Product Roadmap](00_Product_Roadmap.md) | HFB-PRD-0001 | Draft | 产品路线图 — Sprint 规划、版本里程碑 |
 
 ## 产品最高依据
 
 本目录受以下 17 系列文档约束：
 
-| 依据 | 说明 |
-|---|---|
-| [HFB-PS-1709](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md) | MVP 边界 — 任何超过范围的计划不得纳入当前 Sprint |
+| 依据                                                                                    | 说明                                             |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| [HFB-PS-1709](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md)   | MVP 边界 — 任何超过范围的计划不得纳入当前 Sprint |
 | [HFB-PS-1710](../17-Platform-Specifications/1710_Production_Readiness_Specification.md) | 上线准入 — 任何版本必须满足全部 Go-Live Criteria |
 
 ## 关联目录
 
-| 目录 | 关系 | 说明 |
-|---|---|---|
-| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品规格最高依据 | 所有产品规划必须以 17 系列为准 |
-| [docs/00-governance/](../00-governance/) | 治理依据 | 产品方向受 Charter + Constitution 约束 |
-| [docs/02-architecture/](../02-architecture/) | 技术实现 | 路线图为架构提供时间线 |
+| 目录                                                               | 关系             | 说明                                   |
+| ------------------------------------------------------------------ | ---------------- | -------------------------------------- |
+| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品规格最高依据 | 所有产品规划必须以 17 系列为准         |
+| [docs/00-governance/](../00-governance/)                           | 治理依据         | 产品方向受 Charter + Constitution 约束 |
+| [docs/02-architecture/](../02-architecture/)                       | 技术实现         | 路线图为架构提供时间线                 |

@@ -3,6 +3,7 @@
 Sprint 4 P0: min_length constraints on trace_ids/evidence_ids.
               V4 education strict DTO.
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -38,9 +39,15 @@ class V4ResearchWorkflowRequest(BaseModel):
 
 class V4VisualizationGraphRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
-    session_id: str | None = Field(default=None, min_length=1, description="Research session ID for traceability; auto-created if omitted")
+    session_id: str | None = Field(
+        default=None,
+        min_length=1,
+        description="Research session ID for traceability; auto-created if omitted",
+    )
     concept_labels: list[str] = Field(..., min_length=1, max_length=20)
-    graph_type: Literal["concept", "citation", "timeline", "document"] = Field(default="concept")
+    graph_type: Literal["concept", "citation", "timeline", "document"] = Field(
+        default="concept"
+    )
 
 
 class V4EducationLearnRequest(BaseModel):
@@ -121,6 +128,7 @@ class V4WorkflowResponse(BaseModel):
 
 class V4EducationConceptDTO(BaseModel):
     """V4 education concept — public DTO, never leaks internal trace fields."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     concept: str
     level: Literal["beginner", "intermediate"] = "beginner"
@@ -131,6 +139,7 @@ class V4EducationConceptDTO(BaseModel):
 
 class V4EducationSourceComparison(BaseModel):
     """Advanced-level source comparison — from verified evidence only."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     document_id: str
     claim_count: int
@@ -139,6 +148,7 @@ class V4EducationSourceComparison(BaseModel):
 
 class V4EducationResponseData(BaseModel):
     """V4 education response data — strict DTO, not `data: Any`."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
     academic_type: str = "education"
     applied_level: str

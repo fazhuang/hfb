@@ -38,7 +38,11 @@ function makeRouter() {
       { path: '/library/:id', component: { template: '<div/>' }, name: 'library-detail' },
       { path: '/literature/:id', component: { template: '<div/>' }, name: 'literature-detail' },
       { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
-      { path: '/research/workspace', component: { template: '<div/>' }, name: 'research-workspace' },
+      {
+        path: '/research/workspace',
+        component: { template: '<div/>' },
+        name: 'research-workspace',
+      },
       { path: '/knowledge', component: { template: '<div/>' }, name: 'knowledge-explorer' },
       { path: '/reports', component: { template: '<div/>' }, name: 'report-list' },
     ],
@@ -133,14 +137,38 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     expect(wrapper.text()).toContain('Library');
   });
 
   it('2. loads document list from API on mount', async () => {
     const mockItems = [
-      { id: 'd1', title: '针灸甲乙经', dynasty: '晋', category: '针灸', copyright_status: 'public_domain', review_status: 'approved', rag_enabled: true, source_name: 'wikisource', withdrawn_at: null, created_at: '2025-01-01T00:00:00Z' },
-      { id: 'd2', title: '伤寒论', dynasty: '汉', category: '方剂', copyright_status: 'public_domain', review_status: 'approved', rag_enabled: true, source_name: 'user_upload', withdrawn_at: null, created_at: '2025-01-02T00:00:00Z' },
+      {
+        id: 'd1',
+        title: '针灸甲乙经',
+        dynasty: '晋',
+        category: '针灸',
+        copyright_status: 'public_domain',
+        review_status: 'approved',
+        rag_enabled: true,
+        source_name: 'wikisource',
+        withdrawn_at: null,
+        created_at: '2025-01-01T00:00:00Z',
+      },
+      {
+        id: 'd2',
+        title: '伤寒论',
+        dynasty: '汉',
+        category: '方剂',
+        copyright_status: 'public_domain',
+        review_status: 'approved',
+        rag_enabled: true,
+        source_name: 'user_upload',
+        withdrawn_at: null,
+        created_at: '2025-01-02T00:00:00Z',
+      },
     ];
     mockGet('/api/v1/documents', { items: mockItems, total: 2 });
     const router = makeRouter();
@@ -148,7 +176,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('针灸甲乙经');
@@ -163,7 +193,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('加载中');
   });
@@ -175,7 +207,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -189,7 +223,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('暂无文献');
@@ -197,9 +233,16 @@ describe('LibrarySearchPage', () => {
 
   it('6. pagination is visible when total > limit', async () => {
     const manyItems = Array.from({ length: 25 }, (_, i) => ({
-      id: `d${i}`, title: `文献 ${i}`, dynasty: '宋', category: '本草',
-      copyright_status: 'public_domain', review_status: 'approved', rag_enabled: false,
-      source_name: 'test', withdrawn_at: null, created_at: '2025-01-01T00:00:00Z',
+      id: `d${i}`,
+      title: `文献 ${i}`,
+      dynasty: '宋',
+      category: '本草',
+      copyright_status: 'public_domain',
+      review_status: 'approved',
+      rag_enabled: false,
+      source_name: 'test',
+      withdrawn_at: null,
+      created_at: '2025-01-01T00:00:00Z',
     }));
     mockGet('/api/v1/documents', { items: manyItems.slice(0, 20), total: 25 });
     const router = makeRouter();
@@ -207,7 +250,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     // Pagination should show page 1/2
@@ -221,7 +266,9 @@ describe('LibrarySearchPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
@@ -232,7 +279,9 @@ describe('LibrarySearchPage', () => {
     await searchBtn.trigger('click');
     await wrapper.vm.$nextTick();
 
-    const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls as Array<[string, { params: Record<string, string> }]>;
+    const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls as Array<
+      [string, { params: Record<string, string> }]
+    >;
     expect(calls.length).toBeGreaterThan(0);
     const lastCall = calls[calls.length - 1]!;
     expect(lastCall[1].params.q).toBe('针灸');
@@ -298,7 +347,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -318,17 +369,19 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
     const text = wrapper.text();
-    expect(text).toContain('42');        // total chunks
-    expect(text).toContain('可用');       // OCR available
-    expect(text).toContain('92.0%');     // OCR confidence
-    expect(text).toContain('15');        // citation count
-    expect(text).toContain('7');         // evidence count
+    expect(text).toContain('42'); // total chunks
+    expect(text).toContain('可用'); // OCR available
+    expect(text).toContain('92.0%'); // OCR confidence
+    expect(text).toContain('15'); // citation count
+    expect(text).toContain('7'); // evidence count
   });
 
   it('10. renders reader jump button', async () => {
@@ -341,7 +394,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -357,7 +412,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     expect(wrapper.text()).toContain('加载中');
   });
@@ -369,7 +426,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -387,7 +446,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -413,7 +474,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -443,7 +506,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
-    const wrapper = mount(LibraryDetailPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
@@ -453,7 +518,20 @@ describe('LibraryDetailPage', () => {
 
   it('15. document card links to detail page', async () => {
     mockGet('/api/v1/documents', {
-      items: [{ id: 'd1', title: '针灸甲乙经', dynasty: '晋', category: '针灸', copyright_status: 'public_domain', review_status: 'approved', rag_enabled: true, source_name: 'wikisource', withdrawn_at: null, created_at: '2025-01-01T00:00:00Z' }],
+      items: [
+        {
+          id: 'd1',
+          title: '针灸甲乙经',
+          dynasty: '晋',
+          category: '针灸',
+          copyright_status: 'public_domain',
+          review_status: 'approved',
+          rag_enabled: true,
+          source_name: 'wikisource',
+          withdrawn_at: null,
+          created_at: '2025-01-01T00:00:00Z',
+        },
+      ],
       total: 1,
     });
     const router = makeRouter();
@@ -461,7 +539,9 @@ describe('LibraryDetailPage', () => {
     await router.isReady();
 
     const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
-    const wrapper = mount(LibrarySearchPage, { global: { plugins: [i18n, router, createPinia()] } });
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
 
@@ -496,7 +576,9 @@ describe('Frozen pages — zero regressions', () => {
     vi.clearAllMocks();
     useMockAuth();
     setActivePinia(createPinia());
-    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { data: { items: [], total: 0 } } });
+    (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { data: { items: [], total: 0 } },
+    });
 
     const router = makeRouter();
     await router.push('/reports');

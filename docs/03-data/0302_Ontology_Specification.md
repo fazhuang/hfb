@@ -17,6 +17,7 @@ related_documents:
 ---
 
 # Ontology Specification
+
 ## 本体规范
 
 > 本文档定义《皇甫谧数字人文与中医经典智能研究平台》的统一知识本体（Ontology）。
@@ -159,20 +160,20 @@ AI 不允许生成无证据关系。
 
 一级实体固定如下：
 
-| Entity | 说明 |
-|---------|------|
-| Person | 人物 |
-| Book | 古籍 |
-| Version | 版本 |
-| Chapter | 章节 |
-| Passage | 段落 |
-| Paper | 学术论文 |
-| Image | 图片 |
-| Institution | 机构 |
-| Place | 地点 |
-| Event | 历史事件 |
-| Dynasty | 朝代 |
-| Document | 综合资源 |
+| Entity      | 说明     |
+| ----------- | -------- |
+| Person      | 人物     |
+| Book        | 古籍     |
+| Version     | 版本     |
+| Chapter     | 章节     |
+| Passage     | 段落     |
+| Paper       | 学术论文 |
+| Image       | 图片     |
+| Institution | 机构     |
+| Place       | 地点     |
+| Event       | 历史事件 |
+| Dynasty     | 朝代     |
+| Document    | 综合资源 |
 
 未经批准不得新增一级实体。
 
@@ -462,22 +463,22 @@ GIS 扩展。
 
 统一关系如下：
 
-| Relation | 含义 |
-|----------|------|
-| authored_by | 作者 |
-| edited_by | 校勘 |
-| translated_by | 翻译 |
-| belongs_to | 属于 |
-| cites | 引用 |
-| comments_on | 注释 |
-| references | 提及 |
-| inherits | 继承 |
-| studies | 研究 |
-| located_in | 位于 |
-| occurred_in | 发生于 |
-| related_to | 相关 |
-| influences | 影响 |
-| derived_from | 来源于 |
+| Relation      | 含义   |
+| ------------- | ------ |
+| authored_by   | 作者   |
+| edited_by     | 校勘   |
+| translated_by | 翻译   |
+| belongs_to    | 属于   |
+| cites         | 引用   |
+| comments_on   | 注释   |
+| references    | 提及   |
+| inherits      | 继承   |
+| studies       | 研究   |
+| located_in    | 位于   |
+| occurred_in   | 发生于 |
+| related_to    | 相关   |
+| influences    | 影响   |
+| derived_from  | 来源于 |
 
 任何新增关系：
 
@@ -701,7 +702,7 @@ Ontology 是整个系统唯一知识语义标准。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 新增MVP边界交叉引用(第十八章)；更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台统一知识本体规范。 |
+| Version | Date       | Description                                          |
+| ------- | ---------- | ---------------------------------------------------- |
+| 1.1.0   | 2026-06-25 | 新增MVP边界交叉引用(第十八章)；更新related_documents |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台统一知识本体规范。                 |

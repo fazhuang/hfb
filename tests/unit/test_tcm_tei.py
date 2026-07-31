@@ -14,6 +14,7 @@ from tcm_tei.serializer import TEISerializer
 
 # --- Test Data Helpers ---
 
+
 def _make_sentence(id_: str, text: str) -> Sentence:
     tokens = [Token(id=f"{id_}_{i}", text=ch) for i, ch in enumerate(text)]
     return Sentence(id=id_, tokens=tokens, text=text)
@@ -115,7 +116,9 @@ class TestTextVersion:
             id="v1",
             label="test",
             paragraphs=[
-                _make_paragraph("p0", _make_sentence("s0", "一。"), _make_sentence("s1", "二。")),
+                _make_paragraph(
+                    "p0", _make_sentence("s0", "一。"), _make_sentence("s1", "二。")
+                ),
                 _make_paragraph("p1", _make_sentence("s2", "三。")),
             ],
         )
@@ -127,7 +130,9 @@ class TestTextVersion:
             id="v1",
             label="test",
             paragraphs=[
-                _make_paragraph("p0", _make_sentence("s0", "甲"), _make_sentence("s1", "乙")),
+                _make_paragraph(
+                    "p0", _make_sentence("s0", "甲"), _make_sentence("s1", "乙")
+                ),
             ],
         )
         assert v.full_text == "甲乙"
@@ -143,11 +148,13 @@ class TestDocument:
 class TestVersionComparator:
     def test_identical_versions_no_variants(self) -> None:
         v1 = TextVersion(
-            id="v1", label="A",
+            id="v1",
+            label="A",
             paragraphs=[_make_paragraph("p0", _make_sentence("s0", "黄帝问。"))],
         )
         v2 = TextVersion(
-            id="v2", label="B",
+            id="v2",
+            label="B",
             paragraphs=[_make_paragraph("p0", _make_sentence("s0", "黄帝问。"))],
         )
         variants = VersionComparator.diff(v1, v2)
@@ -171,14 +178,16 @@ class TestVersionComparator:
 
     def test_diff_extra_paragraph(self) -> None:
         v1 = TextVersion(
-            id="v1", label="A",
+            id="v1",
+            label="A",
             paragraphs=[
                 _make_paragraph("p0", _make_sentence("s0", "一。")),
                 _make_paragraph("p1", _make_sentence("s1", "二。")),
             ],
         )
         v2 = TextVersion(
-            id="v2", label="B",
+            id="v2",
+            label="B",
             paragraphs=[
                 _make_paragraph("p0", _make_sentence("s0", "一。")),
             ],
@@ -207,11 +216,13 @@ class TestVersionComparator:
 
     def test_ignore_whitespace(self) -> None:
         v1 = TextVersion(
-            id="v1", label="A",
+            id="v1",
+            label="A",
             paragraphs=[_make_paragraph("p0", _make_sentence("s0", "黄帝 问 曰"))],
         )
         v2 = TextVersion(
-            id="v2", label="B",
+            id="v2",
+            label="B",
             paragraphs=[_make_paragraph("p0", _make_sentence("s0", "黄帝问曰"))],
         )
         variants_no_ignore = VersionComparator.diff(v1, v2, ignore_whitespace=False)
@@ -227,19 +238,25 @@ def test_lcs_alignment_insertion_does_not_misalign_remainder():
     v1 = TextVersion(id="v1", label="原本")
     v2 = TextVersion(id="v2", label="增补本")
 
-    para1 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
-    para2 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="sX", text="此乃要言也"),  # inserted
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
+    para1 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
+    para2 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="sX", text="此乃要言也"),  # inserted
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
     v1.paragraphs = [para1]
     v2.paragraphs = [para2]
 
@@ -256,17 +273,23 @@ def test_lcs_alignment_deletion_does_not_misalign_remainder():
     v1 = TextVersion(id="v1", label="原本")
     v2 = TextVersion(id="v2", label="删节本")
 
-    para1 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
-    para2 = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s3", text="经脉流行不止"),
-        Sentence(id="s4", text="环周不休"),
-    ])
+    para1 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
+    para2 = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s3", text="经脉流行不止"),
+            Sentence(id="s4", text="环周不休"),
+        ],
+    )
     v1.paragraphs = [para1]
     v2.paragraphs = [para2]
 
@@ -280,10 +303,13 @@ def test_lcs_alignment_identical_texts_zero_variants():
     """Identical texts should produce zero variants with LCS alignment."""
     v1 = TextVersion(id="v1", label="宋本")
     v2 = TextVersion(id="v2", label="明本")
-    para = Paragraph(id="p1", sentences=[
-        Sentence(id="s1", text="黄帝问曰"),
-        Sentence(id="s2", text="岐伯对曰"),
-    ])
+    para = Paragraph(
+        id="p1",
+        sentences=[
+            Sentence(id="s1", text="黄帝问曰"),
+            Sentence(id="s2", text="岐伯对曰"),
+        ],
+    )
     v1.paragraphs = [para]
     v2.paragraphs = [para]
 

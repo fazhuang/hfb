@@ -4,6 +4,7 @@ Readiness endpoint — checks all infrastructure dependencies.
 Returns HTTP 200 when all required services are healthy.
 Returns HTTP 503 when any required service is unhealthy.
 """
+
 from fastapi import APIRouter, Response
 
 from app.startup.check_infrastructure import run_health_checks
@@ -37,8 +38,7 @@ async def readiness_check(response: Response) -> dict:
         }
 
     required_healthy = all(
-        services.get(name, {}).get("healthy", False)
-        for name in REQUIRED_SERVICES
+        services.get(name, {}).get("healthy", False) for name in REQUIRED_SERVICES
     )
 
     response.status_code = 200 if required_healthy else 503
@@ -49,5 +49,7 @@ async def readiness_check(response: Response) -> dict:
             "services": services,
         },
         success=required_healthy,
-        message="All services healthy" if required_healthy else "Some services are unhealthy",
+        message="All services healthy"
+        if required_healthy
+        else "Some services are unhealthy",
     )

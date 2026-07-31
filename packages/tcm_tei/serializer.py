@@ -46,7 +46,9 @@ class TEISerializer:
         parts.append("    <body>")
 
         for version in doc.versions:
-            parts.append(f'      <div type="version" xml:id="{_escape_xml(version.id)}">')
+            parts.append(
+                f'      <div type="version" xml:id="{_escape_xml(version.id)}">'
+            )
             parts.append(f"        <head>{_escape_xml(version.label)}</head>")
             for para in version.paragraphs:
                 parts.append(f'        <p xml:id="{_escape_xml(para.id)}">')
@@ -70,7 +72,9 @@ class TEISerializer:
                     _first_label, first_text = readings[0]
                     parts.append(f"          <lem>{_escape_xml(first_text)}</lem>")
                 for label, text in readings[1:]:
-                    parts.append(f'          <rdg wit="{_escape_xml(label)}">{_escape_xml(text)}</rdg>')
+                    parts.append(
+                        f'          <rdg wit="{_escape_xml(label)}">{_escape_xml(text)}</rdg>'
+                    )
                 parts.append("        </app>")
             parts.append("      </div>")
 

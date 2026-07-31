@@ -49,15 +49,18 @@ export interface HfbDropdownItem {
   divider?: boolean;
 }
 
-const props = withDefaults(defineProps<{
-  items: HfbDropdownItem[];
-  placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
-  trigger?: 'click' | 'hover';
-  disabled?: boolean;
-}>(), {
-  placement: 'bottom-start',
-  trigger: 'click',
-});
+const props = withDefaults(
+  defineProps<{
+    items: HfbDropdownItem[];
+    placement?: 'bottom-start' | 'bottom-end' | 'top-start' | 'top-end';
+    trigger?: 'click' | 'hover';
+    disabled?: boolean;
+  }>(),
+  {
+    placement: 'bottom-start',
+    trigger: 'click',
+  },
+);
 
 const emit = defineEmits<{
   select: [value: string];
@@ -67,16 +70,14 @@ const dropdownRef = ref<HTMLElement | null>(null);
 const menuRef = ref<HTMLElement | null>(null);
 const open = ref(false);
 
-const menuClass = computed(() => [
-  'hfb-dropdown__menu',
-  `hfb-dropdown__menu--${props.placement}`,
-].join(' '));
+const menuClass = computed(() =>
+  ['hfb-dropdown__menu', `hfb-dropdown__menu--${props.placement}`].join(' '),
+);
 
 function itemClass(item: HfbDropdownItem) {
-  return [
-    'hfb-dropdown__item',
-    item.danger ? 'hfb-dropdown__item--danger' : '',
-  ].filter(Boolean).join(' ');
+  return ['hfb-dropdown__item', item.danger ? 'hfb-dropdown__item--danger' : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 function onTriggerClick() {

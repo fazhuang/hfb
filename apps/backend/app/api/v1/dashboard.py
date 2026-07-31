@@ -7,6 +7,7 @@ Endpoints:
   GET /api/v1/dashboard/overview  — Dashboard overview (entity counts, recent activity, system info)
   GET /api/v1/dashboard/stats     — Detailed stats with distributions
 """
+
 from __future__ import annotations
 
 from typing import Annotated

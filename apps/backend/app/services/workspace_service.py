@@ -3,6 +3,7 @@ Workspace Service — research session and note management.
 
 Per HFB-PS-1705 AI Research Workspace Product Specification.
 """
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,9 @@ class WorkspaceService:
     # Sessions
     # ------------------------------------------------------------------
 
-    async def create_session(self, user_id: str, title: str = "未命名研究") -> ResearchSession:
+    async def create_session(
+        self, user_id: str, title: str = "未命名研究"
+    ) -> ResearchSession:
         session = ResearchSession(user_id=user_id, title=title)
         self.session.add(session)
         await self.session.flush()
@@ -44,7 +47,9 @@ class WorkspaceService:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_sessions(self, user_id: str, limit: int = 20) -> list[ResearchSession]:
+    async def list_sessions(
+        self, user_id: str, limit: int = 20
+    ) -> list[ResearchSession]:
         stmt = (
             select(ResearchSession)
             .where(
@@ -96,7 +101,13 @@ class WorkspaceService:
             except json.JSONDecodeError:
                 history = []
 
-        history.append({"role": role, "content": content, "timestamp": datetime.now(UTC).isoformat()})
+        history.append(
+            {
+                "role": role,
+                "content": content,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
         # Keep last 100 messages
         if len(history) > 100:
@@ -166,7 +177,9 @@ class WorkspaceService:
     async def update_note(
         self, note_id: UUID | str, content: str | None = None, tags: str | None = None
     ) -> ResearchNote | None:
-        stmt = select(ResearchNote).where(ResearchNote.id == str(note_id), ResearchNote.is_deleted.is_(False))
+        stmt = select(ResearchNote).where(
+            ResearchNote.id == str(note_id), ResearchNote.is_deleted.is_(False)
+        )
         result = await self.session.execute(stmt)
         note = result.scalar_one_or_none()
         if note is None:
@@ -182,7 +195,9 @@ class WorkspaceService:
         return note
 
     async def delete_note(self, note_id: UUID | str) -> bool:
-        stmt = select(ResearchNote).where(ResearchNote.id == str(note_id), ResearchNote.is_deleted.is_(False))
+        stmt = select(ResearchNote).where(
+            ResearchNote.id == str(note_id), ResearchNote.is_deleted.is_(False)
+        )
         result = await self.session.execute(stmt)
         note = result.scalar_one_or_none()
         if note is None:

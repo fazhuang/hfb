@@ -179,11 +179,22 @@ function makeRun(overrides: Record<string, unknown> = {}) {
       { name: 'citation_export', status: 'completed' },
     ],
     output_artifacts: {
-      markdown: '# 研究报告：经络\n\n## 概述\n\n经络是人体运行气血的通道。参考 [doc-01:chk-01]。\n\n## 结论\n\n针灸对经络有显著效果 [doc-02:chk-02]。',
+      markdown:
+        '# 研究报告：经络\n\n## 概述\n\n经络是人体运行气血的通道。参考 [doc-01:chk-01]。\n\n## 结论\n\n针灸对经络有显著效果 [doc-02:chk-02]。',
       title: '研究报告：经络',
       citations: [
-        { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: '经络者，所以行血气而营阴阳。' },
-        { trace_id: 'doc-02:chk-02', citation_text: '[doc-02:chk-02]', document_id: 'doc-02', quote: '刺之要，气至而有效。' },
+        {
+          trace_id: 'doc-01:chk-01',
+          citation_text: '[doc-01:chk-01]',
+          document_id: 'doc-01',
+          quote: '经络者，所以行血气而营阴阳。',
+        },
+        {
+          trace_id: 'doc-02:chk-02',
+          citation_text: '[doc-02:chk-02]',
+          document_id: 'doc-02',
+          quote: '刺之要，气至而有效。',
+        },
       ],
     },
     replay_manifest: {
@@ -239,7 +250,12 @@ function makeRunWithoutSourceRef() {
       markdown: '# 研究报告：经络\n\n## 概述\n\n经络研究内容 **[doc-03:chk-03]**。',
       title: '研究报告：经络',
       citations: [
-        { trace_id: 'doc-03:chk-03', citation_text: '[doc-03:chk-03]', document_id: 'doc-03', quote: '无来源条文' },
+        {
+          trace_id: 'doc-03:chk-03',
+          citation_text: '[doc-03:chk-03]',
+          document_id: 'doc-03',
+          quote: '无来源条文',
+        },
       ],
     },
     replay_manifest: {
@@ -284,11 +300,14 @@ function setupBlobMock() {
   // Use the native Blob constructor that jsdom already provides.
   // We spy on it to capture calls without blocking behavior.
   const OrigBlob = globalThis.Blob;
-  vi.stubGlobal('Blob', vi.fn((contentParts: Array<string>, options: { type: string }) => {
-    const entry = { content: contentParts.join(''), type: options.type };
-    createdBlobs.push(entry);
-    return new OrigBlob(contentParts, options);
-  }));
+  vi.stubGlobal(
+    'Blob',
+    vi.fn((contentParts: Array<string>, options: { type: string }) => {
+      const entry = { content: contentParts.join(''), type: options.type };
+      createdBlobs.push(entry);
+      return new OrigBlob(contentParts, options);
+    }),
+  );
 
   // Return a hash-only URL from createObjectURL so jsdom does not trigger
   // "Error: Not implemented: navigation (except hash changes)" when the
@@ -856,7 +875,8 @@ describe('ResearchResultPage', () => {
     it('22. common markdown renders as text content', async () => {
       const simpleRun = makeRun({
         output_artifacts: {
-          markdown: '# 标题\n\n## 第一章节\n\n这是正文内容。**这是加粗的**。\n\n## 第二章节\n\n更多内容。',
+          markdown:
+            '# 标题\n\n## 第一章节\n\n这是正文内容。**这是加粗的**。\n\n## 第二章节\n\n更多内容。',
         },
         replay_manifest: { retrieval_snapshot: [], traces: [] },
       });
@@ -928,14 +948,16 @@ describe('ResearchResultPage', () => {
         run_id: RUN_B,
         session_id: PROJ_A,
         replay_manifest: {
-          retrieval_snapshot: [{
-            trace_id: 'doc-other:chk',
-            document_id: 'doc-other',
-            chunk_id: 'chk',
-            claim_text: 'Other evidence',
-            quote: 'Other text',
-            citation_text: '[doc-other:chk]',
-          }],
+          retrieval_snapshot: [
+            {
+              trace_id: 'doc-other:chk',
+              document_id: 'doc-other',
+              chunk_id: 'chk',
+              claim_text: 'Other evidence',
+              quote: 'Other text',
+              citation_text: '[doc-other:chk]',
+            },
+          ],
           traces: [{ trace_id: 'doc-other:chk', document_id: 'doc-other', chunk_id: 'chk' }],
         },
       });
@@ -1030,7 +1052,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-01:chk-01].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Quote text.' },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Quote text.',
+            },
           ],
         },
         replay_manifest: {
@@ -1046,7 +1073,12 @@ describe('ResearchResultPage', () => {
             },
           ],
           traces: [
-            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', provenance_kind: 'retrieval' },
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              provenance_kind: 'retrieval',
+            },
           ],
         },
       });
@@ -1065,7 +1097,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nKnown ref [doc-01:chk-01]. Unknown ref [ghost:fake].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Known.' },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Known.',
+            },
           ],
         },
         replay_manifest: {
@@ -1081,7 +1118,12 @@ describe('ResearchResultPage', () => {
             },
           ],
           traces: [
-            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', provenance_kind: 'retrieval' },
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              provenance_kind: 'retrieval',
+            },
           ],
         },
       });
@@ -1106,7 +1148,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nKnown [doc-01:chk-01]. Extraneous [doc-99:chk-99].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Known.' },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Known.',
+            },
           ],
         },
         replay_manifest: {
@@ -1122,7 +1169,12 @@ describe('ResearchResultPage', () => {
             },
           ],
           traces: [
-            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', provenance_kind: 'retrieval' },
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              provenance_kind: 'retrieval',
+            },
           ],
         },
       });
@@ -1288,7 +1340,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nRef **[doc-only:chk]**.',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-only:chk', citation_text: '[doc-only:chk]', document_id: 'doc-only', quote: 'Text.' },
+            {
+              trace_id: 'doc-only:chk',
+              citation_text: '[doc-only:chk]',
+              document_id: 'doc-only',
+              quote: 'Text.',
+            },
           ],
         },
         replay_manifest: {
@@ -1338,7 +1395,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nRef **[ext-only:chk]**.',
           title: 'Report',
           citations: [
-            { trace_id: 'ext-only:chk', citation_text: '[ext-only:chk]', document_id: '', quote: 'External only.' },
+            {
+              trace_id: 'ext-only:chk',
+              citation_text: '[ext-only:chk]',
+              document_id: '',
+              quote: 'External only.',
+            },
           ],
         },
         replay_manifest: {
@@ -1440,7 +1502,12 @@ describe('ResearchResultPage', () => {
             },
           ],
           traces: [
-            { trace_id: 'evil:chk', document_id: '', chunk_id: 'chk', provenance_kind: 'retrieval' },
+            {
+              trace_id: 'evil:chk',
+              document_id: '',
+              chunk_id: 'chk',
+              provenance_kind: 'retrieval',
+            },
           ],
         },
       });
@@ -1464,9 +1531,7 @@ describe('ResearchResultPage', () => {
     it('48. export button disabled when no report', async () => {
       const noReportRun = makeRun({
         output_artifacts: {},
-        step_execution_trace: [
-          { name: 'report_generation', status: 'completed' },
-        ],
+        step_execution_trace: [{ name: 'report_generation', status: 'completed' }],
       });
       const wrapper = await setupAndMount(makeSession(), [noReportRun]);
       const exportBtn = wrapper.find('.rrh-btn--export');
@@ -1491,7 +1556,8 @@ describe('ResearchResultPage', () => {
       mockApiGet.mockImplementation(async (url: string) => {
         if (url.includes('/export')) {
           exportCalled = true;
-          const reportContent = '# 研究报告：经络\n\n## 概述\n\n经络是人体运行气血的通道。参考 [doc-01:chk-01]。';
+          const reportContent =
+            '# 研究报告：经络\n\n## 概述\n\n经络是人体运行气血的通道。参考 [doc-01:chk-01]。';
           return {
             data: new Blob([reportContent], { type: 'text/markdown' }),
             headers: {
@@ -2119,11 +2185,16 @@ describe('ResearchResultPage', () => {
       // must be silently discarded.
 
       let resolveAReply!: (value: unknown) => void;
-      const aPromise = new Promise((resolve) => { resolveAReply = resolve; });
+      const aPromise = new Promise((resolve) => {
+        resolveAReply = resolve;
+      });
       mockApiPost.mockReturnValueOnce(aPromise);
 
       // Mock session + both runs
-      const wrapper = await setupAndMount(makeSession(), [makeRun({ run_id: RUN_A }), makeRun({ run_id: RUN_B })]);
+      const wrapper = await setupAndMount(makeSession(), [
+        makeRun({ run_id: RUN_A }),
+        makeRun({ run_id: RUN_B }),
+      ]);
 
       // Start replay on run A (will hang on the promise)
       await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
@@ -2155,7 +2226,9 @@ describe('ResearchResultPage', () => {
       expect(wrapper.find('[data-testid="canonical-replay-result"]').exists()).toBe(false);
 
       // B's replay button must still work (not stuck in replaying=true from A)
-      expect((wrapper.find('[data-testid="canonical-replay"]').element as HTMLButtonElement).disabled).toBe(false);
+      expect(
+        (wrapper.find('[data-testid="canonical-replay"]').element as HTMLButtonElement).disabled,
+      ).toBe(false);
     });
 
     it('87. replay error shows retry button, retry clears error and succeeds', async () => {
@@ -2236,7 +2309,13 @@ describe('ResearchResultPage', () => {
 
       // Retry → succeed
       mockApiPost.mockResolvedValueOnce({
-        data: { data: { matched: true, original_output_sha256: SHA_ORIG, replay_output_sha256: SHA_REPLAY } },
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
       });
       await wrapper.find('[data-testid="canonical-replay-retry"]').trigger('click');
       await nextTick();
@@ -2257,7 +2336,13 @@ describe('ResearchResultPage', () => {
 
       // A: replay succeeds
       mockApiPost.mockResolvedValueOnce({
-        data: { data: { matched: true, original_output_sha256: SHA_ORIG, replay_output_sha256: SHA_REPLAY } },
+        data: {
+          data: {
+            matched: true,
+            original_output_sha256: SHA_ORIG,
+            replay_output_sha256: SHA_REPLAY,
+          },
+        },
       });
 
       const wrapper = await setupAndMount(makeSession(), [runA, runB]);
@@ -2285,7 +2370,13 @@ describe('ResearchResultPage', () => {
       const B_ORIG = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
       const B_REPLAY_HASH = 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc';
       mockApiPost.mockResolvedValueOnce({
-        data: { data: { matched: false, original_output_sha256: B_ORIG, replay_output_sha256: B_REPLAY_HASH } },
+        data: {
+          data: {
+            matched: false,
+            original_output_sha256: B_ORIG,
+            replay_output_sha256: B_REPLAY_HASH,
+          },
+        },
       });
       await wrapper.find('[data-testid="canonical-replay"]').trigger('click');
       await nextTick();

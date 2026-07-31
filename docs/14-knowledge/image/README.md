@@ -1,9 +1,9 @@
 ---
-title: "Image Knowledge"
-version: "1.0"
-status: "Active"
-domain: "image"
-last_updated: "2026-06-24"
+title: 'Image Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'image'
+last_updated: '2026-06-24'
 ---
 
 # Image — 图像知识

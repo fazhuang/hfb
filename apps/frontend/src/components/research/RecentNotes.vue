@@ -6,12 +6,7 @@
     <LoadingState v-if="loading" message="正在加载笔记..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      title="笔记加载失败"
-      @retry="fetchNotes"
-    />
+    <ErrorState v-else-if="error" :message="error" title="笔记加载失败" @retry="fetchNotes" />
 
     <!-- Empty -->
     <EmptyState
@@ -96,9 +91,7 @@ async function fetchNotes() {
   loading.value = true;
   error.value = null;
   try {
-    const { data } = await api.get(
-      `/api/v1/workspace/sessions/${props.projectId}/notes`,
-    );
+    const { data } = await api.get(`/api/v1/workspace/sessions/${props.projectId}/notes`);
     if (myReqId !== reqId) return;
     const body = data.data ?? data;
     const all = (Array.isArray(body) ? body : []) as NoteItem[];
@@ -108,10 +101,7 @@ async function fetchNotes() {
     notes.value = all.slice(0, MAX_ITEMS);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载笔记失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {

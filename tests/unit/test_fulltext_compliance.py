@@ -3,6 +3,7 @@ Full-text compliance tests (Context 21) — copyright gate, audit, checksum, wit
 
 Covers all 6 blocking items from the Codex review.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -65,23 +66,35 @@ class TestCopyrightGateRejection:
         await db_session.flush()
 
         # No document should have been created
-        docs = (await db_session.execute(
-            select(Document).where(Document.title == "Unknown Copyright Paper")
-        )).scalars().all()
+        docs = (
+            (
+                await db_session.execute(
+                    select(Document).where(Document.title == "Unknown Copyright Paper")
+                )
+            )
+            .scalars()
+            .all()
+        )
         assert len(docs) == 0
 
         # No chunks at all
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count == 0
 
         # Audit record exists
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "reject"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "reject"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
         assert audits[0].copyright_status == "unknown"
 
@@ -102,17 +115,23 @@ class TestCopyrightGateRejection:
             )
         await db_session.flush()
 
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count == 0
 
         # Audit: action=reject
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "reject"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "reject"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
 
     async def test_metadata_only_rejected_no_chunks(self, db_session):
@@ -128,16 +147,22 @@ class TestCopyrightGateRejection:
             )
         await db_session.flush()
 
-        count = (await db_session.execute(
-            text("SELECT COUNT(*) FROM document_chunks")
-        )).scalar_one()
+        count = (
+            await db_session.execute(text("SELECT COUNT(*) FROM document_chunks"))
+        ).scalar_one()
         assert count == 0
 
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "skip"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "skip"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
 
     async def test_missing_copyright_status_rejected(self, db_session):
@@ -210,19 +235,27 @@ class TestCopyrightGateSuccess:
         assert result.checksum == _sha256(text_content)
 
         # Verify DB state
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.copyright_status == "public_domain"
         assert doc.authorization_basis == "expired copyright (pre-1928)"
         assert doc.content_checksum == _sha256(text_content)
         assert doc.content_text == text_content
 
-        chunks = (await db_session.execute(
-            select(DocumentChunk).where(
-                DocumentChunk.document_id == result.document_id
+        chunks = (
+            (
+                await db_session.execute(
+                    select(DocumentChunk).where(
+                        DocumentChunk.document_id == result.document_id
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(chunks) > 0
 
         # Checksum is recomputable from stored content
@@ -247,9 +280,11 @@ class TestCopyrightGateSuccess:
         await db_session.flush()
 
         assert result.chunk_count > 0
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.copyright_status == "open_access"
         assert doc.content_checksum == _sha256(text_content)
 
@@ -346,11 +381,17 @@ class TestAuditLogPersistence:
         )
         await db_session.flush()
 
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.result_entity_id == result.document_id
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.result_entity_id == result.document_id
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
         a = audits[0]
         assert a.action == "fulltext_ingest"
@@ -375,11 +416,17 @@ class TestAuditLogPersistence:
             )
         await db_session.flush()
 
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "reject"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "reject"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
         a = audits[0]
         assert a.status == "rejected"
@@ -401,11 +448,17 @@ class TestAuditLogPersistence:
             )
         await db_session.flush()
 
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "skip"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "skip"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
         a = audits[0]
         assert a.status == "skipped"
@@ -432,11 +485,17 @@ class TestAuditLogPersistence:
         )
         await db_session.flush()
 
-        audits = (await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "withdraw"
+        audits = (
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "withdraw"
+                    )
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(audits) >= 1
         a = audits[0]
         assert a.status == "withdrawn"
@@ -469,9 +528,11 @@ class TestChecksum:
         )
         assert result.checksum == expected
 
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.content_checksum == expected
 
     async def test_checksum_recomputable(self, db_session):
@@ -490,9 +551,11 @@ class TestChecksum:
         )
 
         # Recompute from stored content_text
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         recomputed = _sha256(doc.content_text)
         assert recomputed == doc.content_checksum
         assert recomputed == result.checksum
@@ -579,9 +642,10 @@ class TestWithdrawal:
 
         # Document is soft-deleted — get_by_id returns None (filters is_deleted=False)
         from app.models.document import Document as DocModel
-        doc = (await db_session.execute(
-            select(DocModel).where(DocModel.id == doc_id)
-        )).scalar_one_or_none()
+
+        doc = (
+            await db_session.execute(select(DocModel).where(DocModel.id == doc_id))
+        ).scalar_one_or_none()
         assert doc is not None
         assert doc.is_deleted is True
         assert doc.withdrawn_at is not None
@@ -589,11 +653,15 @@ class TestWithdrawal:
         assert doc.rag_enabled is False
 
         # All chunks are soft-deleted
-        chunks = (await db_session.execute(
-            select(DocumentChunk).where(
-                DocumentChunk.document_id == doc_id
+        chunks = (
+            (
+                await db_session.execute(
+                    select(DocumentChunk).where(DocumentChunk.document_id == doc_id)
+                )
             )
-        )).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(chunks) > 0
         for ch in chunks:
             assert ch.is_deleted is True
@@ -641,9 +709,7 @@ class TestWithdrawal:
         await db_session.flush()
 
         sha_after = await rag._compute_corpus_sha256()
-        assert sha_before != sha_after, (
-            "corpus_sha256 must change after withdrawal"
-        )
+        assert sha_before != sha_after, "corpus_sha256 must change after withdrawal"
 
     async def test_withdraw_only_affects_target_document(self, db_session):
         from app.services.retrieval import RetrievalService

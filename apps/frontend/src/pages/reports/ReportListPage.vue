@@ -17,18 +17,10 @@
       <!-- Content Area -->
       <div class="rp-content">
         <!-- Loading -->
-        <LoadingState
-          v-if="loading"
-          message="正在加载报告..."
-        />
+        <LoadingState v-if="loading" message="正在加载报告..." />
 
         <!-- Error -->
-        <ErrorState
-          v-else-if="error"
-          :message="error"
-          title="报告加载失败"
-          @retry="retry"
-        />
+        <ErrorState v-else-if="error" :message="error" title="报告加载失败" @retry="retry" />
 
         <!-- Empty: no reports at all -->
         <EmptyState
@@ -46,12 +38,7 @@
           icon="🔍"
         >
           <template #action>
-            <button
-              class="rp-clear-filter-btn"
-              @click="setStatusFilter('')"
-            >
-              清除筛选
-            </button>
+            <button class="rp-clear-filter-btn" @click="setStatusFilter('')">清除筛选</button>
           </template>
         </EmptyState>
 
@@ -67,19 +54,11 @@
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="rp-pagination">
-        <button
-          :disabled="page <= 1"
-          @click="setPage(page - 1)"
+        <button :disabled="page <= 1" @click="setPage(page - 1)">上一页</button>
+        <span class="rp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`"
+          >{{ page }} / {{ totalPages }}</span
         >
-          上一页
-        </button>
-        <span class="rp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`">{{ page }} / {{ totalPages }}</span>
-        <button
-          :disabled="page >= totalPages"
-          @click="setPage(page + 1)"
-        >
-          下一页
-        </button>
+        <button :disabled="page >= totalPages" @click="setPage(page + 1)">下一页</button>
       </div>
     </div>
   </div>

@@ -44,6 +44,7 @@ apps/frontend/
 **Status:** Scaffolded Vue 3 + TypeScript app. Core layout (navbar + main + footer) present. Theme switching and i18n wired up. 4 page routes stub'd — only HomeView has real logic (health check display). Search, Documents, About are placeholders. **3 passing vitest tests.**
 
 **Issues:**
+
 - DefaultLayout.vue imports `AppNavbar`, `AppMain`, `AppFooter` from `./` but they reside in `components/layout/` — import path mismatch, will fail at runtime.
 - No `/api/v1/` prefix used in API client — calls `/health`, `/ready`, `/version` directly (backend serves both root and `/api/v1` paths; v1 router is empty).
 - No views implement any domain entity CRUD.
@@ -103,6 +104,7 @@ apps/backend/
 **Status:** Clean FastAPI scaffold with proper layered architecture (Controller → Service → Repository → DB). 2 domain models (Document, Person) fully wired with schemas, repos, services. Health/ready/version endpoints operational. Seed data available.
 
 **Issues:**
+
 - `elasticsearch_url` referenced in `check_infrastructure.py:72` but NOT defined in `core/config.py` Settings class — runtime error if `/ready` is hit.
 - `config.py` uses `from typing import Any` — unused import.
 - `db/base.py` imports `UUID` from uuid — unused.
@@ -115,13 +117,14 @@ apps/backend/
 
 ## 3. 当前数据库/模型结构
 
-| Model | Table | Columns | Status |
-|-------|-------|---------|--------|
-| **BaseModel** (abstract) | — | id (UUID string), created_at, updated_at, deleted_at, is_deleted | Complete |
-| **Document** (文献) | documents | 17 columns incl. title, dynasty, year, category, abstract, content_text, author_id FK→persons | Complete, no API routes |
-| **Person** (人物) | persons | 16 columns incl. name, courtesy_name, dynasty, birth/death_year, biography, expertise | Complete, no API routes |
+| Model                    | Table     | Columns                                                                                       | Status                  |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------- | ----------------------- |
+| **BaseModel** (abstract) | —         | id (UUID string), created_at, updated_at, deleted_at, is_deleted                              | Complete                |
+| **Document** (文献)      | documents | 17 columns incl. title, dynasty, year, category, abstract, content_text, author_id FK→persons | Complete, no API routes |
+| **Person** (人物)        | persons   | 16 columns incl. name, courtesy_name, dynasty, birth/death_year, biography, expertise         | Complete, no API routes |
 
 **MVP Requirements Not Yet Modeled:**
+
 - **Book** (书籍) — required per MVP scope Chapter 5
 - **Version** (版本) — required per 1701 Version Center spec
 - **Passage** (段落) — required per 1705 AI Research Workspace
@@ -134,27 +137,29 @@ apps/backend/
 - **Image** (影像) — referenced in blueprint 9.1
 
 **Deferred Models (correctly absent):**
+
 - Herb, Prescription, Disease, Symptom, Meridian, Formula, Acupoint — all correctly excluded from MVP per tech blueprint 9.2.
 
 ---
 
 ## 4. 当前 API 状态
 
-| Endpoint | Method | Status | Notes |
-|----------|--------|--------|-------|
-| `/health` | GET | ✅ Working | Returns `{"status": "healthy"}` |
-| `/ready` | GET | ⚠️ Bug | References undefined `settings.elasticsearch_url` |
-| `/version` | GET | ✅ Working | Returns version + environment |
-| `/live` | GET | ✅ Working | Minimal liveness probe |
-| `/config` | GET | ✅ Working | Public config (hosts/ports) |
-| `/api/v1/*` | — | ❌ Empty | Router defined but no routes |
-| CRUD for Document | — | ❌ Missing | Only repository/service layer exists |
-| CRUD for Person | — | ❌ Missing | Only repository/service layer exists |
-| Auth / Login | — | ❌ Missing | No auth system |
-| Search | — | ❌ Missing | No search API |
-| Graph | — | ❌ Missing | No graph API |
+| Endpoint          | Method | Status     | Notes                                             |
+| ----------------- | ------ | ---------- | ------------------------------------------------- |
+| `/health`         | GET    | ✅ Working | Returns `{"status": "healthy"}`                   |
+| `/ready`          | GET    | ⚠️ Bug     | References undefined `settings.elasticsearch_url` |
+| `/version`        | GET    | ✅ Working | Returns version + environment                     |
+| `/live`           | GET    | ✅ Working | Minimal liveness probe                            |
+| `/config`         | GET    | ✅ Working | Public config (hosts/ports)                       |
+| `/api/v1/*`       | —      | ❌ Empty   | Router defined but no routes                      |
+| CRUD for Document | —      | ❌ Missing | Only repository/service layer exists              |
+| CRUD for Person   | —      | ❌ Missing | Only repository/service layer exists              |
+| Auth / Login      | —      | ❌ Missing | No auth system                                    |
+| Search            | —      | ❌ Missing | No search API                                     |
+| Graph             | —      | ❌ Missing | No graph API                                      |
 
 **Unified Response Format:** All implemented endpoints use the standard envelope:
+
 ```json
 {"success": true, "timestamp": "...", "data": {...}, "message": "ok"}
 ```
@@ -164,6 +169,7 @@ apps/backend/
 ## 5. 当前测试状态
 
 ### Python (pytest)
+
 - **51 tests, all passing** in `tests/unit/`
 - Coverage: test_health (5), test_base_model (3), test_models (7), test_repositories (12), test_schemas (7), test_seed (5), test_services (4), test_settings (5)
 - Configuration: conftest.py (sys.path), conftest_db.py (in-memory SQLite fixtures)
@@ -172,12 +178,14 @@ apps/backend/
 - Coverage target: ≥70% (`--cov-fail-under=70`)
 
 ### Frontend (vitest)
+
 - **3 tests, all passing** in `src/__tests__/system.test.ts`
 - Tests Pinia systemStore with mocked API client
 
 ### Total: 54 passing tests, 0 failing
 
 **Gaps:**
+
 - No integration tests (database migration, API integration, auth flows)
 - No E2E tests
 - No AI tests
@@ -200,6 +208,7 @@ apps/backend/
 - AI packages not installed (optional extras not selected)
 
 **Status:** Correctly deferred per MVP phase planning. The tech blueprint explicitly states:
+
 > Phase 1: AI 接口预留 | MVP | 当前
 > Phase 2: RAG | Post-MVP | 排队
 > Phase 3: GraphRAG | Post-MVP | 排队
@@ -209,24 +218,24 @@ apps/backend/
 
 ## 7. 当前 docs 与代码差距
 
-| Document Scope | What Code Has | Gap |
-|---------------|---------------|-----|
-| 1704 Permission & Workspace | Nothing | Complete gap — 0% |
-| 1701 Version Center | Nothing | Complete gap — 0% |
-| Passage model (0804) | Nothing | Complete gap — 0% |
-| Book model (0802) | Nothing | Complete gap — 0% |
-| Paper model (0805) | Nothing | Complete gap — 0% |
-| Knowledge Graph (0809) | Nothing | Complete gap — 0% |
-| 1706 Unified Search | Nothing | Complete gap — 0% |
-| 1705 AI Research Workspace | Nothing | Complete gap — 0% |
-| User / RBAC | Nothing | Complete gap — 0% |
-| Document model (0801-like) | ✅ Implemented | Partial — has Document (generic 文献), need Book/Version/Passage subtypes |
-| Person model (0801) | ✅ Implemented | Good match |
-| 1708 Platform Integration | ⚠️ Partial | Layered architecture correct; missing capability centers (Search, Graph, AI, Evidence, Citation services) |
-| HFB-ARC-0201 Blueprint | ✅ Aligned | Monorepo, FastAPI, Vue3, layered architecture all match |
-| 0506 Testing Standard | ⚠️ Partial | Unit tests exist; no integration/E2E/API/permission/AI/graph/search tests |
-| 0504 API Design Standard | ⚠️ Partial | Envelope correct; no versioned entity CRUD APIs exist |
-| 0502 Backend Standard | ✅ Good | Controller→Service→Repository→DB followed |
+| Document Scope              | What Code Has  | Gap                                                                                                       |
+| --------------------------- | -------------- | --------------------------------------------------------------------------------------------------------- |
+| 1704 Permission & Workspace | Nothing        | Complete gap — 0%                                                                                         |
+| 1701 Version Center         | Nothing        | Complete gap — 0%                                                                                         |
+| Passage model (0804)        | Nothing        | Complete gap — 0%                                                                                         |
+| Book model (0802)           | Nothing        | Complete gap — 0%                                                                                         |
+| Paper model (0805)          | Nothing        | Complete gap — 0%                                                                                         |
+| Knowledge Graph (0809)      | Nothing        | Complete gap — 0%                                                                                         |
+| 1706 Unified Search         | Nothing        | Complete gap — 0%                                                                                         |
+| 1705 AI Research Workspace  | Nothing        | Complete gap — 0%                                                                                         |
+| User / RBAC                 | Nothing        | Complete gap — 0%                                                                                         |
+| Document model (0801-like)  | ✅ Implemented | Partial — has Document (generic 文献), need Book/Version/Passage subtypes                                 |
+| Person model (0801)         | ✅ Implemented | Good match                                                                                                |
+| 1708 Platform Integration   | ⚠️ Partial     | Layered architecture correct; missing capability centers (Search, Graph, AI, Evidence, Citation services) |
+| HFB-ARC-0201 Blueprint      | ✅ Aligned     | Monorepo, FastAPI, Vue3, layered architecture all match                                                   |
+| 0506 Testing Standard       | ⚠️ Partial     | Unit tests exist; no integration/E2E/API/permission/AI/graph/search tests                                 |
+| 0504 API Design Standard    | ⚠️ Partial     | Envelope correct; no versioned entity CRUD APIs exist                                                     |
+| 0502 Backend Standard       | ✅ Good        | Controller→Service→Repository→DB followed                                                                 |
 
 ---
 
@@ -257,34 +266,34 @@ apps/backend/
 
 ## 9. 缺失功能 (MVP 范围内)
 
-| # | Feature | Spec Reference | Priority |
-|---|---------|---------------|----------|
-| 1 | **User & RBAC** (用户与权限) | 1704; MVP Ch.3,12 | P0 — blocking |
-| 2 | **JWT Authentication** | Blueprint Ch.12 | P0 — blocking |
-| 3 | **Version Center** (版本中心) | 1701; MVP Ch.3 | P0 |
-| 4 | **Book Center** (书籍中心) | 0802; MVP Ch.3 | P0 |
-| 5 | **Passage Center** (段落中心) | 0804; MVP Ch.3 | P0 |
-| 6 | **Person Center** — API routes | 0801; MVP Ch.3 | P0 (models exist, no API) |
-| 7 | **Knowledge Graph** | 1707; 0809; MVP Ch.7 | P0 |
-| 8 | **Unified Search** | 1706; MVP Ch.3 | P0 |
-| 9 | **AI Research Workspace** | 1705; MVP Ch.3,6 | P0 |
-| 10 | **Dashboard** | MVP Ch.8 | P0 |
-| 11 | **Evidence System** | MVP Ch.10 | P0 |
-| 12 | **Citation System** | MVP Ch.10 | P0 |
-| 13 | **Workspace/Research Session** | 1705 Ch.9 | P0 |
-| 14 | **API CRUD routes** for existing models | 0504 | P0 |
-| 15 | **Integration tests** | 0506; MVP Ch.11 | P1 |
-| 16 | **E2E tests** | 0506; MVP Ch.11 | P1 |
-| 17 | **API tests** | 0506; MVP Ch.11 | P1 |
-| 18 | **Permission tests** | MVP Ch.11 | P1 |
-| 19 | **AI tests** | MVP Ch.11 | P1 |
-| 20 | **Graph tests** | MVP Ch.11 | P1 |
-| 21 | **Search tests** | MVP Ch.11 | P1 |
-| 22 | **Security** (RBAC, JWT, input validation, XSS/CSRF/Prompt Injection) | MVP Ch.12 | P0 |
-| 23 | **Evidence + Citation services** | 1708 Ch.3 | P0 |
-| 24 | **Search Service** (unified) | 1708 Ch.9 | P0 |
-| 25 | **Graph Service** | 1708 Ch.8 | P0 |
-| 26 | **AI Service** | 1708 Ch.7 | P0 |
+| #   | Feature                                                               | Spec Reference       | Priority                  |
+| --- | --------------------------------------------------------------------- | -------------------- | ------------------------- |
+| 1   | **User & RBAC** (用户与权限)                                          | 1704; MVP Ch.3,12    | P0 — blocking             |
+| 2   | **JWT Authentication**                                                | Blueprint Ch.12      | P0 — blocking             |
+| 3   | **Version Center** (版本中心)                                         | 1701; MVP Ch.3       | P0                        |
+| 4   | **Book Center** (书籍中心)                                            | 0802; MVP Ch.3       | P0                        |
+| 5   | **Passage Center** (段落中心)                                         | 0804; MVP Ch.3       | P0                        |
+| 6   | **Person Center** — API routes                                        | 0801; MVP Ch.3       | P0 (models exist, no API) |
+| 7   | **Knowledge Graph**                                                   | 1707; 0809; MVP Ch.7 | P0                        |
+| 8   | **Unified Search**                                                    | 1706; MVP Ch.3       | P0                        |
+| 9   | **AI Research Workspace**                                             | 1705; MVP Ch.3,6     | P0                        |
+| 10  | **Dashboard**                                                         | MVP Ch.8             | P0                        |
+| 11  | **Evidence System**                                                   | MVP Ch.10            | P0                        |
+| 12  | **Citation System**                                                   | MVP Ch.10            | P0                        |
+| 13  | **Workspace/Research Session**                                        | 1705 Ch.9            | P0                        |
+| 14  | **API CRUD routes** for existing models                               | 0504                 | P0                        |
+| 15  | **Integration tests**                                                 | 0506; MVP Ch.11      | P1                        |
+| 16  | **E2E tests**                                                         | 0506; MVP Ch.11      | P1                        |
+| 17  | **API tests**                                                         | 0506; MVP Ch.11      | P1                        |
+| 18  | **Permission tests**                                                  | MVP Ch.11            | P1                        |
+| 19  | **AI tests**                                                          | MVP Ch.11            | P1                        |
+| 20  | **Graph tests**                                                       | MVP Ch.11            | P1                        |
+| 21  | **Search tests**                                                      | MVP Ch.11            | P1                        |
+| 22  | **Security** (RBAC, JWT, input validation, XSS/CSRF/Prompt Injection) | MVP Ch.12            | P0                        |
+| 23  | **Evidence + Citation services**                                      | 1708 Ch.3            | P0                        |
+| 24  | **Search Service** (unified)                                          | 1708 Ch.9            | P0                        |
+| 25  | **Graph Service**                                                     | 1708 Ch.8            | P0                        |
+| 26  | **AI Service**                                                        | 1708 Ch.7            | P0                        |
 
 ---
 
@@ -320,19 +329,19 @@ apps/backend/
 
 ## Summary Numbers
 
-| Metric | Count |
-|--------|-------|
-| Backend .py files | 28 (excluding __pycache__) |
-| Frontend .ts/.vue files | 18 source + 1 test |
-| Python tests | 51 (all passing) |
-| Frontend tests | 3 (all passing) |
-| Domain models implemented | 2 (Document, Person) of ~10 MVP required |
-| API endpoints live | 5 (health, ready, version, live, config) |
-| API endpoints needed for MVP | ~40+ (estimated) |
-| Ruff lint errors | 44 |
-| ESLint errors | 12 |
-| TypeScript errors | 0 |
-| Critical blockers | 3 |
-| High issues | 4 |
-| Docs files tracked | 291 |
-| HGT validate | ✅ Pass |
+| Metric                       | Count                                    |
+| ---------------------------- | ---------------------------------------- |
+| Backend .py files            | 28 (excluding **pycache**)               |
+| Frontend .ts/.vue files      | 18 source + 1 test                       |
+| Python tests                 | 51 (all passing)                         |
+| Frontend tests               | 3 (all passing)                          |
+| Domain models implemented    | 2 (Document, Person) of ~10 MVP required |
+| API endpoints live           | 5 (health, ready, version, live, config) |
+| API endpoints needed for MVP | ~40+ (estimated)                         |
+| Ruff lint errors             | 44                                       |
+| ESLint errors                | 12                                       |
+| TypeScript errors            | 0                                        |
+| Critical blockers            | 3                                        |
+| High issues                  | 4                                        |
+| Docs files tracked           | 291                                      |
+| HGT validate                 | ✅ Pass                                  |

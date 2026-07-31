@@ -30,7 +30,9 @@
         </div>
         <div v-if="report.artifact_id" class="rrs-stat">
           <span class="rrs-stat-label">产物 ID</span>
-          <code class="rrs-stat-value rrs-stat-value--code">{{ report.artifact_id.slice(0, 12) }}...</code>
+          <code class="rrs-stat-value rrs-stat-value--code"
+            >{{ report.artifact_id.slice(0, 12) }}...</code
+          >
         </div>
       </div>
 

@@ -1,7 +1,11 @@
 <template>
   <div class="research-app-layout">
     <!-- Sidebar -->
-    <aside class="ral-sidebar" :class="{ 'ral-sidebar--collapsed': sidebarCollapsed }" aria-label="主导航侧栏">
+    <aside
+      class="ral-sidebar"
+      :class="{ 'ral-sidebar--collapsed': sidebarCollapsed }"
+      aria-label="主导航侧栏"
+    >
       <div class="ral-brand">
         <router-link to="/" class="ral-brand-link">
           <span class="ral-brand-icon">📜</span>

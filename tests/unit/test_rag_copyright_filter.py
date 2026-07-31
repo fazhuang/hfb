@@ -8,6 +8,7 @@ Covers:
   - Only public_domain, open_access, licensed, user_uploaded_with_permission
     with rag_enabled=true enter RAG
 """
+
 from __future__ import annotations
 
 import pytest
@@ -92,7 +93,9 @@ class TestCopyrightFilter:
         # Must not find commercial_restricted content even with rag_enabled=True
         assert resp.refusal is True or all(
             "商业数据库" not in e.content for e in resp.evidence
-        ), "commercial_restricted documents must be excluded from RAG even if rag_enabled=True"
+        ), (
+            "commercial_restricted documents must be excluded from RAG even if rag_enabled=True"
+        )
 
     async def test_pirated_excluded(self, db_session):
         """Pirated documents excluded — even with rag_enabled=True (polluted state)."""
@@ -153,7 +156,9 @@ class TestAllowedCopyright:
     async def test_public_domain_included(self, db_session):
         """public_domain + rag_enabled=true → searchable."""
         doc = _make_doc(
-            "公版文献", "public_domain", rag_enabled=True,
+            "公版文献",
+            "public_domain",
+            rag_enabled=True,
             authorization_basis="public domain",
         )
         db_session.add(doc)
@@ -173,7 +178,9 @@ class TestAllowedCopyright:
     async def test_open_access_included(self, db_session):
         """open_access + rag_enabled=true → searchable."""
         doc = _make_doc(
-            "开放获取文献", "open_access", rag_enabled=True,
+            "开放获取文献",
+            "open_access",
+            rag_enabled=True,
             authorization_basis="CC-BY 4.0",
         )
         db_session.add(doc)
@@ -193,7 +200,9 @@ class TestAllowedCopyright:
     async def test_licensed_included(self, db_session):
         """licensed + rag_enabled=true → searchable."""
         doc = _make_doc(
-            "授权文献", "licensed", rag_enabled=True,
+            "授权文献",
+            "licensed",
+            rag_enabled=True,
             authorization_basis="agreement-2024-001",
         )
         db_session.add(doc)
@@ -213,7 +222,9 @@ class TestAllowedCopyright:
     async def test_user_uploaded_with_permission_included(self, db_session):
         """user_uploaded_with_permission + rag_enabled=true → searchable."""
         doc = _make_doc(
-            "用户上传文献", "user_uploaded_with_permission", rag_enabled=True,
+            "用户上传文献",
+            "user_uploaded_with_permission",
+            rag_enabled=True,
             authorization_basis="user confirmed ownership",
         )
         db_session.add(doc)
@@ -233,7 +244,9 @@ class TestAllowedCopyright:
     async def test_allowed_without_rag_enabled_excluded(self, db_session):
         """public_domain but rag_enabled=false → excluded."""
         doc = _make_doc(
-            "未启用公版", "public_domain", rag_enabled=False,
+            "未启用公版",
+            "public_domain",
+            rag_enabled=False,
             authorization_basis="public domain",
         )
         db_session.add(doc)
@@ -259,7 +272,9 @@ class TestCommercialMetadataExclusion:
     async def test_commercial_metadata_not_in_rag(self, db_session):
         """Commercial source with metadata_only cannot be retrieved — even with rag_enabled=True."""
         doc = _make_doc(
-            "PubMed 文献", "metadata_only", rag_enabled=True,
+            "PubMed 文献",
+            "metadata_only",
+            rag_enabled=True,
         )
         db_session.add(doc)
         await db_session.flush()
@@ -294,7 +309,9 @@ class TestCommercialMetadataExclusion:
 
         # Also add one allowed doc
         allowed = _make_doc(
-            "正常文献", "public_domain", rag_enabled=True,
+            "正常文献",
+            "public_domain",
+            rag_enabled=True,
             authorization_basis="public domain",
         )
         db_session.add(allowed)
@@ -321,7 +338,9 @@ class TestAuthorizationBasisGate:
         from app.services.evidence_rag_service import EvidenceRAGService
 
         doc = _make_doc(
-            "无授权公版", "public_domain", rag_enabled=True,
+            "无授权公版",
+            "public_domain",
+            rag_enabled=True,
             authorization_basis="",  # empty — polluting
         )
         db_session.add(doc)
@@ -344,7 +363,9 @@ class TestAuthorizationBasisGate:
         from app.services.evidence_rag_service import EvidenceRAGService
 
         doc = _make_doc(
-            "许可型公版", "public_domain", rag_enabled=True,
+            "许可型公版",
+            "public_domain",
+            rag_enabled=True,
             authorization_basis="",  # empty — but license_type fills the gap
         )
         db_session.add(doc)
@@ -354,9 +375,10 @@ class TestAuthorizationBasisGate:
 
         # patch license_type after _make_doc (factory doesn't set it)
         from app.models.document import Document as DocModel
-        d = (await db_session.execute(
-            select(DocModel).where(DocModel.id == doc.id)
-        )).scalar_one()
+
+        d = (
+            await db_session.execute(select(DocModel).where(DocModel.id == doc.id))
+        ).scalar_one()
         d.license_type = "CC-BY"
         await db_session.flush()
 
@@ -375,7 +397,9 @@ class TestAuthorizationBasisGate:
         from app.services.evidence_rag_service import EvidenceRAGService
 
         doc = _make_doc(
-            "无授权OA", "open_access", rag_enabled=True,
+            "无授权OA",
+            "open_access",
+            rag_enabled=True,
             authorization_basis="",
         )
         db_session.add(doc)

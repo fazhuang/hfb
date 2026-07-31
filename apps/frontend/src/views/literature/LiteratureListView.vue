@@ -7,16 +7,25 @@
     <!-- Filters -->
     <div class="filter-bar">
       <div class="search-box">
-        <input v-model="query" type="text" :placeholder="t('common.search') + '...'" @keyup.enter="fetchPage(1)" />
+        <input
+          v-model="query"
+          type="text"
+          :placeholder="t('common.search') + '...'"
+          @keyup.enter="fetchPage(1)"
+        />
         <button class="search-btn" @click="fetchPage(1)">{{ t('common.search') }}</button>
       </div>
       <select v-model="copyrightFilter" class="filter-select" @change="fetchPage(1)">
         <option value="">— 版权状态 —</option>
-        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">{{ COPYRIGHT_LABELS[cs] || cs }}</option>
+        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">
+          {{ COPYRIGHT_LABELS[cs] || cs }}
+        </option>
       </select>
       <select v-model="reviewFilter" class="filter-select" @change="fetchPage(1)">
         <option value="">— 审核状态 —</option>
-        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">{{ REVIEW_LABELS[rs] || rs }}</option>
+        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">
+          {{ REVIEW_LABELS[rs] || rs }}
+        </option>
       </select>
       <select v-model="ragFilter" class="filter-select" @change="fetchPage(1)">
         <option :value="null">— 智能检索 —</option>
@@ -27,7 +36,7 @@
 
     <DataTable
       :columns="columns"
-      :rows="(items as unknown as Record<string, unknown>[])"
+      :rows="items as unknown as Record<string, unknown>[]"
       :loading="loading"
       :error="error"
       :clickable="true"
@@ -38,7 +47,9 @@
     <div v-if="total > limit" class="pagination">
       <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
       <span>{{ page }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">{{ t('common.next') }}</button>
+      <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">
+        {{ t('common.next') }}
+      </button>
     </div>
   </div>
 </template>
@@ -66,15 +77,34 @@ interface DocumentBrief {
   created_at: string | null;
 }
 
-const COPYRIGHT_STATUSES = ['public_domain', 'open_access', 'licensed', 'user_uploaded_with_permission', 'unknown', 'metadata_only', 'forbidden_fulltext', 'commercial_restricted', 'pirated'];
+const COPYRIGHT_STATUSES = [
+  'public_domain',
+  'open_access',
+  'licensed',
+  'user_uploaded_with_permission',
+  'unknown',
+  'metadata_only',
+  'forbidden_fulltext',
+  'commercial_restricted',
+  'pirated',
+];
 const COPYRIGHT_LABELS: Record<string, string> = {
-  public_domain: '公共领域', open_access: '开放获取', licensed: '已授权',
-  user_uploaded_with_permission: '用户上传(已授权)', unknown: '未知',
-  metadata_only: '仅元数据', forbidden_fulltext: '禁止全文', commercial_restricted: '商业限制', pirated: '盗版',
+  public_domain: '公共领域',
+  open_access: '开放获取',
+  licensed: '已授权',
+  user_uploaded_with_permission: '用户上传(已授权)',
+  unknown: '未知',
+  metadata_only: '仅元数据',
+  forbidden_fulltext: '禁止全文',
+  commercial_restricted: '商业限制',
+  pirated: '盗版',
 };
 const REVIEW_STATUSES = ['pending_review', 'under_review', 'approved', 'rejected'];
 const REVIEW_LABELS: Record<string, string> = {
-  pending_review: '待审核', under_review: '审核中', approved: '已通过', rejected: '已驳回',
+  pending_review: '待审核',
+  under_review: '审核中',
+  approved: '已通过',
+  rejected: '已驳回',
 };
 
 const items = ref<DocumentBrief[]>([]);
@@ -95,11 +125,39 @@ const columns: TableColumn[] = [
   { key: 'dynasty', label: '朝代', width: '80px' },
   { key: 'category', label: '分类', width: '100px' },
   { key: 'source_name', label: '来源', width: '100px' },
-  { key: 'copyright_status', label: '版权', width: '100px', render: (r) => `<span class="badge badge-copyright">${COPYRIGHT_LABELS[r.copyright_status as string] || r.copyright_status}</span>` },
-  { key: 'review_status', label: '审核', width: '90px', render: (r) => `<span class="badge badge-review-${r.review_status}">${REVIEW_LABELS[r.review_status as string] || r.review_status}</span>` },
-  { key: 'rag_enabled', label: '智能检索', width: '60px', render: (r) => r.rag_enabled ? '✅' : '—' },
-  { key: 'withdrawn_at', label: '状态', width: '80px', render: (r) => r.withdrawn_at ? '<span class="badge badge-withdrawn">已撤回</span>' : '' },
-  { key: 'created_at', label: '创建时间', width: '140px', render: (r) => r.created_at ? new Date(r.created_at as string).toLocaleDateString('zh-CN') : '—' },
+  {
+    key: 'copyright_status',
+    label: '版权',
+    width: '100px',
+    render: (r) =>
+      `<span class="badge badge-copyright">${COPYRIGHT_LABELS[r.copyright_status as string] || r.copyright_status}</span>`,
+  },
+  {
+    key: 'review_status',
+    label: '审核',
+    width: '90px',
+    render: (r) =>
+      `<span class="badge badge-review-${r.review_status}">${REVIEW_LABELS[r.review_status as string] || r.review_status}</span>`,
+  },
+  {
+    key: 'rag_enabled',
+    label: '智能检索',
+    width: '60px',
+    render: (r) => (r.rag_enabled ? '✅' : '—'),
+  },
+  {
+    key: 'withdrawn_at',
+    label: '状态',
+    width: '80px',
+    render: (r) => (r.withdrawn_at ? '<span class="badge badge-withdrawn">已撤回</span>' : ''),
+  },
+  {
+    key: 'created_at',
+    label: '创建时间',
+    width: '140px',
+    render: (r) =>
+      r.created_at ? new Date(r.created_at as string).toLocaleDateString('zh-CN') : '—',
+  },
 ];
 
 async function fetchPage(p: number) {
@@ -206,16 +264,42 @@ onMounted(() => fetchPage(1));
   font-size: 13px;
 }
 
-.pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 </style>
 
 <style>
 /* Global badge styles (unscoped so DataTable rendered HTML picks them up) */
-.badge { font-size: 12px; padding: var(--space-0-5) 8px; border-radius: var(--radius-sm); white-space: nowrap; }
-.badge-copyright { background: var(--color-hover); color: var(--color-text-secondary); }
-.badge-review-pending_review { background: var(--color-warning-bg); color: var(--color-warning-text); }
-.badge-review-under_review { background: var(--color-info-text); color: var(--color-accent-light); }
-.badge-review-approved { background: var(--color-success-icon-bg); color: var(--color-success-text); }
-.badge-review-rejected { background: var(--color-error-icon-bg); color: var(--color-error-text); }
-.badge-withdrawn { background: var(--color-border); color: var(--color-text-muted); }
+.badge {
+  font-size: 12px;
+  padding: var(--space-0-5) 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.badge-copyright {
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+.badge-review-pending_review {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.badge-review-under_review {
+  background: var(--color-info-text);
+  color: var(--color-accent-light);
+}
+.badge-review-approved {
+  background: var(--color-success-icon-bg);
+  color: var(--color-success-text);
+}
+.badge-review-rejected {
+  background: var(--color-error-icon-bg);
+  color: var(--color-error-text);
+}
+.badge-withdrawn {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
 </style>

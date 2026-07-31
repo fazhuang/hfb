@@ -314,7 +314,8 @@ export default {
     saving: '保存中...',
     reSearch: '基于报告重新搜索',
     noteFromCitation: '从引用记笔记',
-    noEvidenceFound: '未在数据库中查找到与「{topic}」相关的文献证据，无法继续生成报告。请尝试更换研究主题或调整检索词。',
+    noEvidenceFound:
+      '未在数据库中查找到与「{topic}」相关的文献证据，无法继续生成报告。请尝试更换研究主题或调整检索词。',
     noEvidenceTitle: '缺乏证据',
     stepRetrievalNoEvidence: '已完成 (0 条记录 — 无可用证据)',
   },

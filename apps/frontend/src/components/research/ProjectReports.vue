@@ -6,12 +6,7 @@
     <LoadingState v-if="loading" message="正在加载报告..." />
 
     <!-- Error -->
-    <ErrorState
-      v-else-if="error"
-      :message="error"
-      title="报告加载失败"
-      @retry="fetchReports"
-    />
+    <ErrorState v-else-if="error" :message="error" title="报告加载失败" @retry="fetchReports" />
 
     <!-- Empty -->
     <EmptyState
@@ -28,7 +23,7 @@
           <h3 class="pr-title">{{ report.topic || '未命名报告' }}</h3>
           <div class="pr-steps">
             <span
-              v-for="step in (report.step_execution_trace || [])"
+              v-for="step in report.step_execution_trace || []"
               :key="step.name"
               class="pr-step-badge"
               :class="'pr-step--' + step.status"
@@ -41,10 +36,7 @@
           <time :datetime="report.completed_at ?? undefined" class="pr-time">
             {{ formatDate(report.completed_at || report.started_at) }}
           </time>
-          <router-link
-            :to="`/research/${projectId}/result/${report.run_id}`"
-            class="pr-view-link"
-          >
+          <router-link :to="`/research/${projectId}/result/${report.run_id}`" class="pr-view-link">
             查看
           </router-link>
         </div>
@@ -109,18 +101,13 @@ async function fetchReports() {
   loading.value = true;
   error.value = null;
   try {
-    const { data } = await api.get(
-      `/api/v4/research/session/${props.projectId}/runs`,
-    );
+    const { data } = await api.get(`/api/v4/research/session/${props.projectId}/runs`);
     if (myReqId !== reqId) return;
     const body = data.data ?? data;
     reports.value = (body.runs ?? []) as ReportItem[];
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载报告失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载报告失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {

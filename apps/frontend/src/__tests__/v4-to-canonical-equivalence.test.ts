@@ -95,10 +95,19 @@ function workflowSuccessResponse(runId = RUN_ID, topic = '经络') {
           { name: 'topic_selection', status: 'completed', result: { topic, sub_questions: 3 } },
           { name: 'literature_retrieval', status: 'completed', result: { themes: 2, records: 5 } },
           { name: 'evidence_synthesis', status: 'completed', result: { sections: 2, claims: 5 } },
-          { name: 'report_generation', status: 'completed', result: { sections: 2, title: `研究报告：${topic}` } },
+          {
+            name: 'report_generation',
+            status: 'completed',
+            result: { sections: 2, title: `研究报告：${topic}` },
+          },
           { name: 'citation_export', status: 'completed', result: { total_citations: 3 } },
         ],
-        traceability: { query_id: runId, trace_ids: ['tid-1', 'tid-2', 'tid-3'], citation_count: 3, source_documents: ['doc-01'] },
+        traceability: {
+          query_id: runId,
+          trace_ids: ['tid-1', 'tid-2', 'tid-3'],
+          citation_count: 3,
+          source_documents: ['doc-01'],
+        },
       },
       message: 'ok',
     },
@@ -109,33 +118,58 @@ function runsWithEvidenceResponse(runId = RUN_ID, topic = '经络') {
   return {
     data: {
       data: {
-        runs: [{
-          run_id: runId,
-          topic,
-          completed_at: '2026-07-17T10:00:00',
-          step_execution_trace: [
-            { name: 'topic_selection', status: 'completed' },
-            { name: 'literature_retrieval', status: 'completed' },
-            { name: 'evidence_synthesis', status: 'completed' },
-            { name: 'report_generation', status: 'completed' },
-            { name: 'citation_export', status: 'completed' },
-          ],
-          output_artifacts: {
-            markdown: `# 研究报告：${topic}\n\n检索快照记录数: 1\n综合证据条数: 1\n报告段落数: 1`,
-            artifact_id: 'abc123def456',
-            citations: [
-              { trace_id: 'tid-1', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: '经络者，所以行血气而营阴阳。' },
+        runs: [
+          {
+            run_id: runId,
+            topic,
+            completed_at: '2026-07-17T10:00:00',
+            step_execution_trace: [
+              { name: 'topic_selection', status: 'completed' },
+              { name: 'literature_retrieval', status: 'completed' },
+              { name: 'evidence_synthesis', status: 'completed' },
+              { name: 'report_generation', status: 'completed' },
+              { name: 'citation_export', status: 'completed' },
             ],
+            output_artifacts: {
+              markdown: `# 研究报告：${topic}\n\n检索快照记录数: 1\n综合证据条数: 1\n报告段落数: 1`,
+              artifact_id: 'abc123def456',
+              citations: [
+                {
+                  trace_id: 'tid-1',
+                  citation_text: '[doc-01:chk-01]',
+                  document_id: 'doc-01',
+                  quote: '经络者，所以行血气而营阴阳。',
+                },
+              ],
+            },
+            replay_manifest: {
+              retrieval_snapshot: [
+                {
+                  trace_id: 'tid-1',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-01',
+                  claim_text: '经络是人体运行气血的通道',
+                  quote: '经络者，所以行血气而营阴阳。',
+                  citation_text: '[doc-01:chk-01]',
+                  source_ref_title: '针灸甲乙经',
+                  source_ref_url: 'https://example.com/ref1',
+                  source_ref_id: 'src-ref-001',
+                },
+              ],
+              traces: [
+                {
+                  trace_id: 'tid-1',
+                  document_id: 'doc-01',
+                  chunk_id: 'chk-01',
+                  passage_id: 'passage-01',
+                  provenance_kind: 'retrieval',
+                  retrieval_score: 0.95,
+                  retrieval_method: 'ili_keyword_search',
+                },
+              ],
+            },
           },
-          replay_manifest: {
-            retrieval_snapshot: [
-              { trace_id: 'tid-1', document_id: 'doc-01', chunk_id: 'chk-01', claim_text: '经络是人体运行气血的通道', quote: '经络者，所以行血气而营阴阳。', citation_text: '[doc-01:chk-01]', source_ref_title: '针灸甲乙经', source_ref_url: 'https://example.com/ref1', source_ref_id: 'src-ref-001' },
-            ],
-            traces: [
-              { trace_id: 'tid-1', document_id: 'doc-01', chunk_id: 'chk-01', passage_id: 'passage-01', provenance_kind: 'retrieval', retrieval_score: 0.95, retrieval_method: 'ili_keyword_search' },
-            ],
-          },
-        }],
+        ],
       },
     },
   };
@@ -149,7 +183,11 @@ function noEvidenceWorkflowResponse() {
         run_id: RUN_ID,
         session_id: PROJECT_ID,
         steps: [
-          { name: 'topic_selection', status: 'completed', result: { topic: 'xyz', sub_questions: 4 } },
+          {
+            name: 'topic_selection',
+            status: 'completed',
+            result: { topic: 'xyz', sub_questions: 4 },
+          },
           { name: 'literature_retrieval', status: 'completed', result: { themes: 0, records: 0 } },
           { name: 'evidence_synthesis', status: 'pending' },
           { name: 'report_generation', status: 'pending' },
@@ -165,20 +203,28 @@ function noEvidenceRunsResponse() {
   return {
     data: {
       data: {
-        runs: [{
-          run_id: RUN_ID,
-          topic: 'xyz',
-          completed_at: '2026-07-17T10:00:00',
-          step_execution_trace: [
-            { name: 'topic_selection', status: 'completed' },
-            { name: 'literature_retrieval', status: 'completed', result: { themes: 0, records: 0 } },
-            { name: 'evidence_synthesis', status: 'pending' },
-            { name: 'report_generation', status: 'pending' },
-            { name: 'citation_export', status: 'pending' },
-          ],
-          output_artifacts: { markdown: '# 研究报告：xyz\n\n检索快照记录数: 0\n综合证据条数: 0\n报告段落数: 0' },
-          replay_manifest: null,
-        }],
+        runs: [
+          {
+            run_id: RUN_ID,
+            topic: 'xyz',
+            completed_at: '2026-07-17T10:00:00',
+            step_execution_trace: [
+              { name: 'topic_selection', status: 'completed' },
+              {
+                name: 'literature_retrieval',
+                status: 'completed',
+                result: { themes: 0, records: 0 },
+              },
+              { name: 'evidence_synthesis', status: 'pending' },
+              { name: 'report_generation', status: 'pending' },
+              { name: 'citation_export', status: 'pending' },
+            ],
+            output_artifacts: {
+              markdown: '# 研究报告：xyz\n\n检索快照记录数: 0\n综合证据条数: 0\n报告段落数: 0',
+            },
+            replay_manifest: null,
+          },
+        ],
       },
     },
   };
@@ -188,16 +234,18 @@ function emptyCitationRunsResponse() {
   return {
     data: {
       data: {
-        runs: [{
-          run_id: RUN_ID,
-          topic: 'test',
-          completed_at: '2026-07-17T10:00:00',
-          output_artifacts: { markdown: '# Test\n\n检索快照记录数: 0' },
-          step_execution_trace: [
-            { name: 'citation_export', status: 'completed', trace_ids: ['tid-1', 'tid-2'] },
-          ],
-          replay_manifest: null,
-        }],
+        runs: [
+          {
+            run_id: RUN_ID,
+            topic: 'test',
+            completed_at: '2026-07-17T10:00:00',
+            output_artifacts: { markdown: '# Test\n\n检索快照记录数: 0' },
+            step_execution_trace: [
+              { name: 'citation_export', status: 'completed', trace_ids: ['tid-1', 'tid-2'] },
+            ],
+            replay_manifest: null,
+          },
+        ],
       },
     },
   };
@@ -230,10 +278,26 @@ function makeRouter() {
     routes: [
       { path: '/', component: { template: '<div/>' }, name: 'home' },
       { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
-      { path: '/research/:projectId', component: { template: '<div/>' }, name: 'research-project-detail' },
-      { path: '/research/:projectId/workspace', component: { template: '<div/>' }, name: 'research-project-workspace' },
-      { path: '/research/:projectId/workflow', component: { template: '<div/>' }, name: 'research-project-workflow' },
-      { path: '/research/:projectId/result/:runId', component: { template: '<div/>' }, name: 'research-project-result' },
+      {
+        path: '/research/:projectId',
+        component: { template: '<div/>' },
+        name: 'research-project-detail',
+      },
+      {
+        path: '/research/:projectId/workspace',
+        component: { template: '<div/>' },
+        name: 'research-project-workspace',
+      },
+      {
+        path: '/research/:projectId/workflow',
+        component: { template: '<div/>' },
+        name: 'research-project-workflow',
+      },
+      {
+        path: '/research/:projectId/result/:runId',
+        component: { template: '<div/>' },
+        name: 'research-project-result',
+      },
     ],
   });
 }
@@ -357,8 +421,10 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
           data: {
             data: {
               matched: true,
-              original_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
-              replay_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+              original_output_sha256:
+                'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+              replay_output_sha256:
+                'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
             },
             message: 'ok',
           },
@@ -412,8 +478,10 @@ describe('M1 能力 #3 Group 1: V4 workflow execution → ResearchWorkflowPage',
           data: {
             data: {
               matched: false,
-              original_output_sha256: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
-              replay_output_sha256: 'f0e1d2c3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d',
+              original_output_sha256:
+                'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2',
+              replay_output_sha256:
+                'f0e1d2c3b4a5968778695a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d',
             },
             message: 'Replay mismatch — reproducibility failure',
           },
@@ -515,7 +583,11 @@ describe('M1 能力 #3 Group 2: No-evidence / citation integrity → ResearchWor
     // Canonical: success=false → error banner displayed
     // 规范工作流在提交失败后返回错误状态——检查错误横幅或重试 UI
     const text = wrapper.text();
-    const hasError = text.includes('未找到') || text.includes('相关文献证据') || text.includes('NO_EVIDENCE') || wrapper.find('.rwf-error-banner').exists();
+    const hasError =
+      text.includes('未找到') ||
+      text.includes('相关文献证据') ||
+      text.includes('NO_EVIDENCE') ||
+      wrapper.find('.rwf-error-banner').exists();
     expect(hasError).toBe(true);
 
     // 报告步骤在无证据时不应存在

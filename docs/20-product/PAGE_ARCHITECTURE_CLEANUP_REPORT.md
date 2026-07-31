@@ -17,13 +17,14 @@
 
 ### 能力 #1–#3 统一裁决记录
 
-| 能力编号 | 裁决状态 | 批准人 | 批准时间 | 批准依据/记录 | 后续动作 |
-|----------|----------|--------|----------|---------------|----------|
-| 1 — 全局 Workspace | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移至 canonical :projectId 作用域后移除；保持 BLOCK_RELEASE 直至迁移验收通过 |
-| 2 — 版本研究 Workflow | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移至 canonical ResearchWorkflowPage 后移除；保持 BLOCK_RELEASE 直至迁移验收通过 |
-| 3 — V4 研究 | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录 | 迁移实验功能至 canonical 后移除 `/v4/research-internal`；保持 BLOCK_RELEASE 直至迁移验收通过 |
+| 能力编号              | 裁决状态                        | 批准人     | 批准时间   | 批准依据/记录 | 后续动作                                                                                     |
+| --------------------- | ------------------------------- | ---------- | ---------- | ------------- | -------------------------------------------------------------------------------------------- |
+| 1 — 全局 Workspace    | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录  | 迁移至 canonical :projectId 作用域后移除；保持 BLOCK_RELEASE 直至迁移验收通过                |
+| 2 — 版本研究 Workflow | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录  | 迁移至 canonical ResearchWorkflowPage 后移除；保持 BLOCK_RELEASE 直至迁移验收通过            |
+| 3 — V4 研究           | **APPROVED_MIGRATION_REQUIRED** | 产品负责人 | 2026-07-25 | 会话裁决记录  | 迁移实验功能至 canonical 后移除 `/v4/research-internal`；保持 BLOCK_RELEASE 直至迁移验收通过 |
 
 **裁决值规范**：
+
 - `PENDING_PRODUCT_APPROVAL` — 未获得真实产品负责人确认（默认状态）
 - `APPROVED_INDEPENDENT_BUSINESS` — 产品负责人批准为独立业务；R3/R5 在该能力上闭合
 - `APPROVED_MIGRATION_REQUIRED` — 产品负责人批准迁移；保持 BLOCK_RELEASE 直至迁移另行验收
@@ -32,11 +33,11 @@
 
 ### 能力 #4–#6（已闭合）
 
-| # | 能力 | 旧入口 | 旧可执行行为 | canonical 等价入口 | 等价证明 | 裁决 |
-|---|------|--------|-------------|---------------------|----------|------|
-| 4 | ResearchHome → ProjectList | `/research/home` | 原首页路由入口 | `ProjectListPage`（`/research`）— 同一业务 | 可直接渲染 | ✅ **已收口** — renders `<ProjectListPage />`，无 router.replace |
-| 5 | ResearchNew → ProjectList | `/research/new` | 原新建课题路由入口 | `ProjectListPage`（`/research`）— 同一业务 | CreateProjectDialog 等效 | ✅ **已收口** — renders `<ProjectListPage />`，无 router.replace |
-| 6 | test_library_reader_jump | `/library/:id` → "全文阅读" → `/reader/:id` | 点击链路 | `/reader/:id`（Task 009） | Task 009 规范 | ✅ **已修复** — 更新为 `/reader/:id` |
+| #   | 能力                       | 旧入口                                      | 旧可执行行为       | canonical 等价入口                         | 等价证明                 | 裁决                                                             |
+| --- | -------------------------- | ------------------------------------------- | ------------------ | ------------------------------------------ | ------------------------ | ---------------------------------------------------------------- |
+| 4   | ResearchHome → ProjectList | `/research/home`                            | 原首页路由入口     | `ProjectListPage`（`/research`）— 同一业务 | 可直接渲染               | ✅ **已收口** — renders `<ProjectListPage />`，无 router.replace |
+| 5   | ResearchNew → ProjectList  | `/research/new`                             | 原新建课题路由入口 | `ProjectListPage`（`/research`）— 同一业务 | CreateProjectDialog 等效 | ✅ **已收口** — renders `<ProjectListPage />`，无 router.replace |
+| 6   | test_library_reader_jump   | `/library/:id` → "全文阅读" → `/reader/:id` | 点击链路           | `/reader/:id`（Task 009）                  | Task 009 规范            | ✅ **已修复** — 更新为 `/reader/:id`                             |
 
 **裁决说明**：
 
@@ -82,28 +83,28 @@ uv run pytest tests/e2e/test_reader_e2e.py tests/e2e/test_critical_journeys.py -
 
 #### 后端 E2E 修复记录（`066502c` 引入，`c9a4f5e` / `74cee05` 均验证通过）
 
-| Test | Change | Reason |
-|------|--------|--------|
-| `test_login_succeeds` | `text=e2euser` → `.user-greeting`（has_text="e2euser"） | 登录后两个 DOM 节点包含 "e2euser"（导航栏问候语 + 仪表板标题），导致严格模式冲突 |
-| `test_workspace_loads_when_authenticated` | `text=AI 助手` → `text=研究助手`；`text=研究画布` → `text=版本研究` | 当前工作区使用 "研究助手"（zh-CN.ts L347）和 "版本研究"（zh-CN.ts L11）标签 |
-| `test_v4_research_route_accessible` | `/v4/research` → `/v4/research-internal` | `/v4/research` 重定向到 `/research/workspace?tab=v4-research`，而非 V4ResearchView；规范路由是 `/v4/research-internal` |
-| `test_v4_research_tab_switching` | `/v4/research` → `/v4/research-internal` | 同上 |
-| `test_v4_research_core_inputs_present` | `/v4/research` → `/v4/research-internal` | 同上 |
-| `test_v4_redirects_to_v4_research` | `**/v4/research**` → `**/v4-research**` | `/v4` 重定向到 `/research/workspace?tab=v4-research` |
-| `test_navbar_navigates_to_v4_research` | 点击 `nav a[href="/v4/research"]`，期望 `**/v4/research**` → 点击 `nav a[href="/research/workspace?tab=v4-research"]`，期望 `**/v4/research-internal**` | 导航栏链接是 `/research/workspace?tab=v4-research`；点击后重定向至 `/v4/research-internal` |
-| `test_library_reader_jump` | `/literature/{doc_id}` → `/reader/{doc_id}` | Task 009 将 Reader 从 `/literature/:id` 重构为 `/reader/:id` |
+| Test                                      | Change                                                                                                                                                  | Reason                                                                                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `test_login_succeeds`                     | `text=e2euser` → `.user-greeting`（has_text="e2euser"）                                                                                                 | 登录后两个 DOM 节点包含 "e2euser"（导航栏问候语 + 仪表板标题），导致严格模式冲突                                       |
+| `test_workspace_loads_when_authenticated` | `text=AI 助手` → `text=研究助手`；`text=研究画布` → `text=版本研究`                                                                                     | 当前工作区使用 "研究助手"（zh-CN.ts L347）和 "版本研究"（zh-CN.ts L11）标签                                            |
+| `test_v4_research_route_accessible`       | `/v4/research` → `/v4/research-internal`                                                                                                                | `/v4/research` 重定向到 `/research/workspace?tab=v4-research`，而非 V4ResearchView；规范路由是 `/v4/research-internal` |
+| `test_v4_research_tab_switching`          | `/v4/research` → `/v4/research-internal`                                                                                                                | 同上                                                                                                                   |
+| `test_v4_research_core_inputs_present`    | `/v4/research` → `/v4/research-internal`                                                                                                                | 同上                                                                                                                   |
+| `test_v4_redirects_to_v4_research`        | `**/v4/research**` → `**/v4-research**`                                                                                                                 | `/v4` 重定向到 `/research/workspace?tab=v4-research`                                                                   |
+| `test_navbar_navigates_to_v4_research`    | 点击 `nav a[href="/v4/research"]`，期望 `**/v4/research**` → 点击 `nav a[href="/research/workspace?tab=v4-research"]`，期望 `**/v4/research-internal**` | 导航栏链接是 `/research/workspace?tab=v4-research`；点击后重定向至 `/v4/research-internal`                             |
+| `test_library_reader_jump`                | `/literature/{doc_id}` → `/reader/{doc_id}`                                                                                                             | Task 009 将 Reader 从 `/literature/:id` 重构为 `/reader/:id`                                                           |
 
 ---
 
 ## 结论
 
-| Gate | Status |
-|------|--------|
-| R1 (Report truth) | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；历史运行记录已标注为 Historical evidence only |
-| R3 (Single implementation) | **CONDITIONAL** — 能力 #1–#3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED（迁移后闭合）；#4–#5 已收口（Decision A） |
-| R5 (Behavior preservation) | **CONDITIONAL** — 能力 #1–#3 迁移验收通过后闭合；#4–#5 已收口 |
-| R6 (Real evidence) | **PENDING** — 需在当前 HEAD 执行全部 R6 验证命令后判定。当前 HEAD 已被 Task 0A/0B/1A/1B 多次修改，无实时运行证据。现有数据来自 `74cee05` 历史运行记录，不是当前 HEAD 的实时证据 |
-| Release | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 + R6 当前 HEAD 未复验 + 未完成项待解决 |
+| Gate                       | Status                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1 (Report truth)          | ✅ — 报告使用稳定基线标识（代码证据基线 `066502c`，文档状态基线 `74cee05`）；历史运行记录已标注为 Historical evidence only                                                      |
+| R3 (Single implementation) | **CONDITIONAL** — 能力 #1–#3 已由产品负责人裁决为 APPROVED_MIGRATION_REQUIRED（迁移后闭合）；#4–#5 已收口（Decision A）                                                         |
+| R5 (Behavior preservation) | **CONDITIONAL** — 能力 #1–#3 迁移验收通过后闭合；#4–#5 已收口                                                                                                                   |
+| R6 (Real evidence)         | **PENDING** — 需在当前 HEAD 执行全部 R6 验证命令后判定。当前 HEAD 已被 Task 0A/0B/1A/1B 多次修改，无实时运行证据。现有数据来自 `74cee05` 历史运行记录，不是当前 HEAD 的实时证据 |
+| Release                    | **BLOCK_RELEASE** — 能力 #1–#3 迁移另行验收 + R6 当前 HEAD 未复验 + 未完成项待解决                                                                                              |
 
 **未完成项（当前 HEAD）**：
 
@@ -134,21 +135,21 @@ RELEASE_READY
 
 ## Appendix A: Route Name Mapping（代码证据基线 `066502c`）
 
-| Route Name | Route URL | Status |
-|------------|-----------|--------|
-| `research-project-list` | `/research` | ACTIVE (canonical) |
-| `research-project-detail` | `/research/:projectId` | ACTIVE (canonical) |
-| `research-project-workspace` | `/research/:projectId/workspace` | ACTIVE (canonical) |
-| `research-project-workflow` | `/research/:projectId/workflow` | ACTIVE (canonical) |
-| `research-project-result` | `/research/:projectId/result/:runId` | ACTIVE (canonical) |
-| `research-new` | `/research/new` | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
-| `research-home` | `/research/home` | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
-| `research-workspace` | `/research/workspace` | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED) |
-| `v4-research` | `/v4/research-internal` | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED) |
+| Route Name                   | Route URL                            | Status                                              |
+| ---------------------------- | ------------------------------------ | --------------------------------------------------- |
+| `research-project-list`      | `/research`                          | ACTIVE (canonical)                                  |
+| `research-project-detail`    | `/research/:projectId`               | ACTIVE (canonical)                                  |
+| `research-project-workspace` | `/research/:projectId/workspace`     | ACTIVE (canonical)                                  |
+| `research-project-workflow`  | `/research/:projectId/workflow`      | ACTIVE (canonical)                                  |
+| `research-project-result`    | `/research/:projectId/result/:runId` | ACTIVE (canonical)                                  |
+| `research-new`               | `/research/new`                      | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
+| `research-home`              | `/research/home`                     | COMPATIBILITY (→ `<ProjectListPage />`，Decision A) |
+| `research-workspace`         | `/research/workspace`                | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED)       |
+| `v4-research`                | `/v4/research-internal`              | ACTIVE (legacy — APPROVED_MIGRATION_REQUIRED)       |
 
 ## Appendix B: Layout Usage
 
-| Layout | Routes |
-|--------|--------|
-| `DefaultLayout.vue` | All legacy views + ReaderPage + legacy workspace/V4 |
+| Layout                  | Routes                                                      |
+| ----------------------- | ----------------------------------------------------------- |
+| `DefaultLayout.vue`     | All legacy views + ReaderPage + legacy workspace/V4         |
 | `ResearchAppLayout.vue` | All canonical pages (research, library, knowledge, reports) |

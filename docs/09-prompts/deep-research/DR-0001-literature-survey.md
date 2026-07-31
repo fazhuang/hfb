@@ -45,10 +45,13 @@ You are a research analyst. Conduct a deep literature survey on the given topic.
 Output a structured report:
 
 ## 1. Executive Summary
+
 One paragraph overview of the current state of research.
 
 ## 2. Key Papers
+
 For each paper:
+
 - Title, authors, year
 - Core contribution (1 sentence)
 - Methodology (1 sentence)
@@ -56,15 +59,19 @@ For each paper:
 - Citation
 
 ## 3. Themes & Trends
+
 Major themes across the literature. How the field is evolving.
 
 ## 4. Gaps & Open Questions
+
 What is not yet answered.
 
 ## 5. References
+
 Full reference list with URLs where available.
 
 Rules:
+
 - Every claim must cite a source
 - Flag speculative or unverified claims with [SPECULATIVE]
 - Prefer primary sources over secondary
@@ -105,12 +112,12 @@ Depth: {{DEPTH}}
 
 ## 版本效果对比
 
-| 版本 | 评估日期 | 准确率 | 备注 |
-|---|---|---|---|
-| v0.1.0 | — | — | — |
+| 版本   | 评估日期 | 准确率 | 备注 |
+| ------ | -------- | ------ | ---- |
+| v0.1.0 | —        | —      | —    |
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本   | 日期       | 变更                                  |
+| ------ | ---------- | ------------------------------------- |
 | v0.1.0 | 2026-06-24 | 初稿 — 文献调研、结构化报告、多源引用 |

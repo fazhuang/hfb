@@ -3,7 +3,11 @@
     <div class="rph-top">
       <div class="rph-title-group">
         <!-- Breadcrumbs -->
-        <nav v-if="breadcrumbs && breadcrumbs.length > 0" class="rph-breadcrumbs" aria-label="Breadcrumb">
+        <nav
+          v-if="breadcrumbs && breadcrumbs.length > 0"
+          class="rph-breadcrumbs"
+          aria-label="Breadcrumb"
+        >
           <template v-for="(crumb, idx) in breadcrumbs" :key="idx">
             <router-link v-if="crumb.to" :to="crumb.to" class="rph-breadcrumb-link">
               {{ crumb.label }}

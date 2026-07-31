@@ -20,6 +20,7 @@ related_documents:
 ---
 
 # RAG Specification
+
 ## 检索增强生成（RAG）规范
 
 > 本规范定义平台 Retrieval-Augmented Generation（RAG）架构，是所有 AI 学术问答、文献检索、智能分析、多版本对比等功能的统一技术标准。
@@ -370,13 +371,13 @@ RAG 必须支持：
 
 # 第十四章 性能指标
 
-| 指标 | 标准 |
-|------|------|
-| 首次检索 | ≤1 秒 |
-| RAG 响应 | ≤3 秒 |
-| Top10 Recall | ≥95% |
-| Citation Accuracy | ≥99% |
-| Metadata 完整率 | 100% |
+| 指标              | 标准  |
+| ----------------- | ----- |
+| 首次检索          | ≤1 秒 |
+| RAG 响应          | ≤3 秒 |
+| Top10 Recall      | ≥95%  |
+| Citation Accuracy | ≥99%  |
+| Metadata 完整率   | 100%  |
 
 ---
 
@@ -448,7 +449,7 @@ Reranker
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台 RAG 技术规范。 |
+| Version | Date       | Description                       |
+| ------- | ---------- | --------------------------------- |
+| 1.1.0   | 2026-06-25 | 更新related_documents             |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台 RAG 技术规范。 |

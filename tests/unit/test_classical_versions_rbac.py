@@ -9,6 +9,7 @@ Verifies:
   - anonymous gets 401
   - soft-delete enforcement at service level
 """
+
 from __future__ import annotations
 
 import pytest
@@ -40,8 +41,10 @@ def _setup_overrides(session: AsyncSession, token: str | None = None) -> None:
     fastapi_app.dependency_overrides[get_session] = override_get_session
 
     if token is not None:
+
         async def override_get_current_user(request=None):
             from app.services.auth_service import decode_token
+
             payload = decode_token(token)
             return payload["sub"]
 
@@ -60,8 +63,12 @@ def _setup_overrides(session: AsyncSession, token: str | None = None) -> None:
 
             return _A()
 
-        fastapi_app.dependency_overrides[auth_mod.get_current_user] = override_get_current_user
-        fastapi_app.dependency_overrides[auth_mod.get_auth_service] = override_get_auth_service
+        fastapi_app.dependency_overrides[auth_mod.get_current_user] = (
+            override_get_current_user
+        )
+        fastapi_app.dependency_overrides[auth_mod.get_auth_service] = (
+            override_get_auth_service
+        )
 
 
 def _cleanup_overrides() -> None:
@@ -115,17 +122,21 @@ async def _seed_user(
     await session.flush()
 
 
-async def _seed_cv(session, title="针灸甲乙经", vname="宋刻本", source="https://example.com/song"):
+async def _seed_cv(
+    session, title="针灸甲乙经", vname="宋刻本", source="https://example.com/song"
+):
     from app.api.v1.classical_versions import ClassicalVersionService
     from app.schemas.classical_version import ClassicalVersionCreate
 
     svc = ClassicalVersionService(session)
-    obj = await svc.create(ClassicalVersionCreate(
-        work_title=title,
-        version_name=vname,
-        source_url=source,
-        public_domain_status="unknown",
-    ))
+    obj = await svc.create(
+        ClassicalVersionCreate(
+            work_title=title,
+            version_name=vname,
+            source_url=source,
+            public_domain_status="unknown",
+        )
+    )
     return obj.id
 
 
@@ -138,46 +149,64 @@ class TestClassicalVersionRouteRBAC:
     async def test_user_with_create_only_cannot_patch(self, db_session):
         cvid = await _seed_cv(db_session)
         uid = "create-only-99"
-        await _seed_user(db_session, uid, uid, [
-            "classical_version.read",
-            "classical_version.create",
-        ])
+        await _seed_user(
+            db_session,
+            uid,
+            uid,
+            [
+                "classical_version.read",
+                "classical_version.create",
+            ],
+        )
         jwt_str = create_access_token(uid)
         headers = {"Authorization": f"Bearer {jwt_str}"}
 
         _setup_overrides(db_session, jwt_str)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.patch(
                     f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                     json={"review_status": "approved"},
                 )
-                assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+                assert response.status_code == 403, (
+                    f"Expected 403, got {response.status_code}: {response.text}"
+                )
         finally:
             _cleanup_overrides()
 
     async def test_user_with_update_perm_can_patch(self, db_session):
         cvid = await _seed_cv(db_session)
         uid = "updater-99"
-        await _seed_user(db_session, uid, uid, [
-            "classical_version.read",
-            "classical_version.update",
-        ])
+        await _seed_user(
+            db_session,
+            uid,
+            uid,
+            [
+                "classical_version.read",
+                "classical_version.update",
+            ],
+        )
         jwt_str = create_access_token(uid)
         headers = {"Authorization": f"Bearer {jwt_str}"}
 
         _setup_overrides(db_session, jwt_str)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.patch(
                     f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                     json={"review_status": "approved"},
                 )
-                assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+                assert response.status_code == 200, (
+                    f"Expected 200, got {response.status_code}: {response.text}"
+                )
                 assert response.json()["data"]["review_status"] == "approved"
         finally:
             _cleanup_overrides()
@@ -185,22 +214,32 @@ class TestClassicalVersionRouteRBAC:
     async def test_non_superuser_cannot_delete(self, db_session):
         cvid = await _seed_cv(db_session)
         uid = "no-su-del-99"
-        await _seed_user(db_session, uid, uid, [
-            "classical_version.read",
-            "classical_version.delete",
-        ], is_superuser=False)
+        await _seed_user(
+            db_session,
+            uid,
+            uid,
+            [
+                "classical_version.read",
+                "classical_version.delete",
+            ],
+            is_superuser=False,
+        )
         jwt_str = create_access_token(uid)
         headers = {"Authorization": f"Bearer {jwt_str}"}
 
         _setup_overrides(db_session, jwt_str)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.delete(
                     f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                 )
-                assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+                assert response.status_code == 403, (
+                    f"Expected 403, got {response.status_code}: {response.text}"
+                )
         finally:
             _cleanup_overrides()
 
@@ -214,12 +253,16 @@ class TestClassicalVersionRouteRBAC:
         _setup_overrides(db_session, jwt_str)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.delete(
                     f"/api/v1/admin/classical-versions/{cvid}",
                     headers=headers,
                 )
-                assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+                assert response.status_code == 200, (
+                    f"Expected 200, got {response.status_code}: {response.text}"
+                )
         finally:
             _cleanup_overrides()
 
@@ -235,9 +278,13 @@ class TestClassicalVersionRouteRBAC:
         _setup_overrides(db_session, token=None)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.get("/api/v1/classical-versions")
-                assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+                assert response.status_code == 401, (
+                    f"Expected 401, got {response.status_code}"
+                )
         finally:
             _cleanup_overrides()
 
@@ -245,11 +292,15 @@ class TestClassicalVersionRouteRBAC:
         _setup_overrides(db_session, token=None)
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.delete(
                     "/api/v1/admin/classical-versions/00000000-0000-0000-0000-000000000000",
                 )
-                assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+                assert response.status_code == 401, (
+                    f"Expected 401, got {response.status_code}"
+                )
         finally:
             _cleanup_overrides()
 
@@ -266,27 +317,53 @@ class TestClassicalVersionServiceRBAC:
         await _seed_user(db_session, "su-svc-1", "su-svc-1", [], is_superuser=True)
         svc = AuthService(db_session)
         assert await svc.has_permission("su-svc-1", "classical_version", "read") is True
-        assert await svc.has_permission("su-svc-1", "classical_version", "create") is True
-        assert await svc.has_permission("su-svc-1", "classical_version", "update") is True
-        assert await svc.has_permission("su-svc-1", "classical_version", "delete") is True
+        assert (
+            await svc.has_permission("su-svc-1", "classical_version", "create") is True
+        )
+        assert (
+            await svc.has_permission("su-svc-1", "classical_version", "update") is True
+        )
+        assert (
+            await svc.has_permission("su-svc-1", "classical_version", "delete") is True
+        )
 
     async def test_visitor_read_only(self, db_session):
         from app.services.auth_service import AuthService
 
-        await _seed_user(db_session, "visitor-svc-1", "visitor-svc-1", [
-            "classical_version.read",
-        ])
+        await _seed_user(
+            db_session,
+            "visitor-svc-1",
+            "visitor-svc-1",
+            [
+                "classical_version.read",
+            ],
+        )
         svc = AuthService(db_session)
-        assert await svc.has_permission("visitor-svc-1", "classical_version", "read") is True
-        assert await svc.has_permission("visitor-svc-1", "classical_version", "create") is False
-        assert await svc.has_permission("visitor-svc-1", "classical_version", "update") is False
-        assert await svc.has_permission("visitor-svc-1", "classical_version", "delete") is False
+        assert (
+            await svc.has_permission("visitor-svc-1", "classical_version", "read")
+            is True
+        )
+        assert (
+            await svc.has_permission("visitor-svc-1", "classical_version", "create")
+            is False
+        )
+        assert (
+            await svc.has_permission("visitor-svc-1", "classical_version", "update")
+            is False
+        )
+        assert (
+            await svc.has_permission("visitor-svc-1", "classical_version", "delete")
+            is False
+        )
 
     async def test_no_permissions_without_seed(self, db_session):
         from app.services.auth_service import AuthService
 
         svc = AuthService(db_session)
-        assert await svc.has_permission("nonexistent-user", "classical_version", "read") is False
+        assert (
+            await svc.has_permission("nonexistent-user", "classical_version", "read")
+            is False
+        )
 
 
 class TestClassicalVersionSoftDelete:
@@ -297,12 +374,14 @@ class TestClassicalVersionSoftDelete:
         from app.schemas.classical_version import ClassicalVersionCreate
 
         svc = ClassicalVersionService(db_session)
-        obj = await svc.create(ClassicalVersionCreate(
-            work_title="测试",
-            version_name="v1",
-            source_url="https://example.com/test",
-            public_domain_status="unknown",
-        ))
+        obj = await svc.create(
+            ClassicalVersionCreate(
+                work_title="测试",
+                version_name="v1",
+                source_url="https://example.com/test",
+                public_domain_status="unknown",
+            )
+        )
         await svc.soft_delete(obj.id)
         _items, total = await svc.list()
         assert total == 0
@@ -312,11 +391,13 @@ class TestClassicalVersionSoftDelete:
         from app.schemas.classical_version import ClassicalVersionCreate
 
         svc = ClassicalVersionService(db_session)
-        obj = await svc.create(ClassicalVersionCreate(
-            work_title="测试",
-            version_name="v2",
-            source_url="https://example.com/test2",
-            public_domain_status="unknown",
-        ))
+        obj = await svc.create(
+            ClassicalVersionCreate(
+                work_title="测试",
+                version_name="v2",
+                source_url="https://example.com/test2",
+                public_domain_status="unknown",
+            )
+        )
         await svc.soft_delete(obj.id)
         assert await svc.get_by_id(obj.id) is None

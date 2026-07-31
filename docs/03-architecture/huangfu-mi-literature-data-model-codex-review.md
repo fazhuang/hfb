@@ -2,7 +2,7 @@
 
 **被审计文件:** `docs/03-data/huangfu-mi-literature-data-model.md`  
 **审计日期:** 2026-07-10  
-**审计对象:** Claude 修订后的数据模型设计草案 v1.1  
+**审计对象:** Claude 修订后的数据模型设计草案 v1.1
 
 ## 结论
 
@@ -12,15 +12,15 @@
 
 ## 复验结果
 
-| 验收项 | 结论 | 证据 |
-|---|---:|---|
-| 是否支持元数据与全文分离 | PASS | `LiteratureRecord` 保持 metadata-only 入口，不包含全文或文件字段；`FullTextDocument` 独立保存 `file_path`、`text_content`、`text_hash`、OCR 状态和访问字段。 |
-| 是否支持版权状态标记 | PASS | `LiteratureRecord.copyright_status`、`FullTextDocument.copyright_status`、`license_type`、`authorization_basis`、`access_level`、`VersionBibliography.copyright_decision*` 和 `SourcePlatform.is_allowed_for_fulltext` 均已明确。 |
-| 是否支持古籍版本管理 | PASS | 原 `ClassicalTextVersion` 已改为 `VersionBibliography`，并明确“不是独立版本主表”；`version_id` 为 `NOT NULL + UNIQUE`，强制 1:1 依附现有 `Version`。版本谱系继续使用 `VersionRelation`，段落对照继续使用 `PassageMapping`。 |
-| 是否支持引文证据追溯 | PASS | `EvidenceCitation` 增加 `evidence_id -> evidences.id` UNIQUE FK，且增加 `passage_id -> passages.id`、`version_id -> versions.id`。状态流限定为 `extracted → draft → reviewed → promoted_to_evidence / rejected`，reviewed 前不得进入 RAG / Graph / AcademicRelation / Citation 证据链。 |
-| 是否支持采集任务审计 | PASS | `IngestionJob` 作为批次级记录，新增 `IngestionItem` 做 item-level 审计，覆盖 `target_url`、`target_identifier`、`harvest_type`、`status`、`result_entity_type/id`、`skipped_reason`、`error_detail`、`copyright_decision`、`copyright_decision_basis`、`reviewed_by/at`。 |
+| 验收项                         | 结论 | 证据                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------ | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 是否支持元数据与全文分离       | PASS | `LiteratureRecord` 保持 metadata-only 入口，不包含全文或文件字段；`FullTextDocument` 独立保存 `file_path`、`text_content`、`text_hash`、OCR 状态和访问字段。                                                                                                                                                                                                             |
+| 是否支持版权状态标记           | PASS | `LiteratureRecord.copyright_status`、`FullTextDocument.copyright_status`、`license_type`、`authorization_basis`、`access_level`、`VersionBibliography.copyright_decision*` 和 `SourcePlatform.is_allowed_for_fulltext` 均已明确。                                                                                                                                        |
+| 是否支持古籍版本管理           | PASS | 原 `ClassicalTextVersion` 已改为 `VersionBibliography`，并明确“不是独立版本主表”；`version_id` 为 `NOT NULL + UNIQUE`，强制 1:1 依附现有 `Version`。版本谱系继续使用 `VersionRelation`，段落对照继续使用 `PassageMapping`。                                                                                                                                              |
+| 是否支持引文证据追溯           | PASS | `EvidenceCitation` 增加 `evidence_id -> evidences.id` UNIQUE FK，且增加 `passage_id -> passages.id`、`version_id -> versions.id`。状态流限定为 `extracted → draft → reviewed → promoted_to_evidence / rejected`，reviewed 前不得进入 RAG / Graph / AcademicRelation / Citation 证据链。                                                                                  |
+| 是否支持采集任务审计           | PASS | `IngestionJob` 作为批次级记录，新增 `IngestionItem` 做 item-level 审计，覆盖 `target_url`、`target_identifier`、`harvest_type`、`status`、`result_entity_type/id`、`skipped_reason`、`error_detail`、`copyright_decision`、`copyright_decision_basis`、`reviewed_by/at`。                                                                                                |
 | 是否避免把不明版权全文直接入库 | PASS | `FullTextDocument` 增加 `ck_full_text_documents_text_content_copyright_gate` 和 `ck_full_text_documents_file_path_copyright_gate`：`text_content` / `file_path` 非空时必须 `copyright_status IN ('public_domain','licensed')` 且 `authorization_basis IS NOT NULL`。上传 schema 要求 `copyright_status` 必须为 `public_domain` 或 `licensed`，未知版权走 metadata-only。 |
-| 是否符合当前项目已有架构 | PASS | 设计继续使用现有 `BaseModel`、SQLAlchemy 2.0、Repository/Service/API 分层、RBAC、MinIO、`api_response()`，并保留 `Version` / `Evidence` / `Citation` / `Passage` 为主干模型。 |
+| 是否符合当前项目已有架构       | PASS | 设计继续使用现有 `BaseModel`、SQLAlchemy 2.0、Repository/Service/API 分层、RBAC、MinIO、`api_response()`，并保留 `Version` / `Evidence` / `Citation` / `Passage` 为主干模型。                                                                                                                                                                                            |
 
 ## 已关闭阻塞项
 

@@ -4,6 +4,7 @@ User, Role, Permission — RBAC domain models.
 HFB-PS-1704 Permission & Workspace
 HFB-SEC-0702 Security Standard Chapter 4-5
 """
+
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, ForeignKey, String, Table, Text
@@ -18,21 +19,42 @@ from app.db.base import Base, BaseModel
 user_role = Table(
     "user_role",
     Base.metadata,
-    Column("user_id", String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
-    Column("role_id", String(36), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "user_id",
+        String(36),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "role_id",
+        String(36),
+        ForeignKey("roles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 role_permission = Table(
     "role_permission",
     Base.metadata,
-    Column("role_id", String(36), ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
-    Column("permission_id", String(36), ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "role_id",
+        String(36),
+        ForeignKey("roles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "permission_id",
+        String(36),
+        ForeignKey("permissions.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 
 # ------------------------------------------------------------------
 # User
 # ------------------------------------------------------------------
+
 
 class User(BaseModel):
     """Platform user — identity and credentials only.
@@ -61,7 +83,11 @@ class User(BaseModel):
         Boolean, default=True, server_default="true", nullable=False, comment="是否激活"
     )
     is_superuser: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False, comment="超级管理员"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="超级管理员",
     )
 
     # Relationships
@@ -80,6 +106,7 @@ class User(BaseModel):
 # Role
 # ------------------------------------------------------------------
 
+
 class Role(BaseModel):
     """Named role grouping permissions.
 
@@ -96,7 +123,11 @@ class Role(BaseModel):
         Text, nullable=True, comment="角色描述"
     )
     is_system: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default="false", nullable=False, comment="系统内置角色(不可删除)"
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False,
+        comment="系统内置角色(不可删除)",
     )
 
     # Relationships
@@ -121,6 +152,7 @@ class Role(BaseModel):
 # Permission
 # ------------------------------------------------------------------
 
+
 class Permission(BaseModel):
     """Granular permission — resource + action.
 
@@ -135,7 +167,9 @@ class Permission(BaseModel):
         String(100), nullable=False, comment="资源类型"
     )
     action: Mapped[str] = mapped_column(
-        String(100), nullable=False, comment="操作 (create, read, update, delete, export, publish, review, approve)"
+        String(100),
+        nullable=False,
+        comment="操作 (create, read, update, delete, export, publish, review, approve)",
     )
     description: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="权限描述"

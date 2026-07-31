@@ -86,7 +86,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 function guardId(raw: string): string {
   const trimmed = raw.trim();
   if (!UUID_RE.test(trimmed)) {
-    throw new Error(`Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`);
+    throw new Error(
+      `Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`,
+    );
   }
   return trimmed;
 }
@@ -99,9 +101,10 @@ function makeStorageKey(projectId: string): string {
  * Extract evidence and citations from a SINGLE run only.
  * Does NOT aggregate across runs — strict run-scoped isolation.
  */
-function extractEvidenceFromSingleRun(
-  run: Record<string, unknown>,
-): { evidence: Array<WorkflowEvidence>; citations: Array<WorkflowCitation> } {
+function extractEvidenceFromSingleRun(run: Record<string, unknown>): {
+  evidence: Array<WorkflowEvidence>;
+  citations: Array<WorkflowCitation>;
+} {
   const evidenceList: Array<WorkflowEvidence> = [];
   const citationList: Array<WorkflowCitation> = [];
   const evidenceSeen = new Set<string>();
@@ -227,7 +230,8 @@ function classifyError(err: unknown): { status: number; message: string } {
   if (e.code === 'ECONNABORTED' || e.code === 'ETIMEDOUT') {
     return {
       status: 0,
-      message: '请求超时。请注意：服务端可能已完成处理，但因为超时未能返回结果。请勿重复提交，可尝试刷新页面查看运行记录。',
+      message:
+        '请求超时。请注意：服务端可能已完成处理，但因为超时未能返回结果。请勿重复提交，可尝试刷新页面查看运行记录。',
     };
   }
   if (e.code === 'ERR_NETWORK' || e.message === 'Network Error') {

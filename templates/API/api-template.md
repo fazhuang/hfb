@@ -26,6 +26,7 @@ Brief description of what this API resource provides.
 | `sort` | string | No | `-created_at` | Sort field (prefix with `-` for desc) |
 
 **Response**:
+
 ```json
 {
   "data": [],
@@ -47,6 +48,7 @@ Brief description of what this API resource provides.
 **Description**: Create a new [resource].
 
 **Request Body**:
+
 ```json
 {
   "name": "string (required)",
@@ -55,6 +57,7 @@ Brief description of what this API resource provides.
 ```
 
 **Response**: `201 Created`
+
 ```json
 {
   "data": {},
@@ -71,6 +74,7 @@ Brief description of what this API resource provides.
 **Description**: Get a specific [resource] by ID.
 
 **Response**: `200 OK`
+
 ```json
 {
   "data": {},
@@ -102,21 +106,21 @@ Brief description of what this API resource provides.
 
 ## Data Model
 
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `id` | UUID | PK | Primary key |
-| `name` | string | required, max 255 | Display name |
-| `created_at` | datetime | auto | Creation timestamp |
-| `updated_at` | datetime | auto | Last update timestamp |
+| Field        | Type     | Constraints       | Description           |
+| ------------ | -------- | ----------------- | --------------------- |
+| `id`         | UUID     | PK                | Primary key           |
+| `name`       | string   | required, max 255 | Display name          |
+| `created_at` | datetime | auto              | Creation timestamp    |
+| `updated_at` | datetime | auto              | Last update timestamp |
 
 ## Permissions
 
-| Action | Role |
-|--------|------|
-| `read` | public, user, admin |
-| `create` | user, admin |
-| `update` | owner, admin |
-| `delete` | admin |
+| Action   | Role                |
+| -------- | ------------------- |
+| `read`   | public, user, admin |
+| `create` | user, admin         |
+| `update` | owner, admin        |
+| `delete` | admin               |
 
 ## Notes
 

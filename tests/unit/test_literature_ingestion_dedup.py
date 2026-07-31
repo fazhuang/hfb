@@ -174,7 +174,9 @@ class TestFilterNewItems:
         assert len(result) == 0
 
     @pytest.mark.asyncio
-    async def test_title_year_whitespace_insensitive_dedup(self, db_session: AsyncSession):
+    async def test_title_year_whitespace_insensitive_dedup(
+        self, db_session: AsyncSession
+    ):
         """DB dedup must be whitespace-insensitive for non-DOI records."""
         existing = Paper(
             title="Huangfu Mi Study",

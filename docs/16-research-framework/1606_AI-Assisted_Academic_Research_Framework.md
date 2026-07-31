@@ -21,6 +21,7 @@ related_documents:
 ---
 
 # AI-Assisted Academic Research Framework
+
 ## AI辅助学术研究框架
 
 > 本框架定义《皇甫谧数字人文与中医经典智能研究平台》关于 AI 辅助学术研究（AI-Assisted Academic Research）的总体研究体系。
@@ -504,6 +505,6 @@ AI 工作流
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，建立平台 AI 辅助学术研究框架（AI-Assisted Academic Research Framework），作为原创研究方法论体系的重要组成部分。 |
+| Version | Date       | Description                                                                                                               |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，建立平台 AI 辅助学术研究框架（AI-Assisted Academic Research Framework），作为原创研究方法论体系的重要组成部分。 |

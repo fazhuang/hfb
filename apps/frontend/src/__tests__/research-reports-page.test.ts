@@ -228,7 +228,10 @@ describe('ResearchReportsPage', () => {
             stubs: {
               ResearchPageHeader: { template: '<div class="rph" />' },
               LoadingState: { template: '<div class="loading" />' },
-              ErrorState: { template: '<div class="error-state">{{ message }}</div>', props: ['message', 'title'] },
+              ErrorState: {
+                template: '<div class="error-state">{{ message }}</div>',
+                props: ['message', 'title'],
+              },
               EmptyState: { template: '<div class="empty-state" />' },
             },
           },
@@ -246,7 +249,9 @@ describe('ResearchReportsPage', () => {
       // Don't resolve the promise — loading stays
       let resolvePromise!: (value: unknown) => void;
       mockApiGet.mockReturnValueOnce(
-        new Promise((resolve) => { resolvePromise = resolve; }),
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
       );
 
       const wrapper = mount(
@@ -448,9 +453,7 @@ describe('ResearchReportsPage', () => {
       await flushPromises();
 
       const viewLink = wrapper.find('a');
-      expect(viewLink.attributes('href')).toBe(
-        `/research/${SESSION_A}/result/${RUN_READY}`,
-      );
+      expect(viewLink.attributes('href')).toBe(`/research/${SESSION_A}/result/${RUN_READY}`);
     });
 
     it('10. items from different sessions link to correct session', async () => {
@@ -593,7 +596,9 @@ describe('ResearchReportsPage', () => {
       // Export response: blob
       mockApiGet.mockResolvedValueOnce({
         data: new Blob(['# Test Report'], { type: 'text/markdown' }),
-        headers: { 'content-disposition': 'attachment; filename="hfb-research-report-11111111.md"' },
+        headers: {
+          'content-disposition': 'attachment; filename="hfb-research-report-11111111.md"',
+        },
       });
 
       const wrapper = mount(
@@ -640,7 +645,9 @@ describe('ResearchReportsPage', () => {
       // Export never resolves (hanging)
       let resolveExport!: (value: unknown) => void;
       mockApiGet.mockReturnValueOnce(
-        new Promise((resolve) => { resolveExport = resolve; }),
+        new Promise((resolve) => {
+          resolveExport = resolve;
+        }),
       );
 
       const wrapper = mount(
@@ -732,7 +739,9 @@ describe('ResearchReportsPage', () => {
 
       // First fetch (slow)
       mockApiGet.mockReturnValueOnce(
-        new Promise((resolve) => { resolveSlow = resolve; }),
+        new Promise((resolve) => {
+          resolveSlow = resolve;
+        }),
       );
 
       const wrapper = mount(
@@ -756,7 +765,9 @@ describe('ResearchReportsPage', () => {
 
       // Trigger a second fetch (e.g., by changing filter) before first resolves
       mockApiGet.mockReturnValueOnce(
-        new Promise((resolve) => { resolveFast = resolve; }),
+        new Promise((resolve) => {
+          resolveFast = resolve;
+        }),
       );
 
       const select = wrapper.find('select');
@@ -764,9 +775,11 @@ describe('ResearchReportsPage', () => {
       await flushPromises();
 
       // Now resolve the slow (stale) first fetch
-      resolveSlow!(makeReportsResponse([
-        makeReportItem({ run_id: 'stale-run', topic: 'STALE', report_status: 'ready' }),
-      ]));
+      resolveSlow!(
+        makeReportsResponse([
+          makeReportItem({ run_id: 'stale-run', topic: 'STALE', report_status: 'ready' }),
+        ]),
+      );
       await flushPromises();
 
       // The stale response should NOT appear (reqSeq check)
@@ -774,9 +787,11 @@ describe('ResearchReportsPage', () => {
       // Because the slow response's seq was overwritten
 
       // Now resolve the fast (current) fetch
-      resolveFast!(makeReportsResponse([
-        makeReportItem({ run_id: 'current-run', topic: 'CURRENT', report_status: 'ready' }),
-      ]));
+      resolveFast!(
+        makeReportsResponse([
+          makeReportItem({ run_id: 'current-run', topic: 'CURRENT', report_status: 'ready' }),
+        ]),
+      );
       await flushPromises();
 
       // Should show CURRENT, not STALE

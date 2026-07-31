@@ -1,11 +1,6 @@
 <template>
   <!-- Backdrop -->
-  <div
-    v-if="open"
-    class="cpd-backdrop"
-    @click.self="onCancel"
-    @keydown.escape="onCancel"
-  >
+  <div v-if="open" class="cpd-backdrop" @click.self="onCancel" @keydown.escape="onCancel">
     <!-- Dialog -->
     <div
       class="cpd-dialog"
@@ -54,12 +49,7 @@
         </div>
 
         <!-- Server error -->
-        <div
-          v-if="errorMessage"
-          class="cpd-error"
-          role="alert"
-          aria-live="assertive"
-        >
+        <div v-if="errorMessage" class="cpd-error" role="alert" aria-live="assertive">
           {{ errorMessage }}
         </div>
 
@@ -116,35 +106,38 @@ const canSubmit = computed(() => name.value.trim().length > 0 && !submitting.val
 // the parent page must pass the button reference explicitly via triggerEl.
 
 // Watch open to auto-focus and reset form
-watch(() => props.open, (val) => {
-  if (val) {
-    name.value = '';
-    description.value = '';
-    errorMessage.value = '';
-    // Double nextTick guarantees Vue has finished inserting the dialog
-    // into the DOM and any reactive sidebar collapse has settled before
-    // we claim focus. Without this, auto-focus races against layout shifts
-    // at narrow viewports (≤768px) where the sidebar auto-collapses.
-    // Triple nextTick adds an extra microtask cycle for WebKit to
-    // fully resolve layout-after-collapse, which can otherwise steal
-    // focus from the dialog during the first Tab cycle.
-    // Use requestAnimationFrame as the final anchor — it fires after
-    // all layout/paint work is complete, guaranteeing the dialog is
-    // in its final position before we claim focus.
-    nextTick(() => {
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      name.value = '';
+      description.value = '';
+      errorMessage.value = '';
+      // Double nextTick guarantees Vue has finished inserting the dialog
+      // into the DOM and any reactive sidebar collapse has settled before
+      // we claim focus. Without this, auto-focus races against layout shifts
+      // at narrow viewports (≤768px) where the sidebar auto-collapses.
+      // Triple nextTick adds an extra microtask cycle for WebKit to
+      // fully resolve layout-after-collapse, which can otherwise steal
+      // focus from the dialog during the first Tab cycle.
+      // Use requestAnimationFrame as the final anchor — it fires after
+      // all layout/paint work is complete, guaranteeing the dialog is
+      // in its final position before we claim focus.
       nextTick(() => {
-        requestAnimationFrame(() => {
-          nameInputRef.value?.focus();
+        nextTick(() => {
+          requestAnimationFrame(() => {
+            nameInputRef.value?.focus();
+          });
         });
       });
-    });
-  } else {
-    // Restore focus to the stable trigger button (passed by parent) when dialog closes
-    nextTick(() => {
-      props.triggerEl?.focus();
-    });
-  }
-});
+    } else {
+      // Restore focus to the stable trigger button (passed by parent) when dialog closes
+      nextTick(() => {
+        props.triggerEl?.focus();
+      });
+    }
+  },
+);
 
 // Bind the focus-trap keydown handler on document so it catches Tab even when
 // focus leaks to body (e.g. after sidebar-collapse layout shift at ≤768px).
@@ -173,9 +166,7 @@ async function onSubmit() {
     emit('created');
     emit('update:open', false);
   } catch (e: unknown) {
-    const msg = (e as any)?.response?.data?.message
-      || (e as any)?.message
-      || t('common.error');
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || t('common.error');
     errorMessage.value = msg;
   } finally {
     submitting.value = false;
@@ -234,7 +225,7 @@ function onCancel() {
 .cpd-backdrop {
   position: fixed;
   inset: 0;
-  z-index: var(--z-dropdown)00;
+  z-index: var(--z-dropdown) 00;
   display: flex;
   align-items: center;
   justify-content: center;

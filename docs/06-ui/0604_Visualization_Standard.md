@@ -20,6 +20,7 @@ related_documents:
 ---
 
 # Visualization Standard
+
 ## 学术可视化规范
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的数据可视化体系。
@@ -63,16 +64,16 @@ related_documents:
 
 平台统一支持八类可视化：
 
-| 类型 | 用途 |
-|------|------|
-| Timeline | 时间演化 |
-| Knowledge Graph | 知识关系 |
-| Version Tree | 版本谱系 |
-| Geographic Map | 地域传播 |
-| Citation Network | 引文网络 |
-| Academic Network | 学术合作网络 |
-| Statistical Dashboard | 数据统计 |
-| Comparative View | 对照分析 |
+| 类型                  | 用途         |
+| --------------------- | ------------ |
+| Timeline              | 时间演化     |
+| Knowledge Graph       | 知识关系     |
+| Version Tree          | 版本谱系     |
+| Geographic Map        | 地域传播     |
+| Citation Network      | 引文网络     |
+| Academic Network      | 学术合作网络 |
+| Statistical Dashboard | 数据统计     |
+| Comparative View      | 对照分析     |
 
 ---
 
@@ -305,14 +306,14 @@ Design System。
 
 例如：
 
-| 类型 | 颜色 |
-|------|------|
+| 类型 | 颜色          |
+| ---- | ------------- |
 | 人物 | Academic Blue |
-| 古籍 | Vermilion |
+| 古籍 | Vermilion     |
 | 地点 | Emerald Green |
-| 机构 | Purple |
-| AI | Indigo |
-| 系统 | Gray |
+| 机构 | Purple        |
+| AI   | Indigo        |
+| 系统 | Gray          |
 
 不得随意指定颜色。
 
@@ -322,12 +323,12 @@ Design System。
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| Graph 首次加载 | ≤2 秒 |
-| Timeline 加载 | ≤1 秒 |
-| 地图渲染 | ≤2 秒 |
-| 节点展开 | ≤300ms |
+| 指标           | 标准   |
+| -------------- | ------ |
+| Graph 首次加载 | ≤2 秒  |
+| Timeline 加载  | ≤1 秒  |
+| 地图渲染       | ≤2 秒  |
+| 节点展开       | ≤300ms |
 
 大规模图谱采用：
 
@@ -395,7 +396,7 @@ AI 自动生成无来源关系图。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.1.0 | 2026-06-25 | 更新related_documents |
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台学术可视化统一规范。 |
+| Version | Date       | Description                            |
+| ------- | ---------- | -------------------------------------- |
+| 1.1.0   | 2026-06-25 | 更新related_documents                  |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台学术可视化统一规范。 |

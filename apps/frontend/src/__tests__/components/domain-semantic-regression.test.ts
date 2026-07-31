@@ -99,9 +99,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   });
 
   it('data contract: trace_id key is used for unique identification and selection', () => {
-    const citations: Array<ResultCitation> = [
-      makeCitation({ trace_id: 'trace-001' }),
-    ];
+    const citations: Array<ResultCitation> = [makeCitation({ trace_id: 'trace-001' })];
     const wrapper = mount(CitationPanel, {
       props: { citations, evidence: [], selectedTraceId: 'trace-001' },
     });

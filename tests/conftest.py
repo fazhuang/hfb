@@ -1,6 +1,7 @@
 """
 Shared pytest configuration — ensures apps/backend and project root are on sys.path.
 """
+
 from __future__ import annotations
 
 import sys
@@ -28,6 +29,7 @@ if str(root_path) not in sys.path:
 def _reset_rate_limiter() -> None:
     """Reset the global rate limiter between tests to prevent cross-test pollution."""
     from app.services.ai_service import _rate_limiter
+
     _rate_limiter._timestamps.clear()
 
 
@@ -36,4 +38,5 @@ def _isolate_ai_credentials(request, monkeypatch) -> None:
     """Non-real_llm tests must never see the real API key."""
     if request.node.get_closest_marker("real_llm") is None:
         from app.core import config
+
         monkeypatch.setattr(config.settings, "AI_API_KEY", "")

@@ -57,11 +57,7 @@
           </button>
         </div>
 
-        <div
-          v-if="replayResult"
-          class="rpage-replay-result"
-          data-testid="canonical-replay-result"
-        >
+        <div v-if="replayResult" class="rpage-replay-result" data-testid="canonical-replay-result">
           <p :class="replayResult.matched ? 'rpage-replay-matched' : 'rpage-replay-mismatched'">
             {{ replayResult.matched ? '重放一致' : '重放不一致' }}
           </p>
@@ -160,7 +156,6 @@ const {
 let lastProjectId = '';
 let lastRunId = '';
 
-
 onMounted(async () => {
   lastProjectId = currentProjectId.value;
   lastRunId = currentRunId.value;
@@ -168,18 +163,15 @@ onMounted(async () => {
 });
 
 // Watch route params — full reload on change
-watch(
-  [() => route.params.projectId, () => route.params.runId],
-  async ([newPid, newRid]) => {
-    const pid = (newPid as string) || '';
-    const rid = (newRid as string) || '';
-    if (pid !== lastProjectId || rid !== lastRunId) {
-      lastProjectId = pid;
-      lastRunId = rid;
-      await load();
-    }
-  },
-);
+watch([() => route.params.projectId, () => route.params.runId], async ([newPid, newRid]) => {
+  const pid = (newPid as string) || '';
+  const rid = (newRid as string) || '';
+  if (pid !== lastProjectId || rid !== lastRunId) {
+    lastProjectId = pid;
+    lastRunId = rid;
+    await load();
+  }
+});
 
 async function handleExport() {
   await exportMarkdown();
@@ -376,8 +368,12 @@ onBeforeUnmount(() => {
   margin: 0 0 var(--space-2);
 }
 
-.rpage-replay-matched { color: var(--color-success-text); }
-.rpage-replay-mismatched { color: var(--color-error-light-text); }
+.rpage-replay-matched {
+  color: var(--color-success-text);
+}
+.rpage-replay-mismatched {
+  color: var(--color-error-light-text);
+}
 
 .rpage-replay-hashes {
   display: flex;

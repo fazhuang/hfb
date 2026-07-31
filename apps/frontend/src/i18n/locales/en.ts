@@ -103,7 +103,8 @@ export default {
     createdAt: 'Created',
     passages: 'Full Text / Passages',
     noPassages: 'No full-text content available for this version',
-    noPassagesReason: 'Full-text data has not been imported or no passages are linked to this version',
+    noPassagesReason:
+      'Full-text data has not been imported or no passages are linked to this version',
     passagesError: 'Failed to load passages',
   },
   person: {
@@ -168,7 +169,8 @@ export default {
     eyebrow: 'Huangfu Mi Studies',
     title: 'Source-based Version Comparison',
     validationTitle: 'Validation corpus',
-    validationMessage: 'This workflow uses non-production data and must not be cited as scholarship.',
+    validationMessage:
+      'This workflow uses non-production data and must not be cited as scholarship.',
     stepSearch: 'Find passages',
     stepCompare: 'Compare versions',
     stepEvidence: 'Verify sources',
@@ -314,7 +316,8 @@ export default {
     saving: 'Saving...',
     reSearch: 'Re-search from report',
     noteFromCitation: 'Note from citation',
-    noEvidenceFound: 'No literature evidence found for "{topic}". Unable to generate a research report. Please try a different topic or adjust search terms.',
+    noEvidenceFound:
+      'No literature evidence found for "{topic}". Unable to generate a research report. Please try a different topic or adjust search terms.',
     noEvidenceTitle: 'No Evidence',
     stepRetrievalNoEvidence: 'Completed (0 records — no evidence available)',
   },
@@ -381,7 +384,8 @@ export default {
     fulltext: 'Full Text',
     expandFulltext: 'Expand ▼',
     collapseFulltext: 'Collapse ▲',
-    bookChapterHint: 'Chapter navigation parsed from fulltext volume markers. For per-chapter reading, visit the Classical Versions library.',
+    bookChapterHint:
+      'Chapter navigation parsed from fulltext volume markers. For per-chapter reading, visit the Classical Versions library.',
     metadata: 'Metadata',
     adminActions: 'Admin Actions',
     review: 'Review',
@@ -401,7 +405,7 @@ export default {
     createFirstTopic: 'Create Research Topic',
     dashboardAllZero: 'No data here yet',
     dashboardAllZeroHint: 'After completing your first research, stats will appear here.',
-    stepGuideTitle: '✨ Welcome to the platform! Let\'s get started →',
+    stepGuideTitle: "✨ Welcome to the platform! Let's get started →",
     stepGuideCreateTopic: 'Create a topic',
     stepGuideExploreTools: 'Explore tools',
     stepGuideRecordNotes: 'Record notes',

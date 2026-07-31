@@ -72,7 +72,9 @@ class SourceWhitelist:
 
     def allowed_sources(self) -> list[str]:
         """Return source names that are allowed for metadata ingestion."""
-        return [e.name for e in self.entries if e.category != "D" and e.metadata_allowed]
+        return [
+            e.name for e in self.entries if e.category != "D" and e.metadata_allowed
+        ]
 
 
 @lru_cache(maxsize=1)

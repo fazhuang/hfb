@@ -57,38 +57,38 @@ tags:
 docs/
 ├── README.md
 ├── 00-governance/
-│   ├── 00_Project_Charter.md
-│   └── 01_Project_Constitution.md
+│ ├── 00_Project_Charter.md
+│ └── 01_Project_Constitution.md
 ├── 01-product/
-│   └── 00_Product_Roadmap.md
+│ └── 00_Product_Roadmap.md
 ├── 02-architecture/
-│   └── 00_Technical_Blueprint.md
+│ └── 00_Technical_Blueprint.md
 ├── 03-data/
-│   ├── 00_Data_Standard.md
-│   └── 01_Ontology_Specification.md
+│ ├── 00_Data_Standard.md
+│ └── 01_Ontology_Specification.md
 ├── 04-ai/
-│   ├── 00_AI_Engineering_Standard.md
-│   └── 01_RAG_GraphRAG_Architecture.md
+│ ├── 00_AI_Engineering_Standard.md
+│ └── 01_RAG_GraphRAG_Architecture.md
 ├── 05-development/
-│   └── 00_Development_Specification.md
+│ └── 00_Development_Specification.md
 ├── 06-ui/
-│   └── 00_Design_System.md
+│ └── 00_Design_System.md
 ├── 07-security/
-│   └── 00_Acceptance_Specification.md
+│ └── 00_Acceptance_Specification.md
 ├── 08-sprints/
-│   └── README.md
+│ └── README.md
 ├── 09-prompts/
-│   ├── README.md
-│   ├── Claude_Sprint00_Docs_Foundation.md
-│   ├── Codex_Docs_Audit.md
-│   └── Gemini_UI_Academic_Review.md
+│ ├── README.md
+│ ├── Claude_Sprint00_Docs_Foundation.md
+│ ├── Codex_Docs_Audit.md
+│ └── Gemini_UI_Academic_Review.md
 ├── 10-diagrams/
-│   ├── 00_System_Architecture.md
-│   └── 01_Database_ER.md
+│ ├── 00_System_Architecture.md
+│ └── 01_Database_ER.md
 └── templates/
-    ├── Sprint_Template.md
-    ├── Review_Template.md
-    └── Prompt_Template.md
+├── Sprint_Template.md
+├── Review_Template.md
+└── Prompt_Template.md
 
 ## 质量标准
 
@@ -104,6 +104,7 @@ docs/
 请按上述规范，逐个创建 docs/ 下的所有文档。
 
 执行顺序：
+
 1. docs/README.md（总索引）
 2. 00-governance/（项目章程 → 项目宪法）
 3. 01-product/（产品路线图）
@@ -147,6 +148,6 @@ docs/
 
 ## 9. Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
+| 版本 | 日期       | 变更                             |
+| ---- | ---------- | -------------------------------- |
 | V0.1 | 2026-06-24 | 初稿 — Sprint 0 文档奠基完整指令 |

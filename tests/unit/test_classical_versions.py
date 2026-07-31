@@ -1,6 +1,7 @@
 """
 Tests for ClassicalVersion model, schemas, validation, CRUD, and route-level soft-delete.
 """
+
 from __future__ import annotations
 
 from datetime import UTC
@@ -30,16 +31,23 @@ pytestmark = pytest.mark.anyio
 def _auth_headers(user_id: str = "test-user-1") -> dict:
     """Create a valid JWT for the given user_id."""
     from app.services.auth_service import create_access_token
+
     token = create_access_token(user_id)
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _seed_user_with_perms(session, user_id, username, permission_codes, is_superuser=False):
+async def _seed_user_with_perms(
+    session, user_id, username, permission_codes, is_superuser=False
+):
     from app.models.user import Permission, Role, User, role_permission, user_role
 
     user = User(
-        id=user_id, username=username, email=f"{username}@test.com",
-        hashed_password="pw", is_active=True, is_superuser=is_superuser,
+        id=user_id,
+        username=username,
+        email=f"{username}@test.com",
+        hashed_password="pw",
+        is_active=True,
+        is_superuser=is_superuser,
     )
     session.add(user)
     role = Role(id=f"role-{username}", name=username, description=f"Test {username}")
@@ -48,10 +56,17 @@ async def _seed_user_with_perms(session, user_id, username, permission_codes, is
     await session.execute(user_role.insert().values(user_id=user_id, role_id=role.id))
     for code in permission_codes:
         resource, action = code.split(".", 1)
-        perm = Permission(id=f"perm-{code}-{username}", resource=resource, action=action, description=code)
+        perm = Permission(
+            id=f"perm-{code}-{username}",
+            resource=resource,
+            action=action,
+            description=code,
+        )
         session.add(perm)
         await session.flush()
-        await session.execute(role_permission.insert().values(role_id=role.id, permission_id=perm.id))
+        await session.execute(
+            role_permission.insert().values(role_id=role.id, permission_id=perm.id)
+        )
     await session.flush()
 
 
@@ -76,11 +91,24 @@ class TestClassicalVersionModel:
     def test_has_expected_columns(self):
         cols = {c.name for c in ClassicalVersion.__table__.columns}
         expected = {
-            "id", "created_at", "updated_at", "deleted_at", "is_deleted",
-            "work_title", "version_name", "dynasty", "edition_type",
-            "volume_count", "repository", "source_url", "image_url",
-            "public_domain_status", "ocr_text_available",
-            "citation_note", "academic_note", "review_status",
+            "id",
+            "created_at",
+            "updated_at",
+            "deleted_at",
+            "is_deleted",
+            "work_title",
+            "version_name",
+            "dynasty",
+            "edition_type",
+            "volume_count",
+            "repository",
+            "source_url",
+            "image_url",
+            "public_domain_status",
+            "ocr_text_available",
+            "citation_note",
+            "academic_note",
+            "review_status",
         }
         assert expected.issubset(cols)
 
@@ -102,12 +130,15 @@ class TestClassicalVersionSchemas:
 
     def test_create_missing_public_domain_status_fails(self):
         with pytest.raises(ValueError):
-            ClassicalVersionCreate(work_title="x", version_name="y", source_url="http://z")
+            ClassicalVersionCreate(
+                work_title="x", version_name="y", source_url="http://z"
+            )
 
     def test_create_missing_source_url_fails(self):
         with pytest.raises(ValueError):
             ClassicalVersionCreate(
-                work_title="x", version_name="y",
+                work_title="x",
+                version_name="y",
                 public_domain_status="unknown",
             )
 
@@ -164,52 +195,64 @@ class TestClassicalVersionValidation:
     @pytest.fixture
     def service(self, db_session):
         from app.api.v1.classical_versions import ClassicalVersionService
+
         return ClassicalVersionService(db_session)
 
     async def test_rejects_bad_pd_status(self, service):
         with pytest.raises(ValueError, match="public_domain_status"):
-            await service._validate_create({
-                "work_title": "x",
-                "version_name": "y",
-                "source_url": "http://z",
-                "public_domain_status": "nonsense",
-            })
+            await service._validate_create(
+                {
+                    "work_title": "x",
+                    "version_name": "y",
+                    "source_url": "http://z",
+                    "public_domain_status": "nonsense",
+                }
+            )
 
     async def test_rejects_bad_review_status(self, service):
         with pytest.raises(ValueError, match="review_status"):
-            await service._validate_create({
-                "work_title": "x",
-                "version_name": "y",
-                "source_url": "http://z",
-                "public_domain_status": "unknown",
-                "review_status": "nonsense",
-            })
+            await service._validate_create(
+                {
+                    "work_title": "x",
+                    "version_name": "y",
+                    "source_url": "http://z",
+                    "public_domain_status": "unknown",
+                    "review_status": "nonsense",
+                }
+            )
 
     async def test_rejects_bad_edition_type(self, service):
         with pytest.raises(ValueError, match="edition_type"):
-            await service._validate_create({
-                "work_title": "x",
-                "version_name": "y",
-                "source_url": "http://z",
-                "public_domain_status": "unknown",
-                "edition_type": "nonsense",
-            })
+            await service._validate_create(
+                {
+                    "work_title": "x",
+                    "version_name": "y",
+                    "source_url": "http://z",
+                    "public_domain_status": "unknown",
+                    "edition_type": "nonsense",
+                }
+            )
 
     async def test_rejects_missing_source_url(self, service):
         with pytest.raises(ValueError, match="source_url"):
-            await service._validate_create({
-                "work_title": "x", "version_name": "y",
-                "public_domain_status": "unknown",
-            })
+            await service._validate_create(
+                {
+                    "work_title": "x",
+                    "version_name": "y",
+                    "public_domain_status": "unknown",
+                }
+            )
 
     async def test_ok(self, service):
-        await service._validate_create({
-            "work_title": "针灸甲乙经",
-            "version_name": "明刻本",
-            "source_url": "https://example.com",
-            "public_domain_status": "unknown",
-            "review_status": "pending_review",
-        })
+        await service._validate_create(
+            {
+                "work_title": "针灸甲乙经",
+                "version_name": "明刻本",
+                "source_url": "https://example.com",
+                "public_domain_status": "unknown",
+                "review_status": "pending_review",
+            }
+        )
 
 
 # ============================================================
@@ -221,20 +264,23 @@ class TestClassicalVersionCRUD:
     @pytest.fixture
     def service(self, db_session):
         from app.api.v1.classical_versions import ClassicalVersionService
+
         return ClassicalVersionService(db_session)
 
     async def test_create_and_get(self, service):
-        obj = await service.create(ClassicalVersionCreate(
-            work_title="针灸甲乙经",
-            version_name="明嘉靖刻本",
-            dynasty="明",
-            edition_type="刻本",
-            volume_count=12,
-            repository="国家图书馆",
-            source_url="https://example.com/edition/1",
-            public_domain_status="confirmed_public_domain",
-            review_status="pending_review",
-        ))
+        obj = await service.create(
+            ClassicalVersionCreate(
+                work_title="针灸甲乙经",
+                version_name="明嘉靖刻本",
+                dynasty="明",
+                edition_type="刻本",
+                volume_count=12,
+                repository="国家图书馆",
+                source_url="https://example.com/edition/1",
+                public_domain_status="confirmed_public_domain",
+                review_status="pending_review",
+            )
+        )
         assert obj.id is not None
         assert obj.work_title == "针灸甲乙经"
 
@@ -243,51 +289,63 @@ class TestClassicalVersionCRUD:
         assert fetched.version_name == "明嘉靖刻本"
 
     async def test_update(self, service):
-        obj = await service.create(ClassicalVersionCreate(
-            work_title="针灸甲乙经",
-            version_name="清刻本",
-            source_url="https://example.com/edition/2",
-            public_domain_status="unknown",
-        ))
-        updated = await service.repo.update(obj.id, review_status="approved", dynasty="清")
+        obj = await service.create(
+            ClassicalVersionCreate(
+                work_title="针灸甲乙经",
+                version_name="清刻本",
+                source_url="https://example.com/edition/2",
+                public_domain_status="unknown",
+            )
+        )
+        updated = await service.repo.update(
+            obj.id, review_status="approved", dynasty="清"
+        )
         assert updated is not None
         assert updated.review_status == "approved"
 
     async def test_soft_delete(self, service):
-        obj = await service.create(ClassicalVersionCreate(
-            work_title="针灸甲乙经",
-            version_name="待删除版本",
-            source_url="https://example.com/edition/3",
-            public_domain_status="unknown",
-        ))
+        obj = await service.create(
+            ClassicalVersionCreate(
+                work_title="针灸甲乙经",
+                version_name="待删除版本",
+                source_url="https://example.com/edition/3",
+                public_domain_status="unknown",
+            )
+        )
         assert await service.soft_delete(obj.id) is True
         assert await service.get_by_id(obj.id) is None
 
     async def test_list_pagination(self, service):
         for i in range(5):
-            await service.create(ClassicalVersionCreate(
-                work_title=f"work-{i}",
-                version_name=f"v{i}",
-                source_url=f"https://example.com/{i}",
-                public_domain_status="unknown",
-            ))
+            await service.create(
+                ClassicalVersionCreate(
+                    work_title=f"work-{i}",
+                    version_name=f"v{i}",
+                    source_url=f"https://example.com/{i}",
+                    public_domain_status="unknown",
+                )
+            )
         items, total = await service.list(page=1, limit=3)
         assert len(items) == 3
         assert total == 5
 
     async def test_search(self, service):
-        await service.create(ClassicalVersionCreate(
-            work_title="针灸甲乙经",
-            version_name="宋刻本",
-            source_url="https://example.com/song",
-            public_domain_status="unknown",
-        ))
-        await service.create(ClassicalVersionCreate(
-            work_title="伤寒论",
-            version_name="明刻本",
-            source_url="https://example.com/ming",
-            public_domain_status="unknown",
-        ))
+        await service.create(
+            ClassicalVersionCreate(
+                work_title="针灸甲乙经",
+                version_name="宋刻本",
+                source_url="https://example.com/song",
+                public_domain_status="unknown",
+            )
+        )
+        await service.create(
+            ClassicalVersionCreate(
+                work_title="伤寒论",
+                version_name="明刻本",
+                source_url="https://example.com/ming",
+                public_domain_status="unknown",
+            )
+        )
         items, total = await service.search("甲乙经")
         assert total == 1
         assert items[0].work_title == "针灸甲乙经"
@@ -311,13 +369,16 @@ class TestClassicalVersionDeleteIsSoftDelete:
             create_access_token,
             decode_token,
         )
+
         svc = ClassicalVersionService(db_session)
-        obj = await svc.create(ClassicalVersionCreate(
-            work_title="针灸甲乙经",
-            version_name="测试软删除",
-            source_url="https://example.com/del-test",
-            public_domain_status="unknown",
-        ))
+        obj = await svc.create(
+            ClassicalVersionCreate(
+                work_title="针灸甲乙经",
+                version_name="测试软删除",
+                source_url="https://example.com/del-test",
+                public_domain_status="unknown",
+            )
+        )
         created_id = obj.id
 
         # Set up overrides: wire db_session + auth
@@ -349,7 +410,9 @@ class TestClassicalVersionDeleteIsSoftDelete:
         fastapi_app.dependency_overrides[auth_mod.get_auth_service] = _get_auth_service
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.delete(
                     f"/api/v1/admin/classical-versions/{created_id}",
                     headers=_auth_headers("test-user-1"),
@@ -419,7 +482,9 @@ class TestClassicalVersionPublicDomainRequired:
         fastapi_app.dependency_overrides[auth_mod.get_auth_service] = _get_auth_service
         try:
             transport = ASGITransport(app=fastapi_app)
-            async with AsyncClient(transport=transport, base_url="http://test") as client:
+            async with AsyncClient(
+                transport=transport, base_url="http://test"
+            ) as client:
                 response = await client.post(
                     "/api/v1/admin/classical-versions",
                     headers=_auth_headers(),

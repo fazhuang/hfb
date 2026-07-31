@@ -3,6 +3,7 @@
 STRICT: No ORM access. All data through existing services.
 Uses unified trace_lineage module for all trace operations.
 """
+
 from __future__ import annotations
 
 import json
@@ -86,7 +87,8 @@ async def create_research_session(
         result = await academic.research(query=body.query)
         try:
             internal_records = await build_internal_traces(
-                db, result.evidence_trace,
+                db,
+                result.evidence_trace,
                 retrieval_snapshot=academic.last_snapshot,
             )
         except TraceLineageError as e:
@@ -102,11 +104,14 @@ async def create_research_session(
             session_id=research_session.id,
             query_text=body.query,
             query_type="research",
-            result_summary=json.dumps({
-                "traces": [r.to_dict() for r in internal_records],
-                "citation_count": len(result.citations),
-                "source_documents": extract_source_documents(result.evidence_trace),
-            }, ensure_ascii=False),
+            result_summary=json.dumps(
+                {
+                    "traces": [r.to_dict() for r in internal_records],
+                    "citation_count": len(result.citations),
+                    "source_documents": extract_source_documents(result.evidence_trace),
+                },
+                ensure_ascii=False,
+            ),
             citation_count=len(result.citations),
         )
         traceability = V4TraceabilityBlock(
@@ -119,7 +124,9 @@ async def create_research_session(
         data["query_id"] = qh.id
         data["result"] = result.model_dump()
 
-    return V4ApiEnvelope(success=True, data=data, message="ok", traceability=traceability)
+    return V4ApiEnvelope(
+        success=True, data=data, message="ok", traceability=traceability
+    )
 
 
 # ======================================================================
@@ -141,7 +148,9 @@ async def execute_research_query(
     ws = WorkspaceService(db)
     research_session = await ws.get_session(body.session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     academic = AcademicService(db)
     if body.mode == "graph":
@@ -153,7 +162,12 @@ async def execute_research_query(
             ids: set[str] = set()
             if isinstance(obj, dict):
                 cid = obj.get("chunk_id", "")
-                if cid and isinstance(cid, str) and len(cid) > 0 and "document_id" in obj:
+                if (
+                    cid
+                    and isinstance(cid, str)
+                    and len(cid) > 0
+                    and "document_id" in obj
+                ):
                     ids.add(cid)
                 for v in obj.values():
                     ids |= _walk_collect(v)
@@ -167,21 +181,25 @@ async def execute_research_query(
         if all_chunk_ids:
             from sqlalchemy import bindparam
             from sqlalchemy import text as sa_text
+
             ids_param = bindparam("ids", expanding=True)
-            lineage_result = await db.execute(sa_text(
-                "SELECT dc.id, dc.passage_id, p.version_id, "
-                "COALESCE("
-                "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location = 'passage:' || p.id AND sr.is_deleted=false LIMIT 1), "
-                "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location LIKE 'passage:%' AND sr.is_deleted=false LIMIT 1), "
-                "  v.source_url, "
-                "  ''"
-                ") as source_uri, "
-                "COALESCE(dc.content, '') as claim_text "
-                "FROM document_chunks dc "
-                "LEFT JOIN passages p ON dc.passage_id = p.id AND p.is_deleted=false "
-                "LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted=false "
-                "WHERE dc.is_deleted=false AND dc.id IN :ids"
-            ).bindparams(ids_param), {"ids": list(all_chunk_ids)})
+            lineage_result = await db.execute(
+                sa_text(
+                    "SELECT dc.id, dc.passage_id, p.version_id, "
+                    "COALESCE("
+                    "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location = 'passage:' || p.id AND sr.is_deleted=false LIMIT 1), "
+                    "  (SELECT sr.url FROM source_refs sr WHERE sr.page_location LIKE 'passage:%' AND sr.is_deleted=false LIMIT 1), "
+                    "  v.source_url, "
+                    "  ''"
+                    ") as source_uri, "
+                    "COALESCE(dc.content, '') as claim_text "
+                    "FROM document_chunks dc "
+                    "LEFT JOIN passages p ON dc.passage_id = p.id AND p.is_deleted=false "
+                    "LEFT JOIN versions v ON p.version_id = v.id AND v.is_deleted=false "
+                    "WHERE dc.is_deleted=false AND dc.id IN :ids"
+                ).bindparams(ids_param),
+                {"ids": list(all_chunk_ids)},
+            )
             for row in lineage_result:
                 lineage_map[row[0]] = {
                     "passage_id": row[1] or "",
@@ -220,6 +238,7 @@ async def execute_research_query(
         # Build graph-provenance traces (via GraphEvidence objects)
         from app.schemas.graph import GraphEvidence
         from app.services.trace_lineage import build_viz_traces
+
         evidence_traces = [
             GraphEvidence(
                 document_id=e.get("document_id", ""),
@@ -253,7 +272,9 @@ async def execute_research_query(
         }
         handler = mode_map[body.mode]
         if body.mode == "report":
-            result = await academic.generate_report(query=body.query, report_type="research_summary")
+            result = await academic.generate_report(
+                query=body.query, report_type="research_summary"
+            )
         else:
             result = await handler(query=body.query)  # type: ignore[operator]
         evidence_traces = result.evidence_trace
@@ -269,7 +290,8 @@ async def execute_research_query(
 
         try:
             internal_records = await build_internal_traces(
-                db, evidence_traces,
+                db,
+                evidence_traces,
                 retrieval_snapshot=academic.last_snapshot,
             )
         except TraceLineageError as e:
@@ -286,11 +308,14 @@ async def execute_research_query(
         session_id=body.session_id,
         query_text=body.query,
         query_type=body.mode,
-        result_summary=json.dumps({
-            "traces": [r.to_dict() for r in internal_records],
-            "citation_count": len(citations_list),
-            "source_documents": source_docs,
-        }, ensure_ascii=False),
+        result_summary=json.dumps(
+            {
+                "traces": [r.to_dict() for r in internal_records],
+                "citation_count": len(citations_list),
+                "source_documents": source_docs,
+            },
+            ensure_ascii=False,
+        ),
         citation_count=len(citations_list),
     )
 
@@ -341,7 +366,9 @@ async def execute_research_workflow(
     ws = WorkspaceService(db)
     research_session = await ws.get_session(body.session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     rwf = ResearchWorkflowService(db)
     run_id = str(uuid4())
@@ -358,7 +385,11 @@ async def execute_research_workflow(
 
     for step_name in FULL_RESEARCH_FLOW:
         if workflow_failed:
-            steps.append(V4WorkflowStep(name=step_name, status="pending", result=None, trace_ids=[]))
+            steps.append(
+                V4WorkflowStep(
+                    name=step_name, status="pending", result=None, trace_ids=[]
+                )
+            )
             continue
 
         try:
@@ -370,7 +401,12 @@ async def execute_research_workflow(
                 step_output = await rwf.execute_topic_selection(body.topic)
                 step_traces = step_output.get("internal_traces", [])
                 step_trace_ids = step_output.get("trace_ids", [])
-                step_result = {"topic": body.topic, "sub_questions": step_output.get("result", {}).get("sub_questions", 0)}
+                step_result = {
+                    "topic": body.topic,
+                    "sub_questions": step_output.get("result", {}).get(
+                        "sub_questions", 0
+                    ),
+                }
 
             elif step_name == "literature_retrieval":
                 step_output = await rwf.execute_literature_retrieval(body.topic)
@@ -378,38 +414,56 @@ async def execute_research_workflow(
                 immutable_traces = step_output.get("internal_traces", [])
                 step_traces = immutable_traces
                 step_trace_ids = step_output.get("trace_ids", [])
-                step_result = {"themes": step_output.get("result", {}).get("themes", 0),
-                               "records": len(retrieval_snapshot)}
+                step_result = {
+                    "themes": step_output.get("result", {}).get("themes", 0),
+                    "records": len(retrieval_snapshot),
+                }
 
             elif step_name == "evidence_synthesis":
                 if not retrieval_snapshot:
                     raise ValueError("No retrieval snapshot")
                 step_output = rwf.execute_evidence_synthesis_from_snapshot(
-                    body.topic, retrieval_snapshot, internal_traces=immutable_traces,
+                    body.topic,
+                    retrieval_snapshot,
+                    internal_traces=immutable_traces,
                 )
                 synthesis_output = step_output
                 step_traces = immutable_traces or []
                 step_trace_ids = step_output.get("trace_ids", [])
-                step_result = {"sections": step_output.get("result", {}).get("sections", 0),
-                               "claims": step_output.get("result", {}).get("claims", 0)}
+                step_result = {
+                    "sections": step_output.get("result", {}).get("sections", 0),
+                    "claims": step_output.get("result", {}).get("claims", 0),
+                }
 
             elif step_name == "report_generation":
                 if not synthesis_output:
                     raise ValueError("No synthesis output")
-                step_output = rwf.execute_report_from_synthesis(body.topic, synthesis_output)
-                step_traces = immutable_traces or []
-                step_trace_ids = step_output.get("trace_ids", [])
-                step_result = {"sections": step_output.get("result", {}).get("sections", 0),
-                               "title": step_output.get("result", {}).get("title", body.topic)}
-
-            elif step_name == "citation_export":
-                all_evidence = synthesis_output.get("evidence", []) if synthesis_output else []
-                step_output = rwf.execute_citation_export_from_evidence(
-                    body.topic, all_evidence, internal_traces=immutable_traces,
+                step_output = rwf.execute_report_from_synthesis(
+                    body.topic, synthesis_output
                 )
                 step_traces = immutable_traces or []
                 step_trace_ids = step_output.get("trace_ids", [])
-                step_result = {"total_citations": step_output.get("result", {}).get("total_citations", 0)}
+                step_result = {
+                    "sections": step_output.get("result", {}).get("sections", 0),
+                    "title": step_output.get("result", {}).get("title", body.topic),
+                }
+
+            elif step_name == "citation_export":
+                all_evidence = (
+                    synthesis_output.get("evidence", []) if synthesis_output else []
+                )
+                step_output = rwf.execute_citation_export_from_evidence(
+                    body.topic,
+                    all_evidence,
+                    internal_traces=immutable_traces,
+                )
+                step_traces = immutable_traces or []
+                step_trace_ids = step_output.get("trace_ids", [])
+                step_result = {
+                    "total_citations": step_output.get("result", {}).get(
+                        "total_citations", 0
+                    )
+                }
 
             # Record QueryHistory for this step
             step_trace_dicts = []
@@ -418,13 +472,18 @@ async def execute_research_workflow(
                     step_trace_dicts = [r.to_dict() for r in step_traces]
                 except (AttributeError, TypeError):
                     step_trace_dicts = []
-            step_source_docs = step_output.get("source_documents", []) if step_output else []
+            step_source_docs = (
+                step_output.get("source_documents", []) if step_output else []
+            )
 
-            result_summary = json.dumps({
-                "step": step_name,
-                "traces": step_trace_dicts,
-                "source_documents": step_source_docs,
-            }, ensure_ascii=False)
+            result_summary = json.dumps(
+                {
+                    "step": step_name,
+                    "traces": step_trace_dicts,
+                    "source_documents": step_source_docs,
+                },
+                ensure_ascii=False,
+            )
 
             qh = await ws.create_query_history(
                 session_id=body.session_id,
@@ -435,12 +494,14 @@ async def execute_research_workflow(
             )
             query_history_ids.append(qh.id)
 
-            steps.append(V4WorkflowStep(
-                name=step_name,
-                status="completed",
-                result=step_result,
-                trace_ids=step_trace_ids,
-            ))
+            steps.append(
+                V4WorkflowStep(
+                    name=step_name,
+                    status="completed",
+                    result=step_result,
+                    trace_ids=step_trace_ids,
+                )
+            )
 
             # P2T1: If literature retrieval produced zero records, fail the
             # workflow with NO_EVIDENCE instead of continuing through steps
@@ -450,14 +511,23 @@ async def execute_research_workflow(
                 error_code = "NO_EVIDENCE"
 
         except (ValueError, RuntimeError):
-            logger.exception("Workflow step %s failed for session %s", step_name, body.session_id)
+            logger.exception(
+                "Workflow step %s failed for session %s", step_name, body.session_id
+            )
             workflow_failed = True
             error_code = "WORKFLOW_STEP_FAILED"
             # P2T1: structured error for client — diagnostics in server log only
-            steps.append(V4WorkflowStep(name=step_name, status="failed",
-                          result={"error": "Workflow step encountered an internal error",
-                                  "error_code": error_code},
-                          trace_ids=[]))
+            steps.append(
+                V4WorkflowStep(
+                    name=step_name,
+                    status="failed",
+                    result={
+                        "error": "Workflow step encountered an internal error",
+                        "error_code": error_code,
+                    },
+                    trace_ids=[],
+                )
+            )
 
     if workflow_failed:
         if error_code == "NO_EVIDENCE":
@@ -466,15 +536,21 @@ async def execute_research_workflow(
             msg = f"Workflow failed: {error_code}"
         return V4ApiEnvelope(
             success=False,
-            data=V4WorkflowResponse(run_id=run_id, session_id=body.session_id,
-                                     steps=steps, traceability=None).model_dump(),
+            data=V4WorkflowResponse(
+                run_id=run_id,
+                session_id=body.session_id,
+                steps=steps,
+                traceability=None,
+            ).model_dump(),
             message=msg,
             traceability=None,
         )
 
     # Build Markdown artifact
     markdown = rwf.build_markdown_artifact(
-        topic=body.topic, run_id=run_id, steps=steps,
+        topic=body.topic,
+        run_id=run_id,
+        steps=steps,
         retrieval_snapshot=retrieval_snapshot or [],
         synthesis_output=synthesis_output or {},
     )
@@ -488,17 +564,20 @@ async def execute_research_workflow(
         topic=body.topic,
         workflow_type=body.workflow_type,
         steps=steps,
-        output_artifacts={"markdown": markdown, "artifact_id": artifact_id,
-                          "created_at": run_completed_at,
-                          "citations": [
-                              {
-                                  "trace_id": c.get("trace_id", ""),
-                                  "citation_text": c.get("citation_text", ""),
-                                  "document_id": c.get("document_id", ""),
-                                  "quote": c.get("quote", ""),
-                              }
-                              for c in (synthesis_output or {}).get("evidence", [])[:200]
-                          ]},
+        output_artifacts={
+            "markdown": markdown,
+            "artifact_id": artifact_id,
+            "created_at": run_completed_at,
+            "citations": [
+                {
+                    "trace_id": c.get("trace_id", ""),
+                    "citation_text": c.get("citation_text", ""),
+                    "document_id": c.get("document_id", ""),
+                    "quote": c.get("quote", ""),
+                }
+                for c in (synthesis_output or {}).get("evidence", [])[:200]
+            ],
+        },
         query_history_ids=query_history_ids,
         started_at=run_started_at,
         completed_at=run_completed_at,
@@ -524,8 +603,12 @@ async def execute_research_workflow(
 
     return V4ApiEnvelope(
         success=True,
-        data=V4WorkflowResponse(run_id=run_id, session_id=body.session_id,
-                                 steps=steps, traceability=traceability).model_dump(),
+        data=V4WorkflowResponse(
+            run_id=run_id,
+            session_id=body.session_id,
+            steps=steps,
+            traceability=traceability,
+        ).model_dump(),
         message="ok",
         traceability=traceability,
     )
@@ -560,7 +643,9 @@ async def get_session_query_history(
     ws = WorkspaceService(db)
     research_session = await ws.get_session(session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     records = await ws.get_query_history(session_id, limit=limit)
     history: list[dict] = []
@@ -581,16 +666,20 @@ async def get_session_query_history(
                         if doc_id:
                             source_docs_all.add(doc_id)
             except (json.JSONDecodeError, TypeError):
-                logger.debug("Failed to parse query history result_summary", exc_info=True)
+                logger.debug(
+                    "Failed to parse query history result_summary", exc_info=True
+                )
 
-        history.append({
-            "query_id": qh.id,
-            "query_text": qh.query_text,
-            "query_type": qh.query_type,
-            "citation_count": qh.citation_count,
-            "trace_count": len(trace_ids_for_record),
-            "created_at": qh.created_at.isoformat() if qh.created_at else None,
-        })
+        history.append(
+            {
+                "query_id": qh.id,
+                "query_text": qh.query_text,
+                "query_type": qh.query_type,
+                "citation_count": qh.citation_count,
+                "trace_count": len(trace_ids_for_record),
+                "created_at": qh.created_at.isoformat() if qh.created_at else None,
+            }
+        )
 
     return V4ApiEnvelope(
         success=True,
@@ -640,7 +729,12 @@ def _derive_report_status(trace: list[dict], artifacts: dict) -> str:
     - output_artifacts.markdown non-empty -> 'ready'
     """
     report_step = next(
-        (step for step in trace if step.get("step_name") == "report_generation" or step.get("name") == "report_generation"),
+        (
+            step
+            for step in trace
+            if step.get("step_name") == "report_generation"
+            or step.get("name") == "report_generation"
+        ),
         None,
     )
     if report_step is not None and report_step.get("status") == "failed":
@@ -694,17 +788,19 @@ async def get_research_reports(
             report_status_val = _derive_report_status(trace, artifacts)
 
             completed_at = run.get("completed_at")
-            all_items.append({
-                "session_id": str(run.get("session_id", "")),
-                "session_title": s.title or "",
-                "run_id": str(run.get("run_id", "")),
-                "topic": str(run.get("topic", "")),
-                "run_status": run_status,
-                "report_status": report_status_val,
-                "created_at": str(run.get("started_at", "")),
-                "completed_at": completed_at if completed_at else None,
-                "workflow_type": str(run.get("workflow_type", "")),
-            })
+            all_items.append(
+                {
+                    "session_id": str(run.get("session_id", "")),
+                    "session_title": s.title or "",
+                    "run_id": str(run.get("run_id", "")),
+                    "topic": str(run.get("topic", "")),
+                    "run_status": run_status,
+                    "report_status": report_status_val,
+                    "created_at": str(run.get("started_at", "")),
+                    "completed_at": completed_at if completed_at else None,
+                    "workflow_type": str(run.get("workflow_type", "")),
+                }
+            )
 
     # Sort by created_at DESC (newest first)
     all_items.sort(key=lambda x: x["created_at"], reverse=True)
@@ -757,7 +853,9 @@ async def get_session_runs(
     ws = WorkspaceService(db)
     research_session = await ws.get_session(session_id)
     if research_session is None or research_session.user_id != current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Session not found"
+        )
 
     rwf = ResearchWorkflowService(db)
     raw_runs = await rwf.get_research_runs(session_id)
@@ -943,7 +1041,9 @@ async def replay_research_run(
             break
 
     if run_data is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Run not found"
+        )
 
     manifest = run_data.get("replay_manifest")
     if not manifest:
@@ -956,9 +1056,15 @@ async def replay_research_run(
 
     # Strict manifest validation — all required fields must be present
     required_manifest_fields = [
-        "manifest_version", "manifest_sha256", "corpus_sha256",
-        "canonical_input_sha256", "canonical_output_sha256",
-        "retrieval_snapshot", "traces", "topic", "workflow_type",
+        "manifest_version",
+        "manifest_sha256",
+        "corpus_sha256",
+        "canonical_input_sha256",
+        "canonical_output_sha256",
+        "retrieval_snapshot",
+        "traces",
+        "topic",
+        "workflow_type",
     ]
     missing = [f for f in required_manifest_fields if f not in manifest]
     if missing:
@@ -1022,8 +1128,13 @@ async def replay_research_run(
 
     frozen_traces: list[InternalTraceRecord] = []
     trace_required_fields = [
-        "trace_id", "document_id", "chunk_id", "passage_id",
-        "provenance_kind", "retrieval_method", "timestamp",
+        "trace_id",
+        "document_id",
+        "chunk_id",
+        "passage_id",
+        "provenance_kind",
+        "retrieval_method",
+        "timestamp",
     ]
     for i, td in enumerate(traces_data):
         # Require all fields — no defaults
@@ -1078,7 +1189,7 @@ async def replay_research_run(
                 success=False,
                 data={
                     "error": "CORRUPT_MANIFEST",
-                    "detail": f"Trace[{i}] (trace_id={td.get('trace_id','?')}) invalid: {e}",
+                    "detail": f"Trace[{i}] (trace_id={td.get('trace_id', '?')}) invalid: {e}",
                 },
                 message="Replay manifest trace validation failed",
                 traceability=None,
@@ -1108,15 +1219,17 @@ async def replay_research_run(
     source_doc_ids_frozen = sorted({r.document_id for r in frozen_traces})
 
     recomputed_corpus = canonical_sha256(_build_corpus_payload(snapshot_for_corpus))
-    recomputed_input = canonical_sha256(_build_input_payload(
-        topic=topic,
-        workflow_type=workflow_type,
-        pipeline_version=pipeline_version,
-        retrieval_snapshot=snapshot,
-        trace_ids=trace_ids_frozen,
-        source_document_ids=source_doc_ids_frozen,
-        canonical_traces=canonical_traces,
-    ))
+    recomputed_input = canonical_sha256(
+        _build_input_payload(
+            topic=topic,
+            workflow_type=workflow_type,
+            pipeline_version=pipeline_version,
+            retrieval_snapshot=snapshot,
+            trace_ids=trace_ids_frozen,
+            source_document_ids=source_doc_ids_frozen,
+            canonical_traces=canonical_traces,
+        )
+    )
 
     if recomputed_corpus != manifest["corpus_sha256"]:
         return V4ApiEnvelope(
@@ -1143,11 +1256,15 @@ async def replay_research_run(
     # Step 8: Deterministic replay
     try:
         syn_out = rwf.execute_evidence_synthesis_from_snapshot(
-            topic, snapshot, internal_traces=frozen_traces,
+            topic,
+            snapshot,
+            internal_traces=frozen_traces,
         )
         rep_out = rwf.execute_report_from_synthesis(topic, syn_out)
         cit_out = rwf.execute_citation_export_from_evidence(
-            topic, syn_out.get("evidence", []), internal_traces=frozen_traces,
+            topic,
+            syn_out.get("evidence", []),
+            internal_traces=frozen_traces,
         )
     except RuntimeError as e:
         return V4ApiEnvelope(
@@ -1159,13 +1276,17 @@ async def replay_research_run(
 
     # Steps 9-10: Recompute canonical output hash
     from app.services.research_workflow_service import _group_snapshot_into_sections
+
     synthesis_sections = _group_snapshot_into_sections(snapshot)
     all_evidence = syn_out.get("evidence", [])
     report_sections_for_hash = syn_out.get("sections", [])
     if not report_sections_for_hash:
         from app.services.research_workflow_service import _build_report_sections
+
         report_sections_for_hash = _build_report_sections(
-            topic, all_evidence, rep_out.get("sections", []),
+            topic,
+            all_evidence,
+            rep_out.get("sections", []),
         )
 
     replay_payload = _build_canonical_payload(
@@ -1264,11 +1385,36 @@ async def seed_research_run(
 
     now = datetime.now(UTC).isoformat()
     default_steps = [
-        {"name": "topic_selection", "status": "completed", "result": {}, "trace_ids": []},
-        {"name": "literature_retrieval", "status": "completed", "result": {}, "trace_ids": []},
-        {"name": "evidence_synthesis", "status": "completed", "result": {}, "trace_ids": []},
-        {"name": "report_generation", "status": "completed", "result": {}, "trace_ids": []},
-        {"name": "citation_export", "status": "completed", "result": {}, "trace_ids": []},
+        {
+            "name": "topic_selection",
+            "status": "completed",
+            "result": {},
+            "trace_ids": [],
+        },
+        {
+            "name": "literature_retrieval",
+            "status": "completed",
+            "result": {},
+            "trace_ids": [],
+        },
+        {
+            "name": "evidence_synthesis",
+            "status": "completed",
+            "result": {},
+            "trace_ids": [],
+        },
+        {
+            "name": "report_generation",
+            "status": "completed",
+            "result": {},
+            "trace_ids": [],
+        },
+        {
+            "name": "citation_export",
+            "status": "completed",
+            "result": {},
+            "trace_ids": [],
+        },
     ]
 
     default_markdown = (
@@ -1281,8 +1427,18 @@ async def seed_research_run(
     )
 
     default_citations = [
-        {"trace_id": "doc-01:chk-01", "citation_text": "甲乙经·经脉篇", "document_id": "doc-01", "quote": "经络者，所以行血气而营阴阳。"},
-        {"trace_id": "doc-02:chk-02", "citation_text": "灵枢·刺节真邪", "document_id": "doc-02", "quote": "刺之要，气至而有效。"},
+        {
+            "trace_id": "doc-01:chk-01",
+            "citation_text": "甲乙经·经脉篇",
+            "document_id": "doc-01",
+            "quote": "经络者，所以行血气而营阴阳。",
+        },
+        {
+            "trace_id": "doc-02:chk-02",
+            "citation_text": "灵枢·刺节真邪",
+            "document_id": "doc-02",
+            "quote": "刺之要，气至而有效。",
+        },
     ]
 
     default_snapshot = [
@@ -1311,8 +1467,26 @@ async def seed_research_run(
     ]
 
     default_traces = [
-        {"trace_id": "doc-01:chk-01", "document_id": "doc-01", "chunk_id": "chk-01", "passage_id": "passage-001", "provenance_kind": "retrieval", "retrieval_score": 0.95, "retrieval_method": "semantic_search", "timestamp": now},
-        {"trace_id": "doc-02:chk-02", "document_id": "doc-02", "chunk_id": "chk-02", "passage_id": "passage-002", "provenance_kind": "retrieval", "retrieval_score": 0.92, "retrieval_method": "semantic_search", "timestamp": now},
+        {
+            "trace_id": "doc-01:chk-01",
+            "document_id": "doc-01",
+            "chunk_id": "chk-01",
+            "passage_id": "passage-001",
+            "provenance_kind": "retrieval",
+            "retrieval_score": 0.95,
+            "retrieval_method": "semantic_search",
+            "timestamp": now,
+        },
+        {
+            "trace_id": "doc-02:chk-02",
+            "document_id": "doc-02",
+            "chunk_id": "chk-02",
+            "passage_id": "passage-002",
+            "provenance_kind": "retrieval",
+            "retrieval_score": 0.92,
+            "retrieval_method": "semantic_search",
+            "timestamp": now,
+        },
     ]
 
     steps = body.step_execution_trace or default_steps
@@ -1326,14 +1500,20 @@ async def seed_research_run(
         "completed_at": now,
         "step_execution_trace": steps,
         "output_artifacts": {
-            "markdown": body.markdown if body.markdown is not None else default_markdown,
+            "markdown": body.markdown
+            if body.markdown is not None
+            else default_markdown,
             "title": "研究报告：" + body.topic,
             "artifact_id": str(uuid4()),
             "created_at": now,
-            "citations": body.citations if body.citations is not None else default_citations,
+            "citations": body.citations
+            if body.citations is not None
+            else default_citations,
         },
         "replay_manifest": {
-            "retrieval_snapshot": body.retrieval_snapshot if body.retrieval_snapshot is not None else default_snapshot,
+            "retrieval_snapshot": body.retrieval_snapshot
+            if body.retrieval_snapshot is not None
+            else default_snapshot,
             "traces": body.traces if body.traces is not None else default_traces,
         },
     }

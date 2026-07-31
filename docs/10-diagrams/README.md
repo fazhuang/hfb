@@ -28,18 +28,18 @@ Mermaid 唯一来源。所有图表统一用 Mermaid 编写，禁止其他格式
 
 ## 2. 图表类型
 
-| 类型 | Mermaid 语法 | 用途 |
-|---|---|---|
+| 类型             | Mermaid 语法                | 用途                         |
+| ---------------- | --------------------------- | ---------------------------- |
 | **Architecture** | `graph TD` / `flowchart LR` | 系统架构、组件拓扑、部署视图 |
-| **RoadMap** | `gantt` | 路线图、里程碑、发布计划 |
-| **ER** | `erDiagram` | 实体关系图、数据模型 |
-| **Sequence** | `sequenceDiagram` | 时序图、API 调用链、数据流 |
-| **State** | `stateDiagram-v2` | 状态机、生命周期、工作流 |
-| **Class** | `classDiagram` | 类图、接口关系、类型层级 |
-| **Graph** | `graph` / `flowchart` | 决策树、流程图、依赖图 |
-| **Pie** | `pie` | 占比分布、资源分配 |
-| **Timeline** | `timeline` | 事件时间线 |
-| **Mindmap** | `mindmap` | 脑图、知识结构 |
+| **RoadMap**      | `gantt`                     | 路线图、里程碑、发布计划     |
+| **ER**           | `erDiagram`                 | 实体关系图、数据模型         |
+| **Sequence**     | `sequenceDiagram`           | 时序图、API 调用链、数据流   |
+| **State**        | `stateDiagram-v2`           | 状态机、生命周期、工作流     |
+| **Class**        | `classDiagram`              | 类图、接口关系、类型层级     |
+| **Graph**        | `graph` / `flowchart`       | 决策树、流程图、依赖图       |
+| **Pie**          | `pie`                       | 占比分布、资源分配           |
+| **Timeline**     | `timeline`                  | 事件时间线                   |
+| **Mindmap**      | `mindmap`                   | 脑图、知识结构               |
 
 ## 3. 命名规范
 
@@ -47,11 +47,11 @@ Mermaid 唯一来源。所有图表统一用 Mermaid 编写，禁止其他格式
 {domain}-{type}-{description}.mmd
 ```
 
-| 组成部分 | 说明 | 示例 |
-|---|---|---|
-| `domain` | 所属领域：`architecture`、`data`、`product`、`ai`、`sprint` | `architecture` |
-| `type` | 图表类型（见 §2 表） | `c4-context` |
-| `description` | 简短描述，小写英文，连字符分隔 | `system-topology` |
+| 组成部分      | 说明                                                        | 示例              |
+| ------------- | ----------------------------------------------------------- | ----------------- |
+| `domain`      | 所属领域：`architecture`、`data`、`product`、`ai`、`sprint` | `architecture`    |
+| `type`        | 图表类型（见 §2 表）                                        | `c4-context`      |
+| `description` | 简短描述，小写英文，连字符分隔                              | `system-topology` |
 
 ### 示例
 
@@ -85,13 +85,13 @@ src/ui-graph-navigation-map.mmd
 
 ### 在文档中内嵌
 
-```markdown
+````markdown
 \```mermaid
 %%{init: {'theme': 'neutral'}}%%
 graph LR
-    A["用户"] --> B["API Gateway"]
+A["用户"] --> B["API Gateway"]
 \```
-```
+````
 
 ### 引用外部文件
 
@@ -103,32 +103,33 @@ graph LR
 
 ## 6. 工具
 
-| 场景 | 工具 |
-|---|---|
-| 本地预览 | VS Code + Mermaid Preview 插件 |
+| 场景     | 工具                                                             |
+| -------- | ---------------------------------------------------------------- |
+| 本地预览 | VS Code + Mermaid Preview 插件                                   |
 | 在线调试 | [Mermaid Live Editor](https://mermaid.live)（访问于 2026-06-24） |
-| CI 检测 | `mermaid-cli` 或 `mermaid-lint` |
+| CI 检测  | `mermaid-cli` 或 `mermaid-lint`                                  |
 
 ## Changelog
 
-| 版本 | 日期 | 变更 |
-|---|---|---|
-| v0.2.0 | 2026-06-25 | 新增关联目录与MVP约束章节 |
+| 版本   | 日期       | 变更                                                                  |
+| ------ | ---------- | --------------------------------------------------------------------- |
+| v0.2.0 | 2026-06-25 | 新增关联目录与MVP约束章节                                             |
 | v0.1.0 | 2026-06-24 | 初稿 — 统一 Mermaid，定义 10 种图表类型、命名规范、样式约束、引用方式 |
 
 ---
 
 ## 关联目录
 
-| 目录 | 关系 | 说明 |
-|---|---|---|
-| [docs/02-architecture/](../02-architecture/) | 架构图消费方 | 系统架构图、部署拓扑图用于技术白皮书 |
-| [docs/03-data/](../03-data/) | 数据图消费方 | ER 图用于 Entity、Relation 规范 |
-| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品图依据 | 产品甘特路线图以 HFB-PS-1709 MVP 为准 |
-| [docs/01-product/](../01-product/) | 产品图消费方 | 路线图用于产品规划 |
+| 目录                                                               | 关系         | 说明                                  |
+| ------------------------------------------------------------------ | ------------ | ------------------------------------- |
+| [docs/02-architecture/](../02-architecture/)                       | 架构图消费方 | 系统架构图、部署拓扑图用于技术白皮书  |
+| [docs/03-data/](../03-data/)                                       | 数据图消费方 | ER 图用于 Entity、Relation 规范       |
+| [docs/17-Platform-Specifications/](../17-Platform-Specifications/) | 产品图依据   | 产品甘特路线图以 HFB-PS-1709 MVP 为准 |
+| [docs/01-product/](../01-product/)                                 | 产品图消费方 | 路线图用于产品规划                    |
 
 ## MVP 图表边界
 
 依据 [HFB-PS-1709](../17-Platform-Specifications/1709_MVP_Implementation_Specification.md)：
+
 - MVP 阶段图表聚焦于：系统架构、核心 ER、决策流程、产品路线图
 - Post-MVP 图表（如 GraphRAG 推理路径、Multi-Agent 协作图）延后制作

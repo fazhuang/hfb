@@ -42,7 +42,9 @@
         </div>
         <div class="info-row">
           <span class="info-label">{{ t('version.createdAt') }}</span>
-          <span>{{ version.created_at ? new Date(version.created_at).toLocaleDateString() : '-' }}</span>
+          <span>{{
+            version.created_at ? new Date(version.created_at).toLocaleDateString() : '-'
+          }}</span>
         </div>
       </div>
 
@@ -61,7 +63,12 @@
         </div>
 
         <div v-else class="passages-list">
-          <div v-for="(p, idx) in passages" :key="p.id" :id="`passage-${p.id}`" class="passage-item">
+          <div
+            v-for="(p, idx) in passages"
+            :key="p.id"
+            :id="`passage-${p.id}`"
+            class="passage-item"
+          >
             <div class="passage-order">{{ p.order ?? idx + 1 }}</div>
             <div class="passage-text">{{ p.content_text }}</div>
             <div v-if="p.translation" class="passage-translation">{{ p.translation }}</div>
@@ -120,7 +127,8 @@ async function fetchVersion() {
     const { data: d } = await api.get(`/api/v1/versions/${id}`);
     version.value = (d.data ?? d) as VersionDetail;
   } catch (e: unknown) {
-    const msg = (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load version';
+    const msg =
+      (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load version';
     error.value = msg;
   } finally {
     loading.value = false;
@@ -139,7 +147,8 @@ async function fetchPassages() {
     passages.value = items as PassageBrief[];
   } catch (e: unknown) {
     // Don't block the page — just show the error state
-    const msg = (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load passages';
+    const msg =
+      (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load passages';
     passagesError.value = msg;
   } finally {
     passagesLoading.value = false;

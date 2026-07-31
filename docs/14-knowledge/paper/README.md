@@ -1,9 +1,9 @@
 ---
-title: "Paper Knowledge"
-version: "1.0"
-status: "Active"
-domain: "paper"
-last_updated: "2026-06-24"
+title: 'Paper Knowledge'
+version: '1.0'
+status: 'Active'
+domain: 'paper'
+last_updated: '2026-06-24'
 ---
 
 # Paper — 论文知识

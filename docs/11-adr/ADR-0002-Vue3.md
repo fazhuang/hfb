@@ -1,14 +1,14 @@
 ---
-title: "ADR-0002 Vue 3"
-version: "1.0"
-status: "Accepted"
-owner: "Chief Software Architect"
-decision_date: "2026-06-24"
-last_updated: "2026-06-24"
-domain: "architecture"
+title: 'ADR-0002 Vue 3'
+version: '1.0'
+status: 'Accepted'
+owner: 'Chief Software Architect'
+decision_date: '2026-06-24'
+last_updated: '2026-06-24'
+domain: 'architecture'
 related:
-  - "ADR-0009-Monorepo"
-  - "docs/06-ui/00_Design_System.md"
+  - 'ADR-0009-Monorepo'
+  - 'docs/06-ui/00_Design_System.md'
 ---
 
 # ADR-0002: 选择 Vue 3 作为前端框架
@@ -33,12 +33,12 @@ related:
 
 ## Alternatives
 
-| 方案 | 优点 | 缺点 | 放弃原因 |
-|---|---|---|---|
-| Vue 3 | 渐进式、学习曲线平缓、SFC 语义清晰、中文社区活跃 | 企业级生态小于 React | — |
-| React | 生态最大、社区最活跃、TypeScript 支持好 | JSX 可读性不如模版、Hook 心智负担 | 学术平台交互复杂度不需要 React 级别的抽象能力 |
-| HTMX | 极简、零构建、古典 Web | 交互受限、无组件化、不适合复杂 UI | 版本对比、实体关系可视化等需要 SPA 式交互 |
-| Svelte | 编译时、无虚拟 DOM、代码量少 | 社区小、中文生态弱、稳定性待验证 | 长期维护风险 |
+| 方案   | 优点                                             | 缺点                              | 放弃原因                                      |
+| ------ | ------------------------------------------------ | --------------------------------- | --------------------------------------------- |
+| Vue 3  | 渐进式、学习曲线平缓、SFC 语义清晰、中文社区活跃 | 企业级生态小于 React              | —                                             |
+| React  | 生态最大、社区最活跃、TypeScript 支持好          | JSX 可读性不如模版、Hook 心智负担 | 学术平台交互复杂度不需要 React 级别的抽象能力 |
+| HTMX   | 极简、零构建、古典 Web                           | 交互受限、无组件化、不适合复杂 UI | 版本对比、实体关系可视化等需要 SPA 式交互     |
+| Svelte | 编译时、无虚拟 DOM、代码量少                     | 社区小、中文生态弱、稳定性待验证  | 长期维护风险                                  |
 
 ## Consequences
 

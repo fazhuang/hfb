@@ -1,24 +1,59 @@
 {
   "relation_types": [
-    {"type": "teacher_of", "source": "Person", "target": "Person", "description": "师生关系", "example": "皇甫谧 → teacher_of → 某某"},
-    {"type": "student_of", "source": "Person", "target": "Person", "description": "学生（teacher_of 反向）"},
-    {"type": "author_of", "source": "Person", "target": "Book", "description": "著作关系", "example": "皇甫谧 → author_of → 《针灸甲乙经》"},
-    {"type": "located_in", "source": "Place", "target": "Place", "description": "地理包含", "example": "洛阳 → located_in → 河南"},
-    {"type": "occurred_at", "source": "Event", "target": "Place", "description": "事件发生地"},
-    {"type": "participated_in", "source": "Person", "target": "Event", "description": "参与事件"},
-    {"type": "refers_to", "source": "Passage", "target": "Entity", "description": "段落提及实体"},
-    {"type": "cites", "source": "Book", "target": "Book", "description": "文献引用"},
-    {"type": "belongs_to", "source": "Concept", "target": "Concept", "description": "概念隶属", "example": "腧穴 → belongs_to → 经络"},
-    {"type": "derived_from", "source": "Version", "target": "Version", "description": "版本派生", "example": "校本 → derived_from → 底本"}
+    {
+      "type": "teacher_of",
+      "source": "Person",
+      "target": "Person",
+      "description": "师生关系",
+      "example": "皇甫谧 → teacher_of → 某某"
+    },
+    {
+      "type": "student_of",
+      "source": "Person",
+      "target": "Person",
+      "description": "学生（teacher_of 反向）"
+    },
+    {
+      "type": "author_of",
+      "source": "Person",
+      "target": "Book",
+      "description": "著作关系",
+      "example": "皇甫谧 → author_of → 《针灸甲乙经》"
+    },
+    {
+      "type": "located_in",
+      "source": "Place",
+      "target": "Place",
+      "description": "地理包含",
+      "example": "洛阳 → located_in → 河南"
+    },
+    { "type": "occurred_at", "source": "Event", "target": "Place", "description": "事件发生地" },
+    { "type": "participated_in", "source": "Person", "target": "Event", "description": "参与事件" },
+    { "type": "refers_to", "source": "Passage", "target": "Entity", "description": "段落提及实体" },
+    { "type": "cites", "source": "Book", "target": "Book", "description": "文献引用" },
+    {
+      "type": "belongs_to",
+      "source": "Concept",
+      "target": "Concept",
+      "description": "概念隶属",
+      "example": "腧穴 → belongs_to → 经络"
+    },
+    {
+      "type": "derived_from",
+      "source": "Version",
+      "target": "Version",
+      "description": "版本派生",
+      "example": "校本 → derived_from → 底本"
+    }
   ],
   "ner_tags": [
-    {"tag": "PER", "description": "人物"},
-    {"tag": "LOC", "description": "地点"},
-    {"tag": "ORG", "description": "组织"},
-    {"tag": "TIME", "description": "时间"},
-    {"tag": "CONC", "description": "概念"},
-    {"tag": "BOOK", "description": "书名"},
-    {"tag": "QUOTE", "description": "引文"}
+    { "tag": "PER", "description": "人物" },
+    { "tag": "LOC", "description": "地点" },
+    { "tag": "ORG", "description": "组织" },
+    { "tag": "TIME", "description": "时间" },
+    { "tag": "CONC", "description": "概念" },
+    { "tag": "BOOK", "description": "书名" },
+    { "tag": "QUOTE", "description": "引文" }
   ],
   "relation_properties": {
     "relation_type": "string — 关系类型（见上表）",

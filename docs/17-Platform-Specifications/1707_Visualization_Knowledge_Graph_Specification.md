@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Visualization & Knowledge Graph Specification
+
 ## 可视化与知识图谱规格书
 
 > 本规格书定义《皇甫谧数字人文与中医经典智能研究平台》的统一可视化体系（Visualization System）与知识图谱可视化规范（Knowledge Graph Visualization）。
@@ -420,6 +421,6 @@ Knowledge Graph Service。
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-|1.0.0|2026-06-24|首版发布，定义平台统一可视化体系及知识图谱展示规范。|
+| Version | Date       | Description                                          |
+| ------- | ---------- | ---------------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，定义平台统一可视化体系及知识图谱展示规范。 |

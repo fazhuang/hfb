@@ -28,12 +28,13 @@ const HSL_COLOR = /(?<!var\()hsl\([^)]+\)/gi;
 const HSLA_COLOR = /hsla\([^)]+\)/gi;
 
 // Detect hardcoded fallback in var(--token, #FALLBACK)
-const VAR_FALLBACK_COLOR = /var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi;
+const VAR_FALLBACK_COLOR =
+  /var\([^)]+,\s*(#[0-9a-fA-F]{3,8}|rgba?\s*\([^)]+\)|hsla?\s*\([^)]+\))\s*\)/gi;
 
 // Allowed exceptions
 const ALLOWED_PATTERNS = [
-  /rgba\(var\(--/,           // rgba(var(--*) ...) — token transform
-  /rgba\(\d+,\s*\d+,\s*\d+,\s*0\)/,  // transparent rgba
+  /rgba\(var\(--/, // rgba(var(--*) ...) — token transform
+  /rgba\(\d+,\s*\d+,\s*\d+,\s*0\)/, // transparent rgba
 ];
 
 /**
@@ -73,7 +74,7 @@ function findStandaloneColors(source) {
     // Check rgb/rgba (standalone, not inside var())
     RGBA_COLOR.lastIndex = 0;
     while ((match = RGBA_COLOR.exec(sanitized)) !== null) {
-      const isAllowed = ALLOWED_PATTERNS.some(p => p.test(match[0]));
+      const isAllowed = ALLOWED_PATTERNS.some((p) => p.test(match[0]));
       if (!isAllowed) {
         results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'rgba' });
       }
@@ -81,7 +82,7 @@ function findStandaloneColors(source) {
 
     RGB_COLOR.lastIndex = 0;
     while ((match = RGB_COLOR.exec(sanitized)) !== null) {
-      const isAllowed = ALLOWED_PATTERNS.some(p => p.test(match[0]));
+      const isAllowed = ALLOWED_PATTERNS.some((p) => p.test(match[0]));
       if (!isAllowed) {
         results.push({ line: lineNum, column: match.index + 1, value: match[0], kind: 'rgb' });
       }
@@ -125,7 +126,11 @@ module.exports = {
     const filename = context.filename || context.getFilename?.() || '';
 
     // Skip node_modules, dist, coverage
-    if (filename.includes('node_modules') || filename.includes('/dist/') || filename.includes('/coverage/')) {
+    if (
+      filename.includes('node_modules') ||
+      filename.includes('/dist/') ||
+      filename.includes('/coverage/')
+    ) {
       return {};
     }
 

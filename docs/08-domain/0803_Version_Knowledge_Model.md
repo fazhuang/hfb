@@ -19,6 +19,7 @@ related_documents:
 ---
 
 # Version Knowledge Model
+
 ## 古籍版本知识模型
 
 > 本规范定义《皇甫谧数字人文与中医经典智能研究平台》的古籍版本知识模型。
@@ -127,19 +128,19 @@ Version Code 永久不变。
 
 统一字段：
 
-| 字段 | 说明 |
-|------|------|
-| id | UUID |
-| version_code | 版本编码 |
-| book_id | 所属 Book |
-| version_name | 版本名称 |
-| dynasty | 朝代 |
-| publication_year | 年代 |
-| editor | 整理者 |
-| publisher | 出版机构 |
-| language | 文本语言 |
-| description | 简介 |
-| metadata_id | Metadata |
+| 字段             | 说明      |
+| ---------------- | --------- |
+| id               | UUID      |
+| version_code     | 版本编码  |
+| book_id          | 所属 Book |
+| version_name     | 版本名称  |
+| dynasty          | 朝代      |
+| publication_year | 年代      |
+| editor           | 整理者    |
+| publisher        | 出版机构  |
+| language         | 文本语言  |
+| description      | 简介      |
+| metadata_id      | Metadata  |
 
 ---
 
@@ -306,11 +307,11 @@ Version B
 
 差异类型：
 
-| 类型 | 示例 |
-|------|------|
-| 缺失 | 条文缺失 |
-| 新增 | 后世增补 |
-| 改写 | 用词变化 |
+| 类型     | 示例     |
+| -------- | -------- |
+| 缺失     | 条文缺失 |
+| 新增     | 后世增补 |
+| 改写     | 用词变化 |
 | 顺序调整 | 卷次变化 |
 | 注释变化 | 新增校注 |
 
@@ -467,13 +468,13 @@ AI 精确引用到：
 
 目标：
 
-| 指标 | 标准 |
-|------|------|
-| Version 唯一率 | 100% |
-| Metadata 完整率 | 100% |
+| 指标                   | 标准 |
+| ---------------------- | ---- |
+| Version 唯一率         | 100% |
+| Metadata 完整率        | 100% |
 | Passage Mapping 完成率 | ≥95% |
-| Version Tree 完整率 | ≥95% |
-| AI 精确引用率 | ≥98% |
+| Version Tree 完整率    | ≥95% |
+| AI 精确引用率          | ≥98% |
 
 ---
 
@@ -509,6 +510,6 @@ AI 精确引用到：
 
 # 修订记录
 
-| Version | Date | Description |
-|----------|------|-------------|
-| 1.0.0 | 2026-06-24 | 首版发布，作为平台古籍版本知识模型统一规范。 |
+| Version | Date       | Description                                  |
+| ------- | ---------- | -------------------------------------------- |
+| 1.0.0   | 2026-06-24 | 首版发布，作为平台古籍版本知识模型统一规范。 |

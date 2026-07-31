@@ -1,6 +1,7 @@
 """
 Health check endpoint.
 """
+
 from fastapi import APIRouter
 
 from app.utils.response import api_response

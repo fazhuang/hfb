@@ -88,9 +88,7 @@ async function fetchResources() {
   loading.value = true;
   error.value = null;
   try {
-    const { data } = await api.get(
-      `/api/v1/workspace/sessions/${props.projectId}/citations`,
-    );
+    const { data } = await api.get(`/api/v1/workspace/sessions/${props.projectId}/citations`);
     if (myReqId !== reqId) return;
     const body = data.data ?? data;
     const all = ((Array.isArray(body) ? body : []) as Record<string, unknown>[]).map(
@@ -99,15 +97,10 @@ async function fetchResources() {
 
     // Backend sorts by created_at DESC, hard limit 100.
     // Verify session_id matches and take first MAX_ITEMS.
-    citations.value = all
-      .filter((c) => c.session_id === props.projectId)
-      .slice(0, MAX_ITEMS);
+    citations.value = all.filter((c) => c.session_id === props.projectId).slice(0, MAX_ITEMS);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载研究资料失败';
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {
