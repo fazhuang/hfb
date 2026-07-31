@@ -932,7 +932,7 @@ class IngestionService:
                 last_chunk_index=next_index + len(chunk_ids) - 1,
                 content_checksum=new_checksum,
             )
-        except (SQLAlchemyError, ValueError):
+        except (SQLAlchemyError, ValueError, RuntimeError):
             await sp.rollback()
             raise
 

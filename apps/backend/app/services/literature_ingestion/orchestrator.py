@@ -237,7 +237,7 @@ async def _save_items(
 
     try:
         await session.flush()
-    except SQLAlchemyError as e:
+    except (SQLAlchemyError, RuntimeError) as e:
         job.error_count += 1
         job.errors.append(f"Flush failed: {type(e).__name__}: {e}")
     job.new_added = added

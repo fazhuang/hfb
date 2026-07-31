@@ -31,12 +31,12 @@ async def test_health():
 
 @pytest.mark.anyio
 async def test_version():
-    """GET /version should return version info."""
+    """GET /api/v1/version should return version info."""
     from main import app
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/version")
+        response = await client.get("/api/v1/version")
         assert response.status_code == 200
         body = response.json()
         assert body["success"] is True
@@ -47,12 +47,12 @@ async def test_version():
 
 @pytest.mark.anyio
 async def test_live():
-    """GET /live should return 200 with alive status."""
+    """GET /api/v1/live should return 200 with alive status."""
     from main import app
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/live")
+        response = await client.get("/api/v1/live")
         assert response.status_code == 200
         body = response.json()
         assert body["success"] is True
@@ -61,12 +61,12 @@ async def test_live():
 
 @pytest.mark.anyio
 async def test_config():
-    """GET /config should return public (non-sensitive) configuration."""
+    """GET /api/v1/config should return public (non-sensitive) configuration."""
     from main import app
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/config")
+        response = await client.get("/api/v1/config")
         assert response.status_code == 200
         body = response.json()
         assert body["success"] is True
@@ -84,7 +84,7 @@ async def test_unified_response_format():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        endpoints = ["/health", "/version", "/live", "/config"]
+        endpoints = ["/health", "/api/v1/version", "/api/v1/live", "/api/v1/config"]
         for path in endpoints:
             response = await client.get(path)
             body = response.json()
