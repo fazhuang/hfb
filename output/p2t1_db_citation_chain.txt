@@ -5,12 +5,12 @@
 2026-07-15 04:03:46,564 INFO sqlalchemy.engine.Engine show standard_conforming_strings
 2026-07-15 04:03:46,564 INFO sqlalchemy.engine.Engine [raw sql] ()
 2026-07-15 04:03:46,566 INFO sqlalchemy.engine.Engine BEGIN (implicit)
-2026-07-15 04:03:46,566 INFO sqlalchemy.engine.Engine 
+2026-07-15 04:03:46,566 INFO sqlalchemy.engine.Engine
             SELECT rs.id, rs.workflow_state
             FROM research_sessions rs
             WHERE rs.workflow_state IS NOT NULL
             ORDER BY rs.updated_at DESC LIMIT 1
-        
+
 2026-07-15 04:03:46,566 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ()
 Run ID: 2cbba8a2-efac-4cb5-9711-3b47587ff5f0
 Topic: 《针灸甲乙经》的成书特点是什么？
@@ -138,3 +138,4 @@ Source URL: https://ctext.org/library.pl?if=gb&res=77431
 Formal Source: True
 
 2026-07-15 04:03:46,597 INFO sqlalchemy.engine.Engine ROLLBACK
+

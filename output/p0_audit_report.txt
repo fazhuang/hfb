@@ -24,13 +24,13 @@
 ## 5 条可审计事实
 链路: EntityRelation → Citation → Document → Version → SourceRef → PDF Page → 原文
 
-  #    关系               Chunk          页码     版本                   SourceRef            原文                                                
+  #    关系               Chunk          页码     版本                   SourceRef            原文
   ---- ---------------- -------------- ------ -------------------- -------------------- --------------------------------------------------
-  F1   compiled         b06d2e58-c440- p.5    明代刻本                 wikimedia.org        皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。                    
+  F1   compiled         b06d2e58-c440- p.5    明代刻本                 wikimedia.org        皇甫谧採摭旧闻，撰为针灸甲乙经，以明经络腧穴病候治疗之次第。
   F2   compiled_from    3c9ecb6d-5204- p.6    明代刻本                 wikimedia.org        《针灸甲乙经》共十二卷，一百二十八篇。其书以《素问》《灵枢》《明堂孔穴针灸治要》三书为蓝本，系统整理
   F3   contains         809cb025-3e69- p.7    明代刻本                 wikimedia.org        皇甫谧以'使事类相从，删其浮辞，除其重复，论其精要'为编纂原则，使《针灸甲乙经》成为系统化的针灸学经
-  F4   contains         3ce19054-1227- p.8    明代刻本                 wikimedia.org        该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。           
-  F5   contains         63b48038-5fe6- p.9    明代刻本                 wikimedia.org        《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。              
+  F4   contains         3ce19054-1227- p.8    明代刻本                 wikimedia.org        该书确定了349个腧穴的位置、主治和针刺深度，为后世针灸腧穴标准化奠定了基础。
+  F5   contains         63b48038-5fe6- p.9    明代刻本                 wikimedia.org        《针灸甲乙经》强调经脉理论与脏腑辨证相结合，奠定了针灸治疗学的理论基础。
 
 ## AcademicRAG HTTP API 探测
 问题: 《针灸甲乙经》的成书特点是什么？
