@@ -86,3 +86,13 @@
     background-position: 200% 0;
   }
 }
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hfb-skeleton--pulse,
+  .hfb-skeleton--wave,
+  .hfb-skeleton__line--pulse,
+  .hfb-skeleton__line--wave {
+    animation: none;
+  }
+}

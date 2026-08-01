@@ -57,6 +57,7 @@ import HfbSkeleton from '@/components/common/HfbSkeleton.vue';
 import HfbToastProvider from '@/components/common/HfbToastProvider.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
+import LoadingState from '@/components/common/LoadingState.vue';
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
@@ -423,6 +424,62 @@ describe('HfbSelect — States & Accessibility', () => {
     await wrapper.find('.hfb-select__trigger').trigger('click');
     expect(wrapper.find('.hfb-select__chevron--open').exists()).toBe(true);
   });
+
+  it('trigger has aria-expanded when menu is open', async () => {
+    const wrapper = mount(HfbSelect, {
+      props: { modelValue: null, options },
+      attachTo: document.body,
+    });
+    await wrapper.find('.hfb-select__trigger').trigger('click');
+    expect(wrapper.find('.hfb-select__trigger').attributes('aria-expanded')).toBe('true');
+  });
+
+  it('menu has role="listbox"', async () => {
+    const wrapper = mount(HfbSelect, {
+      props: { modelValue: null, options },
+      attachTo: document.body,
+    });
+    await wrapper.find('.hfb-select__trigger').trigger('click');
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
+  });
+
+  it('ArrowDown/ArrowUp keys navigate options in open menu', async () => {
+    const wrapper = mount(HfbSelect, {
+      props: { modelValue: null, options },
+      attachTo: document.body,
+    });
+    await wrapper.find('.hfb-select__trigger').trigger('click');
+    const menu = wrapper.find('.hfb-select__menu');
+    // ArrowDown once → highlight index 1 (Option B), then Enter selects it
+    await menu.trigger('keydown', { key: 'ArrowDown' });
+    await menu.trigger('keydown', { key: 'Enter' });
+    const emitted = wrapper.emitted('update:modelValue');
+    expect(emitted).toBeTruthy();
+    expect(emitted![0]).toEqual(['b']);
+  });
+
+  it('Escape key closes the menu', async () => {
+    const wrapper = mount(HfbSelect, {
+      props: { modelValue: null, options },
+      attachTo: document.body,
+    });
+    await wrapper.find('.hfb-select__trigger').trigger('click');
+    expect(wrapper.find('.hfb-select__menu').exists()).toBe(true);
+    await wrapper.find('.hfb-select__menu').trigger('keydown', { key: 'Escape' });
+    await nextTick();
+    expect(wrapper.find('.hfb-select__menu').exists()).toBe(false);
+  });
+
+  it('clearable: clear button renders with selected value and clears on click', async () => {
+    const wrapper = mount(HfbSelect, {
+      props: { modelValue: 'a', options, clearable: true },
+    });
+    const clearBtn = wrapper.find('.hfb-select__clear');
+    expect(clearBtn.exists()).toBe(true);
+    expect(clearBtn.attributes('aria-label')).toBe('Clear selection');
+    await clearBtn.trigger('click');
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([null]);
+  });
 });
 
 // ────────────────────────────────────────────────────────────────────────
@@ -642,6 +699,30 @@ describe('HfbDialog — Accessibility & Close Behavior', () => {
     await nextTick();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('focus trap contained within dialog', async () => {
+    // Verify the dialog has role="dialog" and aria-modal="true"
+    mountDialog({ open: true });
+    await nextTick();
+    await nextTick();
+    const dialog = document.body.querySelector('.hfb-dialog');
+    expect(dialog, 'Dialog must be in DOM').toBeTruthy();
+    expect(dialog!.getAttribute('role')).toBe('dialog');
+    expect(dialog!.getAttribute('aria-modal')).toBe('true');
+  });
+
+  it('dialog has aria-labelledby pointing to title', async () => {
+    mountDialog({ open: true, title: 'Test Title' });
+    await nextTick();
+    await nextTick();
+    const dialog = document.body.querySelector('.hfb-dialog');
+    expect(dialog, 'Dialog must be in DOM').toBeTruthy();
+    const labelledBy = dialog!.getAttribute('aria-labelledby');
+    expect(labelledBy).toBeTruthy();
+    const titleEl = document.body.querySelector(`#${labelledBy}`);
+    expect(titleEl, 'Title element referenced by aria-labelledby must exist').toBeTruthy();
+    expect(titleEl!.textContent).toBe('Test Title');
+  });
 });
 
 // ────────────────────────────────────────────────────────────────────────
@@ -709,6 +790,33 @@ describe('HfbDrawer — States & Accessibility', () => {
     const footer = document.body.querySelector('.hfb-drawer__footer');
     expect(footer, 'Footer must be in DOM via Teleport').toBeTruthy();
     expect(footer!.textContent).toContain('Save');
+  });
+
+  it('drawer has role="dialog" and aria-modal="true"', async () => {
+    mount(HfbDrawer, {
+      props: { open: true, title: 'Panel' },
+      slots: { default: 'Content' },
+      attachTo: document.body,
+    });
+    await nextTick();
+    await nextTick();
+    const drawer = document.body.querySelector('.hfb-drawer');
+    expect(drawer, 'Drawer must be in DOM').toBeTruthy();
+    expect(drawer!.getAttribute('role')).toBe('dialog');
+    expect(drawer!.getAttribute('aria-modal')).toBe('true');
+  });
+
+  it('title used as aria-label when no labelledby', async () => {
+    mount(HfbDrawer, {
+      props: { open: true, title: 'Settings Panel' },
+      slots: { default: 'Content' },
+      attachTo: document.body,
+    });
+    await nextTick();
+    await nextTick();
+    const drawer = document.body.querySelector('.hfb-drawer');
+    expect(drawer, 'Drawer must be in DOM').toBeTruthy();
+    expect(drawer!.getAttribute('aria-label')).toBe('Settings Panel');
   });
 });
 
@@ -981,6 +1089,47 @@ describe('HfbSkeleton — States & Accessibility', () => {
   it('has aria-label for accessibility', () => {
     const wrapper = mount(HfbSkeleton, { props: { variant: 'text' } });
     expect(wrapper.find('[aria-label]').exists()).toBe(true);
+  });
+
+  it('circle variant has aria-label "Loading avatar..."', () => {
+    const wrapper = mount(HfbSkeleton, { props: { variant: 'circle' } });
+    expect(wrapper.find('[aria-label="Loading avatar..."]').exists()).toBe(true);
+  });
+
+  it('rect variant has aria-label "Loading content..."', () => {
+    const wrapper = mount(HfbSkeleton, { props: { variant: 'rect' } });
+    expect(wrapper.find('[aria-label="Loading content..."]').exists()).toBe(true);
+  });
+
+  it('animation:none removes animation classes', () => {
+    const wrapper = mount(HfbSkeleton, { props: { variant: 'text', animation: 'none' } });
+    expect(hasClass(wrapper.find('.hfb-skeleton'), 'hfb-skeleton--pulse')).toBe(false);
+    expect(hasClass(wrapper.find('.hfb-skeleton'), 'hfb-skeleton--wave')).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────
+// LOADING STATE
+// ────────────────────────────────────────────────────────────────────────
+describe('LoadingState — States & Accessibility', () => {
+  it('renders with role="status" and aria-live="polite"', () => {
+    const wrapper = mountWithI18n(LoadingState);
+    expect(wrapper.find('[role="status"]').exists()).toBe(true);
+    expect(wrapper.find('[aria-live="polite"]').exists()).toBe(true);
+  });
+
+  it('renders spinner with aria-hidden', () => {
+    const wrapper = mountWithI18n(LoadingState);
+    const spinner = wrapper.find('.loading-spinner');
+    expect(spinner.exists()).toBe(true);
+    expect(spinner.attributes('aria-hidden')).toBe('true');
+  });
+
+  it('uses custom message when provided', () => {
+    const wrapper = mountWithI18n(LoadingState, {
+      props: { message: 'Fetching data...' },
+    });
+    expect(wrapper.find('.loading-text').text()).toBe('Fetching data...');
   });
 });
 

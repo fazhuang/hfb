@@ -134,7 +134,18 @@
   flex-shrink: 0;
 }
 
-/* ---- Animations ---- */
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hfb-drawer__overlay {
+    animation: none;
+  }
+  .hfb-drawer--left,
+  .hfb-drawer--right,
+  .hfb-drawer--top,
+  .hfb-drawer--bottom {
+    animation: none;
+  }
+}
 @keyframes hfb-drawer-slide-left {
   from {
     transform: translateX(-100%);

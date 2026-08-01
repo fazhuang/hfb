@@ -39,4 +39,10 @@ defineProps<{
   font-size: var(--text-base);
   color: var(--color-text-muted);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+}
 </style>
