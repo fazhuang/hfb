@@ -688,79 +688,83 @@ async def _build_retrieval_snapshot(
 
     snapshot: list[dict] = []
     seen: set[str] = set()
-    # Pre-load source_ref map for all involved documents
+    # Pre-load source_ref map keyed by (document_id, passage_id).
+    # Each passage on the same document must produce an independent
+    # SourceRef — document-scoped fallback is only acceptable when
+    # no passage_id exists for the chunk.
     doc_ids = set()
     for t in result.evidence_trace:
         if t.document_id:
             doc_ids.add(t.document_id)
-    source_ref_by_doc: dict[str, dict[str, str]] = {}
+
+    # source_ref_by_passage: (document_id, passage_id) -> SourceRef info
+    source_ref_by_passage: dict[tuple[str, str], dict[str, str]] = {}
+    # document_fallback: document_id -> SourceRef (used when chunk has no passage_id)
+    document_fallback: dict[str, dict[str, str]] = {}
+
     if doc_ids:
         from sqlalchemy import select as sql_select
 
         from app.models.academic_evidence import SourceRef
+        from app.models.document_chunk import DocumentChunk as DC
 
-        # First pass: try document:-scoped SourceRef entries
+        # Build chunk -> (doc_id, passage_id) map for all evidence traces
+        doc_by_passage: dict[str, str] = {}  # passage_id -> document_id
+        chunk_to_passage: dict[str, str] = {}  # chunk_id -> passage_id
+
+        chunk_stmt = sql_select(DC.id, DC.document_id, DC.passage_id).where(
+            DC.is_deleted.is_(False),
+            DC.document_id.in_(list(doc_ids)),
+        )
+        chunk_result = await db.execute(chunk_stmt)
+        for row in chunk_result.all():
+            cid, did, pid = row[0], row[1], row[2] if row[2] else ""
+            if pid and pid.strip():
+                doc_by_passage[pid] = did
+                chunk_to_passage[cid] = pid
+
+        passage_ids = list(doc_by_passage.keys())
+
+        # Load all passage-scoped SourceRefs
         sr_stmt = sql_select(SourceRef).where(
             SourceRef.is_deleted.is_(False),
-            SourceRef.page_location.in_([f"document:{did}" for did in doc_ids]),
+            SourceRef.page_location.in_(
+                [f"passage:{pid}" for pid in passage_ids]
+            ),
         )
         sr_result = await db.execute(sr_stmt)
         for sr in sr_result.scalars().all():
-            doc_id = (
-                sr.page_location.replace("document:", "") if sr.page_location else ""
+            pid = (
+                sr.page_location.replace("passage:", "")
+                if sr.page_location
+                else ""
             )
-            if doc_id:
-                source_ref_by_doc[doc_id] = {
+            if pid and pid in doc_by_passage:
+                did = doc_by_passage[pid]
+                source_ref_by_passage[(did, pid)] = {
                     "source_ref_id": sr.id,
                     "source_ref_url": sr.url or "",
                     "source_ref_title": sr.title,
                 }
 
-        # Second pass: find passage_ids associated with unmatched documents
-        # via document_chunks, then try passage:-scoped SourceRef entries.
-        # This provides same-trace SourceRef when the ingestion pipeline
-        # creates SourceRefs keyed by passage_id rather than document_id.
-        unmatched_for_passage = doc_ids - set(source_ref_by_doc.keys())
-        if unmatched_for_passage:
-            from app.models.document_chunk import DocumentChunk as DC
-
-            chunk_stmt = sql_select(DC.document_id, DC.passage_id).where(
-                DC.is_deleted.is_(False),
-                DC.document_id.in_(list(unmatched_for_passage)),
-                DC.passage_id.isnot(None),
-                DC.passage_id != "",
+        # Load document-scoped SourceRefs as fallback for chunks without passage_id
+        sr_doc_stmt = sql_select(SourceRef).where(
+            SourceRef.is_deleted.is_(False),
+            SourceRef.page_location.in_([f"document:{did}" for did in doc_ids]),
+        )
+        sr_doc_result = await db.execute(sr_doc_stmt)
+        for sr in sr_doc_result.scalars().all():
+            did = (
+                sr.page_location.replace("document:", "")
+                if sr.page_location
+                else ""
             )
-            chunk_result = await db.execute(chunk_stmt)
-            passage_ids: set[str] = set()
-            doc_by_passage: dict[str, str] = {}  # passage_id → document_id
-            for row in chunk_result.all():
-                did, pid = row[0], row[1]
-                if pid and pid.strip() and did:
-                    passage_ids.add(pid)
-                    doc_by_passage[pid] = did
-
-            if passage_ids:
-                passage_sr_stmt = sql_select(SourceRef).where(
-                    SourceRef.is_deleted.is_(False),
-                    SourceRef.page_location.in_(
-                        [f"passage:{pid}" for pid in passage_ids]
-                    ),
-                )
-                passage_sr_result = await db.execute(passage_sr_stmt)
-                for sr in passage_sr_result.scalars().all():
-                    pid = (
-                        sr.page_location.replace("passage:", "")
-                        if sr.page_location
-                        else ""
-                    )
-                    if pid and pid in doc_by_passage:
-                        did = doc_by_passage[pid]
-                        if did not in source_ref_by_doc:
-                            source_ref_by_doc[did] = {
-                                "source_ref_id": sr.id,
-                                "source_ref_url": sr.url or "",
-                                "source_ref_title": sr.title,
-                            }
+            if did:
+                document_fallback[did] = {
+                    "source_ref_id": sr.id,
+                    "source_ref_url": sr.url or "",
+                    "source_ref_title": sr.title,
+                }
 
     for t in result.evidence_trace:
         tid = make_trace_id(t.document_id, t.chunk_id)
@@ -768,7 +772,17 @@ async def _build_retrieval_snapshot(
         if key in seen:
             continue
         seen.add(key)
-        sr_info = source_ref_by_doc.get(t.document_id, {})
+
+        # Resolve SourceRef: passage-scoped is authoritative when passage_id
+        # exists. A missing passage-scoped SourceRef is a provenance gap —
+        # fail-closed (source_ref_id=None) instead of silently falling back
+        # to the document-scoped SourceRef.
+        pid = chunk_to_passage.get(t.chunk_id, "")
+        if pid:
+            sr_info = source_ref_by_passage.get((t.document_id, pid), {})
+        else:
+            sr_info = document_fallback.get(t.document_id, {})
+
         snapshot.append(
             {
                 "trace_id": tid,

@@ -368,10 +368,15 @@ class IngestionService:
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
-        # P0: Create SourceRef on every ingest (title-based dedup —
-        # survives source_url being empty).
+        # P0: Create SourceRef on every ingest — passage-scoped when
+        # passage_id is provided, document-scoped otherwise.
         source_url = doc_data.get("source_url") or (
             meta.get("source_url") if metadata else None
+        )
+        page_loc = (
+            f"passage:{passage_id.strip()}"
+            if passage_id and passage_id.strip()
+            else f"document:{doc.id}"
         )
         await self._ensure_source_ref(
             self.session,
@@ -379,7 +384,7 @@ class IngestionService:
             url=source_url or "",
             author=doc_data.get("source_name")
             or (meta.get("source_name") if metadata else None),
-            page_location=f"document:{doc.id}",
+            page_location=page_loc,
             edition_info=meta.get("edition") if metadata else None,
         )
 
@@ -628,15 +633,20 @@ class IngestionService:
         doc = await self.doc_repo.create(**doc_data)
         await self.session.flush()
 
-        # P0: Create SourceRef on every ingest (title-based dedup —
-        # survives source_url being empty).
+        # P0: Create SourceRef on every ingest — passage-scoped when
+        # passage_id is provided, document-scoped otherwise.
         source_url = doc_data.get("source_url")
+        page_loc = (
+            f"passage:{passage_id.strip()}"
+            if passage_id and passage_id.strip()
+            else f"document:{doc.id}"
+        )
         await self._ensure_source_ref(
             self.session,
             title=title.strip(),
             url=source_url or "",
             author=doc_data.get("source_name"),
-            page_location=f"document:{doc.id}",
+            page_location=page_loc,
             edition_info=meta.get("edition"),
         )
 
@@ -881,6 +891,18 @@ class IngestionService:
 
             await self.session.flush()
 
+            # 7b. Create/ensure passage-scoped SourceRef for the appended passage.
+            #    Must live inside the savepoint so a failure here rolls back
+            #    all chunks and the stale SourceRef together.
+            await self._ensure_source_ref(
+                self.session,
+                title=doc.title.strip(),
+                url=doc.source_url or "",
+                author=doc.source_name,
+                page_location=f"passage:{passage_id.strip()}",
+                edition_info=None,
+            )
+
             # 8. Rebuild full content text and recompute checksum
             all_chunks_result = await self.session.execute(
                 _sel(DocumentChunk.content)
@@ -1107,8 +1129,36 @@ class IngestionService:
 
         loc = (page_location or "").strip()
 
+        if norm_url and loc:
+            # URL + page_location identity — passage-scoped or document-scoped.
+            # Two different passages with the same URL must produce distinct
+            # SourceRef rows.
+            stmt = _select(SourceRef.id).where(
+                and_(
+                    SourceRef.url == norm_url,
+                    SourceRef.page_location == loc,
+                    SourceRef.is_deleted.is_(False),
+                )
+            )
+            result = await session.execute(stmt)
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+
+            ref = SourceRef(
+                title=title_clean,
+                author=author or "",
+                edition_info=edition_info or "",
+                page_location=loc,
+                url=norm_url,
+            )
+            session.add(ref)
+            await session.flush()
+            return str(ref.id) if ref.id else str(uuid4())
+
         if norm_url:
-            # URL is the stable identity
+            # URL-only identity — legacy document-scoped dedup when no
+            # page_location is provided.
             stmt = _select(SourceRef.id).where(
                 and_(
                     SourceRef.url == norm_url,
