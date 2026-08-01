@@ -56,7 +56,7 @@
 | **布局** | 无 ResearchAppLayout 包裹 — 直接挂载在 `DefaultLayout` 下 |
 | **passage 定位** | 通过 query string `?passage=<passage_id>` 实现，无独立路由参数。**Reader 当前未消费 `?passage` query param** — `ReaderPage.vue` 只读取 `route.params.id`，无 `watch`/`computed` 消费 `route.query.passage`。高亮/滚动至特定 passage 功能未实现。 |
 | **entry guard** | `requiresAuth` |
-| **Library 入口** | `LibraryDetailPage.vue:194`: `router.push(\`/reader/${doc.value.id}\`)`（不带 `?passage`）；**SourceReference 实际落点**为 Library Detail：`SourceReferenceCard.vue:84-86` 构建 `router-link` 指向 `/library/{docId}?passage={pid}`，非 Reader 路由。因此 `?passage` query 的消费点在 Library Detail 而非 Reader。 |
+| **Library 入口** | `LibraryDetailPage.vue:194`: `router.push(\`/reader/${doc.value.id}\`)`（不带 `?passage`）；**SourceReference 当前无消费点**：`SourceReferenceCard.vue:84-86` 构建 `router-link` 指向 `/library/{docId}?passage={pid}`，`?passage` query 仅被构造并保留在 URL，无页面消费该参数（Library Detail 只读取 `route.params.id`，Reader 只读取 `route.params.id`）。 |
 
 **Reader 排版状态（精确）**：
 
