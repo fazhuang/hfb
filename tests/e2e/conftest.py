@@ -11,6 +11,7 @@ import os
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import uuid as _uuid
 from pathlib import Path
@@ -44,11 +45,20 @@ def _wait_ready(url: str, timeout: int = 30) -> bool:
 
 
 def _run_backend(port: int) -> subprocess.Popen:
-    """Start the FastAPI backend on the given port with SQLite override."""
+    """Start the FastAPI backend on the given port with a unique per-run SQLite database.
+
+    Uses a temp-file database (NOT :memory:) so that the DB survives across
+    async engine reconnections during the fixture lifetime.  DEBUG is forced
+    off to suppress SQLAlchemy echo (which would otherwise fill the stderr
+    PIPE buffer and deadlock the subprocess).
+    """
     backend_dir = Path(__file__).resolve().parent.parent.parent / "apps" / "backend"
+    fd, db_path = tempfile.mkstemp(suffix=".db", prefix="hfb-e2e-")
+    os.close(fd)
     env = os.environ.copy()
-    env["DATABASE_URL"] = "sqlite+aiosqlite:///file::memory:?cache=shared&check_same_thread=False"
-    env["SEED_TEST_DATA"] = "1"  # Enable test-only seed-run endpoint
+    env["DATABASE_URL"] = f"sqlite+aiosqlite:///{db_path}"
+    env["SEED_TEST_DATA"] = "1"
+    env["DEBUG"] = "false"
     proc = subprocess.Popen(
         [
             sys.executable,
@@ -64,9 +74,11 @@ def _run_backend(port: int) -> subprocess.Popen:
         ],
         cwd=str(backend_dir),
         env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
     )
+    # Stash the db_path so the fixture can clean it up on teardown.
+    proc._hfb_db_path = db_path  # type: ignore[attr-defined]
     return proc
 
 
@@ -138,11 +150,17 @@ def _login_via_ui(page, frontend_url: str, username: str, password: str) -> None
 
 @pytest.fixture(scope="module")
 def live_servers():
-    """Start backend + frontend, yield (frontend_url, backend_port), teardown."""
+    """Start backend + frontend, yield (frontend_url, backend_port), teardown.
+
+    Each call gets a unique temp-file SQLite database.  Backend stderr is
+    captured and printed on failure so that service-side exceptions are
+    visible in pytest output.
+    """
     backend_port = _free_port()
     frontend_port = _free_port()
 
     backend_proc = _run_backend(backend_port)
+    db_path: str | None = getattr(backend_proc, "_hfb_db_path", None)
     frontend_proc = _run_frontend(frontend_port, backend_port)
 
     backend_url = f"http://127.0.0.1:{backend_port}"
@@ -151,22 +169,55 @@ def live_servers():
     backend_ready = _wait_ready(f"{backend_url}/health", timeout=30)
     frontend_ready = _wait_ready(frontend_url, timeout=30)
 
+    teardown_errors: list[str] = []
+
     if not backend_ready:
-        backend_proc.terminate()
-        frontend_proc.terminate()
-        raise RuntimeError("Backend failed to start")
-
+        teardown_errors.append("Backend failed to start")
     if not frontend_ready:
+        teardown_errors.append("Frontend failed to start")
+
+    if teardown_errors:
+        # Collect backend stderr for diagnosis before killing processes.
+        for label, proc in [("backend", backend_proc), ("frontend", frontend_proc)]:
+            proc.terminate()
+            try:
+                out, err = proc.communicate(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                out, err = proc.communicate(timeout=5)
+            if err:
+                sys.stderr.write(f"\n--- {label} stderr ---\n")
+                sys.stderr.write(err.decode("utf-8", errors="replace")[-8000:])
+                sys.stderr.write(f"\n--- end {label} stderr ---\n")
+        # Clean up the temp DB.
+        if db_path and os.path.exists(db_path):
+            os.unlink(db_path)
+        raise RuntimeError("; ".join(teardown_errors))
+
+    try:
+        yield frontend_url, backend_port
+    finally:
         backend_proc.terminate()
         frontend_proc.terminate()
-        raise RuntimeError("Frontend failed to start")
-
-    yield frontend_url, backend_port
-
-    backend_proc.terminate()
-    frontend_proc.terminate()
-    backend_proc.wait(timeout=10)
-    frontend_proc.wait(timeout=10)
+        try:
+            out, err = backend_proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            backend_proc.kill()
+            out, err = backend_proc.communicate(timeout=10)
+        # Print backend stderr if the test failed (not clean teardown).
+        # We only print on error; successful runs keep output clean.
+        if err and err.strip():
+            sys.stderr.write("\n--- backend stderr (during run) ---\n")
+            sys.stderr.write(err.decode("utf-8", errors="replace")[-16000:])
+            sys.stderr.write("\n--- end backend stderr ---\n")
+        try:
+            frontend_proc.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            frontend_proc.kill()
+            frontend_proc.communicate(timeout=10)
+        # Clean up the unique temp database.
+        if db_path and os.path.exists(db_path):
+            os.unlink(db_path)
 
 
 @pytest.fixture(scope="module")
