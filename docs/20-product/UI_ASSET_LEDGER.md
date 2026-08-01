@@ -1,6 +1,6 @@
 # UI Asset Ledger — HFB MVP Frontend
 
-> **状态**：WP-0 B1 只读盘点，HEAD `ba32ea3`。不修改任何代码、token、依赖或组件。
+> **状态**：WP-0 B1 只读盘点，HEAD `045982f`。不修改任何代码、token、依赖或组件。
 > **生成依据**：`apps/frontend/src/` 目录遍历、样式 token 文件、组件文件、store 文件与依赖声明（`package.json`）。
 > **下文"处置"列**：`keep` = 当前实现一致且可继续使用；`gap` = 当前缺失，B 阶段需补齐；`drift` = 多头实现/不一致，需统一。
 
@@ -54,9 +54,9 @@
 | **页面组件** | `pages/reader/ReaderPage.vue` |
 | **子组件** | `components/reader/PassageReader.vue` |
 | **布局** | 无 ResearchAppLayout 包裹 — 直接挂载在 `DefaultLayout` 下 |
-| **passage 定位** | 通过 query string `?passage=<passage_id>` 实现，无独立路由参数 |
+| **passage 定位** | 通过 query string `?passage=<passage_id>` 实现，无独立路由参数。**Reader 当前未消费 `?passage` query param** — `ReaderPage.vue` 只读取 `route.params.id`，无 `watch`/`computed` 消费 `route.query.passage`。高亮/滚动至特定 passage 功能未实现。 |
 | **entry guard** | `requiresAuth` |
-| **Library 入口** | `LibraryDetailPage.vue:194`: `router.push(\`/reader/${doc.value.id}\`)`；`SourceReferenceCard.vue:84-86`: `router-link` 指向 `/library/{docId}?passage={pid}` |
+| **Library 入口** | `LibraryDetailPage.vue:194`: `router.push(\`/reader/${doc.value.id}\`)`（不带 `?passage`）；**SourceReference 实际落点**为 Library Detail：`SourceReferenceCard.vue:84-86` 构建 `router-link` 指向 `/library/{docId}?passage={pid}`，非 Reader 路由。因此 `?passage` query 的消费点在 Library Detail 而非 Reader。 |
 
 **Reader 排版状态（精确）**：
 
