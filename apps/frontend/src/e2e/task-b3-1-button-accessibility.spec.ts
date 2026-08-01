@@ -13,7 +13,7 @@
  *   - prefers-reduced-motion: reduce → computed animation-name === "none"
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const FIXTURE = 'http://127.0.0.1:5173/src/e2e/fixtures/b3-1-button-fixture.html';
 
@@ -28,7 +28,7 @@ const iconOnlyBtn = () => '[data-testid="btn-icon-only"] button';
 const clickOutput = () => '[data-testid="click-output"]';
 
 /** Read the serialised click-counts object from the page */
-async function getClickCounts(page: any): Promise<Record<string, number>> {
+async function getClickCounts(page: Page): Promise<Record<string, number>> {
   const text = await page.locator(clickOutput()).textContent();
   return JSON.parse(text || '{}');
 }

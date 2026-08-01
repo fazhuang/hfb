@@ -198,6 +198,24 @@ layout/
 
 ---
 
+### 5.1 ariaLabel（可访问名称）
+
+适用范围：HfbButton 及其他交互式基础组件。
+
+**必须提供 `ariaLabel` 的场景：**
+
+- 仅图标按钮（无 default slot 可见文本）——aria-label 是唯一的可访问名称来源
+- 无可见文本的交互控件（如纯图标开关、图标操作按钮）
+
+**可省略 `ariaLabel` 的场景：**
+
+- default slot 已包含可见文本（`<HfbButton>提交</HfbButton>`）
+- 通过 `aria-labelledby` 引用外部标签
+
+**规则：** 每个交互式 `<button>` 必须拥有可访问名称（来自 innerText、aria-label 或 aria-labelledby），否则 Screen Reader 将读作"未标记按钮"。
+
+---
+
 # 第六章 Events 规范
 
 统一：
