@@ -152,3 +152,17 @@
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* ---- Spinner keyframe ---- */
+@keyframes hfb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .hfb-button__spinner {
+    animation: none;
+  }
+}

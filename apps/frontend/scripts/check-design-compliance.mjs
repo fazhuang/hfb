@@ -18,6 +18,10 @@
  *
  * Token allowed-values are PARSED from token CSS.
  *
+ * Baseline: check-design-compliance.baseline.json freezes pre-existing
+ * violations so new work can enforce fail-closed.  Entries removed from
+ * the baseline file become blocking again.
+ *
  * Usage: node apps/frontend/scripts/check-design-compliance.mjs
  */
 
@@ -29,6 +33,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const SRC = resolve(ROOT, 'src');
 const TOKENS_DIR = resolve(SRC, 'styles', 'tokens');
+const BASELINE_PATH = resolve(__dirname, 'check-design-compliance.baseline.json');
 
 const R = '\x1b[31m';
 const G = '\x1b[32m';
@@ -56,6 +61,41 @@ function parseTokenValues() {
 
 const TOKEN_VALUES = parseTokenValues();
 
+// ─── Baseline ────────────────────────────────────────────────────────────
+
+function loadBaseline() {
+  if (!existsSync(BASELINE_PATH)) return [];
+  try {
+    const raw = readFileSync(BASELINE_PATH, 'utf-8');
+    const data = JSON.parse(raw);
+    const block = data.block || '?';
+    const frozenAt = data.frozen_at || '?';
+    return {
+      block,
+      frozenAt,
+      entries: (data.exempt || []).map((e) => ({
+        key: `${e.file}::${e.line}::${e.rule}`,
+        ...e,
+      })),
+    };
+  } catch {
+    console.warn('Baseline file exists but is not valid JSON — ignoring.');
+    return [];
+  }
+}
+
+function applyBaseline(violations, baseline) {
+  if (!baseline.entries?.length) return violations;
+  const exemptKeys = new Set(baseline.entries.map((b) => b.key));
+  const unexempt = [];
+  for (const v of violations) {
+    if (!exemptKeys.has(`${v.file}::${v.line}::${v.rule}`)) {
+      unexempt.push(v);
+    }
+  }
+  return unexempt;
+}
+
 // ─── Walk ───────────────────────────────────────────────────────────────
 
 function walkDir(dir) {
@@ -77,9 +117,6 @@ function walkDir(dir) {
       }
     }
   } catch {}
-  {
-    /* dir may not exist */
-  }
   return results;
 }
 
@@ -185,9 +222,19 @@ for (const dir of scanDirs) {
   }
 }
 
+// ─── Apply baseline ─────────────────────────────────────────────────────
+
+const baseline = loadBaseline();
+if (baseline.entries?.length) {
+  console.log(
+    `\n${B}HFB Design System Compliance Check — baseline active (${baseline.entries.length} frozen from ${baseline.block} @ ${baseline.frozenAt})${X}\n`,
+  );
+}
+
+const violations = applyBaseline(all, baseline);
+
 // ─── Report ─────────────────────────────────────────────────────────────
 
-console.log(`\n${B}HFB Design System Compliance Check${X}\n`);
 console.log(
   `Scanned: ${scanDirs
     .filter((d) => existsSync(d))
@@ -195,17 +242,23 @@ console.log(
     .join(', ')}`,
 );
 console.log(`Allowed spacings: [${[...TOKEN_VALUES.spacings].sort((a, b) => a - b).join(', ')}]`);
-console.log(`Allowed radii: [${[...TOKEN_VALUES.radii].sort((a, b) => a - b).join(', ')}]\n`);
+console.log(`Allowed radii: [${[...TOKEN_VALUES.radii].sort((a, b) => a - b).join(', ')}]`);
 
-if (all.length === 0) {
-  console.log(`${G}${B}✓ Design System compliance check PASSED — 0 violations${X}\n`);
+if (all.length - violations.length > 0) {
+  console.log(
+    `  ${B}${all.length - violations.length} exemption(s)${X} applied (frozen pre-existing)\n`,
+  );
+}
+
+if (violations.length === 0) {
+  console.log(`\n${G}${B}✓ Design System compliance check PASSED — 0 new violations${X}\n`);
   process.exit(0);
 }
 
-console.log(`${R}${B}BLOCKING VIOLATIONS (${all.length}):${X}\n`);
+console.log(`\n${R}${B}BLOCKING VIOLATIONS (${violations.length}):${X}\n`);
 
 const byFile = {};
-for (const v of all) {
+for (const v of violations) {
   if (!byFile[v.file]) byFile[v.file] = [];
   byFile[v.file].push(v);
 }
@@ -213,5 +266,5 @@ for (const [file, vs] of Object.entries(byFile).sort()) {
   console.log(`  ${B}${file}${X} (${vs.length}):`);
   for (const v of vs) console.log(`    ${R}L${v.line}:${X} ${v.rule} → "${v.value}"`);
 }
-console.log(`\n${R}${B}✖ ${all.length} violation(s) — FAIL${X}\n`);
+console.log(`\n${R}${B}✖ ${violations.length} violation(s) — FAIL${X}\n`);
 process.exit(1);

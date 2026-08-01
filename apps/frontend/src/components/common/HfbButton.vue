@@ -5,6 +5,7 @@
     :disabled="disabled || loading"
     :aria-disabled="disabled || loading"
     :aria-busy="loading ? true : undefined"
+    :aria-label="ariaLabel"
   >
     <span v-if="loading" class="hfb-button__spinner" aria-hidden="true" />
     <span v-if="$slots.icon && !loading" class="hfb-button__icon">
@@ -30,6 +31,7 @@ const props = withDefaults(
     loading?: boolean;
     type?: 'button' | 'submit' | 'reset';
     block?: boolean;
+    ariaLabel?: string;
   }>(),
   {
     variant: 'primary',

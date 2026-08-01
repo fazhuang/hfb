@@ -1,0 +1,171 @@
+{
+  "$schema": "./check-design-compliance.baseline.schema.json",
+  "$description": "Frozen pre-existing violations exempt from per-Block checks. DO NOT ADD entries — REMOVE them when the offending file is fixed.",
+  "block": "B3-1",
+  "frozen_at": "2026-08-02",
+  "commit_sha": "c5795c3",
+  "exempt": [
+    {
+      "file": "src/pages/knowledge/KnowledgeExplorerPage.vue",
+      "line": 489,
+      "rule": "spacing:bare-px",
+      "value": "margin: 0 0 2px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 200,
+      "rule": "color:var-fallback",
+      "value": "#fff8e1"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 201,
+      "rule": "color:var-fallback",
+      "value": "#ffc107"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 202,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 223,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 20px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 225,
+      "rule": "transition:bare",
+      "value": "background 0.2s"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 230,
+      "rule": "color:hex",
+      "value": "#fff"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 287,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 300,
+      "rule": "spacing:bare-px",
+      "value": "padding: 2px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 301,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 4px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 314,
+      "rule": "spacing:bare-px",
+      "value": "padding: 4px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 317,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 4px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 324,
+      "rule": "color:hex",
+      "value": "#fff"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 337,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 357,
+      "rule": "color:var-fallback",
+      "value": "#dc3545"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 364,
+      "rule": "color:var-fallback",
+      "value": "#dc3545"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 386,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 431,
+      "rule": "spacing:bare-px",
+      "value": "padding: 2px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 432,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 4px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 443,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 450,
+      "rule": "spacing:bare-px",
+      "value": "padding: 2px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 451,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 12px"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 452,
+      "rule": "color:var-fallback",
+      "value": "#fff8e1"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 453,
+      "rule": "color:hex",
+      "value": "#856404"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 458,
+      "rule": "color:var-fallback",
+      "value": "#d4edda"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 459,
+      "rule": "color:hex",
+      "value": "#155724"
+    },
+    {
+      "file": "src/pages/research/VersionComparisonPage.vue",
+      "line": 481,
+      "rule": "radius:bare-px",
+      "value": "border-radius: 8px"
+    }
+  ]
+}

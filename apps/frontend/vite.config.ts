@@ -11,6 +11,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        ...(process.env.NODE_ENV !== 'production'
+          ? { 'b3-1-fixture': resolve(__dirname, 'src/e2e/fixtures/b3-1-button-fixture.html') }
+          : {}),
+      },
       output: {
         manualChunks(id) {
           if (id.includes('/vis-network/')) return 'vis-network';

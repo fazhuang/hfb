@@ -38,6 +38,7 @@
 html.dark {
   --color-disabled-bg: #2d3748;
   --color-disabled-text: #718096;
+  --color-on-accent: #1a202c;
 }
 
 /* ── Accent alpha variants (used for subtle backgrounds/borders) ── */
