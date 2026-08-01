@@ -235,7 +235,44 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ---
 
-## 7. 验证证据（Codex 检查点）
+## 7. 无障碍规则：装饰图标 vs 操作图标
+
+> 本节为三候选通用 — 无论 PO 选择哪个包，以下规则在 B3 实施时必须强制执行。
+
+### 7.1 分类与标签规则
+
+| 图标类别 | 示例（Hfb 内） | `aria-hidden` | 可访问名称 | 备注 |
+|---|---|---|---|---|
+| **纯装饰** | 按钮内前缀 icon（无独立语义，纯视觉增强） | `true` | 无需 | 按钮本身的文本/aria-label 承载语义 |
+| **状态指示器** | Alert variant icon (✓✕⚠ℹ)、StatusCard、LineageStatusBadge | `true` | 通过相邻可见文本传达 | 颜色/形状为视觉冗余；状态由 variant 文本承载 |
+| **独立操作** | 仅 icon 的按钮（如排序箭头、关闭按钮）、clickable icon | `false` | `<Icon aria-label="排序" />` 或父 button 的 aria-label | 无可见文本时必须提供可访问名称 |
+| **导航项前缀** | Navbar icon + 文本链接 | `true` | 链接文本承载语义 | 与按钮规则一致：相邻可见文本提供含义 |
+| **内容图标** | EmptyState、PlaceholderPage | `true` | H3/p description 承载语义 | icon 为视觉装饰 |
+
+### 7.2 实施规则
+
+1. **属性传递**：HfbIcon 封装组件必须透传 `aria-label`、`role` 至根 SVG 或包裹 `span`。
+2. **default aria-hidden**：HfbIcon 默认为 `aria-hidden="true"`。仅当调用方显式提供 `aria-label` 或不带文本的独立操作按钮中才移除。
+3. **focusable**：SVG icon 组件不得设置 `focusable="true"`（除非在交互式按钮内，且由 button 管理焦点）。
+4. **color contrast**：所有 status/alert icon 必须满足 WCAG 2.2 AA 3:1 contrast ratio 对 UI components（非文本）的要求。Phosphor 6 weight 在此有优势（可选用 bold/fill 提高对比度）；Lucide/Iconify 需通过 `strokeWidth` 调整。
+5. **暗色模式**：icon `color` 必须通过 CSS custom property 绑定（建议 `var(--color-text-primary)` 或 `var(--color-accent)`），而非 hardcoded hex，以确保 dark/light 均合规。
+6. **font icon 禁止**：所有候选均使用 SVG，本质上避免了 font icon 的用户缩放/文本替换无障碍问题。
+
+### 7.3 候选无障碍差异
+
+| 维度 | Lucide Vue | Iconify Vue | Phosphor Vue |
+|---|---|---|---|
+| 默认 role | `role="img"` | `role="img"` | `role="img"` |
+| 默认 aria-hidden | 无（需手动） | `aria-hidden="true"` | 无（需手动） |
+| aria-label 传递 | 通过 `$attrs` | 需显式 prop 或 `$attrs` | 通过 `$attrs` |
+| focusable 默认 | `focusable="false"` | `focusable="false"` | `focusable="false"` |
+| weight/contrast control | `strokeWidth` (1–3) | 取决于 icon set | 6 weights (thin→fill) |
+
+**结论**：Iconify 的默认 `aria-hidden="true"` 符合"装饰优先"的安全默认策略，Lucide/Phosphor 需在 HfbIcon 封装中手动设置。Phosphor 的 6 weight 在高对比度/暗色模式下提供更多选项。
+
+---
+
+## 8. 验证证据（Codex 检查点）
 
 - [x] `apps/frontend/package.json` 无现有图标库依赖 (verified: no 'icon' in deps/devDeps keys)
 - [x] 三候选均在 npm registry 独立验证 (lucide.dev / iconify.design / phosphoricons.com)
