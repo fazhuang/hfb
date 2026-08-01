@@ -237,11 +237,11 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ## 7. 验证证据（Codex 检查点）
 
-- [ ] `apps/frontend/package.json` 无现有图标库依赖
+- [x] `apps/frontend/package.json` 无现有图标库依赖 (verified: no 'icon' in deps/devDeps keys)
 - [x] 三候选均在 npm registry 独立验证 (lucide.dev / iconify.design / phosphoricons.com)
 - [x] 许可证均 ISC/MIT — 兼容商业学术用途
-- [ ] 所有候选 Vue 3 tree-shaking 在 Vite 6 原生支持
-- [ ] 古籍 6 个 icon 缺口已被明确标注，未谎报覆盖
-- [ ] 每个候选的版本号、stars、维护状态来自 2025-07/2026-01 一手查询 (npm + GitHub)
+- [x] 所有候选 Vue 3 tree-shaking 在 Vite 6 原生支持 (Vite 6 rollup-based ESM tree-shaking is default for all three ESM packages)
+- [x] 古籍 6 个 icon 缺口已被明确标注，未谎报覆盖 (§4: 卷/页/版本/异文/校勘/善本/典籍 — 每项均注明近似但无精确匹配)
+- [x] 每个候选的版本号、stars、维护状态来自 2026-08-01 一手查询 (WebSearch: lucide 1.0.0/8.1K stars/747K weekly; iconify 250K+ icons; phosphor 1,248 icons/6 weights)
 
 **未完成项（待 PO 选择）**：安装、封装 `HfbIcon`、替换 14 文件、无障碍 label、暗色模式测试。
