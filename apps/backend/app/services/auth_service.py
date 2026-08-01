@@ -181,7 +181,19 @@ class AuthService:
                 )
             await self.session.flush()
 
-        return user
+        # Re-fetch with eager-loaded roles so that _user_to_dict() does not
+        # trigger a deferred lazy-load from sync code (MissingGreenlet under
+        # aiosqlite).  selectinload joins the roles association in one query.
+        from sqlalchemy.orm import selectinload
+
+        stmt = (
+            sa_select(User)
+            .options(selectinload(User.roles))
+            .where(User.id == user.id, User.is_deleted.is_(False))
+        )
+        result = await self.session.execute(stmt)
+        user_with_roles = result.scalar_one()
+        return user_with_roles
 
     def refresh_access_token(self, refresh_token: str) -> tuple[str, str] | None:
         """Issue a new token pair from a valid refresh token. Returns (access, refresh) or None."""
