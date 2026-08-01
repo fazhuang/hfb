@@ -1062,9 +1062,9 @@ class TestResearchWorkflowPageE2E:
         #   First non-empty, non-#-prefix line longer than 10 chars, truncated
         #   to 60 chars.  Fallback to report topic/question.
         lines = [
-            l
-            for l in preview_text.split("\n")
-            if l.strip() and not l.startswith("#") and len(l) > 10
+            line
+            for line in preview_text.split("\n")
+            if line.strip() and not line.startswith("#") and len(line) > 10
         ]
         expected_query = lines[0][:60] if lines else "E2E验证标识 经络"
 

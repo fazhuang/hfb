@@ -26,10 +26,6 @@ from sqlalchemy.orm import sessionmaker
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from app.models.document import Document
-from app.models.document_chunk import DocumentChunk
-from app.models.passage import Passage
-
 
 async def backfill(db: AsyncSession | None = None, dry_run: bool = False) -> dict:
     """Run passage backfill. Returns stats dict."""
@@ -57,6 +53,10 @@ async def backfill(db: AsyncSession | None = None, dry_run: bool = False) -> dic
 
 
 async def _run_backfill(session: AsyncSession, dry_run: bool = False) -> dict:
+    from app.models.document import Document
+    from app.models.document_chunk import DocumentChunk
+    from app.models.passage import Passage
+
     # Count total non-deleted chunks
     total_result = await session.execute(
         select(DocumentChunk).where(DocumentChunk.is_deleted.is_(False))
