@@ -21,17 +21,20 @@
 
 ## 2. 候选包
 
-### 候选 A：Lucide Vue (lucide-vue-next)
+### 候选 A：Lucide Vue
 
 > **一手来源**：https://lucide.dev
-> **包**：`lucide-vue-next` (npm, ISC)
-> **版本**：1.0.0 (截至 2025-07 stable；前置 v0 已迁移至 v1)
-> **维护**：活跃 (8.1K+ GitHub stars, 140+ contributors, ~747K weekly npm downloads)
-> **Vue 3**：专为 Vue 3 构建；Vue 2 用户需 `lucide-vue`
+> **PO 可选包**：`@lucide/vue`（推荐，v1.x 当前 stable）或 `lucide-vue-next`（已弃用，最后版本 1.0.0，npm 标记 deprecated "Please use @lucide/vue instead"）
+> **当前版本**：`@lucide/vue` 1.24.0 (截至 2026-07)；`lucide-vue-next` 终止于 1.0.0 (2026-03-23)
+> **版本策略**：建议安装 `@lucide/vue`，锁定 `^1.24.0`。`lucide-vue-next` 已弃用且不再发布新版本 — 不可用于新项目。
+> **迁移路径**：`lucide-vue-next → @lucide/vue` 为 find-and-replace 级别（API 不变），仅需改 package name 与 import path。
+> **许可证**：ISC
+> **维护**：活跃 (8.1K+ GitHub stars, 140+ contributors, ~246K weekly npm downloads for `@lucide/vue`)
+> **Vue 3**：`@lucide/vue` 专为 Vue 3 构建
 
 **导入方式**：
 ```ts
-import { BookOpen, Search, FileText, ChevronRight } from 'lucide-vue-next';
+import { BookOpen, Search, FileText, ChevronRight } from '@lucide/vue';
 ```
 单文件每个 icon 一个 named export，支持 `size` / `color` / `stroke-width` / `class` props。
 
@@ -74,7 +77,7 @@ import { BookOpen, Search, FileText, ChevronRight } from 'lucide-vue-next';
 **icon 总数**：1,600+ (vs 原文 ~800)
 **包体积**：~1.5 KB/icon (gzipped)，全量 ~60 KB gzipped tree-shaken 后仅保留引用 icons
 **构建兼容**：Vue 3 only，ESM + CJS
-**无障碍**：默认 `role="img"`, 需自行 `aria-label`
+**无障碍**：v1 默认 `aria-hidden="true"` + `role="img"`；需自行 `aria-label` 用于独立操作图标
 **Vue 版本**：`>=3.0.0`
 
 ---
@@ -83,9 +86,9 @@ import { BookOpen, Search, FileText, ChevronRight } from 'lucide-vue-next';
 
 > **一手来源**：https://iconify.design
 > **包**：`@iconify/vue` (npm, MIT)
-> **版本**：4.x stable (also 5.x available)
-> **维护**：活跃 (4K+ GitHub stars, 200+ icon sets, 250,000+ icons via public API)
-> **Vue 3**：原生 Vue 3 组件，也提供 framework-agnostic `iconify-icon` web component
+> **当前版本**：5.0.1
+> **维护**：活跃 (4K+ GitHub stars, 200+ icon sets, 250,000+ icons via public API, ~1.35M monthly downloads)
+> **Vue 3**：原生 Vue 3 组件。Iconify 同时推荐 framework-agnostic `iconify-icon` web component 用于 SSR/Nuxt/性能敏感场景。
 
 **导入方式**：
 ```ts
@@ -116,8 +119,9 @@ import { Icon } from '@iconify/vue';
 
 > **一手来源**：https://phosphoricons.com
 > **包**：`@phosphor-icons/vue` (npm, MIT)
-> **版本**：2.x stable (截至 2025)
-> **维护**：活跃 (1,248+ icons × 6 weights = ~7,500 variants)
+> **当前版本**：2.2.1 (Apr 2024, final stable；无后续发布)
+> **维护**：低活跃 — 最新发布距今 >2 年。项目仍可用但无新功能/修复。Nuxt 封装包 (`nuxt-phosphor-icons`) 单独维护 (2.3.3, Nov 2025)。
+> **icon 总数**：1,248 × 6 weights = ~7,500 variants
 > **Vue 3**：专为 Vue 3 构建，组件 `Ph` 前缀 (e.g. `PhHorse`)。提供全局注册 `app.use(PhosphorIcons)`
 
 **导入方式**：
@@ -147,7 +151,7 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 | 维度 | A: Lucide Vue | B: Iconify Vue | C: Phosphor Vue |
 |---|---|---|---|
-| **包名** | `lucide-vue-next` | `@iconify/vue` | `@phosphor-icons/vue` |
+| **包名** | `@lucide/vue` (recommended; deprecated: `lucide-vue-next`) | `@iconify/vue` | `@phosphor-icons/vue` |
 | **许可证** | ISC | MIT | MIT |
 | **icon 总数** | 1,600+ | 250,000+ (200+ sets) | 1,248 |
 | **现有 24 种覆盖率** | ~21/24 exact | ~24/24 exact (多源混合) | ~19/24 exact |
@@ -155,12 +159,12 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 | **CJK 学术缺项** | 高 | 高 (所有 set 均无) | 高 |
 | **Weight variant** | 1 (strokeWidth 可调) | 取决于 set | 6 (thin → fill) |
 | **Tree-shaking** | per-export | on-demand API | per-export |
-| **额外包体积** | ~KKB ref'd icons | ~6 KB core + on-demand data | ~KKB ref'd icons |
+| **版本** | 1.24.0 (Jul 2026) | 5.0.1 | 2.2.1 (Apr 2024, final stable) |
 | **Vue 版本** | 3.x only | 3.x (also web component) | 3.x |
-| **无障碍** | `role="img"` (no auto label) | `role="img"` + `aria-hidden` (default) | `role="img"` (no auto label) |
+| **无障碍** | `role="img"` + `aria-hidden` (v1 default) | `role="img"` + `aria-hidden` (default) | `role="img"` (no auto label) |
 | **替换工作量** | 中 — ~24 处替换 + 14 文件 | 低 — 单一 `<Icon>` 组件封装后批量替换 | 中 — 同 Lucide |
 | **古籍 icon 自绘扩展** | 不支持 | 支持 (`addCollection` + `IconInline`) | 不支持 |
-| **npm 周下载** | ~747K | ~500K+ | ~300K+ |
+| **npm 周下载** | ~246K (`@lucide/vue`) | ~500K+ | ~43K |
 
 ---
 
@@ -191,8 +195,8 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 | 优先级 | 候选 | 理由 |
 |---|---|---|
 | **首选** | **B: Iconify Vue** | 一个 API 覆盖所有现有 + 可混合最佳语义 icon set + 支持未来自定义古籍 SVG set；替换工作量最低；核心最轻 |
-| 次选 | A: Lucide Vue | 若追求每 icon 独立 tree-shaking + 最小化依赖，且接受 `ScrollText` 为古籍卷轴语义 |
-| 保守 | C: Phosphor Vue | 若要求 6 weight variant 的无障碍/暗色模式 uniformly，且接受选缺 icon |
+| **次选 (注意弃用)** | A: Lucide Vue | 若追求每 icon 独立 tree-shaking + 最小化依赖，且接受 `ScrollText` 为古籍卷轴语义。注意：`lucide-vue-next` 已弃用，必须安装 `@lucide/vue`，锁定 `^1.24.0` |
+| **不推荐** | C: Phosphor Vue | 若要求 6 weight variant 的无障碍/暗色模式 uniformly；但最后 stable 发布于 2024-04-05，>2 年无更新，锁定 `^2.2.1` |
 
 ---
 
@@ -279,6 +283,6 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 - [x] 许可证均 ISC/MIT — 兼容商业学术用途
 - [x] 所有候选 Vue 3 tree-shaking 在 Vite 6 原生支持 (Vite 6 rollup-based ESM tree-shaking is default for all three ESM packages)
 - [x] 古籍 6 个 icon 缺口已被明确标注，未谎报覆盖 (§4: 卷/页/版本/异文/校勘/善本/典籍 — 每项均注明近似但无精确匹配)
-- [x] 每个候选的版本号、stars、维护状态来自 2026-08-01 一手查询 (WebSearch: lucide 1.0.0/8.1K stars/747K weekly; iconify 250K+ icons; phosphor 1,248 icons/6 weights)
+- [x] 每个候选的版本号、stars、维护状态来自 2026-08-01 一手查询 (WebSearch: `@lucide/vue` 1.24.0/~246K weekly; `@iconify/vue` 5.0.1/~1.35M monthly; `@phosphor-icons/vue` 2.2.1 final/~43K monthly)
 
 **未完成项（待 PO 选择）**：安装、封装 `HfbIcon`、替换 14 文件、无障碍 label、暗色模式测试。
