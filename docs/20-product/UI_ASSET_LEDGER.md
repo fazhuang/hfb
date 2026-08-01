@@ -1,6 +1,6 @@
 # UI Asset Ledger — HFB MVP Frontend
 
-> **状态**：WP-0 B1 只读盘点，HEAD `045982f`。不修改任何代码、token、依赖或组件。
+> **状态**：WP-0 B1 只读盘点，当前 HEAD。不修改任何代码、token、依赖或组件。
 > **生成依据**：`apps/frontend/src/` 目录遍历、样式 token 文件、组件文件、store 文件与依赖声明（`package.json`）。
 > **下文"处置"列**：`keep` = 当前实现一致且可继续使用；`gap` = 当前缺失，B 阶段需补齐；`drift` = 多头实现/不一致，需统一。
 
