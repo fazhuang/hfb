@@ -197,6 +197,7 @@ function onMenuKey(event: KeyboardEvent) {
     const opt = props.options[highlightedIdx.value];
     if (opt && !opt.disabled) selectOption(opt);
   } else if (event.key === 'Escape') {
+    event.preventDefault();
     closeMenu();
   }
 }

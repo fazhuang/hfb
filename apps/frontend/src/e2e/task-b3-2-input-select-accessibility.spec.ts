@@ -102,14 +102,26 @@ test.describe('B3-2 HfbSelect — States & Accessibility', () => {
     await expect(menu).toBeVisible();
 
     // The component has @keydown="onMenuKey" on the <ul>.
-    // Dispatch a keydown KeyboardEvent directly on the menu element.
+    // Dispatch a synthetic keydown Escape event directly on the DOM node.
+    // The Vue compiler binds this as a native DOM listener, so
+    // dispatchEvent on the raw element will trigger it.
     await menu.evaluate((el) => {
-      el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      el.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Escape',
+          code: 'Escape',
+          keyCode: 27,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
     });
-    await page.waitForTimeout(400);
 
-    const exists = await page.locator('.hfb-select__menu').count();
-    expect(exists).toBe(0);
+    // Wait for Vue to process the event and close the menu (v-if="open")
+    await page.waitForFunction(
+      () => document.querySelector('.hfb-select__menu') === null,
+      { timeout: 5_000 },
+    );
 
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
