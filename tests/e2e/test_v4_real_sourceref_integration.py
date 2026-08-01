@@ -514,6 +514,24 @@ class TestV4A1SourceRefMultiPassageClosure:
         )
 
         # =====================================================================
+        # A1 fail-closed: two distinct passages MUST have distinct source_ref_ids.
+        # A single shared SourceRef (e.g. document-scoped fallback) is a
+        # provenance defect — passage-scoped SourceRef discrimination is
+        # required for A1 evidence closure.
+        # =====================================================================
+        assert selected[0]["source_ref_id"] != selected[1]["source_ref_id"], (
+            "A1 BLOCKED: two distinct passages share the same source_ref_id — "
+            "document-scoped SourceRef fallback detected, passage discrimination "
+            "required for A1 evidence closure.\n"
+            f"  Trace A: {selected[0]['trace_id']}\n"
+            f"  Passage A: {selected[0]['passage_id']}\n"
+            f"  SourceRef A: {selected[0]['source_ref_id']} ({selected[0]['source_ref_title']})\n"
+            f"  Trace B: {selected[1]['trace_id']}\n"
+            f"  Passage B: {selected[1]['passage_id']}\n"
+            f"  SourceRef B: {selected[1]['source_ref_id']} ({selected[1]['source_ref_title']})"
+        )
+
+        # =====================================================================
         # Phase 12: Build DOM citation index
         # =====================================================================
         citation_items = page.locator(".rcp-citation-item")
