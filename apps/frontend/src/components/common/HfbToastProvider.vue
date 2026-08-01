@@ -13,7 +13,7 @@
         :role="t.variant === 'error' ? 'alert' : 'status'"
         :aria-live="t.variant === 'error' ? 'assertive' : 'polite'"
       >
-        <span class="hfb-toast__icon" aria-hidden="true">{{ toastIcon(t.variant) }}</span>
+        <HfbIcon :icon="toastIconId(t.variant)" :size="18" class="hfb-toast__icon" />
         <div class="hfb-toast__content">
           <div v-if="t.title" class="hfb-toast__title">{{ t.title }}</div>
           <p class="hfb-toast__message">{{ t.message }}</p>
@@ -25,7 +25,7 @@
           aria-label="Dismiss notification"
           @click="dismiss(t.id)"
         >
-          ✕
+          <HfbIcon icon="lucide:x" :size="14" />
         </button>
       </div>
     </div>
@@ -34,17 +34,18 @@
 
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast';
+import HfbIcon from './HfbIcon.vue';
 
 const { toasts, dismiss } = useToast();
 
-function toastIcon(variant: string): string {
+function toastIconId(variant: string): string {
   const icons: Record<string, string> = {
-    info: 'ℹ',
-    success: '✓',
-    warning: '⚠',
-    error: '✕',
+    info: 'lucide:info',
+    success: 'lucide:check',
+    warning: 'lucide:triangle-alert',
+    error: 'lucide:x',
   };
-  return icons[variant] || 'ℹ';
+  return icons[variant] || 'lucide:info';
 }
 </script>
 

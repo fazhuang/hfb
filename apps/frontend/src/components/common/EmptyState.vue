@@ -1,6 +1,6 @@
 <template>
   <div class="empty-state" role="status" aria-live="polite">
-    <span class="empty-icon" aria-hidden="true">{{ icon }}</span>
+    <HfbIcon :icon="emptyIconId" :size="36" class="empty-icon" />
     <h3 class="empty-title">{{ title }}</h3>
     <p v-if="description" class="empty-description">{{ description }}</p>
     <div v-if="$slots.action" class="empty-action">
@@ -10,7 +10,10 @@
 </template>
 
 <script setup lang="ts">
-withDefaults(
+import { computed } from 'vue';
+import HfbIcon from './HfbIcon.vue';
+
+const props = withDefaults(
   defineProps<{
     icon?: string;
     title: string;
@@ -20,6 +23,13 @@ withDefaults(
     icon: '📭',
   },
 );
+
+const emptyIconId = computed(() => {
+  const map: Record<string, string> = {
+    '📭': 'lucide:inbox',
+  };
+  return map[props.icon] || 'lucide:inbox';
+});
 </script>
 
 <style scoped>

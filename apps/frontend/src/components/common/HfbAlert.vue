@@ -4,7 +4,7 @@
     :role="variant === 'error' ? 'alert' : 'status'"
     :aria-live="variant === 'error' ? 'assertive' : 'polite'"
   >
-    <span v-if="showIcon" class="hfb-alert__icon" aria-hidden="true">{{ alertIcon }}</span>
+    <HfbIcon v-if="showIcon" :icon="alertIconId" :size="18" class="hfb-alert__icon" />
     <div class="hfb-alert__content">
       <div v-if="title || $slots.title" class="hfb-alert__title">
         <slot name="title">{{ title }}</slot>
@@ -23,13 +23,14 @@
       aria-label="Close alert"
       @click="$emit('close')"
     >
-      ✕
+      <HfbIcon icon="lucide:x" :size="16" />
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import HfbIcon from './HfbIcon.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -53,12 +54,12 @@ const showIcon = computed(
   () => props.icon && ['info', 'success', 'warning', 'error'].includes(props.variant),
 );
 
-const alertIcon = computed(() => {
+const alertIconId = computed(() => {
   const icons: Record<string, string> = {
-    info: 'ℹ',
-    success: '✓',
-    warning: '⚠',
-    error: '✕',
+    info: 'lucide:info',
+    success: 'lucide:check',
+    warning: 'lucide:triangle-alert',
+    error: 'lucide:x',
   };
   return icons[props.variant] || '';
 });

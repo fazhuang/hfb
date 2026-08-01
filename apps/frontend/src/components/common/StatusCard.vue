@@ -1,6 +1,6 @@
 <template>
   <div class="status-card" :class="{ connected, disconnected: !connected }">
-    <span class="status-icon">{{ connected ? '✓' : '✗' }}</span>
+    <HfbIcon :icon="connected ? 'lucide:check-circle' : 'lucide:x-circle'" :size="20" class="status-icon" />
     <div class="status-body">
       <span class="status-label">{{ label }}</span>
     </div>
@@ -8,6 +8,8 @@
 </template>
 
 <script setup lang="ts">
+import HfbIcon from './HfbIcon.vue';
+
 defineProps<{
   label: string;
   connected: boolean;
