@@ -55,6 +55,19 @@ pnpm typecheck
 **Claude**：不改代码，只汇总 A1/A2 当前 HEAD 原始输出。
 **Codex**：独立重跑 A1 和静态命令；未全绿即 `BLOCK_RELEASE`。仅 `PASS A3` 后可提交 B3 及后续 UI/CSS 实现。
 
+#### WP-0 执行证据摘要（HEAD `ba32ea3`）
+
+| 门禁 | 命令 | 原始输出摘要 | 判定 |
+|---|---|---|---|
+| A1 | `pytest tests/e2e/test_v4_real_sourceref_integration.py -q` | `1 passed in 41.18s` — 两个 passage、两个不同 source_ref_id、两个精确 Reader href、真实 click 200 | PASS |
+| A2-1 | `ruff check apps tests tools` | `All checks passed!` — 0 errors | PASS |
+| A2-2 | `pnpm lint` | `0 errors, 66 warnings` (全部预存 `no-explicit-any`) | PASS |
+| A2-3 | `pnpm typecheck` | 5/5 workspaces clean | PASS |
+| WA | `git diff --check` | clean | PASS |
+| WA | `git status --short` | clean，`uv.lock` 在 HEAD | PASS |
+
+**A3 综合结论**：A1 + A2 全部独立通过 → **PASS A3**。`BLOCK_RELEASE` 本卡闭合；阶段 B1（资产账本）可开始。
+
 ## 阶段 B — UI 资产
 
 ### B1：资产账本（只读）
