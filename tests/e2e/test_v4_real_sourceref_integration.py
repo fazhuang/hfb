@@ -15,7 +15,6 @@ Architecture (matching test_critical_journeys.py):
 
 from __future__ import annotations
 
-import json
 import logging
 import uuid as _uuid
 
@@ -560,7 +559,6 @@ class TestV4A1SourceRefMultiPassageClosure:
         for sel in selected:
             tid = sel["trace_id"]
             pid = sel["passage_id"]
-            sr_id = sel["source_ref_id"]
             sr_title = sel["source_ref_title"]
             did = sel["document_id"]
             expected_href = f"/library/{did}?passage={pid}"
