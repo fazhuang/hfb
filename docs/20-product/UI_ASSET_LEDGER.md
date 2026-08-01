@@ -8,22 +8,75 @@
 
 ## 1. 页面组覆盖
 
-| 页面组 | 主要视图 | 路由 | 关键子组件 |
-|---|---|---|---|
-| **Workspace** | `ResearchWorkspaceView.vue` | `/research/:sessionId` | `ProjectOverview`, `ProjectNotes`, `ProjectReports`, `ResearchResources`, `ResearchActivityList`, `ResearchAssistantEntry` |
-| **Workflow / Result / Reports** | `ResearchWorkflowView.vue` → `ResearchResultView` (composable) | `/research/:sessionId/workflow` → `/research/:sessionId/result` | `ResearchQuestionStep`, `DocumentSelectionStep`, `EvidenceReviewStep`, `ResearchReportStep`, `EvidenceDetail`, `CitationPanel`, `SourceReferenceCard`, `ResearchReportViewer`, `ResearchResultHeader`, `ResearchResultErrorState` |
-| **Library** | `SearchView.vue` + composables | `/library`, `/library/:id`, `/library/:id/reader` | `LibrarySearchBar`, `LibraryDocumentCard`, `LibraryDocumentStatsPanel` |
-| **Reader** | `PassageReader.vue` | `/library/:id/reader?passage=:pid` | 独立 reader 组件，内部无子组件 |
+> 以下路由提取自 `apps/frontend/src/router/index.ts`，仅列研究 MVP 四页面组。
 
-### 1.1 页面组状态摘要
+### 1.1 Workspace（项目工作台）
 
-| 页面组 | Workspace | Workflow/Result | Library | Reader |
-|---|---|---|---|---|
-| 有独立视图文件 | ✓ | ✓ (View + composable) | ✓ | ✓ |
-| 有组件测试 | ✓ (research-workspace, project-list) | ✓ (research-workflow-page, research-result-page, research-reports-page) | ✓ (library-page) | ✓ (reader-page) |
-| 前端测试覆盖用户可见流程 | ✓ | ✓ | ✓ | ✓ |
-| 使用 Hfb 基础组件 | ✓ | ✓ | ✓ | ✓ |
-| 包含 Citation/Evidence/SourceRef | — | ✓ | — | — |
+| 项 | 实际值 |
+|---|---|
+| **路由** | `/research/:projectId/workspace` (name: `research-project-workspace`) |
+| **页面组件** | `pages/research/ResearchWorkspacePage.vue` |
+| **布局** | `layouts/ResearchAppLayout.vue` |
+| **关键子组件 (src/components/research/)** | `ProjectOverview.vue`, `ProjectNotes.vue`, `ProjectReports.vue`, `ResearchResources.vue`, `ResearchActivityList.vue`, `ResearchAssistantEntry.vue`, `ProjectListToolbar.vue`, `ContinueResearchCard.vue`, `RecentNotes.vue`, `RecentReports.vue`, `RecentResearchActivity.vue` |
+| **entry guard** | `requiresAuth`（通过 `ResearchAppLayout → meta: { section: 'research', requiresAuth: true }`） |
+
+### 1.2 Workflow / Result（研究执行与结果）
+
+| 项 | 实际值 |
+|---|---|
+| **Workflow 路由** | `/research/:projectId/workflow` (name: `research-project-workflow`) |
+| **Workflow 页面** | `pages/research/ResearchWorkflowPage.vue` |
+| **Result 路由** | `/research/:projectId/result/:runId` (name: `research-project-result`) |
+| **Result 页面** | `pages/research/ResearchResultPage.vue` |
+| **布局** | 均为 `layouts/ResearchAppLayout.vue` |
+| **Workflow 步骤组件** | `ResearchQuestionStep.vue`, `DocumentSelectionStep.vue`, `EvidenceReviewStep.vue`, `ResearchReportStep.vue`, `WorkflowStepNavigation.vue` |
+| **Result 组件** | `EvidenceDetail.vue`, `CitationPanel.vue`, `SourceReferenceCard.vue`, `ResearchReportViewer.vue`, `ResearchResultHeader.vue`, `ResearchResultErrorState.vue`, `LineageStatusBadge.vue`, `ResearchRunSummary.vue` |
+| **Citation/Evidence/SourceRef 链路** | `CitationPanel` → 点击 → `EvidenceDetail`（同 trace_id/passage_id）→ `SourceReferenceCard`（source_ref_id + Reader href）→ `router-link` 导航至 Library/Reader |
+| **entry guard** | `requiresAuth` |
+
+### 1.3 Library（文献库）
+
+| 项 | 实际值 |
+|---|---|
+| **搜索路由** | `/library` (name: `library-search`) |
+| **搜索页面** | `pages/library/LibrarySearchPage.vue` |
+| **详情路由** | `/library/:id` (name: `library-detail`) |
+| **详情页面** | `pages/library/LibraryDetailPage.vue` |
+| **布局** | 均为 `layouts/ResearchAppLayout.vue` |
+| **关键子组件** | `LibrarySearchBar.vue`, `LibraryDocumentCard.vue`, `LibraryDocumentStatsPanel.vue` |
+| **entry guard** | `requiresAuth` |
+
+### 1.4 Reader（独立全文阅读器 — Task 009）
+
+| 项 | 实际值 |
+|---|---|
+| **路由** | `/reader/:id` (name: `reader`) — standalone，不嵌套在 Library 模块下 |
+| **页面组件** | `pages/reader/ReaderPage.vue` |
+| **子组件** | `components/reader/PassageReader.vue` |
+| **布局** | 无 ResearchAppLayout 包裹 — 直接挂载在 `DefaultLayout` 下 |
+| **passage 定位** | 通过 query string `?passage=<passage_id>` 实现，无独立路由参数 |
+| **entry guard** | `requiresAuth` |
+| **Library 入口** | `LibraryDetailPage.vue:194`: `router.push(\`/reader/${doc.value.id}\`)`；`SourceReferenceCard.vue:84-86`: `router-link` 指向 `/library/{docId}?passage={pid}` |
+
+**Reader 排版状态（精确）**：
+
+| 维度 | 实际值 |
+|---|---|
+| 古籍衬线字体 | **无** — `ReaderPage.vue` 全文未设置 `font-family: serif` / `Songti SC` / `STSong`；`PassageReader.vue` 同样无。主体文本依赖 `--font-sans` |
+| monospace 元数据 | **有** — `ReaderPage.vue:983`: `.reader-evidence-passage { font-family: monospace; }`，用于 evidence passage ID 展示；`LibraryDetailPage.vue:292`: `.lib-detail-field-value { font-family: var(--font-mono); }`，用于文献元数据字段值 |
+| 原文段落渲染 | `reader-chunk-paragraph` class，无额外 font-family，继承 sans-serif |
+| 引用/证据文本 | 无引文专用宋体 — `reader-citation-quote` 使用 `font-style: italic` 但未设 serif |
+| 段落导航 | 使用 monospace（`reader-paragraph-label` 无 font 覆盖，继承 default） |
+
+### 1.5 Reports（报告列表）
+
+| 项 | 实际值 |
+|---|---|
+| **路由** | `/reports` (name: `report-list`) |
+| **页面组件** | `pages/reports/ReportListPage.vue` |
+| **布局** | `layouts/ResearchAppLayout.vue` |
+| **关键子组件** | `ResearchReportList.vue`, `ResearchReportListItem.vue`, `ResearchReportStatusBadge.vue`, `ResearchReportsToolbar.vue` |
+| **entry guard** | `requiresAuth` |
 
 ---
 
@@ -174,7 +227,7 @@
 
 | Store | 文件 | 职责 | 持久化方式 | 处置 |
 |---|---|---|---|---|
-| **auth** | `stores/auth.ts` | access_token, refresh_token, currentUser, roles, login/logout/refresh | localStorage (`hfb-auth`) + token refresh 定时器 | keep |
+| **auth** | `stores/auth.ts` | access_token, refresh_token, currentUser, roles, login/logout/refresh | localStorage：`hfb-access-token` + `hfb-refresh-token`（`loadTokens()` at init）+ token refresh 定时器 | keep |
 | **system** | `stores/system.ts` | backendConnected, dbConnected, redisConnected, esConnected, minioConnected, version, environment | 内存 (ref) — 每次页面加载重新探测 | keep |
 | **research** | `stores/research.ts` | currentTopic (name, description, createdAt) | localStorage (`hfb-current-research-topic`) | keep |
 | **theme** | `composables/useTheme.ts` | theme (light/dark/auto) | localStorage (`hfb-theme`) + `prefers-color-scheme` 监听 | keep |
