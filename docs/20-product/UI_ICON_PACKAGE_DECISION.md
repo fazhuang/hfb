@@ -25,12 +25,12 @@
 
 > **一手来源**：https://lucide.dev
 > **PO 可选包**：`@lucide/vue`（推荐，v1.x 当前 stable）或 `lucide-vue-next`（已弃用）
-> **弃用来源**：`lucide-vue-next` npm 页面标记 "Package deprecated. Please use @lucide/vue instead"（Snyk 确认 INACTIVE/DEPRECATED）；Lucide v1 官方迁移指南确认 "`lucide-vue-next` is now renamed to `@lucide/vue`"（https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration）。Lucide v1.17.0 起正式移除弃用包。
-> **当前版本**：`@lucide/vue` 1.24.0 (截至 2026-07 Socket.dev)；`@iconify/vue` 5.0.1 (2026-05-06 deps.dev/Snyk)；`@phosphor-icons/vue` 2.2.1 (2024-04-05, GitHub releases, final stable)
+> **弃用来源**：`lucide-vue-next` npm 页面标记 "Package deprecated. Please use @lucide/vue instead"；Lucide v1 官方迁移指南确认 "`lucide-vue-next` is now renamed to `@lucide/vue`"（https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration）。Lucide v1.17.0 起正式移除弃用包。
+> **当前版本**：`@lucide/vue` 1.24.0 (npm, 2026-07)；`@iconify/vue` 5.0.1 (npm, 2026-05-06)；`@phosphor-icons/vue` 2.2.1 (npm, 2024-04-05, GitHub releases)
 > **版本策略**：建议安装 `@lucide/vue`，锁定 `^1.24.0`。`lucide-vue-next` 不可用于新项目。
 > **迁移路径**：`lucide-vue-next → @lucide/vue` 为 find-and-replace 级别（API 不变），仅需改 package name 与 import path。
 > **许可证**：ISC
-> **维护**：活跃 (8.1K+ GitHub stars, 140+ contributors, >30M weekly downloads across all packages, ~246K weekly for `@lucide/vue`)
+> **维护**：活跃 (8.1K+ GitHub stars, 140+ contributors)
 > **Vue 3**：`@lucide/vue` 专为 Vue 3 构建
 
 **导入方式**：
@@ -87,8 +87,8 @@ import { BookOpen, Search, FileText, ChevronRight } from '@lucide/vue';
 
 > **一手来源**：https://iconify.design
 > **包**：`@iconify/vue` (npm, MIT)
-> **当前版本**：5.0.1 (2026-05-06, deps.dev/Snyk)
-> **维护**：活跃 (4K+ GitHub stars, 200+ icon sets, 250,000+ icons via public API, ~1.35M monthly downloads)
+> **当前版本**：5.0.1 (npm, 2026-05-06)
+> **维护**：活跃 (4K+ GitHub stars, 200+ icon sets, 250,000+ icons via public API)
 > **Vue 3**：原生 Vue 3 组件。Iconify 同时推荐 framework-agnostic `iconify-icon` web component 用于 SSR/Nuxt/性能敏感场景。
 
 **导入方式**：
@@ -120,8 +120,8 @@ import { Icon } from '@iconify/vue';
 
 > **一手来源**：https://phosphoricons.com
 > **包**：`@phosphor-icons/vue` (npm, MIT)
-> **当前版本**：2.2.1 (2024-04-05, GitHub releases, final stable)
-> **维护**：低活跃 — 最新发布距今 >2 年。项目仍可用但无新功能/修复。Nuxt 封装包 (`nuxt-phosphor-icons`) 单独维护 (2.3.3, Nov 2025)。
+> **当前版本**：2.2.1 (npm, 2024-04-05, GitHub releases)
+> **维护**：低活跃 — GitHub releases 最新为 2.2.1 (2024-04)，>2 年无更新。项目仍可用但无新功能/修复。Nuxt 封装包 (`nuxt-phosphor-icons`) 单独维护。
 > **icon 总数**：1,248 × 6 weights = ~7,500 variants
 > **Vue 3**：专为 Vue 3 构建，组件 `Ph` 前缀 (e.g. `PhHorse`)。提供全局注册 `app.use(PhosphorIcons)`
 
@@ -160,12 +160,12 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 | **CJK 学术缺项** | 高 | 高 (所有 set 均无) | 高 |
 | **Weight variant** | 1 (strokeWidth 可调) | 取决于 set | 6 (thin → fill) |
 | **Tree-shaking** | per-export | on-demand API | per-export |
-| **版本** | 1.24.0 (Jul 2026) | 5.0.1 | 2.2.1 (Apr 2024, final stable) |
+| **版本** | 1.24.0 (npm, 2026-07) | 5.0.1 (npm, 2026-05) | 2.2.1 (npm, GitHub releases, 2024-04) |
 | **Vue 版本** | 3.x only | 3.x (also web component) | 3.x |
 | **无障碍** | `role="img"` + `aria-hidden` (v1 default) | `role="img"` + `aria-hidden` (default) | `role="img"` (no auto label) |
 | **替换工作量** | 中 — ~24 处替换 + 14 文件 | 低 — 单一 `<Icon>` 组件封装后批量替换 | 中 — 同 Lucide |
 | **古籍 icon 自绘扩展** | 不支持 | 支持 (`addCollection` + `IconInline`) | 不支持 |
-| **npm 周下载** | ~246K (`@lucide/vue`) | ~500K+ | ~43K |
+| **npm 周下载** | ~246K | ~500K+ | ~43K |
 
 ---
 
@@ -284,6 +284,6 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 - [x] 许可证均 ISC/MIT — 兼容商业学术用途
 - [x] 所有候选 Vue 3 tree-shaking 在 Vite 6 原生支持 (Vite 6 rollup-based ESM tree-shaking is default for all three ESM packages)
 - [x] 古籍 6 个 icon 缺口已被明确标注，未谎报覆盖 (§4: 卷/页/版本/异文/校勘/善本/典籍 — 每项均注明近似但无精确匹配)
-- [x] 每个候选的版本号、维护状态来自 2026-08-01 一手查询：`@lucide/vue` 1.24.0 (Socket), `@iconify/vue` 5.0.1 (deps.dev/Snyk), `@phosphor-icons/vue` 2.2.1 (GitHub releases)。lucide-vue-next 弃用由 npm deprecated 标记 + Lucide v1 官方迁移指南 (https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration) 双重证实。
+- [x] 每个候选的版本号、维护状态来自 2026-08-01 一手查询：`@lucide/vue` 1.24.0 (npm), `@iconify/vue` 5.0.1 (npm), `@phosphor-icons/vue` 2.2.1 (GitHub releases)。lucide-vue-next 弃用由 npm deprecated 标记 + Lucide v1 官方迁移指南 (https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration) 双重证实。
 
 **未完成项（待 PO 选择）**：安装、封装 `HfbIcon`、替换 14 文件、无障碍 label、暗色模式测试。
