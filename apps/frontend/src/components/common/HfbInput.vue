@@ -31,7 +31,7 @@
         aria-label="Clear input"
         @click="onClear"
       >
-        ✕
+        <HfbIcon icon="lucide:x" :size="12" />
       </button>
       <span v-if="$slots.suffix" class="hfb-input__suffix" aria-hidden="true">
         <slot name="suffix" />
@@ -48,6 +48,7 @@
 
 <script setup lang="ts">
 import { computed, ref, useId, useSlots } from 'vue';
+import HfbIcon from './HfbIcon.vue';
 
 const slots = useSlots();
 

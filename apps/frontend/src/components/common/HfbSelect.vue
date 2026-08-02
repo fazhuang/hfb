@@ -31,12 +31,12 @@
             aria-label="Clear selection"
             @click.stop="clearSelection"
           >
-            ✕
+            <HfbIcon icon="lucide:x" :size="10" />
           </button>
           <span
             :class="['hfb-select__chevron', open ? 'hfb-select__chevron--open' : '']"
             aria-hidden="true"
-            >▼</span
+            ><HfbIcon icon="lucide:chevron-down" :size="14" /></span
           >
         </span>
       </button>
@@ -60,9 +60,12 @@
           @mouseenter="highlightedIdx = idx"
         >
           {{ opt.label }}
-          <span v-if="opt.value === modelValue" class="hfb-select__check" aria-hidden="true"
-            >✓</span
-          >
+          <HfbIcon
+            v-if="opt.value === modelValue"
+            icon="lucide:check"
+            :size="12"
+            class="hfb-select__check"
+          />
         </li>
         <li v-if="options.length === 0" class="hfb-select__option hfb-select__option--disabled">
           No options
@@ -76,6 +79,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, useId, nextTick } from 'vue';
+import HfbIcon from './HfbIcon.vue';
 
 export interface HfbSelectOption {
   value: string | number;

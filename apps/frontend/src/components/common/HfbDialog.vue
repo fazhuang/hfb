@@ -31,7 +31,7 @@
             aria-label="Close dialog"
             @click="close"
           >
-            ✕
+            <HfbIcon icon="lucide:x" :size="18" />
           </button>
         </div>
 
@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import { computed, watch, ref, useId, nextTick, useSlots } from 'vue';
 import { useFocusTrap } from '@/composables/useFocusTrap';
+import HfbIcon from './HfbIcon.vue';
 
 const slots = useSlots();
 
