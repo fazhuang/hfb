@@ -28,7 +28,9 @@
           @keydown.space.prevent="$emit('select', citation.trace_id)"
         >
           <div class="rcp-citation-header">
-            <span class="rcp-citation-number">#[{{ idx + 1 }}]</span>
+            <span class="rcp-citation-number"
+              >#[{{ props.citationDisplayNumbers.get(citation.trace_id) || '?' }}]</span
+            >
             <code class="rcp-citation-id">{{ citation.trace_id.slice(0, 16) }}...</code>
           </div>
           <p v-if="citation.citation_text" class="rcp-citation-text">
@@ -64,11 +66,18 @@ import { computed } from 'vue';
 import type { ResultCitation, ResultEvidence } from '@/composables/useResearchResult';
 import EvidenceDetail from './EvidenceDetail.vue';
 
-const props = defineProps<{
-  citations: ResultCitation[];
-  evidence: ResultEvidence[];
-  selectedTraceId: string | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    citations: ResultCitation[];
+    evidence: ResultEvidence[];
+    selectedTraceId: string | null;
+    /** Unified display numbers: trace_id → sequential number from markdown first-occurrence order.
+     * Shared with ResearchReportViewer so [1] in report = #[1] in panel regardless of
+     * backend citationList ordering. When omitted, all citations show '?' (fail-closed). */
+    citationDisplayNumbers?: Map<string, number>;
+  }>(),
+  { citationDisplayNumbers: () => new Map() },
+);
 
 defineEmits<{
   select: [traceId: string];

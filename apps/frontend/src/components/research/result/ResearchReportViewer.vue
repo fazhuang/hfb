@@ -12,14 +12,14 @@
           <template v-for="(token, ti) in para.tokens" :key="ti">
             <span v-if="token.bold" class="rrv-bold">{{ token.text }}</span>
             <button
-              v-else-if="token.citation && displayNumbers.get(token.citation)"
+              v-else-if="token.citation && props.citationDisplayNumbers.get(token.citation)"
               type="button"
               class="rrv-citation-marker"
               :class="{ 'rrv-citation-marker--active': isSelectedCitation(token.citation!) }"
-              :aria-label="`引用 [${displayNumbers.get(token.citation!)}]`"
+              :aria-label="`引用 [${props.citationDisplayNumbers.get(token.citation!)}]`"
               @click="$emit('select-citation', token.citation!)"
             >
-              [{{ displayNumbers.get(token.citation!) }}]
+              [{{ props.citationDisplayNumbers.get(token.citation!) }}]
             </button>
             <span v-else>{{ token.text }}</span>
           </template>
@@ -44,6 +44,10 @@ const props = defineProps<{
   /** Set of trace_ids from the current run's real citations (output_artifacts.citations).
    * Only markers matching a real citation become clickable buttons. */
   validCitationTraceIds: Set<string>;
+  /** Unified display numbers for citation markers — trace_id → sequential number,
+   * derived from first occurrence order in report markdown. Shared with CitationPanel
+   * so [1] in the report always maps to #[1] in the panel. */
+  citationDisplayNumbers: Map<string, number>;
 }>();
 
 defineEmits<{
@@ -220,27 +224,6 @@ function parseTokens(line: string): TextToken[] {
 
   return tokens;
 }
-
-/**
- * Assign a sequential display number to each valid citation trace_id
- * that actually appears in the report markdown.
- * The display number is view-local; the stable identity is always trace_id.
- */
-const displayNumbers = computed((): Map<string, number> => {
-  const map = new Map<string, number>();
-  if (!props.report.markdown) return map;
-
-  let next = 1;
-  CITATION_RE.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = CITATION_RE.exec(props.report.markdown)) !== null) {
-    const tid = m[1] || m[2];
-    if (tid && props.validCitationTraceIds.has(tid) && !map.has(tid)) {
-      map.set(tid, next++);
-    }
-  }
-  return map;
-});
 
 /**
  * Check if a citation trace_id is the currently selected one.

@@ -1196,6 +1196,323 @@ describe('ResearchResultPage', () => {
   });
 
   // ==============================================================
+  // BATCH C1-2a: Unified display numbers (C1-2)
+  // ==============================================================
+
+  describe('C1-2a — Unified display numbers', () => {
+    it('C1-2a.1: report marker [1] maps to CitationPanel #[1]', async () => {
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      // In markdown: [doc-01:chk-01] appears first, then [doc-02:chk-02].
+      // citationList array is in the same order, so nothing breaks.
+      const markerText = wrapper.find('.rrv-citation-marker').text();
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      const itemText = panelItems[0]?.find('.rcp-citation-number').text();
+      expect(markerText).toBe('[1]');
+      expect(itemText).toBe('#[1]');
+    });
+
+    it('C1-2a.2: display numbers from markdown, NOT from citationList array order', async () => {
+      // Backend returns citationList in REVERSE order: doc-02 first, doc-01 second.
+      // Markdown still has doc-01 first, so doc-01 = [1], doc-02 = [2] regardless.
+      const reversedRun = makeRun({
+        output_artifacts: {
+          markdown:
+            '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
+          title: 'Report',
+          citations: [
+            {
+              trace_id: 'doc-02:chk-02',
+              citation_text: '[doc-02:chk-02]',
+              document_id: 'doc-02',
+              quote: 'Quote 2.',
+            },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Quote 1.',
+            },
+          ],
+        },
+        replay_manifest: {
+          retrieval_snapshot: [
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              claim_text: 'Claim 1',
+              quote: '经络者，所以行血气',
+              citation_text: '[doc-01:chk-01]',
+              source_ref_title: '针灸甲乙经',
+              source_ref_url: 'https://example.com/ref1',
+              source_ref_id: 'src-ref-001',
+            },
+            {
+              trace_id: 'doc-02:chk-02',
+              document_id: 'doc-02',
+              chunk_id: 'chk-02',
+              claim_text: 'Claim 2',
+              quote: '刺之要，气至而有效',
+              citation_text: '[doc-02:chk-02]',
+              source_ref_title: '黄帝内经',
+              source_ref_url: 'https://example.com/ref2',
+              source_ref_id: 'src-ref-002',
+            },
+          ],
+          traces: [
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              passage_id: 'passage-001',
+            },
+            {
+              trace_id: 'doc-02:chk-02',
+              document_id: 'doc-02',
+              chunk_id: 'chk-02',
+              passage_id: 'passage-002',
+            },
+          ],
+        },
+      });
+      const wrapper = await setupAndMount(makeSession(), [reversedRun]);
+
+      // Report markers: first marker in DOM = first in markdown = doc-01 = [1]
+      const markers = wrapper.findAll('.rrv-citation-marker');
+      expect(markers.length).toBe(2);
+      expect(markers[0]?.text()).toBe('[1]');
+      expect(markers[1]?.text()).toBe('[2]');
+
+      // CitationPanel items: first item in DOM = backend array[0] = doc-02
+      // But its display number MUST be from markdown: doc-02 = [2], NOT #[1]
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      expect(panelItems.length).toBe(2);
+
+      // Panel item 0 holds doc-02 (second in markdown → #[2])
+      // Panel item 1 holds doc-01 (first in markdown → #[1])
+      const itemNums = panelItems.map((item) =>
+        item.find('.rcp-citation-number').text(),
+      );
+      expect(itemNums).toContain('#[2]');
+      expect(itemNums).toContain('#[1]');
+      // Neither should be '?' (unmapped)
+      expect(itemNums).not.toContain('#[?]');
+    });
+
+    it('C1-2a.3: trace_id not in markdown shows fallback "?" in panel', async () => {
+      // citationList has a trace_id that never appears in markdown.
+      const orphanRun = makeRun({
+        output_artifacts: {
+          markdown: '# Report\n\nOnly ref [doc-01:chk-01].',
+          title: 'Report',
+          citations: [
+            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Q1' },
+            { trace_id: 'doc-orphan:chk', citation_text: '[doc-orphan:chk]', document_id: 'doc-orphan', quote: 'Orphan' },
+          ],
+        },
+        replay_manifest: {
+          retrieval_snapshot: [
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              claim_text: 'C1',
+              quote: 'Q1',
+              citation_text: '[doc-01:chk-01]',
+              source_ref_title: 'S1',
+            },
+            {
+              trace_id: 'doc-orphan:chk',
+              document_id: 'doc-orphan',
+              chunk_id: 'chk',
+              claim_text: 'Orphan claim',
+              quote: 'Orphan',
+              citation_text: '[doc-orphan:chk]',
+              source_ref_title: 'Orphan Source',
+            },
+          ],
+          traces: [
+            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01' },
+            { trace_id: 'doc-orphan:chk', document_id: 'doc-orphan', chunk_id: 'chk' },
+          ],
+        },
+      });
+      const wrapper = await setupAndMount(makeSession(), [orphanRun]);
+
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      expect(panelItems.length).toBe(2);
+
+      const itemNums = panelItems.map((item) =>
+        item.find('.rcp-citation-number').text(),
+      );
+      // doc-01 appears in markdown → #[1]
+      // doc-orphan never appears → #[?]
+      expect(itemNums).toContain('#[1]');
+      expect(itemNums).toContain('#[?]');
+    });
+  });
+
+  // ==============================================================
+  // BATCH C1-2b: Full identity chain (C1-2)
+  // ==============================================================
+
+  describe('C1-2b — Full identity chain', () => {
+    it('C1-2b.1: clicking report marker [1] selects correct Citation → Evidence → SourceRef', async () => {
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      // Click first report marker [1]
+      const markers = wrapper.findAll('.rrv-citation-marker');
+      await markers[0]!.trigger('click');
+      await nextTick();
+
+      // CitationPanel: first item should be selected
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      expect(panelItems[0]?.classes()).toContain('rcp-citation-item--selected');
+
+      // Evidence area shows the correct claim
+      const evidenceArea = wrapper.find('.rcp-evidence-area');
+      expect(evidenceArea.html()).toContain('经络者，所以行血气而营阴阳');
+
+      // SourceRef shows correct title
+      expect(evidenceArea.html()).toContain('针灸甲乙经');
+
+      // SourceRef has internal link to /library/doc-01?passage=passage-001
+      const sourceRefCard = evidenceArea.find('.esrc-card');
+      expect(sourceRefCard.html()).toContain('打开原文');
+      // The router-link should point to /library/doc-01
+      const link = sourceRefCard.find('a[href]');
+      expect(link.attributes('href')).toContain('/library/doc-01');
+      expect(link.attributes('href')).toContain('passage=passage-001');
+    });
+
+    it('C1-2b.2: clicking marker [2] selects different Evidence + SourceRef (no cross-contamination)', async () => {
+      const wrapper = await setupAndMount(makeSession(), [makeRun()]);
+      // Click second marker [2] → doc-02
+      const markers = wrapper.findAll('.rrv-citation-marker');
+      await markers[1]!.trigger('click');
+      await nextTick();
+
+      // Evidence must NOT show doc-01 content
+      const evidenceArea = wrapper.find('.rcp-evidence-area');
+      expect(evidenceArea.html()).not.toContain('针灸甲乙经');
+      expect(evidenceArea.html()).toContain('黄帝内经');
+      expect(evidenceArea.html()).toContain('刺之要，气至而有效');
+    });
+
+    it('C1-2b.3: full chain survives reversed citationList order', async () => {
+      const reversedRun = makeRun({
+        output_artifacts: {
+          markdown:
+            '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
+          title: 'Report',
+          citations: [
+            { trace_id: 'doc-02:chk-02', citation_text: '[doc-02:chk-02]', document_id: 'doc-02', quote: 'Q2' },
+            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: '经络者，所以行血气' },
+          ],
+        },
+        replay_manifest: {
+          retrieval_snapshot: [
+            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', claim_text: 'C1', quote: '经络者，所以行血气', citation_text: '[doc-01:chk-01]', source_ref_title: '针灸甲乙经' },
+            { trace_id: 'doc-02:chk-02', document_id: 'doc-02', chunk_id: 'chk-02', claim_text: 'C2', quote: '刺之要，气至而有效', citation_text: '[doc-02:chk-02]', source_ref_title: '黄帝内经' },
+          ],
+          traces: [
+            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', passage_id: 'passage-001' },
+            { trace_id: 'doc-02:chk-02', document_id: 'doc-02', chunk_id: 'chk-02', passage_id: 'passage-002' },
+          ],
+        },
+      });
+      const wrapper = await setupAndMount(makeSession(), [reversedRun]);
+
+      // Marker [1] = doc-01 (first in markdown)
+      const markers = wrapper.findAll('.rrv-citation-marker');
+      expect(markers[0]?.text()).toBe('[1]');
+
+      // Panel should show doc-02 #[2] first (backend order), doc-01 #[1] second
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      const itemNums = panelItems.map((i) => i.find('.rcp-citation-number').text());
+      expect(itemNums[0]).toBe('#[2]'); // doc-02 first in array, but label is [2]
+      expect(itemNums[1]).toBe('#[1]'); // doc-01 second in array, but label is [1]
+
+      // Click marker [1] — selects doc-01 (in markdown order)
+      await markers[0]!.trigger('click');
+      await nextTick();
+
+      // doc-01's Evidence shows 针灸甲乙经
+      const evidenceArea = wrapper.find('.rcp-evidence-area');
+      expect(evidenceArea.html()).toContain('针灸甲乙经');
+      expect(evidenceArea.html()).not.toContain('黄帝内经');
+
+      // doc-01 has passage_id → internal link
+      const link = evidenceArea.find('.esrc-card a[href]');
+      expect(link.attributes('href')).toContain('/library/doc-01');
+    });
+
+    it('C1-2b.4: fail-closed — Citation with no Evidence shows missing state', async () => {
+      // citationList has trace_id but no matching evidence in retrieval_snapshot
+      const noEvidenceRun = makeRun({
+        output_artifacts: {
+          markdown: '# Report\n\nRef [doc-01:chk-01].',
+          title: 'Report',
+          citations: [
+            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Q' },
+          ],
+        },
+        replay_manifest: {
+          retrieval_snapshot: [], // empty — no evidence
+          traces: [],
+        },
+      });
+      const wrapper = await setupAndMount(makeSession(), [noEvidenceRun]);
+
+      const panelItems = wrapper.findAll('.rcp-citation-item');
+      expect(panelItems.length).toBe(1);
+
+      await panelItems[0]!.trigger('click');
+      await nextTick();
+
+      // Evidence area shows "缺少证据关联" not fabricated data
+      const evidenceArea = wrapper.find('.rcp-evidence-area');
+      expect(evidenceArea.html()).toContain('缺少证据关联');
+      expect(evidenceArea.html()).not.toContain('来源文献');
+    });
+
+    it('C1-2b.5: fail-closed — Evidence without source_ref_title shows missing source, no fake link', async () => {
+      const noSourceRefRun = makeRun({
+        output_artifacts: {
+          markdown: '# Report\n\nRef [doc-03:chk-03].',
+          title: 'Report',
+          citations: [
+            { trace_id: 'doc-03:chk-03', citation_text: '[doc-03:chk-03]', document_id: 'doc-03', quote: 'Q3' },
+          ],
+        },
+        replay_manifest: {
+          retrieval_snapshot: [
+            {
+              trace_id: 'doc-03:chk-03',
+              document_id: 'doc-03',
+              chunk_id: 'chk-03',
+              claim_text: 'C3',
+              quote: 'Q3',
+              citation_text: '[doc-03:chk-03]',
+              // NO source_ref_title, source_ref_url, source_ref_id
+            },
+          ],
+          traces: [{ trace_id: 'doc-03:chk-03', document_id: 'doc-03', chunk_id: 'chk-03' }],
+        },
+      });
+      const wrapper = await setupAndMount(makeSession(), [noSourceRefRun]);
+
+      const panelItem = wrapper.find('.rcp-citation-item');
+      await panelItem.trigger('click');
+      await nextTick();
+
+      const evidenceArea = wrapper.find('.rcp-evidence-area');
+      expect(evidenceArea.html()).toContain('缺少文献来源信息');
+      // Must NOT fabricate an internal link when no source_ref
+      expect(evidenceArea.html()).not.toContain('打开原文');
+    });
+  });
+
+  // ==============================================================
   // BATCH 5: Evidence
   // ==============================================================
 

@@ -66,13 +66,19 @@ function makeEvidence(overrides: Partial<ResultEvidence> & { trace_id: string })
 // CitationPanel
 // ────────────────────────────────────────────────────────────────────────
 describe('CitationPanel — Domain Semantic Regression', () => {
+  function makeDisplayNumbers(ids: string[]): Map<string, number> {
+    const m = new Map<string, number>();
+    ids.forEach((id, i) => m.set(id, i + 1));
+    return m;
+  }
+
   it('renders trace_id for each citation', () => {
     const citations: Array<ResultCitation> = [
       makeCitation({ trace_id: 'trace-001-abcdef', citation_text: 'Test citation' }),
       makeCitation({ trace_id: 'trace-002-ghijkl', quote: 'Original text quote' }),
     ];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: null },
+      props: { citations, evidence: [], selectedTraceId: null, citationDisplayNumbers: makeDisplayNumbers(['trace-001-abcdef', 'trace-002-ghijkl']) },
     });
     expect(wrapper.text()).toContain('trace-001');
     expect(wrapper.text()).toContain('trace-002');
@@ -83,7 +89,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
       makeCitation({ trace_id: 't1', citation_text: '《针灸甲乙经》记载...' }),
     ];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: null },
+      props: { citations, evidence: [], selectedTraceId: null, citationDisplayNumbers: makeDisplayNumbers(['t1']) },
     });
     expect(wrapper.text()).toContain('《针灸甲乙经》记载...');
   });
@@ -93,7 +99,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
       makeCitation({ trace_id: 't1', quote: 'A direct quote from source' }),
     ];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: null },
+      props: { citations, evidence: [], selectedTraceId: null, citationDisplayNumbers: makeDisplayNumbers(['t1']) },
     });
     expect(wrapper.text()).toContain('A direct quote from source');
   });
@@ -101,7 +107,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
   it('data contract: trace_id key is used for unique identification and selection', () => {
     const citations: Array<ResultCitation> = [makeCitation({ trace_id: 'trace-001' })];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: 'trace-001' },
+      props: { citations, evidence: [], selectedTraceId: 'trace-001', citationDisplayNumbers: makeDisplayNumbers(['trace-001']) },
     });
     expect(wrapper.find('[aria-selected="true"]').exists()).toBe(true);
   });
@@ -111,7 +117,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
       makeCitation({ trace_id: 'ct-1', citation_text: 'Citation 1' }),
     ];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: null },
+      props: { citations, evidence: [], selectedTraceId: null, citationDisplayNumbers: makeDisplayNumbers(['ct-1']) },
     });
     const citationItem = wrapper.find('[role="button"]');
     await citationItem.trigger('click');
@@ -123,7 +129,7 @@ describe('CitationPanel — Domain Semantic Regression', () => {
       makeCitation({ trace_id: 't1', citation_text: 'Test' }),
     ];
     const wrapper = mount(CitationPanel, {
-      props: { citations, evidence: [], selectedTraceId: 't1' },
+      props: { citations, evidence: [], selectedTraceId: 't1', citationDisplayNumbers: makeDisplayNumbers(['t1']) },
     });
     expect(wrapper.text()).toContain('缺少证据关联');
   });

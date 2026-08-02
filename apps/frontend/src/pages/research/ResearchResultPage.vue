@@ -81,6 +81,7 @@
           :report="report!"
           :selected-citation-trace-id="selectedCitationTraceId"
           :valid-citation-trace-ids="validCitationTraceIds"
+          :citation-display-numbers="citationDisplayNumbers"
           @select-citation="selectCitation"
         />
 
@@ -96,6 +97,7 @@
           :citations="citationList"
           :evidence="evidenceList"
           :selected-trace-id="selectedCitationTraceId"
+          :citation-display-numbers="citationDisplayNumbers"
           @select="selectCitation"
         />
 
@@ -135,6 +137,7 @@ const {
   hasEvidence,
   hasCitations,
   validCitationTraceIds,
+  citationDisplayNumbers,
   exporting,
   exportError,
   selectedCitationTraceId,

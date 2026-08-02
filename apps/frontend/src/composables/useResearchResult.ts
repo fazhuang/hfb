@@ -82,6 +82,17 @@ export type ResultPageStatus =
 // Helpers
 // ============================================================================
 
+/**
+ * Pattern to match citation markers in markdown.
+ *
+ * Three formats are supported:
+ *   1. [doc_id:chunk_id]       — generation_service / seed test data
+ *   2. [UUIDv5]                 — workflow build_markdown_artifact (new)
+ *   3. `UUIDv5`                — legacy reports (backtick-wrapped trace_id)
+ */
+const CITATION_RE =
+  /\[([a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]|`([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`/gi;
+
 /** UUID v4 pattern — exact length and hex positions, no regex DOS surface. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -299,6 +310,32 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
   const hasCitations = computed(() => citationList.value.length > 0);
   /** Set of trace_ids from the current run's real citations — used to gate marker rendering. */
   const validCitationTraceIds = computed(() => new Set(citationList.value.map((c) => c.trace_id)));
+
+  /**
+   * Unified display number for each citation trace_id, derived from first
+   * occurrence order in the report markdown — NOT from the backend
+   * citationList array order. This gives ResearchReportViewer (inline
+   * markers) and CitationPanel (sidebar list) a single source of truth so
+   * [1] in the report text always maps to #[1] in the panel regardless of
+   * how the backend sorted citationList.
+   */
+  const citationDisplayNumbers = computed((): Map<string, number> => {
+    const map = new Map<string, number>();
+    const mk = report.value?.markdown;
+    if (!mk) return map;
+
+    const validIds = validCitationTraceIds.value;
+    let next = 1;
+    CITATION_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = CITATION_RE.exec(mk)) !== null) {
+      const tid = m[1] || m[2];
+      if (tid && validIds.has(tid) && !map.has(tid)) {
+        map.set(tid, next++);
+      }
+    }
+    return map;
+  });
   const runStatus = computed(() => {
     if (!rawRun.value) return 'unknown';
     const steps = rawRun.value.step_execution_trace as Array<Record<string, unknown>> | undefined;
@@ -669,6 +706,7 @@ export function useResearchResult(projectId: () => string, runId: () => string) 
     hasEvidence,
     hasCitations,
     validCitationTraceIds,
+    citationDisplayNumbers,
     runStatus,
 
     // Actions
