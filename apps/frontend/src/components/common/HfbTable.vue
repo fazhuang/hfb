@@ -37,9 +37,12 @@
             @click="sortable && col.sortable !== false ? onSort(col.key) : undefined"
           >
             {{ col.label }}
-            <span v-if="getSortIcon(col.key)" class="hfb-table__sort-icon" aria-hidden="true">
-              {{ getSortIcon(col.key) }}
-            </span>
+            <HfbIcon
+              v-if="sortKey === col.key"
+              :icon="sortDirection === 'asc' ? 'lucide:chevron-up' : 'lucide:chevron-down'"
+              :size="14"
+              class="hfb-table__sort-icon"
+            />
           </th>
         </tr>
       </thead>
@@ -76,6 +79,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import HfbIcon from './HfbIcon.vue';
 
 export interface TableColumn {
   key: string;
@@ -150,11 +154,6 @@ function thClass(col: TableColumn) {
   ]
     .filter(Boolean)
     .join(' ');
-}
-
-function getSortIcon(key: string): string {
-  if (key !== props.sortKey) return '';
-  return props.sortDirection === 'asc' ? '▲' : props.sortDirection === 'desc' ? '▼' : '';
 }
 
 function getAriaSort(key: string): 'none' | 'ascending' | 'descending' | undefined {
