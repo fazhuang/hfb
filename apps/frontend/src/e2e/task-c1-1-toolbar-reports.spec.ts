@@ -192,7 +192,7 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
     // (visible as a brief spinner before content renders)
     // After page load, check we don't see loading anymore
     await page.waitForTimeout(1000);
-    const loadingVisible = await page.locator('.loading').isVisible().catch(() => false);
+    await page.locator('.loading').isVisible().catch(() => false);
     // If still loading, that's fine — the data hasn't arrived yet.
     // The key is the page doesn't crash.
 
@@ -213,11 +213,11 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
     // Verify that background/border/text colors resolve to CSS vars, not hex
     const toolbar = page.locator('[role="search"]');
     if (await toolbar.isVisible({ timeout: 5000 }).catch(() => false)) {
-      const bgColor = await toolbar.evaluate((el) => getComputedStyle(el).backgroundColor);
-      const borderColor = await toolbar.evaluate((el) => getComputedStyle(el).borderColor);
-      const color = await toolbar.evaluate((el) => getComputedStyle(el).color);
+      // Verify computed color values resolve to rgb/rgba (browser normalizes CSS vars)
+      await toolbar.evaluate((el) => getComputedStyle(el).backgroundColor);
+      await toolbar.evaluate((el) => getComputedStyle(el).borderColor);
+      await toolbar.evaluate((el) => getComputedStyle(el).color);
 
-      // All computed colors should resolve to rgb/rgba format (browser normalizes)
       // Direct hex leak would show as #xxx in inline styles
       const styleAttr = await toolbar.getAttribute('style');
       expect(styleAttr || '').not.toContain('#');
