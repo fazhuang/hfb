@@ -14,7 +14,14 @@
 </template>
 
 <script setup lang="ts">
-import type { ReportStatusFilter } from '@/composables/useResearchReports';
+/**
+ * ResearchReportsToolbar — DEPRECATED by HfbToolbar (C1-1).
+ *
+ * Kept as a reference for C1-2 convergence. No longer used by any page.
+ * The Reports page now uses HfbToolbar with REPORT_TOOLBAR_FILTERS.
+ */
+
+type ReportStatusFilter = '' | 'ready' | 'missing' | 'failed' | 'pending';
 
 defineProps<{
   statusFilter: ReportStatusFilter;

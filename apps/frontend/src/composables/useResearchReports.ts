@@ -9,6 +9,7 @@
  *
  * C1-1: Replaced statusFilter/setStatusFilter with unified filterValues pattern
  *   that feeds directly into HfbToolbar's v-model:filterValues.
+ *   API contract unchanged: GET /api/v4/research/reports?page&limit&status.
  *
  * Contract:
  *   - Stale responses must not overwrite newer requests
@@ -144,6 +145,12 @@ export function useResearchReports() {
   });
 
   // ---- Fetch reports ----
+  /**
+   * Fetch reports from the server.
+   *
+   * API contract (unchanged from pre-C1-1):
+   *   GET /api/v4/research/reports?page=N&limit=N&status=...
+   */
   async function fetchReports() {
     const mySeq = ++reqSeq;
 
@@ -178,15 +185,22 @@ export function useResearchReports() {
 
   // ---- Handle HfbToolbar search event ----
   function onSearch(_payload: ToolbarSearchPayload) {
-    // filterValues are already synced via v-model:filterValues on HfbToolbar
-    page.value = 1;
-    fetchReports();
+    // filterValues are already synced via v-model:filterValues on HfbToolbar.
+    // When the status filter changes, the parent calls onFilterValuesChange
+    // which resets to page=1 and re-fetches.
   }
 
   // ---- Pagination ----
   function setPage(p: number) {
     if (p < 1 || p > totalPages.value) return;
     page.value = p;
+    fetchReports();
+  }
+
+  // ---- Status filter ----
+  function setStatusFilter(f: ReportStatusFilter) {
+    filterValues.value.status = f;
+    page.value = 1; // reset to first page on filter change
     fetchReports();
   }
 
@@ -317,6 +331,7 @@ export function useResearchReports() {
     fetchReports,
     onSearch,
     setPage,
+    setStatusFilter,
     retry,
   };
 }

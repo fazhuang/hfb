@@ -15,14 +15,15 @@
       >
         <HfbToolbar
           ref="toolbarRef"
-          :searchable="false"
+          :searchable="true"
+          search-placeholder="搜索报告标题..."
           :filters="reportToolbarFilters"
           :filter-values="filterValues"
           :loading="loading"
           loading-label="加载报告..."
           show-clear-button
           @search="onSearch"
-          @update:filter-values="filterValues = $event"
+          @update:filter-values="onFilterValuesChange"
         />
       </form>
 
@@ -45,19 +46,19 @@
         <!-- Empty: filter returned no results -->
         <EmptyState
           v-else-if="!loading && items.length === 0 && hasActiveFilters"
-          :title="`暂无「${statusFilterLabel}」的报告`"
-          description="尝试选择其他状态筛选条件，或清除筛选查看全部报告。"
+          :title="'暂无匹配的报告'"
+          description="尝试调整搜索关键词或筛选条件，或清除筛选查看全部报告。"
           icon="🔍"
         >
           <template #action>
-            <button class="rp-clear-filter-btn" @click="filterValues = { status: '' }">清除筛选</button>
+            <button class="rp-clear-filter-btn" @click="clearFilters">清除筛选</button>
           </template>
         </EmptyState>
 
         <!-- Report list -->
         <ResearchReportList
           v-else
-          :items="items"
+          :items="displayedItems"
           :exporting="exporting"
           :export-error="exportError"
           @export="handleExport"
@@ -90,13 +91,22 @@
  *   GET /api/v4/research/session/{sessionId}/runs/{runId}/export?format=markdown
  *
  * C1-1: Replaced ResearchReportsToolbar with unified HfbToolbar.
- *   Toolbar filter values are shared via filterValues ref bound with v-model:filterValues.
+ *   searchable=true — client-side search filters displayed items by topic/session_title.
+ *   Status filter sent server-side via GET /api/v4/research/reports?status=.
+ *   API contract unchanged: server-side pagination (page/limit) preserved.
+ *   Toolbar filter values synced via onFilterValuesChange which resets page to 1
+ *   and calls setStatusFilter which re-fetches. clearFilters resets both search
+ *   text and status filter, resets page to 1, and re-fetches.
  *
  * ref: docs/20-product/2010-project-list-migration.md
  */
 import { ref, computed, onMounted } from 'vue';
-import { useResearchReports, REPORT_TOOLBAR_FILTERS } from '@/composables/useResearchReports';
+import {
+  useResearchReports,
+  REPORT_TOOLBAR_FILTERS,
+} from '@/composables/useResearchReports';
 import type { ReportItem } from '@/composables/useResearchReports';
+import type { ToolbarFilterValues, ToolbarSearchPayload } from '@/types/toolbar';
 
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
@@ -109,12 +119,6 @@ const toolbarRef = ref<InstanceType<typeof HfbToolbar> | null>(null);
 
 const reportToolbarFilters = REPORT_TOOLBAR_FILTERS;
 
-/** Whether any filter is currently active (non-empty status filter). */
-const hasActiveFilters = computed(() => {
-  const vals = filterValues.value;
-  return Object.values(vals).some((v) => v !== null && v !== '');
-});
-
 const {
   items,
   page,
@@ -122,15 +126,55 @@ const {
   loading,
   error,
   filterValues,
-  statusFilterLabel,
   exporting,
   exportError,
   fetchReports,
-  onSearch,
+  onSearch: _onSearch,
   setPage,
+  setStatusFilter,
   exportReport,
   retry,
 } = useResearchReports();
+
+// ---- Client-side search state ----
+const searchQuery = ref('');
+
+/** Is any filter (search query or status filter) active? */
+const hasActiveFilters = computed(() => {
+  if (searchQuery.value.trim().length > 0) return true;
+  const vals = filterValues.value;
+  return Object.values(vals).some((v) => v !== null && v !== '');
+});
+
+/** Server items filtered client-side by search query only (status is server-filtered). */
+const displayedItems = computed<ReportItem[]>(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return items.value;
+  return items.value.filter(
+    (r) =>
+      (r.topic || '').toLowerCase().includes(q) ||
+      (r.session_title || '').toLowerCase().includes(q),
+  );
+});
+
+// ---- Toolbar event handlers ----
+
+/** Called on every debounced search input or Enter. Client-side only filter update. */
+function onSearch(payload: ToolbarSearchPayload) {
+  searchQuery.value = payload.query;
+}
+
+/** Called when a filter value changes in HfbToolbar. Triggers server re-fetch at page 1. */
+function onFilterValuesChange(values: ToolbarFilterValues) {
+  const newStatus = (values.status ?? '') as '' | 'ready' | 'missing' | 'failed' | 'pending';
+  setStatusFilter(newStatus);
+}
+
+/** Reset all filters and search, then re-fetch at page 1. */
+function clearFilters() {
+  searchQuery.value = '';
+  setStatusFilter('');
+}
 
 // ---- Export handler ----
 async function handleExport(item: ReportItem) {
