@@ -43,9 +43,9 @@
           icon="📄"
         />
 
-        <!-- Empty: filter returned no results -->
+        <!-- Empty: client-side search or server filter returned no results -->
         <EmptyState
-          v-else-if="!loading && items.length === 0 && hasActiveFilters"
+          v-else-if="!loading && displayedItems.length === 0 && hasActiveFilters"
           :title="'暂无匹配的报告'"
           description="尝试调整搜索关键词或筛选条件，或清除筛选查看全部报告。"
           icon="🔍"
