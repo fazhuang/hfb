@@ -12,6 +12,10 @@
  * - No "skip if absent" / "early pass" branches — every assertion is a hard must-pass
  * - Direct API calls for contract verification (V03, V04)
  * - Browser interactions for real UI evidence (all Vxx… tests)
+ * - V12 uses temporary page.route() as controlled fault injection to exercise
+ *   the error→retry recovery path — this is NOT data mocking; it is the standard
+ *   Playwright pattern for testing error recovery. The route is removed before
+ *   retry so the retry hits the real backend.
  */
 
 import { test, expect } from '@playwright/test';
@@ -406,5 +410,136 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
     const exportBtn = firstItem.locator('.rrli-export-btn');
     await expect(exportBtn).toBeVisible();
     await expect(exportBtn).toHaveText('导出');
+  });
+
+  // ── V11: Status filter via real browser — select "报告失败" → empty state ─
+
+  test('C1-1-V11: status filter "报告失败" returns empty state then recover via clear-all', async ({ page }) => {
+    // Login
+    await page.goto('/login');
+    await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
+    await page.fill('#username', 'researcher');
+    await page.fill('#password', 'researcher123');
+    await page.click('button.login-btn');
+    await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15_000 });
+
+    await page.goto('/reports', { waitUntil: 'domcontentloaded' });
+
+    // Real data must load first (43 ready items)
+    await expect(page.locator('.rrl-list')).toBeVisible({ timeout: 15_000 });
+
+    // Open filter dropdown and select "报告失败" (status=failed → 0 items)
+    const filterTrigger = page.locator('[role="search"] button[aria-expanded]');
+    await filterTrigger.click();
+    const listbox = page.locator('[role="listbox"]');
+    await expect(listbox).toBeVisible({ timeout: 3000 });
+
+    // Click "报告失败" — this triggers a server re-fetch with ?status=failed
+    await listbox.locator('[role="option"]', { hasText: '报告失败' }).click();
+
+    // Wait for the server re-fetch to complete
+    await page.waitForTimeout(1000);
+
+    // Since DB has 0 items with status=failed, the empty state must appear
+    // This is the "filter returned no results" empty state (hasActiveFilters=true).
+    const emptyState = page.locator('.empty-state');
+    await expect(emptyState).toBeVisible({ timeout: 10_000 });
+    await expect(emptyState).toContainText('暂无匹配的报告');
+
+    // The "清除筛选" button inside the empty state must be visible
+    const clearFilterBtn = emptyState.locator('.rp-clear-filter-btn');
+    await expect(clearFilterBtn).toBeVisible();
+
+    // Click the inline clear button — this calls clearFilters() directly
+    await clearFilterBtn.click();
+    await page.waitForTimeout(1000);
+
+    // After clearing, the full report list must reappear
+    await expect(page.locator('.rrl-list')).toBeVisible({ timeout: 10_000 });
+    const count = await page.locator('.rrl-list [role="listitem"]').count();
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  // ── V12: Error state → retry recovery ────────────────────────────────────
+
+  test('C1-1-V12: error state renders retry button, retry recovers to data', async ({ page }) => {
+    // Login
+    await page.goto('/login');
+    await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
+    await page.fill('#username', 'researcher');
+    await page.fill('#password', 'researcher123');
+    await page.click('button.login-btn');
+    await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15_000 });
+
+    // Inject a one-shot 500 error for the reports endpoint.
+    // This is controlled fault injection to exercise the error→retry recovery path,
+    // NOT data mocking.
+    let routeFired = false;
+    await page.route('**/api/v4/research/reports*', async (route) => {
+      if (!routeFired) {
+        routeFired = true;
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'Simulated server error for retry test' }),
+        });
+      } else {
+        // Fall through to real backend on retry
+        await route.fallback();
+      }
+    });
+
+    await page.goto('/reports', { waitUntil: 'domcontentloaded' });
+
+    // The error state must appear
+    const errorState = page.locator('[role="alert"]');
+    await expect(errorState).toBeVisible({ timeout: 15_000 });
+
+    // Error title must be "报告加载失败"
+    await expect(errorState.locator('.error-title')).toHaveText('报告加载失败');
+
+    // Error message must contain the injected detail
+    await expect(errorState.locator('.error-message')).toHaveText(
+      'Simulated server error for retry test',
+    );
+
+    // The retry button must be visible
+    const retryBtn = errorState.locator('.error-retry-btn');
+    await expect(retryBtn).toBeVisible();
+
+    // Remove the route so retry hits the real backend
+    await page.unroute('**/api/v4/research/reports*');
+
+    // Click retry — this calls fetchReports() which hits the real backend
+    await retryBtn.click();
+    await page.waitForTimeout(1000);
+
+    // After retry with real backend, the report list must appear
+    await expect(page.locator('.rrl-list')).toBeVisible({ timeout: 15_000 });
+    const count = await page.locator('.rrl-list [role="listitem"]').count();
+    expect(count).toBeGreaterThanOrEqual(1);
+
+    // Error state must be gone
+    await expect(errorState).not.toBeVisible({ timeout: 3000 });
+  });
+
+  // ── V13: Anonymous /reports redirects to login ───────────────────────────
+
+  test('C1-1-V13: anonymous /reports redirects to login page', async ({ page, context }) => {
+    // Ensure no stored auth state — clear all cookies and localStorage
+    await context.clearCookies();
+
+    // Navigate to /reports without authentication
+    await page.goto('/reports', { waitUntil: 'domcontentloaded' });
+
+    // The router guard must redirect to /login with a redirect query param
+    await page.waitForURL((url: URL) => url.pathname.includes('/login'), { timeout: 10_000 });
+
+    // The redirect query must point back to /reports
+    const url = new URL(page.url());
+    expect(url.searchParams.get('redirect')).toContain('/reports');
+
+    // Login page must be rendered (username field visible)
+    await expect(page.locator('#username')).toBeVisible({ timeout: 5000 });
   });
 });
