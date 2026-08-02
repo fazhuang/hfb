@@ -1,6 +1,6 @@
 <template>
   <div class="error-state" role="alert" aria-live="assertive">
-    <HfbIcon icon="lucide:circle-alert" :size="36" class="error-icon" />
+    <HfbIcon icon="circle-alert" :size="36" class="error-icon" />
     <h3 class="error-title">{{ title || t('common.error') }}</h3>
     <p v-if="message" class="error-message">{{ message }}</p>
     <button v-if="retryLabel || showRetry" class="error-retry-btn" @click="$emit('retry')">

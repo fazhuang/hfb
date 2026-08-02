@@ -12,6 +12,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import HfbIcon from './HfbIcon.vue';
+import type { LucideIconName } from './HfbIcon.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -24,11 +25,11 @@ const props = withDefaults(
   },
 );
 
-const emptyIconId = computed(() => {
-  const map: Record<string, string> = {
-    '📭': 'lucide:inbox',
+const emptyIconId = computed((): LucideIconName => {
+  const map: Record<string, LucideIconName> = {
+    '📭': 'inbox',
   };
-  return map[props.icon] || 'lucide:inbox';
+  return map[props.icon] || 'inbox';
 });
 </script>
 

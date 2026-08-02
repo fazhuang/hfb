@@ -31,7 +31,7 @@
         aria-label="Clear input"
         @click="onClear"
       >
-        <HfbIcon icon="lucide:x" :size="12" />
+        <HfbIcon icon="x" :size="12" />
       </button>
       <span v-if="$slots.suffix" class="hfb-input__suffix" aria-hidden="true">
         <slot name="suffix" />

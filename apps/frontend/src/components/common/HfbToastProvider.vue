@@ -25,7 +25,7 @@
           aria-label="Dismiss notification"
           @click="dismiss(t.id)"
         >
-          <HfbIcon icon="lucide:x" :size="14" />
+          <HfbIcon icon="x" :size="14" />
         </button>
       </div>
     </div>
@@ -35,17 +35,18 @@
 <script setup lang="ts">
 import { useToast } from '@/composables/useToast';
 import HfbIcon from './HfbIcon.vue';
+import type { LucideIconName } from './HfbIcon.vue';
 
 const { toasts, dismiss } = useToast();
 
-function toastIconId(variant: string): string {
-  const icons: Record<string, string> = {
-    info: 'lucide:info',
-    success: 'lucide:check',
-    warning: 'lucide:triangle-alert',
-    error: 'lucide:x',
+function toastIconId(variant: string): LucideIconName {
+  const icons: Record<string, LucideIconName> = {
+    info: 'info',
+    success: 'check',
+    warning: 'triangle-alert',
+    error: 'x',
   };
-  return icons[variant] || 'lucide:info';
+  return icons[variant] || 'info';
 }
 </script>
 

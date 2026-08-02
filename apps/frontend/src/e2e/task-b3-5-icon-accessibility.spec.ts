@@ -46,10 +46,15 @@ test.describe('B3-5 HfbIcon — Raw Icon Rendering', () => {
     expect(parseInt(width || '0', 10)).toBe(36);
   });
 
-  test('colored icon renders with fill color', async ({ page }) => {
+  test('colored icon renders with CSS token color', async ({ page }) => {
     const container = page.locator('[data-testid="icon-colored"]');
     const svg = container.locator('svg');
     await expect(svg).toBeVisible();
+    // Color must be via CSS token, not direct hex
+    const color = await svg.evaluate((el) => window.getComputedStyle(el).color);
+    expect(color).toBeTruthy();
+    // The computed color should NOT be the raw hex #c53030
+    expect(color).not.toBe('rgb(197, 48, 48)');
   });
 });
 

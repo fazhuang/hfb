@@ -31,12 +31,12 @@
             aria-label="Clear selection"
             @click.stop="clearSelection"
           >
-            <HfbIcon icon="lucide:x" :size="10" />
+            <HfbIcon icon="x" :size="10" />
           </button>
           <span
             :class="['hfb-select__chevron', open ? 'hfb-select__chevron--open' : '']"
             aria-hidden="true"
-            ><HfbIcon icon="lucide:chevron-down" :size="14" /></span
+            ><HfbIcon icon="chevron-down" :size="14" /></span
           >
         </span>
       </button>
@@ -62,7 +62,7 @@
           {{ opt.label }}
           <HfbIcon
             v-if="opt.value === modelValue"
-            icon="lucide:check"
+            icon="check"
             :size="12"
             class="hfb-select__check"
           />

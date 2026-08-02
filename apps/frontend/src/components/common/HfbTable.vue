@@ -39,7 +39,7 @@
             {{ col.label }}
             <HfbIcon
               v-if="sortKey === col.key"
-              :icon="sortDirection === 'asc' ? 'lucide:chevron-up' : 'lucide:chevron-down'"
+              :icon="sortDirection === 'asc' ? 'chevron-up' : 'chevron-down'"
               :size="14"
               class="hfb-table__sort-icon"
             />

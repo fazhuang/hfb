@@ -31,22 +31,22 @@ const App = {
       // ── Raw HfbIcon variants ──
       h('div', { 'data-testid': 'icon-decorative' }, [
         h('p', 'Decorative icon (default):'),
-        h(HfbIcon, { icon: 'lucide:check', size: 20 }),
+        h(HfbIcon, { icon: 'check', size: 20 }),
       ]),
 
       h('div', { 'data-testid': 'icon-labeled' }, [
         h('p', 'Labeled icon:'),
-        h(HfbIcon, { icon: 'lucide:info', size: 24, ariaLabel: 'Information' }),
+        h(HfbIcon, { icon: 'info', size: 24, ariaLabel: 'Information' }),
       ]),
 
       h('div', { 'data-testid': 'icon-large' }, [
         h('p', 'Large icon:'),
-        h(HfbIcon, { icon: 'lucide:house', size: 36 }),
+        h(HfbIcon, { icon: 'house', size: 36 }),
       ]),
 
       h('div', { 'data-testid': 'icon-colored' }, [
-        h('p', 'Colored icon:'),
-        h(HfbIcon, { icon: 'lucide:triangle-alert', size: 20, color: '#c53030' }),
+        h('p', 'Token-colored icon:'),
+        h(HfbIcon, { icon: 'triangle-alert', size: 20, color: 'var(--color-error-text)' }),
       ]),
 
       // ── Icon-only button (aria-label required per B3-1 §5.1) ──
@@ -54,7 +54,7 @@ const App = {
         h(
           HfbButton,
           { ariaLabel: 'Close dialog' },
-          { icon: () => h(HfbIcon, { icon: 'lucide:x', size: 16 }) },
+          { icon: () => h(HfbIcon, { icon: 'x', size: 16 }) },
         ),
       ]),
 

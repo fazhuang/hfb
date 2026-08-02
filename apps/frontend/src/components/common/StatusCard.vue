@@ -1,6 +1,6 @@
 <template>
   <div class="status-card" :class="{ connected, disconnected: !connected }">
-    <HfbIcon :icon="connected ? 'lucide:check-circle' : 'lucide:x-circle'" :size="20" class="status-icon" />
+    <HfbIcon :icon="connected ? 'check-circle' : 'x-circle'" :size="20" class="status-icon" />
     <div class="status-body">
       <span class="status-label">{{ label }}</span>
     </div>

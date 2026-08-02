@@ -26,7 +26,7 @@
             aria-label="Close drawer"
             @click="close"
           >
-            <HfbIcon icon="lucide:x" :size="18" />
+            <HfbIcon icon="x" :size="18" />
           </button>
         </div>
 

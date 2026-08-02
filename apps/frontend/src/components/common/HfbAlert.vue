@@ -23,7 +23,7 @@
       aria-label="Close alert"
       @click="$emit('close')"
     >
-      <HfbIcon icon="lucide:x" :size="16" />
+      <HfbIcon icon="x" :size="16" />
     </button>
   </div>
 </template>
@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import HfbIcon from './HfbIcon.vue';
+import type { LucideIconName } from './HfbIcon.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -54,14 +55,14 @@ const showIcon = computed(
   () => props.icon && ['info', 'success', 'warning', 'error'].includes(props.variant),
 );
 
-const alertIconId = computed(() => {
-  const icons: Record<string, string> = {
-    info: 'lucide:info',
-    success: 'lucide:check',
-    warning: 'lucide:triangle-alert',
-    error: 'lucide:x',
+const alertIconId = computed((): LucideIconName => {
+  const icons: Record<string, LucideIconName> = {
+    info: 'info',
+    success: 'check',
+    warning: 'triangle-alert',
+    error: 'x',
   };
-  return icons[props.variant] || '';
+  return icons[props.variant] || 'info';
 });
 
 const alertClass = computed(() => ['hfb-alert', `hfb-alert--${props.variant}`].join(' '));
