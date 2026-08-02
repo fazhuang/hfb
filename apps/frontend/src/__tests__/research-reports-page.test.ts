@@ -43,7 +43,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createMemoryHistory } from 'vue-router';
 
 // ================================================================
 // Mock setup
@@ -113,7 +113,7 @@ describe('ResearchReportsPage', () => {
     mockApiGet.mockReset();
 
     router = createRouter({
-      history: createWebHistory(),
+      history: createMemoryHistory(),
       routes: [
         { path: '/', component: { template: '<div/>' }, name: 'home' },
         {
