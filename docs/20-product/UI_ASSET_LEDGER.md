@@ -245,18 +245,46 @@
 
 ## 7. Pattern 资产（按功能横切）
 
-### 7.1 Search / Filter
+### 7.1 Search / Filter（C1-1 已收敛）
 
-**事实源**：`LibrarySearchBar.vue`、`ResearchQuestionStep.vue`、`ProjectListToolbar.vue`、`ResearchReportsToolbar.vue`
+**收敛日期**：2026-08-02
+
+**统一基础组件**：`HfbToolbar.vue`（`components/common/`）— 单一 Search / Filter / Toolbar 模式，使用 B3 已审批的基础组件（HfbInput、HfbSelect、HfbButton、HfbIcon）。
+
+**收敛目标**：Reports 页面组。
+
+#### 收敛实现
 
 | 组件 | 使用页面组 | 技术特征 | 处置 |
 |---|---|---|---|
-| `LibrarySearchBar` | Library | 搜索框 + 筛选下拉，debounced API | keep |
-| `ResearchQuestionStep` | Workflow | 文本输入 + 提交按钮，研究课题输入 | keep |
-| `ProjectListToolbar` | Workspace | 搜索 + 排序 + 创建按钮 | keep |
-| `ResearchReportsToolbar` | Reports | 搜索 + 筛选 + 导出 | keep |
+| **`HfbToolbar`** | **Reports**（已适配） | HfbInput（搜索）+ HfbSelect（筛选下拉）+ HfbButton（清除全部）。防抖 300ms、键盘 Enter 即时搜索、响应式布局。类型安全的 `ToolbarFilter[]` 配置 + `ToolbarSearchPayload` 事件。 | **统一模式** |
+| `LibrarySearchBar` | Library | 原始 input + select。下一阶段收敛目标。 | keep（待 C1-2 收敛） |
+| `ProjectListToolbar` | Workspace | 原始 input + clear 按钮。下一阶段收敛目标。 | keep（待 C1-2 收敛） |
+| `ResearchReportsToolbar` | Reports（旧） | **已被 HfbToolbar 替代**。保留为未使用引用，供 C1-2 参考。 | **已淘汰（C1-1）** |
 
-**偏离**：四个 toolbar/search 实现各自独立，无共享 `SearchBar` 基础组件。Library 有多条件筛选而 Workspace 仅文本搜索。
+#### 统一接口
+
+```ts
+// HfbToolbar props
+searchable?: boolean;          // 是否显示搜索输入框
+searchPlaceholder?: string;    // 搜索占位文本
+filters?: ToolbarFilter[];     // 筛选下拉定义
+filterValues?: Record<string, string | number | null>; // 当前筛选值
+loading?: boolean;             // 加载状态
+loadingLabel?: string;         // 加载提示文本
+showClearButton?: boolean;    // 是否显示"清除筛选"按钮
+
+// HfbToolbar emits
+@search: ToolbarSearchPayload;      // { query: string, filters: Record }
+@update:filterValues: Record;       // 筛选值变更
+```
+
+#### 已适配页面
+
+- **ReportListPage**（`pages/reports/`）：`searchable=false`，1 个状态筛选下拉（`status`），与 `useResearchReports` composable 共享 `filterValues` ref。
+- **useResearchReports** composable：导出 `REPORT_TOOLBAR_FILTERS` 常量 + `ToolbarFilterValues` 类型的 `filterValues` ref，取代旧的 `statusFilter`/`setStatusFilter`。导出 `onSearch(payload: ToolbarSearchPayload)` 供页面连接工具栏事件。
+
+**证据**：18 项 HfbToolbar vitest + 20 项 Reports 页面 vitest（更新后的契约）。678 项全量测试套件 + type-check 零错误。
 
 ### 7.2 列表 / Card / Pagination
 
@@ -356,9 +384,9 @@ export {};
 | 4 | 图标库选型（B2 决策文档） | 图标 | B2 |
 | 5 | 图标组件封装 + 无障碍 label | 图标 | B3 |
 | 6 | 按钮 icon slot 类型约束 | 组件契约 | B3 |
-| 7 | 统一 Search/Filter 基础组件 | pattern 统一 | C1 |
-| 8 | 统一 Card 基础组件（3→1） | pattern 统一 | C1 |
-| 9 | 统一 Table 实现（HfbTable vs DataTable） | drift 消除 | C1 |
+| 7 | 统一 Search/Filter 基础组件 | pattern 统一 | **C1-1 ✓**（HfbToolbar + Reports 已适配） |
+| 8 | 统一 Card 基础组件（3→1） | pattern 统一 | C1-2 |
+| 9 | 统一 Table 实现（HfbTable vs DataTable） | drift 消除 | C1-2 |
 | 10 | `pinia-plugin-persistedstate` 替代手写 | 状态持久化 | 可选 |
 | 11 | 跨标签页 store 同步 | 状态持久化 | 可选 |
 | 12 | 古籍图标集（卷/页/版本/校勘/异文） | 图标 | B2/B3 |

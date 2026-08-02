@@ -3,9 +3,12 @@
  *
  * Owns:
  *   - Fetching paginated report list (GET /api/v4/research/reports)
- *   - Status filtering
+ *   - Status filtering via HfbToolbar-integrated filterValues
  *   - Export via backend endpoint with session/run authorization
  *   - Race protection via request sequence counter
+ *
+ * C1-1: Replaced statusFilter/setStatusFilter with unified filterValues pattern
+ *   that feeds directly into HfbToolbar's v-model:filterValues.
  *
  * Contract:
  *   - Stale responses must not overwrite newer requests
@@ -16,6 +19,7 @@
 
 import { ref, computed, onBeforeUnmount } from 'vue';
 import api from '@/api/client';
+import type { ToolbarFilter, ToolbarFilterValues, ToolbarSearchPayload } from '@/types/toolbar';
 
 // ============================================================================
 // Types
@@ -36,10 +40,29 @@ export interface ReportItem {
 export type ReportStatusFilter = '' | 'ready' | 'missing' | 'failed' | 'pending';
 
 // ============================================================================
+// Status filter definition for HfbToolbar
+// ============================================================================
+
+export const REPORT_STATUS_FILTER: ToolbarFilter = {
+  key: 'status',
+  label: '状态',
+  placeholder: '— 状态 —',
+  options: [
+    { value: '', label: '全部' },
+    { value: 'ready', label: '报告就绪' },
+    { value: 'missing', label: '报告缺失' },
+    { value: 'failed', label: '报告失败' },
+    { value: 'pending', label: '待生成' },
+  ],
+};
+
+export const REPORT_TOOLBAR_FILTERS: ToolbarFilter[] = [REPORT_STATUS_FILTER];
+
+// ============================================================================
 // Helpers
 // ============================================================================
 
-const STATUS_FILTER_LABELS: Record<ReportStatusFilter, string> = {
+export const REPORT_STATUS_LABELS: Record<string, string> = {
   '': '全部',
   ready: '报告就绪',
   missing: '报告缺失',
@@ -100,7 +123,9 @@ export function useResearchReports() {
   // ---- UI state ----
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const statusFilter = ref<ReportStatusFilter>('');
+
+  /** Active filter values (keyed by filter.key). Shared with HfbToolbar via v-model:filterValues. */
+  const filterValues = ref<ToolbarFilterValues>({ status: '' });
 
   // ---- Export state ----
   const exporting = ref(false);
@@ -112,7 +137,11 @@ export function useResearchReports() {
   // ---- Derived ----
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / limit.value)));
 
-  const statusFilterLabel = computed(() => STATUS_FILTER_LABELS[statusFilter.value]);
+  /** Human-readable label for the current status filter (used in EmptyState message). */
+  const statusFilterLabel = computed(() => {
+    const val = filterValues.value.status;
+    return REPORT_STATUS_LABELS[String(val)] || '';
+  });
 
   // ---- Fetch reports ----
   async function fetchReports() {
@@ -126,8 +155,9 @@ export function useResearchReports() {
         page: page.value,
         limit: limit.value,
       };
-      if (statusFilter.value) {
-        params.status = statusFilter.value;
+      const statusVal = filterValues.value.status;
+      if (statusVal) {
+        params.status = String(statusVal);
       }
 
       const { data } = await api.get('/api/v4/research/reports', { params });
@@ -146,17 +176,17 @@ export function useResearchReports() {
     }
   }
 
+  // ---- Handle HfbToolbar search event ----
+  function onSearch(_payload: ToolbarSearchPayload) {
+    // filterValues are already synced via v-model:filterValues on HfbToolbar
+    page.value = 1;
+    fetchReports();
+  }
+
   // ---- Pagination ----
   function setPage(p: number) {
     if (p < 1 || p > totalPages.value) return;
     page.value = p;
-    fetchReports();
-  }
-
-  // ---- Status filter ----
-  function setStatusFilter(f: ReportStatusFilter) {
-    statusFilter.value = f;
-    page.value = 1; // reset to first page on filter change
     fetchReports();
   }
 
@@ -274,7 +304,7 @@ export function useResearchReports() {
     // UI state
     loading,
     error,
-    statusFilter,
+    filterValues,
     statusFilterLabel,
 
     // Export
@@ -285,8 +315,8 @@ export function useResearchReports() {
 
     // Actions
     fetchReports,
+    onSearch,
     setPage,
-    setStatusFilter,
     retry,
   };
 }
