@@ -1,23 +1,18 @@
 /**
- * C1-2 — Citation / Evidence / SourceRef Pattern Browser Closure E2E
+ * C1-2 — Citation / Evidence / SourceRef Browser Closure E2E
  *
- * Codex acceptance criteria:
- *   1. ONE document, TWO passages → full chain: Citation→Evidence→SourceRef→Reader
- *      Each passage's chain must be isolated — clicking passage A evidence never
- *      shows passage B data.
- *   2. RBAC boundaries: regular user sees only own data; admin can view all.
+ * Codex invariants (one real document_id, two different passage_ids):
+ *   Citation A/B must each show ONLY its own trace_id / passage_id Evidence + SourceRef.
+ *   Reader link must be exact: /library/{document_id}?passage={passage_id}
+ *   A page/Evidence/SourceRef/Reader must not show B identity, and vice versa.
  *
- * Prerequisites:
- * - Backend    http://127.0.0.1:8000 (real DB, real user seed)
- * - Frontend   http://127.0.0.1:5173 (Vite dev, proxies /api → backend)
- * - Test user  researcher / researcher123
- * - Admin user admin / admin123
+ * RBAC: researcher must be rejected (UI + 403/401); admin must succeed (2xx + visible state change).
  *
- * Design:
- * - beforeAll: API-driven — create doc, 2 passages, ingest, approve, run workflow
- * - Each test: browser-driven login + UI verification
- * - No page.route() — all real responses
- * - All assertions hard-pass; no early-return branches
+ * DESIGN:
+ *   - NO beforeAll data creation. NO page.route(). NO request fixtures for browser tests.
+ *   - Before any test, discovery phase scans existing sessions for real dual-passage data.
+ *   - If no real data found: hard-fail BLOCK_C1_2_EVIDENCE — no synthetic bypass.
+ *   - Sensitive operation: literature review on /literature/{docId} (real UI form).
  */
 
 import { test, expect } from '@playwright/test';
@@ -25,21 +20,7 @@ import { test, expect } from '@playwright/test';
 const BASE = 'http://127.0.0.1:5173';
 const API = 'http://127.0.0.1:8000';
 
-// ─── Shared mutable state (set by beforeAll, read by tests) ───────────
-
-let accessToken: string;
-let adminToken: string;
-let sessionId: string;
-let runId: string;
-let docId: string;
-
-/** Document title that acts as unique audit marker */
-let uniqueDocTitle: string;
-/** Passage titles for assertion matching */
-let passageATitle: string;
-let passageBTitle: string;
-
-// ─── Login helpers ─────────────────────────────────────────────────────
+// ─── Login helpers (real UI form submit, no token injection) ──────────
 
 async function loginResearcher(page: any) {
   await page.goto(`${BASE}/login`);
@@ -59,566 +40,440 @@ async function loginAdmin(page: any) {
   await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15_000 });
 }
 
-// ─── Suite ─────────────────────────────────────────────────────────────
+// ─── Real data scanner (API-only, used once to discover candidate) ────
+
+interface DualPassageCandidate {
+  resultUrl: string;
+  sessionId: string;
+  runId: string;
+  docId: string;
+  pair: Array<{
+    citationTraceId: string;
+    passageId: string;
+    sourceRefTitle: string;
+    sourceRefId: string;
+  }>;
+}
+
+/**
+ * Scan existing sessions for a run containing >=2 evidence entries
+ * from the same document_id with different passage_ids AND real SourceRefs.
+ */
+async function discoverDualPassageCandidate(request: any): Promise<DualPassageCandidate | null> {
+  const authResp = await request.post(`${API}/api/v1/auth/login`, {
+    data: { username: 'researcher', password: 'researcher123' },
+  });
+  if (!authResp.ok()) return null;
+  const token = (await authResp.json()).data.access_token;
+  const h = { Authorization: `Bearer ${token}` };
+
+  const sessResp = await request.get(`${API}/api/v1/workspace/sessions?limit=50`, { headers: h });
+  if (!sessResp.ok()) return null;
+  const sessions = (await sessResp.json()).data ?? [];
+
+  for (const s of sessions) {
+    const sid = s.id;
+    const runsResp = await request.get(`${API}/api/v4/research/session/${sid}/runs`, { headers: h });
+    if (!runsResp.ok()) continue;
+    const runs = (await runsResp.json()).data?.runs ?? [];
+
+    for (const runEntry of runs) {
+      const manifest = runEntry.replay_manifest ?? {};
+      const snapshot: Array<Record<string, unknown>> = manifest.retrieval_snapshot ?? [];
+      const traces: Array<Record<string, unknown>> = manifest.traces ?? [];
+      if (snapshot.length < 2) continue;
+
+      const traceMap = new Map<string, Record<string, unknown>>();
+      for (const tr of traces) {
+        const tid = tr.trace_id as string;
+        if (tid) traceMap.set(tid, tr);
+      }
+
+      // Group by document_id, collect unique passage_ids with SourceRef
+      const docGroups = new Map<string, Array<{ tid: string; pid: string; srTitle: string; srId: string }>>();
+      for (const snap of snapshot) {
+        const tid = snap.trace_id as string;
+        const docId = snap.document_id as string;
+        const srTitle = snap.source_ref_title as string;
+        const srId = snap.source_ref_id as string;
+        const tr = tid ? traceMap.get(tid) : undefined;
+        const pid = (tr?.passage_id as string) || '';
+        if (docId && pid && srTitle && tid) {
+          const entries = docGroups.get(docId) ?? [];
+          entries.push({ tid, pid, srTitle, srId });
+          docGroups.set(docId, entries);
+        }
+      }
+
+      for (const [docId, entries] of docGroups) {
+        const uniquePids = new Set(entries.map((e) => e.pid));
+        if (uniquePids.size >= 2) {
+          const seenPids = new Set<string>();
+          const pair: DualPassageCandidate['pair'] = [];
+          for (const e of entries) {
+            if (!seenPids.has(e.pid)) {
+              seenPids.add(e.pid);
+              pair.push({
+                citationTraceId: e.tid,
+                passageId: e.pid,
+                sourceRefTitle: e.srTitle,
+                sourceRefId: e.srId,
+              });
+              if (pair.length >= 2) break;
+            }
+          }
+          console.log(`C1-2 discovery: doc ${docId.slice(0, 16)}... has ${uniquePids.size} passages`);
+          return {
+            resultUrl: `/research/${sid}/result/${runEntry.run_id}`,
+            sessionId: sid,
+            runId: runEntry.run_id as string,
+            docId,
+            pair,
+          };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ─── Existing document for RBAC test (real, pre-seeded) ──────────────
+
+/** 针灸甲乙经（四库全书本）— known to have review_status: approved, rag_enabled: true */
+const KNOWN_DOC_ID = '378224ae-0325-47f9-80c3-b99c72569bce';
+const KNOWN_DOC_TITLE = '鍼灸甲乙經';
+
+// ─── Full suite ───────────────────────────────────────────────────────
 
 test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => {
 
+  let candidate: DualPassageCandidate | null = null;
+
   // ═══════════════════════════════════════════════════════════════════════
-  // beforeAll — seed controlled data: 1 doc, 2 passages, workflow
+  // Discovery — find real dual-passage same-doc pair, or hard-fail
   // ═══════════════════════════════════════════════════════════════════════
 
-  test.beforeAll(async ({ request }) => {
-    // ── Authenticate ──
-    const authResp = await request.post(`${API}/api/v1/auth/login`, {
-      data: { username: 'researcher', password: 'researcher123' },
-    });
-    expect(authResp.ok()).toBeTruthy();
-    accessToken = (await authResp.json()).data.access_token;
-    expect(accessToken).toBeTruthy();
-
-    const adminResp = await request.post(`${API}/api/v1/auth/login`, {
-      data: { username: 'admin', password: 'admin123' },
-    });
-    expect(adminResp.ok()).toBeTruthy();
-    adminToken = (await adminResp.json()).data.access_token;
-
-    const authHeaders = { Authorization: `Bearer ${accessToken}` };
-    const adminHeaders = { Authorization: `Bearer ${adminToken}` };
-
-    // ── Create document with two passages ──
-    const uniqueSuffix = Date.now().toString(36);
-    uniqueDocTitle = `C1-2链路隔离验证-${uniqueSuffix}`;
-    passageATitle = `C1-2-Passage-A-${uniqueSuffix}`;
-    passageBTitle = `C1-2-Passage-B-${uniqueSuffix}`;
-
-    // Person
-    const personResp = await request.post(`${API}/api/v1/persons`, {
-      data: { name: 'C1-2验证作者', dynasty: '验证' },
-      headers: authHeaders,
-    });
-    expect(personResp.ok()).toBeTruthy();
-    const personId = (await personResp.json()).data.id;
-
-    // Book
-    const bookResp = await request.post(`${API}/api/v1/books`, {
-      data: { title: uniqueDocTitle, dynasty: '验证', author_id: personId },
-      headers: authHeaders,
-    });
-    expect(bookResp.ok()).toBeTruthy();
-    const bookId = (await bookResp.json()).data.id;
-
-    // Version
-    const versionResp = await request.post(`${API}/api/v1/versions`, {
-      data: {
-        book_id: bookId,
-        version_name: 'C1-2验证本',
-        era: '验证',
-        repository: 'C1-2验证库',
-        shelf_mark: `C1-2-${uniqueSuffix}`,
-        source_url: `https://c1-2-closure.invalid/${uniqueSuffix}`,
-      },
-      headers: authHeaders,
-    });
-    expect(versionResp.ok()).toBeTruthy();
-    const versionId = (await versionResp.json()).data.id;
-
-    // Chapter
-    const chapterResp = await request.post(`${API}/api/v1/chapters`, {
-      data: { book_id: bookId, title: 'C1-2验证章', order: 1 },
-      headers: authHeaders,
-    });
-    expect(chapterResp.ok()).toBeTruthy();
-    const chapterId = (await chapterResp.json()).data.id;
-
-    // Passage A
-    const passageAResp = await request.post(`${API}/api/v1/passages`, {
-      data: {
-        chapter_id: chapterId,
-        version_id: versionId,
-        content_text: passageATitle + '：黄帝问曰：余闻九针于夫子，众多博大，不可胜数。余愿闻要道，以属子孙。',
-        order: 1,
-        tags: 'C1-2验证',
-      },
-      headers: authHeaders,
-    });
-    expect(passageAResp.ok()).toBeTruthy();
-    const passageAId = (await passageAResp.json()).data.id;
-
-    // Passage B
-    const passageBResp = await request.post(`${API}/api/v1/passages`, {
-      data: {
-        chapter_id: chapterId,
-        version_id: versionId,
-        content_text: passageBTitle + '：岐伯对曰：妙乎哉问也！此天地之至数，始于一面终于九焉。',
-        order: 2,
-        tags: 'C1-2验证',
-      },
-      headers: authHeaders,
-    });
-    expect(passageBResp.ok()).toBeTruthy();
-    const passageBId = (await passageBResp.json()).data.id;
-
-    // ── Ingest document + source_ref ──
-    const ingestResp = await request.post(`${API}/api/v1/search/ingest`, {
-      data: {
-        title: uniqueDocTitle,
-        text: [
-          passageATitle,
-          '',
-          '黄帝问曰：余闻九针于夫子，众多博大，不可胜数。',
-          '余愿闻要道，以属子孙，传之后世。',
-          '',
-          passageBTitle,
-          '',
-          '岐伯对曰：妙乎哉问也！此天地之至数。',
-          '天地之至数，始于一，终于九焉。',
-        ].join('\n\n'),
-        copyright_status: 'public_domain',
-        authorization_basis: 'c1-2-closure-test',
-        source_name: 'c1-2-closure-e2e',
-        source_url: `https://c1-2-closure.invalid/${uniqueSuffix}`,
-        passage_id: passageAId,
-      },
-      headers: authHeaders,
-    });
-    expect(ingestResp.ok()).toBeTruthy();
-    docId = (await ingestResp.json()).data.document_id;
-    console.log('Ingested docId:', docId);
-
-    // ── Admin: approve document ──
-    const reviewResp = await request.patch(`${API}/api/v1/documents/${docId}/review`, {
-      data: { review_status: 'approved', rag_enabled: true },
-      headers: adminHeaders,
-    });
-    expect(reviewResp.ok()).toBeTruthy();
-
-    // ── Create session + run workflow ──
-    const sessResp = await request.post(`${API}/api/v1/workspace/sessions`, {
-      data: { title: 'C1-2链路隔离研究' },
-      headers: authHeaders,
-    });
-    expect(sessResp.ok()).toBeTruthy();
-    sessionId = (await sessResp.json()).data.id;
-
-    const wfResp = await request.post(`${API}/api/v4/research/workflow`, {
-      data: {
-        session_id: sessionId,
-        topic: `${uniqueDocTitle} 九针 天地至数`,
-        workflow_type: 'full_research_flow',
-      },
-      headers: authHeaders,
-      timeout: 180_000,
-    });
-    expect(wfResp.ok()).toBeTruthy();
-    runId = (await wfResp.json()).data?.run_id || '';
-    expect(runId).toBeTruthy();
-
-    console.log('Session ID:', sessionId);
-    console.log('Run ID:', runId);
-    console.log('Doc ID:', docId);
+  test('C1-2-DISCOVER: find real same-document two-passage citation pair', async ({ request }) => {
+    candidate = await discoverDualPassageCandidate(request);
+    // Hard-fail: no real data → no test can proceed
+    expect(
+      candidate,
+      'BLOCK_C1_2_EVIDENCE: no real same-document two-passage citation pair found in existing sessions',
+    ).not.toBeNull();
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Section 1: Full identity chain — one doc, browser-accessible chains
+  // Section 1: Dual-passage chain isolation (only if DISCOVER passed)
   // ═══════════════════════════════════════════════════════════════════════
 
-  test('C1-2-V01: result page loads with citation panel and evidence', async ({ page }) => {
+  test('C1-2-V01: result page loads via real login, shows citation panel', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate from DISCOVER').not.toBeNull();
     await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
+    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
+    await expect(page.locator('.rcp-citation-item').first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('C1-2-V02: click citation A shows Evidence with correct trace_id / passage_id', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    await loginResearcher(page);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
-    // Citation panel visible
+    const entry = candidate!.pair[0];
+    // Find and click the citation item whose trace_id matches entry.citationTraceId
     const citationItems = page.locator('.rcp-citation-item');
-    await expect(citationItems.first()).toBeVisible({ timeout: 5_000 });
-    expect(await citationItems.count()).toBeGreaterThan(0);
-  });
-
-  test('C1-2-V02: clicking citation shows evidence with SourceRef card', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    await citationItems.first().click();
-    await page.waitForTimeout(1_000);
-
-    // Evidence card visible
-    const evidenceCard = page.locator('.eed-card');
-    await expect(evidenceCard.first()).toBeVisible({ timeout: 5_000 });
-
-    // SourceRef card visible
-    const srcCard = page.locator('.esrc-card');
-    await expect(srcCard.first()).toBeVisible({ timeout: 5_000 });
-  });
-
-  test('C1-2-V03: SourceRef shows real title (not pseudo document: ID)', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    await citationItems.first().click();
-    await page.waitForTimeout(1_000);
-
-    const srcCardText = (await page.locator('.esrc-card').first().textContent()) || '';
-    // Must NOT show missing-source fail-closed state
-    expect(srcCardText).not.toContain('缺少文献来源信息');
-    // Must NOT contain a pseudo document: ID
-    expect(srcCardText).not.toContain('document:');
-  });
-
-  test('C1-2-V04: source_ref_id in SourceRef card is a real UUID (not pseudo)', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    await citationItems.first().click();
-    await page.waitForTimeout(1_000);
-
-    // Get the source_ref_id displayed in the card
-    const srcIdElements = page.locator('.esrc-field-code');
-    if ((await srcIdElements.count()) > 0) {
-      const srcIdText = (await srcIdElements.first().textContent()) || '';
-      expect(srcIdText).not.toContain('document:');
-      // Real UUID has 16+ chars (truncated display)
-      expect(srcIdText.length).toBeGreaterThan(10);
-    }
-  });
-
-  test('C1-2-V05: SourceRef internal link navigates to Reader page (200 OK)', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    await citationItems.first().click();
-    await page.waitForTimeout(1_000);
-
-    // In SourceRef, click internal link if present
-    const sourceLink = page.locator('.esrc-link').first();
-    const linkCount = await sourceLink.count();
-    if (linkCount > 0) {
-      const href = await sourceLink.getAttribute('href');
-      expect(href).toBeTruthy();
-
-      if (href!.startsWith('/')) {
-        await page.goto(`${BASE}${href}`);
-        await page.waitForTimeout(3_000);
-        const bodyText = (await page.textContent('body')) || '';
-        // Must not show error page
-        expect(bodyText).not.toContain('404 Not Found');
-        expect(bodyText).not.toContain('页面不存在');
-        // Must show document or passage content — at minimum the doc title
-        // or passage content should be identifiable
-        expect(bodyText.length).toBeGreaterThan(200);
-      }
-    }
-  });
-
-  test('C1-2-V06: display number in report marker matches citation panel number', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    // Get all report citation markers
-    const markers = page.locator('.rrv-citation-marker');
-    const markerCount = await markers.count();
-
-    // Get all panel citation numbers
-    const panelNums = page.locator('.rcp-citation-number');
-    const panelCount = await panelNums.count();
-
-    if (markerCount > 0 && panelCount > 0) {
-      // First marker text should match first panel number
-      const markerText = await markers.first().textContent();
-      const panelText = await panelNums.first().textContent();
-      // marker format: [N] (with possible whitespace), panel format: #[N]
-      const markerNum = (markerText?.replace(/[[\]\s]/g, '') || '').trim();
-      const panelNum = (panelText?.replace(/[#[\]\s]/g, '') || '').trim();
-      expect(markerNum).toBe(panelNum);
-    }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // Section 2: Evidence isolation — same doc, different passages
-  // ═══════════════════════════════════════════════════════════════════════
-
-  test('C1-2-V07: selecting different citations shows different evidence content', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    const itemCount = await citationItems.count();
-
-    if (itemCount < 2) {
-      // Only one citation — isolation is trivial, skip but log
-      console.log('Only 1 citation in result — isolation is trivial');
-      return;
-    }
-
-    // Click citation 0, capture evidence text
-    await citationItems.nth(0).click();
-    await page.waitForTimeout(800);
-    const evidence0Text = await page.locator('.rcp-evidence-area').textContent();
-
-    // Click citation 1, capture evidence text
-    await citationItems.nth(1).click();
-    await page.waitForTimeout(800);
-    const evidence1Text = await page.locator('.rcp-evidence-area').textContent();
-
-    // The two evidence blocks should be DIFFERENT
-    // (different trace_ids → different evidence content)
-    if (evidence0Text && evidence1Text) {
-      // Evidence content should differ — different passages mean different quotes
-      // But could be identical if both retrieval_snapshot entries have the same claim_text.
-      // We assert NON-null content at minimum.
-      expect(evidence0Text.length).toBeGreaterThan(0);
-      expect(evidence1Text.length).toBeGreaterThan(0);
-    }
-  });
-
-  test('C1-2-V08: evidence with passage_id shows passage-level locator', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const citationItems = page.locator('.rcp-citation-item');
-    await citationItems.first().click();
-    await page.waitForTimeout(1_000);
-
-    // Check lineage badge — should show completeness status
-    const badge = page.locator('.els-badge');
-    if ((await badge.count()) > 0) {
-      const badgeText = (await badge.first().textContent()) || '';
-      // Must be either full or partial — never minimal
-      expect(badgeText).not.toContain('缺少基本标识符');
-    }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // Section 3: Evidence missing → fail-closed (no fabrication)
-  // ═══════════════════════════════════════════════════════════════════════
-
-  test('C1-2-V09: evidence with NO source_ref shows missing-source state', async ({ page }) => {
-    // Verify via API that fail-closed logic exists in the UI for
-    // evidence without source_ref_title
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    // Check overall page — SourceRef missing state should either be present
-    // for items that lack source_ref, or absent for items that have it.
-    // The key assertion: no evidence card should fabricate a source_ref_title
-    // that looks like a pseudo-ID
-    const pageText = await page.textContent('body') || '';
-    expect(pageText).not.toContain('document:');
-  });
-
-  test('C1-2-V10: no fabricated fallback link when source_ref_url is absent', async ({ page }) => {
-    // Verify via API that SourceRefCard does not show fake links for
-    // evidence entries missing source_ref_url
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    // Every SourceRefCard that has an esrc-link must point to a real path
-    const links = page.locator('.esrc-link');
-    const count = await links.count();
+    const count = await citationItems.count();
+    let clicked = false;
     for (let i = 0; i < count; i++) {
-      const href = await links.nth(i).getAttribute('href');
-      if (href) {
-        // Must be a valid relative path or full URL, not empty or javascript:
-        expect(href).not.toContain('javascript:');
+      const text = await citationItems.nth(i).textContent();
+      if (text?.includes(entry.citationTraceId.slice(0, 8))) {
+        await citationItems.nth(i).click();
+        clicked = true;
+        break;
+      }
+    }
+    expect(clicked, `Could not find citation with trace_id ${entry.citationTraceId}`).toBe(true);
+    await page.waitForTimeout(1000);
+
+    // Evidence must show this trace_id and passage_id
+    const evidenceArea = page.locator('.rcp-evidence-area');
+    const evText = (await evidenceArea.textContent()) || '';
+    expect(evText).toContain(entry.citationTraceId.slice(0, 16));
+    expect(evText).toContain(entry.passageId.slice(0, 16));
+
+    // SourceRef must show real title
+    const srcCard = page.locator('.esrc-card').first();
+    await expect(srcCard).toBeVisible({ timeout: 5_000 });
+    const srcText = (await srcCard.textContent()) || '';
+    expect(srcText).toContain(entry.sourceRefTitle.slice(0, 8));
+    expect(srcText).not.toContain('缺少文献来源信息');
+    expect(srcText).not.toContain('document:');
+  });
+
+  test('C1-2-V03: Reader link for citation A points to exact /library/{docId}?passage={passageId}', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    await loginResearcher(page);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
+    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
+
+    const entry = candidate!.pair[0];
+    // Click the matching citation
+    const citationItems = page.locator('.rcp-citation-item');
+    const count = await citationItems.count();
+    for (let i = 0; i < count; i++) {
+      const text = await citationItems.nth(i).textContent();
+      if (text?.includes(entry.citationTraceId.slice(0, 8))) {
+        await citationItems.nth(i).click();
+        break;
+      }
+    }
+    await page.waitForTimeout(1000);
+
+    // SourceRef internal link must be /library/{docId}?passage={passageId}
+    const link = page.locator('.esrc-link').first();
+    const linkCount = await link.count();
+    expect(linkCount).toBeGreaterThan(0);
+
+    const href = (await link.getAttribute('href')) || '';
+    expect(href).toContain(`/library/${candidate!.docId}`);
+    expect(href).toContain(`passage=${entry.passageId}`);
+
+    // Navigate via the link — must land on non-login, content-bearing page
+    await link.click();
+    await page.waitForTimeout(4000);
+    expect(page.url()).not.toContain('/login');
+    const bodyText = (await page.textContent('body')) || '';
+    expect(bodyText.length).toBeGreaterThan(200);
+    expect(bodyText).not.toContain('404 Not Found');
+  });
+
+  test('C1-2-V04: click citation B shows DIFFERENT passage_id, no cross-contamination', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    await loginResearcher(page);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
+    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
+
+    const entryB = candidate!.pair[1];
+    const citationItems = page.locator('.rcp-citation-item');
+    const count = await citationItems.count();
+    let clicked = false;
+    for (let i = 0; i < count; i++) {
+      const text = await citationItems.nth(i).textContent();
+      if (text?.includes(entryB.citationTraceId.slice(0, 8))) {
+        await citationItems.nth(i).click();
+        clicked = true;
+        break;
+      }
+    }
+    expect(clicked, `Could not find citation B with trace_id ${entryB.citationTraceId}`).toBe(true);
+    await page.waitForTimeout(1000);
+
+    const evidenceArea = page.locator('.rcp-evidence-area');
+    const evText = (await evidenceArea.textContent()) || '';
+
+    // Must show passage B's identity
+    expect(evText).toContain(entryB.passageId.slice(0, 16));
+
+    // Must NOT contain passage A's identity
+    const entryA = candidate!.pair[0];
+    expect(evText).not.toContain(entryA.passageId.slice(0, 16));
+    expect(evText).not.toContain(entryA.sourceRefTitle);
+  });
+
+  test('C1-2-V05: passage A and B are different', async () => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    expect(candidate!.pair[0].passageId).not.toBe(candidate!.pair[1].passageId);
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // Section 2: Fail-closed — evidence without SourceRef shows missing state
+  // ═══════════════════════════════════════════════════════════════════════
+
+  test('C1-2-V06: page body never contains pseudo document: IDs', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    await loginResearcher(page);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
+    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
+
+    // Click each citation, check SourceRef card never fabricates pseudo IDs
+    const citationItems = page.locator('.rcp-citation-item');
+    const count = await citationItems.count();
+    for (let i = 0; i < count; i++) {
+      await citationItems.nth(i).click();
+      await page.waitForTimeout(600);
+
+      const srcCards = page.locator('.esrc-card');
+      const cardCount = await srcCards.count();
+      for (let j = 0; j < cardCount; j++) {
+        const text = (await srcCards.nth(j).textContent()) || '';
+        expect(text).not.toContain('document:');
       }
     }
   });
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // Section 4: RBAC boundaries
-  // ═══════════════════════════════════════════════════════════════════════
-
-  test('C1-2-V11: researcher can access own session result', async ({ page }) => {
+  test('C1-2-V07: SourceRef links never contain javascript: or dangerous schemes', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
     await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
-    // Must show session title
-    const bodyText = (await page.textContent('body')) || '';
-    expect(bodyText).toContain('C1-2链路隔离研究');
-  });
-
-  test('C1-2-V12: researcher cannot access result from another user session', async ({ page, request }) => {
-    // Create a second researcher user
-    const suffix = Date.now().toString(36);
-    const user2 = `c1-2-user2-${suffix}`;
-
-    // Register user2 directly via API
-    const regResp = await request.post(`${API}/api/v1/auth/register`, {
-      data: {
-        username: user2,
-        email: `${user2}@example.com`,
-        password: 'test123456',
-      },
-    });
-    expect(regResp.ok()).toBeTruthy();
-
-    // Login as user2
-    const login2Resp = await request.post(`${API}/api/v1/auth/login`, {
-      data: { username: user2, password: 'test123456' },
-    });
-    expect(login2Resp.ok()).toBeTruthy();
-    const token2 = (await login2Resp.json()).data.access_token;
-
-    // Create session for user2
-    const sess2Resp = await request.post(`${API}/api/v1/workspace/sessions`, {
-      data: { title: 'User2私密研究' },
-      headers: { Authorization: `Bearer ${token2}` },
-    });
-    expect(sess2Resp.ok()).toBeTruthy();
-    const session2Id = (await sess2Resp.json()).data.id;
-
-    // user2 tries to access researcher's session — should get 403 or 404
-    const accessResp = await request.get(
-      `${API}/api/v1/workspace/sessions/${sessionId}`,
-      { headers: { Authorization: `Bearer ${token2}` } },
-    );
-    // Must be forbidden or not found (NOT success)
-    expect(accessResp.status()).not.toBe(200);
-  });
-
-  test('C1-2-V13: admin can view document details (not block on own data)', async ({ page }) => {
-    await loginAdmin(page);
-    // Admin should be able to access the document via /library
-    await page.goto(`${BASE}/library/${docId}`);
-    await page.waitForTimeout(3_000);
-
-    const bodyText = (await page.textContent('body')) || '';
-    // Must not show 404 or forbidden for admin
-    expect(bodyText).not.toContain('权限');
-    expect(bodyText).not.toContain('Forbidden');
-  });
-
-  test('C1-2-V14: researcher-result page shows no admin-only UI', async ({ page }) => {
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    const pageText = await page.textContent('body') || '';
-
-    // No admin review buttons / admin panels on result page
-    expect(pageText).not.toContain('审核');
-    expect(pageText).not.toContain('管理面板');
-  });
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // Section 5: API contract — snapshot vs UI consistency
-  // ═══════════════════════════════════════════════════════════════════════
-
-  test('C1-2-V15: API retrieval_snapshot source_ref matches UI claim_text', async ({ page, request }) => {
-    // Fetch API data
-    const runsResp = await request.get(`${API}/api/v4/research/session/${sessionId}/runs`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    expect(runsResp.ok()).toBeTruthy();
-    const runsBody = await runsResp.json();
-    const snapshot = runsBody.data?.runs?.[0]?.replay_manifest?.retrieval_snapshot ?? [];
-
-    if (snapshot.length === 0) return; // No snapshot entries — nothing to verify
-
-    // UI verification
-    await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
-    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
-
-    // Click first citation to show evidence
     const citationItems = page.locator('.rcp-citation-item');
     await citationItems.first().click();
-    await page.waitForTimeout(1_000);
+    await page.waitForTimeout(1000);
 
-    // Evidence claim text should be present
-    const evidenceAreaText = (await page.locator('.rcp-evidence-area').textContent()) || '';
-
-    // Verify at least one snapshot entry's claim matches UI
-    const snapshotClaims = snapshot
-      .filter((s: any) => s.claim_text)
-      .map((s: any) => s.claim_text as string);
-
-    if (snapshotClaims.length > 0) {
-      // UI evidence area must show claim_text from at least one snapshot entry
-      const hasClaim = snapshotClaims.some((claim: string) =>
-        evidenceAreaText.includes(claim.slice(0, 10)),
-      );
-      // If none match, it might be because we clicked a different citation;
-      // check that at minimum the evidence area is non-empty
-      expect(evidenceAreaText.length).toBeGreaterThan(0);
-    }
-  });
-
-  test('C1-2-V16: API snapshot source_ref_id is UUID (not pseudo document:ID)', async ({ request }) => {
-    const runsResp = await request.get(`${API}/api/v4/research/session/${sessionId}/runs`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    expect(runsResp.ok()).toBeTruthy();
-    const runsBody = await runsResp.json();
-    const snapshot = runsBody.data?.runs?.[0]?.replay_manifest?.retrieval_snapshot ?? [];
-
-    if (snapshot.length === 0) return;
-
-    for (const entry of snapshot) {
-      const srId = entry.source_ref_id as string;
-      if (srId) {
-        // Must be a real UUID, not "document:xxx"
-        expect(srId).not.toMatch(/^document:/);
-        // Must have standard UUID length (36 chars, 4 dashes)
-        expect(srId.length).toBe(36);
-        expect((srId.match(/-/g) || []).length).toBe(4);
-      }
+    const links = page.locator('.esrc-link');
+    const lc = await links.count();
+    for (let i = 0; i < lc; i++) {
+      const href = (await links.nth(i).getAttribute('href')) || '';
+      expect(href).not.toContain('javascript:');
+      expect(href).not.toContain('data:');
+      expect(href).not.toContain('vbscript:');
     }
   });
 
   // ═══════════════════════════════════════════════════════════════════════
-  // Section 6: display number consistency (C1-2 core)
+  // Section 3: Display number consistency
   // ═══════════════════════════════════════════════════════════════════════
 
-  test('C1-2-V17: unique marker numbers match unique panel numbers (deduplicated)', async ({ page }) => {
+  test('C1-2-V08: first report marker number equals first panel citation number', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
     await loginResearcher(page);
-    await page.goto(`${BASE}/research/${sessionId}/result/${runId}`);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
-    // Collect unique display numbers from report markers (same trace_id can appear
-    // multiple times in markdown — e.g. once in report body, once in evidence synthesis).
     const markers = page.locator('.rrv-citation-marker');
-    const markerCount = await markers.count();
+    const panels = page.locator('.rcp-citation-item');
+    if ((await markers.count()) > 0 && (await panels.count()) > 0) {
+      const mText = ((await markers.first().textContent()) || '').replace(/[[\]\s]/g, '').trim();
+      const pText = (
+        (await panels.first().locator('.rcp-citation-number').textContent()) || ''
+      )
+        .replace(/[#[\]\s]/g, '')
+        .trim();
+      // Both should be numbers and equal
+      expect(mText).toBe(pText);
+    }
+  });
 
-    const markerNums = new Set<string>();
-    for (let i = 0; i < markerCount; i++) {
-      const text = (await markers.nth(i).textContent()) || '';
-      const num = text.replace(/[[\]\s]/g, '').trim();
-      if (num && num !== 'undefined') markerNums.add(num);
+  test('C1-2-V09: unique marker set is subset of unique panel number set', async ({ page }) => {
+    expect(candidate, 'BLOCK_C1_2_EVIDENCE: no candidate').not.toBeNull();
+    await loginResearcher(page);
+    await page.goto(`${BASE}${candidate!.resultUrl}`);
+    await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
+
+    const markers = page.locator('.rrv-citation-marker');
+    const mc = await markers.count();
+    const markerSet = new Set<string>();
+    for (let i = 0; i < mc; i++) {
+      const t = ((await markers.nth(i).textContent()) || '').replace(/[[\]\s]/g, '').trim();
+      if (t && t !== 'undefined') markerSet.add(t);
     }
 
-    // Collect unique non-'?' display numbers from citation panel
-    const panelItems = page.locator('.rcp-citation-item');
-    const panelCount = await panelItems.count();
-
-    const panelNums = new Set<string>();
-    for (let i = 0; i < panelCount; i++) {
-      const text = (await panelItems.nth(i).locator('.rcp-citation-number').textContent()) || '';
-      const num = text.replace(/[#[\]\s]/g, '').trim();
-      if (num && num !== '?' && num !== 'undefined') panelNums.add(num);
+    const panels = page.locator('.rcp-citation-item');
+    const pc = await panels.count();
+    const panelSet = new Set<string>();
+    for (let i = 0; i < pc; i++) {
+      const t = (
+        (await panels.nth(i).locator('.rcp-citation-number').textContent()) || ''
+      )
+        .replace(/[#[\]\s]/g, '')
+        .trim();
+      if (t && t !== '?' && t !== 'undefined') panelSet.add(t);
     }
 
-    // Every unique marker number must appear in the panel
-    for (const n of markerNums) {
-      expect(panelNums.has(n)).toBeTruthy();
+    for (const n of markerSet) {
+      expect(panelSet.has(n), `Marker number ${n} not found in panel`).toBe(true);
     }
+    expect(panelSet.size).toBeGreaterThanOrEqual(markerSet.size);
+  });
 
-    // Panel should not have fewer unique numbers than markers
-    // (panel may have MORE via orphan citations not in markdown)
-    expect(panelNums.size).toBeGreaterThanOrEqual(markerNums.size);
+  // ═══════════════════════════════════════════════════════════════════════
+  // Section 4: RBAC — sensitive operation via real browser UI
+  // ═══════════════════════════════════════════════════════════════════════
+  //
+  // Sensitive operation: literature document review on /literature/{docId}
+  // This page has a real <select> + <button> form that PATCHes review_status.
+  // Regular researcher must be rejected; admin must succeed.
 
-    console.log(`V17: ${markerNums.size} unique markers, ${panelNums.size} unique panel items`);
+  test('C1-2-R01: researcher sees no review form on literature detail page', async ({ page }) => {
+    await loginResearcher(page);
+    await page.goto(`${BASE}/literature/${KNOWN_DOC_ID}`);
+    await page.waitForTimeout(3000);
+
+    // Admin review section is guarded by v-if="auth.canReviewDocuments".
+    // Researcher must NOT see the admin-panel section (contains review <select> + submit button).
+    const adminPanel = page.locator('.admin-panel');
+    await expect(adminPanel).not.toBeVisible({ timeout: 3000 });
+
+    // Double-check: the review status <select> must not exist in DOM at all
+    const reviewSelects = page.locator('.action-select');
+    await expect(reviewSelects).toHaveCount(0);
+  });
+
+  test('C1-2-R02: researcher PATCH to review endpoint returns 403 via browser', async ({ page }) => {
+    // Log in via real UI
+    await loginResearcher(page);
+
+    // Use page.request (inherits browser cookies) to attempt the PATCH
+    const resp = await page.request.patch(`${API}/api/v1/documents/${KNOWN_DOC_ID}/review`, {
+      data: { review_status: 'approved', rag_enabled: true },
+    });
+    // Must be rejected
+    expect(resp.status()).toBeGreaterThanOrEqual(400);
+    // Specifically 403 or 401
+    expect([401, 403]).toContain(resp.status());
+  });
+
+  test('C1-2-R03: admin sees review form and can change review status', async ({ page }) => {
+    await loginAdmin(page);
+    // Intercept the PATCH before navigating so we capture it on submission
+    const patchPromise = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/api/v1/documents/${KNOWN_DOC_ID}/review`) &&
+        r.request().method() === 'PATCH',
+      { timeout: 15_000 },
+    );
+
+    await page.goto(`${BASE}/literature/${KNOWN_DOC_ID}`);
+    await page.waitForTimeout(3000);
+
+    // Admin must see the admin panel with review form
+    await expect(page.locator('.admin-panel')).toBeVisible({ timeout: 5000 });
+
+    // Read current review status badge
+    const pageText = (await page.textContent('body')) || '';
+    // Document is already 'approved' — visible as "已通过" badge
+    expect(pageText).toContain('已通过');
+
+    // Select "rejected" to toggle state
+    await page.locator('.action-select').first().selectOption('rejected');
+    await page.waitForTimeout(300);
+
+    // Click submit and capture response
+    await page.locator('button.btn-primary').first().click();
+    const resp = await patchPromise;
+    expect(resp.status()).toBe(200);
+
+    // Page should refresh — wait and verify new status
+    await page.waitForTimeout(2000);
+    const refreshedText = (await page.textContent('body')) || '';
+    expect(refreshedText).toContain('已驳回');
+
+    // ── Restore to "approved" ──
+    const patchPromise2 = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/api/v1/documents/${KNOWN_DOC_ID}/review`) &&
+        r.request().method() === 'PATCH',
+      { timeout: 15_000 },
+    );
+    await page.locator('.action-select').first().selectOption('approved');
+    await page.waitForTimeout(300);
+    await page.locator('button.btn-primary').first().click();
+    const resp2 = await patchPromise2;
+    expect(resp2.status()).toBe(200);
+    await page.waitForTimeout(1000);
+    const finalText = (await page.textContent('body')) || '';
+    expect(finalText).toContain('已通过');
   });
 });
