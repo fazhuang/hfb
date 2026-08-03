@@ -152,7 +152,7 @@ ResearchWorkspacePage (唯一数据所有者)
 
 ### 空项目 CTA
 
-**判定**：全局空态 = `MergedResearchItem[]` 为空 **AND** `notes[]` 为空 **AND** `citations[]` 为空 **AND** 三个逻辑 section（§5.5）均无未解决 error（partial 不算 error）。详见 §6.3 全局空态判定。
+**判定**：全局空态 = 三个逻辑 section 数据均为空，且三个逻辑 section 均为 success。详见 §6.3 全局空态判定。
 
 空项目时:
 
@@ -462,12 +462,11 @@ Session gate 失败满足 §6.1 任一终态条件后:
 
 **判定时机**: 所有 section 请求完成（`Promise.allSettled` settled）**且**骨架最短时长已满足后。
 
-**判定条件**（三个条件必须同时满足）:
+**判定条件**（四个条件必须同时满足）:
 1. `MergedResearchItem[]` 为空（合并归一化后）
 2. `notes[]` 为空
 3. `citations[]` 为空
-
-**且**三个逻辑 section（§5.5）均无未解决 error（partial 不算 error。若某个逻辑 section 有 error 但其他 section 有数据，不触发全局空态）。
+4. **三个逻辑 section（§5.5）均为 success** — 任一 partial 或 failed 都不得进入 WelcomeCard 空态。Partial 的数据侧即使返回空数组，失败侧仍需一个可见容器来展示提示和单边重试按钮。
 
 **全局空态 → 引导卡**（见第 3 章）。
 
@@ -537,11 +536,12 @@ Session gate 失败满足 §6.1 任一终态条件后:
 30. 全失败场景显示汇总错误而非引导卡
 31. "最近研究" partial 状态（单边失败）显示数据 + 提示 + 单边重试按钮
 32. partial 单边重试仅重试失败端点，不计入 per-section 重试配额
+33. runs 成功为空、history 失败、notes/citations 成功为空时，渲染 partial 提示与单边重试，不渲染 WelcomeCard（partial 不满足全局空态）
 
 **Batch G — 删除组件残留引用**:
-33. ContinueResearchCard 不再被导入或渲染
-34. RecentResearchActivity 不再被导入或渲染
-35. ResearchWorkspacePage 不再渲染已删除组件的标签
+34. ContinueResearchCard 不再被导入或渲染
+35. RecentResearchActivity 不再被导入或渲染
+36. ResearchWorkspacePage 不再渲染已删除组件的标签
 
 ### 需保留/修改的现有测试
 
