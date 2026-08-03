@@ -255,11 +255,6 @@ describe('ResearchWorkspacePage', () => {
             props: ['title', 'message', 'showRetry'],
             emits: ['retry'],
           },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
-            emits: ['retry'],
-          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
           RecentReports: {
             template: '<div />',
@@ -303,11 +298,6 @@ describe('ResearchWorkspacePage', () => {
           ErrorState: {
             template: '<div />',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
@@ -360,11 +350,6 @@ describe('ResearchWorkspacePage', () => {
           ErrorState: {
             template: '<div />',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
@@ -440,11 +425,6 @@ describe('ResearchWorkspacePage', () => {
           ErrorState: {
             template: '<div />',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
@@ -528,11 +508,6 @@ describe('ResearchWorkspacePage', () => {
           ErrorState: {
             template: '<div />',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
@@ -816,33 +791,6 @@ describe('ResearchWorkspacePage', () => {
     expect((btn.element as HTMLButtonElement).disabled).toBe(true);
   });
 
-  // ---- Batch 3: No resume API → no "继续研究" ----
-
-  it('ContinueResearchCard does not show "继续研究" (no resume API)', async () => {
-    const { default: ContinueResearchCard } =
-      await import('@/components/research/ContinueResearchCard.vue');
-
-    const wrapper = mount(ContinueResearchCard, {
-      props: { projectId: PROJ_A, loading: false, error: null },
-      global: {
-        stubs: {
-          RouterLink: { template: '<a :href="to" class="mock-link"><slot /></a>', props: ['to'] },
-          LoadingState: { template: '<div class="mock-loading" />', props: ['message'] },
-          ErrorState: {
-            template: '<div class="mock-error">{{ message }}</div>',
-            props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-        },
-      },
-    });
-
-    await flushPromises();
-
-    expect(wrapper.text()).not.toContain('继续研究');
-    expect(wrapper.text()).toContain('开始新研究');
-  });
-
   // ---- Batch 3: RecentReports only shows completed runs with report artifacts ----
 
   it('RecentReports only shows completed runs with report_generation completed', async () => {
@@ -1070,12 +1018,6 @@ describe('ResearchWorkspacePage', () => {
             template:
               '<div class="mock-error" role="alert">{{ message }}<button class="mock-retry-btn" @click="$emit(\'retry\')">重试</button></div>',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template:
-              '<div class="mock-crc"><span v-if="error">{{ error }}</span><button v-if="error" class="mock-retry-btn" @click="$emit(\'retry\')">Retry</button></div>',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
@@ -1561,11 +1503,6 @@ describe('ResearchWorkspacePage', () => {
             props: ['title', 'message', 'showRetry'],
             emits: ['retry'],
           },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
-            emits: ['retry'],
-          },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },
           RecentReports: {
             template: '<div />',
@@ -1622,11 +1559,6 @@ describe('ResearchWorkspacePage', () => {
           ErrorState: {
             template: '<div />',
             props: ['title', 'message', 'showRetry'],
-            emits: ['retry'],
-          },
-          ContinueResearchCard: {
-            template: '<div />',
-            props: ['projectId', 'loading', 'error'],
             emits: ['retry'],
           },
           RecentResearchActivity: { template: '<div />', props: ['projectId'] },

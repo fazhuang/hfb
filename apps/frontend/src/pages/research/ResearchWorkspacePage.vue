@@ -52,18 +52,10 @@
       <!-- Main content -->
       <template v-else-if="project">
         <main class="rwp-main">
-          <!-- 1. Start Research -->
-          <ContinueResearchCard
-            :project-id="project.id"
-            :loading="runsLoading"
-            :error="runsError"
-            @retry="loadRuns"
-          />
-
-          <!-- 2. Recent Activity -->
+          <!-- 1. Recent Activity -->
           <RecentResearchActivity :project-id="project.id" />
 
-          <!-- 3. Recent Runs -->
+          <!-- 2. Recent Runs -->
           <RecentReports
             :project-id="project.id"
             :loading="runsLoading"
@@ -72,14 +64,14 @@
             @retry="loadRuns"
           />
 
-          <!-- 4. Recent Notes -->
+          <!-- 3. Recent Notes -->
           <RecentNotes :project-id="project.id" />
 
-          <!-- 5. Research Resources -->
+          <!-- 4. Research Resources -->
           <ResearchResources :project-id="project.id" />
         </main>
 
-        <!-- 6. AI Research Assistant sidebar -->
+        <!-- 5. AI Research Assistant sidebar -->
         <ResearchAssistantEntry :project-id="project.id" />
       </template>
     </div>
@@ -92,17 +84,15 @@
  *
  * Page sections:
  *   1. ResearchPageHeader — title, context_notes, breadcrumbs, actions
- *   2. ContinueResearchCard — "开始新研究" (no resume API exists)
- *   3. RecentResearchActivity — GET /api/v4/research/session/{id}/history
- *   4. RecentReports — shared runs from page (single GET /api/v4/research/session/{id}/runs)
- *   5. RecentNotes — GET /api/v1/workspace/sessions/{id}/notes
- *   6. ResearchResources — GET /api/v1/workspace/sessions/{id}/citations
- *   7. ResearchAssistantEntry — question input → navigates to workflow
+ *   2. RecentResearchActivity — GET /api/v4/research/session/{id}/history
+ *   3. RecentReports — shared runs from page (single GET /api/v4/research/session/{id}/runs)
+ *   4. RecentNotes — GET /api/v1/workspace/sessions/{id}/notes
+ *   5. ResearchResources — GET /api/v1/workspace/sessions/{id}/citations
+ *   6. ResearchAssistantEntry — question input → navigates to workflow
  *
  * The page owns the single ResearchSession detail (GET .../sessions/{id})
  * AND the single runs request (GET .../runs). Runs data is shared via props
- * to ContinueResearchCard and RecentReports — those components do NOT make
- * their own runs API calls.
+ * to RecentReports — it does NOT make its own runs API calls.
  *
  * Route param :projectId === ResearchSession.id
  * There is no independent Project entity.
@@ -119,7 +109,6 @@ import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
-import ContinueResearchCard from '@/components/research/ContinueResearchCard.vue';
 import RecentResearchActivity from '@/components/research/RecentResearchActivity.vue';
 import RecentReports from '@/components/research/RecentReports.vue';
 import RecentNotes from '@/components/research/RecentNotes.vue';
