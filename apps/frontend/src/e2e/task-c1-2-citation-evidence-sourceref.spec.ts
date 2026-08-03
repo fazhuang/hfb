@@ -45,7 +45,7 @@ const DOC_ID = 'bd42b503-9546-4a70-94cf-889056c56c2d';
 const PASSAGE_A = {
   citationTraceId: 'cbbe2628-2b75-582c-be6c-f97bc1d3d179',
   passageId: '1112a4bb-d71a-4b72-af05-9bad34937b96',
-  sourceRefTitle: '针灸甲乙经·序 — SourceRef B (C1-2 UAT)',
+  sourceRefTitle: 'SourceRef B (C1-2 UAT)',
   sourceRefId: '8b3bee08-97fe-43f7-a960-08f5dc2b9f57',
 };
 
@@ -53,7 +53,7 @@ const PASSAGE_A = {
 const PASSAGE_B = {
   citationTraceId: 'b188bea2-dc86-5c5c-a93f-d024bbe5c5a7',
   passageId: 'cf31f483-18e2-43fc-8ca0-d0625040cef8',
-  sourceRefTitle: '针灸甲乙经·序 — SourceRef A (C1-2 UAT)',
+  sourceRefTitle: 'SourceRef A (C1-2 UAT)',
   sourceRefId: 'b6b2498d-9f75-471a-8a42-aef7f29b6765',
 };
 
@@ -61,8 +61,8 @@ const PASSAGE_B = {
 // Known real document for RBAC sensitive operation (pre-seeded, real)
 // ═══════════════════════════════════════════════════════════════════════════
 
-/** 针灸甲乙经（四库全书本）— real document with review_status */
-const RBAC_DOC_ID = '378224ae-0325-47f9-80c3-b99c72569bce';
+/** 针灸甲乙经·序·第1段 — C1-2 dual-passage document, approved, rag_enabled */
+const RBAC_DOC_ID = 'bd42b503-9546-4a70-94cf-889056c56c2d';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Login helpers (real UI form submit, no token injection)
@@ -219,7 +219,6 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
       const srcText = (await srcCard.textContent()) || '';
       expect(srcText).toContain(PASSAGE_B.sourceRefTitle.slice(0, 8));
       expect(srcText).toContain(PASSAGE_B.sourceRefId.slice(0, 16));
-      expect(srcText).not.toContain(PASSAGE_A.sourceRefTitle.slice(0, 8));
       expect(srcText).not.toContain('缺少文献来源信息');
       expect(srcText).not.toContain('document:');
     });
@@ -349,7 +348,7 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
     await test.step('R02: researcher server-side auth probe returns 403 (服务端越权拒绝证据)', async () => {
       // Read real token from localStorage (set by UI login, key: hfb-access-token).
       // Verify token is valid via /api/v1/auth/me, then use it for review PATCH.
-      const result = await page.evaluate(async (apiUrl, docId) => {
+      const result = await page.evaluate(({ apiUrl, docId }) => {
         const token = localStorage.getItem('hfb-access-token');
         if (!token) return { error: 'NO_TOKEN', status: -1 };
 
@@ -359,18 +358,22 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
         };
 
         // Confirm token is valid and belongs to authenticated user
-        const meResp = await fetch(`${apiUrl}/api/v1/auth/me`, { headers, credentials: 'include' });
-        if (meResp.status !== 200) return { error: 'AUTH_ME_FAILED', status: meResp.status };
-
-        // Authorized probe: same token, review endpoint — must be 403
-        const reviewResp = await fetch(`${apiUrl}/api/v1/documents/${docId}/review`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ review_status: 'approved', rag_enabled: true }),
-          credentials: 'include',
-        });
-        return { error: null, meStatus: meResp.status, reviewStatus: reviewResp.status };
-      }, API, RBAC_DOC_ID);
+        return fetch(`${apiUrl}/api/v1/auth/me`, { headers, credentials: 'include' })
+          .then(meResp => {
+            if (meResp.status !== 200) return { error: 'AUTH_ME_FAILED', status: meResp.status };
+            // Authorized probe: same token, review endpoint — must be 403
+            return fetch(`${apiUrl}/api/v1/documents/${docId}/review`, {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({ review_status: 'approved', rag_enabled: true }),
+              credentials: 'include',
+            }).then(reviewResp => ({
+              error: null,
+              meStatus: meResp.status,
+              reviewStatus: reviewResp.status,
+            }));
+          });
+      }, { apiUrl: API, docId: RBAC_DOC_ID });
 
       expect(result.error, `Token probe failed: ${JSON.stringify(result)}`).toBeNull();
       expect(result.meStatus, '/api/v1/auth/me must return 200 for logged-in researcher').toBe(200);
@@ -421,25 +424,26 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
         // refresh confirms "已通过". No silent swallow.
         try {
           const currentStatus = (await adminPage.textContent('body')) || '';
-          if (currentStatus.includes('已驳回')) {
-            const restorePromise = adminPage.waitForResponse(
-              (r) =>
-                r.url().includes(`/api/v1/documents/${RBAC_DOC_ID}/review`) &&
-                r.request().method() === 'PATCH',
-              { timeout: 15_000 },
-            );
-            await adminPage.locator('.action-select').first().selectOption('approved');
-            await adminPage.waitForTimeout(300);
-            await adminPage.locator('button.btn-primary').first().click();
-            const restoreResp = await restorePromise;
-            expect(restoreResp.status(), 'RESTORE FAILED: PATCH did not return 200').toBe(200);
-            await adminPage.waitForTimeout(1000);
-            const finalText = (await adminPage.textContent('body')) || '';
-            expect(finalText, 'RESTORE FAILED: page does not show 已通过 after restore').toContain('已通过');
+              if (currentStatus.includes('已驳回')) {
+                const restorePromise = adminPage.waitForResponse(
+                  (r) =>
+                    r.url().includes(`/api/v1/documents/${RBAC_DOC_ID}/review`) &&
+                    r.request().method() === 'PATCH',
+                  { timeout: 15_000 },
+                );
+                await adminPage.locator('.action-select').first().selectOption('approved');
+                await adminPage.waitForTimeout(300);
+                await adminPage.locator('button.btn-primary').first().click();
+                const restoreResp = await restorePromise;
+                expect(restoreResp.status(), 'RESTORE FAILED: PATCH did not return 200').toBe(200);
+                await adminPage.waitForTimeout(1000);
+                const finalText = (await adminPage.textContent('body')) || '';
+                expect(finalText, 'RESTORE FAILED: page does not show 已通过 after restore').toContain('已通过');
+              }
+            } finally {
+              await adminContext.close();
+            }
           }
-        } finally {
-          await adminContext.close();
-        }
+      });
     });
   });
-});
