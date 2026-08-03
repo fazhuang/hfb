@@ -84,10 +84,21 @@ onMounted(() => {
   mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
   mql.addEventListener('change', syncMobile);
   syncMobile();
+
+  // Hide DefaultLayout's AppNavbar when this child layout is active.
+  // DefaultLayout renders AppNavbar as sibling to AppMain; CSS can't reach
+  // a previous sibling, so we set a class on the parent container.
+  const wrapper = document.querySelector('.ral-main-wrapper');
+  if (wrapper) {
+    const root = wrapper.closest('.default-layout');
+    if (root) root.classList.add('ral-mobile-active');
+  }
 });
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', syncMobile);
+  const root = document.querySelector('.default-layout.ral-mobile-active');
+  if (root) root.classList.remove('ral-mobile-active');
 });
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
@@ -330,4 +341,15 @@ const userName = auth.userName || '未登录';
 
 /* ---- Mobile toggle (media-moved after @640px block, already in cascade) ---- */
 
+</style>
+
+<!-- Global style: hide DefaultLayout's AppNavbar on mobile when ResearchAppLayout is active.
+     ResearchAppLayout has its own sidebar + toggle; the global navbar duplicates chrome
+     and eats 56px of viewport at 375px, truncating the page header.                 -->
+<style>
+@media (max-width: 640px) {
+  .default-layout.ral-mobile-active > .app-navbar {
+    display: none;
+  }
+}
 </style>
