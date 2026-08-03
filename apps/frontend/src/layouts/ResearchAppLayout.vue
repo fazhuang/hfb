@@ -40,14 +40,17 @@
       class="ral-sidebar-backdrop"
       @click="sidebarCollapsed = true"
       aria-hidden="true"
+      @keydown.escape.prevent="sidebarCollapsed = true"
     ></div>
 
     <!-- Mobile sidebar toggle — always reachable at narrow viewports -->
     <button
       class="ral-mobile-toggle"
-      @click="sidebarCollapsed = !sidebarCollapsed"
+      @click="openSidebar"
       :aria-label="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
       :title="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
+      @keydown.enter.prevent="openSidebar(); focusFirstNavLink()"
+      @keydown.space.prevent="openSidebar(); focusFirstNavLink()"
     >
       {{ sidebarCollapsed ? '☰' : '✕' }}
     </button>
@@ -93,13 +96,40 @@ onMounted(() => {
     const root = wrapper.closest('.default-layout');
     if (root) root.classList.add('ral-mobile-active');
   }
+
+  // Keyboard: Escape closes mobile sidebar overlay and returns focus to toggle.
+  document.addEventListener('keydown', handleEscape);
 });
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', syncMobile);
   const root = document.querySelector('.default-layout.ral-mobile-active');
   if (root) root.classList.remove('ral-mobile-active');
+  document.removeEventListener('keydown', handleEscape);
 });
+
+function handleEscape(e: KeyboardEvent) {
+  if (e.key === 'Escape' && !sidebarCollapsed.value) {
+    const width = window.innerWidth;
+    if (width <= MOBILE_BREAKPOINT) {
+      e.preventDefault();
+      sidebarCollapsed.value = true;
+      // Return focus to the mobile toggle button
+      const btn = document.querySelector('.ral-mobile-toggle') as HTMLElement | null;
+      if (btn) btn.focus();
+    }
+  }
+}
+
+function openSidebar() {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
+}
+
+function focusFirstNavLink() {
+  // After sidebar opens, move focus to the first nav link inside it
+  const firstLink = document.querySelector('.ral-sidebar .rpn-link') as HTMLElement | null;
+  if (firstLink) firstLink.focus();
+}
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
