@@ -5,80 +5,87 @@
     <!-- Loading -->
     <LoadingState v-if="loading" message="正在加载..." />
 
-    <!-- Error -->
-    <ErrorState v-else-if="error" :message="error" title="加载失败" @retry="$emit('retry')" />
-
-    <!-- Empty -->
-    <EmptyState
-      v-else-if="props.items.length === 0"
-      title="暂无研究记录"
-      description="在此课题中执行研究查询或运行研究工作流后，记录将显示在这里。"
-      icon="📄"
+    <!-- Full error (both failed) -->
+    <ErrorState
+      v-else-if="error && !partialType"
+      :message="error"
+      title="加载失败"
+      @retry="$emit('retry')"
     />
 
-    <!-- Merged research list -->
-    <ul v-else class="rr-list" role="list">
-      <li v-for="item in props.items" :key="`${item.type}-${item.id}`" class="rr-item">
-        <!-- Run item -->
-        <template v-if="item.type === 'run'">
-          <div class="rr-item-main">
-            <h3 class="rr-title">{{ item.title || '未命名研究' }}</h3>
-            <div v-if="item.stepTrace && item.stepTrace.length > 0" class="rr-steps">
-              <span
-                v-for="step in item.stepTrace"
-                :key="step.name"
-                class="rr-step-badge"
-                :class="'rr-step--' + step.status"
-              >
-                {{ stepLabel(step.name) }}
-              </span>
-            </div>
-          </div>
-          <div class="rr-item-meta">
-            <time v-if="item.completedAt" :datetime="item.completedAt" class="rr-time">
-              {{ formatDate(item.completedAt) }}
-            </time>
-            <router-link
-              v-if="item.runId && hasCompletedStep(item)"
-              :to="`/research/${projectId}/result/${item.runId}`"
-              class="rr-view-link"
-            >
-              查看
-            </router-link>
-          </div>
-        </template>
+    <!-- Content (success or partial) -->
+    <template v-else-if="!loading">
+      <!-- Partial banner: runs failed -->
+      <div v-if="partialType === 'runs'" class="rr-partial-banner">
+        <span class="rr-partial-text">运行记录暂不可用</span>
+        <button class="rr-partial-retry" @click="$emit('retryRuns')">重试运行记录</button>
+      </div>
 
-        <!-- Activity item -->
-        <template v-else>
-          <div class="rr-item-main rr-item-main--inline">
-            <span class="rr-type-badge">{{ typeLabel(item.queryType || '') }}</span>
-            <span class="rr-text">{{ item.title }}</span>
-          </div>
-          <div class="rr-item-meta">
-            <span v-if="(item.citationCount ?? 0) > 0" class="rr-stat">
-              {{ item.citationCount }} 条引用
-            </span>
-            <time :datetime="item.timestamp || undefined" class="rr-time">
-              {{ formatDate(item.timestamp) }}
-            </time>
-          </div>
-        </template>
-      </li>
-    </ul>
+      <!-- Partial banner: history failed -->
+      <div v-if="partialType === 'history'" class="rr-partial-banner">
+        <span class="rr-partial-text">活动记录暂不可用</span>
+        <button class="rr-partial-retry" @click="$emit('retryHistory')">重试活动记录</button>
+      </div>
+
+      <!-- Empty -->
+      <EmptyState
+        v-if="props.items.length === 0 && !partialType"
+        title="暂无研究记录"
+        description="在此课题中执行研究查询或运行研究工作流后，记录将显示在这里。"
+        icon="📄"
+      />
+
+      <!-- Merged research list -->
+      <ul v-if="props.items.length > 0" class="rr-list" role="list">
+        <li v-for="item in props.items" :key="`${item.type}-${item.id}`" class="rr-item">
+          <template v-if="item.type === 'run'">
+            <div class="rr-item-main">
+              <h3 class="rr-title">{{ item.title || '未命名研究' }}</h3>
+              <div v-if="item.stepTrace && item.stepTrace.length > 0" class="rr-steps">
+                <span
+                  v-for="step in item.stepTrace"
+                  :key="step.name"
+                  class="rr-step-badge"
+                  :class="'rr-step--' + step.status"
+                >
+                  {{ stepLabel(step.name) }}
+                </span>
+              </div>
+            </div>
+            <div class="rr-item-meta">
+              <time v-if="item.completedAt" :datetime="item.completedAt" class="rr-time">
+                {{ formatDate(item.completedAt) }}
+              </time>
+              <router-link
+                v-if="item.runId && hasCompletedStep(item)"
+                :to="`/research/${projectId}/result/${item.runId}`"
+                class="rr-view-link"
+              >
+                查看
+              </router-link>
+            </div>
+          </template>
+          <template v-else>
+            <div class="rr-item-main rr-item-main--inline">
+              <span class="rr-type-badge">{{ typeLabel(item.queryType || '') }}</span>
+              <span class="rr-text">{{ item.title }}</span>
+            </div>
+            <div class="rr-item-meta">
+              <span v-if="(item.citationCount ?? 0) > 0" class="rr-stat">
+                {{ item.citationCount }} 条引用
+              </span>
+              <time :datetime="item.timestamp || undefined" class="rr-time">
+                {{ formatDate(item.timestamp) }}
+              </time>
+            </div>
+          </template>
+        </li>
+      </ul>
+    </template>
   </section>
 </template>
 
 <script setup lang="ts">
-/**
- * RecentReports — 最近研究列表（受控展示组件）
- *
- * Receives merged research items from parent page (single source of truth).
- * Does NOT make its own API calls, sort, or filter — purely displays what it receives.
- *
- * Supports two item types:
- *   run — from /api/v4/research/session/{id}/runs
- *   activity — from /api/v4/research/session/{id}/history
- */
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
@@ -88,11 +95,9 @@ interface MergedResearchItem {
   type: 'run' | 'activity';
   title: string;
   timestamp: string;
-  // run-specific
   stepTrace?: Array<{ name: string; status: string }>;
   runId?: string;
   completedAt?: string | null;
-  // activity-specific
   queryType?: string;
   citationCount?: number;
 }
@@ -102,10 +107,13 @@ const props = defineProps<{
   items: MergedResearchItem[];
   loading?: boolean;
   error?: string | null;
+  partialType?: 'runs' | 'history' | null;
 }>();
 
 defineEmits<{
   retry: [];
+  retryRuns: [];
+  retryHistory: [];
 }>();
 
 const STEP_LABELS: Record<string, string> = {
@@ -276,7 +284,6 @@ function hasCompletedStep(item: MergedResearchItem): boolean {
   color: var(--color-surface);
 }
 
-/* Activity item styles */
 .rr-type-badge {
   display: inline-block;
   padding: var(--space-0-25) 8px;
@@ -300,5 +307,38 @@ function hasCompletedStep(item: MergedResearchItem): boolean {
 .rr-stat {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+/* Partial banner */
+.rr-partial-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-hover);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.rr-partial-text {
+  flex: 1;
+}
+
+.rr-partial-retry {
+  padding: var(--space-0-5) var(--space-2);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rr-partial-retry:hover {
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 </style>

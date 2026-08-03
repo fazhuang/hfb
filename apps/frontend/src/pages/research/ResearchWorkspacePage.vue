@@ -10,8 +10,9 @@
       ]"
     >
       <template #actions>
+        <!-- CTA hidden during global empty state -->
         <router-link
-          v-if="project"
+          v-if="project && !isGlobalEmpty"
           :to="`/research/${project.id}/workflow`"
           class="rwp-action-btn rwp-action-btn--primary"
         >
@@ -28,16 +29,33 @@
     </ResearchPageHeader>
 
     <div class="rwp-body">
-      <!-- Page-level states -->
-      <LoadingState v-if="pageLoading" message="正在加载工作区..." />
+      <!-- Page-level skeleton -->
+      <div v-if="showSkeleton" class="rwp-skeleton" role="status" aria-busy="true" aria-label="正在加载工作区...">
+        <div class="rwp-skeleton-section">
+          <HfbSkeleton variant="text" width="30%" height="1.2em" />
+          <div class="rwp-skeleton-cards">
+            <HfbSkeleton variant="rect" height="48px" />
+            <HfbSkeleton variant="rect" height="48px" />
+            <HfbSkeleton variant="rect" height="48px" />
+          </div>
+        </div>
+        <div class="rwp-skeleton-section">
+          <HfbSkeleton variant="text" width="25%" height="1.2em" />
+          <div class="rwp-skeleton-cards">
+            <HfbSkeleton variant="rect" height="56px" />
+            <HfbSkeleton variant="rect" height="56px" />
+          </div>
+        </div>
+        <div class="rwp-skeleton-section">
+          <HfbSkeleton variant="text" width="25%" height="1.2em" />
+          <div class="rwp-skeleton-cards">
+            <HfbSkeleton variant="rect" height="56px" />
+            <HfbSkeleton variant="rect" height="56px" />
+          </div>
+        </div>
+      </div>
 
-      <ErrorState
-        v-else-if="pageError"
-        :title="errorTitle"
-        :message="pageErrorMessage"
-        @retry="loadSession"
-      />
-
+      <!-- Not found -->
       <EmptyState
         v-else-if="notFound"
         title="课题不存在"
@@ -49,19 +67,59 @@
         </template>
       </EmptyState>
 
-      <!-- Main content -->
+      <!-- Page error (session gate failure) -->
+      <ErrorState
+        v-else-if="pageError"
+        :title="errorTitle"
+        :message="pageErrorMessage"
+        @retry="loadSession"
+      />
+
+      <!-- All three logical sections failed -->
+      <div v-else-if="allSectionsFailed" class="rwp-all-failed">
+        <ErrorState
+          title="加载失败"
+          message="无法加载工作区数据，请检查网络连接后重试。"
+          @retry="retryAllSections"
+        />
+      </div>
+
+      <!-- Global empty → WelcomeCard -->
+      <template v-else-if="isGlobalEmpty && project">
+        <main class="rwp-main">
+          <div class="rwp-welcome-card">
+            <div class="rwp-welcome-icon" aria-hidden="true">🚀</div>
+            <h2 class="rwp-welcome-title">开始您的研究</h2>
+            <p class="rwp-welcome-desc">
+              提出研究问题，系统将自动检索古籍文献并生成循证报告。
+            </p>
+            <div class="rwp-welcome-form">
+              <ResearchAssistantEntry :project-id="project.id" mode="inline" />
+            </div>
+            <router-link
+              :to="`/research/${project.id}/workflow`"
+              class="rwp-welcome-secondary"
+            >
+              进入完整工作流
+            </router-link>
+          </div>
+        </main>
+      </template>
+
+      <!-- Normal content -->
       <template v-else-if="project">
         <main class="rwp-main">
-          <!-- 1. Recent Research (merged runs + history) -->
           <RecentReports
             :project-id="project.id"
             :items="mergedResearch"
             :loading="mergedLoading"
             :error="mergedError"
+            :partial-type="mergedPartial"
             @retry="retryMergedResearch"
+            @retry-runs="retryRunsOnly"
+            @retry-history="retryHistoryOnly"
           />
 
-          <!-- 2. Recent Notes -->
           <RecentNotes
             :notes="notes"
             :loading="notesLoading"
@@ -69,7 +127,6 @@
             @retry="retryNotes"
           />
 
-          <!-- 3. Research Resources -->
           <ResearchResources
             :citations="citations"
             :loading="citationsLoading"
@@ -78,8 +135,11 @@
           />
         </main>
 
-        <!-- 4. AI Research Assistant sidebar -->
-        <ResearchAssistantEntry :project-id="project.id" />
+        <ResearchAssistantEntry
+          v-if="!isGlobalEmpty"
+          :project-id="project.id"
+          :mode="raeMode"
+        />
       </template>
     </div>
   </div>
@@ -89,24 +149,19 @@
 /**
  * ResearchWorkspacePage — 研究工作台页面
  *
- * Page is the single data owner for all sections:
- *   1. RecentReports (merged runs + history) — controlled via props
- *   2. RecentNotes — controlled via props
- *   3. ResearchResources — controlled via props
- *   4. ResearchAssistantEntry — sidebar
- *
- * Route param :projectId === ResearchSession.id
+ * C2-1C: Unified feedback-first loading with skeleton, session gate retry,
+ * section partial states, WelcomeCard empty state, and responsive RAE modes.
  *
  * ref: docs/superpowers/specs/2026-08-03-c2-1-workspace-convergence-design.md
  */
-import { ref, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onBeforeUnmount, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import api from '@/api/client';
+import { fetchWithRetry } from '@/utils/fetchWithRetry';
 import { toProjectDetail } from '@/types/research';
 import type { ResearchProjectDetail, ResearchCitationSummary } from '@/types/research';
 
+import HfbSkeleton from '@/components/common/HfbSkeleton.vue';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
-import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import RecentReports from '@/components/research/RecentReports.vue';
@@ -116,22 +171,19 @@ import ResearchAssistantEntry from '@/components/research/ResearchAssistantEntry
 
 const route = useRoute();
 
-// ---- Merged research item ----
+// ---- Interfaces ----
 interface MergedResearchItem {
   id: string;
   type: 'run' | 'activity';
   title: string;
   timestamp: string;
-  // run-specific
   stepTrace?: Array<{ name: string; status: string }>;
   runId?: string;
   completedAt?: string | null;
-  // activity-specific
   queryType?: string;
   citationCount?: number;
 }
 
-// ---- Run item from API ----
 interface RunItem {
   run_id: string;
   topic?: string;
@@ -140,7 +192,6 @@ interface RunItem {
   step_execution_trace?: Array<{ name: string; status: string }>;
 }
 
-// ---- Activity item from API ----
 interface ActivityItem {
   query_id: string;
   query_text: string;
@@ -150,39 +201,55 @@ interface ActivityItem {
   created_at: string | null;
 }
 
-// ---- Note item ----
 interface NoteItem {
   id: string;
   session_id: string;
-  entity_type?: string | null;
-  entity_id?: string | null;
   content: string;
   tags?: string | null;
   created_at: string | null;
   updated_at: string | null;
 }
 
-// ---- Session detail (single source of truth) ----
+// ---- Session state ----
 const project = ref<ResearchProjectDetail | null>(null);
-const pageLoading = ref(false);
+const notFound = ref(false);
 const pageError = ref(false);
 const pageErrorMessage = ref('');
-const notFound = ref(false);
 
-// ---- Merged research state ----
+// ---- Section state ----
 const mergedResearch = ref<MergedResearchItem[]>([]);
 const mergedLoading = ref(false);
 const mergedError = ref<string | null>(null);
+const mergedPartial = ref<'runs' | 'history' | null>(null);
 
-// ---- Notes state ----
 const notes = ref<NoteItem[]>([]);
 const notesLoading = ref(false);
 const notesError = ref<string | null>(null);
 
-// ---- Citations state ----
 const citations = ref<ResearchCitationSummary[]>([]);
 const citationsLoading = ref(false);
 const citationsError = ref<string | null>(null);
+
+// ---- Skeleton state ----
+const minSkeletonDone = ref(false);
+let skeletonTimer: ReturnType<typeof setTimeout> | null = null;
+
+// ---- Section settled tracking (for skeleton dismissal) ----
+const mergedSettled = ref(false);
+const notesSettled = ref(false);
+const citationsSettled = ref(false);
+
+const allSectionsSettled = computed(
+  () => mergedSettled.value && notesSettled.value && citationsSettled.value,
+);
+
+const showSkeleton = computed(() => {
+  if (notFound.value || pageError.value) return false;
+  if (!project.value) return true; // session still loading
+  if (!allSectionsSettled.value) return true; // sections still loading
+  if (!minSkeletonDone.value) return true; // minimum 300ms not elapsed
+  return false;
+});
 
 // ---- Derived ----
 const projectId = computed(() => String(route.params.projectId || ''));
@@ -190,19 +257,66 @@ const pageTitle = computed(() => project.value?.title || '研究工作区');
 
 const errorTitle = computed(() => {
   const msg = pageErrorMessage.value;
-  if (msg.includes('403') || msg.includes('Forbidden')) {
-    return '权限不足';
-  }
+  if (msg.includes('403') || msg.includes('Forbidden')) return '权限不足';
   return '加载失败';
 });
 
-// ---- Request dedup (per-section reqIds) ----
-// Each section owns its own reqId so retrying one does not invalidate
-// in-flight requests from sibling sections.
+const isGlobalEmpty = computed(() => {
+  if (!allSectionsSettled.value) return false;
+  // All three must be success (no partial, no failed)
+  if (mergedPartial.value !== null || mergedError.value !== null) return false;
+  if (notesError.value !== null) return false;
+  if (citationsError.value !== null) return false;
+  // All data must be empty
+  return (
+    mergedResearch.value.length === 0 &&
+    notes.value.length === 0 &&
+    citations.value.length === 0
+  );
+});
+
+const allSectionsFailed = computed(() => {
+  if (!allSectionsSettled.value) return false;
+  if (!mergedError.value && mergedPartial.value === null) return false;
+  if (mergedError.value === null && mergedPartial.value !== null) return false; // partial
+  if (!notesError.value) return false;
+  if (!citationsError.value) return false;
+  return !!mergedError.value;
+});
+
+// ---- RAE mode ----
+const windowWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1024);
+const raeMode = computed<'sidebar' | 'sheet'>(() =>
+  windowWidth.value >= 769 ? 'sidebar' : 'sheet',
+);
+
+function onResize() {
+  windowWidth.value = window.innerWidth;
+}
+
+// ---- Request dedup ----
 let sessionReqId = 0;
 let mergedReqId = 0;
 let notesReqId = 0;
 let citationsReqId = 0;
+
+// ---- Abort controllers ----
+let sessionAbort: AbortController | null = null;
+let sectionsAbort: AbortController | null = null;
+
+function abortAll() {
+  if (sessionAbort) { sessionAbort.abort(); sessionAbort = null; }
+  if (sectionsAbort) { sectionsAbort.abort(); sectionsAbort = null; }
+  if (skeletonTimer) { clearTimeout(skeletonTimer); skeletonTimer = null; }
+}
+
+function resetSkeletonTimer() {
+  if (skeletonTimer) clearTimeout(skeletonTimer);
+  minSkeletonDone.value = false;
+  skeletonTimer = setTimeout(() => {
+    minSkeletonDone.value = true;
+  }, 300);
+}
 
 // ---- Session gate ----
 async function loadSession() {
@@ -212,60 +326,69 @@ async function loadSession() {
     return;
   }
 
-  const myReqId = ++sessionReqId;
+  // Cancel everything from prior load
+  abortAll();
+  sessionAbort = new AbortController();
+  const signal = sessionAbort.signal;
 
-  // Immediately invalidate all in-flight section requests from any prior project.
-  // Must happen BEFORE the async session fetch so old section responses
-  // cannot write back during the window between project switch and session resolve.
+  const myReqId = ++sessionReqId;
   ++mergedReqId;
   ++notesReqId;
   ++citationsReqId;
 
-  pageLoading.value = true;
+  // Reset states
+  notFound.value = false;
   pageError.value = false;
   pageErrorMessage.value = '';
-  notFound.value = false;
   project.value = null;
-
-  // Clear all section data on session reload
   clearAllSectionData();
+  mergedSettled.value = false;
+  notesSettled.value = false;
+  citationsSettled.value = false;
+  resetSkeletonTimer();
 
   try {
-    const { data } = await api.get(`/api/v1/workspace/sessions/${id}`);
-    if (myReqId !== sessionReqId) return;
-    const raw = (data.data ?? data) as Record<string, unknown>;
+    const res = await fetchWithRetry<Record<string, unknown>>(
+      `/api/v1/workspace/sessions/${id}`,
+      undefined,
+      { signal },
+    );
+    if (myReqId !== sessionReqId || signal.aborted) return;
+    const body = res.data as Record<string, unknown>;
+    const raw = (body.data ?? body) as Record<string, unknown>;
     project.value = toProjectDetail(raw);
 
-    // Session gate passed — load all section data concurrently
-    // Use fresh reqIds (already bumped above; bump again for clean generation)
-    loadMergedResearch(++mergedReqId);
-    loadNotes(++notesReqId);
-    loadCitations(++citationsReqId);
+    // Session gate passed — load sections concurrently
+    sectionsAbort = new AbortController();
+    loadMergedResearch(++mergedReqId, sectionsAbort.signal);
+    loadNotes(++notesReqId, sectionsAbort.signal);
+    loadCitations(++citationsReqId, sectionsAbort.signal);
   } catch (e: unknown) {
-    if (myReqId !== sessionReqId) return;
+    if (myReqId !== sessionReqId || signal.aborted) return;
     const status = (e as any)?.response?.status;
-    const msg =
+    if (status === 404) {
+      notFound.value = true;
+      return;
+    }
+    if (status === 403) {
+      pageError.value = true;
+      pageErrorMessage.value = (e as any)?.response?.data?.message || '权限不足';
+      return;
+    }
+    // Network/5xx — fetchWithRetry already exhausted retries
+    pageError.value = true;
+    pageErrorMessage.value =
       (e as any)?.response?.data?.message ||
       (e as any)?.message ||
       '加载失败，请检查网络连接后重试。';
-    if (status === 404) {
-      notFound.value = true;
-    } else {
-      pageError.value = true;
-      pageErrorMessage.value = msg;
-    }
-  } finally {
-    if (myReqId === sessionReqId) {
-      pageLoading.value = false;
-    }
   }
 }
 
-// ---- Clear all section data ----
 function clearAllSectionData() {
   mergedResearch.value = [];
   mergedLoading.value = false;
   mergedError.value = null;
+  mergedPartial.value = null;
   notes.value = [];
   notesLoading.value = false;
   notesError.value = null;
@@ -274,7 +397,7 @@ function clearAllSectionData() {
   citationsError.value = null;
 }
 
-// ---- Merge runs + history into MergedResearchItem[] ----
+// ---- Normalize helpers ----
 function normalizeRuns(runItems: RunItem[]): MergedResearchItem[] {
   return runItems.map((r) => ({
     id: r.run_id,
@@ -309,14 +432,16 @@ function mergeAndSort(runItems: MergedResearchItem[], activityItems: MergedResea
   return merged.slice(0, 5);
 }
 
-// ---- Load merged research (runs + history, concurrent) ----
-async function loadMergedResearch(myReqId: number) {
+// ---- Load merged research ----
+async function loadMergedResearch(myReqId: number, signal: AbortSignal) {
   const id = String(route.params.projectId || '');
   if (!id || id === 'undefined' || id === 'null') return;
 
   mergedLoading.value = true;
   mergedError.value = null;
+  mergedPartial.value = null;
   mergedResearch.value = [];
+  mergedSettled.value = false;
 
   let runsOk = false;
   let historyOk = false;
@@ -325,31 +450,36 @@ async function loadMergedResearch(myReqId: number) {
   let runsErr = '';
   let historyErr = '';
 
-  // fetch runs and history concurrently
   const [runsResult, historyResult] = await Promise.allSettled([
-    api.get(`/api/v4/research/session/${id}/runs`),
-    api.get(`/api/v4/research/session/${id}/history`, { params: { limit: 5 } }),
+    fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, { signal, maxRetries: 0 }).catch((e: unknown) => { throw e; }),
+    fetchWithRetry(`/api/v4/research/session/${id}/history`, { limit: 5 }, { signal, maxRetries: 0 }).catch((e: unknown) => { throw e; }),
   ]);
 
-  if (myReqId !== mergedReqId) return;
+  if (myReqId !== mergedReqId || signal.aborted) return;
 
   if (runsResult.status === 'fulfilled') {
-    const body = runsResult.value.data.data ?? runsResult.value.data;
+    const body = (runsResult.value.data as any).data ?? runsResult.value.data;
     runItems = (body.runs ?? []) as RunItem[];
     runsOk = true;
   } else {
-    runsErr = (runsResult.reason as any)?.response?.data?.message ||
-      (runsResult.reason as any)?.message || '加载运行记录失败';
+    const e = runsResult.reason;
+    if ((e as any)?.name !== 'AbortError') {
+      runsErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载运行记录失败';
+    }
   }
 
   if (historyResult.status === 'fulfilled') {
-    const body = historyResult.value.data.data ?? historyResult.value.data;
+    const body = (historyResult.value.data as any).data ?? historyResult.value.data;
     activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
     historyOk = true;
   } else {
-    historyErr = (historyResult.reason as any)?.response?.data?.message ||
-      (historyResult.reason as any)?.message || '加载活动记录失败';
+    const e = historyResult.reason;
+    if ((e as any)?.name !== 'AbortError') {
+      historyErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动记录失败';
+    }
   }
+
+  if (myReqId !== mergedReqId || signal.aborted) return;
 
   const normalizedRuns = runsOk ? normalizeRuns(runItems) : [];
   const normalizedActivities = historyOk ? normalizeActivities(activityItems) : [];
@@ -357,76 +487,221 @@ async function loadMergedResearch(myReqId: number) {
 
   if (!runsOk && !historyOk) {
     mergedError.value = runsErr || historyErr || '加载研究记录失败';
+  } else if (!runsOk && historyOk) {
+    mergedPartial.value = 'runs';
+  } else if (runsOk && !historyOk) {
+    mergedPartial.value = 'history';
   }
 
   mergedLoading.value = false;
+  mergedSettled.value = true;
 }
 
 // ---- Load notes ----
-async function loadNotes(myReqId: number) {
+async function loadNotes(myReqId: number, signal: AbortSignal) {
   const id = String(route.params.projectId || '');
   if (!id || id === 'undefined' || id === 'null') return;
 
   notesLoading.value = true;
   notesError.value = null;
   notes.value = [];
+  notesSettled.value = false;
 
   try {
-    const { data } = await api.get(`/api/v1/workspace/sessions/${id}/notes`);
-    if (myReqId !== notesReqId) return;
-    const body = data.data ?? data;
+    const { data } = await fetchWithRetry<unknown>(
+      `/api/v1/workspace/sessions/${id}/notes`,
+      undefined,
+      { signal, maxRetries: 0 },
+    );
+    if (myReqId !== notesReqId || signal.aborted) return;
+    const body = (data as any).data ?? data;
     notes.value = (Array.isArray(body) ? body : []) as NoteItem[];
   } catch (e: unknown) {
-    if (myReqId !== notesReqId) return;
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
-    notesError.value = msg;
+    if (myReqId !== notesReqId || signal.aborted) return;
+    if ((e as any)?.name !== 'AbortError') {
+      notesError.value = (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
+    }
   } finally {
     if (myReqId === notesReqId) {
       notesLoading.value = false;
+      notesSettled.value = true;
     }
   }
 }
 
 // ---- Load citations ----
-async function loadCitations(myReqId: number) {
+async function loadCitations(myReqId: number, signal: AbortSignal) {
   const id = String(route.params.projectId || '');
   if (!id || id === 'undefined' || id === 'null') return;
 
   citationsLoading.value = true;
   citationsError.value = null;
   citations.value = [];
+  citationsSettled.value = false;
 
   try {
-    const { data } = await api.get(`/api/v1/workspace/sessions/${id}/citations`);
-    if (myReqId !== citationsReqId) return;
-    const body = data.data ?? data;
+    const { data } = await fetchWithRetry<unknown>(
+      `/api/v1/workspace/sessions/${id}/citations`,
+      undefined,
+      { signal, maxRetries: 0 },
+    );
+    if (myReqId !== citationsReqId || signal.aborted) return;
+    const body = (data as any).data ?? data;
     const { toCitationSummary } = await import('@/types/research');
     citations.value = ((Array.isArray(body) ? body : []) as Record<string, unknown>[]).map(
       toCitationSummary,
     );
   } catch (e: unknown) {
-    if (myReqId !== citationsReqId) return;
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
-    citationsError.value = msg;
+    if (myReqId !== citationsReqId || signal.aborted) return;
+    if ((e as any)?.name !== 'AbortError') {
+      citationsError.value = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
+    }
   } finally {
     if (myReqId === citationsReqId) {
       citationsLoading.value = false;
+      citationsSettled.value = true;
     }
   }
 }
 
-// ---- Retry wrappers — bump section reqId on manual retry ----
-function retryMergedResearch() {
-  loadMergedResearch(++mergedReqId);
-}
-function retryNotes() {
-  loadNotes(++notesReqId);
-}
-function retryCitations() {
-  loadCitations(++citationsReqId);
+// ---- Section retry (with retry for manual retries) ----
+async function retryMergedResearch() {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+  const myReqId = ++mergedReqId;
+  const signal = sectionsAbort?.signal ?? new AbortController().signal;
+
+  mergedLoading.value = true;
+  mergedError.value = null;
+  mergedPartial.value = null;
+  mergedResearch.value = [];
+  mergedSettled.value = false;
+
+  let runsOk = false;
+  let historyOk = false;
+  let runItems: RunItem[] = [];
+  let activityItems: ActivityItem[] = [];
+  let runsErr = '';
+  let historyErr = '';
+
+  const [runsResult, historyResult] = await Promise.allSettled([
+    fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, { signal }),
+    fetchWithRetry(`/api/v4/research/session/${id}/history`, { limit: 5 }, { signal }),
+  ]);
+
+  if (myReqId !== mergedReqId || signal.aborted) return;
+
+  if (runsResult.status === 'fulfilled') {
+    const body = (runsResult.value.data as any).data ?? runsResult.value.data;
+    runItems = (body.runs ?? []) as RunItem[];
+    runsOk = true;
+  } else {
+    const e = runsResult.reason;
+    if ((e as any)?.name !== 'AbortError') {
+      runsErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载运行记录失败';
+    }
+  }
+  if (historyResult.status === 'fulfilled') {
+    const body = (historyResult.value.data as any).data ?? historyResult.value.data;
+    activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    historyOk = true;
+  } else {
+    const e = historyResult.reason;
+    if ((e as any)?.name !== 'AbortError') {
+      historyErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动记录失败';
+    }
+  }
+
+  if (myReqId !== mergedReqId || signal.aborted) return;
+
+  mergedResearch.value = mergeAndSort(
+    runsOk ? normalizeRuns(runItems) : [],
+    historyOk ? normalizeActivities(activityItems) : [],
+  );
+
+  if (!runsOk && !historyOk) {
+    mergedError.value = runsErr || historyErr || '加载研究记录失败';
+  } else if (!runsOk) {
+    mergedPartial.value = 'runs';
+  } else if (!historyOk) {
+    mergedPartial.value = 'history';
+  }
+
+  mergedLoading.value = false;
+  mergedSettled.value = true;
 }
 
-// ---- Watch route param changes ----
+async function retryRunsOnly() {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+  const signal = sectionsAbort?.signal ?? new AbortController().signal;
+
+  mergedPartial.value = null;
+
+  try {
+    const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, { signal });
+    const body = (data as any).data ?? data;
+    const runItems = (body.runs ?? []) as RunItem[];
+    const normalizedRuns = normalizeRuns(runItems);
+    // Re-merge: keep existing history (activity items) from current display
+    const historyItems = mergedResearch.value.filter((m) => m.type === 'activity');
+    mergedResearch.value = mergeAndSort(normalizedRuns, historyItems);
+    mergedError.value = null;
+  } catch (e: unknown) {
+    if ((e as any)?.name !== 'AbortError') {
+      mergedPartial.value = 'runs';
+    }
+  }
+}
+
+async function retryHistoryOnly() {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+  const signal = sectionsAbort?.signal ?? new AbortController().signal;
+
+  mergedPartial.value = null;
+
+  try {
+    const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/history`, { limit: 5 }, { signal });
+    const body = (data as any).data ?? data;
+    const activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    const normalizedActivities = normalizeActivities(activityItems);
+    const runItems = mergedResearch.value.filter((m) => m.type === 'run');
+    mergedResearch.value = mergeAndSort(runItems, normalizedActivities);
+    mergedError.value = null;
+  } catch (e: unknown) {
+    if ((e as any)?.name !== 'AbortError') {
+      mergedPartial.value = 'history';
+    }
+  }
+}
+
+async function retryNotes() {
+  const signal = sectionsAbort?.signal ?? new AbortController().signal;
+  notesSettled.value = false;
+  await loadNotes(++notesReqId, signal);
+}
+
+async function retryCitations() {
+  const signal = sectionsAbort?.signal ?? new AbortController().signal;
+  citationsSettled.value = false;
+  await loadCitations(++citationsReqId, signal);
+}
+
+function retryAllSections() {
+  if (!project.value) return;
+  sectionsAbort = new AbortController();
+  const signal = sectionsAbort.signal;
+  mergedSettled.value = false;
+  notesSettled.value = false;
+  citationsSettled.value = false;
+  resetSkeletonTimer();
+  loadMergedResearch(++mergedReqId, signal);
+  loadNotes(++notesReqId, signal);
+  loadCitations(++citationsReqId, signal);
+}
+
+// ---- Watch route ----
 watch(
   () => route.params.projectId,
   () => {
@@ -435,15 +710,20 @@ watch(
 );
 
 // ---- Lifecycle ----
-loadSession();
+onMounted(() => {
+  window.addEventListener('resize', onResize);
+});
 
 onBeforeUnmount(() => {
-  // Invalidate all in-flight requests permanently
+  window.removeEventListener('resize', onResize);
+  abortAll();
   sessionReqId += 1000000;
   mergedReqId += 1000000;
   notesReqId += 1000000;
   citationsReqId += 1000000;
 });
+
+loadSession();
 </script>
 
 <style scoped>
@@ -462,13 +742,81 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-/* ---- Sidebar (ResearchAssistantEntry wrapper) ---- */
-.rwp-main + :deep(.rae-sidebar),
-.rwp-body > :deep(.rae-sidebar) {
-  width: 300px;
-  flex-shrink: 0;
-  border-left: 1px solid var(--color-border);
-  padding-left: var(--space-6);
+/* ---- Skeleton ---- */
+.rwp-skeleton {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.rwp-skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.rwp-skeleton-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---- All-failed ---- */
+.rwp-all-failed {
+  flex: 1;
+}
+
+/* ---- WelcomeCard ---- */
+.rwp-welcome-card {
+  text-align: center;
+  padding: var(--space-10) var(--space-6);
+  max-width: 480px;
+  margin: var(--space-10) auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.rwp-welcome-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-4);
+}
+
+.rwp-welcome-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+}
+
+.rwp-welcome-desc {
+  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-6);
+  line-height: var(--leading-normal);
+}
+
+.rwp-welcome-form {
+  margin-bottom: var(--space-4);
+}
+
+.rwp-welcome-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--btn-padding-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-md);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--transition-base);
+}
+
+.rwp-welcome-secondary:hover {
+  background: var(--color-hover);
 }
 
 /* ---- Action buttons ---- */
@@ -542,15 +890,6 @@ onBeforeUnmount(() => {
   .rwp-body {
     flex-direction: column;
     padding: var(--space-4) var(--space-5);
-  }
-
-  .rwp-main + :deep(.rae-sidebar),
-  .rwp-body > :deep(.rae-sidebar) {
-    width: 100%;
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    padding-left: 0;
-    padding-top: var(--space-4);
   }
 }
 </style>
