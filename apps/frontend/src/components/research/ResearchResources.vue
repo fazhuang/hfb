@@ -10,12 +10,12 @@
       v-else-if="error"
       :message="error"
       title="研究资料加载失败"
-      @retry="fetchResources"
+      @retry="$emit('retry')"
     />
 
     <!-- Empty -->
     <EmptyState
-      v-else-if="citations.length === 0"
+      v-else-if="displayCitations.length === 0"
       title="尚未保存研究资料"
       description="在研究过程中保存的引用文献将显示在这里。"
       icon="📚"
@@ -23,7 +23,7 @@
 
     <!-- Citation list — max 5 items -->
     <ul v-else class="rres-list" role="list">
-      <li v-for="cite in citations" :key="cite.id" class="rres-item">
+      <li v-for="cite in displayCitations" :key="cite.id" class="rres-item">
         <div class="rres-item-main">
           <p class="rres-citation-text">{{ cite.citation_text }}</p>
           <p class="rres-source">{{ cite.source_document }}</p>
@@ -41,31 +41,29 @@
 
 <script setup lang="ts">
 /**
- * ResearchResources — 研究资料（引文集合）
+ * ResearchResources — 研究资料（引文集合，受控展示组件）
  *
- * Data source: GET /api/v1/workspace/sessions/{projectId}/citations
- * Backend has a hard-coded limit of 100 and sorts by created_at DESC.
- * We take the first 5.
- *
- * ref: docs/20-product/2013-research-workspace-migration.md
+ * Receives citations data from parent page. Does NOT make its own API calls.
  */
-import { ref, watch, onBeforeUnmount } from 'vue';
-import api from '@/api/client';
-import { toCitationSummary } from '@/types/research';
+import { computed } from 'vue';
 import type { ResearchCitationSummary } from '@/types/research';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 
 const props = defineProps<{
-  projectId: string;
+  citations: ResearchCitationSummary[];
+  loading: boolean;
+  error: string | null;
 }>();
 
-const citations = ref<ResearchCitationSummary[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
+defineEmits<{
+  retry: [];
+}>();
 
 const MAX_ITEMS = 5;
+
+const displayCitations = computed(() => props.citations.slice(0, MAX_ITEMS));
 
 function formatDate(iso?: string | null): string {
   if (!iso) return '—';
@@ -80,55 +78,6 @@ function formatDate(iso?: string | null): string {
     return iso;
   }
 }
-
-let reqId = 0;
-
-async function fetchResources() {
-  const myReqId = ++reqId;
-  loading.value = true;
-  error.value = null;
-  try {
-    const { data } = await api.get(`/api/v1/workspace/sessions/${props.projectId}/citations`);
-    if (myReqId !== reqId) return;
-    const body = data.data ?? data;
-    const all = ((Array.isArray(body) ? body : []) as Record<string, unknown>[]).map(
-      toCitationSummary,
-    );
-
-    // Backend sorts by created_at DESC, hard limit 100.
-    // Verify session_id matches and take first MAX_ITEMS.
-    citations.value = all.filter((c) => c.session_id === props.projectId).slice(0, MAX_ITEMS);
-  } catch (e: unknown) {
-    if (myReqId !== reqId) return;
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
-    error.value = msg;
-  } finally {
-    if (myReqId === reqId) {
-      loading.value = false;
-    }
-  }
-}
-
-// Watch projectId to reload on route change. Clear stale data immediately.
-watch(
-  () => props.projectId,
-  (newId, oldId) => {
-    if (newId !== oldId) {
-      citations.value = [];
-      error.value = null;
-      loading.value = true;
-      // Bump reqId so in-flight request for old projectId is discarded
-      reqId++;
-    }
-    fetchResources();
-  },
-  { immediate: true },
-);
-
-onBeforeUnmount(() => {
-  // Invalidate all pending requests
-  reqId += 1000000;
-});
 </script>
 
 <style scoped>

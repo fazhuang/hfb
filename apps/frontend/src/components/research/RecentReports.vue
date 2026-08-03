@@ -1,6 +1,6 @@
 <template>
   <section class="rr-section" aria-labelledby="rr-heading">
-    <h2 id="rr-heading" class="rr-heading">最近研究运行</h2>
+    <h2 id="rr-heading" class="rr-heading">最近研究</h2>
 
     <!-- Loading -->
     <LoadingState v-if="loading" message="正在加载..." />
@@ -10,40 +10,59 @@
 
     <!-- Empty -->
     <EmptyState
-      v-else-if="displayRuns.length === 0"
-      title="暂无研究运行记录"
-      description="在此课题中运行研究工作流后，运行记录将显示在这里。"
+      v-else-if="props.items.length === 0"
+      title="暂无研究记录"
+      description="在此课题中执行研究查询或运行研究工作流后，记录将显示在这里。"
       icon="📄"
     />
 
-    <!-- Run list — max 5 items -->
+    <!-- Merged research list -->
     <ul v-else class="rr-list" role="list">
-      <li v-for="run in displayRuns" :key="run.run_id" class="rr-item">
-        <div class="rr-item-main">
-          <h3 class="rr-title">{{ run.topic || '未命名研究' }}</h3>
-          <div class="rr-steps">
-            <span
-              v-for="step in run.step_execution_trace || []"
-              :key="step.name"
-              class="rr-step-badge"
-              :class="'rr-step--' + step.status"
-            >
-              {{ stepLabel(step.name) }}
-            </span>
+      <li v-for="item in props.items" :key="`${item.type}-${item.id}`" class="rr-item">
+        <!-- Run item -->
+        <template v-if="item.type === 'run'">
+          <div class="rr-item-main">
+            <h3 class="rr-title">{{ item.title || '未命名研究' }}</h3>
+            <div v-if="item.stepTrace && item.stepTrace.length > 0" class="rr-steps">
+              <span
+                v-for="step in item.stepTrace"
+                :key="step.name"
+                class="rr-step-badge"
+                :class="'rr-step--' + step.status"
+              >
+                {{ stepLabel(step.name) }}
+              </span>
+            </div>
           </div>
-        </div>
-        <div class="rr-item-meta">
-          <time v-if="run.completed_at" :datetime="run.completed_at" class="rr-time">
-            {{ formatDate(run.completed_at) }}
-          </time>
-          <router-link
-            v-if="run.run_id && hasResultRoute(run)"
-            :to="`/research/${projectId}/result/${run.run_id}`"
-            class="rr-view-link"
-          >
-            查看
-          </router-link>
-        </div>
+          <div class="rr-item-meta">
+            <time v-if="item.completedAt" :datetime="item.completedAt" class="rr-time">
+              {{ formatDate(item.completedAt) }}
+            </time>
+            <router-link
+              v-if="item.runId && hasCompletedStep(item)"
+              :to="`/research/${projectId}/result/${item.runId}`"
+              class="rr-view-link"
+            >
+              查看
+            </router-link>
+          </div>
+        </template>
+
+        <!-- Activity item -->
+        <template v-else>
+          <div class="rr-item-main rr-item-main--inline">
+            <span class="rr-type-badge">{{ typeLabel(item.queryType || '') }}</span>
+            <span class="rr-text">{{ item.title }}</span>
+          </div>
+          <div class="rr-item-meta">
+            <span v-if="(item.citationCount ?? 0) > 0" class="rr-stat">
+              {{ item.citationCount }} 条引用
+            </span>
+            <time :datetime="item.timestamp || undefined" class="rr-time">
+              {{ formatDate(item.timestamp) }}
+            </time>
+          </div>
+        </template>
       </li>
     </ul>
   </section>
@@ -51,41 +70,43 @@
 
 <script setup lang="ts">
 /**
- * RecentReports — 最近研究运行列表
+ * RecentReports — 最近研究列表（受控展示组件）
  *
- * Receives shared runs data from parent page (single-source-of-truth).
- * Does NOT make its own API call.
+ * Receives merged research items from parent page (single source of truth).
+ * Does NOT make its own API calls, sort, or filter — purely displays what it receives.
  *
- * Only displays completed runs with report artifacts.
- * View link only shown when run_id is real and steps include report_generation completed.
- *
- * ref: docs/20-product/2013-research-workspace-migration.md
+ * Supports two item types:
+ *   run — from /api/v4/research/session/{id}/runs
+ *   activity — from /api/v4/research/session/{id}/history
  */
-import { computed } from 'vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 
-interface RunItem {
-  run_id: string;
-  topic?: string;
-  started_at?: string | null;
-  completed_at?: string | null;
-  step_execution_trace?: Array<{ name: string; status: string }>;
+interface MergedResearchItem {
+  id: string;
+  type: 'run' | 'activity';
+  title: string;
+  timestamp: string;
+  // run-specific
+  stepTrace?: Array<{ name: string; status: string }>;
+  runId?: string;
+  completedAt?: string | null;
+  // activity-specific
+  queryType?: string;
+  citationCount?: number;
 }
 
 const props = defineProps<{
   projectId: string;
+  items: MergedResearchItem[];
   loading?: boolean;
   error?: string | null;
-  runs?: RunItem[];
 }>();
 
 defineEmits<{
   retry: [];
 }>();
-
-const MAX_ITEMS = 5;
 
 const STEP_LABELS: Record<string, string> = {
   topic_selection: '选题',
@@ -95,8 +116,22 @@ const STEP_LABELS: Record<string, string> = {
   citation_export: '引文导出',
 };
 
+const TYPE_LABELS: Record<string, string> = {
+  research: '研究',
+  report: '报告',
+  synthesis: '综合',
+  education: '教育',
+  graph: '图谱',
+  search: '搜索',
+  workflow_step: '工作流',
+};
+
 function stepLabel(name: string): string {
   return STEP_LABELS[name] || name;
+}
+
+function typeLabel(t: string): string {
+  return TYPE_LABELS[t] || t;
 }
 
 function formatDate(iso?: string | null): string {
@@ -113,44 +148,11 @@ function formatDate(iso?: string | null): string {
   }
 }
 
-/** Only runs with report artifacts (completed report_generation) OR runs that have
- * at least some completed steps. This prevents hiding runs that had partial
- * completion — the workspace should display the same runs visible in
- * ProjectDetailPage's ProjectReports component.
- *
- * See ProjectReports.vue for the canonical unfiltered display.
- * Minimum bar: run has a run_id, topic, and completed at least one step.
- * This avoids the discrepancy where ProjectReports shows runs that
- * RecentReports hides due to aggressive filter.
- */
-function hasReportArtifact(run: RunItem): boolean {
-  const trace = run.step_execution_trace ?? [];
+function hasCompletedStep(item: MergedResearchItem): boolean {
+  const trace = item.stepTrace ?? [];
   if (trace.length === 0) return false;
-  // Show runs with completed report_generation OR any completed step
-  // (matches ProjectReports behavior where all runs are shown)
   return trace.some((s) => s.status === 'completed');
 }
-
-/** Result route exists when run_id is truthy and has at least one completed step. */
-function hasResultRoute(run: RunItem): boolean {
-  return !!run.run_id && hasReportArtifact(run);
-}
-
-const displayRuns = computed(() => {
-  const raw = props.runs ?? [];
-  // Only completed runs with report artifacts
-  const completed = raw.filter(hasReportArtifact);
-  // Sort by completed_at DESC; missing completed_at goes last
-  const sorted = [...completed].sort((a, b) => {
-    const da = a.completed_at ?? '';
-    const db = b.completed_at ?? '';
-    if (!da && !db) return 0;
-    if (!da && db) return 1; // a has no time → a after b
-    if (da && !db) return -1; // b has no time → b after a
-    return db.localeCompare(da); // DESC
-  });
-  return sorted.slice(0, MAX_ITEMS);
-});
 </script>
 
 <style scoped>
@@ -191,6 +193,12 @@ const displayRuns = computed(() => {
 .rr-item-main {
   flex: 1;
   min-width: 0;
+}
+
+.rr-item-main--inline {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 
 .rr-title {
@@ -266,5 +274,31 @@ const displayRuns = computed(() => {
 .rr-view-link:focus-visible {
   background: var(--color-accent);
   color: var(--color-surface);
+}
+
+/* Activity item styles */
+.rr-type-badge {
+  display: inline-block;
+  padding: var(--space-0-25) 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: var(--font-semibold);
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.rr-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  line-height: var(--leading-normal);
+  word-break: break-word;
+}
+
+.rr-stat {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 </style>

@@ -52,26 +52,33 @@
       <!-- Main content -->
       <template v-else-if="project">
         <main class="rwp-main">
-          <!-- 1. Recent Activity -->
-          <RecentResearchActivity :project-id="project.id" />
-
-          <!-- 2. Recent Runs -->
+          <!-- 1. Recent Research (merged runs + history) -->
           <RecentReports
             :project-id="project.id"
-            :loading="runsLoading"
-            :error="runsError"
-            :runs="runs"
-            @retry="loadRuns"
+            :items="mergedResearch"
+            :loading="mergedLoading"
+            :error="mergedError"
+            @retry="retryMergedResearch"
           />
 
-          <!-- 3. Recent Notes -->
-          <RecentNotes :project-id="project.id" />
+          <!-- 2. Recent Notes -->
+          <RecentNotes
+            :notes="notes"
+            :loading="notesLoading"
+            :error="notesError"
+            @retry="retryNotes"
+          />
 
-          <!-- 4. Research Resources -->
-          <ResearchResources :project-id="project.id" />
+          <!-- 3. Research Resources -->
+          <ResearchResources
+            :citations="citations"
+            :loading="citationsLoading"
+            :error="citationsError"
+            @retry="retryCitations"
+          />
         </main>
 
-        <!-- 5. AI Research Assistant sidebar -->
+        <!-- 4. AI Research Assistant sidebar -->
         <ResearchAssistantEntry :project-id="project.id" />
       </template>
     </div>
@@ -82,40 +89,78 @@
 /**
  * ResearchWorkspacePage — 研究工作台页面
  *
- * Page sections:
- *   1. ResearchPageHeader — title, context_notes, breadcrumbs, actions
- *   2. RecentResearchActivity — GET /api/v4/research/session/{id}/history
- *   3. RecentReports — shared runs from page (single GET /api/v4/research/session/{id}/runs)
- *   4. RecentNotes — GET /api/v1/workspace/sessions/{id}/notes
- *   5. ResearchResources — GET /api/v1/workspace/sessions/{id}/citations
- *   6. ResearchAssistantEntry — question input → navigates to workflow
- *
- * The page owns the single ResearchSession detail (GET .../sessions/{id})
- * AND the single runs request (GET .../runs). Runs data is shared via props
- * to RecentReports — it does NOT make its own runs API calls.
+ * Page is the single data owner for all sections:
+ *   1. RecentReports (merged runs + history) — controlled via props
+ *   2. RecentNotes — controlled via props
+ *   3. ResearchResources — controlled via props
+ *   4. ResearchAssistantEntry — sidebar
  *
  * Route param :projectId === ResearchSession.id
- * There is no independent Project entity.
  *
- * ref: docs/20-product/2013-research-workspace-migration.md
+ * ref: docs/superpowers/specs/2026-08-03-c2-1-workspace-convergence-design.md
  */
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '@/api/client';
 import { toProjectDetail } from '@/types/research';
-import type { ResearchProjectDetail } from '@/types/research';
+import type { ResearchProjectDetail, ResearchCitationSummary } from '@/types/research';
 
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
-import RecentResearchActivity from '@/components/research/RecentResearchActivity.vue';
 import RecentReports from '@/components/research/RecentReports.vue';
 import RecentNotes from '@/components/research/RecentNotes.vue';
 import ResearchResources from '@/components/research/ResearchResources.vue';
 import ResearchAssistantEntry from '@/components/research/ResearchAssistantEntry.vue';
 
 const route = useRoute();
+
+// ---- Merged research item ----
+interface MergedResearchItem {
+  id: string;
+  type: 'run' | 'activity';
+  title: string;
+  timestamp: string;
+  // run-specific
+  stepTrace?: Array<{ name: string; status: string }>;
+  runId?: string;
+  completedAt?: string | null;
+  // activity-specific
+  queryType?: string;
+  citationCount?: number;
+}
+
+// ---- Run item from API ----
+interface RunItem {
+  run_id: string;
+  topic?: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  step_execution_trace?: Array<{ name: string; status: string }>;
+}
+
+// ---- Activity item from API ----
+interface ActivityItem {
+  query_id: string;
+  query_text: string;
+  query_type: string;
+  citation_count: number;
+  trace_count: number;
+  created_at: string | null;
+}
+
+// ---- Note item ----
+interface NoteItem {
+  id: string;
+  session_id: string;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  content: string;
+  tags?: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 // ---- Session detail (single source of truth) ----
 const project = ref<ResearchProjectDetail | null>(null);
@@ -124,17 +169,20 @@ const pageError = ref(false);
 const pageErrorMessage = ref('');
 const notFound = ref(false);
 
-// ---- Shared runs state (single source of truth for runs data) ----
-interface RunItem {
-  run_id: string;
-  topic?: string;
-  started_at?: string | null;
-  completed_at?: string | null;
-  step_execution_trace?: Array<{ name: string; status: string }>;
-}
-const runs = ref<RunItem[]>([]);
-const runsLoading = ref(false);
-const runsError = ref<string | null>(null);
+// ---- Merged research state ----
+const mergedResearch = ref<MergedResearchItem[]>([]);
+const mergedLoading = ref(false);
+const mergedError = ref<string | null>(null);
+
+// ---- Notes state ----
+const notes = ref<NoteItem[]>([]);
+const notesLoading = ref(false);
+const notesError = ref<string | null>(null);
+
+// ---- Citations state ----
+const citations = ref<ResearchCitationSummary[]>([]);
+const citationsLoading = ref(false);
+const citationsError = ref<string | null>(null);
 
 // ---- Derived ----
 const projectId = computed(() => String(route.params.projectId || ''));
@@ -148,10 +196,15 @@ const errorTitle = computed(() => {
   return '加载失败';
 });
 
-// ---- Request dedup ----
-let reqId = 0;
+// ---- Request dedup (per-section reqIds) ----
+// Each section owns its own reqId so retrying one does not invalidate
+// in-flight requests from sibling sections.
+let sessionReqId = 0;
+let mergedReqId = 0;
+let notesReqId = 0;
+let citationsReqId = 0;
 
-// ---- Load single session ----
+// ---- Session gate ----
 async function loadSession() {
   const id = String(route.params.projectId || '');
   if (!id || id === 'undefined' || id === 'null') {
@@ -159,20 +212,37 @@ async function loadSession() {
     return;
   }
 
-  const myReqId = ++reqId;
+  const myReqId = ++sessionReqId;
+
+  // Immediately invalidate all in-flight section requests from any prior project.
+  // Must happen BEFORE the async session fetch so old section responses
+  // cannot write back during the window between project switch and session resolve.
+  ++mergedReqId;
+  ++notesReqId;
+  ++citationsReqId;
+
   pageLoading.value = true;
   pageError.value = false;
   pageErrorMessage.value = '';
   notFound.value = false;
   project.value = null;
 
+  // Clear all section data on session reload
+  clearAllSectionData();
+
   try {
     const { data } = await api.get(`/api/v1/workspace/sessions/${id}`);
-    if (myReqId !== reqId) return;
+    if (myReqId !== sessionReqId) return;
     const raw = (data.data ?? data) as Record<string, unknown>;
     project.value = toProjectDetail(raw);
+
+    // Session gate passed — load all section data concurrently
+    // Use fresh reqIds (already bumped above; bump again for clean generation)
+    loadMergedResearch(++mergedReqId);
+    loadNotes(++notesReqId);
+    loadCitations(++citationsReqId);
   } catch (e: unknown) {
-    if (myReqId !== reqId) return;
+    if (myReqId !== sessionReqId) return;
     const status = (e as any)?.response?.status;
     const msg =
       (e as any)?.response?.data?.message ||
@@ -185,39 +255,175 @@ async function loadSession() {
       pageErrorMessage.value = msg;
     }
   } finally {
-    if (myReqId === reqId) {
+    if (myReqId === sessionReqId) {
       pageLoading.value = false;
     }
   }
 }
 
-// ---- Load runs (single shared call) ----
-let runsReqId = 0;
+// ---- Clear all section data ----
+function clearAllSectionData() {
+  mergedResearch.value = [];
+  mergedLoading.value = false;
+  mergedError.value = null;
+  notes.value = [];
+  notesLoading.value = false;
+  notesError.value = null;
+  citations.value = [];
+  citationsLoading.value = false;
+  citationsError.value = null;
+}
 
-async function loadRuns() {
+// ---- Merge runs + history into MergedResearchItem[] ----
+function normalizeRuns(runItems: RunItem[]): MergedResearchItem[] {
+  return runItems.map((r) => ({
+    id: r.run_id,
+    type: 'run' as const,
+    title: r.topic || '',
+    timestamp: r.completed_at || r.started_at || '',
+    stepTrace: r.step_execution_trace ?? [],
+    runId: r.run_id,
+    completedAt: r.completed_at ?? null,
+  }));
+}
+
+function normalizeActivities(activityItems: ActivityItem[]): MergedResearchItem[] {
+  return activityItems.map((a) => ({
+    id: a.query_id,
+    type: 'activity' as const,
+    title: a.query_text,
+    timestamp: a.created_at ?? '',
+    queryType: a.query_type,
+    citationCount: a.citation_count,
+  }));
+}
+
+function mergeAndSort(runItems: MergedResearchItem[], activityItems: MergedResearchItem[]): MergedResearchItem[] {
+  const merged = [...runItems, ...activityItems];
+  merged.sort((a, b) => {
+    if (!a.timestamp && !b.timestamp) return 0;
+    if (!a.timestamp) return 1;
+    if (!b.timestamp) return -1;
+    return b.timestamp.localeCompare(a.timestamp);
+  });
+  return merged.slice(0, 5);
+}
+
+// ---- Load merged research (runs + history, concurrent) ----
+async function loadMergedResearch(myReqId: number) {
   const id = String(route.params.projectId || '');
   if (!id || id === 'undefined' || id === 'null') return;
 
-  const myReqId = ++runsReqId;
-  runsLoading.value = true;
-  runsError.value = null;
-  runs.value = [];
+  mergedLoading.value = true;
+  mergedError.value = null;
+  mergedResearch.value = [];
+
+  let runsOk = false;
+  let historyOk = false;
+  let runItems: RunItem[] = [];
+  let activityItems: ActivityItem[] = [];
+  let runsErr = '';
+  let historyErr = '';
+
+  // fetch runs and history concurrently
+  const [runsResult, historyResult] = await Promise.allSettled([
+    api.get(`/api/v4/research/session/${id}/runs`),
+    api.get(`/api/v4/research/session/${id}/history`, { params: { limit: 5 } }),
+  ]);
+
+  if (myReqId !== mergedReqId) return;
+
+  if (runsResult.status === 'fulfilled') {
+    const body = runsResult.value.data.data ?? runsResult.value.data;
+    runItems = (body.runs ?? []) as RunItem[];
+    runsOk = true;
+  } else {
+    runsErr = (runsResult.reason as any)?.response?.data?.message ||
+      (runsResult.reason as any)?.message || '加载运行记录失败';
+  }
+
+  if (historyResult.status === 'fulfilled') {
+    const body = historyResult.value.data.data ?? historyResult.value.data;
+    activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    historyOk = true;
+  } else {
+    historyErr = (historyResult.reason as any)?.response?.data?.message ||
+      (historyResult.reason as any)?.message || '加载活动记录失败';
+  }
+
+  const normalizedRuns = runsOk ? normalizeRuns(runItems) : [];
+  const normalizedActivities = historyOk ? normalizeActivities(activityItems) : [];
+  mergedResearch.value = mergeAndSort(normalizedRuns, normalizedActivities);
+
+  if (!runsOk && !historyOk) {
+    mergedError.value = runsErr || historyErr || '加载研究记录失败';
+  }
+
+  mergedLoading.value = false;
+}
+
+// ---- Load notes ----
+async function loadNotes(myReqId: number) {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+
+  notesLoading.value = true;
+  notesError.value = null;
+  notes.value = [];
 
   try {
-    const { data } = await api.get(`/api/v4/research/session/${id}/runs`);
-    if (myReqId !== runsReqId) return;
+    const { data } = await api.get(`/api/v1/workspace/sessions/${id}/notes`);
+    if (myReqId !== notesReqId) return;
     const body = data.data ?? data;
-    runs.value = (body.runs ?? []) as RunItem[];
+    notes.value = (Array.isArray(body) ? body : []) as NoteItem[];
   } catch (e: unknown) {
-    if (myReqId !== runsReqId) return;
-    const msg =
-      (e as any)?.response?.data?.message || (e as any)?.message || '加载研究运行记录失败';
-    runsError.value = msg;
+    if (myReqId !== notesReqId) return;
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
+    notesError.value = msg;
   } finally {
-    if (myReqId === runsReqId) {
-      runsLoading.value = false;
+    if (myReqId === notesReqId) {
+      notesLoading.value = false;
     }
   }
+}
+
+// ---- Load citations ----
+async function loadCitations(myReqId: number) {
+  const id = String(route.params.projectId || '');
+  if (!id || id === 'undefined' || id === 'null') return;
+
+  citationsLoading.value = true;
+  citationsError.value = null;
+  citations.value = [];
+
+  try {
+    const { data } = await api.get(`/api/v1/workspace/sessions/${id}/citations`);
+    if (myReqId !== citationsReqId) return;
+    const body = data.data ?? data;
+    const { toCitationSummary } = await import('@/types/research');
+    citations.value = ((Array.isArray(body) ? body : []) as Record<string, unknown>[]).map(
+      toCitationSummary,
+    );
+  } catch (e: unknown) {
+    if (myReqId !== citationsReqId) return;
+    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
+    citationsError.value = msg;
+  } finally {
+    if (myReqId === citationsReqId) {
+      citationsLoading.value = false;
+    }
+  }
+}
+
+// ---- Retry wrappers — bump section reqId on manual retry ----
+function retryMergedResearch() {
+  loadMergedResearch(++mergedReqId);
+}
+function retryNotes() {
+  loadNotes(++notesReqId);
+}
+function retryCitations() {
+  loadCitations(++citationsReqId);
 }
 
 // ---- Watch route param changes ----
@@ -225,17 +431,18 @@ watch(
   () => route.params.projectId,
   () => {
     loadSession();
-    loadRuns();
   },
 );
 
 // ---- Lifecycle ----
 loadSession();
-loadRuns();
 
 onBeforeUnmount(() => {
-  reqId = -1;
-  runsReqId = -1;
+  // Invalidate all in-flight requests permanently
+  sessionReqId += 1000000;
+  mergedReqId += 1000000;
+  notesReqId += 1000000;
+  citationsReqId += 1000000;
 });
 </script>
 
