@@ -70,8 +70,8 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Sidebar becomes overlay at < 768px, stays in-flow at ≥ 768px.
-const MOBILE_BREAKPOINT = 768;
+// Sidebar becomes overlay at < 640px, stays in-flow at ≥ 640px.
+const MOBILE_BREAKPOINT = 640;
 let mql: MediaQueryList | null = null;
 
 function syncMobile() {
