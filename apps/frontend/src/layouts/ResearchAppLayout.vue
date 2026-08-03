@@ -34,6 +34,14 @@
       </div>
     </aside>
 
+    <!-- Mobile sidebar backdrop — closes sidebar on tap outside -->
+    <div
+      v-if="!sidebarCollapsed"
+      class="ral-sidebar-backdrop"
+      @click="sidebarCollapsed = true"
+      aria-hidden="true"
+    ></div>
+
     <!-- Mobile sidebar toggle — always reachable at narrow viewports -->
     <button
       class="ral-mobile-toggle"
@@ -45,7 +53,7 @@
     </button>
 
     <!-- Main content area -->
-    <div class="ral-main-wrapper" :class="{ 'ral-main-wrapper--shifted': !sidebarCollapsed }">
+    <div class="ral-main-wrapper">
       <!-- Page header slot — filled by router-view pages via ResearchPageHeader -->
       <div class="ral-content" data-main-content tabindex="-1">
         <router-view />
@@ -55,24 +63,32 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// Sidebar stays in-flow at all widths. No auto-collapse. The sidebar
-// occupies its 240px slot in the flex layout; content gets the remaining
-// space. At ≤375px this causes the document body to horizontally
-// overflow, so overflow tests measure the content area (.ral-content),
-// not document.
-//
-// The .ral-mobile-toggle button (position:fixed, z-index:300) only
-// appears at ≤768px via @media query. At that width the sidebar remains
-// in-flow (position:sticky), so the toggle is spatially independent of
-// the sidebar — it does not push or reposition the sidebar, which stays
-// in the document flow for nav-link reachability.
+// At mobile widths (≤640px), default to collapsed so content fills viewport.
+const MOBILE_BREAKPOINT = 640;
+let mql: MediaQueryList | null = null;
+
+function syncMobile() {
+  if (mql) {
+    sidebarCollapsed.value = mql.matches;
+  }
+}
+
+onMounted(() => {
+  mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
+  mql.addEventListener('change', syncMobile);
+  syncMobile();
+});
+
+onUnmounted(() => {
+  if (mql) mql.removeEventListener('change', syncMobile);
+});
 
 const userInitial = auth.userName ? auth.userName.charAt(0) : '?';
 const userName = auth.userName || '未登录';
@@ -203,6 +219,33 @@ const userName = auth.userName || '未登录';
   background: var(--color-hover);
 }
 
+/* ---- Backdrop (mobile only) ---- */
+.ral-sidebar-backdrop {
+  display: none;
+}
+
+/* ---- Mobile toggle ---- */
+.ral-mobile-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: var(--z-drawer, 1100);
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+  line-height: 1;
+}
+
 /* ---- Main wrapper ---- */
 .ral-main-wrapper {
   flex: 1;
@@ -215,37 +258,13 @@ const userName = auth.userName || '未登录';
   flex: 1;
 }
 
-/* ---- Responsive ---- */
-@media (max-width: 768px) {
-  .ral-sidebar {
-    /* Sidebar stays in-flow (position:sticky) — nav links are always
-       in the document viewport and reachable by real locator clicks.
-       At 375px the sidebar+content exceeds document body horizontally;
-       overflow tests measure .ral-content (flex:1, min-width:0), not
-       the document. */
-  }
-
-  .ral-sidebar--collapsed {
-    width: 64px;
-    overflow: hidden;
-  }
-
-  .ral-main-wrapper {
-    margin-left: 0;
-    min-width: 0;
-  }
-
-  .ral-mobile-toggle {
-    display: flex;
-  }
-}
-
+/* ---- Mobile toggle (base: hidden, shown via media query) ---- */
 .ral-mobile-toggle {
   display: none;
   position: fixed;
   top: 12px;
-  left: 12px;
-  z-index: var(--z-dropdown);
+  right: 12px;
+  z-index: var(--z-drawer, 1100);
   width: 40px;
   height: 40px;
   align-items: center;
@@ -270,4 +289,45 @@ const userName = auth.userName || '未登录';
   outline-offset: 2px;
   background: var(--color-hover);
 }
+
+/* ---- Responsive: show toggle at ≤768px ---- */
+@media (max-width: 768px) {
+  .ral-mobile-toggle {
+    display: flex;
+  }
+}
+
+/* ---- Responsive: mobile overlay sidebar at ≤640px ---- */
+@media (max-width: 640px) {
+  .ral-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: var(--z-sidebar, 310);
+    transform: translateX(0);
+    transition: transform var(--transition-slow), width var(--transition-slow);
+  }
+
+  .ral-sidebar--collapsed {
+    transform: translateX(-100%);
+    width: 240px; /* keep layout width on hidden so transition is smooth */
+  }
+
+  .ral-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-sidebar, 310) - 1);
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .ral-content {
+    min-width: 0;
+    overflow-x: hidden;
+    word-break: break-word;
+  }
+}
+
+/* ---- Mobile toggle (media-moved after @640px block, already in cascade) ---- */
+
 </style>
