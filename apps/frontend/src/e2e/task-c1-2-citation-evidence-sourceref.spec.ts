@@ -348,9 +348,14 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
     await test.step('R02: researcher server-side auth probe returns 403 (服务端越权拒绝证据)', async () => {
       // Read real token from localStorage (set by UI login, key: hfb-access-token).
       // Verify token is valid via /api/v1/auth/me, then use it for review PATCH.
-      const result = await page.evaluate(({ apiUrl, docId }) => {
+
+      type R02ErrorBranch = { error: string; status: number };
+      type R02OkBranch = { error: null; meStatus: number; reviewStatus: number };
+      type R02Result = R02ErrorBranch | R02OkBranch;
+
+      const result: R02Result = await page.evaluate(({ apiUrl, docId }): Promise<R02Result> => {
         const token = localStorage.getItem('hfb-access-token');
-        if (!token) return { error: 'NO_TOKEN', status: -1 };
+        if (!token) return Promise.resolve({ error: 'NO_TOKEN', status: -1 });
 
         const headers = {
           'Content-Type': 'application/json',
@@ -360,7 +365,7 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
         // Confirm token is valid and belongs to authenticated user
         return fetch(`${apiUrl}/api/v1/auth/me`, { headers, credentials: 'include' })
           .then(meResp => {
-            if (meResp.status !== 200) return { error: 'AUTH_ME_FAILED', status: meResp.status };
+            if (meResp.status !== 200) return Promise.resolve({ error: 'AUTH_ME_FAILED', status: meResp.status } as R02Result);
             // Authorized probe: same token, review endpoint — must be 403
             return fetch(`${apiUrl}/api/v1/documents/${docId}/review`, {
               method: 'PATCH',
@@ -371,11 +376,15 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
               error: null,
               meStatus: meResp.status,
               reviewStatus: reviewResp.status,
-            }));
+            } as R02Result));
           });
       }, { apiUrl: API, docId: RBAC_DOC_ID });
 
-      expect(result.error, `Token probe failed: ${JSON.stringify(result)}`).toBeNull();
+      if (result.error !== null) {
+        expect(result.error, `Token probe failed: ${JSON.stringify(result)}`).toBeNull();
+        return;
+      }
+
       expect(result.meStatus, '/api/v1/auth/me must return 200 for logged-in researcher').toBe(200);
       expect(result.reviewStatus, `Expected 403, got ${result.reviewStatus} — 服务端越权拒绝证据`).toBe(403);
     });
