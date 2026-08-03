@@ -137,7 +137,7 @@ ResearchWorkspacePage (唯一数据所有者)
 
 ### 空项目 CTA
 
-**判定**：全局空态 = `MergedResearchItem[]` 为空 **AND** `notes[]` 为空 **AND** `citations[]` 为空 **AND** 三个 section 均无未解决 error。
+**判定**：全局空态 = `MergedResearchItem[]` 为空 **AND** `notes[]` 为空 **AND** `citations[]` 为空 **AND** 三个逻辑 section（§5.5）均无未解决 error（partial 不算 error）。详见 §6.3 全局空态判定。
 
 空项目时:
 
@@ -235,9 +235,10 @@ route.params.projectId 变化
   ├─ 2. 重置所有 section 状态为 { data: [], loading: true, error: null }
   ├─ 3. 显示全页面骨架屏 (hfb-skeleton)
   │
-  ├─ 4. 发起 session 请求 (gate)
-  │     ├─ 404 → 停止，显示 EmptyState "课题不存在"
-  │     ├─ 403 → 停止，显示 ErrorState "权限不足"
+  ├─ 4. 发起 session 请求 (gate) — 详细错误分类见 §6.1
+  │     ├─ 404 → 停止，显示 EmptyState "课题不存在"（不可重试）
+  │     ├─ 403 → 停止，显示 ErrorState "权限不足"（不可重试）
+  │     ├─ 网络/5xx/超时/解析失败 → 停止，进入 §6.1 可恢复终态（自动退避重试 → 手动"重新加载"）
   │     └─ 200 → 继续
   │
   ├─ 5. session gate 通过后，并发发起:
@@ -257,7 +258,7 @@ route.params.projectId 变化
 
 **关键原则**:
 - 骨架屏最短时长 **不得延迟首个请求发起**。请求在步骤 4、5 立即发出，与骨架屏渲染并行。步骤 6 的"满 300ms"仅在内容切换时机生效。
-- Session gate 失败（404/403）时**不发起**步骤 5 的任何请求。
+- Session gate 失败时**不发起**步骤 5 的任何请求。失败分类与重试策略见 §6.1 — 仅 404/403 不可重试。
 
 ### 5.2 骨架屏 (Skeleton)
 
@@ -323,17 +324,59 @@ onBeforeUnmount(() => {
 
 **子组件过期防护**: 由于子组件不再自行请求，过期响应防护集中在页面层。子组件仅在 props 变化时被动重渲染。
 
-### 5.4 局部失败与重试
+### 5.4 最近研究 section 聚合规则
 
-**允许局部失败**: `Promise.allSettled` 后，每个 section 独立判断。
+"最近研究"是一个**逻辑 section**，由两个独立 API 请求聚合而成：`fetchRuns()` + `fetchHistory()`。
+
+这两个请求在 `Promise.allSettled` 中作为两个独立 promise 并发，但聚合为**一个逻辑 section**参与后续判定。
+
+**聚合状态**:
+
+| runs 结果 | history 结果 | 逻辑 section 状态 |
+|-----------|-------------|-------------------|
+| success | success | **success** — 合并归一化为 `MergedResearchItem[]` |
+| success | rejected | **partial** — 仅用 runs 数据，section 底部展示低调提示"活动记录暂不可用"（非 error banner，不可重试） |
+| rejected | success | **partial** — 仅用 history 数据，section 底部展示低调提示"运行记录暂不可用"（非 error banner，不可重试） |
+| rejected | rejected | **failed** — section 显示 error banner + "重试"按钮（重试时两个端点一起重试） |
+
+**partial 状态细节**:
+- partial 不是 error。其他成功 section 正常展示，不会因 partial 阻断全局空态判定。
+- partial 提示为一行小字（`var(--text-xs)` color `var(--color-text-muted)`），不带重试按钮。
+- partial 时仅对成功的那一半执行归一化、排序、截断。
+
+**重试行为**:
+- 仅当"最近研究"逻辑 section 为 **failed**（两个端点都 rejected）时，才显示 error banner + per-section 重试按钮。
+- 重试同时重新请求 runs 和 history 两个端点，作为**一次**重试计数。
+- 若重试后仅一个恢复，进入 partial 状态，不计入失败。
+
+### 5.5 逻辑 section 与全局判定
+
+全页共有**三个逻辑 section**:
+
+| 逻辑 section | 组成 |
+|-------------|------|
+| 最近研究 | fetchRuns() + fetchHistory() 聚合（见 §5.4） |
+| 最近笔记 | fetchNotes() |
+| 研究资料 | fetchCitations() |
+
+以下所有规则中的"section"均指**逻辑 section**:
+
+- **"某个 section rejected"**（§5.6）— 对最近研究即为 runs+history 双失败。
+- **"所有 section rejected"**（§5.6）— 三个逻辑 section 全部 failed。
+- **"全局空态判定"**（§6.2）— 三个逻辑 section 均无 error（partial 不算 error）且数据全空。
+
+### 5.6 局部失败与重试
+
+**允许局部失败**: `Promise.allSettled` 后，按 §5.4–5.5 聚合为三个逻辑 section，每个逻辑 section 独立判断。
 
 | 场景 | 行为 |
 |------|------|
-| 某个 section rejected | 该 section 显示 error banner + "重试"按钮；其他成功 section 正常展示 |
-| 所有 section rejected | 显示全页错误状态（非引导卡），含汇总错误消息 + "重新加载"按钮 |
-| 某个 section 返回空数据 | 视为成功，参与全局空态判定 |
+| 某个逻辑 section failed | 该 section 显示 error banner + "重试"按钮；其他成功/partial section 正常展示 |
+| 所有逻辑 section failed | 显示全页错误状态（非引导卡），含汇总错误消息 + "重新加载"按钮 |
+| 某个逻辑 section 为 partial | 显示数据 + 低调提示，不阻断其他 section |
+| 某个逻辑 section 返回空数据 | 视为成功，参与全局空态判定 |
 
-**重试范围**: 重试仅作用于**幂等 GET 读取请求**。不重试 session gate 失败（session 404/403 为终止条件）。
+**重试范围**: 重试仅作用于**幂等 GET 读取请求**。不重试 session gate 失败（session 失败全部转入 §6.1 终止状态）。
 
 **重试策略** (per-section):
 
@@ -352,7 +395,7 @@ retry(section):
 
 **重试取消**: 用户切换项目、手动刷新页面、或组件卸载时，所有进行中的退避计时器必须取消（`clearTimeout`），新的加载周期重置所有 attempt 计数器。
 
-### 5.5 fetchWithRetry helper（后续实施）
+### 5.7 fetchWithRetry helper（后续实施）
 
 预约路径: `apps/frontend/src/utils/fetchWithRetry.ts`
 
@@ -370,12 +413,34 @@ function fetchWithRetry(
 
 ## 6. 错误与空态规则
 
-### 6.1 终止 gate
+### 6.1 Session gate 错误分类与终态
 
-- Session 404 → 停止一切后续请求，显示 EmptyState "课题不存在"
-- Session 403 → 停止一切后续请求，显示 ErrorState "权限不足"
+Session 请求（`GET /api/v1/workspace/sessions/{id}`）是所有后续请求的 gate。根据失败原因明确区分终态:
 
-### 6.2 全局空态判定
+| 失败类型 | 判定条件 | 终态行为 |
+|----------|----------|----------|
+| **404** | response.status === 404 | 停止一切后续请求。显示 EmptyState "课题不存在" + 返回链接。**不可重试**。 |
+| **403** | response.status === 403 | 停止一切后续请求。显示 ErrorState "权限不足"。**不可重试**。 |
+| **网络错误** | 无 response、fetch 抛错、`ERR_NETWORK` 类 | 停止一切后续请求。显示全页 ErrorState "网络连接失败" + "重新加载"按钮。用户手动触发重试（完整加载流程重新开始）。**适用 §5.7 退避重试**（最多 3 次自动重试，之后显示手动重试按钮）。 |
+| **5xx / 超时** | response.status >= 500 或 `ECONNABORTED`/`ETIMEDOUT` | 同"网络错误"。 |
+| **解析失败** | 200 但 JSON parse error 或数据结构不匹配 | 同"网络错误"（视为不可恢复的获取失败）。 |
+
+**关键**:
+- 仅 404/403 为**不可重试终态**，页面停留在对应空态/错误态，不提供自动或手动重试。
+- 其他所有 session 失败均进入**可恢复终态**：自动退避重试（§5.7）耗尽后，显示手动"重新加载"按钮。
+- Session gate 失败（任何类型）时**不发起**步骤 5 的任何 section 请求。
+- Session gate 成功（200 + 可解析的 session 数据）后，才进入 §5.1 步骤 5。
+
+### 6.2 终止 gate（session 失败后的处理）
+
+Session gate 失败满足 §6.1 任一终态条件后:
+
+- 页面停留在骨架屏终端或对应错误视图。
+- 不渲染任何 section（最近研究、笔记、资料）。
+- 不执行 §6.3 的全局空态判定。
+- 用户通过"重新加载"（仅非 404/403 时可用）或浏览器的页面刷新重新发起完整加载流程。
+
+### 6.3 全局空态判定
 
 **判定时机**: 所有 section 请求完成（`Promise.allSettled` settled）**且**骨架最短时长已满足后。
 
@@ -384,15 +449,15 @@ function fetchWithRetry(
 2. `notes[]` 为空
 3. `citations[]` 为空
 
-**且**三个 section 均无未解决 error（若某个 section 有 error 但其他有数据，不触发全局空态）。
+**且**三个逻辑 section（§5.5）均无未解决 error（partial 不算 error。若某个逻辑 section 有 error 但其他 section 有数据，不触发全局空态）。
 
 **全局空态 → 引导卡**（见第 3 章）。
 
 **非全局空态 → 分区布局**，含数据的 section 正常展示，全空的 section 可显示各 section 内置 empty 提示。
 
-### 6.3 全失败 ≠ 引导卡
+### 6.4 全失败 ≠ 引导卡
 
-若所有 section 请求均失败（全部 rejected），**不得**将失败伪装为引导空态。
+若**三个逻辑 section 全部 failed**（按 §5.4–5.5 聚合后，最近研究为双失败且笔记和资料均 rejected），**不得**将失败伪装为引导空态。
 
 全失败时:
 - 不渲染引导卡
