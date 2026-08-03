@@ -1,0 +1,84 @@
+{
+  "session": "2026-08-03_c1-2_c2-1c_acceptance",
+  "task_cards": [
+    {
+      "card": "Typecheck Repair C1-2",
+      "sha": "9357d3f",
+      "file": "apps/frontend/src/e2e/task-c1-2-citation-evidence-sourceref.spec.ts",
+      "errors_fixed": 6,
+      "result": "PASS"
+    },
+    {
+      "card": "Local RBAC Fixture",
+      "sha": "9357d3f",
+      "fixture": "/private/tmp/hfb-c2-1c-rbac-credentials-6cd19637fbf1.json",
+      "researcher_id": "6d97882c-bab5-48a1-895c-4d7037ee20d8",
+      "admin_id": "21a074b9-66eb-4f36-982e-a8473f48bee0",
+      "doc_id": "0aa2c42a-b3f5-43f0-93e4-849e27a79049",
+      "roles_verified": ["Researcher", "Platform Administrator"],
+      "permissions_verified": {"researcher_review_patch": "403", "admin_review_patch": "200"},
+      "result": "PASS",
+      "cleanup": "completed"
+    },
+    {
+      "card": "Local Workspace Fixture",
+      "sha": "9357d3f",
+      "fixture": "/private/tmp/hfb-c2-1c-workspace-fixture-6cd19637fbf1.json",
+      "empty_session": "1aeade13-d3e8-4bf4-9c57-522528b2a32a",
+      "populated_session": "2a614264-b287-4f5a-b4a1-9124ffdd714e",
+      "api_verified": {"runs": [0,1], "history": [0,1], "notes": [0,1], "citations": [0,1]},
+      "isolation_verified": "401 for anonymous",
+      "result": "PASS",
+      "cleanup": "completed"
+    },
+    {
+      "card": "Mobile Layout Fixes",
+      "sha": "4cb9d59..8551d27",
+      "commits": 6,
+      "file": "apps/frontend/src/layouts/ResearchAppLayout.vue",
+      "issues_resolved": [
+        "sidebar_compression_at_375px",
+        "AppNavbar_overlay_on_header",
+        "breakpoint_misalignment_640_vs_768"
+      ],
+      "result": "PASS"
+    },
+    {
+      "card": "Keyboard + Escape + Focus Fixes",
+      "sha": "d96573c..af59c11",
+      "commits": 2,
+      "file": "apps/frontend/src/layouts/ResearchAppLayout.vue",
+      "issues_resolved": [
+        "Escape_not_closing_overlay_sidebar",
+        "focus_not_returning_to_toggle_after_Escape",
+        "RAE_sheet_Escape_conflict_with_sidebar_Escape"
+      ],
+      "result": "PASS"
+    }
+  ],
+  "final_sha": "af59c11",
+  "source_sha": "9357d3f",
+  "total_commits": 9,
+  "files_modified": [
+    "apps/frontend/src/e2e/task-c1-2-citation-evidence-sourceref.spec.ts",
+    "apps/frontend/src/layouts/ResearchAppLayout.vue"
+  ],
+  "gates_passed": {
+    "vue_tsc": true,
+    "vitest_workspace": "54/54",
+    "rbac_permissions": true,
+    "mobile_375x812": true,
+    "zoom_200_percent": true,
+    "keyboard_navigation": true,
+    "offline_recovery": true,
+    "api_isolation": true
+  },
+  "blocked_issues": [],
+  "cleanup_status": {
+    "test_users_removed": true,
+    "workspace_sessions_removed": true,
+    "credential_files_removed": true,
+    "screenshots_removed": true,
+    "temp_scripts_removed": true
+  }
+}
