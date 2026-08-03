@@ -70,8 +70,8 @@ import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
-// At mobile widths (≤640px), default to collapsed so content fills viewport.
-const MOBILE_BREAKPOINT = 640;
+// Sidebar becomes overlay at < 640px, stays in-flow at ≥ 640px.
+const MOBILE_BREAKPOINT = 639;
 let mql: MediaQueryList | null = null;
 
 function syncMobile() {
@@ -308,8 +308,8 @@ const userName = auth.userName || '未登录';
   }
 }
 
-/* ---- Responsive: mobile overlay sidebar at ≤640px ---- */
-@media (max-width: 640px) {
+/* ---- Responsive: mobile overlay sidebar at ≤639px ---- */
+@media (max-width: 639px) {
   .ral-sidebar {
     position: fixed;
     top: 0;
@@ -347,7 +347,7 @@ const userName = auth.userName || '未登录';
      ResearchAppLayout has its own sidebar + toggle; the global navbar duplicates chrome
      and eats 56px of viewport at 375px, truncating the page header.                 -->
 <style>
-@media (max-width: 640px) {
+@media (max-width: 639px) {
   .default-layout.ral-mobile-active > .app-navbar {
     display: none;
   }
