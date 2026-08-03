@@ -34,7 +34,7 @@
 | 更新 | `apps/frontend/src/__tests__/research-workspace.test.ts` |
 | 后续新建 | `apps/frontend/src/utils/fetchWithRetry.ts`（本卡不创建，仅预约路径） |
 
-文件净变更: 1 删除 + 6 修改 + 0 新建（本卡不创建 fetchWithRetry）。
+文件净变更: 2 删除 + 6 修改 + 0 新建（本卡不创建 fetchWithRetry）。
 
 ---
 
@@ -99,6 +99,21 @@ type RAEIMode = 'inline' | 'sidebar' | 'sheet';
 | `'inline'` | 空项目（全局空态） | 嵌入引导卡内部，不渲染独立侧边栏 |
 | `'sidebar'` | 桌面端非空项目 (width >= 769px) | 可折叠 300px 侧边栏，默认折叠 |
 | `'sheet'` | 移动端非空项目 (width <= 768px) | 底部 slide-up panel，toggle 打开，带 backdrop |
+
+**mode='sheet' 可访问性契约**（满足键盘与焦点硬约束）:
+
+- **role**: `role="dialog"` + `aria-modal="true"` + `aria-label="AI 研究助手"`
+- **焦点陷阱**: 打开时聚焦第一个可聚焦元素（输入框）；Tab/Shift+Tab 在 panel 内循环，不泄漏到背景
+- **关闭方式**: Escape 键关闭、点击 backdrop 关闭、toggle 按钮再次点击关闭
+- **关闭后焦点**: 焦点回到 toggle 按钮（保存 `document.activeElement` 于打开前，关闭后 restore）
+- **Backdrop**: 半透明遮罩（`rgba(0,0,0,0.3)`），`click` 事件关闭 panel
+- **动画**: `transform: translateY(100%)` → `translateY(0)`，`transition: transform 300ms ease`；prefers-reduced-motion 时禁用动画
+- **Body scroll lock**: 打开时 `document.body.style.overflow = 'hidden'`，关闭后恢复
+
+**mode='sidebar' toggle 按钮**:
+- `aria-expanded` 反映当前展开/折叠状态
+- `aria-controls` 指向侧边栏容器 id
+- 键盘: Enter/Space 切换展开状态
 
 Props:
 - `projectId: string`
@@ -192,11 +207,11 @@ interface MergedResearchItem {
 
 ### 归一化规则
 
-**runs 归一化** (`history` 端点数据优先于 `runs` 端点):
+**runs 归一化**:
 
 1. 从 `runs` 端点取 `run_id`, `topic`, `started_at`, `completed_at`, `step_execution_trace`。
-2. 若同一条 `run_id` 在 history 中也出现，以 history 中的 `created_at` 覆盖 timestamp。
-3. `timestamp` 取值优先级: `history.created_at` > `run.completed_at` > `run.started_at` > 空字符串。
+2. `timestamp` 取值优先级: `completed_at` > `started_at` > 空字符串。
+3. Runs 与 activities 是**两类独立条目** — history API 的公开 DTO（`query_id`, `query_text`, `query_type`, `citation_count`, `created_at`）不含 `run_id`，不存在跨端点关联。两者仅通过 `timestamp` 统一排序合并。
 
 **history 归一化**:
 
@@ -335,13 +350,16 @@ onBeforeUnmount(() => {
 | runs 结果 | history 结果 | 逻辑 section 状态 |
 |-----------|-------------|-------------------|
 | success | success | **success** — 合并归一化为 `MergedResearchItem[]` |
-| success | rejected | **partial** — 仅用 runs 数据，section 底部展示低调提示"活动记录暂不可用"（非 error banner，不可重试） |
-| rejected | success | **partial** — 仅用 history 数据，section 底部展示低调提示"运行记录暂不可用"（非 error banner，不可重试） |
+| success | rejected | **partial** — 仅用 runs 数据，section 底部展示低调提示"活动记录暂不可用" + "重试活动记录"按钮（仅重试 fetchHistory，不计入 per-section 重试配额） |
+| rejected | success | **partial** — 仅用 history 数据，section 底部展示低调提示"运行记录暂不可用" + "重试运行记录"按钮（仅重试 fetchRuns，不计入 per-section 重试配额） |
 | rejected | rejected | **failed** — section 显示 error banner + "重试"按钮（重试时两个端点一起重试） |
 
 **partial 状态细节**:
 - partial 不是 error。其他成功 section 正常展示，不会因 partial 阻断全局空态判定。
-- partial 提示为一行小字（`var(--text-xs)` color `var(--color-text-muted)`），不带重试按钮。
+- partial 提示为一行小字（`var(--text-xs)` color `var(--color-text-muted)`）+ 单边的内联"重试"按钮（语义: "重试活动记录" / "重试运行记录"）。
+- partial 单边重试仅 re-fetch 失败的那个端点，不重跑成功端点。不计入 §5.6 per-section 重试配额（partial 不算 failed）。
+- partial 重试成功后进入 success 状态，数据合并重排。
+- partial 重试失败：提示保持不变，不升级为 error banner。
 - partial 时仅对成功的那一半执行归一化、排序、截断。
 
 **重试行为**:
@@ -499,22 +517,31 @@ Session gate 失败满足 §6.1 任一终态条件后:
 16. 路由切换时旧请求回调不覆盖新页面数据
 17. 组件卸载后无状态写入
 
+**Batch D-2 — Session gate 恢复规则（新增）**:
+18. session 5xx / 网络错误时，不发起任何 section 请求
+19. session 5xx / 网络错误时，进入自动退避重试（最多 3 次，1s/2s/4s）
+20. session 自动退避耗尽后，显示全页 ErrorState + "重新加载"按钮
+21. 用户切换项目后，旧 session retry 退避计时器取消，回调不写入新页面状态
+22. 组件卸载后，进行中的 session retry 全部取消，回调不写入状态
+
 **Batch E — 骨架屏与最短时长**:
-18. 骨架屏在初始加载时渲染
-19. 请求在 300ms 内完成时骨架仍显示满 300ms
-20. 请求超过 300ms 时完成后立即切换内容
+23. 骨架屏在初始加载时渲染
+24. 请求在 300ms 内完成时骨架仍显示满 300ms
+25. 请求超过 300ms 时完成后立即切换内容
 
 **Batch F — 局部失败与重试**:
-21. 单个 section 失败不影响其他 section 展示
-22. per-section 重试按钮可见且可触发
-23. 3 次重试失败后显示持久错误
-24. 用户切换项目后重试计数器重置
-25. 全失败场景显示汇总错误而非引导卡
+26. 单个逻辑 section 失败不影响其他 section 展示
+27. per-section 重试按钮可见且可触发
+28. 3 次重试失败后显示持久错误
+29. 用户切换项目后重试计数器重置
+30. 全失败场景显示汇总错误而非引导卡
+31. "最近研究" partial 状态（单边失败）显示数据 + 提示 + 单边重试按钮
+32. partial 单边重试仅重试失败端点，不计入 per-section 重试配额
 
 **Batch G — 删除组件残留引用**:
-26. ContinueResearchCard 不再被导入或渲染
-27. RecentResearchActivity 不再被导入或渲染
-28. ResearchWorkspacePage 不再渲染已删除组件的标签
+33. ContinueResearchCard 不再被导入或渲染
+34. RecentResearchActivity 不再被导入或渲染
+35. ResearchWorkspacePage 不再渲染已删除组件的标签
 
 ### 需保留/修改的现有测试
 
