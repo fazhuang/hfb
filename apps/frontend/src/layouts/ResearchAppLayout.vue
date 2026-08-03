@@ -109,7 +109,10 @@ onUnmounted(() => {
 });
 
 function handleEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape' && !sidebarCollapsed.value) {
+  if (e.key !== 'Escape') return;
+  // If RAE sheet is open, let its own Escape handler close it first.
+  if (document.getElementById('rae-sheet')) return;
+  if (!sidebarCollapsed.value) {
     const width = window.innerWidth;
     if (width <= MOBILE_BREAKPOINT) {
       e.preventDefault();
