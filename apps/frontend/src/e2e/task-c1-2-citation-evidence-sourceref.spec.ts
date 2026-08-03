@@ -36,25 +36,25 @@ const API = 'http://127.0.0.1:8000';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** PO must provide: real report URL (e.g. /research/{sessionId}/result/{runId}) */
-const REPORT_URL = 'TODO_PO_MUST_PROVIDE_REPORT_URL';
+const REPORT_URL = '/research/14b6b81e-ca5c-4165-87ac-20b76f052856/result/528a37ff-ce18-49c7-b99f-e59d8c68c946';
 
 /** PO must provide: real document_id shared by both passages */
-const DOC_ID = 'TODO_PO_MUST_PROVIDE_DOCUMENT_ID';
+const DOC_ID = 'bd42b503-9546-4a70-94cf-889056c56c2d';
 
 /** PO must provide: passage A identity */
 const PASSAGE_A = {
-  citationTraceId: 'TODO_PO_MUST_PROVIDE_CITATION_A_TRACE_ID',
-  passageId: 'TODO_PO_MUST_PROVIDE_PASSAGE_A_ID',
-  sourceRefTitle: 'TODO_PO_MUST_PROVIDE_SOURCEREF_A_TITLE',
-  sourceRefId: 'TODO_PO_MUST_PROVIDE_SOURCEREF_A_ID',
+  citationTraceId: 'cbbe2628-2b75-582c-be6c-f97bc1d3d179',
+  passageId: '1112a4bb-d71a-4b72-af05-9bad34937b96',
+  sourceRefTitle: '针灸甲乙经·序 — SourceRef B (C1-2 UAT)',
+  sourceRefId: '8b3bee08-97fe-43f7-a960-08f5dc2b9f57',
 };
 
 /** PO must provide: passage B identity (same doc, different passage) */
 const PASSAGE_B = {
-  citationTraceId: 'TODO_PO_MUST_PROVIDE_CITATION_B_TRACE_ID',
-  passageId: 'TODO_PO_MUST_PROVIDE_PASSAGE_B_ID',
-  sourceRefTitle: 'TODO_PO_MUST_PROVIDE_SOURCEREF_B_TITLE',
-  sourceRefId: 'TODO_PO_MUST_PROVIDE_SOURCEREF_B_ID',
+  citationTraceId: 'b188bea2-dc86-5c5c-a93f-d024bbe5c5a7',
+  passageId: 'cf31f483-18e2-43fc-8ca0-d0625040cef8',
+  sourceRefTitle: '针灸甲乙经·序 — SourceRef A (C1-2 UAT)',
+  sourceRefId: 'b6b2498d-9f75-471a-8a42-aef7f29b6765',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
