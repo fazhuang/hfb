@@ -111,6 +111,12 @@ pnpm typecheck
 **Claude**：仅创建匿名化测试协议，覆盖课题→搜索→Reader→AI→Citation/Evidence/SourceRef→导出，记录完成率、时长、阻塞、恢复、证据理解；涵盖弱网、AI 失败、繁简、字号、移动端。不得写入正式学术数据。
 **Codex**：验证没有个人敏感信息、真实数据导入或 URL/mock 绕过。
 
+**执行状态**：✅ Claude 完成（HEAD `393383d`）
+- 协议文档：`docs/20-product/d1-postgraduate-user-testing-protocol.md`
+- 包含全部 7 项规范要件：测试定位与合规边界、知情同意与匿名化、Canonical 任务链路（7 任务 29 步骤，全基于可见 UI 导航）、异常场景观察矩阵（弱网/AI 异常/适配/键盘）、观察记录表与评估指标（定量+定性+严重性分级 P0-P3）、执行规范、报告输出规范
+- 零 PII、零真实数据、零 URL 直达/Token/Mock 绕过
+- 待 Codex 独立验证
+
 ### D2：Phase 10 候选执行
 
 **Claude**：不修改产品代码；在 PO 批准环境中保存当前 clean HEAD 的全量测试、真实浏览器 E2E、三身份 RBAC、Citation/Evidence/SourceRef、安全、性能、运维/恢复及前端≥80%/后端≥90%覆盖率原始输出。失败拆回最小卡。
