@@ -241,9 +241,13 @@ watch(submitError, async (val) => {
 
 // ---- Lifecycle ----
 onMounted(async () => {
-  await loadSession();
-  if (session.value) {
-    initPendingQuestion();
+  try {
+    await loadSession();
+    if (session.value) {
+      initPendingQuestion();
+    }
+  } catch {
+    // loadSession handles its own errors; catch prevents unhandled rejection
   }
 });
 
@@ -256,6 +260,8 @@ watch(
       if (session.value) {
         initPendingQuestion();
       }
+    }).catch(() => {
+      // loadSession handles its own errors
     });
   },
 );

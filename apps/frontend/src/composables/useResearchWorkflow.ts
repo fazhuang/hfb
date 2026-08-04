@@ -348,11 +348,11 @@ export function useResearchWorkflow(projectId: () => string) {
       };
     } catch (e: unknown) {
       if (myReqId !== reqId) return;
-      const status = (e as any)?.response?.status;
-      if (status === 404) {
+      const classified = classifyError(e);
+      if (classified.status === 404) {
         notFound.value = true;
       } else {
-        sessionError.value = classifyError(e).message;
+        sessionError.value = classified.message;
       }
     } finally {
       if (myReqId === reqId) {
