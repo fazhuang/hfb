@@ -68,8 +68,9 @@ function isStepClickable(idx: number): boolean {
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .wsn-nav {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .wsn-steps {
@@ -90,13 +91,13 @@ function isStepClickable(idx: number): boolean {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) 10px;
+  padding: var(--space-3) var(--space-2-5);
   width: 100%;
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-sm);
   cursor: default;
   transition: all var(--transition-base);
 }
@@ -158,7 +159,7 @@ function isStepClickable(idx: number): boolean {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 700;
   flex-shrink: 0;
   background: var(--color-page-bg);
@@ -190,7 +191,7 @@ function isStepClickable(idx: number): boolean {
     flex-direction: column;
     gap: var(--space-1);
     text-align: center;
-    padding: var(--space-2-5) 6px;
+    padding: var(--space-2-5) var(--space-1-5);
   }
 
   .wsn-step-label {

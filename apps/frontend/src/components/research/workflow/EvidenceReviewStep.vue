@@ -149,6 +149,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .ers-step {
   padding: 0;
 }
@@ -164,30 +165,30 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 .ers-warning {
   display: flex;
   gap: var(--space-2-5);
-  padding: var(--space-3-5) 16px;
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--color-warning);
   border-left: 4px solid var(--color-warning);
   border-radius: var(--radius-md);
   background: var(--color-warning-bg);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .ers-warning-icon {
-  font-size: 16px;
+  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .ers-warning strong {
   display: block;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-warning-text);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .ers-warning p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-warning-text);
   line-height: 1.5;
 }
@@ -197,20 +198,20 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-2-5) 14px;
+  padding: var(--space-2-5) var(--space-3-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-page-bg);
-  margin-bottom: 16px;
-  font-size: 13px;
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
 
 .ers-action-btn {
-  padding: var(--space-1-5) 14px;
+  padding: var(--space-1-5) var(--space-3-5);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   background: transparent;
@@ -249,31 +250,31 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   display: flex;
   gap: var(--space-2-5);
   align-items: baseline;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .ers-item-index {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-text-secondary);
 }
 
 .ers-item-source {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 /* Labels */
 .ers-label {
   display: inline-block;
-  padding: var(--space-0-5) 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: var(--space-1-5);
 }
 
 .ers-label--ai {
@@ -296,27 +297,27 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 
 /* Claim */
 .ers-claim {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .ers-claim-text {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-primary);
   line-height: 1.6;
 }
 
 /* Quote */
 .ers-quote {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-3);
 }
 
 .ers-quote-text {
   margin: 0;
-  padding: var(--space-2-5) 14px;
+  padding: var(--space-2-5) var(--space-3-5);
   border-left: 3px solid var(--color-success-text);
   background: var(--color-success-bg);
-  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+  font-family: var(--font-serif);
   font-size: 15px;
   color: var(--color-success-text);
   line-height: 1.9;
@@ -325,13 +326,13 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 
 /* Citation */
 .ers-citation {
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .ers-citation-text {
-  font-size: 12px;
+  font-size: var(--text-xs);
   background: var(--color-page-bg);
-  padding: var(--space-0-75) 8px;
+  padding: var(--space-0-75) var(--space-2);
   border-radius: var(--radius-sm);
   overflow-wrap: anywhere;
   color: var(--color-text-secondary);
@@ -339,14 +340,14 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 
 /* Locator */
 .ers-locator {
-  margin-bottom: 12px;
-  padding: var(--space-2) 12px;
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
   background: var(--color-page-bg);
 }
 
 .ers-locator-hint {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
@@ -359,33 +360,33 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 .ers-lineage-warning {
   display: flex;
   gap: var(--space-1-5);
-  padding: var(--space-2) 12px;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-warning);
   border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-warning-text);
-  margin-bottom: 10px;
+  margin-bottom: var(--space-2-5);
 }
 
 .ers-lineage-warning-icon {
   flex-shrink: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 /* Actions */
 .ers-item-actions {
   display: flex;
   gap: var(--space-2);
-  padding-top: 10px;
+  padding-top: var(--space-2-5);
   border-top: 1px solid var(--color-border);
 }
 
 .ers-item-action-btn {
-  padding: var(--space-1-5) 14px;
+  padding: var(--space-1-5) var(--space-3-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   cursor: pointer;
   background: var(--color-navbar-bg, var(--color-surface));

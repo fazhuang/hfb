@@ -38,6 +38,7 @@ defineEmits<{
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .dss-step {
   padding: 0;
 }
@@ -52,23 +53,23 @@ defineEmits<{
 .dss-system-notice {
   display: flex;
   gap: var(--space-2-5);
-  padding: var(--space-3-5) 16px;
+  padding: var(--space-3-5) var(--space-4);
   border: 1px solid var(--color-accent);
   border-left: 4px solid var(--color-accent);
   border-radius: var(--radius-md);
   background: var(--color-accent-light);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .dss-notice-icon {
-  font-size: 16px;
+  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .dss-system-notice p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-accent);
   line-height: 1.6;
 }
@@ -78,11 +79,11 @@ defineEmits<{
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-page-bg);
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .dss-summary-title {
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-text-muted);
   text-transform: uppercase;
@@ -103,10 +104,10 @@ defineEmits<{
 }
 
 .dss-back-btn {
-  padding: var(--space-2-5) 20px;
+  padding: var(--space-2-5) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
   background: var(--color-navbar-bg, var(--color-surface));
@@ -128,10 +129,10 @@ defineEmits<{
 }
 
 .dss-submit-btn {
-  padding: var(--space-2-5) 24px;
+  padding: var(--space-2-5) var(--space-6);
   border: none;
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
   background: var(--color-accent);

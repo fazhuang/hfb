@@ -136,6 +136,7 @@ function formatDate(iso?: string | null): string {
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .rrs-step {
   padding: 0;
 }
@@ -151,23 +152,23 @@ function formatDate(iso?: string | null): string {
 .rrs-warning {
   display: flex;
   gap: var(--space-2-5);
-  padding: var(--space-3) 14px;
+  padding: var(--space-3) var(--space-3-5);
   border: 1px solid var(--color-warning);
   border-left: 4px solid var(--color-warning);
   border-radius: var(--radius-md);
   background: var(--color-warning-bg);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .rrs-warning-icon {
-  font-size: 16px;
+  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
 }
 
 .rrs-warning p {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-warning-text);
   line-height: 1.5;
 }
@@ -185,19 +186,19 @@ function formatDate(iso?: string | null): string {
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
-  padding: var(--space-4) 20px;
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .rrs-card-title {
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0;
 }
 
 .rrs-card-time {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   white-space: nowrap;
 }
@@ -206,7 +207,7 @@ function formatDate(iso?: string | null): string {
 .rrs-stats {
   display: flex;
   gap: var(--space-6);
-  padding: var(--space-3) 20px;
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-page-bg);
 }
@@ -230,18 +231,18 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-stat-value--code {
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 400;
 }
 
 /* Preview */
 .rrs-preview {
-  padding: var(--space-4) 20px;
+  padding: var(--space-4) var(--space-5);
   border-bottom: 1px solid var(--color-border);
 }
 
 .rrs-preview-heading {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-muted);
   margin: 0 0 var(--space-2-5);
@@ -252,7 +253,7 @@ function formatDate(iso?: string | null): string {
   padding: var(--space-3-5);
   background: var(--color-page-bg);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: var(--text-sm);
   line-height: 1.7;
   white-space: pre-wrap;
   max-height: 400px;
@@ -264,16 +265,16 @@ function formatDate(iso?: string | null): string {
 .rrs-actions {
   display: flex;
   gap: var(--space-2-5);
-  padding: var(--space-4) 20px;
+  padding: var(--space-4) var(--space-5);
   flex-wrap: wrap;
 }
 
 .rrs-action-btn {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2) 18px;
+  padding: var(--space-2) var(--space-4-5);
   border-radius: var(--radius-lg);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-base);

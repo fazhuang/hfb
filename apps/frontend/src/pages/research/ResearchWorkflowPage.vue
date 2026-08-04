@@ -283,7 +283,7 @@ watch(
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: var(--space-3-5) 18px;
+  padding: var(--space-3-5) var(--space-4-5);
   border: 1px solid var(--color-error);
   border-left: 4px solid var(--color-error-text);
   border-radius: var(--radius-md);
@@ -315,7 +315,7 @@ watch(
 }
 
 .rwf-error-retry-btn {
-  padding: var(--space-2) 18px;
+  padding: var(--space-2) var(--space-4-5);
   border: 1px solid var(--color-error-text);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);

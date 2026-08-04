@@ -81,6 +81,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .aps-step {
   padding: 0;
 }
@@ -93,7 +94,7 @@ onUnmounted(() => {
 }
 
 .aps-hint {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   margin: var(--space-4) 0 0;
   line-height: 1.5;
@@ -104,8 +105,8 @@ onUnmounted(() => {
 }
 
 .aps-elapsed {
-  margin-top: 12px;
-  font-size: 13px;
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
   text-align: center;
 }

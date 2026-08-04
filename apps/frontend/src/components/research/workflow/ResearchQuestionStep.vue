@@ -46,6 +46,7 @@ defineEmits<{
 </script>
 
 <style scoped>
+/* ponytail: 18px/15px/11px retained — no exact --text-* token. Add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography grid fills out */
 .rqs-step {
   padding: 0;
 }
@@ -58,7 +59,7 @@ defineEmits<{
 }
 
 .rqs-description {
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   margin: 0 0 var(--space-6);
   line-height: 1.5;
@@ -69,13 +70,13 @@ defineEmits<{
 }
 
 .rqs-field {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .rqs-label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+  margin-bottom: var(--space-1-5);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text-secondary);
 }
@@ -86,7 +87,7 @@ defineEmits<{
 
 .rqs-input {
   width: 100%;
-  padding: var(--space-2-5) 14px;
+  padding: var(--space-2-5) var(--space-3-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: 15px;
@@ -113,15 +114,15 @@ defineEmits<{
 
 .rqs-error {
   margin: var(--space-1-5) 0 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-error-text);
 }
 
 .rqs-submit-btn {
-  padding: var(--space-2-5) 24px;
+  padding: var(--space-2-5) var(--space-6);
   border: none;
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
   background: var(--color-accent);
