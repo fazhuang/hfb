@@ -63,56 +63,49 @@
           </div>
         </div>
 
-        <!-- ============================================================ -->
-        <!-- Step 1: Research Question -->
-        <!-- ============================================================ -->
-        <ResearchQuestionStep
-          v-if="stepState === 'question'"
-          :question="question"
-          :disabled="submitting"
-          @update:question="question = $event"
-          @next="goToSelection"
-        />
+        <!-- Step transitions (fade) -->
+        <Transition name="step-fade" mode="out-in">
+          <!-- Step 1: Research Question -->
+          <ResearchQuestionStep
+            v-if="stepState === 'question'"
+            :question="question"
+            :disabled="submitting"
+            @update:question="question = $event"
+            @next="goToSelection"
+          />
 
-        <!-- ============================================================ -->
-        <!-- Step 2: Document Selection -->
-        <!-- ============================================================ -->
-        <DocumentSelectionStep
-          v-else-if="stepState === 'selection'"
-          :question="question"
-          :disabled="submitting"
-          @back="goToQuestion"
-          @submit="submitWorkflow"
-        />
+          <!-- Step 2: Document Selection -->
+          <DocumentSelectionStep
+            v-else-if="stepState === 'selection'"
+            :question="question"
+            :disabled="submitting"
+            @back="goToQuestion"
+            @submit="submitWorkflow"
+          />
 
-        <!-- ============================================================ -->
-        <!-- Step 3: AI Analysis (submitting) -->
-        <!-- ============================================================ -->
-        <AnalysisPendingState v-else-if="stepState === 'submitting'" :active="submitting" />
+          <!-- Step 3: AI Analysis (submitting) -->
+          <AnalysisPendingState v-else-if="stepState === 'submitting'" :active="submitting" />
 
-        <!-- ============================================================ -->
-        <!-- Step 4: Evidence Review -->
-        <!-- ============================================================ -->
-        <EvidenceReviewStep
-          v-else-if="stepState === 'evidence'"
-          :evidence="evidenceList"
-          :citations="citationList"
-          :citation-save-state="citationSaveState"
-          @save-citation="saveCitation"
-          @go-to-report="goToReport"
-        />
+          <!-- Step 4: Evidence Review -->
+          <EvidenceReviewStep
+            v-else-if="stepState === 'evidence'"
+            :evidence="evidenceList"
+            :citations="citationList"
+            :citation-save-state="citationSaveState"
+            @save-citation="saveCitation"
+            @go-to-report="goToReport"
+          />
 
-        <!-- ============================================================ -->
-        <!-- Step 5: Research Report -->
-        <!-- ============================================================ -->
-        <ResearchReportStep
-          v-else-if="stepState === 'report' && report !== null"
-          :report="report"
-          :project-id="projectId"
-          @back-to-evidence="goToEvidence"
-          @new-workflow="reset"
-          @re-search="navigateToLibrarySearch(router)"
-        />
+          <!-- Step 5: Research Report -->
+          <ResearchReportStep
+            v-else-if="stepState === 'report' && report !== null"
+            :report="report"
+            :project-id="projectId"
+            @back-to-evidence="goToEvidence"
+            @new-workflow="reset"
+            @re-search="navigateToLibrarySearch(router)"
+          />
+        </Transition>
       </template>
     </div>
   </div>
@@ -358,6 +351,24 @@ watch(
 .rwf-back-link:focus-visible {
   background: var(--color-accent);
   color: var(--color-surface);
+}
+
+/* ---- Step transitions ---- */
+.step-fade-enter-active,
+.step-fade-leave-active {
+  transition: opacity var(--transition-base) var(--ease-out);
+}
+
+.step-fade-enter-from,
+.step-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-fade-enter-active,
+  .step-fade-leave-active {
+    transition: none;
+  }
 }
 
 /* ---- Responsive ---- */
