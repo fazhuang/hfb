@@ -330,12 +330,8 @@ describe('LibrarySearchPage', () => {
     await clearBtn.trigger('click');
     await wrapper.vm.$nextTick();
 
-    // After clearAllFilters, page re-fetches with empty filters.
-    // The LibrarySearchBar component still holds its local v-model state
-    // (copyrightStatus = 'public_domain') because clearAllFilters resets the
-    // parent filters ref, not the child component's internal ref.
-    // The parent clears filters → fetchPage(1) with empty params.
-    // Verify the API was called with empty params after clearing.
+    // After clearAllFilters, page re-fetches with empty filters and
+    // LibrarySearchBar DOM selects are synced back to empty via props.
     const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls as Array<
       [string, { params: Record<string, string> }]
     >;
@@ -344,6 +340,18 @@ describe('LibrarySearchPage', () => {
       (c) => !c[1].params.q && !c[1].params.copyright_status && !c[1].params.review_status,
     );
     expect(filteredCall).toBeTruthy();
+
+    // Assert DOM select elements are reset to empty
+    await wrapper.vm.$nextTick();
+    expect(
+      (wrapper.find('#lib-copyright-filter').element as HTMLSelectElement).value,
+    ).toBe('');
+    expect(
+      (wrapper.find('#lib-review-filter').element as HTMLSelectElement).value,
+    ).toBe('');
+    expect(
+      (wrapper.find('#lib-search-input').element as HTMLInputElement).value,
+    ).toBe('');
   });
 });
 

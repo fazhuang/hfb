@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   COPYRIGHT_STATUSES,
@@ -51,16 +51,33 @@ import {
   REVIEW_STATUSES,
   REVIEW_LABELS,
 } from '@/types/library';
+import type { LibraryFilters } from '@/types/library';
 
 const { t } = useI18n();
+
+const props = defineProps<{
+  filters?: LibraryFilters;
+}>();
 
 const emit = defineEmits<{
   (e: 'search', filters: { query: string; copyrightStatus: string; reviewStatus: string }): void;
 }>();
 
-const query = ref('');
-const copyrightStatus = ref('');
-const reviewStatus = ref('');
+const query = ref(props.filters?.query ?? '');
+const copyrightStatus = ref(props.filters?.copyrightStatus ?? '');
+const reviewStatus = ref(props.filters?.reviewStatus ?? '');
+
+// Sync child local refs when parent clears filters
+watch(
+  () => props.filters,
+  (f) => {
+    if (!f) return;
+    query.value = f.query ?? '';
+    copyrightStatus.value = f.copyrightStatus ?? '';
+    reviewStatus.value = f.reviewStatus ?? '';
+  },
+  { deep: true },
+);
 
 function emitSearch() {
   emit('search', {

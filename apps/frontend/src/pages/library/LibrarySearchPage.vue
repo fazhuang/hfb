@@ -8,7 +8,7 @@
 
     <div class="lib-body">
       <!-- Search & Filter -->
-      <LibrarySearchBar @search="onSearch" />
+      <LibrarySearchBar :filters="filters" @search="onSearch" />
 
       <!-- Loading: Skeleton cards -->
       <div v-if="loading" class="lib-skeleton-list" aria-busy="true" aria-label="正在加载文献列表">
