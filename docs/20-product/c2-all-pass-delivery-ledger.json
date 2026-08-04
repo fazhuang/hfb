@@ -1,0 +1,66 @@
+{
+  "stage": "C2",
+  "status": "PASS",
+  "completed_at": "2026-08-05",
+  "page_groups": {
+    "C2-1_workspace": {
+      "status": "PASS",
+      "verified": true,
+      "baseline_commit": "34cb9fe",
+      "description": "C1-2 + C2-1C acceptance delivery baseline af59c11",
+      "evidence": "docs/superpowers/acceptance-reports/2026-08-03-c1-2-c2-1c-delivery.json"
+    },
+    "C2-2_workflow": {
+      "status": "PASS",
+      "verified": true,
+      "baseline_commit": "77c5c0c",
+      "description": "C2-3 evidence blocks, design compliance, library UI — C2-2/C2-3 continuum",
+      "note": "C2-2 was folded into C2-3 delivery stream per sprint planning"
+    },
+    "C2-3_result": {
+      "status": "PASS",
+      "verified": true,
+      "baseline_commit": "de2cbd5",
+      "description": "Research result page, library UI, evidence blocks, version badge, filter reset, passage forwarding"
+    },
+    "C2-4_reports": {
+      "status": "PASS",
+      "verified": true,
+      "baseline_commit": "d06d719",
+      "description": "Reports page visual hierarchy, 200% zoom containment, workspace cleanup, array-type lint",
+      "evidence": "docs/superpowers/acceptance-reports/2026-08-04-c2-4-final.md"
+    },
+    "C2-5_reader_library": {
+      "status": "PASS",
+      "verified": true,
+      "baseline_commit": "a2c6df2",
+      "description": "Research workflow convergence — 5 tasks: timer leak, responsive layout, design tokens, lucide icons, fade transitions, final E2E regression (28 tests, 4 viewports)",
+      "evidence": "docs/20-product/c2-5-research-workflow-convergence-design.md"
+    }
+  },
+  "all_c2_passed": true,
+  "c3_gate_evidence": {
+    "v4_research_view_removed": "0f1ffa1",
+    "c3_e2e_standard_user": "72c0a07",
+    "trace_files": [
+      "output/e2e/standard-user/trace-standard.zip",
+      "output/e2e/admin/trace-admin.zip",
+      "output/e2e/guest/trace-guest.zip"
+    ],
+    "e2e_screenshots": [
+      "output/e2e/standard-user/01-workflow.png",
+      "output/e2e/standard-user/02-result.png",
+      "output/e2e/standard-user/03-citation-evidence.png",
+      "output/e2e/standard-user/04-export.png",
+      "output/e2e/admin/admin-rbac-pass.png",
+      "output/e2e/guest/guest-redirect.png"
+    ],
+    "export_verified": true,
+    "export_format": "markdown",
+    "export_endpoint_200": "/api/v4/research/session/{id}/runs/{run_id}/export",
+    "console_errors": 0,
+    "rbac_admin_pages": ["/admin/literature-review", "/admin/ingestion-tasks", "/admin/source-policy"],
+    "legacy_redirects": ["/v4/research-internal", "/v4/research"],
+    "back_forward_refresh": "OK"
+  }
+}
