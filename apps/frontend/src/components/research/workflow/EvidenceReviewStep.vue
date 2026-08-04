@@ -176,7 +176,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 
 .ers-warning-icon {
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: var(--space-0-25);
   color: var(--color-warning-text);
 }
 

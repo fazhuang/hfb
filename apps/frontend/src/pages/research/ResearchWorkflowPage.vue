@@ -42,6 +42,7 @@
           :steps="navSteps"
           :current-index="currentStepIndex"
           :submitting="submitting"
+          @go-to="(idx: number) => { if (idx === 0) goToQuestion(); else if (idx === 1) goToSelection(); }"
         />
 
         <!-- Error banner -->
