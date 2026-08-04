@@ -109,4 +109,14 @@ onUnmounted(() => {
   color: var(--color-text-muted);
   text-align: center;
 }
+
+@media (max-width: 640px) {
+  .aps-step {
+    padding: 0 var(--space-3);
+  }
+
+  .aps-hint {
+    padding: 0 var(--space-2);
+  }
+}
 </style>

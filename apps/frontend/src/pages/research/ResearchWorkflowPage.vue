@@ -370,4 +370,19 @@ watch(
     flex-direction: column;
   }
 }
+
+@media (max-width: 640px) {
+  .rwf-error-banner {
+    flex-direction: column;
+  }
+
+  .rwf-error-banner-actions {
+    width: 100%;
+  }
+
+  .rwf-error-retry-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
 </style>

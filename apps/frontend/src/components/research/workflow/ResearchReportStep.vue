@@ -311,4 +311,16 @@ function formatDate(iso?: string | null): string {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
+
+@media (max-width: 640px) {
+  .rrs-stats {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .rrs-preview-text {
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+  }
+}
 </style>

@@ -141,4 +141,10 @@ defineEmits<{
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 640px) {
+  .rqs-submit-btn {
+    width: 100%;
+  }
+}
 </style>

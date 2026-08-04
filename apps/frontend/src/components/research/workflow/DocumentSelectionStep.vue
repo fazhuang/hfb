@@ -151,4 +151,15 @@ defineEmits<{
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 640px) {
+  .dss-actions {
+    flex-direction: column;
+  }
+
+  .dss-back-btn,
+  .dss-submit-btn {
+    width: 100%;
+  }
+}
 </style>

@@ -333,7 +333,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   background: var(--color-page-bg);
   padding: var(--space-0-75) 8px;
   border-radius: var(--radius-sm);
-  word-break: break-all;
+  overflow-wrap: anywhere;
   color: var(--color-text-secondary);
 }
 
@@ -408,5 +408,26 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 .ers-item-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .ers-summary-bar {
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+  }
+
+  .ers-item {
+    padding: var(--space-3);
+  }
+
+  .ers-quote-text {
+    overflow-wrap: anywhere;
+    overflow-x: auto;
+  }
+
+  .ers-citation-text {
+    overflow-wrap: anywhere;
+  }
 }
 </style>
