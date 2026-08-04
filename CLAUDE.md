@@ -15,3 +15,19 @@
 ## Docs 提交规范
 
 - docs 类 commit：`docs: Context XX — <description>`
+
+## 前端开发规范
+
+- 无直接 Hex 颜色硬编码，必须使用 Design Token（`--color-*`、`--text-*`、`--space-*`）
+- 禁止 `any` 类型
+- 数组类型用 `Array<T>` 而非 `T[]`
+- 提交前必须运行 `npx eslint`、`npx vue-tsc --noEmit`、`npx vitest run`
+
+## 常用命令
+
+- 前端目录：`apps/frontend`
+- 启动前端：`cd apps/frontend && npx vite --host 0.0.0.0`
+- 启动后端：`cd apps/backend && python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload`
+- 运行 Reports 单测：`pnpm --filter @hfb/frontend test src/__tests__/research-reports-page.test.ts`
+- Playwright 可用（`npx playwright`），测试用户 `researcher / researcher123`
+- 200% 缩放检测用 `document.body.style.zoom = '200%'`，注意固定定位导航栏不在页面作用域内
