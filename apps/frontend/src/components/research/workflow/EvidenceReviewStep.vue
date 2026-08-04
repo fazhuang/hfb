@@ -257,7 +257,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 .ers-item-index {
   font-size: 13px;
   font-weight: 700;
-  color: var(--color-error-light-text);
+  color: var(--color-text-secondary);
 }
 
 .ers-item-source {

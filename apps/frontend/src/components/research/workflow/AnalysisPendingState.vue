@@ -28,7 +28,7 @@
  *   - Unified status message (no per-step inference)
  *   - Real elapsed wall-clock time
  */
-import { ref, computed, onBeforeUnmount, onMounted } from 'vue';
+import { ref, computed, onUnmounted, onMounted, watch } from 'vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 
 const props = withDefaults(
@@ -62,8 +62,21 @@ onMounted(() => {
   }, 1000);
 });
 
-onBeforeUnmount(() => {
-  if (timer) clearInterval(timer);
+watch(
+  () => props.active,
+  (val) => {
+    if (!val && timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  },
+);
+
+onUnmounted(() => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
 });
 </script>
 

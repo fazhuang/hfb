@@ -47,7 +47,7 @@ export interface WorkflowNavStep {
   label: string;
 }
 
-defineProps<{
+const props = defineProps<{
   steps: WorkflowNavStep[];
   currentIndex: number;
   /** Steps 0 and 1 are user input steps and are always clickable */
@@ -59,6 +59,8 @@ defineEmits<{
 }>();
 
 function isStepClickable(idx: number): boolean {
+  // Guard: block all navigation while workflow is submitting
+  if (props.submitting) return false;
   // Step 0 (question) and 1 (selection) are always clickable
   // Steps 2+ are only clickable if they've been reached (completed)
   return idx <= 1;
