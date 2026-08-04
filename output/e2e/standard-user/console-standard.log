@@ -1,18 +1,25 @@
 [debug] [vite] connecting...
 [debug] [vite] connected.
+[LOGIN] researcher authenticated
 [debug] [vite] connecting...
 [debug] [vite] connected.
 [debug] [vite] connecting...
 [debug] [vite] connected.
+[SCREENSHOT] 01-workflow.png
+[WORKFLOW] Completed
+[EVIDENCE] 5 items
+[SCREENSHOT] 02-result.png
+[SCREENSHOT] 03-citation-evidence.png
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[ACTION] Clicked DSS submit button
-[CHECK] Evidence items visible: 5
+[ACTION] Clicked viewReport → v4-research tab with selectedReport
+[EXPORT] Export button disabled — using direct run-level API export
+[EXPORT-API] GET /api/v4/research/session/d7b1b739-40fe-4528-aaee-a0b0a8188770/runs/54c62201-424c-4d5e-993a-25ce4c4f9e27/export → 200
+[EXPORT] Export executed successfully, format: markdown (2178 bytes)
+[SCREENSHOT] 04-export.png
+[log] [EXPORT] Export executed successfully, format: pdf/markdown
+[EXPORT] Export executed successfully, format: pdf/markdown
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[debug] [vite] connecting...
-[debug] [vite] connected.
-[debug] [vite] connecting...
-[debug] [vite] connected.
-[BACK_FORWARD_REFRESH] OK
+[NAV] Back/forward/refresh OK
 [CONSOLE_ERRORS] 0

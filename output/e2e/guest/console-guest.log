@@ -1,7 +1,7 @@
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[REDIRECT] /v4/research-internal → http://127.0.0.1:5173/login?redirect=/v4/research-internal (redirected: true)
+[REDIRECT] /v4/research-internal → http://127.0.0.1:5173/login?redirect=/v4/research-internal (PASS)
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[REDIRECT] /v4/research → http://127.0.0.1:5173/login?redirect=/v4/research (redirected: true)
+[REDIRECT] /v4/research → http://127.0.0.1:5173/login?redirect=/v4/research (PASS)
 [CONSOLE_ERRORS] 0

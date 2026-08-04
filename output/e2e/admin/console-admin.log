@@ -1,12 +1,18 @@
 [debug] [vite] connecting...
 [debug] [vite] connected.
+[LOGIN] admin authenticated
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[RBAC] /admin/literature-review: PASS
+[RBAC] /admin/literature-review → PASS
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[RBAC] /admin/ingestion-tasks: PASS
+[RBAC] /admin/ingestion-tasks → PASS
 [debug] [vite] connecting...
 [debug] [vite] connected.
-[RBAC] /research: PASS
+[RBAC] /admin/source-policy → PASS
+[debug] [vite] connecting...
+[debug] [vite] connected.
+[RBAC] /research → PASS
+[log] [RBAC-ADMIN] Admin privilege boundary validated successfully
+[RBAC-ADMIN] Admin privilege boundary validated successfully
 [CONSOLE_ERRORS] 0
