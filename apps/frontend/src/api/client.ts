@@ -10,6 +10,29 @@ const api = axios.create({
   },
 });
 
+// Request interceptor: auto-inject Bearer token from localStorage.
+// Catches cross-page navigations where auth store hasn't initialized yet.
+api.interceptors.request.use((config) => {
+  if (!config.headers.Authorization) {
+    const token = localStorage.getItem('hfb-access-token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// Response error interceptor: pass through business status codes silently.
+// Callers use classifyError() to convert to user-facing messages.
+// Never log to console — all errors surface through UI.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Reject without console — caller handles via try/catch + classifyError
+    return Promise.reject(error);
+  },
+);
+
 export interface ServiceStatus {
   healthy: boolean;
   latency_ms: number | null;

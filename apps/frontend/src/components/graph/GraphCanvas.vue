@@ -103,7 +103,9 @@ function buildNetwork() {
   }
 
   const visNodes = new DataSet(
-    props.nodes.map((n) => {
+    props.nodes
+      .filter((n) => n && n.id)
+      .map((n) => {
       const colors = TYPE_COLORS[n.entity_type] || DEFAULT_COLOR;
       const icon = TYPE_ICONS[n.entity_type] || '●';
       return {
@@ -124,7 +126,9 @@ function buildNetwork() {
   );
 
   const visEdges = new DataSet(
-    props.edges.map((e) => ({
+    props.edges
+      .filter((e) => e && e.id && e.source_id && e.target_id)
+      .map((e) => ({
       id: e.id,
       from: e.source_id,
       to: e.target_id,
