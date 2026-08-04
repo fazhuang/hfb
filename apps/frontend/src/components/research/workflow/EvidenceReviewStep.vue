@@ -318,7 +318,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   padding: var(--space-2-5) var(--space-3-5);
   border-left: 3px solid var(--color-success-text);
   background: var(--color-success-bg);
-  font-family: var(--font-serif);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
   font-size: 15px;
   color: var(--color-success-text);
   line-height: 1.9;
