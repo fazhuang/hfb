@@ -66,7 +66,7 @@ function makeEvidence(overrides: Partial<ResultEvidence> & { trace_id: string })
 // CitationPanel
 // ────────────────────────────────────────────────────────────────────────
 describe('CitationPanel — Domain Semantic Regression', () => {
-  function makeDisplayNumbers(ids: string[]): Map<string, number> {
+  function makeDisplayNumbers(ids: Array<string>): Map<string, number> {
     const m = new Map<string, number>();
     ids.forEach((id, i) => m.set(id, i + 1));
     return m;

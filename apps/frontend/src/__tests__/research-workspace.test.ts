@@ -24,7 +24,7 @@ import { nextTick } from 'vue';
 const mockApiGet = vi.fn();
 
 vi.mock('@/api/client', () => ({
-  default: { get: (...a: unknown[]) => mockApiGet(...a), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
+  default: { get: (...a: Array<unknown>) => mockApiGet(...a), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }));
 
 vi.mock('vue-i18n', () => ({ useI18n: () => ({ t: (k: string) => k }) }));
@@ -149,7 +149,7 @@ describe('ResearchWorkspacePage', () => {
     const { default: Page } = await import('@/pages/research/ResearchWorkspacePage.vue');
     mount(Page, { global: { plugins: [r], stubs: PS } });
     await flushPromises();
-    const calls = mockApiGet.mock.calls.filter((c: unknown[]) => {
+    const calls = mockApiGet.mock.calls.filter((c: Array<unknown>) => {
       const s = String(c[0]);
       return s.includes('/workspace/sessions/') && !s.includes('/notes') && !s.includes('/citations');
     });
@@ -162,8 +162,8 @@ describe('ResearchWorkspacePage', () => {
     const { default: Page } = await import('@/pages/research/ResearchWorkspacePage.vue');
     mount(Page, { global: { plugins: [r], stubs: PS } });
     await flushPromises();
-    expect(mockApiGet.mock.calls.some((c: unknown[]) => String(c[0]).includes('/runs'))).toBe(true);
-    expect(mockApiGet.mock.calls.some((c: unknown[]) => String(c[0]).includes('/history'))).toBe(true);
+    expect(mockApiGet.mock.calls.some((c: Array<unknown>) => String(c[0]).includes('/runs'))).toBe(true);
+    expect(mockApiGet.mock.calls.some((c: Array<unknown>) => String(c[0]).includes('/history'))).toBe(true);
   });
 
   it('[B-3] page loads notes exactly once per mount', async () => {
@@ -172,7 +172,7 @@ describe('ResearchWorkspacePage', () => {
     const { default: Page } = await import('@/pages/research/ResearchWorkspacePage.vue');
     mount(Page, { global: { plugins: [r], stubs: PS } });
     await flushPromises();
-    const calls = mockApiGet.mock.calls.filter((c: unknown[]) => String(c[0]).includes('/notes'));
+    const calls = mockApiGet.mock.calls.filter((c: Array<unknown>) => String(c[0]).includes('/notes'));
     expect(calls.length).toBe(1);
   });
 
@@ -182,7 +182,7 @@ describe('ResearchWorkspacePage', () => {
     const { default: Page } = await import('@/pages/research/ResearchWorkspacePage.vue');
     mount(Page, { global: { plugins: [r], stubs: PS } });
     await flushPromises();
-    const calls = mockApiGet.mock.calls.filter((c: unknown[]) => String(c[0]).includes('/citations'));
+    const calls = mockApiGet.mock.calls.filter((c: Array<unknown>) => String(c[0]).includes('/citations'));
     expect(calls.length).toBe(1);
   });
 
@@ -326,11 +326,11 @@ describe('ResearchWorkspacePage', () => {
     await r.push(PAGE_B); await flushPromises();
     resolveNew!({ data: { data: makeSession({ id: PROJ_B, title: 'Project B' }) } });
     await flushPromises();
-    const bCalls = mockApiGet.mock.calls.filter((c: unknown[]) => c[0] === RUNS_B);
+    const bCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => c[0] === RUNS_B);
     expect(bCalls.length).toBe(1);
     resolveOld!({ data: { data: makeSession({ id: PROJ_A, title: 'Old' }) } });
     await flushPromises();
-    const aCalls = mockApiGet.mock.calls.filter((c: unknown[]) => c[0] === RUNS_A);
+    const aCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => c[0] === RUNS_A);
     expect(aCalls.length).toBeGreaterThanOrEqual(0);
   });
 
@@ -481,7 +481,7 @@ describe('ResearchWorkspacePage', () => {
     vi.clearAllMocks();
     let rr!: (v: unknown) => void;
     let rh!: (v: unknown) => void;
-    const order: string[] = [];
+    const order: Array<string> = [];
     mockApiGet.mockImplementation((url: string) => {
       const s = String(url);
       if (s.includes('/runs')) { order.push('runs-start'); return new Promise(r => { rr = (v) => { order.push('runs-end'); r(v); }; }); }
@@ -562,7 +562,7 @@ describe('ResearchWorkspacePage', () => {
     await w.find('.rae-form').trigger('submit.prevent');
     await flushPromises();
     expect(r.currentRoute.value.fullPath).not.toContain('Sensitive');
-    expect(cs.mock.calls.filter((c: any[]) => c.some((a: any) => typeof a === 'string' && a.includes('Sensitive'))).length).toBe(0);
+    expect(cs.mock.calls.filter((c: Array<any>) => c.some((a: any) => typeof a === 'string' && a.includes('Sensitive'))).length).toBe(0);
     cs.mockRestore();
   });
 
@@ -724,7 +724,7 @@ describe('ResearchWorkspacePage', () => {
     await flushPromises();
     vi.advanceTimersByTime(10000); await flushPromises();
     // All calls should be to session endpoint only
-    const sectionCalls = mockApiGet.mock.calls.filter((c: unknown[]) => {
+    const sectionCalls = mockApiGet.mock.calls.filter((c: Array<unknown>) => {
       const s = String(c[0]);
       return s.includes('/runs') || s.includes('/history') || s.includes('/notes') || s.includes('/citations');
     });

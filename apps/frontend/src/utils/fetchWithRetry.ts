@@ -12,7 +12,7 @@ import type { AxiosResponse } from 'axios';
 
 export interface RetryOptions {
   maxRetries?: number;
-  delays?: number[];
+  delays?: Array<number>;
   signal?: AbortSignal;
 }
 

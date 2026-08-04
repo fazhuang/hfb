@@ -196,7 +196,7 @@ describe('HfbToolbar', () => {
       expect(searchEvents2).toBeDefined();
       if (searchEvents2 && searchEvents2.length > 0) {
         const lastEvt = searchEvents2[searchEvents2.length - 1];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         expect((lastEvt as any)[0].query).toBe('');
       }
 

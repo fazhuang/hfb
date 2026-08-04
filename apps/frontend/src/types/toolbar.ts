@@ -13,7 +13,7 @@ export interface ToolbarFilter {
   /** Visible label for the filter (used as HfbSelect label). */
   label: string;
   /** Options for the dropdown. */
-  options: HfbSelectOption[];
+  options: Array<HfbSelectOption>;
   /** Placeholder text when no value is selected. */
   placeholder?: string;
 }

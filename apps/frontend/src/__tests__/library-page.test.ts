@@ -683,7 +683,7 @@ describe('LibraryDetailPage', () => {
     // Assert push was called with the passage-preserving URL
     expect(pushSpy).toHaveBeenCalled();
     const pushArg = pushSpy.mock.calls.find(
-      (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/reader/'),
+      (call: Array<unknown>) => typeof call[0] === 'string' && call[0].includes('/reader/'),
     );
     expect(pushArg).toBeTruthy();
     expect(pushArg![0]).toBe('/reader/d1?passage=pas-123');

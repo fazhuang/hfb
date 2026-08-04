@@ -154,6 +154,11 @@ scripts/p0_e2e_verify.js
 # --- Deprecated docs-upgrade package (scripts already applied at root) ---
 hfb_docs_upgrade_package/
 
+# --- Workflow / agent artifacts ---
+skills-lock.json
+CONTEXT-MAP.md
+docs/agents/
+
 # --- Misc ---
 *.bak
 *.orig
