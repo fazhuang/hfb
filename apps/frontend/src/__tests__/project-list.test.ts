@@ -501,6 +501,133 @@ describe('ProjectListPage', () => {
     // Should not throw — pass if we reach here
     expect(true).toBe(true);
   });
+
+  // 19. Timeout settles: abort signal fires, loading clears, ErrorState visible
+  it('19. timeout clears loading and shows ErrorState', async () => {
+    vi.useFakeTimers();
+    // mock rejects on abort — simulates axios CanceledError on signal abort
+    mockApiGet.mockImplementation(
+      (_url: string, opts?: { signal?: AbortSignal }) =>
+        new Promise((_, reject) => {
+          const signal = opts?.signal;
+          const onAbort = () => {
+            signal!.removeEventListener('abort', onAbort);
+            const err = new Error('Canceled');
+            (err as any).code = 'ERR_CANCELED';
+            (err as any).name = 'CanceledError';
+            reject(err);
+          };
+          if (signal?.aborted) {
+            onAbort();
+          } else {
+            signal?.addEventListener('abort', onAbort);
+          }
+        }),
+    );
+
+    const router = buildRouter();
+    await router.push('/research');
+    await router.isReady();
+
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
+
+    const wrapper = mount(ProjectListPage, {
+      global: {
+        plugins: [router],
+        stubs: {
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
+          RouterLink: {
+            template: '<a :href="to" class="mock-router-link"><slot /></a>',
+            props: ['to'],
+          },
+        },
+      },
+    });
+
+    activeWrappers.push(wrapper);
+    await flushPromises();
+
+    expect(wrapper.find('.loading-state').exists()).toBe(true);
+
+    // Advance past 10s timeout — triggers setTimeout → controller.abort → mock rejects
+    vi.advanceTimersByTime(10_100);
+    await flushPromises();
+
+    expect(wrapper.find('.loading-state').exists()).toBe(false);
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('请求超时');
+  });
+
+  // 20. Retry after timeout recovers with actual data
+  it('20. retry after timeout recovers', async () => {
+    vi.useFakeTimers();
+
+    mockApiGet.mockImplementationOnce(
+      (_url: string, opts?: { signal?: AbortSignal }) =>
+        new Promise((_, reject) => {
+          const signal = opts?.signal;
+          const onAbort = () => {
+            signal!.removeEventListener('abort', onAbort);
+            const err = new Error('Canceled');
+            (err as any).code = 'ERR_CANCELED';
+            (err as any).name = 'CanceledError';
+            reject(err);
+          };
+          if (signal?.aborted) {
+            onAbort();
+          } else {
+            signal?.addEventListener('abort', onAbort);
+          }
+        }),
+    );
+
+    const router = buildRouter();
+    await router.push('/research');
+    await router.isReady();
+
+    const { default: ProjectListPage } = await import('@/pages/research/ProjectListPage.vue');
+
+    const wrapper = mount(ProjectListPage, {
+      global: {
+        plugins: [router],
+        stubs: {
+          ResearchPageHeader: {
+            template: '<div class="mock-header"><slot name="actions" /></div>',
+            props: ['title', 'description', 'breadcrumbs'],
+          },
+          RouterLink: {
+            template: '<a :href="to" class="mock-router-link"><slot /></a>',
+            props: ['to'],
+          },
+        },
+      },
+    });
+
+    activeWrappers.push(wrapper);
+    await flushPromises();
+
+    vi.advanceTimersByTime(10_100);
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true);
+
+    // Retry succeeds
+    mockApiGet.mockResolvedValueOnce({
+      data: { data: [makeSession({ id: 's1', title: 'Project A' })] },
+    });
+
+    const retryBtn = wrapper.find('.error-retry-btn');
+    expect(retryBtn.exists()).toBe(true);
+    await retryBtn.trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('.loading-state').exists()).toBe(false);
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('Project A');
+  });
 });
 
 // ================================================================

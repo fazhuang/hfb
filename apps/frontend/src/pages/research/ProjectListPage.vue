@@ -174,15 +174,39 @@ const paginatedProjects = computed<ResearchProjectSummary[]>(() => {
 
 // ---- Request deduplication (race condition guard) ----
 let reqId = 0;
+let pendingController: AbortController | null = null;
+let pendingTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+const ABORT_TIMEOUT_MS = 10_000;
+
+function clearPendingRequest() {
+  if (pendingTimeoutId !== null) {
+    clearTimeout(pendingTimeoutId);
+    pendingTimeoutId = null;
+  }
+  if (pendingController) {
+    pendingController.abort();
+    pendingController = null;
+  }
+}
 
 // ---- Load projects from API ----
 async function loadProjects() {
   const myReqId = ++reqId;
+
+  clearPendingRequest();
+
+  const controller = new AbortController();
+  pendingController = controller;
+  pendingTimeoutId = setTimeout(() => controller.abort(), ABORT_TIMEOUT_MS);
+
   loading.value = true;
   error.value = null;
+
   try {
     const { data } = await api.get('/api/v1/workspace/sessions', {
       params: { limit: 100 },
+      signal: controller.signal,
     });
     // Guard against stale responses
     if (myReqId !== reqId) return;
@@ -190,6 +214,12 @@ async function loadProjects() {
     allProjects.value = rawItems.map(toProjectSummary);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
+    if ((e as any)?.code === 'ERR_CANCELED' || (e as any)?.name === 'CanceledError') {
+      if (controller.signal.aborted) {
+        error.value = '请求超时（10 秒），请重试。';
+      }
+      return;
+    }
     const msg =
       (e as any)?.response?.data?.message ||
       (e as any)?.message ||
@@ -198,6 +228,13 @@ async function loadProjects() {
   } finally {
     if (myReqId === reqId) {
       loading.value = false;
+      if (pendingController === controller) {
+        pendingController = null;
+      }
+      if (pendingTimeoutId !== null) {
+        clearTimeout(pendingTimeoutId);
+        pendingTimeoutId = null;
+      }
     }
   }
 }
@@ -248,6 +285,7 @@ onMounted(() => {
 // Cancel pending requests on unmount
 onBeforeUnmount(() => {
   reqId = -1; // invalidates all pending request callbacks
+  clearPendingRequest();
 });
 </script>
 
