@@ -10,14 +10,17 @@
 
 ### A4 — 阅读栏宽度收敛
 
-```
+```css
 .rrv-report {
   max-width: 680px;
   margin-inline: auto;
+  padding-inline: var(--space-4);
 }
 ```
 
 14px 字号、680px 宽 = 约 48 字/行，落在中文阅读舒适区（25-45 字/行）上限。保持页面 960px 框架，仅报告正文区域收窄。下方 CitationPanel 双栏布局不受影响。
+
+`padding-inline: var(--space-4)` 防止 375px 窄屏下文字贴边。
 
 ### A2 — 章节层级与扫读锚点
 
@@ -26,9 +29,11 @@
 | `.rrv-section-block` margin-bottom | `20px` | `32px` |
 | `.rrv-section-heading` font-size | `16px` | `17px` |
 | `.rrv-section-heading` border-left | `3px` | `4px` |
-| `.rrv-section-heading` padding-top | `0` | `4px` |
+| `.rrv-section-heading` margin-top | `0` | `16px` |
 
 节标题在滚动中形成清晰的"停顿点"，不改现有设计语言。
+
+使用 `margin-top: 16px` 而非 `padding-top`，避免左侧 `border-left` 竖线向上拉长变形。
 
 ### A1 — 段落节奏
 
@@ -42,24 +47,30 @@
 
 | 属性 | 当前 | 改后 |
 |------|------|------|
-| `vertical-align` | `super` | 删除 |
+| `display` | `inline` | `inline-flex` |
+| `align-items` | — | `center` |
+| `justify-content` | — | `center` |
+| `vertical-align` | `super` | `middle` |
 | `position` | — | `relative` |
 | `top` | — | `-1px` |
 | `font-size` | `11px` | `12px` |
 | `padding` | `var(--space-0-25) 5px` | `1px 6px` |
-| `margin` | `0 var(--space-0-25)` | `0 1px` |
+| `margin` | `0 var(--space-0-25)` | `0 3px` |
 | `border-radius` | `var(--radius-sm)` | `3px` |
 
-新增伪元素命中区扩展（保持行高稳定）：
+`inline-flex` + `vertical-align: middle` 替代原 `display: inline`，保证 `<button>` 在 WebKit / Blink / Gecko 上垂直居中和基线对齐行为一致。
+
+新增伪元素命中区扩展（仅垂直方向，保持相邻标记水平不重叠）：
+
 ```css
 .rrv-citation-marker::before {
   content: '';
   position: absolute;
-  inset: -4px;
+  inset: -4px -2px;
 }
 ```
 
-兄弟引用标记间距约 6-8px（margin + 相邻 padding），两侧 ::before 各扩展 4px 不会重叠。父级无 overflow 裁切。
+相邻引用标记间距 = 2 × 3px margin = 6px 真实物理间隙。两侧 ::before 各向外水平扩展 2px（总计 4px），在 6px 间隙中不重叠。垂直各扩展 4px 用于增大上下触控容错。父级无 overflow 裁切。
 
 hover / focus-visible / active 状态不变。
 
