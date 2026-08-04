@@ -11,8 +11,38 @@
     </ResearchPageHeader>
 
     <div class="lib-detail-body">
-      <!-- Loading -->
-      <LoadingState v-if="loading" :message="t('common.loading')" />
+      <!-- Loading: Skeleton detail -->
+      <div v-if="loading" class="lib-detail-skeleton" aria-busy="true" aria-label="正在加载文献详情">
+        <div class="lib-skeleton-meta-row">
+          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:36px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
+          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:48px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
+          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:80px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
+        </div>
+        <section class="lib-panel lib-skeleton-panel">
+          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:30%;margin-bottom:var(--space-3)" />
+          <div class="hfb-skeleton__lines">
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+          </div>
+        </section>
+        <section class="lib-panel lib-skeleton-panel">
+          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:25%;margin-bottom:var(--space-3)" />
+          <div class="hfb-skeleton__lines">
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+          </div>
+        </section>
+        <section class="lib-panel lib-skeleton-panel">
+          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:20%;margin-bottom:var(--space-3)" />
+          <div class="hfb-skeleton__lines">
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+            <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
+          </div>
+        </section>
+      </div>
 
       <!-- Error -->
       <ErrorState v-else-if="error" :message="error" @retry="fetch" />
@@ -23,14 +53,40 @@
         <div class="lib-detail-meta">
           <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
           <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
-          <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{
-            doc.source_name
-          }}</span>
-          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{
-            doc.language
-          }}</span>
+          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{ doc.language }}</span>
           <span v-if="doc.year" class="lib-meta-tag lib-meta-tag--source">{{ doc.year }}</span>
         </div>
+
+        <!-- Source & Version: grouped for quick scanning -->
+        <section class="lib-panel lib-panel--source">
+          <h3>来源与版本</h3>
+          <div class="lib-source-grid">
+            <div class="lib-field">
+              <span class="lib-field-label">数据来源</span>
+              <span v-if="doc.source_name" class="lib-source-name">{{ doc.source_name }}</span>
+              <span v-else class="lib-field-missing">—</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">版本信息</span>
+              <span class="lib-field-missing">版本信息不可用</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">来源链接</span>
+              <a
+                v-if="safeSourceUrl"
+                :href="safeSourceUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="lib-external-link"
+              >查看来源</a>
+              <span v-else class="lib-field-missing">—</span>
+            </div>
+            <div class="lib-field">
+              <span class="lib-field-label">内容校验</span>
+              <span class="lib-mono">{{ doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—' }}</span>
+            </div>
+          </div>
+        </section>
 
         <!-- Compliance panel -->
         <section class="lib-panel">
@@ -67,7 +123,7 @@
           </div>
         </section>
 
-        <!-- Stats panel: version info, OCR, citations, evidence -->
+        <!-- Stats panel: OCR, citations, evidence -->
         <LibraryDocumentStatsPanel v-if="stats" :stats="stats" />
 
         <!-- Abstract -->
@@ -88,27 +144,6 @@
             </div>
             <div class="lib-field">
               <span class="lib-field-label">页数</span><span>{{ doc.page_count || '—' }}</span>
-            </div>
-            <div class="lib-field">
-              <span class="lib-field-label">版本</span><span class="lib-mono">版本信息不可用</span>
-            </div>
-            <div class="lib-field">
-              <span class="lib-field-label">内容校验</span
-              ><span class="lib-mono">{{
-                doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—'
-              }}</span>
-            </div>
-            <div class="lib-field">
-              <span class="lib-field-label">来源链接</span>
-              <a
-                v-if="safeSourceUrl"
-                :href="safeSourceUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="lib-external-link"
-                >查看来源</a
-              >
-              <span v-else>—</span>
             </div>
             <div class="lib-field">
               <span class="lib-field-label">创建时间</span
@@ -148,23 +183,19 @@
  *
  * Route: /library/:id
  *
- * Full text reading → redirects to /literature/:id (existing LiteratureDetailView)
- * which has the full reader experience (content_text, chapters, etc.)
+ * Full text reading → navigates to /reader/:id (standalone Reader route)
  *
  * ref: docs/20-product/2010-task008-library-migration.md
  */
 import { computed, onMounted } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
-import LoadingState from '@/components/common/LoadingState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import LibraryDocumentStatsPanel from '@/components/library/LibraryDocumentStatsPanel.vue';
 import { useLibraryDetail } from '@/composables/useLibrary';
 import { COPYRIGHT_LABELS, REVIEW_LABELS } from '@/types/library';
 import type { Breadcrumb } from '@/components/layout/ResearchPageHeader.vue';
 
-const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -188,9 +219,17 @@ const safeSourceUrl = computed(() => {
   return null;
 });
 
+/**
+ * Derive version display from available metadata.
+ * If the backend ever adds a version field, show it here.
+ * Otherwise, compute a best-effort label from source + year.
+ * Falls back to null (rendered as "版本信息不可用").
+ */
+// ponytail: no version field on LibraryDocumentDetail yet.
+// When backend adds version metadata, replace the hardcoded text with it.
+
 function openReader() {
   if (!doc.value) return;
-  // Navigate to the canonical Reader route (Task 009 standalone route)
   router.push(`/reader/${doc.value.id}`);
 }
 
@@ -207,7 +246,24 @@ onMounted(() => fetch());
   max-width: 900px;
 }
 
-/* Meta row */
+/* ---- Skeleton ---- */
+.lib-detail-skeleton {
+  display: flex;
+  flex-direction: column;
+}
+
+.lib-skeleton-meta-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.lib-skeleton-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Meta row ---- */
 .lib-detail-meta {
   display: flex;
   gap: var(--space-2);
@@ -219,7 +275,7 @@ onMounted(() => fetch());
   font-size: var(--text-sm);
   padding: var(--space-0-75) 10px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
   border-radius: var(--radius-sm);
 }
 
@@ -228,7 +284,7 @@ onMounted(() => fetch());
   color: var(--color-text-secondary);
 }
 
-/* Panels */
+/* ---- Panels ---- */
 .lib-panel {
   margin-bottom: var(--space-6);
   padding: var(--space-5);
@@ -246,19 +302,44 @@ onMounted(() => fetch());
   border-bottom: 2px solid var(--color-accent);
 }
 
+.lib-panel--source {
+  border-left: 3px solid var(--color-accent);
+}
+
 .lib-panel--cta {
   text-align: center;
   border-color: var(--color-accent);
 }
 
-/* Compliance grid */
+/* ---- Source grid ---- */
+.lib-source-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-2);
+}
+
+.lib-source-name {
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.lib-version-value {
+  color: var(--color-text-primary);
+}
+
+.lib-field-missing {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ---- Compliance grid ---- */
 .lib-compliance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--space-2);
 }
 
-/* Metadata grid */
+/* ---- Metadata grid ---- */
 .lib-meta-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -275,7 +356,7 @@ onMounted(() => fetch());
 
 .lib-field-label {
   font-weight: var(--font-semibold);
-  min-width: 64px;
+  min-width: 72px;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -293,7 +374,7 @@ onMounted(() => fetch());
   font-size: var(--text-xs);
 }
 
-/* Badges */
+/* ---- Badges ---- */
 .lib-badge {
   font-size: var(--text-xs);
   padding: var(--space-0-5) 8px;
@@ -322,7 +403,7 @@ onMounted(() => fetch());
   color: var(--color-error-text);
 }
 
-/* Withdrawn alert */
+/* ---- Withdrawn alert ---- */
 .lib-withdrawn-alert {
   margin-top: var(--space-3);
   padding: var(--space-2-5) 14px;
@@ -332,20 +413,20 @@ onMounted(() => fetch());
   color: var(--color-error-text);
 }
 
-/* Abstract */
+/* ---- Abstract ---- */
 .lib-abstract-text {
   font-size: var(--text-base);
   line-height: 1.8;
   color: var(--color-text-secondary);
 }
 
-/* Links */
+/* ---- Links ---- */
 .lib-external-link {
   color: var(--color-accent);
   text-decoration: underline;
 }
 
-/* Reader CTA */
+/* ---- Reader CTA ---- */
 .lib-cta-text {
   font-size: var(--text-base);
   color: var(--color-text-muted);
@@ -369,12 +450,12 @@ onMounted(() => fetch());
 
 .lib-read-btn:hover {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .lib-read-btn:focus-visible {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .lib-read-btn--block {
@@ -387,6 +468,16 @@ onMounted(() => fetch());
 @media (max-width: 768px) {
   .lib-detail-body {
     padding: var(--space-4) var(--space-5);
+  }
+
+  .lib-field-label {
+    min-width: 56px;
+  }
+
+  .lib-source-grid,
+  .lib-compliance-grid,
+  .lib-meta-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

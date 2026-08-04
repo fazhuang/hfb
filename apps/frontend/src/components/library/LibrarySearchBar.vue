@@ -6,10 +6,10 @@
         id="lib-search-input"
         v-model="query"
         type="text"
-        :placeholder="t('common.search') + '...'"
+        :placeholder="'搜索文献标题…'"
         @keyup.enter="emitSearch"
       />
-      <button class="lib-search-btn" @click="emitSearch" aria-label="搜索">
+      <button class="lib-search-btn" @click="emitSearch" aria-label="搜索文献">
         {{ t('common.search') }}
       </button>
     </div>
@@ -75,7 +75,7 @@ function emitSearch() {
 .lib-search-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-3);
   align-items: center;
 }
 
@@ -84,7 +84,7 @@ function emitSearch() {
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
-  max-width: 480px;
+  max-width: 560px;
 }
 
 .lib-search-input-wrap input {
@@ -93,21 +93,30 @@ function emitSearch() {
   border-radius: var(--radius-lg);
   font-size: 14px;
   min-width: 0;
-  width: 100%;
-  max-width: 320px;
+  flex: 1;
+  max-width: 400px;
   background: var(--color-page-bg);
   color: var(--color-text-primary);
+  transition: border-color var(--transition-base);
+}
+
+.lib-search-input-wrap input:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
 }
 
 .lib-search-btn {
   padding: var(--space-2) 16px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
   border: none;
   border-radius: var(--radius-lg);
   cursor: pointer;
   font-size: 13px;
+  font-weight: var(--font-medium);
   transition: background var(--transition-base);
+  white-space: nowrap;
 }
 
 .lib-search-btn:hover {
@@ -116,6 +125,14 @@ function emitSearch() {
 
 .lib-search-btn:focus-visible {
   background: var(--color-accent-hover);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.lib-filter-chips {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .lib-filter-select {
@@ -125,7 +142,39 @@ function emitSearch() {
   font-size: 13px;
   background: var(--color-navbar-bg, var(--color-surface));
   color: var(--color-text-primary);
-  min-width: 0;
-  max-width: 160px;
+  min-width: 120px;
+  transition: border-color var(--transition-base);
+  cursor: pointer;
+}
+
+.lib-filter-select:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .lib-search-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lib-search-input-wrap {
+    max-width: none;
+  }
+
+  .lib-search-input-wrap input {
+    max-width: none;
+  }
+
+  .lib-filter-chips {
+    justify-content: flex-start;
+  }
+
+  .lib-filter-select {
+    flex: 1;
+    max-width: none;
+  }
 }
 </style>

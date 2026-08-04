@@ -185,7 +185,7 @@ describe('LibrarySearchPage', () => {
     expect(wrapper.text()).toContain('伤寒论');
   });
 
-  it('3. shows loading state', async () => {
+  it('3. shows skeleton loading state', async () => {
     // Make api.get hang so loading stays true
     (api.get as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
     const router = makeRouter();
@@ -197,7 +197,9 @@ describe('LibrarySearchPage', () => {
       global: { plugins: [i18n, router, createPinia()] },
     });
     await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('加载中');
+    // Skeleton list is shown with aria-busy
+    const skeleton = wrapper.find('[aria-busy="true"]');
+    expect(skeleton.exists()).toBe(true);
   });
 
   it('4. shows error state on API failure', async () => {
@@ -255,8 +257,14 @@ describe('LibrarySearchPage', () => {
     });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
-    // Pagination should show page 1/2
-    expect(wrapper.text()).toContain('/ 2');
+    // Pagination nav visible with page numbers and aria-current
+    const nav = wrapper.find('nav[aria-label="分页导航"]');
+    expect(nav.exists()).toBe(true);
+    const currentPage = wrapper.find('[aria-current="page"]');
+    expect(currentPage.exists()).toBe(true);
+    // Results count visible
+    expect(wrapper.text()).toContain('共');
+    expect(wrapper.text()).toContain('25');
   });
 
   it('7. search triggers API call with q param', async () => {
@@ -405,7 +413,7 @@ describe('LibraryDetailPage', () => {
     expect(wrapper.text()).toContain('进入全文阅读');
   });
 
-  it('11. shows loading state', async () => {
+  it('11. shows skeleton loading state', async () => {
     (api.get as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
     const router = makeRouter();
     await router.push('/library/d1');
@@ -416,7 +424,9 @@ describe('LibraryDetailPage', () => {
       global: { plugins: [i18n, router, createPinia()] },
     });
     await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('加载中');
+    // Detail page shows skeleton div during loading
+    const skeleton = wrapper.find('[aria-busy="true"]');
+    expect(skeleton.exists()).toBe(true);
   });
 
   it('12. shows error state on API failure', async () => {

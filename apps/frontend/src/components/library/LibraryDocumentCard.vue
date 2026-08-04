@@ -1,12 +1,14 @@
 <template>
   <router-link :to="`/library/${doc.id}`" class="lib-list-item">
-    <div class="lib-item-title">{{ doc.title }}</div>
-    <div class="lib-item-meta">
-      <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
-      <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
-      <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{
-        doc.source_name
-      }}</span>
+    <div class="lib-item-main">
+      <div class="lib-item-title">{{ doc.title }}</div>
+      <div class="lib-item-meta">
+        <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
+        <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
+        <span v-if="doc.source_name" class="lib-meta-tag lib-meta-tag--source">{{
+          doc.source_name
+        }}</span>
+      </div>
     </div>
     <div class="lib-item-badges">
       <span class="lib-badge lib-badge-copyright">{{
@@ -35,8 +37,15 @@ function formatDate(iso: string): string {
 
 <style scoped>
 .lib-list-item {
-  display: block;
-  padding: var(--space-4) 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'main badges'
+    'date date';
+  align-items: start;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-4) var(--space-5);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-navbar-bg, var(--color-surface));
@@ -58,6 +67,11 @@ function formatDate(iso: string): string {
   box-shadow: var(--shadow-accent-sm);
 }
 
+.lib-item-main {
+  grid-area: main;
+  min-width: 0;
+}
+
 .lib-item-title {
   font-size: 16px;
   font-weight: 600;
@@ -69,7 +83,6 @@ function formatDate(iso: string): string {
   display: flex;
   gap: var(--space-1-5);
   flex-wrap: wrap;
-  margin-bottom: 8px;
 }
 
 .lib-meta-tag {
@@ -77,7 +90,7 @@ function formatDate(iso: string): string {
   padding: var(--space-0-5) 8px;
   border-radius: var(--radius-sm);
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .lib-meta-tag--source {
@@ -86,10 +99,11 @@ function formatDate(iso: string): string {
 }
 
 .lib-item-badges {
+  grid-area: badges;
   display: flex;
   gap: var(--space-1-5);
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  justify-content: flex-end;
 }
 
 .lib-badge {
@@ -109,8 +123,8 @@ function formatDate(iso: string): string {
   color: var(--color-warning-text);
 }
 .lib-badge-review-under_review {
-  background: var(--color-info-text);
-  color: var(--color-accent-light);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 .lib-badge-review-approved {
   background: var(--color-success-icon-bg);
@@ -122,8 +136,8 @@ function formatDate(iso: string): string {
 }
 
 .lib-badge-rag {
-  background: var(--color-info-text);
-  color: var(--color-accent-light);
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 
 .lib-badge-withdrawn {
@@ -132,8 +146,23 @@ function formatDate(iso: string): string {
 }
 
 .lib-item-date {
+  grid-area: date;
   font-size: 12px;
   color: var(--color-text-muted);
-  margin-top: 4px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .lib-list-item {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'main'
+      'badges'
+      'date';
+  }
+
+  .lib-item-badges {
+    justify-content: flex-start;
+  }
 }
 </style>

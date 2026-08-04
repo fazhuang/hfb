@@ -10,11 +10,20 @@
       <!-- Search & Filter -->
       <LibrarySearchBar @search="onSearch" />
 
-      <!-- Loading -->
-      <LoadingState v-if="loading" :message="t('common.loading')" />
+      <!-- Loading: Skeleton cards -->
+      <div v-if="loading" class="lib-skeleton-list" aria-busy="true" aria-label="正在加载文献列表">
+        <div v-for="i in 5" :key="i" class="lib-skeleton-card hfb-skeleton hfb-skeleton--rect hfb-skeleton--pulse">
+          <div class="lib-skeleton-title hfb-skeleton__line hfb-skeleton__line--pulse" />
+          <div class="lib-skeleton-meta hfb-skeleton__line hfb-skeleton__line--pulse" />
+          <div class="lib-skeleton-badges">
+            <span class="hfb-skeleton hfb-skeleton--pulse" style="width:56px;height:20px;display:inline-block;border-radius:var(--radius-sm)" />
+            <span class="hfb-skeleton hfb-skeleton--pulse" style="width:48px;height:20px;display:inline-block;border-radius:var(--radius-sm)" />
+          </div>
+        </div>
+      </div>
 
       <!-- Error -->
-      <ErrorState v-else-if="error" :message="error" @retry="fetchPage(1)" />
+      <ErrorState v-else-if="error" :message="error" @retry="fetchPage(page)" />
 
       <!-- Empty: no documents at all -->
       <EmptyState
@@ -37,20 +46,40 @@
       </EmptyState>
 
       <!-- Document List -->
-      <div v-else class="lib-list">
-        <LibraryDocumentCard v-for="doc in items" :key="doc.id" :doc="doc" />
-      </div>
+      <template v-else>
+        <div class="lib-results-header">
+          <span role="status" aria-live="polite" class="lib-results-count">
+            共 <strong>{{ total }}</strong> 条结果
+            <template v-if="isSearchActive"> — 关键词「{{ filters.query }}」</template>
+          </span>
+        </div>
 
-      <!-- Pagination -->
-      <div v-if="totalPages > 1" class="lib-pagination">
-        <button :disabled="page <= 1" @click="fetchPage(page - 1)">{{ t('common.back') }}</button>
-        <span class="lib-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`"
-          >{{ page }} / {{ totalPages }}</span
-        >
-        <button :disabled="page >= totalPages" @click="fetchPage(page + 1)">
-          {{ t('common.next') }}
-        </button>
-      </div>
+        <div class="lib-list" role="list" aria-label="文献列表">
+          <LibraryDocumentCard v-for="doc in items" :key="doc.id" :doc="doc" role="listitem" />
+        </div>
+
+        <!-- Pagination -->
+        <nav v-if="totalPages > 1" class="lib-pagination" aria-label="分页导航">
+          <button :disabled="page <= 1" @click="fetchPage(page - 1)" aria-label="上一页">
+            {{ t('common.back') }}
+          </button>
+          <ol class="lib-page-numbers">
+            <li v-for="p in visiblePages" :key="p">
+              <button
+                :class="{ 'lib-page-current': p === page }"
+                :aria-current="p === page ? 'page' : undefined"
+                :aria-label="`第 ${p} 页`"
+                @click="fetchPage(p)"
+              >
+                {{ p }}
+              </button>
+            </li>
+          </ol>
+          <button :disabled="page >= totalPages" @click="fetchPage(page + 1)" aria-label="下一页">
+            {{ t('common.next') }}
+          </button>
+        </nav>
+      </template>
     </div>
   </div>
 </template>
@@ -68,7 +97,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
-import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import LibrarySearchBar from '@/components/library/LibrarySearchBar.vue';
@@ -94,6 +122,19 @@ const isSearchActive = computed(() => filters.value.query.trim().length > 0);
 const searchEmptyDescription = computed(
   () => `没有文献与 "${filters.value.query}" 匹配，请尝试其他关键词。`,
 );
+
+/** Visible page numbers — show up to 7 pages centered around current */
+const visiblePages = computed(() => {
+  const totalP = totalPages.value;
+  const cur = page.value;
+  if (totalP <= 7) {
+    return Array.from({ length: totalP }, (_, i) => i + 1);
+  }
+  let start = Math.max(1, cur - 3);
+  const end = Math.min(totalP, start + 6);
+  start = Math.max(1, end - 6);
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+});
 
 function onSearch(f: { query: string; copyrightStatus: string; reviewStatus: string }) {
   filters.value.query = f.query;
@@ -121,13 +162,64 @@ onMounted(() => fetchPage(1));
   padding: var(--space-6) var(--space-8);
 }
 
-.lib-list {
+/* ---- Skeleton ---- */
+.lib-skeleton-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   margin-top: var(--space-4);
 }
 
+.lib-skeleton-card {
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.lib-skeleton-title {
+  width: 50%;
+  margin-bottom: var(--space-2);
+}
+
+.lib-skeleton-meta {
+  width: 30%;
+  margin-bottom: var(--space-2);
+}
+
+.lib-skeleton-badges {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-1);
+}
+
+/* ---- Results header ---- */
+.lib-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.lib-results-count {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.lib-results-count strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ---- List ---- */
+.lib-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+/* ---- Clear button ---- */
 .lib-clear-btn {
   padding: var(--btn-padding-md);
   border: 1px solid var(--color-accent);
@@ -136,7 +228,7 @@ onMounted(() => fetchPage(1));
   color: var(--color-accent);
   font-size: var(--text-base);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: background var(--transition-base);
 }
 
 .lib-clear-btn:hover {
@@ -152,10 +244,9 @@ onMounted(() => fetchPage(1));
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
+  gap: var(--space-2);
   margin-top: var(--space-7);
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
 }
 
 .lib-pagination button {
@@ -167,6 +258,8 @@ onMounted(() => fetchPage(1));
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
   transition: all var(--transition-base);
+  min-width: 36px;
+  text-align: center;
 }
 
 .lib-pagination button:hover:not(:disabled) {
@@ -184,15 +277,37 @@ onMounted(() => fetchPage(1));
   cursor: not-allowed;
 }
 
-.lib-page-info {
-  min-width: 60px;
-  text-align: center;
+.lib-page-current {
+  background: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+  font-weight: var(--font-semibold);
+}
+
+.lib-page-numbers {
+  display: flex;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .lib-body {
     padding: var(--space-4) var(--space-5);
+  }
+
+  .lib-skeleton-title {
+    width: 70%;
+  }
+
+  .lib-skeleton-meta {
+    width: 50%;
+  }
+
+  .lib-pagination {
+    flex-wrap: wrap;
   }
 }
 </style>
