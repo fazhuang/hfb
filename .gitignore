@@ -158,6 +158,7 @@ hfb_docs_upgrade_package/
 skills-lock.json
 CONTEXT-MAP.md
 docs/agents/
+docs/superpowers/
 
 # --- Misc ---
 *.bak
