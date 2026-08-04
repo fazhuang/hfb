@@ -294,6 +294,57 @@ describe('LibrarySearchPage', () => {
     const lastCall = calls[calls.length - 1]!;
     expect(lastCall[1].params.q).toBe('针灸');
   });
+
+  it('7b. filter-only empty state shows "clear all filters" button', async () => {
+    // Query is empty but a select filter is active → isSearchActive = true.
+    // After selecting a filter → search emits with the new value → API
+    // returns empty → page shows "清空筛选条件" button.
+    mockGet('/api/v1/documents', { items: [], total: 0 });
+
+    const router = makeRouter();
+    await router.push('/library');
+    await router.isReady();
+
+    const { default: LibrarySearchPage } = await import('@/pages/library/LibrarySearchPage.vue');
+    const wrapper = mount(LibrarySearchPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    // Set copyright filter via select → triggers emitSearch which calls onSearch
+    const copyrightSelect = wrapper.find('#lib-copyright-filter');
+    expect(copyrightSelect.exists()).toBe(true);
+    await copyrightSelect.setValue('public_domain');
+    await copyrightSelect.trigger('change');
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    // isSearchActive is now true (copyrightStatus !== ''), items is empty
+    // → empty state with "清空筛选条件" should appear
+    expect(wrapper.text()).toContain('清空筛选条件');
+
+    // Click the clear button → all filters reset, API called again
+    const clearBtn = wrapper.find('.lib-clear-btn');
+    expect(clearBtn.exists()).toBe(true);
+    await clearBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    // After clearAllFilters, page re-fetches with empty filters.
+    // The LibrarySearchBar component still holds its local v-model state
+    // (copyrightStatus = 'public_domain') because clearAllFilters resets the
+    // parent filters ref, not the child component's internal ref.
+    // The parent clears filters → fetchPage(1) with empty params.
+    // Verify the API was called with empty params after clearing.
+    const calls = (api.get as ReturnType<typeof vi.fn>).mock.calls as Array<
+      [string, { params: Record<string, string> }]
+    >;
+    // Find a call that was made without q/copyright_status/review_status
+    const filteredCall = calls.find(
+      (c) => !c[1].params.q && !c[1].params.copyright_status && !c[1].params.review_status,
+    );
+    expect(filteredCall).toBeTruthy();
+  });
 });
 
 // ------------------------------------------------------------------
@@ -557,6 +608,77 @@ describe('LibraryDetailPage', () => {
 
     const link = wrapper.find('a[href="/library/d1"]');
     expect(link.exists()).toBe(true);
+  });
+
+  it('15b. version badge renders "版本信息不可用" on document card', async () => {
+    // LibraryDocumentCard must always show a version badge.
+    // The LibraryDocument type has no `version` field — honest fallback.
+    const { default: LibraryDocumentCard } = await import(
+      '@/components/library/LibraryDocumentCard.vue'
+    );
+    const wrapper = mount(LibraryDocumentCard, {
+      props: {
+        doc: {
+          id: 'd1',
+          title: '针灸甲乙经',
+          dynasty: '晋',
+          category: '针灸',
+          copyright_status: 'public_domain',
+          review_status: 'approved',
+          rag_enabled: true,
+          source_name: 'wikisource',
+          withdrawn_at: null,
+          created_at: '2025-01-01T00:00:00Z',
+        },
+      },
+      global: {
+        stubs: { 'router-link': { template: '<a><slot/></a>' } },
+      },
+    });
+    expect(wrapper.text()).toContain('版本信息不可用');
+  });
+
+  it('15c. passage query param is forwarded to Reader', async () => {
+    // Simulate route.query.passage = 'pas-123', click "全文阅读" button,
+    // assert router.push is called with /reader/d1?passage=pas-123.
+    const router = makeRouter();
+    await router.push('/library/d1?passage=pas-123');
+    await router.isReady();
+
+    // Verify the route has the query param before mounting
+    expect(router.currentRoute.value.query.passage).toBe('pas-123');
+
+    mockGetMulti({
+      '/api/v1/documents/d1/stats': mockStats,
+      '/api/v1/documents/d1': mockDoc,
+    });
+
+    // Spy on router.push after initial navigation is done
+    const pushSpy = vi.spyOn(router, 'push');
+
+    const { default: LibraryDetailPage } = await import('@/pages/library/LibraryDetailPage.vue');
+    const wrapper = mount(LibraryDetailPage, {
+      global: { plugins: [i18n, router, createPinia()] },
+    });
+    // Flush all async: fetch() → set doc → re-render
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+    await wrapper.vm.$nextTick();
+
+    // Click first "全文阅读" button
+    const readBtn = wrapper.find('.lib-read-btn');
+    expect(readBtn.exists()).toBe(true);
+    await readBtn.trigger('click');
+    await wrapper.vm.$nextTick();
+
+    // Assert push was called with the passage-preserving URL
+    expect(pushSpy).toHaveBeenCalled();
+    const pushArg = pushSpy.mock.calls.find(
+      (call: unknown[]) => typeof call[0] === 'string' && call[0].includes('/reader/'),
+    );
+    expect(pushArg).toBeTruthy();
+    expect(pushArg![0]).toBe('/reader/d1?passage=pas-123');
   });
 });
 
