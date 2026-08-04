@@ -415,8 +415,8 @@ watch(sheetOpen, (open) => {
 .rae-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  background: var(--color-overlay-light);
+  z-index: var(--z-dialog);
 }
 
 .rae-sheet {
@@ -427,7 +427,7 @@ watch(sheetOpen, (open) => {
   max-height: 60vh;
   background: var(--color-surface);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  z-index: 1001;
+  z-index: var(--z-drawer);
   padding: var(--space-4) var(--space-5);
   overflow-y: auto;
   animation: rae-sheet-slide-up 300ms var(--ease-in-out);
@@ -478,7 +478,7 @@ watch(sheetOpen, (open) => {
 .rae-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 1000;
+  background: var(--color-overlay-light);
+  z-index: var(--z-dialog);
 }
 </style>

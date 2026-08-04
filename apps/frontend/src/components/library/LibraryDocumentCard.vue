@@ -11,6 +11,7 @@
       </div>
     </div>
     <div class="lib-item-badges">
+      <span class="lib-badge lib-badge-version">版本信息不可用</span>
       <span class="lib-badge lib-badge-copyright">{{
         COPYRIGHT_LABELS[doc.copyright_status] || doc.copyright_status
       }}</span>
@@ -111,6 +112,11 @@ function formatDate(iso: string): string {
   padding: var(--space-0-5) 8px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
+}
+
+.lib-badge-version {
+  background: var(--color-tag-bg);
+  color: var(--color-text-muted);
 }
 
 .lib-badge-copyright {

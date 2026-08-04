@@ -362,7 +362,7 @@ const userName = auth.userName || '未登录';
     position: fixed;
     inset: 0;
     z-index: calc(var(--z-sidebar, 310) - 1);
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--color-overlay-light);
   }
 
   .ral-content {

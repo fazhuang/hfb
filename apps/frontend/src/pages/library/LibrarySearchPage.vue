@@ -33,7 +33,7 @@
         icon="📚"
       />
 
-      <!-- Empty: search returned no results -->
+      <!-- Empty: search/filter returned no results -->
       <EmptyState
         v-else-if="items.length === 0 && isSearchActive"
         title="未找到匹配的文献"
@@ -41,7 +41,7 @@
         icon="🔍"
       >
         <template #action>
-          <button class="lib-clear-btn" @click="clearSearch">清除搜索</button>
+          <button class="lib-clear-btn" @click="clearAllFilters">清空筛选条件</button>
         </template>
       </EmptyState>
 
@@ -117,7 +117,17 @@ const filters = ref<LibraryFilters>({
 
 const { items, total, loading, error, page, totalPages, fetchPage } = useLibraryList(filters);
 
-const isSearchActive = computed(() => filters.value.query.trim().length > 0);
+const isSearchActive = computed(() => {
+  const f = filters.value;
+  return (
+    f.query.trim().length > 0 ||
+    f.copyrightStatus !== '' ||
+    f.reviewStatus !== '' ||
+    f.dynasty !== '' ||
+    f.category !== '' ||
+    f.sourceName !== ''
+  );
+});
 
 const searchEmptyDescription = computed(
   () => `没有文献与 "${filters.value.query}" 匹配，请尝试其他关键词。`,
@@ -143,10 +153,13 @@ function onSearch(f: { query: string; copyrightStatus: string; reviewStatus: str
   fetchPage(1);
 }
 
-function clearSearch() {
+function clearAllFilters() {
   filters.value.query = '';
   filters.value.copyrightStatus = '';
   filters.value.reviewStatus = '';
+  filters.value.dynasty = '';
+  filters.value.category = '';
+  filters.value.sourceName = '';
   fetchPage(1);
 }
 

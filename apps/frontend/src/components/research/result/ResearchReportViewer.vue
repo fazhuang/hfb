@@ -292,10 +292,10 @@ function isSelectedCitation(traceId: string): boolean {
   vertical-align: middle;
   position: relative;
   top: -1px;
-  margin: 0 3px;
-  padding: 1px 6px;
+  margin: 0 var(--space-0-75);
+  padding: var(--space-0-5) 6px;
   border: 1px solid var(--color-accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--color-accent-light);
   color: var(--color-accent);
   font-size: 12px;

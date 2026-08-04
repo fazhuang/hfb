@@ -200,6 +200,8 @@ const route = useRoute();
 const router = useRouter();
 
 const docId = computed(() => route.params.id as string);
+/** passage_id from SourceReferenceCard → Library → Reader contract */
+const passageId = computed(() => (route.query.passage as string) || undefined);
 const { doc, stats, loading, error, fetch } = useLibraryDetail(docId);
 
 const breadcrumbs = computed<Breadcrumb[]>(() => [
@@ -230,7 +232,11 @@ const safeSourceUrl = computed(() => {
 
 function openReader() {
   if (!doc.value) return;
-  router.push(`/reader/${doc.value.id}`);
+  const base = `/reader/${doc.value.id}`;
+  const params = new URLSearchParams();
+  if (passageId.value) params.set('passage', passageId.value);
+  const qs = params.toString();
+  router.push(qs ? `${base}?${qs}` : base);
 }
 
 onMounted(() => fetch());
