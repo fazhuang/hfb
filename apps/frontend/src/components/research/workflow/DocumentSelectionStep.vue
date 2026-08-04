@@ -3,7 +3,7 @@
     <h2 id="dss-heading" class="dss-heading">第二步：文献选择</h2>
 
     <div class="dss-system-notice" role="note">
-      <span class="dss-notice-icon" aria-hidden="true">ℹ️</span>
+      <Info :size="16" class="dss-notice-icon" aria-hidden="true" />
       <p>
         系统将根据您的研究问题自动检索相关文献。当前版本不支持手动选择特定文献，所有可检索到的相关文献都将纳入分析范围。
       </p>
@@ -26,6 +26,8 @@
 </template>
 
 <script setup lang="ts">
+import { Info } from '@lucide/vue';
+
 defineProps<{
   question: string;
   disabled?: boolean;
@@ -62,9 +64,9 @@ defineEmits<{
 }
 
 .dss-notice-icon {
-  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
+  color: var(--color-accent);
 }
 
 .dss-system-notice p {

@@ -4,7 +4,7 @@
 
     <!-- Unpersisted warning -->
     <div v-if="!report.markdown" class="rrs-warning" role="alert">
-      <span class="rrs-warning-icon" aria-hidden="true">⚠️</span>
+      <AlertTriangle :size="16" class="rrs-warning-icon" aria-hidden="true" />
       <p>
         当前报告尚未持久化，刷新页面后可能丢失。建议通过"查看完整结果"进入独立结果页面查看已保存的报告。
       </p>
@@ -64,7 +64,8 @@
           class="rrs-action-btn rrs-action-btn--secondary"
           @click="$emit('re-search')"
         >
-          🔍 基于报告重新搜索
+          <Search :size="13" class="rrs-action-icon" aria-hidden="true" />
+          基于报告重新搜索
         </button>
         <router-link
           v-if="report.run_id"
@@ -98,6 +99,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { AlertTriangle, Search } from '@lucide/vue';
 import type { WorkflowReport } from '@/composables/useResearchWorkflow';
 import EmptyState from '@/components/common/EmptyState.vue';
 
@@ -161,9 +163,9 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-warning-icon {
-  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
+  color: var(--color-warning-text);
 }
 
 .rrs-warning p {
@@ -311,6 +313,10 @@ function formatDate(iso?: string | null): string {
   background: var(--color-hover);
   border-color: var(--color-accent);
   color: var(--color-accent);
+}
+
+.rrs-action-icon {
+  margin-right: var(--space-1);
 }
 
 @media (max-width: 640px) {

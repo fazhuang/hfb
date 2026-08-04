@@ -4,7 +4,7 @@
 
     <!-- No evidence warning -->
     <div v-if="evidence.length === 0" class="ers-warning" role="alert">
-      <span class="ers-warning-icon" aria-hidden="true">⚠️</span>
+      <AlertTriangle :size="16" class="ers-warning-icon" aria-hidden="true" />
       <div>
         <strong>未找到相关文献证据</strong>
         <p>
@@ -56,7 +56,7 @@
 
         <!-- Lineage completeness indicator -->
         <div v-if="!hasFullLineage(ev)" class="ers-lineage-warning">
-          <span class="ers-lineage-warning-icon" aria-hidden="true">⚠️</span>
+          <AlertTriangle :size="13" class="ers-lineage-warning-icon" aria-hidden="true" />
           该条目的证据链不完整，缺少部分来源追溯信息。
         </div>
 
@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { AlertTriangle } from '@lucide/vue';
 import type { WorkflowEvidence, WorkflowCitation } from '@/composables/useResearchWorkflow';
 
 defineProps<{
@@ -174,9 +175,9 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 }
 
 .ers-warning-icon {
-  font-size: var(--text-lg);
   flex-shrink: 0;
   margin-top: 1px;
+  color: var(--color-warning-text);
 }
 
 .ers-warning strong {
@@ -371,7 +372,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
 
 .ers-lineage-warning-icon {
   flex-shrink: 0;
-  font-size: var(--text-sm);
+  color: var(--color-warning-text);
 }
 
 /* Actions */
