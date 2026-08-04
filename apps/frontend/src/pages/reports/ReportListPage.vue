@@ -197,14 +197,23 @@ onMounted(() => {
 <style scoped>
 .reports-page {
   min-height: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .rp-body {
   padding: var(--space-6) var(--space-8);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .rp-content {
   min-height: 200px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ---- Clear filter button ---- */

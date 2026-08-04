@@ -80,6 +80,8 @@ const exportButtonLabel = computed(() => {
 
 <style scoped>
 .rrli-root {
+  max-width: 100%;
+  box-sizing: border-box;
   padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -110,6 +112,8 @@ const exportButtonLabel = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .rrli-topic {
@@ -120,6 +124,8 @@ const exportButtonLabel = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .rrli-meta {
