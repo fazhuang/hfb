@@ -159,6 +159,7 @@ skills-lock.json
 CONTEXT-MAP.md
 docs/agents/
 docs/superpowers/
+session-report-*.html
 
 # --- Misc ---
 *.bak
