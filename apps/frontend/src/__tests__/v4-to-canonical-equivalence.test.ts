@@ -2,14 +2,13 @@
  * M1 迁移测试基线 — 能力 #3：V4 Research
  *
  * 旧行为 → canonical 行为映射测试。
- * Legacy 源: views/V4ResearchView.vue (/v4/research-internal，3 tab)
  * Canonical 目标:
  *   - pages/research/ResearchWorkflowPage.vue (/research/:projectId/workflow)
  *   - pages/research/ResearchResultPage.vue (/research/:projectId/result/:runId)
  *
  * 映射策略:
- *   - 完整研究 workflow: legacy V4ResearchView research tab → canonical ResearchWorkflowPage ✓ 已迁移
- *   - 报告/引用/证据/导出: legacy V4ResearchView report detail → canonical ResearchResultPage ✓ 已迁移
+ *   - 完整研究 workflow: legacy research tab → canonical ResearchWorkflowPage ✓ 已迁移
+ *   - 报告/引用/证据/导出: legacy report detail → canonical ResearchResultPage ✓ 已迁移
  *   - 重放验证: legacy replay → canonical ResearchResultPage replay UI ✓ 已迁移 (M3)
  *   - 基于报告重新搜索 (re-search): ✓ proven via real browser closure (2B-E1)
  *   - 教育模式: legacy education tab → DEFERRED (KnowledgeExplorer 无等价实现)

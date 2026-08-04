@@ -231,8 +231,7 @@ const router = createRouter({
           meta: { requiresAuth: true },
         },
         // /v4/research-internal → resolve most-recent session → /research/:projectId/workflow
-        // Legacy V4ResearchView is NO LONGER directly served — canonical equivalent
-        // (/research/:projectId/workflow, /research/:projectId/result/:runId) replaces it.
+        // Legacy /v4/research-internal — redirects to canonical workflow
         {
           path: 'v4/research-internal',
           name: 'legacy-v4-research-internal',
