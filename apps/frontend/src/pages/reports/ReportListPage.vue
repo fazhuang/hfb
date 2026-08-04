@@ -27,8 +27,12 @@
         />
       </form>
 
-      <!-- Content Area -->
-      <div class="rp-content">
+      <!-- Main content region -->
+      <div
+        class="rp-content"
+        aria-live="polite"
+        :aria-busy="loading"
+      >
         <!-- Loading -->
         <LoadingState v-if="loading" message="正在加载报告..." />
 
@@ -61,17 +65,19 @@
           :items="displayedItems"
           :exporting="exporting"
           :export-error="exportError"
+          :last-export-run-id="lastExportRunId"
           @export="handleExport"
         />
       </div>
 
       <!-- Pagination -->
       <div v-if="totalPages > 1" class="rp-pagination">
-        <button :disabled="page <= 1" @click="setPage(page - 1)">上一页</button>
-        <span class="rp-page-info" :aria-label="`第 ${page} 页，共 ${totalPages} 页`"
-          >{{ page }} / {{ totalPages }}</span
-        >
-        <button :disabled="page >= totalPages" @click="setPage(page + 1)">下一页</button>
+        <HfbPagination
+          :page="page"
+          :total-pages="totalPages"
+          :disabled="loading"
+          @update:page="setPage"
+        />
       </div>
     </div>
   </div>
@@ -106,13 +112,14 @@ import {
   REPORT_TOOLBAR_FILTERS,
 } from '@/composables/useResearchReports';
 import type { ReportItem } from '@/composables/useResearchReports';
-import type { ToolbarFilterValues, ToolbarSearchPayload } from '@/types/toolbar';
+import type { ToolbarFilterValues } from '@/types/toolbar';
 
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import HfbToolbar from '@/components/common/HfbToolbar.vue';
+import HfbPagination from '@/components/common/HfbPagination.vue';
 import ResearchReportList from '@/components/reports/ResearchReportList.vue';
 
 const toolbarRef = ref<InstanceType<typeof HfbToolbar> | null>(null);
@@ -128,8 +135,8 @@ const {
   filterValues,
   exporting,
   exportError,
+  lastExportRunId,
   fetchReports,
-  onSearch: _onSearch,
   setPage,
   setStatusFilter,
   exportReport,
@@ -160,7 +167,7 @@ const displayedItems = computed<ReportItem[]>(() => {
 // ---- Toolbar event handlers ----
 
 /** Called on every debounced search input or Enter. Client-side only filter update. */
-function onSearch(payload: ToolbarSearchPayload) {
+function onSearch(payload: { query: string }) {
   searchQuery.value = payload.query;
 }
 
@@ -227,41 +234,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
   margin-top: var(--space-7);
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-}
-
-.rp-pagination button {
-  padding: var(--btn-padding-sm);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  transition: all var(--transition-base);
-}
-
-.rp-pagination button:hover:not(:disabled) {
-  background: var(--color-hover);
-  border-color: var(--color-accent);
-}
-
-.rp-pagination button:focus-visible:not(:disabled) {
-  background: var(--color-hover);
-  border-color: var(--color-accent);
-}
-
-.rp-pagination button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.rp-page-info {
-  min-width: 60px;
-  text-align: center;
 }
 
 /* ---- Responsive ---- */

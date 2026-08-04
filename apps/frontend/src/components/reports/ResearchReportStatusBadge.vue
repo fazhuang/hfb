@@ -64,16 +64,16 @@ const badgeClass = computed(() => {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  padding: var(--space-0-5) 8px;
+  padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   line-height: var(--leading-normal);
   white-space: nowrap;
 }
 
 .rsb-icon {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: var(--font-bold);
 }
 

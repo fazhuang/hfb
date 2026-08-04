@@ -57,7 +57,7 @@ export const REPORT_STATUS_FILTER: ToolbarFilter = {
   ],
 };
 
-export const REPORT_TOOLBAR_FILTERS: ToolbarFilter[] = [REPORT_STATUS_FILTER];
+export const REPORT_TOOLBAR_FILTERS: Array<ToolbarFilter> = [REPORT_STATUS_FILTER];
 
 // ============================================================================
 // Helpers
@@ -131,6 +131,7 @@ export function useResearchReports() {
   // ---- Export state ----
   const exporting = ref(false);
   const exportError = ref('');
+  const lastExportRunId = ref<string | null>(null);
 
   // ---- Race protection ----
   let reqSeq = 0;
@@ -213,6 +214,7 @@ export function useResearchReports() {
 
     exporting.value = true;
     exportError.value = '';
+    lastExportRunId.value = runId;
 
     try {
       // Real backend export endpoint with session/run authorization
@@ -324,6 +326,7 @@ export function useResearchReports() {
     // Export
     exporting,
     exportError,
+    lastExportRunId,
     exportReport,
     releaseExportBlob,
 

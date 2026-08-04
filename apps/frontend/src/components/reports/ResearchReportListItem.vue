@@ -7,12 +7,10 @@
         <time :datetime="item.created_at" class="rrli-time">
           {{ formattedDate }}
         </time>
+        <span class="rrli-meta-sep" aria-hidden="true">·</span>
+        <ResearchReportStatusBadge :status="item.run_status" type="run" />
+        <ResearchReportStatusBadge :status="item.report_status" type="report" />
       </div>
-    </div>
-
-    <div class="rrli-badges">
-      <ResearchReportStatusBadge :status="item.run_status" type="run" />
-      <ResearchReportStatusBadge :status="item.report_status" type="report" />
     </div>
 
     <div class="rrli-actions">
@@ -20,6 +18,7 @@
         v-if="item.report_status === 'ready'"
         :to="`/research/${item.session_id}/result/${item.run_id}`"
         class="rrli-view-link"
+        :aria-label="`查看报告: ${item.session_title || item.topic || '未命名研究'}`"
       >
         查看报告
       </router-link>
@@ -27,12 +26,13 @@
         v-if="item.report_status === 'ready'"
         class="rrli-export-btn"
         :disabled="exporting"
+        :aria-busy="exporting ? 'true' : undefined"
         @click="$emit('export', item)"
       >
         {{ exportButtonLabel }}
       </button>
-      <p v-if="exportErrorItem" class="rrli-export-error" role="alert">
-        {{ exportErrorItem }}
+      <p v-if="exportError" class="rrli-export-error" role="alert">
+        {{ exportError }}
       </p>
     </div>
   </li>
@@ -69,8 +69,7 @@ const formattedDate = computed(() => {
   }
 });
 
-const exportErrorItem = computed(() => {
-  // Only show export error for this specific item if it matches
+const exportError = computed(() => {
   return props.exportError || '';
 });
 
@@ -81,14 +80,20 @@ const exportButtonLabel = computed(() => {
 
 <style scoped>
 .rrli-root {
-  padding: var(--space-3-5) var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
+  transition: box-shadow var(--transition-base);
+}
+
+.rrli-root:hover {
+  box-shadow: var(--shadow-card-hover);
 }
 
 .rrli-main {
@@ -101,14 +106,17 @@ const exportButtonLabel = computed(() => {
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-1);
-  line-height: 1.4;
+  line-height: var(--leading-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .rrli-topic {
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  margin: 0 0 var(--space-1-5);
-  line-height: 1.4;
+  margin: 0 0 var(--space-2);
+  line-height: var(--leading-normal);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -118,6 +126,7 @@ const exportButtonLabel = computed(() => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .rrli-time {
@@ -126,11 +135,9 @@ const exportButtonLabel = computed(() => {
   white-space: nowrap;
 }
 
-.rrli-badges {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1-5);
-  flex-shrink: 0;
+.rrli-meta-sep {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .rrli-actions {
@@ -138,20 +145,28 @@ const exportButtonLabel = computed(() => {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.rrli-view-link,
+.rrli-export-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: all var(--transition-base);
 }
 
 .rrli-view-link {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1-25) 14px;
   border: 1px solid var(--color-accent);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
   color: var(--color-accent);
-  text-decoration: none;
-  white-space: nowrap;
-  transition: all var(--transition-base);
 }
 
 .rrli-view-link:hover {
@@ -165,18 +180,10 @@ const exportButtonLabel = computed(() => {
 }
 
 .rrli-export-btn {
-  display: inline-flex;
-  align-items: center;
-  padding: var(--space-1-25) 14px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   background: var(--color-surface);
   cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition-base);
 }
 
 .rrli-export-btn:hover:not(:disabled) {
@@ -196,7 +203,8 @@ const exportButtonLabel = computed(() => {
 
 .rrli-export-error {
   margin: 0;
-  font-size: 11px;
+  width: 100%;
+  font-size: var(--text-xs);
   color: var(--color-error-text);
 }
 
@@ -204,12 +212,18 @@ const exportButtonLabel = computed(() => {
 @media (max-width: 768px) {
   .rrli-root {
     flex-direction: column;
+    align-items: stretch;
     gap: var(--space-3);
   }
 
   .rrli-actions {
     width: 100%;
-    justify-content: flex-end;
+    justify-content: flex-start;
+  }
+
+  .rrli-view-link,
+  .rrli-export-btn {
+    width: 100%;
   }
 }
 </style>

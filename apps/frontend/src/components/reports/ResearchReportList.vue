@@ -5,7 +5,7 @@
       :key="item.run_id"
       :item="item"
       :exporting="exporting"
-      :export-error="exportError"
+      :export-error="(item.run_id === lastExportRunId) ? exportError : ''"
       @export="$emit('export', $event)"
     />
   </ul>
@@ -19,6 +19,7 @@ defineProps<{
   items: ReportItem[];
   exporting: boolean;
   exportError: string;
+  lastExportRunId?: string | null;
 }>();
 
 defineEmits<{

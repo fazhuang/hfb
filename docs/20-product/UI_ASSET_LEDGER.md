@@ -75,8 +75,9 @@
 | **路由** | `/reports` (name: `report-list`) |
 | **页面组件** | `pages/reports/ReportListPage.vue` |
 | **布局** | `layouts/ResearchAppLayout.vue` |
-| **关键子组件** | `ResearchReportList.vue`, `ResearchReportListItem.vue`, `ResearchReportStatusBadge.vue`, `ResearchReportsToolbar.vue` |
+| **关键子组件** | `ResearchReportList.vue`, `ResearchReportListItem.vue`, `ResearchReportStatusBadge.vue` |
 | **entry guard** | `requiresAuth` |
+| **最近变更 (C2-4)** | 2026-08-04 — 视觉层级优化：卡片 hover 阴影、标签 badge 并入 meta 行、按钮 44px min touch target、分页统一 HfbPagination、aria-busy/aria-live 加载态、per-item export error 作用域 |
 
 ---
 

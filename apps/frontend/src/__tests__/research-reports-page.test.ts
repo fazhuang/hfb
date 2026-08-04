@@ -775,8 +775,12 @@ describe('ResearchReportsPage', () => {
         }),
       );
 
-      const nextBtn = wrapper.findAll('button').find((b) => b.text().includes('下一页'));
+      const nextBtn = wrapper.findAll('button').find(
+        (b) => b.attributes('aria-label') === 'Next page',
+      );
       expect(nextBtn).toBeTruthy();
+      // next page button should be enabled (page 1 of 2)
+      expect(nextBtn!.attributes('disabled')).toBeUndefined();
       await nextBtn!.trigger('click');
       await flushPromises();
 
@@ -796,7 +800,7 @@ describe('ResearchReportsPage', () => {
       );
       await flushPromises();
 
-      // Should show CURRENT
+      // Should show CURRENT (page 2 content)
       expect(wrapper.text()).toContain('CURRENT');
     });
   });
@@ -844,11 +848,13 @@ describe('ResearchReportsPage', () => {
       await router.isReady();
       await flushPromises();
 
-      // Pagination visible
-      expect(wrapper.text()).toContain('下一页');
+      // Pagination visible (aria-label)
+      expect(wrapper.find('[aria-label="Next page"]').exists()).toBe(true);
 
       // Click next page
-      const nextBtn = wrapper.findAll('button').find((b) => b.text().includes('下一页'));
+      const nextBtn = wrapper.findAll('button').find(
+        (b) => b.attributes('aria-label') === 'Next page',
+      );
       expect(nextBtn).toBeTruthy();
       await nextBtn!.trigger('click');
       await flushPromises();
