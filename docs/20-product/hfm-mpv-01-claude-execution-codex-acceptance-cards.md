@@ -111,10 +111,10 @@ pnpm typecheck
 **Claude**：仅创建匿名化测试协议，覆盖课题→搜索→Reader→AI→Citation/Evidence/SourceRef→导出，记录完成率、时长、阻塞、恢复、证据理解；涵盖弱网、AI 失败、繁简、字号、移动端。不得写入正式学术数据。
 **Codex**：验证没有个人敏感信息、真实数据导入或 URL/mock 绕过。
 
-**执行状态**：🔄 Claude 修复 (v1.1, HEAD `bb00a51`)
+**执行状态**：✅ PASS D1（Codex 验证通过，HEAD `b3264de`）
 - 协议文档：`docs/20-product/d1-postgraduate-user-testing-protocol.md`
-- 已修复：移除 PII 自由文本字段（观察者→观察记录员编号 O__、日期→测试批次 B__）、强制脱敏规则（用户原话 `[已移除身份信息]` 替换、测试账号凭据隔离）、明确合成/已脱敏测试数据边界、删除 Mock/后端注入/`document.body.style.zoom`、替换为仅浏览器原生操作、补充 D1 隔离边界声明（不替代安全/RBAC/数据准入/Phase 10/D2、不解除 BLOCK_RELEASE）
-- 待 Codex 独立验证
+- Codex 判定：白名单合格、代码差异为空、git diff --check 通过、工作区干净；任务链仅可见 UI 导航、隐私边界闭合、合成/脱敏测试数据限定、无 Mock/后端注入；弱网/AI/繁简/200% 原生缩放/375×812 均有观察记录项；D1 隔离声明明确不替代安全/RBAC/数据准入/Phase 10/D2、不解除 BLOCK_RELEASE
+- D1 闭合。仅许可进入 D2 候选评估阶段；整体 `BLOCK_RELEASE` 保持。
 
 ### D2：Phase 10 候选执行
 
