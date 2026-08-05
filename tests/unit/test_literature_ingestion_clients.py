@@ -832,7 +832,6 @@ class TestPubMedClient:
     @pytest.mark.asyncio
     async def test_search_falls_back_to_pubmed_on_europe_pmc_error(self):
         """When Europe PMC raises HTTP error, falls back to PubMed E-utilities."""
-        pytest.importorskip("defusedxml")
         from app.services.literature_ingestion.pubmed_client import search
 
         mock_client = AsyncMock()
@@ -946,7 +945,6 @@ class TestPubMedClient:
     @pytest.mark.asyncio
     async def test_parse_pubmed_xml_without_doi(self):
         """XML without ELocationID/DOI should produce item with empty doi."""
-        pytest.importorskip("defusedxml")
         from app.services.literature_ingestion.pubmed_client import _parse_pubmed_xml
 
         xml = """<?xml version="1.0" encoding="UTF-8"?>
