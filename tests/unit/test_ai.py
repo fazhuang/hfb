@@ -6,15 +6,45 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 
 from __future__ import annotations
 
+import json
+
+import httpx
 import pytest
 from app.models.book import Book
 from app.models.person import Person
-from app.services.ai_service import AIService, RateLimiter
+from app.services.ai_service import (
+    EVIDENCE_GATED_SYSTEM_PROMPT,
+    RateLimiter,
+    AIService,
+    _rate_limiter,
+    _mock_summarize,
+    _mock_translate,
+    _mock_compare,
+)
 from app.services.rag_service import RAGService
 from app.services.workspace_service import WorkspaceService
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
+
+# ---------------------------------------------------------------------------
+# helpers — patch httpx.AsyncClient without recursion
+# ---------------------------------------------------------------------------
+
+_original_AsyncClient = httpx.AsyncClient
+
+
+def _patch_async_client(monkeypatch, transport):
+    """monkeypatch httpx.AsyncClient to use *transport* for all calls."""
+
+    def _factory(**kw):
+        return _original_AsyncClient(
+            transport=transport,
+            **{k: v for k, v in kw.items() if k != "transport"},
+        )
+
+    monkeypatch.setattr(httpx, "AsyncClient", _factory)
+
 
 # ============================================================
 # Rate Limiter
@@ -38,6 +68,26 @@ class TestRateLimiter:
         assert rl.remaining == 5
         rl.allow()
         assert rl.remaining == 4
+
+    def test_window_expiry_recovers_slots(self, monkeypatch) -> None:
+        rl = RateLimiter(max_per_minute=2)
+        assert rl.allow() is True
+        assert rl.allow() is True
+        assert rl.allow() is False  # exhausted
+
+        fake_now = rl._timestamps[-1] + 61.0 if rl._timestamps else 100.0
+        monkeypatch.setattr("app.services.ai_service.time.monotonic", lambda: fake_now)
+        assert rl.allow() is True
+
+    def test_remaining_reflects_pruned_window(self, monkeypatch) -> None:
+        rl = RateLimiter(max_per_minute=5)
+        for _ in range(3):
+            rl.allow()
+        assert rl.remaining == 2
+
+        fake_now = rl._timestamps[-1] + 61.0
+        monkeypatch.setattr("app.services.ai_service.time.monotonic", lambda: fake_now)
+        assert rl.remaining == 5
 
 
 # ============================================================
@@ -72,6 +122,491 @@ class TestAIService:
         svc = AIService()
         result = await svc.ai_compare("凡刺之法", "凡刺之要", "源版本", "目标版本")
         assert "相似度" in result or "差异" in result
+
+
+# ============================================================
+# chat_stream — evidence gate (no HTTP happens)
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestChatStreamGate:
+    """chat_stream must refuse before any HTTP call when gate fails."""
+
+    async def test_unconfigured_yields_unavailable(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "")
+        svc = AIService()
+        chunks = [c async for c in svc.chat_stream(
+            [{"role": "user", "content": "什么是针灸？"}],
+            context="针灸甲乙经记载...",
+        )]
+        assert len(chunks) == 1
+        assert "EVIDENCE_GATE_UNAVAILABLE" in chunks[0]
+
+    async def test_rate_limited_refused(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+        saved_ts = list(_rate_limiter._timestamps)
+        try:
+            _rate_limiter._timestamps.clear()
+            for _ in range(_rate_limiter._max):
+                _rate_limiter._timestamps.append(999999.0)
+            svc = AIService()
+            chunks = [c async for c in svc.chat_stream(
+                [{"role": "user", "content": "test"}],
+                context="some evidence",
+            )]
+            assert len(chunks) == 1
+            assert "EVIDENCE_GATE_RATE_LIMITED" in chunks[0]
+        finally:
+            _rate_limiter._timestamps.clear()
+            _rate_limiter._timestamps.extend(saved_ts)
+
+    async def test_empty_context_refused(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+        svc = AIService()
+        saved_ts = list(_rate_limiter._timestamps)
+        try:
+            _rate_limiter._timestamps.clear()
+            chunks = [c async for c in svc.chat_stream(
+                [{"role": "user", "content": "test"}],
+                context="   ",
+            )]
+            assert len(chunks) == 1
+            assert "EVIDENCE_GATE_REFUSAL" in chunks[0]
+        finally:
+            _rate_limiter._timestamps.clear()
+            _rate_limiter._timestamps.extend(saved_ts)
+
+
+# ============================================================
+# chat_stream SSE — httpx MockTransport
+# ============================================================
+
+
+def _sse_body(*lines: str) -> bytes:
+    return "\n".join(lines).encode()
+
+
+@pytest.fixture
+def configured_ai(monkeypatch):
+    """Return AIService with a fake API key and isolated rate limiter."""
+    monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+    monkeypatch.setattr("app.services.ai_service.settings.AI_BASE_URL", "https://fake")
+    monkeypatch.setattr("app.services.ai_service.settings.AI_MODEL", "fake-model")
+    saved_ts = list(_rate_limiter._timestamps)
+    _rate_limiter._timestamps.clear()
+    svc = AIService()
+    yield svc
+    _rate_limiter._timestamps.clear()
+    _rate_limiter._timestamps.extend(saved_ts)
+
+
+@pytest.mark.asyncio
+class TestChatStreamSSE:
+    async def test_success_sse_yields_content_and_marker(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        body = _sse_body(
+            'data: {"choices":[{"delta":{"content":"针灸"}}]}',
+            'data: {"choices":[{"delta":{"content":"是中医"}}]}',
+            "data: [DONE]",
+        )
+
+        def handler(req):
+            return httpx.Response(200, content=body, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        chunks = [c async for c in configured_ai.chat_stream(
+            [{"role": "user", "content": "什么是针灸？"}],
+            context="针灸甲乙经记载...",
+        )]
+        content = "".join(chunks)
+        assert "针灸" in content
+        assert "中医" in content
+        assert "AI 生成内容" in content
+        assert "[DONE]" not in content
+
+    async def test_malformed_sse_ignored(self, configured_ai, monkeypatch) -> None:
+        body = _sse_body(
+            'data: {"choices":[{"delta":{"content":"good"}}]}',
+            "data: not-valid-json {{{",
+            'data: {"choices":[{"delta":{"content":"more"}}]}',
+            "data: [DONE]",
+        )
+
+        def handler(req):
+            return httpx.Response(200, content=body, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        chunks = [c async for c in configured_ai.chat_stream(
+            [{"role": "user", "content": "test"}],
+            context="evidence text",
+        )]
+        content = "".join(chunks)
+        assert "good" in content
+        assert "more" in content
+
+    async def test_http_non_200_yields_error(self, configured_ai, monkeypatch) -> None:
+        def handler(req):
+            return httpx.Response(502, content=b"Bad Gateway", request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        chunks = [c async for c in configured_ai.chat_stream(
+            [{"role": "user", "content": "test"}],
+            context="evidence text",
+        )]
+        content = "".join(chunks)
+        assert "HTTP 502" in content
+
+
+# ============================================================
+# Non-streaming complete — payload and errors
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestComplete:
+    async def test_payload_includes_system_prompt_temperature_seed(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        captured: dict | None = None
+
+        async def handler(req):
+            nonlocal captured
+            captured = json.loads(req.content)
+            return httpx.Response(200, json={"choices": [{"message": {"content": "reply"}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete(
+            [{"role": "user", "content": "test"}],
+            system_prompt="custom system prompt",
+            temperature=0.0,
+            seed=42,
+        )
+        assert "reply" in result
+        assert captured is not None
+        assert captured["temperature"] == 0.0
+        assert captured["seed"] == 42
+        assert captured["stream"] is False
+        msgs = captured["messages"]
+        assert msgs[0]["role"] == "system"
+        assert msgs[0]["content"] == "custom system prompt"
+
+    async def test_default_system_prompt_is_evidence_gated(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        captured: dict | None = None
+
+        async def handler(req):
+            nonlocal captured
+            captured = json.loads(req.content)
+            return httpx.Response(200, json={"choices": [{"message": {"content": "reply"}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        await configured_ai.complete([{"role": "user", "content": "test"}])
+        assert captured is not None
+        msgs = captured["messages"]
+        assert msgs[0]["content"] == EVIDENCE_GATED_SYSTEM_PROMPT
+
+    async def test_http_non_200_returns_error_text(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        def handler(req):
+            return httpx.Response(500, content=b"Internal Error", request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete([{"role": "user", "content": "test"}])
+        assert "HTTP 500" in result
+
+
+# ============================================================
+# complete_structured — success, empty, non-200, exceptions
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestCompleteStructured:
+    async def test_success_returns_content(self, configured_ai, monkeypatch) -> None:
+        async def handler(req):
+            return httpx.Response(200, json={"choices": [{"message": {"content": "  structured reply  "}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result == "structured reply"
+
+    async def test_empty_content_returns_none(self, configured_ai, monkeypatch) -> None:
+        async def handler(req):
+            return httpx.Response(200, json={"choices": [{"message": {"content": ""}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result is None
+
+    async def test_whitespace_only_content_returns_none(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        async def handler(req):
+            return httpx.Response(200, json={"choices": [{"message": {"content": "   "}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result is None
+
+    async def test_http_non_200_returns_none(self, configured_ai, monkeypatch) -> None:
+        def handler(req):
+            return httpx.Response(503, content=b"Unavailable", request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result is None
+
+    async def test_connect_error_returns_none(self, configured_ai, monkeypatch) -> None:
+        def handler(req):
+            raise httpx.ConnectError("connection refused")
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result is None
+
+    async def test_json_decode_error_returns_none(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        async def handler(req):
+            return httpx.Response(200, content=b"not json at all {{{", request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        result = await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert result is None
+
+    async def test_payload_includes_temperature_and_seed(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        captured: dict | None = None
+
+        async def handler(req):
+            nonlocal captured
+            captured = json.loads(req.content)
+            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+            temperature=0.1,
+            seed=99,
+        )
+        assert captured is not None
+        assert captured["temperature"] == 0.1
+        assert captured["seed"] == 99
+        assert captured["stream"] is False
+
+    async def test_no_seed_when_none(self, configured_ai, monkeypatch) -> None:
+        captured: dict | None = None
+
+        async def handler(req):
+            nonlocal captured
+            captured = json.loads(req.content)
+            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]}, request=req)
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        await configured_ai.complete_structured(
+            [{"role": "user", "content": "test"}],
+        )
+        assert "seed" not in captured
+
+
+# ============================================================
+# Mock fallback methods — unconfigured/rate-limited paths
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestMockFallbacks:
+    async def test_summarize_unconfigured_truncates_text(self) -> None:
+        svc = AIService()
+        text = "针灸" * 100
+        result = await svc.summarize(text, max_words=20)
+        assert "摘要" in result
+        assert "AI 服务未配置" in result
+
+    async def test_translate_unconfigured_truncates_text(self) -> None:
+        svc = AIService()
+        result = await svc.translate("针灸甲乙经", target_lang="现代汉语")
+        assert "翻译" in result
+        assert "AI 服务未配置" in result
+        assert "针灸甲乙经" in result
+
+    async def test_ai_compare_unconfigured_uses_sequence_matcher(self) -> None:
+        svc = AIService()
+        result = await svc.ai_compare("凡刺之法", "凡刺之要", "源", "目标")
+        assert "相似度" in result
+        assert "AI 服务未配置" in result
+
+    async def test_summarize_rate_limited(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+        saved_ts = list(_rate_limiter._timestamps)
+        try:
+            _rate_limiter._timestamps.clear()
+            for _ in range(_rate_limiter._max):
+                _rate_limiter._timestamps.append(999999.0)
+            svc = AIService()
+            result = await svc.summarize("test text", max_words=30)
+            assert "请求过于频繁" in result
+        finally:
+            _rate_limiter._timestamps.clear()
+            _rate_limiter._timestamps.extend(saved_ts)
+
+    async def test_translate_rate_limited(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+        saved_ts = list(_rate_limiter._timestamps)
+        try:
+            _rate_limiter._timestamps.clear()
+            for _ in range(_rate_limiter._max):
+                _rate_limiter._timestamps.append(999999.0)
+            svc = AIService()
+            result = await svc.translate("test", target_lang="现代汉语")
+            assert "请求过于频繁" in result
+        finally:
+            _rate_limiter._timestamps.clear()
+            _rate_limiter._timestamps.extend(saved_ts)
+
+    async def test_ai_compare_rate_limited(self, monkeypatch) -> None:
+        monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "fake-key")
+        saved_ts = list(_rate_limiter._timestamps)
+        try:
+            _rate_limiter._timestamps.clear()
+            for _ in range(_rate_limiter._max):
+                _rate_limiter._timestamps.append(999999.0)
+            svc = AIService()
+            result = await svc.ai_compare("a", "b")
+            assert "请求过于频繁" in result
+        finally:
+            _rate_limiter._timestamps.clear()
+            _rate_limiter._timestamps.extend(saved_ts)
+
+
+# ============================================================
+# Mock helper functions — direct unit coverage
+# ============================================================
+
+
+class TestMockHelpers:
+    def test_mock_summarize_truncates_long_text(self) -> None:
+        result = _mock_summarize("x" * 500, max_words=30)
+        assert "[摘要]" in result
+        assert "AI 服务未配置" in result
+        assert "…" in result
+
+    def test_mock_summarize_short_text_no_ellipsis(self) -> None:
+        result = _mock_summarize("short", max_words=200)
+        assert "[摘要]" in result
+        assert "short" in result
+        assert "…" not in result
+
+    def test_mock_translate_truncates_long_text(self) -> None:
+        result = _mock_translate("x" * 500, target_lang="英文")
+        assert "[翻译至英文]" in result
+        assert "…" in result
+
+    def test_mock_translate_short_text_no_ellipsis(self) -> None:
+        result = _mock_translate("hello", target_lang="法文")
+        assert "[翻译至法文]" in result
+        assert "hello" in result
+
+    def test_mock_compare_detects_similarity(self) -> None:
+        result = _mock_compare("凡刺之法", "凡刺之要", "源版本", "目标版本")
+        assert "相似度" in result
+        assert "源版本" in result
+        assert "目标版本" in result
+        assert "75.0%" in result
+
+    def test_mock_compare_identical_texts(self) -> None:
+        result = _mock_compare("相同文本", "相同文本", "A", "B")
+        assert "相似度" in result
+        assert "0 处差异" in result
+
+
+# ============================================================
+# chat_stream request payload verification
+# ============================================================
+
+
+@pytest.mark.asyncio
+class TestChatStreamPayload:
+    async def test_payload_contains_evidence_gated_system_prompt(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        captured: dict | None = None
+
+        async def handler(req):
+            nonlocal captured
+            captured = json.loads(req.content)
+            return httpx.Response(
+                200,
+                content=b'data: {"choices":[{"delta":{"content":"ok"}}]}\ndata: [DONE]\n',
+                request=req,
+            )
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        _ = [c async for c in configured_ai.chat_stream(
+            [{"role": "user", "content": "什么是针灸？"}],
+            context="针灸甲乙经记载：经络者，所以行血气。",
+        )]
+        assert captured is not None
+        assert captured["model"] == "fake-model"
+        msgs = captured["messages"]
+        assert msgs[0]["content"] == EVIDENCE_GATED_SYSTEM_PROMPT
+        assert "针灸甲乙经记载" in msgs[1]["content"]
+
+    async def test_request_headers_no_real_key_leak(
+        self, configured_ai, monkeypatch
+    ) -> None:
+        captured_headers: dict | None = None
+
+        async def handler(req):
+            nonlocal captured_headers
+            captured_headers = dict(req.headers)
+            return httpx.Response(
+                200,
+                content=b'data: {"choices":[{"delta":{"content":"ok"}}]}\ndata: [DONE]\n',
+                request=req,
+            )
+
+        _patch_async_client(monkeypatch, httpx.MockTransport(handler))
+
+        _ = [c async for c in configured_ai.chat_stream(
+            [{"role": "user", "content": "test"}],
+            context="evidence",
+        )]
+        assert captured_headers is not None
+        auth = captured_headers.get("authorization", "")
+        assert auth == "Bearer fake-key"
 
 
 # ============================================================
@@ -277,7 +812,6 @@ class TestRAGService:
         svc = RAGService(db_session)
         chunks = await svc.retrieve("扁鹊", entity_types=["person", "book"], top_k=3)
         assert len(chunks) >= 1
-        # Should find either person or book about 扁鹊
         assert any("扁鹊" in str(c.get("content", "")) for c in chunks)
 
     async def test_assemble_context_with_data(self, db_session: AsyncSession) -> None:
