@@ -1216,6 +1216,7 @@ all = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pytest-playwright" },
     { name = "ruff" },
 ]
 dev = [
@@ -1227,6 +1228,7 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pytest-playwright" },
     { name = "ruff" },
 ]
 elasticsearch = [
@@ -1237,11 +1239,6 @@ milvus = [
 ]
 neo4j = [
     { name = "neo4j" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest-playwright" },
 ]
 
 [package.metadata]
@@ -1277,6 +1274,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0.0" },
+    { name = "pytest-playwright", marker = "extra == 'dev'", specifier = ">=0.8.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "redis", specifier = ">=5.2.0" },
@@ -1285,9 +1283,6 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.34.0" },
 ]
 provides-extras = ["dev", "milvus", "neo4j", "elasticsearch", "ai", "all"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest-playwright", specifier = ">=0.8.0" }]
 
 [[package]]
 name = "identify"
