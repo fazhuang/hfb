@@ -316,27 +316,37 @@ class TestSaveItemsCompliance:
 
     @pytest.mark.asyncio
     async def test_save_empty_source_url_rejected(self, db_session: AsyncSession):
-        """_save_items must skip items whose source_url.strip() is empty and log error."""
+        """_save_items must skip items whose source_url.strip() is empty and log error.
+        Also covers orchestrator.py lines 185-188: the empty source_url guard in
+        _save_items (belt-and-suspenders to LiteratureItem constructor)."""
         job = IngestionJob(source="openalex", query="test")
-        # We can't construct a LiteratureItem with empty source_url anymore,
-        # but _save_items also checks source_url.strip() as a belt-and-suspenders guard.
-        # This test verifies the try_create path won't produce items with empty urls.
-        item = LiteratureItem.try_create(
+        item = LiteratureItem(
+            title="Whitespace URL Item",
+            source="openalex",
+            source_url="https://example.com/ok",
+        )
+        # Bypass __post_init__ guard to test the _save_items belt-and-suspenders path
+        object.__setattr__(item, "source_url", "   ")
+        assert item.source_url == "   "
+        assert item.source_url.strip() == ""
+
+        await _save_items(db_session, [item], job)
+        await db_session.flush()
+        # source_url.strip() is empty → error_count incremented
+        assert job.error_count == 1
+        assert any("empty source_url" in e for e in job.errors)
+        assert job.new_added == 0
+
+        # Valid item still works normally
+        valid_item = LiteratureItem(
             title="Has URL",
             source="openalex",
             source_url="https://example.com/ok",
         )
-        assert item is not None
-        await _save_items(db_session, [item], job)
+        job2 = IngestionJob(source="openalex", query="test2")
+        await _save_items(db_session, [valid_item], job2)
         await db_session.flush()
-        assert job.new_added == 1
-
-        null_item = LiteratureItem.try_create(
-            title="No URL Item",
-            source="openalex",
-            source_url="",
-        )
-        assert null_item is None  # try_create rejects, never reaches _save_items
+        assert job2.new_added == 1
 
     @pytest.mark.asyncio
     async def test_flush_failure_sets_job_error(self, db_session: AsyncSession):
