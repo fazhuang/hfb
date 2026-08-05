@@ -1,3 +1,4 @@
+
 """Tests for ConflictDetector."""
 
 import pytest
@@ -71,3 +72,62 @@ async def test_herb_incompatibility_detected(db_session):
     )
     conflicts = await ConflictDetector.detect(db_session, [path])
     assert any(c.conflict_type == "tcm_herb_incompatibility" for c in conflicts)
+
+
+@pytest.mark.asyncio
+async def test_no_reverse_when_only_one_direction(db_session):
+    """Only one direction -> no reverse conflict."""
+    path = EvidenceChainPath(
+        path_id="path1",
+        hops=[make_hop("herb", "a", "herb", "b")],
+        total_confidence=0.80,
+        min_evidence_level=3,
+    )
+    conflicts = await ConflictDetector.detect(db_session, [path])
+    assert not any(c.conflict_type == "topological_reverse" for c in conflicts)
+
+
+@pytest.mark.asyncio
+async def test_acupuncture_contra_conflict(db_session):
+    """Two contraindication keywords in path -> acu conflict."""
+    path = EvidenceChainPath(
+        path_id="path1",
+        hops=[
+            make_hop("passage", "p1", "passage", "p2", quote="此穴禁针"),
+            make_hop("passage", "p3", "passage", "p4", quote="不可刺也"),
+        ],
+        total_confidence=0.75,
+        min_evidence_level=3,
+    )
+    conflicts = await ConflictDetector.detect(db_session, [path])
+    assert any(c.conflict_type == "tcm_acupuncture_contra" for c in conflicts)
+
+
+@pytest.mark.asyncio
+async def test_single_acupuncture_keyword_no_conflict(db_session):
+    """Only one contraindication keyword -> no conflict."""
+    path = EvidenceChainPath(
+        path_id="path1",
+        hops=[
+            make_hop("passage", "p1", "passage", "p2", quote="此穴禁针"),
+        ],
+        total_confidence=0.75,
+        min_evidence_level=3,
+    )
+    conflicts = await ConflictDetector.detect(db_session, [path])
+    assert not any(c.conflict_type == "tcm_acupuncture_contra" for c in conflicts)
+
+
+@pytest.mark.asyncio
+async def test_no_herb_incompatibility_without_pair(db_session):
+    """Single herb -> no incompatibility."""
+    path = EvidenceChainPath(
+        path_id="path1",
+        hops=[
+            make_hop("herb", "h1", "herb", "h2", citation="甘草"),
+        ],
+        total_confidence=0.70,
+        min_evidence_level=2,
+    )
+    conflicts = await ConflictDetector.detect(db_session, [path])
+    assert not any(c.conflict_type == "tcm_herb_incompatibility" for c in conflicts)
