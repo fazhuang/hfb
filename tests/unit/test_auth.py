@@ -1,6 +1,12 @@
 """
-Tests for auth service — password hashing, JWT, login, permissions.
+Tests for auth service — password hashing, JWT, login, permissions,
+and auth middleware (_extract_token, get_current_user, require_permission,
+require_any_permission, OptionalUser).
 """
+
+from __future__ import annotations
+
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from app.repositories.user import PermissionRepository, RoleRepository, UserRepository
@@ -12,9 +18,20 @@ from app.services.auth_service import (
     hash_password,
     verify_password,
 )
+from app.middleware.auth import (
+    _extract_token,
+    get_current_user,
+    OptionalUser,
+    require_any_permission,
+    require_permission,
+)
+from fastapi import Depends, FastAPI, Request
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
+
+pytestmark = pytest.mark.anyio
 
 
 class TestPasswordHashing:
@@ -30,7 +47,7 @@ class TestPasswordHashing:
         assert not verify_password("wrong", hashed)
 
     def test_hash_is_deterministic_for_same_input(self):
-        """Each hash call produces a unique salt → different output."""
+        """Each hash call produces a unique salt -> different output."""
         h1 = hash_password("secret123")
         h2 = hash_password("secret123")
         assert h1 != h2
@@ -124,7 +141,7 @@ class TestAuthService:
         await svc.register("rtest2", "rtest2@test.com", "pass123")
         _u, access, _refresh = await svc.authenticate("rtest2", "pass123")
 
-        # Using access token as refresh → should fail
+        # Using access token as refresh -> should fail
         result = svc.refresh_access_token(access)
         assert result is None
 
@@ -138,11 +155,10 @@ class TestAuthService:
         p_read = await perm_repo.create(resource="person", action="read")
         await perm_repo.create(resource="person", action="write")
 
-        # Create role with read permission — use explicit association table insert
+        # Create role with read permission
         role_repo = RoleRepository(db_session)
         role = await role_repo.create(name="TestRole")
 
-        # Insert into role_permission table directly to avoid lazy-load on SQLite
         from app.models.user import role_permission
 
         await db_session.execute(
@@ -158,7 +174,6 @@ class TestAuthService:
             hashed_password=hash_password("test"),
         )
 
-        # Insert into user_role table directly
         from app.models.user import user_role
 
         await db_session.execute(
@@ -191,3 +206,321 @@ class TestAuthService:
             )
             is False
         )
+
+
+# ============================================================
+# AUTH MIDDLEWARE -- _extract_token, get_current_user,
+# require_permission, require_any_permission, OptionalUser
+# ============================================================
+
+
+class TestExtractToken:
+    """Coverage for _extract_token lines 25-38."""
+
+    async def test_extracts_bearer_header(self):
+        """Lines 27-31: Bearer token via Authorization header (Starlette's
+        Headers.get is case-insensitive, so either get('Authorization')
+        or get('authorization') resolves correctly)."""
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer my-access-token")],
+        }
+        request = Request(scope)
+        token = _extract_token(request)
+        assert token == "my-access-token"
+
+    async def test_extracts_cookie_fallback(self):
+        """Line 34-36: fallback to access_token cookie."""
+        scope = {
+            "type": "http",
+            "headers": [],
+        }
+        request = Request(scope)
+        request._cookies = {"access_token": "cookie-token-value"}
+        token = _extract_token(request)
+        assert token == "cookie-token-value"
+
+    async def test_returns_none_when_no_token(self):
+        """Line 38: returns None when no token anywhere."""
+        scope = {
+            "type": "http",
+            "headers": [],
+        }
+        request = Request(scope)
+        request._cookies = {}
+        token = _extract_token(request)
+        assert token is None
+
+    async def test_non_bearer_header_ignored(self):
+        """Authorization header without Bearer prefix is ignored."""
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Basic dXNlcjpwYXNz")],
+        }
+        request = Request(scope)
+        request._cookies = {}
+        token = _extract_token(request)
+        assert token is None
+
+
+class TestGetCurrentUser:
+    """Coverage for get_current_user, specifically line 58 (invalid token)."""
+
+    async def test_invalid_token_returns_401_via_http(self):
+        """Line 58: get_current_user_id returns None -> 401.
+
+        Test via a real FastAPI request (ASGITransport).
+        """
+        from app.middleware.auth import get_auth_service as auth_svc_dep
+
+        app = FastAPI(debug=False)
+
+        async def _fake_svc():
+            svc = MagicMock()
+            svc.get_current_user_id = MagicMock(return_value=None)
+            return svc
+
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        @app.get("/me")
+        async def me_endpoint(
+            user_id: str = Depends(get_current_user),
+        ) -> dict:
+            return {"user_id": user_id}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get(
+                "/me", headers={"Authorization": "Bearer bad-token"}
+            )
+
+        assert resp.status_code == 401
+        data = resp.json()
+        assert "Invalid or expired token" in data.get("detail", "")
+
+    async def test_missing_token_returns_401_via_http(self):
+        """Line 50-55: no token -> 401 'Authentication required'."""
+        from app.middleware.auth import get_auth_service as auth_svc_dep
+
+        app = FastAPI(debug=False)
+
+        async def _fake_svc():
+            return MagicMock()
+
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        @app.get("/me")
+        async def me_endpoint(
+            user_id: str = Depends(get_current_user),
+        ) -> dict:
+            return {"user_id": user_id}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/me")
+
+        assert resp.status_code == 401
+        data = resp.json()
+        assert "Authentication required" in data.get("detail", "")
+
+
+class TestRequirePermission:
+    """Coverage for require_permission factory -- line 95, 112."""
+
+    async def test_permission_granted_passes(self):
+        """Happy path: user has the permission."""
+        from app.middleware.auth import (
+            get_auth_service as auth_svc_dep,
+            get_current_user as gcu_dep,
+        )
+
+        app = FastAPI(debug=False)
+
+        svc = MagicMock()
+        svc.has_permission = AsyncMock(return_value=True)
+
+        async def _fake_user():
+            return "test-user"
+
+        async def _fake_svc():
+            return svc
+
+        app.dependency_overrides[gcu_dep] = _fake_user
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        check = require_permission("books", "read")
+
+        @app.get("/books", dependencies=[Depends(check)])
+        async def list_books():
+            return {"books": []}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/books")
+        assert resp.status_code == 200
+
+    async def test_permission_denied_returns_403(self):
+        """Line 79-81 (via require_permission): denied -> 403."""
+        from app.middleware.auth import (
+            get_auth_service as auth_svc_dep,
+            get_current_user as gcu_dep,
+        )
+
+        app = FastAPI(debug=False)
+
+        svc = MagicMock()
+        svc.has_permission = AsyncMock(return_value=False)
+
+        async def _fake_user():
+            return "test-user"
+
+        async def _fake_svc():
+            return svc
+
+        app.dependency_overrides[gcu_dep] = _fake_user
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        check = require_permission("admin", "manage")
+
+        @app.get("/admin", dependencies=[Depends(check)])
+        async def admin_endpoint():
+            return {"ok": True}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/admin")
+        assert resp.status_code == 403
+        data = resp.json()
+        assert "admin.manage" in data.get("detail", "")
+
+
+class TestRequireAnyPermission:
+    """Coverage for require_any_permission -- lines 95-97, 119-122."""
+
+    async def test_any_permission_granted_passes(self):
+        """Line 119-122: user has at least one match."""
+        from app.middleware.auth import (
+            get_auth_service as auth_svc_dep,
+            get_current_user as gcu_dep,
+        )
+
+        app = FastAPI(debug=False)
+
+        svc = MagicMock()
+        svc.has_any_permission = AsyncMock(return_value=True)
+
+        async def _fake_user():
+            return "test-user"
+
+        async def _fake_svc():
+            return svc
+
+        app.dependency_overrides[gcu_dep] = _fake_user
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        check = require_any_permission(("books", "read"), ("books", "write"))
+
+        @app.get("/books-any", dependencies=[Depends(check)])
+        async def list_books_any():
+            return {"books": []}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/books-any")
+        assert resp.status_code == 200
+
+    async def test_any_permission_denied_returns_403(self):
+        """Lines 95-97: no permission matched -> 403 with formatted detail."""
+        from app.middleware.auth import (
+            get_auth_service as auth_svc_dep,
+            get_current_user as gcu_dep,
+        )
+
+        app = FastAPI(debug=False)
+
+        svc = MagicMock()
+        svc.has_any_permission = AsyncMock(return_value=False)
+
+        async def _fake_user():
+            return "test-user"
+
+        async def _fake_svc():
+            return svc
+
+        app.dependency_overrides[gcu_dep] = _fake_user
+        app.dependency_overrides[auth_svc_dep] = _fake_svc
+
+        check = require_any_permission(("admin", "manage"), ("admin", "delete"))
+
+        @app.get("/admin-any", dependencies=[Depends(check)])
+        async def admin_any():
+            return {"ok": True}
+
+        transport = ASGITransport(app=app, raise_app_exceptions=False)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            resp = await client.get("/admin-any")
+        assert resp.status_code == 403
+        data = resp.json()
+        assert "admin.manage" in data.get("detail", "")
+        assert "admin.delete" in data.get("detail", "")
+        assert "any of" in data.get("detail", "")
+
+
+class TestOptionalUser:
+    """Coverage for OptionalUser -- lines 112, 119-122."""
+
+    async def test_returns_user_id_when_token_valid(self):
+        """Line 122: valid token returns user_id via __call__."""
+        from app.middleware.auth import OptionalUser as OU
+
+        optional = OU()
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer good-token")],
+        }
+        request = Request(scope)
+
+        svc = MagicMock()
+        svc.get_current_user_id = MagicMock(return_value="user-456")
+
+        result = await optional.__call__(request, svc)
+        assert result == "user-456"
+        svc.get_current_user_id.assert_called_once_with("good-token")
+
+    async def test_returns_none_when_no_token(self):
+        """Lines 119-121: no token -> returns None, svc not called."""
+        from app.middleware.auth import OptionalUser as OU
+
+        optional = OU()
+        scope = {
+            "type": "http",
+            "headers": [],
+        }
+        request = Request(scope)
+        request._cookies = {}
+
+        svc = MagicMock()
+        result = await optional.__call__(request, svc)
+        assert result is None
+        svc.get_current_user_id.assert_not_called()
+
+    async def test_returns_none_when_token_invalid(self):
+        """Line 122: token present but get_current_user_id returns None."""
+        from app.middleware.auth import OptionalUser as OU
+
+        optional = OU()
+        scope = {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer expired-token")],
+        }
+        request = Request(scope)
+
+        svc = MagicMock()
+        svc.get_current_user_id = MagicMock(return_value=None)
+        result = await optional.__call__(request, svc)
+        assert result is None
+
+    async def test_init_accepts_no_args(self):
+        """Line 112: OptionalUser.__init__ with no args."""
+        ou = OptionalUser()
+        assert ou is not None  # pylint: disable=no-member

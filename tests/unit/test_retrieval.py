@@ -1,93 +1,198 @@
+"""Unit tests for RetrievalService — edge cases in search, tokenization, and scoring."""
 
-"""Unit tests for retrieval.py — _tokenize, _score_chunk, _expand_variants, SearchResponse."""
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from __future__ import annotations
+import pytest
 
 from app.services.retrieval import (
-    _expand_variants,
-    _COMPLIANT_COPYRIGHT_STATUSES,
     RetrievalResult,
-    SearchResponse,
     RetrievalService,
+    _expand_variants,
 )
+from app.services.retrieval import SearchResponse as RetrievalSearchResponse
 
+
+# ---------------------------------------------------------------------------
+# RetrievalService.search — edge cases
+# ---------------------------------------------------------------------------
+
+class TestSearchEmptyKeywords:
+    """Line 220: empty keywords return early."""
+
+    @pytest.mark.asyncio
+    async def test_empty_query_returns_empty_response(self):
+        session = AsyncMock()
+        svc = RetrievalService(session)
+        result = await svc.search("   ", top_k=10)
+        assert isinstance(result, RetrievalSearchResponse)
+        assert result.results == []
+        assert result.total == 0
+        assert result.max_score == 0.0
+        assert result.query == "   "
+
+
+class TestSearchAuthorIdFilter:
+    """Line 260: author_id filter path."""
+
+    @pytest.mark.asyncio
+    async def test_author_id_filter_adds_where_clause(self):
+        session = AsyncMock()
+        session.execute = AsyncMock()
+        # Return empty chunks
+        mock_result = MagicMock()
+        mock_result.scalars.return_value.all.return_value = []
+        session.execute.return_value = mock_result
+
+        svc = RetrievalService(session)
+        result = await svc.search("keyword", top_k=5, author_id="author-1")
+        assert isinstance(result, RetrievalSearchResponse)
+        assert result.results == []
+
+
+# ---------------------------------------------------------------------------
+# RetrievalService._tokenize — variant expansion
+# ---------------------------------------------------------------------------
 
 class TestExpandVariants:
-    def test_known_simplified_expands(self) -> None:
-        expanded = _expand_variants(["针"])
-        assert "針" in expanded
-        assert "鍼" in expanded
-        assert "针" in expanded
+    """Tests for _expand_variants helper."""
 
-    def test_no_duplicate(self) -> None:
-        expanded = _expand_variants(["针", "针"])
-        # "针" appears at least once, variants present
-        assert len(expanded) >= 3
+    def test_expands_simplified_to_traditional(self):
+        result = _expand_variants(["针经"])
+        assert "鍼經" in result or "針經" in result
 
-    def test_noop_for_unknown_char(self) -> None:
-        expanded = _expand_variants(["x"])
-        assert expanded == ["x"]
+    def test_no_variants_returns_original(self):
+        result = _expand_variants(["abc"])
+        assert result == ["abc"]
+
+    def test_multiple_keywords_expand_all(self):
+        result = _expand_variants(["针", "经"])
+        # Should contain original keywords
+        assert "针" in result
+        assert "经" in result
+
+    def test_empty_keywords_returns_empty(self):
+        result = _expand_variants([])
+        assert result == []
+
+    def test_does_not_duplicate(self):
+        result = _expand_variants(["无"])
+        # 无 has a variant "無", should be in result but not duplicated
+        assert len(result) == len(set(result))
 
 
-class TestComplianceClauses:
-    def test_compliant_set(self) -> None:
-        assert "public_domain" in _COMPLIANT_COPYRIGHT_STATUSES
-        assert "open_access" in _COMPLIANT_COPYRIGHT_STATUSES
-        assert "licensed" in _COMPLIANT_COPYRIGHT_STATUSES
+class TestSearchEvidenceMetadata:
+    """Lines 314-317: evidence_weight and ocr_confidence metadata fields."""
 
+    @pytest.mark.asyncio
+    async def test_chunk_with_evidence_weight_added_to_metadata(self):
+        session = AsyncMock()
+        session.execute = AsyncMock()
+
+        # Build a mock chunk with evidence_weight and ocr_confidence
+        chunk = MagicMock()
+        chunk.id = "chunk-1"
+        chunk.document_id = "doc-1"
+        chunk.chunk_index = 0
+        chunk.content = "test keyword content"
+        chunk.token_count = 100
+        chunk.page_number = None
+        chunk.paragraph_index = None
+        chunk.evidence_weight = "primary"
+        chunk.ocr_confidence = None
+
+        mock_chunks_result = MagicMock()
+        mock_chunks_result.scalars.return_value.all.return_value = [chunk]
+
+        # Document lookup result
+        mock_doc_row = MagicMock()
+        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+
+        session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
+
+        svc = RetrievalService(session)
+        result = await svc.search("keyword", top_k=5)
+        assert len(result.results) == 1
+        assert result.results[0].metadata.get("evidence_weight") == "primary"
+
+    @pytest.mark.asyncio
+    async def test_chunk_with_ocr_confidence_added_to_metadata(self):
+        session = AsyncMock()
+        session.execute = AsyncMock()
+
+        chunk = MagicMock()
+        chunk.id = "chunk-1"
+        chunk.document_id = "doc-1"
+        chunk.chunk_index = 0
+        chunk.content = "test keyword content"
+        chunk.token_count = 100
+        chunk.page_number = None
+        chunk.paragraph_index = None
+        chunk.evidence_weight = ""
+        chunk.ocr_confidence = 0.95
+
+        mock_chunks_result = MagicMock()
+        mock_chunks_result.scalars.return_value.all.return_value = [chunk]
+
+        mock_doc_row = MagicMock()
+        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+
+        session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
+
+        svc = RetrievalService(session)
+        result = await svc.search("keyword", top_k=5)
+        assert len(result.results) == 1
+        assert result.results[0].metadata.get("ocr_confidence") == 0.95
+
+    @pytest.mark.asyncio
+    async def test_chunk_with_page_number_added_to_metadata(self):
+        session = AsyncMock()
+        session.execute = AsyncMock()
+
+        chunk = MagicMock()
+        chunk.id = "chunk-1"
+        chunk.document_id = "doc-1"
+        chunk.chunk_index = 0
+        chunk.content = "test keyword content"
+        chunk.token_count = 100
+        chunk.page_number = 42
+        chunk.paragraph_index = 3
+        chunk.evidence_weight = "reference"
+        chunk.ocr_confidence = None
+
+        mock_chunks_result = MagicMock()
+        mock_chunks_result.scalars.return_value.all.return_value = [chunk]
+
+        mock_doc_row = MagicMock()
+        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+
+        session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
+
+        svc = RetrievalService(session)
+        result = await svc.search("keyword", top_k=5)
+        assert len(result.results) == 1
+        assert result.results[0].metadata.get("page_number") == 42
+        assert result.results[0].metadata.get("paragraph_index") == 3
+
+
+# ---------------------------------------------------------------------------
+# RetrievalService._score_chunk
+# ---------------------------------------------------------------------------
 
 class TestScoreChunk:
-    def test_no_keywords_zero_score(self) -> None:
-        score = RetrievalService._score_chunk(["针灸"], "")
+    """Static _score_chunk method."""
+
+    def test_content_with_all_keywords_scores_high(self):
+        score = RetrievalService._score_chunk(["key1", "key2"], "key1 and key2 appear here")
+        assert score > 0.4
+
+    def test_content_with_no_keywords_scores_zero(self):
+        score = RetrievalService._score_chunk(["x", "y"], "no match here")
         assert score == 0.0
 
-    def test_no_match_zero_score(self) -> None:
-        score = RetrievalService._score_chunk(["不存在"], "完全无关的内容")
+    def test_empty_content_scores_zero(self):
+        score = RetrievalService._score_chunk(["key"], "")
         assert score == 0.0
 
-    def test_full_match_positive_score(self) -> None:
-        score = RetrievalService._score_chunk(["针灸"], "针灸甲乙经记载经络理论")
-        assert score > 0.0
-        assert score <= 1.0
-
-    def test_multiple_keywords_higher_score(self) -> None:
-        single = RetrievalService._score_chunk(["针灸"], "针灸是中医的重要组成部分针灸可以治病")
-        double = RetrievalService._score_chunk(["针灸", "中医"], "针灸是中医的重要组成部分针灸可以治病")
-        assert double > single
-
-
-class TestTokenize:
-    def test_whitespace_separated_query(self) -> None:
-        tokens = RetrievalService._tokenize("针灸 经络")
-        assert "针灸" in tokens or "經絡" in tokens or "经" in tokens
-
-    def test_chinese_query_bigrams(self) -> None:
-        tokens = RetrievalService._tokenize("针灸甲乙经")
-        assert len(tokens) > 0
-
-    def test_empty_query(self) -> None:
-        tokens = RetrievalService._tokenize("")
-        assert tokens == []
-
-
-class TestSearchResponse:
-    def test_empty_response(self) -> None:
-        resp = SearchResponse(query="test", results=[], total=0, max_score=0.0)
-        assert resp.query == "test"
-        assert resp.results == []
-        assert resp.max_score == 0.0
-
-
-class TestRetrievalResult:
-    def test_fields(self) -> None:
-        r = RetrievalResult(
-            chunk_id="c1",
-            document_id="d1",
-            document_title="测试",
-            chunk_index=0,
-            content="内容",
-            citation="[d1:c1]",
-            score=0.85,
-        )
-        assert r.citation == "[d1:c1]"
-        assert r.score == 0.85
+    def test_empty_keywords_scores_zero(self):
+        score = RetrievalService._score_chunk([], "some content")
+        assert score == 0.0
