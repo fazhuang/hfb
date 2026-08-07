@@ -25,7 +25,7 @@
 
 > **一手来源**：https://lucide.dev
 > **PO 可选包**：`@lucide/vue`（推荐，v1.x 当前 stable）或 `lucide-vue-next`（已弃用）
-> **弃用来源**：`lucide-vue-next` npm 页面标记 "Package deprecated. Please use @lucide/vue instead"；Lucide v1 官方迁移指南确认 "`lucide-vue-next` is now renamed to `@lucide/vue`"（https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration）。Lucide v1.17.0 起正式移除弃用包。
+> **弃用来源**：`lucide-vue-next` npm 页面标记 "Package deprecated. Please use @lucide/vue instead"；Lucide v1 官方迁移指南确认 "`lucide-vue-next` is now renamed to `@lucide/vue`"（https://lucide.dev/guide/version-1 、 https://lucide.dev/guide/vue/migration ）。Lucide v1.17.0 起正式移除弃用包。
 > **当前版本**：`@lucide/vue` 1.24.0 (npm, 2026-07)；`@iconify/vue` 5.0.1 (npm, 2026-05-06)；`@phosphor-icons/vue` 2.2.1 (npm, 2024-04-05, GitHub releases)
 > **版本策略**：建议安装 `@lucide/vue`，锁定 `^1.24.0`。`lucide-vue-next` 不可用于新项目。
 > **迁移路径**：`lucide-vue-next → @lucide/vue` 为 find-and-replace 级别（API 不变），仅需改 package name 与 import path。
@@ -293,6 +293,6 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 - [x] 许可证均 ISC/MIT — 兼容商业学术用途
 - [x] 所有候选 Vue 3 tree-shaking 在 Vite 6 原生支持 (Vite 6 rollup-based ESM tree-shaking is default for all three ESM packages)
 - [x] 古籍 6 个 icon 缺口已被明确标注，未谎报覆盖 (§4: 卷/页/版本/异文/校勘/善本/典籍 — 每项均注明近似但无精确匹配)
-- [x] 每个候选的版本号、维护状态来自 2026-08-01 一手查询：`@lucide/vue` 1.24.0 (npm), `@iconify/vue` 5.0.1 (npm), `@phosphor-icons/vue` 2.2.1 (GitHub releases)。lucide-vue-next 弃用由 npm deprecated 标记 + Lucide v1 官方迁移指南 (https://lucide.dev/guide/version-1, https://lucide.dev/guide/vue/migration) 双重证实。
+- [x] 每个候选的版本号、维护状态来自 2026-08-01 一手查询：`@lucide/vue` 1.24.0 (npm), `@iconify/vue` 5.0.1 (npm), `@phosphor-icons/vue` 2.2.1 (GitHub releases)。lucide-vue-next 弃用由 npm deprecated 标记 + Lucide v1 官方迁移指南 (https://lucide.dev/guide/version-1 和 https://lucide.dev/guide/vue/migration) 双重证实。
 
 **未完成项（待 PO 选择）**：安装、封装 `HfbIcon`、替换 14 文件、无障碍 label、暗色模式测试。
