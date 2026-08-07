@@ -2,7 +2,7 @@
 
 ## Git 基线
 
-- **Candidate Baseline SHA:** `87065926`
+- **Candidate Baseline SHA:** `f087b758b8b4e64a309a30395a51a1afe62d5fc0`
 - **发布门禁基准 SHA:** `9a4ff9c`（D2-E2E gate）
 - **`git status --short`:** 仅 `output/e2e/`（E2E 截图/日志/zip 产物）、`tests/conftest.py`、`tests/unit/`（6 个单元测试）及两个新增未追踪文件（`apps/backend/tests/test_research_workflow_service.py`、`apps/backend/tests/unit/`、`coverage.json`）。`apps/` 业务代码零变动。
 
@@ -49,7 +49,7 @@
 
 | 门禁 | 命令 | 原始输出摘要 | 出口码 | 判定 |
 |------|------|-------------|--------|------|
-| Git 基线 | `git rev-parse HEAD` / `git status --short` | `87065926`，`apps/` 零变动 | — | PASS |
+| Git 基线 | `git rev-parse HEAD` / `git status --short` | `f087b758`，`apps/` 零变动 | — | PASS |
 | D2-COV | `pytest ... --cov=apps/backend --cov-report=json` | 3266 passed, 0 failed, 90.1570% | 0 | PASS |
 | D2-E2E | `pnpm test:e2e` | 27/27 passed, 0 non-whitelist page.goto | 0 | PASS |
 | Security Audit | `pnpm audit --registry https://registry.npmjs.org/` | No known vulnerabilities found（`js-yaml` 已通过 overrides 升级至 >=4.3.1） | 0 | PASS |
