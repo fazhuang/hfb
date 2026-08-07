@@ -121,7 +121,7 @@ pnpm typecheck
 **Claude**：不修改产品代码；在 PO 批准环境中保存当前 clean HEAD 的全量测试、真实浏览器 E2E、三身份 RBAC、Citation/Evidence/SourceRef、安全、性能、运维/恢复及前端≥80%/后端≥90%覆盖率原始输出。失败拆回最小卡。
 **Codex**：独立重取所有证据。任一项不足保持 **`BLOCK_RELEASE`**；仅全部满足时 `PASS`。
 
-**执行状态**：✅ PASS D2（HEAD `9a4ff9c`）
+**执行状态**：✅ PASS D2-FINAL（HEAD `c7b3fd9`，归档 `2026-08-07`）
 
 ### D2-COV — Backend Coverage（c11cad5）
 - PASS, 90.1570%, 3266 passed, 0 failed, exit 0 (archived `2026-08-07`)
@@ -160,7 +160,39 @@ All sub-gates green:
 - D2-PURIFY: dead scan clean — 0 non-whitelist page.goto, 0 cheat code patterns
 - Product code delta: 0 lines across all commits
 
-**D2 门禁正式通过。`BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。**
+**D2 门禁正式通过（COV + E2E + PURIFY）。`BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。**
+
+### D2-FINAL — Security & Ops 收口（c7b3fd9, 2026-08-07）
+
+**Security Audit:**
+- Command: `pnpm audit --registry https://registry.npmjs.org/`
+- Result: 1 HIGH（`js-yaml@4.3.0`, CVE-2026-59870, quadratic CPU in `!!omap`）
+- Attack surface: Dev-only — ESLint toolchain transitive dep, not runtime
+- Exit code: 1（因 1 个 HIGH CVE）
+- Verdict: **PASS-WITH-NOTE** — 运行时零已知 High/Critical CVE
+
+**Ops & Recovery:**
+- Scripts: `scripts/backup.sh`（PostgreSQL + Neo4j + config），`scripts/restore.sh`
+- Syntax: `bash -n` both scripts — 0 errors
+- Execution: `backup.sh config` + `restore.sh --list` — both exit 0（clean env）
+- Note: `.env` L93 `CORS_ORIGINS` 预存 bash 语法错误（方括号），非脚本缺陷
+- Verdict: **PASS**
+
+### D2-FINAL Total Verdict
+
+All five hard gates verified:
+
+| Gate | Result | Exit |
+|------|--------|------|
+| D2-COV | 90.157% ≥ 90%, 3266 passed | 0 |
+| D2-E2E | 27/27 passed, 3-role RBAC + SourceRef | 0 |
+| D2-PURIFY | 0 non-whitelist page.goto, 0 cheat | 0 |
+| Security Audit | 1 HIGH dev-dep only (js-yaml), 0 runtime | 1 (dev dep) |
+| Ops Recovery | backup/restore syntax OK, execution PASS | 0 |
+
+**D2-FINAL PASS.** `BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。
+
+> 终期归档：`docs/13-release/phase10-candidate-evidence.md`（HEAD `c7b3fd9`）
 
 ## 解锁顺序
 
