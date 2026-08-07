@@ -31,10 +31,10 @@
 
 ## CI 5/5 Green Gate (SHA `2c9470ffd70b202e6ca84a38feba2fffbb6472bb`)
 
-| Workflow | Status | URL |
-|----------|--------|-----|
-| Build | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889386 |
-| Test | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889485 |
-| Lint | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212890849 |
-| Security | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889907 |
+| Workflow      | Status     | URL                                                      |
+| ------------- | ---------- | -------------------------------------------------------- |
+| Build         | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889386 |
+| Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889485 |
+| Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212890849 |
+| Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212889907 |
 | Documentation | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31212892401 |
