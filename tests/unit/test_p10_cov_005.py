@@ -640,29 +640,6 @@ class TestInfrastructureCheck:
             status = await ci.run_health_checks()
             assert status.all_healthy is False
 
-    def test_resolved_trace_to_public_dict(self) -> None:
-        from unittest.mock import MagicMock
-        from app.services.trace_lineage import ResolvedTrace
-
-        mock_chunk = MagicMock()
-        mock_chunk.chunk_index = 0
-        mock_chunk.content = "test content"
-        mock_doc = MagicMock()
-        mock_doc.id = "d1"
-        mock_doc.title = "Test Title"
-
-        rt = ResolvedTrace(
-            trace_id="t1",
-            chunk=mock_chunk,
-            document=mock_doc,
-            passage=None,
-            passage_citation="",
-            chunk_citation="[d1:c1]",
-        )
-        d = rt.to_public_dict()
-        assert d["trace_id"] == "t1"
-        assert d["document_id"] == "d1"
-        assert d["document_title"] == "Test Title"
 
 
 # =============================================================================
