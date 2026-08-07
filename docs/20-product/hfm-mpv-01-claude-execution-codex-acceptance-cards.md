@@ -121,7 +121,7 @@ pnpm typecheck
 **Claude**：不修改产品代码；在 PO 批准环境中保存当前 clean HEAD 的全量测试、真实浏览器 E2E、三身份 RBAC、Citation/Evidence/SourceRef、安全、性能、运维/恢复及前端≥80%/后端≥90%覆盖率原始输出。失败拆回最小卡。
 **Codex**：独立重取所有证据。任一项不足保持 **`BLOCK_RELEASE`**；仅全部满足时 `PASS`。
 
-**执行状态**：✅ PASS D2-FINAL（HEAD `e59cd40`，Security fixed + 归档 `2026-08-07`）
+**执行状态**：✅ PASS D2-FINAL-LOCK（HEAD `de96703`，Authoritative audit clean + SHA synced `2026-08-07`）
 
 ### D2-COV — Backend Coverage（c11cad5）
 - PASS, 90.1570%, 3266 passed, 0 failed, exit 0 (archived `2026-08-07`)
@@ -162,7 +162,7 @@ All sub-gates green:
 
 **D2 门禁正式通过（COV + E2E + PURIFY）。`BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。**
 
-### D2-FINAL — Security & Ops 收口（e59cd40, 2026-08-07）
+### D2-FINAL-LOCK — Security & Ops 收口（de96703, 2026-08-07）
 
 **Security Audit（已修复）:**
 - Command: `pnpm audit --registry https://registry.npmjs.org/`
@@ -192,7 +192,8 @@ All five hard gates verified:
 
 **D2-FINAL PASS.** `BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。
 
-> 终期归档：`docs/13-release/phase10-candidate-evidence.md`（HEAD `e59cd40`）
+> 终期归档：`docs/13-release/phase10-candidate-evidence.md`（HEAD `de96703`）
+> 审计日志：`/private/tmp/d2_sec_authoritative.log`
 
 ## 解锁顺序
 

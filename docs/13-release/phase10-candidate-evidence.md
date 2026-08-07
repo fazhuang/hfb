@@ -2,7 +2,7 @@
 
 ## Git 基线
 
-- **HEAD SHA:** `e59cd40`（引用基线 `9a4ff9c`）
+- **HEAD SHA:** `de96703`（引用基线 `9a4ff9c`）
 - **发布门禁基准 SHA:** `9a4ff9c`（D2-E2E gate）
 - **`git status --short`:** 仅 `output/e2e/`（E2E 截图/日志/zip 产物）、`tests/conftest.py`、`tests/unit/`（6 个单元测试）及两个新增未追踪文件（`apps/backend/tests/test_research_workflow_service.py`、`apps/backend/tests/unit/`、`coverage.json`）。`apps/` 业务代码零变动。
 
@@ -49,7 +49,7 @@
 
 | 门禁 | 命令 | 原始输出摘要 | 出口码 | 判定 |
 |------|------|-------------|--------|------|
-| Git 基线 | `git rev-parse HEAD` / `git status --short` | `e59cd40`，`apps/` 零变动 | — | PASS |
+| Git 基线 | `git rev-parse HEAD` / `git status --short` | `de96703`，`apps/` 零变动 | — | PASS |
 | D2-COV | `pytest ... --cov=apps/backend --cov-report=json` | 3266 passed, 0 failed, 90.1570% | 0 | PASS |
 | D2-E2E | `pnpm test:e2e` | 27/27 passed, 0 non-whitelist page.goto | 0 | PASS |
 | Security Audit | `pnpm audit --registry https://registry.npmjs.org/` | No known vulnerabilities found（`js-yaml` 已通过 overrides 升级至 >=4.3.1） | 0 | PASS |
@@ -68,7 +68,7 @@
 **`BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。**
 
 > **归档日期:** 2026-08-07
-> **日志文件:** `/private/tmp/d2_sec_fix.log`
+> **日志文件:** `/private/tmp/d2_sec_authoritative.log`
 
 ## Test Execution — Full Coverage Suite (Exact Precision)
 
