@@ -59,18 +59,3 @@ jobs:
 
       - name: Prettier check
         run: pnpm run format:check
-
-  pre-commit:
-    name: Pre-commit hooks
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.1
