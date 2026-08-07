@@ -46,8 +46,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    continue-on-error: true
+    if: false  # repo does not have Dependency Graph enabled
     steps:
       - uses: actions/checkout@v4
 
