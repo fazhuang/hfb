@@ -1,4 +1,3 @@
-
 """Unit tests for app.schemas.user — mandatory Pydantic model fields."""
 
 from __future__ import annotations
@@ -15,7 +14,9 @@ class TestLoginRequest:
 
 class TestRegisterRequest:
     def test_basic(self) -> None:
-        req = RegisterRequest(username="researcher", email="r@hfb.org", password="pass123!!")
+        req = RegisterRequest(
+            username="researcher", email="r@hfb.org", password="pass123!!"
+        )
         assert req.username == "researcher"
         assert req.email == "r@hfb.org"
         assert req.password == "pass123!!"

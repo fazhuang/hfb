@@ -360,12 +360,18 @@ def test_check_success_multiple_paths_one_valid():
         ],
         edges=[
             AcademicKGEdge(
-                edge_id="e1", relation_type="r", label="l",
-                evidence_quote="q1", evidence_citation="[d1:c1]",
+                edge_id="e1",
+                relation_type="r",
+                label="l",
+                evidence_quote="q1",
+                evidence_citation="[d1:c1]",
             ),
             AcademicKGEdge(
-                edge_id="e2", relation_type="r2", label="l2",
-                evidence_quote="q2", evidence_citation="[d2:c2]",
+                edge_id="e2",
+                relation_type="r2",
+                label="l2",
+                evidence_quote="q2",
+                evidence_citation="[d2:c2]",
             ),
         ],
     )
@@ -404,16 +410,26 @@ def test_hash_response_different_content_different_hash():
     r2 = AcademicRAGResponse(
         query="q", answer="answer two", refusal=True, corpus_sha256="sha"
     )
-    assert AcademicRAGService._hash_response(r1) != AcademicRAGService._hash_response(r2)
+    assert AcademicRAGService._hash_response(r1) != AcademicRAGService._hash_response(
+        r2
+    )
 
 
 def test_hash_response_output_sha256_emptied_before_hash():
     resp = AcademicRAGResponse(
-        query="q", answer="a", refusal=True, corpus_sha256="sha", output_sha256="existing-hash"
+        query="q",
+        answer="a",
+        refusal=True,
+        corpus_sha256="sha",
+        output_sha256="existing-hash",
     )
     h = AcademicRAGService._hash_response(resp)
     resp2 = AcademicRAGResponse(
-        query="q", answer="a", refusal=True, corpus_sha256="sha", output_sha256="different"
+        query="q",
+        answer="a",
+        refusal=True,
+        corpus_sha256="sha",
+        output_sha256="different",
     )
     assert h == AcademicRAGService._hash_response(resp2)
 
@@ -533,9 +549,7 @@ def test_project_citations_skips_malformed_citation(rag_svc):
 
 
 def test_build_evidence_chain_empty(rag_svc):
-    result = rag_svc._build_evidence_chain_stable(
-        parse_chinese_query("test"), [], []
-    )
+    result = rag_svc._build_evidence_chain_stable(parse_chinese_query("test"), [], [])
     assert result == []
 
 
@@ -910,21 +924,36 @@ async def test_find_kg_paths_with_neighbor_expansion_and_1hop():
     svc.graph = graph
 
     node1 = GraphNode(
-        id="person:001", entity_type="person", entity_id="001", label="皇甫谧",
+        id="person:001",
+        entity_type="person",
+        entity_id="001",
+        label="皇甫谧",
     )
     node2 = GraphNode(
-        id="book:002", entity_type="book", entity_id="002", label="针灸甲乙经",
+        id="book:002",
+        entity_type="book",
+        entity_id="002",
+        label="针灸甲乙经",
     )
     graph.search_entities = AsyncMock(side_effect=[[node1], [], []])
 
     ev = GraphEvidence(
-        document_id="d1", chunk_id="c1", exact_quote="皇甫谧撰针灸甲乙经",
-        citation="[d1:c1]", claim_text="皇甫谧编纂针灸甲乙经",
-        version_id="v1", passage_id="p1", source_uri="https://ctext.org/example",
+        document_id="d1",
+        chunk_id="c1",
+        exact_quote="皇甫谧撰针灸甲乙经",
+        citation="[d1:c1]",
+        claim_text="皇甫谧编纂针灸甲乙经",
+        version_id="v1",
+        passage_id="p1",
+        source_uri="https://ctext.org/example",
     )
     edge = GraphEdge(
-        id="er:001", source_id="person:001", target_id="book:002",
-        relation_type="compiled_from", label="编纂依据", evidence=ev,
+        id="er:001",
+        source_id="person:001",
+        target_id="book:002",
+        relation_type="compiled_from",
+        label="编纂依据",
+        evidence=ev,
     )
     nbr = NeighborResult(center=node1, neighbors=[node2], edges=[edge])
     graph.get_neighbors = AsyncMock(return_value=nbr)
@@ -965,35 +994,62 @@ async def test_find_kg_paths_2hop():
     svc.graph = graph
 
     node1 = GraphNode(
-        id="person:001", entity_type="person", entity_id="001", label="皇甫谧",
+        id="person:001",
+        entity_type="person",
+        entity_id="001",
+        label="皇甫谧",
     )
     node2 = GraphNode(
-        id="book:002", entity_type="book", entity_id="002", label="针灸甲乙经",
+        id="book:002",
+        entity_type="book",
+        entity_id="002",
+        label="针灸甲乙经",
     )
     node3 = GraphNode(
-        id="book:003", entity_type="book", entity_id="003", label="黄帝内经",
+        id="book:003",
+        entity_type="book",
+        entity_id="003",
+        label="黄帝内经",
     )
     graph.search_entities = AsyncMock(side_effect=[[node1], [], []])
 
     ev = GraphEvidence(
-        document_id="d1", chunk_id="c1", exact_quote="皇甫谧撰针灸甲乙经",
-        citation="[d1:c1]", claim_text="编纂", version_id="v1", passage_id="p1",
+        document_id="d1",
+        chunk_id="c1",
+        exact_quote="皇甫谧撰针灸甲乙经",
+        citation="[d1:c1]",
+        claim_text="编纂",
+        version_id="v1",
+        passage_id="p1",
         source_uri="https://ctext.org/example",
     )
     edge1 = GraphEdge(
-        id="er:001", source_id="person:001", target_id="book:002",
-        relation_type="compiled_from", label="编纂依据", evidence=ev,
+        id="er:001",
+        source_id="person:001",
+        target_id="book:002",
+        relation_type="compiled_from",
+        label="编纂依据",
+        evidence=ev,
     )
     nbr1 = NeighborResult(center=node1, neighbors=[node2], edges=[edge1])
 
     ev2 = GraphEvidence(
-        document_id="d2", chunk_id="c2", exact_quote="取材于黄帝内经",
-        citation="[d2:c2]", claim_text="来源", version_id="v2", passage_id="p2",
+        document_id="d2",
+        chunk_id="c2",
+        exact_quote="取材于黄帝内经",
+        citation="[d2:c2]",
+        claim_text="来源",
+        version_id="v2",
+        passage_id="p2",
         source_uri="https://ctext.org/source",
     )
     edge2 = GraphEdge(
-        id="er:002", source_id="book:002", target_id="book:003",
-        relation_type="derived_from", label="承袭", evidence=ev2,
+        id="er:002",
+        source_id="book:002",
+        target_id="book:003",
+        relation_type="derived_from",
+        label="承袭",
+        evidence=ev2,
     )
     nbr2 = NeighborResult(center=node2, neighbors=[node3], edges=[edge2])
 
@@ -1021,21 +1077,36 @@ async def test_find_kg_paths_2hop_value_error_on_second_neighbors():
     svc.graph = graph
 
     node1 = GraphNode(
-        id="person:001", entity_type="person", entity_id="001", label="皇甫谧",
+        id="person:001",
+        entity_type="person",
+        entity_id="001",
+        label="皇甫谧",
     )
     node2 = GraphNode(
-        id="book:002", entity_type="book", entity_id="002", label="甲乙经",
+        id="book:002",
+        entity_type="book",
+        entity_id="002",
+        label="甲乙经",
     )
     graph.search_entities = AsyncMock(side_effect=[[node1], [], []])
 
     ev = GraphEvidence(
-        document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]",
-        claim_text="c", version_id="v1", passage_id="p1",
+        document_id="d1",
+        chunk_id="c1",
+        exact_quote="q",
+        citation="[d1:c1]",
+        claim_text="c",
+        version_id="v1",
+        passage_id="p1",
         source_uri="https://ctext.org/example",
     )
     edge1 = GraphEdge(
-        id="er:001", source_id="person:001", target_id="book:002",
-        relation_type="compiled_from", label="编纂依据", evidence=ev,
+        id="er:001",
+        source_id="person:001",
+        target_id="book:002",
+        relation_type="compiled_from",
+        label="编纂依据",
+        evidence=ev,
     )
     nbr1 = NeighborResult(center=node1, neighbors=[node2], edges=[edge1])
     nbr2_empty = NeighborResult(center=node2, neighbors=[], edges=[])
@@ -1232,6 +1303,7 @@ async def test_answer_success_path():
 
     async def fake_retrieve(_parsed):
         return [{"document_id": "d1", "chunk_id": "c1", "content": "test"}]
+
     svc._retrieve_raw_candidates = fake_retrieve
 
     edge = AcademicKGEdge(
@@ -1252,15 +1324,19 @@ async def test_answer_success_path():
         edges=[edge, edge],
         hop_count=2,
     )
+
     async def fake_find(_parsed):
         return [path]
+
     svc._find_kg_paths = fake_find
 
     async def fake_validate(paths):
         return [path]
+
     svc._validate_all_path_edges = fake_validate
 
     from unittest.mock import patch
+
     with patch(
         "app.services.academic_rag_service.CitationPersistenceService"
     ) as mock_cps:
@@ -1294,6 +1370,7 @@ async def test_answer_persistence_failure_does_not_block():
 
     async def fake_retrieve(_parsed):
         return [{"document_id": "d1", "chunk_id": "c1", "content": "test"}]
+
     svc._retrieve_raw_candidates = fake_retrieve
 
     edge = AcademicKGEdge(
@@ -1314,15 +1391,19 @@ async def test_answer_persistence_failure_does_not_block():
         edges=[edge, edge],
         hop_count=2,
     )
+
     async def fake_find(_parsed):
         return [path]
+
     svc._find_kg_paths = fake_find
 
     async def fake_validate(paths):
         return [path]
+
     svc._validate_all_path_edges = fake_validate
 
     from unittest.mock import patch
+
     with patch(
         "app.services.academic_rag_service.CitationPersistenceService"
     ) as mock_cps:
@@ -1352,14 +1433,17 @@ async def test_answer_no_citations_after_projection():
 
     async def fake_retrieve(_parsed):
         return []
+
     svc._retrieve_raw_candidates = fake_retrieve
 
     async def fake_find(_parsed):
         return []
+
     svc._find_kg_paths = fake_find
 
     async def fake_validate(paths):
         return []
+
     svc._validate_all_path_edges = fake_validate
 
     result = await svc.answer("皇甫谧的思想来源是什么")

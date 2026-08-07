@@ -1,4 +1,3 @@
-
 """Unit tests for app.core.error_handlers — all exception handlers."""
 
 from __future__ import annotations
@@ -33,7 +32,9 @@ class TestErrorEnvelope:
         assert "timestamp" in envelope
 
     def test_with_metadata(self) -> None:
-        envelope = _error_envelope(422, "Bad", "VALIDATION", "r2", metadata={"fields": ["x"]})
+        envelope = _error_envelope(
+            422, "Bad", "VALIDATION", "r2", metadata={"fields": ["x"]}
+        )
         assert envelope["meta"]["metadata"] == {"fields": ["x"]}
 
 

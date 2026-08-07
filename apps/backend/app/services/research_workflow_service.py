@@ -728,17 +728,11 @@ async def _build_retrieval_snapshot(
         # Load all passage-scoped SourceRefs
         sr_stmt = sql_select(SourceRef).where(
             SourceRef.is_deleted.is_(False),
-            SourceRef.page_location.in_(
-                [f"passage:{pid}" for pid in passage_ids]
-            ),
+            SourceRef.page_location.in_([f"passage:{pid}" for pid in passage_ids]),
         )
         sr_result = await db.execute(sr_stmt)
         for sr in sr_result.scalars().all():
-            pid = (
-                sr.page_location.replace("passage:", "")
-                if sr.page_location
-                else ""
-            )
+            pid = sr.page_location.replace("passage:", "") if sr.page_location else ""
             if pid and pid in doc_by_passage:
                 did = doc_by_passage[pid]
                 source_ref_by_passage[(did, pid)] = {
@@ -754,11 +748,7 @@ async def _build_retrieval_snapshot(
         )
         sr_doc_result = await db.execute(sr_doc_stmt)
         for sr in sr_doc_result.scalars().all():
-            did = (
-                sr.page_location.replace("document:", "")
-                if sr.page_location
-                else ""
-            )
+            did = sr.page_location.replace("document:", "") if sr.page_location else ""
             if did:
                 document_fallback[did] = {
                     "source_ref_id": sr.id,

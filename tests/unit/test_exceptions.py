@@ -1,4 +1,3 @@
-
 """Unit tests for app.core.exceptions — DomainException hierarchy."""
 
 from __future__ import annotations

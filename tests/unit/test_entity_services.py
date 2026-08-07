@@ -102,9 +102,7 @@ class TestChapterService:
     @pytest.mark.asyncio
     async def test_create_valid(self, db_session: AsyncSession):
         svc = ChapterService(db_session)
-        chapter = await svc.create(
-            ChapterCreate(book_id="test-book-1", title="卷一")
-        )
+        chapter = await svc.create(ChapterCreate(book_id="test-book-1", title="卷一"))
         assert chapter.title == "卷一"
 
     @pytest.mark.asyncio
@@ -203,7 +201,11 @@ class TestImageService:
         svc = ImageService(db_session)
         with pytest.raises(ValueError, match="related_entity_id"):
             await svc._validate_create(
-                {"url": "http://x", "related_entity_type": "book", "related_entity_id": ""}
+                {
+                    "url": "http://x",
+                    "related_entity_type": "book",
+                    "related_entity_id": "",
+                }
             )
 
     @pytest.mark.asyncio

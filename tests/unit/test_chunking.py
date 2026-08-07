@@ -1,4 +1,3 @@
-
 """Unit tests for chunking.py — chunk_text, _split_paragraphs, _char_split."""
 
 from __future__ import annotations

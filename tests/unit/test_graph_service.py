@@ -32,6 +32,7 @@ from app.services.graph_service import (
 # _normalize_term
 # ======================================================================
 
+
 class TestNormalizeTerm:
     def test_strips_whitespace(self):
         assert _normalize_term("  气喘  ") == "气喘"
@@ -55,6 +56,7 @@ class TestNormalizeTerm:
 # ======================================================================
 # _strip_trailing_punctuation
 # ======================================================================
+
 
 class TestStripTrailingPunctuation:
     def test_removes_trailing_period(self):
@@ -83,6 +85,7 @@ class TestStripTrailingPunctuation:
 # _stable_hash
 # ======================================================================
 
+
 class TestStableHash:
     def test_same_inputs_produce_same_hash(self):
         h1 = _stable_hash("concept", "a", "b", "co_occurs_with")
@@ -105,10 +108,13 @@ class TestStableHash:
 # _make_evidence
 # ======================================================================
 
+
 class TestMakeEvidence:
     def test_all_fields_filled(self):
         ev = _make_evidence(
-            "doc-1", "chunk-1", "气喘者，麻黄主之",
+            "doc-1",
+            "chunk-1",
+            "气喘者，麻黄主之",
             citation="custom cite",
             passage_id="passage-1",
             version_id="version-1",
@@ -139,6 +145,7 @@ class TestMakeEvidence:
 # ======================================================================
 # _parse_proposition
 # ======================================================================
+
 
 def _make_prop(
     family: str,
@@ -243,6 +250,7 @@ class TestParseProposition:
 # ======================================================================
 # _propositions_comparable
 # ======================================================================
+
 
 class TestPropositionsComparable:
     def test_identical_props_are_comparable(self):
@@ -372,15 +380,20 @@ class TestRelationEvidencePolicyCompiledFrom:
 
 class TestValidateSourceURI:
     def test_valid_ctext_url(self):
-        assert _validate_source_uri("https://ctext.org/library.pl?if=en&file=123") is None
+        assert (
+            _validate_source_uri("https://ctext.org/library.pl?if=en&file=123") is None
+        )
 
     def test_valid_archive_url(self):
         assert _validate_source_uri("https://archive.org/details/somebook") is None
 
     def test_valid_wikimedia_url(self):
-        assert _validate_source_uri(
-            "https://upload.wikimedia.org/wikipedia/commons/a/bc/file.pdf"
-        ) is None
+        assert (
+            _validate_source_uri(
+                "https://upload.wikimedia.org/wikipedia/commons/a/bc/file.pdf"
+            )
+            is None
+        )
 
     def test_valid_subdomain_of_allowed(self):
         assert _validate_source_uri("https://sub.ctext.org/foo") is None
@@ -446,6 +459,7 @@ class TestValidateSourceURI:
 # _make_label (pure — takes a mock object with attributes)
 # ======================================================================
 
+
 def _obj(**attrs):
     """Create a simple object with given attributes."""
     obj = MagicMock()
@@ -509,6 +523,7 @@ class TestMakeLabel:
 # ======================================================================
 # _entity_active_filter (module-level helper)
 # ======================================================================
+
 
 class TestEntityActiveFilter:
     def test_model_with_id_and_is_deleted(self):
@@ -1195,7 +1210,9 @@ class TestValidateProvenanceHierarchy:
         chunk.passage_id = ""
 
         session = AsyncMock()
-        err = await _validate_provenance_hierarchy(session, chunk, "passage-1", "version-1")
+        err = await _validate_provenance_hierarchy(
+            session, chunk, "passage-1", "version-1"
+        )
         assert err is not None
         assert "no passage_id" in err
 
@@ -1209,7 +1226,9 @@ class TestValidateProvenanceHierarchy:
         chunk.passage_id = "passage-other"
 
         session = AsyncMock()
-        err = await _validate_provenance_hierarchy(session, chunk, "passage-1", "version-1")
+        err = await _validate_provenance_hierarchy(
+            session, chunk, "passage-1", "version-1"
+        )
         assert err is not None
         assert "linked to passage passage-other" in err
 
@@ -1225,7 +1244,9 @@ class TestValidateProvenanceHierarchy:
         session = AsyncMock()
         session.get = AsyncMock(return_value=None)
 
-        err = await _validate_provenance_hierarchy(session, chunk, "passage-1", "version-1")
+        err = await _validate_provenance_hierarchy(
+            session, chunk, "passage-1", "version-1"
+        )
         assert err is not None
         assert "not found or deleted" in err
 
@@ -1245,7 +1266,9 @@ class TestValidateProvenanceHierarchy:
         session = AsyncMock()
         session.get = AsyncMock(return_value=passage)
 
-        err = await _validate_provenance_hierarchy(session, chunk, "passage-1", "version-1")
+        err = await _validate_provenance_hierarchy(
+            session, chunk, "passage-1", "version-1"
+        )
         assert err is not None
         assert "no version_id" in err
 
@@ -1265,7 +1288,9 @@ class TestValidateProvenanceHierarchy:
         session = AsyncMock()
         session.get = AsyncMock(return_value=passage)
 
-        err = await _validate_provenance_hierarchy(session, chunk, "passage-1", "version-1")
+        err = await _validate_provenance_hierarchy(
+            session, chunk, "passage-1", "version-1"
+        )
         assert err is not None
         assert "linked to version version-other" in err
 
@@ -1444,7 +1469,8 @@ class TestValidateTreats:
             return []
 
         with patch(
-            "app.services.graph_service._load_entity_terms", AsyncMock(side_effect=load_terms)
+            "app.services.graph_service._load_entity_terms",
+            AsyncMock(side_effect=load_terms),
         ):
             err = await _validate_treats(
                 session, "herb", "h1", "symptom", "s1", "claim", "quote"
@@ -1465,11 +1491,17 @@ class TestValidateTreats:
             return ["气喘"]
 
         with patch(
-            "app.services.graph_service._load_entity_terms", AsyncMock(side_effect=load_terms)
+            "app.services.graph_service._load_entity_terms",
+            AsyncMock(side_effect=load_terms),
         ):
             err = await _validate_treats(
-                session, "herb", "h1", "symptom", "s1",
-                "treats asthma", "治喘之良药也"  # "麻黄" not in quote
+                session,
+                "herb",
+                "h1",
+                "symptom",
+                "s1",
+                "treats asthma",
+                "治喘之良药也",  # "麻黄" not in quote
             )
         assert err is not None
         assert "must mention the source entity" in err
@@ -1487,12 +1519,17 @@ class TestValidateTreats:
             return ["气喘"]
 
         with patch(
-            "app.services.graph_service._load_entity_terms", AsyncMock(side_effect=load_terms)
+            "app.services.graph_service._load_entity_terms",
+            AsyncMock(side_effect=load_terms),
         ):
             err = await _validate_treats(
-                session, "herb", "h1", "symptom", "s1",
+                session,
+                "herb",
+                "h1",
+                "symptom",
+                "s1",
                 "treats headache",  # claim doesn't mention "气喘"
-                "麻黄主气喘"
+                "麻黄主气喘",
             )
         assert err is not None
         assert "claim_text for 'treats' must mention" in err
@@ -1509,8 +1546,14 @@ class TestRelationEvidencePolicyValidate:
         """relation_type not in compiled/authored/compiled_from/treats → None (line 151)."""
         session = AsyncMock()
         err = await RelationEvidencePolicy.validate(
-            session, "related_to", "person", "p1", "book", "b1",
-            "some claim", "some quote",
+            session,
+            "related_to",
+            "person",
+            "p1",
+            "book",
+            "b1",
+            "some claim",
+            "some quote",
         )
         assert err is None
 
@@ -1519,8 +1562,14 @@ class TestRelationEvidencePolicyValidate:
         """cited_in is not compiled/authored/compiled_from/treats → None."""
         session = AsyncMock()
         err = await RelationEvidencePolicy.validate(
-            session, "cited_in", "book", "b1", "book", "b2",
-            "some claim", "some quote",
+            session,
+            "cited_in",
+            "book",
+            "b1",
+            "book",
+            "b2",
+            "some claim",
+            "some quote",
         )
         assert err is None
 
@@ -1574,7 +1623,9 @@ class TestCreateRelationValidation:
     async def test_ontology_source_violation(self):
         """Source type not allowed for relation → ValueError (line 802)."""
         svc = GraphService(AsyncMock())
-        with patch("app.services.graph_service._entity_exists", AsyncMock(return_value=False)):
+        with patch(
+            "app.services.graph_service._entity_exists", AsyncMock(return_value=False)
+        ):
             with pytest.raises(ValueError, match="Ontology violation"):
                 await svc.create_relation(
                     source_entity_type="symptom",
@@ -1589,7 +1640,9 @@ class TestCreateRelationValidation:
         """Target type not allowed for relation → ValueError (line 810)."""
         svc = GraphService(AsyncMock())
         # authored allows person→book/text. Use person→person to trigger.
-        with patch("app.services.graph_service._entity_exists", AsyncMock(return_value=False)):
+        with patch(
+            "app.services.graph_service._entity_exists", AsyncMock(return_value=False)
+        ):
             with pytest.raises(ValueError, match="Ontology violation"):
                 await svc.create_relation(
                     source_entity_type="person",
@@ -1603,7 +1656,9 @@ class TestCreateRelationValidation:
     async def test_none_evidence_rejected(self):
         """No evidence → ValueError."""
         svc = GraphService(AsyncMock())
-        with patch("app.services.graph_service._entity_exists", AsyncMock(return_value=True)):
+        with patch(
+            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
+        ):
             with pytest.raises(ValueError, match="Evidence is required"):
                 await svc.create_relation(
                     source_entity_type="person",
@@ -1619,20 +1674,27 @@ class TestCreateRelationValidation:
         svc = GraphService(AsyncMock())
 
         from app.schemas.graph import GraphEvidence
+
         evidence = GraphEvidence(
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
         # related_to allows person→person ontology-wise, but self-loop still rejected
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
-        ), patch(
-            "app.services.graph_service.GraphService._derive_evidence_level",
-            AsyncMock(return_value=2),
-        ), pytest.raises(ValueError, match="Self-loop"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "app.services.graph_service.GraphService._derive_evidence_level",
+                AsyncMock(return_value=2),
+            ),
+            pytest.raises(ValueError, match="Self-loop"),
+        ):
             await svc.create_relation(
                 source_entity_type="person",
                 source_entity_id="same-id",
@@ -1648,16 +1710,22 @@ class TestCreateRelationValidation:
         svc = GraphService(AsyncMock())
 
         from app.schemas.graph import GraphEvidence
+
         evidence = GraphEvidence(
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value="Chunk not found"),
-        ), pytest.raises(ValueError, match="Evidence validation failed"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value="Chunk not found"),
+            ),
+            pytest.raises(ValueError, match="Evidence validation failed"),
+        ):
             await svc.create_relation(
                 source_entity_type="person",
                 source_entity_id="p1",
@@ -1717,10 +1785,13 @@ class TestVerifyRelation:
         async def entity_exists(session, entity_type, entity_id):
             return entity_id != "p1"  # source not found
 
-        with patch(
-            "app.services.graph_service._entity_exists",
-            AsyncMock(side_effect=entity_exists),
-        ), pytest.raises(ValueError, match="Source entity"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(side_effect=entity_exists),
+            ),
+            pytest.raises(ValueError, match="Source entity"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1755,10 +1826,13 @@ class TestVerifyRelation:
         async def entity_exists(session, entity_type, entity_id):
             return entity_id != "b1"  # target not found
 
-        with patch(
-            "app.services.graph_service._entity_exists",
-            AsyncMock(side_effect=entity_exists),
-        ), pytest.raises(ValueError, match="Target entity"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(side_effect=entity_exists),
+            ),
+            pytest.raises(ValueError, match="Target entity"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1790,9 +1864,13 @@ class TestVerifyRelation:
         mock_result.scalar_one_or_none.return_value = er
         svc.session.execute = AsyncMock(return_value=mock_result)
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), pytest.raises(ValueError, match="Invalid relation_type"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            pytest.raises(ValueError, match="Invalid relation_type"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1835,14 +1913,18 @@ class TestVerifyRelation:
         doc_result.scalar_one_or_none.return_value = None
         svc.session.execute.side_effect = [er_result, doc_result]
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_provenance_hierarchy",
-            AsyncMock(return_value=None),
-        ), patch(
-            "app.services.graph_service._is_substring", return_value=True
-        ), pytest.raises(ValueError, match="Document d1 not found"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_provenance_hierarchy",
+                AsyncMock(return_value=None),
+            ),
+            patch("app.services.graph_service._is_substring", return_value=True),
+            pytest.raises(ValueError, match="Document d1 not found"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1876,11 +1958,17 @@ class TestVerifyRelation:
         doc_found.scalar_one_or_none.return_value = MagicMock()  # doc exists
         chunk_not_found = MagicMock()
         chunk_not_found.scalar_one_or_none.return_value = None  # chunk not found
-        svc.session.execute = AsyncMock(side_effect=[er_result, doc_found, chunk_not_found])
+        svc.session.execute = AsyncMock(
+            side_effect=[er_result, doc_found, chunk_not_found]
+        )
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), pytest.raises(ValueError, match="Chunk c1 not found"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            pytest.raises(ValueError, match="Chunk c1 not found"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1920,16 +2008,22 @@ class TestVerifyRelation:
         chunk_result = MagicMock()
         chunk_result.scalar_one_or_none.return_value = chunk
 
-        svc.session.execute = AsyncMock(side_effect=[er_result, doc_found, chunk_result])
+        svc.session.execute = AsyncMock(
+            side_effect=[er_result, doc_found, chunk_result]
+        )
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_provenance_hierarchy",
-            AsyncMock(return_value=None),
-        ), patch(
-            "app.services.graph_service._is_substring", return_value=True
-        ), pytest.raises(ValueError, match="belongs to document d-other"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_provenance_hierarchy",
+                AsyncMock(return_value=None),
+            ),
+            patch("app.services.graph_service._is_substring", return_value=True),
+            pytest.raises(ValueError, match="belongs to document d-other"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="test claim",
@@ -1972,14 +2066,18 @@ class TestVerifyRelation:
             side_effect=[er_result, doc_found, chunk_result]
         )
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_provenance_hierarchy",
-            AsyncMock(return_value=None),
-        ), patch(
-            "app.services.graph_service._is_substring", return_value=True
-        ), pytest.raises(ValueError, match="claim_text must not be empty"):
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_provenance_hierarchy",
+                AsyncMock(return_value=None),
+            ),
+            patch("app.services.graph_service._is_substring", return_value=True),
+            pytest.raises(ValueError, match="claim_text must not be empty"),
+        ):
             await svc.verify_relation(
                 relation_id="er-1",
                 claim_text="   ",
@@ -2018,7 +2116,9 @@ class TestVerifyRelation:
         chunk_result = MagicMock()
         chunk_result.scalar_one_or_none.return_value = chunk
 
-        svc.session.execute = AsyncMock(side_effect=[er_result, doc_result, chunk_result])
+        svc.session.execute = AsyncMock(
+            side_effect=[er_result, doc_result, chunk_result]
+        )
 
         with patch(
             "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
@@ -2034,7 +2134,9 @@ class TestVerifyRelation:
                         "app.services.graph_service._validate_source_uri",
                         return_value=None,
                     ):
-                        with pytest.raises(ValueError, match="verified_by must not be empty"):
+                        with pytest.raises(
+                            ValueError, match="verified_by must not be empty"
+                        ):
                             await svc.verify_relation(
                                 relation_id="er-1",
                                 claim_text="valid claim",
@@ -2073,21 +2175,27 @@ class TestVerifyRelation:
         chunk_result = MagicMock()
         chunk_result.scalar_one_or_none.return_value = chunk
 
-        svc.session.execute = AsyncMock(side_effect=[er_result, doc_result, chunk_result])
+        svc.session.execute = AsyncMock(
+            side_effect=[er_result, doc_result, chunk_result]
+        )
 
         # The status check is after _validate_reviewer, which we mock out
-        with patch.object(svc, "_validate_reviewer", AsyncMock()), patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_provenance_hierarchy",
-            AsyncMock(return_value=None),
-        ), patch(
-            "app.services.graph_service._is_substring", return_value=True
-        ), patch(
-            "app.services.graph_service._validate_source_uri",
-            return_value=None,
-        ), pytest.raises(
-            ValueError, match="Cannot verify relation with status"
+        with (
+            patch.object(svc, "_validate_reviewer", AsyncMock()),
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_provenance_hierarchy",
+                AsyncMock(return_value=None),
+            ),
+            patch("app.services.graph_service._is_substring", return_value=True),
+            patch(
+                "app.services.graph_service._validate_source_uri",
+                return_value=None,
+            ),
+            pytest.raises(ValueError, match="Cannot verify relation with status"),
         ):
             await svc.verify_relation(
                 relation_id="er-1",
@@ -2167,11 +2275,15 @@ class TestValidateExplicitRelation:
         er.evidence_citation = "[d1:c1]"
         er.evidence_status = "unverified"
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
         ):
             result = await svc._validate_explicit_relation(er)
             assert result is None
@@ -2196,11 +2308,15 @@ class TestValidateExplicitRelation:
         er.claim_text = None
         er.evidence_source_uri = None
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
         ):
             result = await svc._validate_explicit_relation(er)
             assert result is None
@@ -2225,11 +2341,15 @@ class TestValidateExplicitRelation:
         er.claim_text = "valid claim"
         er.evidence_source_uri = None  # missing
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
         ):
             result = await svc._validate_explicit_relation(er)
             assert result is None
@@ -2260,11 +2380,15 @@ class TestValidateExplicitRelation:
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = None  # chunk not found
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
         ):
             # session.execute for chunk query returns None
             svc.session.execute = AsyncMock(return_value=mock_result)
@@ -2295,11 +2419,15 @@ class TestValidateExplicitRelation:
         er.evidence_version_id = "v1"
         er.relation_type = "related_to"
 
-        with patch(
-            "app.services.graph_service._entity_exists", AsyncMock(return_value=True)
-        ), patch(
-            "app.services.graph_service._validate_graph_evidence",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "app.services.graph_service._entity_exists",
+                AsyncMock(return_value=True),
+            ),
+            patch(
+                "app.services.graph_service._validate_graph_evidence",
+                AsyncMock(return_value=None),
+            ),
         ):
             chunk = MagicMock()
             chunk.id = "c1"
@@ -2345,7 +2473,9 @@ class TestCollectAllEdges:
         mock_empty = MagicMock()
         mock_empty.scalars.return_value.all.return_value = []
         # 1 ER query + 2 node fetch queries
-        svc.session.execute = AsyncMock(side_effect=[mock_er_result, mock_empty, mock_empty])
+        svc.session.execute = AsyncMock(
+            side_effect=[mock_er_result, mock_empty, mock_empty]
+        )
 
         # Validate succeeds but entity filter excludes
         with patch.object(
@@ -2376,7 +2506,9 @@ class TestCollectAllEdges:
         mock_empty = MagicMock()
         mock_empty.scalars.return_value.all.return_value = []
         # 1 ER query + 2 node fetch queries (person, book)
-        svc.session.execute = AsyncMock(side_effect=[mock_er_result, mock_empty, mock_empty])
+        svc.session.execute = AsyncMock(
+            side_effect=[mock_er_result, mock_empty, mock_empty]
+        )
 
         from app.schemas.graph import GraphEvidence
 
@@ -2384,7 +2516,9 @@ class TestCollectAllEdges:
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
-        with patch.object(svc, "_validate_explicit_relation", AsyncMock(return_value=ev)):
+        with patch.object(
+            svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
+        ):
             edges, node_lookup = await svc._collect_all_edges(
                 entity_ids={("person", "p1")}
             )
@@ -2420,12 +2554,15 @@ class TestFindPath:
             id="person:p1", entity_type="person", entity_id="p1", label="Test"
         )
 
-        with patch(
-            "app.services.graph_service._fetch_node", AsyncMock(return_value=node)
-        ), patch.object(
-            svc,
-            "_collect_all_edges",
-            AsyncMock(return_value=([], {"person:p1": node, "book:b1": node})),
+        with (
+            patch(
+                "app.services.graph_service._fetch_node", AsyncMock(return_value=node)
+            ),
+            patch.object(
+                svc,
+                "_collect_all_edges",
+                AsyncMock(return_value=([], {"person:p1": node, "book:b1": node})),
+            ),
         ):
             result = await svc.find_path("person", "p1", "book", "b1")
             assert result is None
@@ -2443,16 +2580,23 @@ class TestFindPath:
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
         edge = GraphEdge(
-            id="er:1", source_id="person:p1", target_id="book:b1",
-            relation_type="compiled", label="编撰", source="explicit", evidence=ev,
+            id="er:1",
+            source_id="person:p1",
+            target_id="book:b1",
+            relation_type="compiled",
+            label="编撰",
+            source="explicit",
+            evidence=ev,
         )
         node_lookup = {"person:p1": n1, "book:b1": n2}
 
-        with patch(
-            "app.services.graph_service._fetch_node", AsyncMock(return_value=n1)
-        ), patch.object(
-            svc, "_collect_all_edges",
-            AsyncMock(return_value=([edge], node_lookup)),
+        with (
+            patch("app.services.graph_service._fetch_node", AsyncMock(return_value=n1)),
+            patch.object(
+                svc,
+                "_collect_all_edges",
+                AsyncMock(return_value=([edge], node_lookup)),
+            ),
         ):
             result = await svc.find_path("person", "p1", "book", "b1")
             assert result is not None
@@ -2479,22 +2623,32 @@ class TestFindPaths:
 
         from app.schemas.graph import GraphEdge, GraphEvidence, GraphNode
 
-        node = GraphNode(id="person:p1", entity_type="person", entity_id="p1", label="P")
+        node = GraphNode(
+            id="person:p1", entity_type="person", entity_id="p1", label="P"
+        )
         ev = GraphEvidence(
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
         edge = GraphEdge(
-            id="er:1", source_id="person:p1", target_id="book:b1",
-            relation_type="compiled", label="编撰", source="explicit", evidence=ev,
+            id="er:1",
+            source_id="person:p1",
+            target_id="book:b1",
+            relation_type="compiled",
+            label="编撰",
+            source="explicit",
+            evidence=ev,
         )
         node_lookup = {"person:p1": node}
 
-        with patch(
-            "app.services.graph_service._fetch_node", AsyncMock(return_value=node)
-        ), patch.object(
-            svc,
-            "_collect_all_edges",
-            AsyncMock(return_value=([edge], node_lookup)),
+        with (
+            patch(
+                "app.services.graph_service._fetch_node", AsyncMock(return_value=node)
+            ),
+            patch.object(
+                svc,
+                "_collect_all_edges",
+                AsyncMock(return_value=([edge], node_lookup)),
+            ),
         ):
             # max_depth=0 means no hops allowed, so BFS won't traverse from source
             result = await svc.find_paths("person", "p1", "book", "b1", max_depth=0)
@@ -2552,10 +2706,11 @@ class TestMultiHopQuery:
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
-        with patch.object(
-            svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
-        ), patch.object(
-            svc, "_derive_evidence_level", AsyncMock(return_value=3)
+        with (
+            patch.object(
+                svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
+            ),
+            patch.object(svc, "_derive_evidence_level", AsyncMock(return_value=3)),
         ):
             result = await svc.multi_hop_query(
                 "herb", "h1", min_evidence_level=2, max_hops=2
@@ -2591,8 +2746,10 @@ class TestMultiHopQuery:
             svc, "_validate_explicit_relation", AsyncMock(return_value=None)
         ):
             result = await svc.multi_hop_query(
-                "herb", "h1",
-                min_evidence_level=2, max_hops=2,
+                "herb",
+                "h1",
+                min_evidence_level=2,
+                max_hops=2,
                 relation_types=["compiled"],
             )
             assert len(result) == 0
@@ -2622,15 +2779,19 @@ class TestMultiHopQuery:
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
-        with patch.object(
-            svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
-        ), patch.object(
-            svc, "_derive_evidence_level", AsyncMock(return_value=3)
+        with (
+            patch.object(
+                svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
+            ),
+            patch.object(svc, "_derive_evidence_level", AsyncMock(return_value=3)),
         ):
             result = await svc.multi_hop_query(
-                "herb", "h1",
-                target_type="symptom", target_id="s1",
-                min_evidence_level=2, max_hops=3,
+                "herb",
+                "h1",
+                target_type="symptom",
+                target_id="s1",
+                min_evidence_level=2,
+                max_hops=3,
             )
             assert len(result) == 1
             assert result[0].hops[0].source_type == "herb"
@@ -2671,16 +2832,20 @@ class TestMultiHopQuery:
             document_id="d1", chunk_id="c1", exact_quote="q", citation="[d1:c1]"
         )
 
-        with patch.object(
-            svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
-        ), patch.object(
-            svc, "_derive_evidence_level", AsyncMock(return_value=3)
+        with (
+            patch.object(
+                svc, "_validate_explicit_relation", AsyncMock(return_value=ev)
+            ),
+            patch.object(svc, "_derive_evidence_level", AsyncMock(return_value=3)),
         ):
             # max_hops=1 — should stop after 1 hop
             result = await svc.multi_hop_query(
-                "herb", "h1",
-                target_type="herb", target_id="h2",
-                min_evidence_level=2, max_hops=1,
+                "herb",
+                "h1",
+                target_type="herb",
+                target_id="h2",
+                min_evidence_level=2,
+                max_hops=1,
             )
             # Target h2 is 2 hops away and max_hops=1, so no paths
             assert len(result) == 0
@@ -2790,9 +2955,12 @@ class TestGetEntitySubgraph:
         """Center entity not found → ValueError (line 1810-1811)."""
         svc = GraphService(AsyncMock())
 
-        with patch(
-            "app.services.graph_service._fetch_node", AsyncMock(return_value=None)
-        ), pytest.raises(ValueError, match="not found"):
+        with (
+            patch(
+                "app.services.graph_service._fetch_node", AsyncMock(return_value=None)
+            ),
+            pytest.raises(ValueError, match="not found"),
+        ):
             await svc.get_entity_subgraph("person", "missing")
 
 
@@ -3305,7 +3473,10 @@ class TestGetNeighbors:
         """Center entity not found → ValueError."""
         svc = GraphService(AsyncMock())
 
-        with patch(
-            "app.services.graph_service._fetch_node", AsyncMock(return_value=None)
-        ), pytest.raises(ValueError, match="not found"):
+        with (
+            patch(
+                "app.services.graph_service._fetch_node", AsyncMock(return_value=None)
+            ),
+            pytest.raises(ValueError, match="not found"),
+        ):
             await svc.get_neighbors("person", "missing")

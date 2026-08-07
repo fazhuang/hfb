@@ -1,4 +1,3 @@
-
 """Unit tests for app.core.logging — JSONFormatter, ConsoleFormatter, configure_logging."""
 
 from __future__ import annotations
@@ -14,8 +13,13 @@ class TestJSONFormatter:
     def test_format_basic_record(self) -> None:
         fmt = JSONFormatter()
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="x.py", lineno=1,
-            msg="hello", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="x.py",
+            lineno=1,
+            msg="hello",
+            args=(),
+            exc_info=None,
         )
         output = fmt.format(record)
         data = json.loads(output)
@@ -30,8 +34,13 @@ class TestJSONFormatter:
             raise ValueError("boom")
         except ValueError:
             record = logging.LogRecord(
-                name="err", level=logging.ERROR, pathname="e.py", lineno=2,
-                msg="fail", args=(), exc_info=sys.exc_info(),
+                name="err",
+                level=logging.ERROR,
+                pathname="e.py",
+                lineno=2,
+                msg="fail",
+                args=(),
+                exc_info=sys.exc_info(),
             )
         output = fmt.format(record)
         data = json.loads(output)
@@ -45,8 +54,13 @@ class TestConsoleFormatter:
     def test_format_includes_timestamp_and_level(self) -> None:
         fmt = ConsoleFormatter()
         record = logging.LogRecord(
-            name="test", level=logging.INFO, pathname="x.py", lineno=10,
-            msg="test message", args=(), exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="x.py",
+            lineno=10,
+            msg="test message",
+            args=(),
+            exc_info=None,
         )
         output = fmt.format(record)
         assert "INFO" in output
@@ -57,8 +71,13 @@ class TestConsoleFormatter:
     def test_error_level_has_red_color(self) -> None:
         fmt = ConsoleFormatter()
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname="x.py", lineno=1,
-            msg="error", args=(), exc_info=None,
+            name="test",
+            level=logging.ERROR,
+            pathname="x.py",
+            lineno=1,
+            msg="error",
+            args=(),
+            exc_info=None,
         )
         output = fmt.format(record)
         assert "\033[31m" in output  # Red color

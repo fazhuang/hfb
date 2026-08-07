@@ -170,80 +170,125 @@ class TestInternalTraceRecordValidation:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError, match="document_id"):
             InternalTraceRecord(
-                trace_id=tid, document_id="", chunk_id="c", passage_id="p",
-                provenance_kind="graph", retrieval_score=None,
-                retrieval_method="graph_service", timestamp="2025-01-01T00:00:00",
+                trace_id=tid,
+                document_id="",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="graph",
+                retrieval_score=None,
+                retrieval_method="graph_service",
+                timestamp="2025-01-01T00:00:00",
             )
 
     def test_empty_chunk_id_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError, match="chunk_id"):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="", passage_id="p",
-                provenance_kind="graph", retrieval_score=None,
-                retrieval_method="graph_service", timestamp="2025-01-01T00:00:00",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="",
+                passage_id="p",
+                provenance_kind="graph",
+                retrieval_score=None,
+                retrieval_method="graph_service",
+                timestamp="2025-01-01T00:00:00",
             )
 
     def test_empty_passage_id_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError, match="passage_id"):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="",
-                provenance_kind="graph", retrieval_score=None,
-                retrieval_method="graph_service", timestamp="2025-01-01T00:00:00",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="",
+                provenance_kind="graph",
+                retrieval_score=None,
+                retrieval_method="graph_service",
+                timestamp="2025-01-01T00:00:00",
             )
 
     def test_empty_retrieval_method_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError, match="retrieval_method"):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-                provenance_kind="graph", retrieval_score=None,
-                retrieval_method="", timestamp="2025-01-01T00:00:00",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="graph",
+                retrieval_score=None,
+                retrieval_method="",
+                timestamp="2025-01-01T00:00:00",
             )
 
     def test_empty_timestamp_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError, match="timestamp"):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-                provenance_kind="graph", retrieval_score=None,
-                retrieval_method="graph_service", timestamp="",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="graph",
+                retrieval_score=None,
+                retrieval_method="graph_service",
+                timestamp="",
             )
 
     def test_retrieval_with_nan_score_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-                provenance_kind="retrieval", retrieval_score=float("nan"),
-                retrieval_method="m", timestamp="t",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="retrieval",
+                retrieval_score=float("nan"),
+                retrieval_method="m",
+                timestamp="t",
             )
 
     def test_retrieval_with_negative_score_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-                provenance_kind="retrieval", retrieval_score=-0.1,
-                retrieval_method="m", timestamp="t",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="retrieval",
+                retrieval_score=-0.1,
+                retrieval_method="m",
+                timestamp="t",
             )
 
     def test_retrieval_with_over_one_score_raises(self) -> None:
         tid = make_trace_id("d", "c")
         with pytest.raises(ValueError):
             InternalTraceRecord(
-                trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-                provenance_kind="retrieval", retrieval_score=1.1,
-                retrieval_method="m", timestamp="t",
+                trace_id=tid,
+                document_id="d",
+                chunk_id="c",
+                passage_id="p",
+                provenance_kind="retrieval",
+                retrieval_score=1.1,
+                retrieval_method="m",
+                timestamp="t",
             )
 
     def test_graph_with_none_score_valid(self) -> None:
         tid = make_trace_id("d", "c")
         record = InternalTraceRecord(
-            trace_id=tid, document_id="d", chunk_id="c", passage_id="p",
-            provenance_kind="graph", retrieval_score=None,
-            retrieval_method="graph_service", timestamp="2025-01-01T00:00:00",
+            trace_id=tid,
+            document_id="d",
+            chunk_id="c",
+            passage_id="p",
+            provenance_kind="graph",
+            retrieval_score=None,
+            retrieval_method="graph_service",
+            timestamp="2025-01-01T00:00:00",
         )
         assert record.provenance_kind == "graph"
         assert record.retrieval_score is None
@@ -437,8 +482,12 @@ class TestResolvedTrace:
         doc = Document(id="d1", title="Test Doc")
         passage = Passage(id="p1", content_text="passage text")
         rt = ResolvedTrace(
-            trace_id="tid1", chunk=chunk, document=doc, passage=passage,
-            passage_citation="《Test Doc》·v1", chunk_citation="[d1:0]",
+            trace_id="tid1",
+            chunk=chunk,
+            document=doc,
+            passage=passage,
+            passage_citation="《Test Doc》·v1",
+            chunk_citation="[d1:0]",
         )
         d = rt.to_public_dict()
         assert d["trace_id"] == "tid1"
@@ -455,8 +504,12 @@ class TestResolvedTrace:
         chunk = DocumentChunk(id="c1", document_id="d1", chunk_index=0, content="test")
         doc = Document(id="d1", title="Test Doc")
         rt = ResolvedTrace(
-            trace_id="tid1", chunk=chunk, document=doc, passage=None,
-            passage_citation="", chunk_citation="[d1:0]",
+            trace_id="tid1",
+            chunk=chunk,
+            document=doc,
+            passage=None,
+            passage_citation="",
+            chunk_citation="[d1:0]",
         )
         d = rt.to_public_dict()
         assert d["passage_id"] is None
@@ -483,7 +536,9 @@ class TestResolveTraceLineage:
         tid = make_trace_id("d1", "c1")
 
         qh = MagicMock()
-        qh.result_summary = _json.dumps({"traces": [{"trace_id": tid, "chunk_id": "c1"}]})
+        qh.result_summary = _json.dumps(
+            {"traces": [{"trace_id": tid, "chunk_id": "c1"}]}
+        )
         qh_result = MagicMock()
         qh_result.scalar_one_or_none.return_value = qh
 
@@ -512,7 +567,9 @@ class TestPassageMappingStats:
         pids_result.all.return_value = [("p1",), ("p2",), ("p3",)]
         # Passage exists — all found, 0 orphans
         exist_result = _make_iter_mock([("p1",), ("p2",), ("p3",)])
-        db.execute = AsyncMock(side_effect=[total_result, mapped_result, pids_result, exist_result])
+        db.execute = AsyncMock(
+            side_effect=[total_result, mapped_result, pids_result, exist_result]
+        )
         stats = await passage_mapping_stats(db)
         assert stats["total_chunks"] == 3
         assert stats["chunks_with_passage"] == 3
@@ -530,7 +587,9 @@ class TestPassageMappingStats:
         pids_result = _make_iter_mock([("p1",), ("p2",)])
         # Passage exists check — iterable
         exist_result = _make_iter_mock([("p1",)])
-        db.execute = AsyncMock(side_effect=[total_result, mapped_result, pids_result, exist_result])
+        db.execute = AsyncMock(
+            side_effect=[total_result, mapped_result, pids_result, exist_result]
+        )
         stats = await passage_mapping_stats(db)
         assert stats["orphan_passage_ids"] == 1
 
@@ -567,7 +626,9 @@ class TestResolveTimeEvidence:
         passage_result.one_or_none.return_value = ("v1",)
         version_result = MagicMock()
         version_result.one_or_none.return_value = ("宋", 960)
-        db.execute = AsyncMock(side_effect=[chunk_result, passage_result, version_result])
+        db.execute = AsyncMock(
+            side_effect=[chunk_result, passage_result, version_result]
+        )
         r = await resolve_time_evidence(db, "d1", "c1")
         assert r == {"era": "宋", "year": "960"}
 
@@ -580,7 +641,9 @@ class TestResolveTimeEvidence:
         passage_result.one_or_none.return_value = ("v1",)
         version_result = MagicMock()
         version_result.one_or_none.return_value = ("宋", None)
-        db.execute = AsyncMock(side_effect=[chunk_result, passage_result, version_result])
+        db.execute = AsyncMock(
+            side_effect=[chunk_result, passage_result, version_result]
+        )
         r = await resolve_time_evidence(db, "d1", "c1")
         assert r == {"era": "宋"}
 
@@ -593,7 +656,9 @@ class TestResolveTimeEvidence:
         passage_result.one_or_none.return_value = ("v1",)
         version_result = MagicMock()
         version_result.one_or_none.return_value = (None, 960)
-        db.execute = AsyncMock(side_effect=[chunk_result, passage_result, version_result])
+        db.execute = AsyncMock(
+            side_effect=[chunk_result, passage_result, version_result]
+        )
         r = await resolve_time_evidence(db, "d1", "c1")
         assert r == {"year": "960"}
 
@@ -606,6 +671,8 @@ class TestResolveTimeEvidence:
         passage_result.one_or_none.return_value = ("v1",)
         version_result = MagicMock()
         version_result.one_or_none.return_value = (None, None)
-        db.execute = AsyncMock(side_effect=[chunk_result, passage_result, version_result])
+        db.execute = AsyncMock(
+            side_effect=[chunk_result, passage_result, version_result]
+        )
         r = await resolve_time_evidence(db, "d1", "c1")
         assert r is None

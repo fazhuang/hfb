@@ -10,6 +10,7 @@ from app.services.person_service import PersonService
 # PersonService
 # ---------------------------------------------------------------------------
 
+
 class TestPersonServiceValidateCreate:
     """Lines 20-21: _validate_create raises on empty/missing name."""
 
@@ -62,6 +63,7 @@ class TestPersonServiceGetByDynasty:
 # ---------------------------------------------------------------------------
 # DocumentService
 # ---------------------------------------------------------------------------
+
 
 class TestDocumentServiceValidateCreate:
     """Line 23: _validate_create raises on empty/missing title."""

@@ -136,10 +136,13 @@ class TestChatStreamGate:
     async def test_unconfigured_yields_unavailable(self, monkeypatch) -> None:
         monkeypatch.setattr("app.services.ai_service.settings.AI_API_KEY", "")
         svc = AIService()
-        chunks = [c async for c in svc.chat_stream(
-            [{"role": "user", "content": "什么是针灸？"}],
-            context="针灸甲乙经记载...",
-        )]
+        chunks = [
+            c
+            async for c in svc.chat_stream(
+                [{"role": "user", "content": "什么是针灸？"}],
+                context="针灸甲乙经记载...",
+            )
+        ]
         assert len(chunks) == 1
         assert "EVIDENCE_GATE_UNAVAILABLE" in chunks[0]
 
@@ -151,10 +154,13 @@ class TestChatStreamGate:
             for _ in range(_rate_limiter._max):
                 _rate_limiter._timestamps.append(999999.0)
             svc = AIService()
-            chunks = [c async for c in svc.chat_stream(
-                [{"role": "user", "content": "test"}],
-                context="some evidence",
-            )]
+            chunks = [
+                c
+                async for c in svc.chat_stream(
+                    [{"role": "user", "content": "test"}],
+                    context="some evidence",
+                )
+            ]
             assert len(chunks) == 1
             assert "EVIDENCE_GATE_RATE_LIMITED" in chunks[0]
         finally:
@@ -167,10 +173,13 @@ class TestChatStreamGate:
         saved_ts = list(_rate_limiter._timestamps)
         try:
             _rate_limiter._timestamps.clear()
-            chunks = [c async for c in svc.chat_stream(
-                [{"role": "user", "content": "test"}],
-                context="   ",
-            )]
+            chunks = [
+                c
+                async for c in svc.chat_stream(
+                    [{"role": "user", "content": "test"}],
+                    context="   ",
+                )
+            ]
             assert len(chunks) == 1
             assert "EVIDENCE_GATE_REFUSAL" in chunks[0]
         finally:
@@ -217,10 +226,13 @@ class TestChatStreamSSE:
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
-        chunks = [c async for c in configured_ai.chat_stream(
-            [{"role": "user", "content": "什么是针灸？"}],
-            context="针灸甲乙经记载...",
-        )]
+        chunks = [
+            c
+            async for c in configured_ai.chat_stream(
+                [{"role": "user", "content": "什么是针灸？"}],
+                context="针灸甲乙经记载...",
+            )
+        ]
         content = "".join(chunks)
         assert "针灸" in content
         assert "中医" in content
@@ -240,10 +252,13 @@ class TestChatStreamSSE:
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
-        chunks = [c async for c in configured_ai.chat_stream(
-            [{"role": "user", "content": "test"}],
-            context="evidence text",
-        )]
+        chunks = [
+            c
+            async for c in configured_ai.chat_stream(
+                [{"role": "user", "content": "test"}],
+                context="evidence text",
+            )
+        ]
         content = "".join(chunks)
         assert "good" in content
         assert "more" in content
@@ -254,10 +269,13 @@ class TestChatStreamSSE:
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
-        chunks = [c async for c in configured_ai.chat_stream(
-            [{"role": "user", "content": "test"}],
-            context="evidence text",
-        )]
+        chunks = [
+            c
+            async for c in configured_ai.chat_stream(
+                [{"role": "user", "content": "test"}],
+                context="evidence text",
+            )
+        ]
         content = "".join(chunks)
         assert "HTTP 502" in content
 
@@ -277,7 +295,9 @@ class TestComplete:
         async def handler(req):
             nonlocal captured
             captured = json.loads(req.content)
-            return httpx.Response(200, json={"choices": [{"message": {"content": "reply"}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": "reply"}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -304,7 +324,9 @@ class TestComplete:
         async def handler(req):
             nonlocal captured
             captured = json.loads(req.content)
-            return httpx.Response(200, json={"choices": [{"message": {"content": "reply"}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": "reply"}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -334,7 +356,11 @@ class TestComplete:
 class TestCompleteStructured:
     async def test_success_returns_content(self, configured_ai, monkeypatch) -> None:
         async def handler(req):
-            return httpx.Response(200, json={"choices": [{"message": {"content": "  structured reply  "}}]}, request=req)
+            return httpx.Response(
+                200,
+                json={"choices": [{"message": {"content": "  structured reply  "}}]},
+                request=req,
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -345,7 +371,9 @@ class TestCompleteStructured:
 
     async def test_empty_content_returns_none(self, configured_ai, monkeypatch) -> None:
         async def handler(req):
-            return httpx.Response(200, json={"choices": [{"message": {"content": ""}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": ""}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -358,7 +386,9 @@ class TestCompleteStructured:
         self, configured_ai, monkeypatch
     ) -> None:
         async def handler(req):
-            return httpx.Response(200, json={"choices": [{"message": {"content": "   "}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": "   "}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -410,7 +440,9 @@ class TestCompleteStructured:
         async def handler(req):
             nonlocal captured
             captured = json.loads(req.content)
-            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": "ok"}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -430,7 +462,9 @@ class TestCompleteStructured:
         async def handler(req):
             nonlocal captured
             captured = json.loads(req.content)
-            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]}, request=req)
+            return httpx.Response(
+                200, json={"choices": [{"message": {"content": "ok"}}]}, request=req
+            )
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
@@ -574,10 +608,13 @@ class TestChatStreamPayload:
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
-        _ = [c async for c in configured_ai.chat_stream(
-            [{"role": "user", "content": "什么是针灸？"}],
-            context="针灸甲乙经记载：经络者，所以行血气。",
-        )]
+        _ = [
+            c
+            async for c in configured_ai.chat_stream(
+                [{"role": "user", "content": "什么是针灸？"}],
+                context="针灸甲乙经记载：经络者，所以行血气。",
+            )
+        ]
         assert captured is not None
         assert captured["model"] == "fake-model"
         msgs = captured["messages"]
@@ -600,10 +637,13 @@ class TestChatStreamPayload:
 
         _patch_async_client(monkeypatch, httpx.MockTransport(handler))
 
-        _ = [c async for c in configured_ai.chat_stream(
-            [{"role": "user", "content": "test"}],
-            context="evidence",
-        )]
+        _ = [
+            c
+            async for c in configured_ai.chat_stream(
+                [{"role": "user", "content": "test"}],
+                context="evidence",
+            )
+        ]
         assert captured_headers is not None
         auth = captured_headers.get("authorization", "")
         assert auth == "Bearer fake-key"

@@ -1,4 +1,3 @@
-
 """Unit tests for Institution model — enums, validators, checks."""
 
 from __future__ import annotations

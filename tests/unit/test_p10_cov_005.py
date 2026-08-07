@@ -75,12 +75,20 @@ class TestSourceWhitelistFallbackBranches:
 
         get_whitelist.cache_clear()
         yaml_path = tmp_path / "env_wl.yaml"
-        _write_whitelist_yaml(yaml_path, {
-            "sources": [
-                {"name": "EnvSource", "domain": "env.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": False},
-            ],
-        })
+        _write_whitelist_yaml(
+            yaml_path,
+            {
+                "sources": [
+                    {
+                        "name": "EnvSource",
+                        "domain": "env.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                ],
+            },
+        )
         monkeypatch.setenv("SOURCE_WHITELIST_PATH", str(yaml_path))
         wl = get_whitelist()
         assert wl.lookup("EnvSource") is not None
@@ -96,6 +104,7 @@ class TestVersionModelMethods:
 
     def test_withdraw_sets_timestamp_and_reason(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.is_formal_source = True
         v.withdraw("测试撤回")
@@ -105,12 +114,14 @@ class TestVersionModelMethods:
 
     def test_withdraw_default_reason(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.withdraw()
         assert v.withdraw_reason == "未说明"
 
     def test_restore_clears_withdrawal(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.withdraw()
         assert v.is_withdrawn is True
@@ -121,6 +132,7 @@ class TestVersionModelMethods:
 
     def test_is_academic_citable_all_conditions(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.is_formal_source = True
         v.repository = "国家图书馆"
@@ -130,12 +142,14 @@ class TestVersionModelMethods:
 
     def test_is_academic_citable_default_not_citable(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.is_formal_source = False
         assert v.is_academic_citable is False
 
     def test_is_academic_citable_with_persistent_id_not_shelfmark(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.is_formal_source = True
         v.repository = "北大图书馆"
@@ -145,6 +159,7 @@ class TestVersionModelMethods:
 
     def test_is_academic_citable_withdrawn_not_citable(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.is_formal_source = True
         v.repository = "国图"
@@ -155,6 +170,7 @@ class TestVersionModelMethods:
 
     def test_version_repr(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.version_name = "测试本"
         r = repr(v)
@@ -162,6 +178,7 @@ class TestVersionModelMethods:
 
     def test_is_withdrawn_none_default(self) -> None:
         from app.models.version import Version
+
         v = Version()
         v.withdrawn_at = None
         assert v.is_withdrawn is False
@@ -178,6 +195,7 @@ class TestInstitutionValidators:
     def test_validate_name_exceeds_max_length(self) -> None:
         from app.core.exceptions import ValidationException
         from app.models.institution import Institution
+
         inst = Institution()
         with pytest.raises(ValidationException, match="exceeds maximum length"):
             inst.validate_name("name", "x" * 301)
@@ -185,6 +203,7 @@ class TestInstitutionValidators:
     def test_validate_type_invalid(self) -> None:
         from app.core.exceptions import ValidationException
         from app.models.institution import Institution
+
         inst = Institution()
         with pytest.raises(ValidationException, match="Invalid institution type"):
             inst.validate_type("type", "invalid_type")
@@ -192,6 +211,7 @@ class TestInstitutionValidators:
     def test_validate_name_none(self) -> None:
         from app.core.exceptions import ValidationException
         from app.models.institution import Institution
+
         inst = Institution()
         with pytest.raises(ValidationException, match="must not be null"):
             inst.validate_name("name", None)
@@ -202,6 +222,7 @@ class TestInstitutionStatusValidation:
 
     def test_status_transition_valid(self) -> None:
         from app.models.institution import Institution
+
         inst = Institution()
         inst.status = "draft"
         assert inst.status == "draft"
@@ -210,6 +231,7 @@ class TestInstitutionStatusValidation:
 
     def test_status_transition_invalid_jump(self) -> None:
         from app.models.institution import Institution
+
         inst = Institution()
         inst.status = "draft"
         with pytest.raises(Exception):
@@ -226,15 +248,20 @@ class TestEvidenceRagSchemas:
 
     def test_evidence_bound_chunk(self) -> None:
         from app.schemas.evidence_rag import EvidenceBoundChunk
+
         ebc = EvidenceBoundChunk(
-            document_id="d1", chunk_id="c1", content="content",
-            citation="[d1:c1]", score=0.9,
+            document_id="d1",
+            chunk_id="c1",
+            content="content",
+            citation="[d1:c1]",
+            score=0.9,
         )
         assert ebc.document_id == "d1"
         assert ebc.score == 0.9
 
     def test_evidence_rag_request(self) -> None:
         from app.schemas.evidence_rag import EvidenceRAGRequest
+
         req = EvidenceRAGRequest(query="test", top_k=5)
         assert req.query == "test"
         assert req.top_k == 5
@@ -245,16 +272,24 @@ class TestEvidenceRagSchemas:
             EvidenceCitation,
             EvidenceRAGResponse,
         )
+
         chunk = EvidenceBoundChunk(
-            document_id="d1", chunk_id="c1", content="content",
-            citation="[d1:c1]", score=0.9,
+            document_id="d1",
+            chunk_id="c1",
+            content="content",
+            citation="[d1:c1]",
+            score=0.9,
         )
         citation = EvidenceCitation(
-            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+            document_id="d1",
+            chunk_id="c1",
+            citation="[d1:c1]",
         )
         resp = EvidenceRAGResponse(
-            query="test", answer="answer",
-            evidence=[chunk], citations=[citation],
+            query="test",
+            answer="answer",
+            evidence=[chunk],
+            citations=[citation],
         )
         enforced = resp.enforce_evidence_contract()
         assert enforced.evidence[0].document_id == "d1"
@@ -267,17 +302,26 @@ class TestEvidenceRagSchemas:
             EvidenceCitation,
             EvidenceRAGResponse,
         )
+
         chunk = EvidenceBoundChunk(
-            document_id="d1", chunk_id="c1", content="content",
-            citation="[d1:c1]", score=0.9,
+            document_id="d1",
+            chunk_id="c1",
+            content="content",
+            citation="[d1:c1]",
+            score=0.9,
         )
         citation = EvidenceCitation(
-            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+            document_id="d1",
+            chunk_id="c1",
+            citation="[d1:c1]",
         )
         # Use model_construct to bypass model_validator at construction time
         resp = EvidenceRAGResponse.model_construct(
-            query="test", refusal=True, answer="",
-            evidence=[chunk], citations=[citation],
+            query="test",
+            refusal=True,
+            answer="",
+            evidence=[chunk],
+            citations=[citation],
         )
         with pytest.raises(ValueError, match="must be empty when refusal=True"):
             resp.enforce_evidence_contract()
@@ -290,16 +334,25 @@ class TestEvidenceRagSchemas:
             EvidenceCitation,
             EvidenceRAGResponse,
         )
+
         chunk = EvidenceBoundChunk(
-            document_id="d1", chunk_id="c1", content="content",
-            citation="[d1:c1]", score=0.9,
+            document_id="d1",
+            chunk_id="c1",
+            content="content",
+            citation="[d1:c1]",
+            score=0.9,
         )
         citation = EvidenceCitation(
-            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+            document_id="d1",
+            chunk_id="c1",
+            citation="[d1:c1]",
         )
         resp = EvidenceRAGResponse.model_construct(
-            query="test", answer="", refusal=False,
-            evidence=[chunk], citations=[citation],
+            query="test",
+            answer="",
+            refusal=False,
+            evidence=[chunk],
+            citations=[citation],
         )
         with pytest.raises(ValueError, match="answer must be non-empty"):
             resp.enforce_evidence_contract()
@@ -311,13 +364,20 @@ class TestEvidenceRagSchemas:
             EvidenceBoundChunk,
             EvidenceRAGResponse,
         )
+
         chunk = EvidenceBoundChunk(
-            document_id="d1", chunk_id="c1", content="content",
-            citation="[d1:c1]", score=0.9,
+            document_id="d1",
+            chunk_id="c1",
+            content="content",
+            citation="[d1:c1]",
+            score=0.9,
         )
         resp = EvidenceRAGResponse.model_construct(
-            query="test", answer="answer", refusal=False,
-            evidence=[chunk], citations=[],
+            query="test",
+            answer="answer",
+            refusal=False,
+            evidence=[chunk],
+            citations=[],
         )
         with pytest.raises(ValueError, match="citations must be non-empty"):
             resp.enforce_evidence_contract()
@@ -329,12 +389,18 @@ class TestEvidenceRagSchemas:
             EvidenceCitation,
             EvidenceRAGResponse,
         )
+
         citation = EvidenceCitation(
-            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+            document_id="d1",
+            chunk_id="c1",
+            citation="[d1:c1]",
         )
         resp = EvidenceRAGResponse.model_construct(
-            query="test", answer="answer", refusal=False,
-            evidence=[], citations=[citation],
+            query="test",
+            answer="answer",
+            refusal=False,
+            evidence=[],
+            citations=[citation],
         )
         with pytest.raises(ValueError, match="evidence must be non-empty"):
             resp.enforce_evidence_contract()
@@ -342,9 +408,13 @@ class TestEvidenceRagSchemas:
     def test_refusal_true_no_citations_ok(self) -> None:
         """refusal=True with empty citations/evidence passes validation."""
         from app.schemas.evidence_rag import EvidenceRAGResponse
+
         resp = EvidenceRAGResponse(
-            query="test", refusal=True, answer="",
-            evidence=[], citations=[],
+            query="test",
+            refusal=True,
+            answer="",
+            evidence=[],
+            citations=[],
         )
         enforced = resp.enforce_evidence_contract()
         assert enforced.refusal is True
@@ -360,6 +430,7 @@ class TestInstitutionSchema:
 
     def test_institution_create_minimal(self) -> None:
         from app.schemas.institution import InstitutionCreate
+
         ic = InstitutionCreate(name="测试机构", type="research")
         assert ic.name == "测试机构"
         assert ic.type == "research"
@@ -367,23 +438,27 @@ class TestInstitutionSchema:
     def test_institution_create_name_none_raises(self) -> None:
         from app.schemas.institution import InstitutionCreate
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             InstitutionCreate(name=None, type="research")
 
     def test_institution_create_blank_name_raises(self) -> None:
         from app.schemas.institution import InstitutionCreate
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             InstitutionCreate(name="   ", type="research")
 
     def test_institution_create_invalid_type(self) -> None:
         from app.schemas.institution import InstitutionCreate
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             InstitutionCreate(name="x", type="invalid")
 
     def test_institution_update_none_name(self) -> None:
         from app.schemas.institution import InstitutionUpdate
+
         iu = InstitutionUpdate(name=None, description="update")
         assert iu.name is None
         assert iu.description == "update"
@@ -392,12 +467,14 @@ class TestInstitutionSchema:
         """Line 57: update with blank name raises ValueError."""
         from app.schemas.institution import InstitutionUpdate
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             InstitutionUpdate(name="   ")
 
     def test_institution_update_none_type_ok(self) -> None:
         """Line 64: update with type=None returns None."""
         from app.schemas.institution import InstitutionUpdate
+
         iu = InstitutionUpdate(type=None)
         assert iu.type is None
 
@@ -405,6 +482,7 @@ class TestInstitutionSchema:
         """Line 66: update with invalid type raises."""
         from app.schemas.institution import InstitutionUpdate
         from pydantic import ValidationError
+
         with pytest.raises(ValidationError):
             InstitutionUpdate(type="invalid_type")
 
@@ -419,16 +497,25 @@ class TestAIResponseSchemas:
 
     def test_citation_model(self) -> None:
         from app.schemas.ai_response import Citation
+
         c = Citation(entity_type="Book", entity_id="d1", text="《针灸甲乙经》")
         assert c.entity_type == "Book"
 
     def test_structured_response_builder_build(self) -> None:
         from app.schemas.ai_response import StructuredResponseBuilder
+
         resp = StructuredResponseBuilder.build(
             answer_text="针灸治疗头痛。[d1:c1]",
-            rag_chunks=[{"entity_type": "Book", "entity_id": "d1",
-                         "title": "针灸甲乙经", "content": "content",
-                         "citation": "[d1:c1]", "score": 0.9}],
+            rag_chunks=[
+                {
+                    "entity_type": "Book",
+                    "entity_id": "d1",
+                    "title": "针灸甲乙经",
+                    "content": "content",
+                    "citation": "[d1:c1]",
+                    "score": 0.9,
+                }
+            ],
         )
         assert resp is not None
         assert resp.answer is not None
@@ -436,26 +523,45 @@ class TestAIResponseSchemas:
     def test_builder_empty_content_skipped(self) -> None:
         """Line 125: chunk with empty content is skipped."""
         from app.schemas.ai_response import StructuredResponseBuilder
+
         resp = StructuredResponseBuilder.build(
             answer_text="test answer",
-            rag_chunks=[{"entity_type": "Book", "entity_id": "d1",
-                         "title": "Title", "content": "",
-                         "citation": "[d1:c1]", "score": 0.9}],
+            rag_chunks=[
+                {
+                    "entity_type": "Book",
+                    "entity_id": "d1",
+                    "title": "Title",
+                    "content": "",
+                    "citation": "[d1:c1]",
+                    "score": 0.9,
+                }
+            ],
         )
         assert len(resp.evidence) == 0
 
     def test_builder_duplicate_entity_id_skipped(self) -> None:
         """Line 151: duplicate entity_id in evidence → skipped in graph context."""
         from app.schemas.ai_response import StructuredResponseBuilder
+
         resp = StructuredResponseBuilder.build(
             answer_text="test answer",
             rag_chunks=[
-                {"entity_type": "Book", "entity_id": "d1",
-                 "title": "Title A", "content": "content A",
-                 "citation": "[d1:c1]", "score": 0.9},
-                {"entity_type": "Book", "entity_id": "d1",
-                 "title": "Title A", "content": "content B",
-                 "citation": "[d1:c2]", "score": 0.8},
+                {
+                    "entity_type": "Book",
+                    "entity_id": "d1",
+                    "title": "Title A",
+                    "content": "content A",
+                    "citation": "[d1:c1]",
+                    "score": 0.9,
+                },
+                {
+                    "entity_type": "Book",
+                    "entity_id": "d1",
+                    "title": "Title A",
+                    "content": "content B",
+                    "citation": "[d1:c2]",
+                    "score": 0.8,
+                },
             ],
         )
         # Two evidence items but only one graph context entry (deduped)
@@ -465,6 +571,7 @@ class TestAIResponseSchemas:
     def test_unavailable_response(self) -> None:
         """Line 192: StructuredResponseBuilder.unavailable()."""
         from app.schemas.ai_response import StructuredResponseBuilder
+
         resp = StructuredResponseBuilder.unavailable()
         assert "未配置" in resp.answer
         assert len(resp.evidence) == 0
@@ -495,6 +602,7 @@ class TestInstitutionRepository:
 
         repo = InstitutionRepository(mock_session)
         from app.core.exceptions import NotFoundError
+
         with pytest_mod.raises(NotFoundError):
             await repo.transition_status("bad-id", "active")
 
@@ -514,6 +622,7 @@ class TestInstitutionRepository:
 
         repo = InstitutionRepository(mock_session)
         from app.core.exceptions import NotFoundError
+
         with pytest_mod.raises(NotFoundError):
             await repo.soft_delete("bad-id")
 
@@ -589,6 +698,7 @@ class TestInfrastructureCheck:
 
     def test_service_status_defaults(self) -> None:
         from app.startup.check_infrastructure import ServiceStatus
+
         s = ServiceStatus(name="test", healthy=True)
         assert s.name == "test"
         assert s.healthy is True
@@ -597,12 +707,14 @@ class TestInfrastructureCheck:
 
     def test_service_status_error(self) -> None:
         from app.startup.check_infrastructure import ServiceStatus
+
         s = ServiceStatus(name="pg", healthy=False, error="timeout")
         assert s.healthy is False
         assert s.error == "timeout"
 
     def test_infrastructure_status_default(self) -> None:
         from app.startup.check_infrastructure import InfrastructureStatus
+
         status = InfrastructureStatus()
         assert status.services == []
         assert status.all_healthy is True
@@ -619,6 +731,7 @@ class TestInfrastructureCheck:
             import importlib
 
             import app.startup.check_infrastructure as ci
+
             importlib.reload(ci)
             result = await ci._check_postgres()
             assert result.name == "PostgreSQL"
@@ -633,6 +746,7 @@ class TestInfrastructureCheck:
             import importlib
 
             import app.startup.check_infrastructure as ci
+
             importlib.reload(ci)
             result = await ci._check_redis()
             assert result.healthy is False
@@ -649,10 +763,10 @@ class TestInfrastructureCheck:
             import importlib
 
             import app.startup.check_infrastructure as ci
+
             importlib.reload(ci)
             status = await ci.run_health_checks()
             assert status.all_healthy is False
-
 
 
 # =============================================================================
@@ -667,6 +781,7 @@ class TestAcademicEdgeModel:
         from datetime import datetime
 
         from app.models.academic_edge import AcademicEdge
+
         now = datetime.now(UTC)
         edge = AcademicEdge(
             id="e1",
@@ -697,6 +812,7 @@ class TestTraceLineagePureFunctions:
 
     def test_make_trace_id_deterministic(self) -> None:
         from app.services.trace_lineage import make_trace_id
+
         tid1 = make_trace_id("d1", "c1")
         tid2 = make_trace_id("d1", "c1")
         assert tid1 == tid2
@@ -704,38 +820,46 @@ class TestTraceLineagePureFunctions:
 
     def test_make_trace_id_different_inputs(self) -> None:
         from app.services.trace_lineage import make_trace_id
+
         tid1 = make_trace_id("d1", "c1")
         tid2 = make_trace_id("d1", "c2")
         assert tid1 != tid2
 
     def test_is_valid_uuidv5_valid(self) -> None:
         from app.services.trace_lineage import _is_valid_uuidv5, make_trace_id
+
         tid = make_trace_id("d1", "c1")
         assert _is_valid_uuidv5(tid) is True
 
     def test_is_valid_uuidv5_invalid(self) -> None:
         from app.services.trace_lineage import _is_valid_uuidv5
+
         assert _is_valid_uuidv5("not-a-uuid") is False
         import uuid
+
         v4 = str(uuid.uuid4())
         assert _is_valid_uuidv5(v4) is False
 
     def test_is_valid_score_valid(self) -> None:
         from app.services.trace_lineage import _is_valid_score
+
         assert _is_valid_score(0.5) is True
         assert _is_valid_score(0.0) is True
 
     def test_is_valid_score_nan_inf(self) -> None:
         from app.services.trace_lineage import _is_valid_score
+
         assert _is_valid_score(float("nan")) is False
         assert _is_valid_score(float("inf")) is False
 
     def test_is_valid_score_non_number(self) -> None:
         from app.services.trace_lineage import _is_valid_score
+
         assert _is_valid_score("0.5") is False
 
     def test_internal_trace_record_construction(self) -> None:
         from app.services.trace_lineage import InternalTraceRecord, make_trace_id
+
         tid = make_trace_id("d1", "c1")
         rec = InternalTraceRecord(
             trace_id=tid,
@@ -778,12 +902,25 @@ class TestTraceLineagePureFunctions:
     def test_extract_trace_ids(self) -> None:
         from app.services.retrieval import RetrievalResult
         from app.services.trace_lineage import extract_trace_ids
-        r1 = RetrievalResult(document_id="d1", chunk_id="c1",
-                            document_title="", chunk_index=0, content="",
-                            citation="", score=0.5)
-        r2 = RetrievalResult(document_id="d2", chunk_id="c2",
-                            document_title="", chunk_index=0, content="",
-                            citation="", score=0.5)
+
+        r1 = RetrievalResult(
+            document_id="d1",
+            chunk_id="c1",
+            document_title="",
+            chunk_index=0,
+            content="",
+            citation="",
+            score=0.5,
+        )
+        r2 = RetrievalResult(
+            document_id="d2",
+            chunk_id="c2",
+            document_title="",
+            chunk_index=0,
+            content="",
+            citation="",
+            score=0.5,
+        )
         traces = [r1, r2]
         result = extract_trace_ids(traces)
         assert len(result) == 2
@@ -791,18 +928,32 @@ class TestTraceLineagePureFunctions:
     def test_extract_source_documents(self) -> None:
         from app.services.retrieval import RetrievalResult
         from app.services.trace_lineage import extract_source_documents
-        r1 = RetrievalResult(document_id="d1", chunk_id="c1",
-                            document_title="", chunk_index=0, content="",
-                            citation="", score=0.5)
-        r2 = RetrievalResult(document_id="d2", chunk_id="c2",
-                            document_title="", chunk_index=0, content="",
-                            citation="", score=0.5)
+
+        r1 = RetrievalResult(
+            document_id="d1",
+            chunk_id="c1",
+            document_title="",
+            chunk_index=0,
+            content="",
+            citation="",
+            score=0.5,
+        )
+        r2 = RetrievalResult(
+            document_id="d2",
+            chunk_id="c2",
+            document_title="",
+            chunk_index=0,
+            content="",
+            citation="",
+            score=0.5,
+        )
         traces = [r1, r2, r1]
         result = extract_source_documents(traces)
         assert sorted(result) == ["d1", "d2"]
 
     def test_trace_lineage_error(self) -> None:
         from app.services.trace_lineage import TraceLineageError
+
         err = TraceLineageError("test error")
         assert str(err) == "test error"
 
@@ -857,6 +1008,7 @@ class TestConflictDetectorTopological:
 
 def _write_whitelist_yaml(path: Path, data: dict) -> Path:
     import yaml
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(yaml.dump(data), encoding="utf-8")
     return path

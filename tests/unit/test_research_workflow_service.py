@@ -39,9 +39,14 @@ from app.services.trace_lineage import InternalTraceRecord, make_trace_id
 # =============================================================================
 
 
-def _snap(trace_id="trace-001", doc_id="doc-01", chunk_id="chk-01",
-          claim="经络是运行气血的通道", quote="经络者，所以行血气而营阴阳。",
-          citation="[doc-01:chk-01]") -> dict:
+def _snap(
+    trace_id="trace-001",
+    doc_id="doc-01",
+    chunk_id="chk-01",
+    claim="经络是运行气血的通道",
+    quote="经络者，所以行血气而营阴阳。",
+    citation="[doc-01:chk-01]",
+) -> dict:
     return {
         "trace_id": trace_id,
         "document_id": doc_id,
@@ -72,9 +77,11 @@ def _snap_with_extra(**kwargs) -> dict:
     return base
 
 
-def _make_mock_trace(tid="t1", did="doc-01", cid="chk-01",
-                     pid="p1", score=0.95, method="kw"):
+def _make_mock_trace(
+    tid="t1", did="doc-01", cid="chk-01", pid="p1", score=0.95, method="kw"
+):
     """Create an object with .trace_id, .document_id, .to_dict() for trace passthrough."""
+
     class MockTrace:
         pass
 
@@ -288,12 +295,9 @@ class TestBuildReportSections:
 
     def test_build_from_evidence(self):
         evidence = [
-            _snap(trace_id="t1", doc_id="doc-A", claim="Claim A",
-                  citation="[doc-A]"),
-            _snap(trace_id="t2", doc_id="doc-A", claim="Claim B",
-                  citation="[doc-A]"),
-            _snap(trace_id="t3", doc_id="doc-B", claim="Claim C",
-                  citation="[doc-B]"),
+            _snap(trace_id="t1", doc_id="doc-A", claim="Claim A", citation="[doc-A]"),
+            _snap(trace_id="t2", doc_id="doc-A", claim="Claim B", citation="[doc-A]"),
+            _snap(trace_id="t3", doc_id="doc-B", claim="Claim C", citation="[doc-B]"),
         ]
         result = _build_report_sections("topic", evidence, [])
         assert len(result) == 2  # two docs
@@ -429,8 +433,13 @@ class TestCanonicalizeTrace:
         }
         result = canonicalize_trace(trace)
         assert set(result.keys()) == {
-            "trace_id", "document_id", "chunk_id", "passage_id",
-            "provenance_kind", "retrieval_score", "retrieval_method",
+            "trace_id",
+            "document_id",
+            "chunk_id",
+            "passage_id",
+            "provenance_kind",
+            "retrieval_score",
+            "retrieval_method",
         }
         assert result["trace_id"] == "t1"
         assert result["retrieval_score"] == 0.95
@@ -456,15 +465,33 @@ class TestCanonicalizeTraces:
 
     def test_sorts_by_trace_id(self):
         traces = [
-            {"trace_id": "c", "document_id": "d1", "chunk_id": "ck1",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.5, "retrieval_method": "kw"},
-            {"trace_id": "a", "document_id": "d2", "chunk_id": "ck2",
-             "passage_id": "p2", "provenance_kind": "retrieval",
-             "retrieval_score": 0.8, "retrieval_method": "sem"},
-            {"trace_id": "b", "document_id": "d3", "chunk_id": "ck3",
-             "passage_id": "p3", "provenance_kind": "graph",
-             "retrieval_score": None, "retrieval_method": "graph_walk"},
+            {
+                "trace_id": "c",
+                "document_id": "d1",
+                "chunk_id": "ck1",
+                "passage_id": "p1",
+                "provenance_kind": "retrieval",
+                "retrieval_score": 0.5,
+                "retrieval_method": "kw",
+            },
+            {
+                "trace_id": "a",
+                "document_id": "d2",
+                "chunk_id": "ck2",
+                "passage_id": "p2",
+                "provenance_kind": "retrieval",
+                "retrieval_score": 0.8,
+                "retrieval_method": "sem",
+            },
+            {
+                "trace_id": "b",
+                "document_id": "d3",
+                "chunk_id": "ck3",
+                "passage_id": "p3",
+                "provenance_kind": "graph",
+                "retrieval_score": None,
+                "retrieval_method": "graph_walk",
+            },
         ]
         result = canonicalize_traces(traces)
         assert len(result) == 3
@@ -477,10 +504,17 @@ class TestCanonicalizeTraces:
 
     def test_extra_fields_stripped(self):
         traces = [
-            {"trace_id": "t1", "document_id": "d1", "chunk_id": "c1",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 1.0, "retrieval_method": "sem",
-             "garbage": "yes", "timestamp": "2026-01-01"},
+            {
+                "trace_id": "t1",
+                "document_id": "d1",
+                "chunk_id": "c1",
+                "passage_id": "p1",
+                "provenance_kind": "retrieval",
+                "retrieval_score": 1.0,
+                "retrieval_method": "sem",
+                "garbage": "yes",
+                "timestamp": "2026-01-01",
+            },
         ]
         result = canonicalize_traces(traces)
         assert len(result) == 1
@@ -511,10 +545,12 @@ class TestBuildCorpusPayload:
 
     def test_sorted_by_trace_id(self):
         snapshot = [
-            _snap_with_extra(trace_id="z", doc_id="doc-Z", chunk_id="ck-z",
-                             passage_id="p-z"),
-            _snap_with_extra(trace_id="a", doc_id="doc-A", chunk_id="ck-a",
-                             passage_id="p-a"),
+            _snap_with_extra(
+                trace_id="z", doc_id="doc-Z", chunk_id="ck-z", passage_id="p-z"
+            ),
+            _snap_with_extra(
+                trace_id="a", doc_id="doc-A", chunk_id="ck-a", passage_id="p-a"
+            ),
         ]
         payload = _build_corpus_payload(snapshot)
         assert payload["corpus_entries"][0]["document_id"] == "doc-A"
@@ -567,11 +603,19 @@ class TestBuildInputPayload:
 
     def test_with_canonical_traces(self):
         snapshot = [_snap_with_extra(trace_id="t1")]
-        canonical_traces = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-01", "chunk_id": "chk-01",
-             "passage_id": "p-001", "provenance_kind": "retrieval",
-             "retrieval_score": 0.95, "retrieval_method": "kw"},
-        ])
+        canonical_traces = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-01",
+                    "chunk_id": "chk-01",
+                    "passage_id": "p-001",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.95,
+                    "retrieval_method": "kw",
+                },
+            ]
+        )
         payload = _build_input_payload(
             topic="经络",
             workflow_type="full_research_flow",
@@ -587,8 +631,11 @@ class TestBuildInputPayload:
     def test_deterministic(self):
         snapshot = [_snap_with_extra(trace_id="t1")]
         kwargs = {
-            "topic": "x", "workflow_type": "wf", "pipeline_version": "1.0",
-            "retrieval_snapshot": snapshot, "trace_ids": ["t1"],
+            "topic": "x",
+            "workflow_type": "wf",
+            "pipeline_version": "1.0",
+            "retrieval_snapshot": snapshot,
+            "trace_ids": ["t1"],
             "source_document_ids": ["d1"],
         }
         p1 = _build_input_payload(**kwargs)
@@ -599,8 +646,12 @@ class TestBuildInputPayload:
 
     def test_empty_inputs(self):
         payload = _build_input_payload(
-            topic="", workflow_type="", pipeline_version="",
-            retrieval_snapshot=[], trace_ids=[], source_document_ids=[],
+            topic="",
+            workflow_type="",
+            pipeline_version="",
+            retrieval_snapshot=[],
+            trace_ids=[],
+            source_document_ids=[],
         )
         assert payload["topic"] == ""
         assert payload["retrieval_snapshot"] == []
@@ -616,13 +667,20 @@ class TestBuildCanonicalPayload:
     """Cover canonical output payload with/without canonical_traces."""
 
     def _make_inputs(self):
-        snapshot = [_snap_with_extra(trace_id="t1", doc_id="doc-A",
-                                     chunk_id="ck-a", claim="Claim A")]
+        snapshot = [
+            _snap_with_extra(
+                trace_id="t1", doc_id="doc-A", chunk_id="ck-a", claim="Claim A"
+            )
+        ]
         synthesis_sections = _group_snapshot_into_sections(snapshot)
         synthesis_evidence = _snapshot_to_evidence_list(snapshot)
         citations = [
-            {"trace_id": "t1", "citation_text": "[doc-A:ck-a]",
-             "document_id": "doc-A", "quote": "Quote text"},
+            {
+                "trace_id": "t1",
+                "citation_text": "[doc-A:ck-a]",
+                "document_id": "doc-A",
+                "quote": "Quote text",
+            },
         ]
         return snapshot, synthesis_sections, synthesis_evidence, citations
 
@@ -650,11 +708,19 @@ class TestBuildCanonicalPayload:
 
     def test_with_canonical_traces(self):
         snapshot, s_sec, s_ev, citations = self._make_inputs()
-        ct = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-A", "chunk_id": "ck-a",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.95, "retrieval_method": "kw"},
-        ])
+        ct = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "passage_id": "p1",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.95,
+                    "retrieval_method": "kw",
+                },
+            ]
+        )
         payload = _build_canonical_payload(
             topic="经络",
             workflow_type="full_research_flow",
@@ -674,10 +740,15 @@ class TestBuildCanonicalPayload:
     def test_deterministic(self):
         snapshot, s_sec, s_ev, citations = self._make_inputs()
         kwargs = {
-            "topic": "经络", "workflow_type": "wf", "pipeline_version": "1.0",
-            "retrieval_snapshot": snapshot, "synthesis_sections": s_sec,
-            "synthesis_evidence": s_ev, "report_sections": s_sec,
-            "citations": citations, "trace_ids": ["t1"],
+            "topic": "经络",
+            "workflow_type": "wf",
+            "pipeline_version": "1.0",
+            "retrieval_snapshot": snapshot,
+            "synthesis_sections": s_sec,
+            "synthesis_evidence": s_ev,
+            "report_sections": s_sec,
+            "citations": citations,
+            "trace_ids": ["t1"],
             "source_document_ids": ["doc-A"],
         }
         p1 = _build_canonical_payload(**kwargs)
@@ -692,16 +763,29 @@ class TestBuildCanonicalPayload:
         s_sec = _group_snapshot_into_sections(snapshot)
         s_ev = _snapshot_to_evidence_list(snapshot)
         citations = [
-            {"trace_id": "a", "citation_text": "[doc-A]", "document_id": "doc-A",
-             "quote": "q"},
-            {"trace_id": "b", "citation_text": "[doc-B]", "document_id": "doc-B",
-             "quote": "q"},
+            {
+                "trace_id": "a",
+                "citation_text": "[doc-A]",
+                "document_id": "doc-A",
+                "quote": "q",
+            },
+            {
+                "trace_id": "b",
+                "citation_text": "[doc-B]",
+                "document_id": "doc-B",
+                "quote": "q",
+            },
         ]
         payload = _build_canonical_payload(
-            topic="x", workflow_type="wf", pipeline_version="1.0",
-            retrieval_snapshot=snapshot, synthesis_sections=s_sec,
-            synthesis_evidence=s_ev, report_sections=s_sec,
-            citations=citations, trace_ids=["a", "b"],
+            topic="x",
+            workflow_type="wf",
+            pipeline_version="1.0",
+            retrieval_snapshot=snapshot,
+            synthesis_sections=s_sec,
+            synthesis_evidence=s_ev,
+            report_sections=s_sec,
+            citations=citations,
+            trace_ids=["a", "b"],
             source_document_ids=["doc-A", "doc-B"],
         )
         # All sorted by trace_id: 'a' before 'b'
@@ -714,9 +798,15 @@ class TestBuildCanonicalPayload:
 
     def test_empty_inputs(self):
         payload = _build_canonical_payload(
-            topic="", workflow_type="", pipeline_version="",
-            retrieval_snapshot=[], synthesis_sections=[], synthesis_evidence=[],
-            report_sections=[], citations=[], trace_ids=[],
+            topic="",
+            workflow_type="",
+            pipeline_version="",
+            retrieval_snapshot=[],
+            synthesis_sections=[],
+            synthesis_evidence=[],
+            report_sections=[],
+            citations=[],
+            trace_ids=[],
             source_document_ids=[],
         )
         assert payload["retrieval_snapshot"] == []
@@ -737,8 +827,11 @@ class TestBuildMarkdownArtifact:
 
     def test_empty_snapshot_empty_synthesis(self):
         md = _SVC.build_markdown_artifact(
-            topic="test", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=[], synthesis_output={},
+            topic="test",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=[],
+            synthesis_output={},
         )
         assert "# 研究报告：test" in md
         assert "检索快照记录数: 0" in md
@@ -750,12 +843,19 @@ class TestBuildMarkdownArtifact:
 
     def test_with_retrieval_snapshot(self):
         snapshot = [
-            _snap_with_extra(trace_id="t1", claim="经络是运行气血的通道",
-                             quote="经络者", citation="[doc-01:chk-01]"),
+            _snap_with_extra(
+                trace_id="t1",
+                claim="经络是运行气血的通道",
+                quote="经络者",
+                citation="[doc-01:chk-01]",
+            ),
         ]
         md = _SVC.build_markdown_artifact(
-            topic="经络", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=snapshot, synthesis_output={"evidence": [], "sections": []},
+            topic="经络",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=snapshot,
+            synthesis_output={"evidence": [], "sections": []},
         )
         assert "文献检索快照" in md
         assert "经络是运行气血的通道" in md
@@ -766,12 +866,18 @@ class TestBuildMarkdownArtifact:
 
     def test_with_sections_in_synthesis(self):
         sections = [
-            {"heading": "文献 doc-A", "body": "Evidence body text.",
-             "references": ["t1", "t2"]},
+            {
+                "heading": "文献 doc-A",
+                "body": "Evidence body text.",
+                "references": ["t1", "t2"],
+            },
         ]
         md = _SVC.build_markdown_artifact(
-            topic="测试", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=[], synthesis_output={"evidence": [], "sections": sections},
+            topic="测试",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=[],
+            synthesis_output={"evidence": [], "sections": sections},
         )
         assert "证据综合" in md
         assert "文献 doc-A" in md
@@ -781,12 +887,14 @@ class TestBuildMarkdownArtifact:
 
     def test_with_evidence_only_no_sections(self):
         evidence = [
-            _snap(trace_id="t1", doc_id="doc-A", claim="Claim A",
-                  citation="[doc-A]"),
+            _snap(trace_id="t1", doc_id="doc-A", claim="Claim A", citation="[doc-A]"),
         ]
         md = _SVC.build_markdown_artifact(
-            topic="测试", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=[], synthesis_output={"evidence": evidence, "sections": []},
+            topic="测试",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=[],
+            synthesis_output={"evidence": evidence, "sections": []},
         )
         assert "证据综合" in md
         assert "Claim A" in md
@@ -800,8 +908,11 @@ class TestBuildMarkdownArtifact:
             {"name": "evidence_synthesis", "status": "failed"},
         ]
         md = _SVC.build_markdown_artifact(
-            topic="测试", run_id=str(uuid4()), steps=steps,
-            retrieval_snapshot=[], synthesis_output={},
+            topic="测试",
+            run_id=str(uuid4()),
+            steps=steps,
+            retrieval_snapshot=[],
+            synthesis_output={},
         )
         assert "✅" in md
         assert "❌" in md
@@ -817,31 +928,40 @@ class TestBuildMarkdownArtifact:
 
         steps = [StepModel()]
         md = _SVC.build_markdown_artifact(
-            topic="测试", run_id=str(uuid4()), steps=steps,
-            retrieval_snapshot=[], synthesis_output={},
+            topic="测试",
+            run_id=str(uuid4()),
+            steps=steps,
+            retrieval_snapshot=[],
+            synthesis_output={},
         )
         assert "my_step" in md
         assert "✅" in md
 
     def test_has_content_sha256(self):
         md = _SVC.build_markdown_artifact(
-            topic="test", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=[], synthesis_output={},
+            topic="test",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=[],
+            synthesis_output={},
         )
         # content hash should be present and 64 hex chars
         import re
+
         match = re.search(r"内容哈希: `([a-f0-9]+)`", md)
         assert match is not None
         assert len(match.group(1)) == 64
 
     def test_retrieval_snapshot_truncated_at_20(self):
         snapshot = [
-            _snap_with_extra(trace_id=f"t{i}", claim=f"Claim {i}")
-            for i in range(25)
+            _snap_with_extra(trace_id=f"t{i}", claim=f"Claim {i}") for i in range(25)
         ]
         md = _SVC.build_markdown_artifact(
-            topic="test", run_id=str(uuid4()), steps=[],
-            retrieval_snapshot=snapshot, synthesis_output={},
+            topic="test",
+            run_id=str(uuid4()),
+            steps=[],
+            retrieval_snapshot=snapshot,
+            synthesis_output={},
         )
         # Claims 0-19 should be in output, 20-24 should not
         for i in range(20):
@@ -901,7 +1021,9 @@ class TestEvidenceSynthesis:
     def test_empty_snapshot_with_traces_passed_through(self):
         """Empty snapshot: passes internal_traces through unchanged."""
         output = _SVC.execute_evidence_synthesis_from_snapshot(
-            "test", [], internal_traces=[MagicMock()],
+            "test",
+            [],
+            internal_traces=[MagicMock()],
         )
         assert output["internal_traces"] is not None
         assert len(output["internal_traces"]) == 1
@@ -910,7 +1032,9 @@ class TestEvidenceSynthesis:
         """Non-empty snapshot, no traces → empty trace_ids/source_documents."""
         snapshot = [_snap_with_extra(trace_id="t1", doc_id="doc-A")]
         output = _SVC.execute_evidence_synthesis_from_snapshot(
-            "test", snapshot, internal_traces=None,
+            "test",
+            snapshot,
+            internal_traces=None,
         )
         assert output["result"]["sections"] == 1
         assert output["result"]["claims"] == 1
@@ -942,8 +1066,11 @@ class TestReportFromSynthesis:
         """Empty synthesis without any internal_traces."""
         empty = {
             "result": {"sections": 0, "claims": 0},
-            "sections": [], "evidence": [], "trace_ids": [],
-            "source_documents": [], "internal_traces": [],
+            "sections": [],
+            "evidence": [],
+            "trace_ids": [],
+            "source_documents": [],
+            "internal_traces": [],
         }
         output = _SVC.execute_report_from_synthesis("x", empty)
         assert "(无可用证据)" in output["result"]["title"]
@@ -966,12 +1093,16 @@ class TestReportFromSynthesis:
         assert output["result"]["sections"] == 1
         assert "研究报告：经络" in output["result"]["title"]
         assert len(output["internal_traces"]) == 2
-        assert output["trace_ids"] == ["t1", "t2"]  # trace_ids derived from traces, not synthesis keys
+        assert output["trace_ids"] == [
+            "t1",
+            "t2",
+        ]  # trace_ids derived from traces, not synthesis keys
 
     def test_sections_passthrough_to_report_sections(self):
         """When sections exist, _build_report_sections returns them as-is."""
-        sections_in = [{"heading": "Custom", "body": "Custom body",
-                         "references": ["r1"]}]
+        sections_in = [
+            {"heading": "Custom", "body": "Custom body", "references": ["r1"]}
+        ]
         synthesis = {
             "result": {"sections": 1, "claims": 0},
             "sections": sections_in,
@@ -1004,7 +1135,9 @@ class TestCitationExport:
     def test_empty_evidence_with_traces(self):
         """Empty evidence passes internal_traces through."""
         output = _SVC.execute_citation_export_from_evidence(
-            "test", [], internal_traces=[MagicMock()],
+            "test",
+            [],
+            internal_traces=[MagicMock()],
         )
         assert output["internal_traces"] is not None
         assert len(output["internal_traces"]) == 1
@@ -1013,7 +1146,9 @@ class TestCitationExport:
         """Non-empty evidence with internal_traces=None."""
         evidence = [_snap_with_extra(trace_id="t1", doc_id="doc-A")]
         output = _SVC.execute_citation_export_from_evidence(
-            "test", evidence, internal_traces=None,
+            "test",
+            evidence,
+            internal_traces=None,
         )
         assert output["result"]["total_citations"] == 1
         assert output["internal_traces"] == []
@@ -1044,9 +1179,13 @@ class TestCitationExport:
     def test_citation_fields_populated_correctly(self):
         """Each citation carries trace_id, citation_text, document_id, quote."""
         evidence = [
-            _snap_with_extra(trace_id="t1", doc_id="doc-A",
-                             claim="Claim A", quote="Quote A",
-                             citation="[doc-A]"),
+            _snap_with_extra(
+                trace_id="t1",
+                doc_id="doc-A",
+                claim="Claim A",
+                quote="Quote A",
+                citation="[doc-A]",
+            ),
         ]
         output = _SVC.execute_citation_export_from_evidence("test", evidence)
         c = output["result"]["citations"][0]
@@ -1087,30 +1226,55 @@ class TestCanonicalRoundTrip:
 
     def test_input_output_hashes_different(self):
         """input and output payloads must produce different hashes."""
-        snapshot = [_snap_with_extra(trace_id="t1", doc_id="doc-A",
-                                     chunk_id="ck-a", claim="C")]
+        snapshot = [
+            _snap_with_extra(trace_id="t1", doc_id="doc-A", chunk_id="ck-a", claim="C")
+        ]
         s_sec = _group_snapshot_into_sections(snapshot)
         s_ev = _snapshot_to_evidence_list(snapshot)
-        citations = [{"trace_id": "t1", "citation_text": "[doc-A]",
-                       "document_id": "doc-A", "quote": "Q"}]
-        ct = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-A", "chunk_id": "ck-a",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.95, "retrieval_method": "kw"},
-        ])
+        citations = [
+            {
+                "trace_id": "t1",
+                "citation_text": "[doc-A]",
+                "document_id": "doc-A",
+                "quote": "Q",
+            }
+        ]
+        ct = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "passage_id": "p1",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.95,
+                    "retrieval_method": "kw",
+                },
+            ]
+        )
 
         corpus_payload = _build_corpus_payload(snapshot)
         input_payload = _build_input_payload(
-            topic="test", workflow_type="wf", pipeline_version="1.0",
-            retrieval_snapshot=snapshot, trace_ids=["t1"],
-            source_document_ids=["doc-A"], canonical_traces=ct,
+            topic="test",
+            workflow_type="wf",
+            pipeline_version="1.0",
+            retrieval_snapshot=snapshot,
+            trace_ids=["t1"],
+            source_document_ids=["doc-A"],
+            canonical_traces=ct,
         )
         output_payload = _build_canonical_payload(
-            topic="test", workflow_type="wf", pipeline_version="1.0",
-            retrieval_snapshot=snapshot, synthesis_sections=s_sec,
-            synthesis_evidence=s_ev, report_sections=s_sec,
-            citations=citations, trace_ids=["t1"],
-            source_document_ids=["doc-A"], canonical_traces=ct,
+            topic="test",
+            workflow_type="wf",
+            pipeline_version="1.0",
+            retrieval_snapshot=snapshot,
+            synthesis_sections=s_sec,
+            synthesis_evidence=s_ev,
+            report_sections=s_sec,
+            citations=citations,
+            trace_ids=["t1"],
+            source_document_ids=["doc-A"],
+            canonical_traces=ct,
         )
 
         corpus_h = canonical_sha256(corpus_payload)
@@ -1125,8 +1289,11 @@ class TestCanonicalRoundTrip:
         """Identical inputs produce identical hashes."""
         snapshot = [_snap_with_extra(trace_id="t1")]
         kwargs = {
-            "topic": "test", "workflow_type": "wf", "pipeline_version": "1.0",
-            "retrieval_snapshot": snapshot, "trace_ids": ["t1"],
+            "topic": "test",
+            "workflow_type": "wf",
+            "pipeline_version": "1.0",
+            "retrieval_snapshot": snapshot,
+            "trace_ids": ["t1"],
             "source_document_ids": ["doc-01"],
         }
         h1 = canonical_sha256(_build_input_payload(**kwargs))
@@ -1135,48 +1302,88 @@ class TestCanonicalRoundTrip:
 
     def test_different_trace_changes_hash(self):
         """A single provenace field change must change the hash."""
-        snapshot = [_snap_with_extra(trace_id="t1", doc_id="doc-A",
-                                     chunk_id="ck-a")]
-        ct1 = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-A", "chunk_id": "ck-a",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.95, "retrieval_method": "kw"},
-        ])
-        ct2 = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-A", "chunk_id": "ck-a",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.80, "retrieval_method": "kw"},  # score changed
-        ])
+        snapshot = [_snap_with_extra(trace_id="t1", doc_id="doc-A", chunk_id="ck-a")]
+        ct1 = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "passage_id": "p1",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.95,
+                    "retrieval_method": "kw",
+                },
+            ]
+        )
+        ct2 = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "passage_id": "p1",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.80,
+                    "retrieval_method": "kw",
+                },  # score changed
+            ]
+        )
 
-        h1 = canonical_sha256(_build_input_payload(
-            topic="test", workflow_type="wf", pipeline_version="1.0",
-            retrieval_snapshot=snapshot, trace_ids=["t1"],
-            source_document_ids=["doc-A"], canonical_traces=ct1,
-        ))
-        h2 = canonical_sha256(_build_input_payload(
-            topic="test", workflow_type="wf", pipeline_version="1.0",
-            retrieval_snapshot=snapshot, trace_ids=["t1"],
-            source_document_ids=["doc-A"], canonical_traces=ct2,
-        ))
+        h1 = canonical_sha256(
+            _build_input_payload(
+                topic="test",
+                workflow_type="wf",
+                pipeline_version="1.0",
+                retrieval_snapshot=snapshot,
+                trace_ids=["t1"],
+                source_document_ids=["doc-A"],
+                canonical_traces=ct1,
+            )
+        )
+        h2 = canonical_sha256(
+            _build_input_payload(
+                topic="test",
+                workflow_type="wf",
+                pipeline_version="1.0",
+                retrieval_snapshot=snapshot,
+                trace_ids=["t1"],
+                source_document_ids=["doc-A"],
+                canonical_traces=ct2,
+            )
+        )
         assert h1 != h2, "Different retrieval_score must produce different hash"
 
     def test_no_traces_vs_with_traces_different(self):
         """Payload with traces vs without must differ."""
         snapshot = [_snap_with_extra(trace_id="t1")]
-        ct = canonicalize_traces([
-            {"trace_id": "t1", "document_id": "doc-A", "chunk_id": "ck-a",
-             "passage_id": "p1", "provenance_kind": "retrieval",
-             "retrieval_score": 0.95, "retrieval_method": "kw"},
-        ])
+        ct = canonicalize_traces(
+            [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "passage_id": "p1",
+                    "provenance_kind": "retrieval",
+                    "retrieval_score": 0.95,
+                    "retrieval_method": "kw",
+                },
+            ]
+        )
         base_kwargs = {
-            "topic": "test", "workflow_type": "wf", "pipeline_version": "1.0",
-            "retrieval_snapshot": snapshot, "trace_ids": ["t1"],
+            "topic": "test",
+            "workflow_type": "wf",
+            "pipeline_version": "1.0",
+            "retrieval_snapshot": snapshot,
+            "trace_ids": ["t1"],
             "source_document_ids": ["doc-A"],
         }
-        h_no_traces = canonical_sha256(_build_input_payload(**base_kwargs,
-                                                             canonical_traces=None))
-        h_with_traces = canonical_sha256(_build_input_payload(**base_kwargs,
-                                                               canonical_traces=ct))
+        h_no_traces = canonical_sha256(
+            _build_input_payload(**base_kwargs, canonical_traces=None)
+        )
+        h_with_traces = canonical_sha256(
+            _build_input_payload(**base_kwargs, canonical_traces=ct)
+        )
         assert h_no_traces != h_with_traces
 
 
@@ -1187,9 +1394,14 @@ class TestCanonicalRoundTrip:
 
 # --- Mock helpers for _build_retrieval_snapshot queries ---
 
-def _make_evidence_trace(doc_id="doc-1", chk_id="chk-1",
-                         claim="Claim A", quote="Quote A",
-                         citation="[doc-1:chk-1]"):
+
+def _make_evidence_trace(
+    doc_id="doc-1",
+    chk_id="chk-1",
+    claim="Claim A",
+    quote="Quote A",
+    citation="[doc-1:chk-1]",
+):
     """Create an EvidenceTrace-like mock for _build_retrieval_snapshot."""
     t = MagicMock()
     t.document_id = doc_id
@@ -1200,8 +1412,9 @@ def _make_evidence_trace(doc_id="doc-1", chk_id="chk-1",
     return t
 
 
-def _make_sourceref_mock(sr_id="sr-1", url="http://ex.com", title="SR Title",
-                          location="passage:p1"):
+def _make_sourceref_mock(
+    sr_id="sr-1", url="http://ex.com", title="SR Title", location="passage:p1"
+):
     """Create a SourceRef-like mock with scalars-compatible fields."""
     sr = MagicMock()
     sr.id = sr_id
@@ -1251,7 +1464,9 @@ class TestExecuteTopicSelection:
         ) as MockAcSvc:
             mock_inst = MockAcSvc.return_value
             mock_inst.research = AsyncMock(return_value=mock_result)
-            mock_inst.last_snapshot = {"chk-1": {"score": 0.95, "retrieval_method": "kw"}}
+            mock_inst.last_snapshot = {
+                "chk-1": {"score": 0.95, "retrieval_method": "kw"}
+            }
 
             with patch(
                 "app.services.research_workflow_service._pack_academic_step",
@@ -1402,10 +1617,12 @@ class TestPersistResearchRun:
         ) as mock_get:
             mock_get.return_value = mock_rs
 
-            tr1 = _make_mock_trace(tid="t1", did="doc-A", cid="ck-a", pid="p-001",
-                                   score=0.95, method="kw")
-            tr2 = _make_mock_trace(tid="t2", did="doc-B", cid="ck-b", pid="p-002",
-                                   score=0.88, method="sem")
+            tr1 = _make_mock_trace(
+                tid="t1", did="doc-A", cid="ck-a", pid="p-001", score=0.95, method="kw"
+            )
+            tr2 = _make_mock_trace(
+                tid="t2", did="doc-B", cid="ck-b", pid="p-002", score=0.88, method="sem"
+            )
 
             snapshot = [
                 {
@@ -1433,10 +1650,13 @@ class TestPersistResearchRun:
                 retrieval_snapshot=snapshot,
                 immutable_traces=[tr1, tr2],
                 steps=[
-                    {"name": "topic_selection", "status": "completed",
-                     "started_at": "2026-01-01T00:00:00",
-                     "completed_at": "2026-01-01T00:01:00",
-                     "trace_ids": []},
+                    {
+                        "name": "topic_selection",
+                        "status": "completed",
+                        "started_at": "2026-01-01T00:00:00",
+                        "completed_at": "2026-01-01T00:01:00",
+                        "trace_ids": [],
+                    },
                 ],
             )
 
@@ -1471,14 +1691,16 @@ class TestPersistResearchRun:
         ) as mock_get:
             mock_get.return_value = mock_rs
 
-            snapshot = [{
-                "trace_id": "t1",
-                "document_id": "doc-A",
-                "chunk_id": "ck-a",
-                "claim_text": "C",
-                "quote": "Q",
-                "citation_text": "[doc-A:ck-a]",
-            }]
+            snapshot = [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "claim_text": "C",
+                    "quote": "Q",
+                    "citation_text": "[doc-A:ck-a]",
+                }
+            ]
 
             await svc.persist_research_run(
                 session_id="s1",
@@ -1517,14 +1739,16 @@ class TestPersistResearchRun:
 
             tr_no_dict = NoDict()
 
-            snapshot = [{
-                "trace_id": "t1",
-                "document_id": "doc-A",
-                "chunk_id": "ck-a",
-                "claim_text": "C",
-                "quote": "Q",
-                "citation_text": "[doc-A:ck-a]",
-            }]
+            snapshot = [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "claim_text": "C",
+                    "quote": "Q",
+                    "citation_text": "[doc-A:ck-a]",
+                }
+            ]
 
             await svc.persist_research_run(
                 session_id="s1",
@@ -1555,18 +1779,26 @@ class TestPersistResearchRun:
         ) as mock_get:
             mock_get.return_value = mock_rs
 
-            tr = _make_mock_trace(tid="t1", did="doc-A", cid="ck-a", pid="existing",
-                                  score=0.95, method="kw")
+            tr = _make_mock_trace(
+                tid="t1",
+                did="doc-A",
+                cid="ck-a",
+                pid="existing",
+                score=0.95,
+                method="kw",
+            )
 
-            snapshot = [{
-                "trace_id": "t1",
-                "document_id": "doc-A",
-                "chunk_id": "ck-a",
-                "claim_text": "C",
-                "quote": "Q",
-                "citation_text": "[doc-A:ck-a]",
-                "passage_id": "already-here",
-            }]
+            snapshot = [
+                {
+                    "trace_id": "t1",
+                    "document_id": "doc-A",
+                    "chunk_id": "ck-a",
+                    "claim_text": "C",
+                    "quote": "Q",
+                    "citation_text": "[doc-A:ck-a]",
+                    "passage_id": "already-here",
+                }
+            ]
 
             await svc.persist_research_run(
                 session_id="s1",
@@ -1647,10 +1879,14 @@ class TestGetResearchRuns:
         svc = ResearchWorkflowService(mock_session)
 
         mock_rs = MagicMock()
-        mock_rs.workflow_state = json.dumps({
-            "runs": [{"run_id": "r1", "topic": "test"},
-                     {"run_id": "r2", "topic": "test2"}]
-        })
+        mock_rs.workflow_state = json.dumps(
+            {
+                "runs": [
+                    {"run_id": "r1", "topic": "test"},
+                    {"run_id": "r2", "topic": "test2"},
+                ]
+            }
+        )
 
         with patch.object(
             svc.workspace, "get_session", new_callable=AsyncMock
@@ -1766,12 +2002,19 @@ class TestConfigureVersionComparison:
             "notes": None,
             "order": 1,
             "chapter": {"id": "ch1", "title": "Chapter 1"},
-            "version": {"id": "v1", "name": "V1", "era": "唐", "year": 800,
-                        "repository": "Repo", "shelf_mark": "A1",
-                        "source_url": None, "is_formal_source": False,
-                        "rights_statement": None,
-                        "persistent_identifier": None,
-                        "is_withdrawn": False},
+            "version": {
+                "id": "v1",
+                "name": "V1",
+                "era": "唐",
+                "year": 800,
+                "repository": "Repo",
+                "shelf_mark": "A1",
+                "source_url": None,
+                "is_formal_source": False,
+                "rights_statement": None,
+                "persistent_identifier": None,
+                "is_withdrawn": False,
+            },
             "book": {"id": "b1", "title": "Book One", "source_url": None},
             "citation": "《Book One》·V1，Chapter 1，第1条",
             "evidence_complete": False,
@@ -1784,12 +2027,19 @@ class TestConfigureVersionComparison:
             "notes": None,
             "order": 1,
             "chapter": {"id": "ch2", "title": "Chapter 2"},
-            "version": {"id": "v2", "name": "V2", "era": "宋", "year": 1000,
-                        "repository": "Repo2", "shelf_mark": "B1",
-                        "source_url": None, "is_formal_source": False,
-                        "rights_statement": None,
-                        "persistent_identifier": None,
-                        "is_withdrawn": False},
+            "version": {
+                "id": "v2",
+                "name": "V2",
+                "era": "宋",
+                "year": 1000,
+                "repository": "Repo2",
+                "shelf_mark": "B1",
+                "source_url": None,
+                "is_formal_source": False,
+                "rights_statement": None,
+                "persistent_identifier": None,
+                "is_withdrawn": False,
+            },
             "book": {"id": "b1", "title": "Book One", "source_url": None},
             "citation": "《Book One》·V2，Chapter 2，第1条",
             "evidence_complete": False,
@@ -1852,12 +2102,19 @@ class TestConfigureVersionComparison:
             "notes": None,
             "order": 1,
             "chapter": {"id": "ch1", "title": "Ch"},
-            "version": {"id": "v1", "name": "V1", "era": "", "year": 0,
-                        "repository": "", "shelf_mark": "",
-                        "source_url": None, "is_formal_source": True,
-                        "rights_statement": None,
-                        "persistent_identifier": None,
-                        "is_withdrawn": False},
+            "version": {
+                "id": "v1",
+                "name": "V1",
+                "era": "",
+                "year": 0,
+                "repository": "",
+                "shelf_mark": "",
+                "source_url": None,
+                "is_formal_source": True,
+                "rights_statement": None,
+                "persistent_identifier": None,
+                "is_withdrawn": False,
+            },
             "book": {"id": "b1", "title": "Book", "source_url": None},
             "citation": "C",
             "evidence_complete": True,
@@ -1870,12 +2127,19 @@ class TestConfigureVersionComparison:
             "notes": None,
             "order": 2,
             "chapter": {"id": "ch2", "title": "Ch2"},
-            "version": {"id": "v2", "name": "V2", "era": "", "year": 0,
-                        "repository": "", "shelf_mark": "",
-                        "source_url": None, "is_formal_source": True,
-                        "rights_statement": None,
-                        "persistent_identifier": None,
-                        "is_withdrawn": False},
+            "version": {
+                "id": "v2",
+                "name": "V2",
+                "era": "",
+                "year": 0,
+                "repository": "",
+                "shelf_mark": "",
+                "source_url": None,
+                "is_formal_source": True,
+                "rights_statement": None,
+                "persistent_identifier": None,
+                "is_withdrawn": False,
+            },
             "book": {"id": "b1", "title": "Book", "source_url": None},
             "citation": "C2",
             "evidence_complete": True,
@@ -1980,10 +2244,12 @@ class TestGetVersionComparison:
         svc = ResearchWorkflowService(mock_session)
 
         mock_rs = MagicMock()
-        mock_rs.workflow_state = json.dumps({
-            "workflow_type": "full_research_flow",
-            "runs": [],
-        })
+        mock_rs.workflow_state = json.dumps(
+            {
+                "workflow_type": "full_research_flow",
+                "runs": [],
+            }
+        )
 
         with patch.object(
             svc.workspace, "get_session", new_callable=AsyncMock
@@ -2004,8 +2270,7 @@ class TestGetVersionComparison:
             "corpus_status": "validation",
             "source": {"passage_id": "sp1"},
             "target": {"passage_id": "tp1"},
-            "comparison": {"differences": 1, "operations": [],
-                           "similarity_ratio": 0.9},
+            "comparison": {"differences": 1, "operations": [], "similarity_ratio": 0.9},
         }
         mock_rs = MagicMock()
         mock_rs.workflow_state = json.dumps(expected_state)
@@ -2086,8 +2351,7 @@ class TestExportMarkdown:
                 "passage_id": "sp1",
                 "text": "Source passage text",
                 "citation": "《黄帝内经》·V1，Chapter 1，第1条",
-                "version": {"id": "v1", "name": "宋本",
-                            "is_formal_source": False},
+                "version": {"id": "v1", "name": "宋本", "is_formal_source": False},
                 "is_formal_source": False,
                 "evidence_complete": False,
             },
@@ -2095,8 +2359,7 @@ class TestExportMarkdown:
                 "passage_id": "tp1",
                 "text": "Target passage text",
                 "citation": "《黄帝内经》·V2，Chapter 1，第1条",
-                "version": {"id": "v2", "name": "明本",
-                            "is_formal_source": False},
+                "version": {"id": "v2", "name": "明本", "is_formal_source": False},
                 "is_formal_source": False,
                 "evidence_complete": False,
             },
@@ -2161,8 +2424,7 @@ class TestExportMarkdown:
                 "passage_id": "sp1",
                 "text": "Source text",
                 "citation": "Citation S",
-                "version": {"id": "v1", "name": "V1",
-                            "is_formal_source": False},
+                "version": {"id": "v1", "name": "V1", "is_formal_source": False},
                 "is_formal_source": False,
                 "evidence_complete": False,
             },
@@ -2170,8 +2432,7 @@ class TestExportMarkdown:
                 "passage_id": "tp1",
                 "text": "Target text",
                 "citation": "Citation T",
-                "version": {"id": "v2", "name": "V2",
-                            "is_formal_source": False},
+                "version": {"id": "v2", "name": "V2", "is_formal_source": False},
                 "is_formal_source": False,
                 "evidence_complete": False,
             },
@@ -2219,8 +2480,7 @@ class TestExportMarkdown:
                 "passage_id": "sp1",
                 "text": "Source",
                 "citation": "C",
-                "version": {"id": "v1", "name": "V1",
-                            "is_formal_source": True},
+                "version": {"id": "v1", "name": "V1", "is_formal_source": True},
                 "is_formal_source": True,
                 "evidence_complete": True,
             },
@@ -2228,8 +2488,7 @@ class TestExportMarkdown:
                 "passage_id": "tp1",
                 "text": "Target",
                 "citation": "C",
-                "version": {"id": "v2", "name": "V2",
-                            "is_formal_source": True},
+                "version": {"id": "v2", "name": "V2", "is_formal_source": True},
                 "is_formal_source": True,
                 "evidence_complete": True,
             },
@@ -2462,10 +2721,10 @@ class TestBuildRetrievalSnapshot:
 
         from app.services.trace_lineage import TraceLineageError
 
-        with pytest.raises(TraceLineageError,
-                           match="TRACE_LINEAGE_INCOMPLETE"):
+        with pytest.raises(TraceLineageError, match="TRACE_LINEAGE_INCOMPLETE"):
             await _build_retrieval_snapshot(
-                mock_session, mock_result,
+                mock_session,
+                mock_result,
                 retrieval_snapshot=None,
             )
 
@@ -2474,10 +2733,12 @@ class TestBuildRetrievalSnapshot:
         and InternalTraceRecord construction."""
         mock_session = AsyncMock()
 
-        trace1 = _make_evidence_trace(doc_id="doc-1", chk_id="chk-1",
-                                      claim="Claim 1", quote="Quote 1")
-        trace2 = _make_evidence_trace(doc_id="doc-1", chk_id="chk-2",
-                                      claim="Claim 2", quote="Quote 2")
+        trace1 = _make_evidence_trace(
+            doc_id="doc-1", chk_id="chk-1", claim="Claim 1", quote="Quote 1"
+        )
+        trace2 = _make_evidence_trace(
+            doc_id="doc-1", chk_id="chk-2", claim="Claim 2", quote="Quote 2"
+        )
         mock_result = MagicMock()
         mock_result.evidence_trace = [trace1, trace2]
 
@@ -2496,8 +2757,12 @@ class TestBuildRetrievalSnapshot:
         execute_returns.append(r1)
 
         # Query 2: passage-scope SourceRef → scalars().all()
-        sr1 = _make_sourceref_mock(sr_id="sr-1", location="passage:p-001",
-                                    title="Source One", url="http://ex.com/1")
+        sr1 = _make_sourceref_mock(
+            sr_id="sr-1",
+            location="passage:p-001",
+            title="Source One",
+            url="http://ex.com/1",
+        )
         r2 = MagicMock()
         r2_scalars = MagicMock()
         r2_scalars.all.return_value = [sr1]
@@ -2506,8 +2771,10 @@ class TestBuildRetrievalSnapshot:
 
         # Query 3: document-scope SourceRef → scalars().all()
         sr_doc = _make_sourceref_mock(
-            sr_id="sr-doc-1", location="document:doc-1",
-            title="Doc Source", url="http://ex.com/doc",
+            sr_id="sr-doc-1",
+            location="document:doc-1",
+            title="Doc Source",
+            url="http://ex.com/doc",
         )
         r3 = MagicMock()
         r3_scalars = MagicMock()
@@ -2527,7 +2794,8 @@ class TestBuildRetrievalSnapshot:
         mock_session.execute = AsyncMock(side_effect=execute_returns)
 
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            mock_session, mock_result,
+            mock_session,
+            mock_result,
             retrieval_snapshot=retrieval_snapshot,
         )
 
@@ -2582,7 +2850,8 @@ class TestBuildRetrievalSnapshot:
         mock_session.execute = AsyncMock(side_effect=[r1, r2, r3, r4])
 
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            mock_session, mock_result,
+            mock_session,
+            mock_result,
             retrieval_snapshot=retrieval_snapshot,
         )
 
@@ -2622,7 +2891,8 @@ class TestBuildRetrievalSnapshot:
         mock_session.execute = AsyncMock(side_effect=[r1, r2, r3, r4])
 
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            mock_session, mock_result,
+            mock_session,
+            mock_result,
             retrieval_snapshot=retrieval_snapshot,
         )
 
@@ -2652,7 +2922,8 @@ class TestBuildRetrievalSnapshot:
         r2.scalars.return_value = r2_scalars
 
         sr_doc = _make_sourceref_mock(
-            sr_id="sr-doc-fb", location="document:doc-1",
+            sr_id="sr-doc-fb",
+            location="document:doc-1",
             title="Doc Fallback",
         )
         r3 = MagicMock()
@@ -2666,7 +2937,8 @@ class TestBuildRetrievalSnapshot:
         mock_session.execute = AsyncMock(side_effect=[r1, r2, r3, r4])
 
         snapshot, internal_traces = await _build_retrieval_snapshot(
-            mock_session, mock_result,
+            mock_session,
+            mock_result,
             retrieval_snapshot=retrieval_snapshot,
         )
 
@@ -2714,8 +2986,9 @@ class TestPackAcademicStep:
                 mock_session,
                 mock_result,
                 topic="经络",
-                retrieval_snapshot={"chk-pack": {"score": 0.9,
-                                                  "retrieval_method": "semantic"}},
+                retrieval_snapshot={
+                    "chk-pack": {"score": 0.9, "retrieval_method": "semantic"}
+                },
             )
 
         mock_build.assert_awaited_once()

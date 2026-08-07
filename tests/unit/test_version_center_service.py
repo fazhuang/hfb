@@ -293,7 +293,9 @@ class TestGetSavedDiff:
         diff_id = str(uuid4())
         src_id = str(uuid4())
         tgt_id = str(uuid4())
-        diff_data = json.dumps([{"op": "replace", "source_text": "a", "target_text": "b"}])
+        diff_data = json.dumps(
+            [{"op": "replace", "source_text": "a", "target_text": "b"}]
+        )
         diff = _make_version_diff(diff_id, src_id, tgt_id, diff_data, "1 diff", 1)
 
         session = AsyncMock()
@@ -333,7 +335,9 @@ class TestCreatePassageMapping:
         session.flush = AsyncMock()
         svc = VersionComparisonService(session)
 
-        mapping = await svc.create_passage_mapping(sid, tid, "equivalent", "same passage")
+        mapping = await svc.create_passage_mapping(
+            sid, tid, "equivalent", "same passage"
+        )
 
         assert mapping.source_passage_id == sid
         assert mapping.target_passage_id == tid
@@ -423,7 +427,11 @@ class TestGetPassageMappings:
 def _run_full_compare_session(execute_side_effect):
     """Create a MagicMock session for run_full_compare with sync add + async execute/flush."""
     s = MagicMock()
-    s.execute = AsyncMock(side_effect=execute_side_effect) if isinstance(execute_side_effect, list) else AsyncMock(return_value=execute_side_effect)
+    s.execute = (
+        AsyncMock(side_effect=execute_side_effect)
+        if isinstance(execute_side_effect, list)
+        else AsyncMock(return_value=execute_side_effect)
+    )
     s.flush = AsyncMock()
     return s
 
@@ -436,11 +444,13 @@ class TestRunFullCompare:
         p1 = _make_passage("p1", "甲乙丙丁")
         p2 = _make_passage("p2", "甲乙戊丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(p1),  # src passages
-            _execute_scalars_all(p2),  # tgt passages
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(p1),  # src passages
+                _execute_scalars_all(p2),  # tgt passages
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         # Patch compare_passages to avoid needing actual passage_repo
@@ -449,7 +459,9 @@ class TestRunFullCompare:
                 "source_passage": {"id": "p1", "text": "甲乙丙丁"},
                 "target_passage": {"id": "p2", "text": "甲乙戊丁"},
                 "differences": 1,
-                "operations": [{"op": "replace", "source_text": "丙", "target_text": "戊"}],
+                "operations": [
+                    {"op": "replace", "source_text": "丙", "target_text": "戊"}
+                ],
                 "similarity_ratio": 0.75,
             }
         )
@@ -466,11 +478,13 @@ class TestRunFullCompare:
         tgt_id = str(uuid4())
         p1 = _make_passage("p1", "甲乙丙丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(p1),  # src passages
-            _execute_scalars_all(),  # tgt passages — empty
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(p1),  # src passages
+                _execute_scalars_all(),  # tgt passages — empty
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         result = await svc.run_full_compare(src_id, tgt_id)
@@ -486,11 +500,13 @@ class TestRunFullCompare:
         tgt_id = str(uuid4())
         p2 = _make_passage("p2", "甲乙丙丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(),  # src passages — empty
-            _execute_scalars_all(p2),  # tgt passages
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(),  # src passages — empty
+                _execute_scalars_all(p2),  # tgt passages
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         result = await svc.run_full_compare(src_id, tgt_id)

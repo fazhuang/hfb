@@ -17,7 +17,9 @@ import pytest
 # =============================================================================
 
 
-def _make_item(title: str, source: str, source_url: str, doi: str = "", year: int | None = None):
+def _make_item(
+    title: str, source: str, source_url: str, doi: str = "", year: int | None = None
+):
     """Build a LiteratureItem with required fields."""
     from app.services.literature_ingestion import LiteratureItem
 
@@ -76,8 +78,10 @@ class TestWhitelistGate:
 
         mock_session = AsyncMock()
 
-        with patch("app.services.source_whitelist.get_whitelist",
-                   side_effect=OSError("file not found")):
+        with patch(
+            "app.services.source_whitelist.get_whitelist",
+            side_effect=OSError("file not found"),
+        ):
             with patch("app.services.literature_ingestion.orchestrator.SOURCES", {}):
                 jobs = await ingest(
                     mock_session,
@@ -102,8 +106,7 @@ class TestWhitelistGate:
         mock_wl = MagicMock()
         mock_wl.is_source_allowed.return_value = False
 
-        with patch("app.services.source_whitelist.get_whitelist",
-                   return_value=mock_wl):
+        with patch("app.services.source_whitelist.get_whitelist", return_value=mock_wl):
             with patch("app.services.literature_ingestion.orchestrator.SOURCES", {}):
                 jobs = await ingest(
                     mock_session,
@@ -157,12 +160,18 @@ class TestSourceFailureIsolation:
             "bad": _failing_searcher,
         }
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES", sources_map):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES", sources_map
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
                 mock_filter.return_value = [_make_item("Kept", "good", "https://x.com")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock) as mock_save:
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ) as mock_save:
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],
@@ -229,15 +238,26 @@ class TestOrchestratorDedup:
             )
             return [item], 1
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _repeat_searcher}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
-                mock_filter.return_value = [_make_item("Same Paper", "mock",
-                                                       "https://mock.example/same",
-                                                       doi="10.1000/same")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock) as mock_save:
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _repeat_searcher},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
+                mock_filter.return_value = [
+                    _make_item(
+                        "Same Paper",
+                        "mock",
+                        "https://mock.example/same",
+                        doi="10.1000/same",
+                    )
+                ]
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ) as mock_save:
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],
@@ -249,7 +269,9 @@ class TestOrchestratorDedup:
         job = jobs[0]
         # total_found = deduped count; duplicates_skipped counts cross-page dup removal
         assert job.total_found == 1  # deduped across pages
-        assert job.duplicates_skipped == 0  # filtered_new returns the one item → zero DB dup
+        assert (
+            job.duplicates_skipped == 0
+        )  # filtered_new returns the one item → zero DB dup
         assert mock_save.call_count == 1
 
 
@@ -266,13 +288,19 @@ class TestResultAggregation:
 
         mock_session = AsyncMock()
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _ok_searcher}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _ok_searcher},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
                 mock_filter.return_value = [_make_item("Kept", "mock", "https://x.com")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock) as mock_save:
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ) as mock_save:
                     jobs = await ingest(
                         mock_session,
                         queries=["q1", "q2"],
@@ -300,13 +328,21 @@ class TestResultAggregation:
                 return [_make_item("Only One", "mock", "https://x.com")], 1
             return [], 0
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _once_then_empty}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
-                mock_filter.return_value = [_make_item("Only One", "mock", "https://x.com")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock):
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _once_then_empty},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
+                mock_filter.return_value = [
+                    _make_item("Only One", "mock", "https://x.com")
+                ]
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ):
                     await ingest(
                         mock_session,
                         queries=["test"],
@@ -331,17 +367,23 @@ class TestResultAggregation:
                 _make_item("Item 2", "mock", "https://x.com/2"),
             ], 2
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _two_items_searcher}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _two_items_searcher},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
                 # Both items are "new"
                 mock_filter.return_value = [
                     _make_item("Item 1", "mock", "https://x.com/1"),
                     _make_item("Item 2", "mock", "https://x.com/2"),
                 ]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock):
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ):
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],
@@ -371,13 +413,21 @@ class TestPageLevelErrorHandling:
                 raise httpx.ConnectError("timeout on page 2")
             return [_make_item(f"Page{page}", "mock", f"https://x.com/p{page}")], 1
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _fail_page2}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
-                mock_filter.return_value = [_make_item("Page1", "mock", "https://x.com/p1")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock):
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _fail_page2},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
+                mock_filter.return_value = [
+                    _make_item("Page1", "mock", "https://x.com/p1")
+                ]
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ):
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],
@@ -409,8 +459,10 @@ class TestSQLAlchemyErrorIsolation:
         async def _exploding_searcher(query: str, page: int = 1):
             raise RuntimeError("simulated crash")
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"bad": _exploding_searcher}):
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"bad": _exploding_searcher},
+        ):
             jobs = await ingest(
                 mock_session,
                 queries=["test"],
@@ -437,13 +489,21 @@ class TestCustomParameters:
 
         mock_session = AsyncMock()
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _ok_searcher}):
-            with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                       new_callable=AsyncMock) as mock_filter:
-                mock_filter.return_value = [_make_item("Result", "mock", "https://x.com")]
-                with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock):
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _ok_searcher},
+        ):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.filter_new_items",
+                new_callable=AsyncMock,
+            ) as mock_filter:
+                mock_filter.return_value = [
+                    _make_item("Result", "mock", "https://x.com")
+                ]
+                with patch(
+                    "app.services.literature_ingestion.orchestrator._save_items",
+                    new_callable=AsyncMock,
+                ):
                     jobs = await ingest(
                         mock_session,
                         queries=None,
@@ -472,15 +532,22 @@ class TestWhitelistAllowedSourceFiltered:
         mock_wl = MagicMock()
         mock_wl.is_source_allowed.return_value = True
 
-        with patch("app.services.source_whitelist.get_whitelist",
-                   return_value=mock_wl):
-            with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                       {"mock": _ok_searcher}):
-                with patch("app.services.literature_ingestion.orchestrator.filter_new_items",
-                           new_callable=AsyncMock) as mock_filter:
-                    mock_filter.return_value = [_make_item("Kept", "mock", "https://x.com")]
-                    with patch("app.services.literature_ingestion.orchestrator._save_items",
-                               new_callable=AsyncMock) as mock_save:
+        with patch("app.services.source_whitelist.get_whitelist", return_value=mock_wl):
+            with patch(
+                "app.services.literature_ingestion.orchestrator.SOURCES",
+                {"mock": _ok_searcher},
+            ):
+                with patch(
+                    "app.services.literature_ingestion.orchestrator.filter_new_items",
+                    new_callable=AsyncMock,
+                ) as mock_filter:
+                    mock_filter.return_value = [
+                        _make_item("Kept", "mock", "https://x.com")
+                    ]
+                    with patch(
+                        "app.services.literature_ingestion.orchestrator._save_items",
+                        new_callable=AsyncMock,
+                    ) as mock_save:
                         jobs = await ingest(
                             mock_session,
                             queries=["test"],
@@ -508,8 +575,10 @@ class TestWhitelistAllowedSourceFiltered:
         async def _type_error_searcher(query: str, page: int = 1):
             raise TypeError("not-a-handled-type")
 
-        with patch("app.services.literature_ingestion.orchestrator.SOURCES",
-                   {"mock": _type_error_searcher}):
+        with patch(
+            "app.services.literature_ingestion.orchestrator.SOURCES",
+            {"mock": _type_error_searcher},
+        ):
             # TypeError is NOT in (SQLAlchemyError, ValueError, RuntimeError), should propagate
             with pytest.raises(TypeError):
                 await ingest(

@@ -1,4 +1,3 @@
-
 """Unit tests for ingestion.py — dataclasses, enums, and exception hierarchy."""
 
 from __future__ import annotations
@@ -18,7 +17,11 @@ from app.services.ingestion import (
 class TestIngestionResult:
     def test_fields(self) -> None:
         r = IngestionResult(
-            document_id="doc-1", title="测试文档", chunk_count=5, total_chars=1000, checksum="abc123"
+            document_id="doc-1",
+            title="测试文档",
+            chunk_count=5,
+            total_chars=1000,
+            checksum="abc123",
         )
         assert r.document_id == "doc-1"
         assert r.title == "测试文档"
