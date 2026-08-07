@@ -29,9 +29,10 @@
 ### Security Audit（依赖安全审计）
 
 - **Command:** `pnpm audit --registry https://registry.npmjs.org/`
-- **Result:** No known vulnerabilities found
+- **Result:** No known vulnerabilities found（已验证于 commit `de96703`，日志 `/private/tmp/d2_sec_fix.log`）
 - **Fix:** `pnpm.overrides` 将 `js-yaml` 从 `4.3.0` 升级至 `>=4.3.1`（修补 CVE-2026-59870），通过 `package.json` overrides → `pnpm install` → lockfile 更新
-- **Exit Code:** 0
+- **Exit Code:** 0（`de96703` 原始验证）
+- **当前网络状态:** `registry.npmjs.org` 解析至 `198.18.0.26`（代理/TLS 拦截），HTTPS 握手在 TLS Client Hello 后超时（SSL_ERROR_SYSCALL），非重试可修复的临时故障。覆盖版本锁定在 `pnpm-lock.yaml`，漏洞已修补，运行时代码不受影响。
 - **Verdict:** PASS
 
 ### Ops & Recovery（运维恢复演练）
