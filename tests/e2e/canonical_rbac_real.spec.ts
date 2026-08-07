@@ -184,12 +184,20 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
     await page.locator('a.pli-name-link').first().click();
     await page.waitForTimeout(2000);
 
-    // Go to workflow directly
+    // Go to workflow workbook via workspace tab navigation
     const currentUrl = page.url();
     const projectId = currentUrl.split('/research/')[1]?.split('/')[0];
     if (projectId) {
-      await page.goto(`${BASE}/research/${projectId}/workflow`, { waitUntil: 'networkidle' });
+      // Navigate to workspace first
+      await page.goto(`${BASE}/research/${projectId}/workspace`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(2000);
+
+      // Click the "research" tab in workspace — this loads the workflow inline
+      const researchTab = page.locator('.rw-tab').filter({ hasText: /校/ }).first();
+      if (await researchTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await researchTab.click();
+        await page.waitForTimeout(3000);
+      }
 
       // Fill question in step 1
       const questionInput = page.locator('#rqs-input');
