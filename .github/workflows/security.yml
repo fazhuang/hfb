@@ -46,7 +46,7 @@ jobs:
   dependency-review:
     name: Dependency Review
     runs-on: ubuntu-latest
-    if: false  # repo does not have Dependency Graph enabled
+    if: false # repo does not have Dependency Graph enabled
     steps:
       - uses: actions/checkout@v4
 
