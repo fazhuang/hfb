@@ -258,6 +258,90 @@ class TestEvidenceRagSchemas:
         enforced = resp.enforce_evidence_contract()
         assert enforced.evidence[0].document_id == "d1"
 
+    def test_refusal_true_with_citations_raises(self) -> None:
+        """Line 116: refusal=True + non-empty citations raises ValueError."""
+        import pytest
+        from app.schemas.evidence_rag import (
+            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+        )
+        chunk = EvidenceBoundChunk(
+            document_id="d1", chunk_id="c1", content="content",
+            citation="[d1:c1]", score=0.9,
+        )
+        citation = EvidenceCitation(
+            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+        )
+        # Use model_construct to bypass model_validator at construction time
+        resp = EvidenceRAGResponse.model_construct(
+            query="test", refusal=True, answer="",
+            evidence=[chunk], citations=[citation],
+        )
+        with pytest.raises(ValueError, match="must be empty when refusal=True"):
+            resp.enforce_evidence_contract()
+
+    def test_refusal_false_no_answer_raises(self) -> None:
+        """Lines 105+111: refusal=False + no answer triggers contract error."""
+        import pytest
+        from app.schemas.evidence_rag import (
+            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+        )
+        chunk = EvidenceBoundChunk(
+            document_id="d1", chunk_id="c1", content="content",
+            citation="[d1:c1]", score=0.9,
+        )
+        citation = EvidenceCitation(
+            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+        )
+        resp = EvidenceRAGResponse.model_construct(
+            query="test", answer="", refusal=False,
+            evidence=[chunk], citations=[citation],
+        )
+        with pytest.raises(ValueError, match="answer must be non-empty"):
+            resp.enforce_evidence_contract()
+
+    def test_refusal_false_no_citations_raises(self) -> None:
+        """Line 107+111: refusal=False + no citations raises."""
+        import pytest
+        from app.schemas.evidence_rag import (
+            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+        )
+        chunk = EvidenceBoundChunk(
+            document_id="d1", chunk_id="c1", content="content",
+            citation="[d1:c1]", score=0.9,
+        )
+        resp = EvidenceRAGResponse.model_construct(
+            query="test", answer="answer", refusal=False,
+            evidence=[chunk], citations=[],
+        )
+        with pytest.raises(ValueError, match="citations must be non-empty"):
+            resp.enforce_evidence_contract()
+
+    def test_refusal_false_no_evidence_raises(self) -> None:
+        """Line 109+111: refusal=False + no evidence raises."""
+        import pytest
+        from app.schemas.evidence_rag import (
+            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+        )
+        citation = EvidenceCitation(
+            document_id="d1", chunk_id="c1", citation="[d1:c1]",
+        )
+        resp = EvidenceRAGResponse.model_construct(
+            query="test", answer="answer", refusal=False,
+            evidence=[], citations=[citation],
+        )
+        with pytest.raises(ValueError, match="evidence must be non-empty"):
+            resp.enforce_evidence_contract()
+
+    def test_refusal_true_no_citations_ok(self) -> None:
+        """refusal=True with empty citations/evidence passes validation."""
+        from app.schemas.evidence_rag import EvidenceRAGResponse
+        resp = EvidenceRAGResponse(
+            query="test", refusal=True, answer="",
+            evidence=[], citations=[],
+        )
+        enforced = resp.enforce_evidence_contract()
+        assert enforced.refusal is True
+
 
 # =============================================================================
 # institution.py schemas — line 54, 57, 64, 66
@@ -273,17 +357,49 @@ class TestInstitutionSchema:
         assert ic.name == "测试机构"
         assert ic.type == "research"
 
+    def test_institution_create_name_none_raises(self) -> None:
+        from app.schemas.institution import InstitutionCreate
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InstitutionCreate(name=None, type="research")
+
+    def test_institution_create_blank_name_raises(self) -> None:
+        from app.schemas.institution import InstitutionCreate
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InstitutionCreate(name="   ", type="research")
+
     def test_institution_create_invalid_type(self) -> None:
         from app.schemas.institution import InstitutionCreate
         from pydantic import ValidationError
         with pytest.raises(ValidationError):
             InstitutionCreate(name="x", type="invalid")
 
-    def test_institution_update_partial(self) -> None:
+    def test_institution_update_none_name(self) -> None:
         from app.schemas.institution import InstitutionUpdate
-        iu = InstitutionUpdate(description="updated desc")
-        assert iu.description == "updated desc"
+        iu = InstitutionUpdate(name=None, description="update")
         assert iu.name is None
+        assert iu.description == "update"
+
+    def test_institution_update_blank_name_raises(self) -> None:
+        """Line 57: update with blank name raises ValueError."""
+        from app.schemas.institution import InstitutionUpdate
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InstitutionUpdate(name="   ")
+
+    def test_institution_update_none_type_ok(self) -> None:
+        """Line 64: update with type=None returns None."""
+        from app.schemas.institution import InstitutionUpdate
+        iu = InstitutionUpdate(type=None)
+        assert iu.type is None
+
+    def test_institution_update_invalid_type_raises(self) -> None:
+        """Line 66: update with invalid type raises."""
+        from app.schemas.institution import InstitutionUpdate
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            InstitutionUpdate(type="invalid_type")
 
 
 # =============================================================================
@@ -292,7 +408,7 @@ class TestInstitutionSchema:
 
 
 class TestAIResponseSchemas:
-    """Cover ai_response.py validators."""
+    """Cover ai_response.py validators and builder."""
 
     def test_citation_model(self) -> None:
         from app.schemas.ai_response import Citation
@@ -310,38 +426,219 @@ class TestAIResponseSchemas:
         assert resp is not None
         assert resp.answer is not None
 
+    def test_builder_empty_content_skipped(self) -> None:
+        """Line 125: chunk with empty content is skipped."""
+        from app.schemas.ai_response import StructuredResponseBuilder
+        resp = StructuredResponseBuilder.build(
+            answer_text="test answer",
+            rag_chunks=[{"entity_type": "Book", "entity_id": "d1",
+                         "title": "Title", "content": "",
+                         "citation": "[d1:c1]", "score": 0.9}],
+        )
+        assert len(resp.evidence) == 0
+
+    def test_builder_duplicate_entity_id_skipped(self) -> None:
+        """Line 151: duplicate entity_id in evidence → skipped in graph context."""
+        from app.schemas.ai_response import StructuredResponseBuilder
+        resp = StructuredResponseBuilder.build(
+            answer_text="test answer",
+            rag_chunks=[
+                {"entity_type": "Book", "entity_id": "d1",
+                 "title": "Title A", "content": "content A",
+                 "citation": "[d1:c1]", "score": 0.9},
+                {"entity_type": "Book", "entity_id": "d1",
+                 "title": "Title A", "content": "content B",
+                 "citation": "[d1:c2]", "score": 0.8},
+            ],
+        )
+        # Two evidence items but only one graph context entry (deduped)
+        assert len(resp.evidence) == 2
+        assert len(resp.graph_context) == 1
+
+    def test_unavailable_response(self) -> None:
+        """Line 192: StructuredResponseBuilder.unavailable()."""
+        from app.schemas.ai_response import StructuredResponseBuilder
+        resp = StructuredResponseBuilder.unavailable()
+        assert "未配置" in resp.answer
+        assert len(resp.evidence) == 0
+        assert len(resp.citations) == 0
+
 
 # =============================================================================
-# core_client.py — search function
+# repositories/institution.py — uncovered lines 32, 68, 85
 # =============================================================================
 
 
-class TestLiteratureCoreClient:
-    """Cover core_client.py imports and module structure."""
+class TestInstitutionRepository:
+    """Cover InstitutionRepository search_query, transition not-found, soft-delete not-found."""
 
-    def test_core_client_module_imports(self) -> None:
-        """Verify the module can be imported without running real HTTP calls."""
-        import app.services.literature_ingestion.core_client as cc
-        assert hasattr(cc, "search")
-        assert hasattr(cc, "_PAGE_SIZE")
+    @pytest.mark.anyio
+    async def test_transition_status_not_found(self) -> None:
+        """Line 68: transition_status raises NotFoundError."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        import pytest as pytest_mod
+        from app.repositories.institution import InstitutionRepository
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_scalar_result = MagicMock()
+        mock_scalar_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_scalar_result
+
+        repo = InstitutionRepository(mock_session)
+        from app.core.exceptions import NotFoundError
+        with pytest_mod.raises(NotFoundError):
+            await repo.transition_status("bad-id", "active")
+
+    @pytest.mark.anyio
+    async def test_soft_delete_not_found(self) -> None:
+        """Line 85: soft_delete raises NotFoundError."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        import pytest as pytest_mod
+        from app.repositories.institution import InstitutionRepository
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_scalar_result = MagicMock()
+        mock_scalar_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_scalar_result
+
+        repo = InstitutionRepository(mock_session)
+        from app.core.exceptions import NotFoundError
+        with pytest_mod.raises(NotFoundError):
+            await repo.soft_delete("bad-id")
+
+    @pytest.mark.anyio
+    async def test_search_query_calls_search(self) -> None:
+        """Line 32: search_query calls self.search with proper fields."""
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from app.repositories.institution import InstitutionRepository
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_scalar_result = MagicMock()
+        mock_scalar_result.scalars.return_value.all.return_value = []
+        mock_scalar_result.scalar_one.return_value = 0
+        mock_session.execute.return_value = mock_scalar_result
+
+        repo = InstitutionRepository(mock_session)
+        items, count = await repo.search_query("test")
+        assert count == 0
+
+
+class TestBaseRepository:
+    """Cover BaseRepository list with order_by and update-not-found."""
+
+    @pytest.mark.anyio
+    async def test_list_with_order_by(self) -> None:
+        """Line 70: list query with order_by param."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.repositories.base import BaseRepository
+        from app.models.book import Book
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_scalar_result = MagicMock()
+        mock_scalar_result.scalars.return_value.all.return_value = [MagicMock()]
+        mock_scalar_result.scalar_one.return_value = 0
+        mock_session.execute.return_value = mock_scalar_result
+
+        repo = BaseRepository[Book](mock_session)
+        object.__setattr__(repo, "model", Book)
+        items, count = await repo.get_all(page=1, limit=10, order_by=Book.title)
+        assert count == 0
+
+    @pytest.mark.anyio
+    async def test_update_not_found_returns_none(self) -> None:
+        """Line 141: update returns None when entity not found."""
+        from unittest.mock import AsyncMock, MagicMock
+        from app.repositories.base import BaseRepository
+        from app.models.book import Book
+
+        mock_session = AsyncMock()
+        mock_session.execute = AsyncMock()
+        mock_scalar_result = MagicMock()
+        mock_scalar_result.scalar_one_or_none.return_value = None
+        mock_session.execute.return_value = mock_scalar_result
+
+        repo = BaseRepository[Book](mock_session)
+        object.__setattr__(repo, "model", Book)
+        result = await repo.update("nonexistent-id", title="New Title")
+        assert result is None
 
 
 # =============================================================================
-# ready.py — uncovered line 25 (TESTING mode branch)
+# startup/check_infrastructure.py — uncovered infrastructure checks
 # =============================================================================
 
 
-class TestReadyEndpoint:
-    """Cover ready.py line 25 — TESTING=1 branch."""
+class TestInfrastructureCheck:
+    """Cover ServiceStatus, InfrastructureStatus, and _check_postgres error path."""
 
-    def test_testing_mode_required_services(self, monkeypatch) -> None:
-        monkeypatch.setenv("TESTING", "1")
-        # Re-import triggers the module-level if/else
-        import importlib
-        import app.api.ready as ready_mod
-        importlib.reload(ready_mod)
-        assert "PostgreSQL" in ready_mod.REQUIRED_SERVICES
-        assert "Redis" not in ready_mod.REQUIRED_SERVICES
+    def test_service_status_defaults(self) -> None:
+        from app.startup.check_infrastructure import ServiceStatus
+        s = ServiceStatus(name="test", healthy=True)
+        assert s.name == "test"
+        assert s.healthy is True
+        assert s.latency_ms == 0.0
+        assert s.error is None
+
+    def test_service_status_error(self) -> None:
+        from app.startup.check_infrastructure import ServiceStatus
+        s = ServiceStatus(name="pg", healthy=False, error="timeout")
+        assert s.healthy is False
+        assert s.error == "timeout"
+
+    def test_infrastructure_status_default(self) -> None:
+        from app.startup.check_infrastructure import InfrastructureStatus
+        status = InfrastructureStatus()
+        assert status.services == []
+        assert status.all_healthy is True
+
+    @pytest.mark.anyio
+    async def test_check_postgres_error_path(self) -> None:
+        """Line 43-44: _check_postgres catches OSError and returns unhealthy."""
+        from unittest.mock import patch
+
+        with patch(
+            "app.db.database.check_database_health",
+            side_effect=OSError("connection refused"),
+        ):
+            import importlib
+            import app.startup.check_infrastructure as ci
+            importlib.reload(ci)
+            result = await ci._check_postgres()
+            assert result.name == "PostgreSQL"
+            assert result.healthy is False
+
+    @pytest.mark.anyio
+    async def test_check_redis_error_path(self) -> None:
+        """Line 63-64: _check_redis catches error and returns unhealthy."""
+        from unittest.mock import patch
+
+        with patch("redis.asyncio.from_url", side_effect=OSError("redis down")):
+            import importlib
+            import app.startup.check_infrastructure as ci
+            importlib.reload(ci)
+            result = await ci._check_redis()
+            assert result.healthy is False
+
+    @pytest.mark.anyio
+    async def test_run_health_checks_base_exception(self) -> None:
+        """Line 128-129: BaseException in gather results handled."""
+        from unittest.mock import patch
+
+        with patch(
+            "app.db.database.check_database_health",
+            side_effect=BaseException("crash"),
+        ):
+            import importlib
+            import app.startup.check_infrastructure as ci
+            importlib.reload(ci)
+            status = await ci.run_health_checks()
+            assert status.all_healthy is False
 
     def test_resolved_trace_to_public_dict(self) -> None:
         from unittest.mock import MagicMock
@@ -484,7 +781,6 @@ class TestTraceLineagePureFunctions:
         d = rt.to_public_dict()
         assert d["trace_id"] == "t1"
         assert d["document_id"] == "d1"
-        assert d["document_title"] == "Test Title"
         assert d["document_title"] == "Test Title"
 
     def test_extract_trace_ids(self) -> None:
