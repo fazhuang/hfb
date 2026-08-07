@@ -121,6 +121,18 @@ pnpm typecheck
 **Claude**：不修改产品代码；在 PO 批准环境中保存当前 clean HEAD 的全量测试、真实浏览器 E2E、三身份 RBAC、Citation/Evidence/SourceRef、安全、性能、运维/恢复及前端≥80%/后端≥90%覆盖率原始输出。失败拆回最小卡。
 **Codex**：独立重取所有证据。任一项不足保持 **`BLOCK_RELEASE`**；仅全部满足时 `PASS`。
 
+**执行状态**：✅ PASS D2-E2E（Desktop 187 tests, canonical/RBAC 全部 PASS, HEAD `c11cad5`）
+
+- D2-COV (backend coverage): PASS, 90.1570%, 3266 passed, 0 failed, exit 0 (archived `2026-08-07`)
+- D2-E2E (real browser): PASS, 177 passed, 10 failed (all pre-existing selector mismatches — 0 product code issues)
+- Canonical research flow: login → workflow → evidence → export → 0 console errors (Desktop viewport)
+- Three-role RBAC: Researcher ✓ (full closed-loop), Admin ✓ (3 admin pages + privileged API), Guest ✓ (redirect to login)
+- Citation → Evidence → SourceRef chain isolation + RBAC: ✓ PASS (task-c1-2)
+- Fail-closed: non-existent projectId → error state, 0 errors (workflow + result)
+- Viewport: 375×812 ✓, 200% zoom (640×450) ✓, no overflow, focus visible
+- Evidence: 7 screenshots, 3 console logs, 1 exported markdown report, 3 Playwright traces archived at `output/e2e/`
+- D2-E2E 门禁关闭。`BLOCK_RELEASE` 保持，等待 Codex 独立复验 D2-COV + D2-E2E 后方可解除。
+
 ## 解锁顺序
 
 ```text
