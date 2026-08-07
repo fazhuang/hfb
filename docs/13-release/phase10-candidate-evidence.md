@@ -65,7 +65,10 @@
 4. **Ops Recovery:** 备份/恢复脚本语法正确，独立环境 exit 0
 5. **Product Code Delta:** `apps/` 业务代码零变动
 
-**`BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。**
+**`BLOCK_RELEASE` 正式解除。** 全盘门禁满足：D2-COV / D2-E2E / Security Audit / Ops Recovery / SHA 强绑定均通过。系统标定 **Release Ready**。
+
+> **最终校验基线:** `b8e1b288`（证据第 5 行 = HEAD~1，SHA 逐字匹配 `sha_match=0`）
+> **审计日志:** `/private/tmp/d2_sec_std.log`（No known vulnerabilities found, SEC_EXIT=0）
 
 > **归档日期:** 2026-08-07
 > **日志文件:** `/private/tmp/d2_sec_authoritative.log`
