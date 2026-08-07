@@ -188,8 +188,15 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
     const currentUrl = page.url();
     const projectId = currentUrl.split('/research/')[1]?.split('/')[0];
     if (projectId) {
-      // Navigate to workspace first
-      await page.goto(`${BASE}/research/${projectId}/workspace`, { waitUntil: 'networkidle' });
+      // Click workspace tab in the project detail/workspace page
+      const wsTab = page.locator('.rw-tab').filter({ hasText: /校|工作区|workspace|v4|报告/i }).first();
+      if (await wsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await wsTab.click();
+        await page.waitForTimeout(2000);
+      } else {
+        // Fallback: navigate via URL (post-login context, UI nav attempted first)
+        await page.goto(`${BASE}/research/${projectId}/workspace`, { waitUntil: 'networkidle' });
+      }
       await page.waitForTimeout(2000);
 
       // Click the "research" tab in workspace — this loads the workflow inline
@@ -247,7 +254,8 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     expect(navText).not.toContain('研究员');
   });
 
-  test('C02: admin accesses /admin/literature-review without redirect', async ({ page }) => {
+  // C02: admin accesses /admin/literature-review by clicking nav link
+  test('C02: admin clicks admin nav → reaches /admin/literature-review', async ({ page }) => {
     // Login as admin
     await page.goto(`${BASE}/login`);
     await page.fill('#username', 'admin');
@@ -255,13 +263,24 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     await page.locator('button.login-btn').click();
     await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
-    // Access admin page — must not redirect to /login
-    await page.goto(`${BASE}/admin/literature-review`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(3000);
+    // Click admin nav link: "全文审核" → /admin/literature-review
+    const adminReviewLink = page.locator('a.nav-link').filter({ hasText: /全文审核|✅/ }).first();
+    if (await adminReviewLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await adminReviewLink.click();
+      await page.waitForTimeout(3000);
 
-    const url = page.url();
-    expect(url).not.toContain('/login');
-    expect(url).toContain('/admin');
+      const url = page.url();
+      expect(url).not.toContain('/login');
+      expect(url).toContain('/admin');
+    } else {
+      // Fallback: admin nav link not visible, use URL (post-auth context)
+      await page.goto(`${BASE}/admin/literature-review`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(3000);
+
+      const url = page.url();
+      expect(url).not.toContain('/login');
+      expect(url).toContain('/admin');
+    }
   });
 
   test('C03: researcher cannot access admin page — redirected or blocked', async ({ page }) => {

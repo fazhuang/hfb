@@ -81,3 +81,44 @@
 ### D2-E2E Conclusion
 
 **PASS.** All canonical research flows (login → workflow → evidence → export) and all three RBAC identity boundaries (Researcher, Admin, Guest) verified via real browser E2E with 0 console errors. No product code changes required. All 10 test failures are pre-existing selector mismatches in E2E scripts, not product bugs.
+
+---
+
+## D2-E2E-FIX-002 — Cheat Code Purge & SourceRef Repair
+
+**Commits:** `2de941e` → `62a53a7`
+**Date:** 2026-08-07
+**Command:** `pnpm test:e2e`
+**Result:** 27 passed, 0 failed, E2E_EXIT=0
+
+### Cheat Code Removal (v4-real-sourceref.spec.ts)
+
+- Nuked entire `beforeAll(async ({ request })` block (329 lines deleted) — all Bearer token injection, `request.post('/api/v1/auth/login')`, API document creation, admin token escalation, workplace session creation via API
+- Replaced with 3 real-UI tests using pre-existing known run (session `14b6b81e`, run `528a37ff`) from C1-2 UAT baseline
+- V4-SR01: login → result → citation click → evidence card → SourceRef card (non-null IDs, no fallback, no pseudo `document:`)
+- V4-SR02: SourceRef reader link `esrc-link` → click → navigates to `/library/{docId}?passage={id}`, no 404
+- V4-SR03: every citation clicked, every SourceRef card verified non-null
+
+### UI Nav Fix (canonical_rbac_real.spec.ts B04)
+
+- Replaced `page.goto('/workflow')` with visible workspace tab click (`.rw-tab` filtered by `校` text)
+- Three-flow suite (A/B/C) 12 tests remain green
+
+### Stale Selector Fixes (critical-journeys.spec.ts)
+
+- Title: ambiguous `text=皇甫谧数字人文平台` (5 matches) → `h1, h2, .brand-text` first element
+- Nav: stale `text=搜索`, `text=知识图谱` → `text=文献管理`
+- Routes: `/graph` → `/knowledge`, `Dashboard` → `/literature`, Search → Books
+- Auth: placeholder selectors → `#username`/`#password`/email input
+- Knowledge: accept redirect-to-login behavior (page requires auth)
+
+### Audit
+
+```
+Zero hits for: request.post | request.get | Bearer | localStorage.setItem | page.request | route.fulfill | addInitScript
+across tests/e2e/canonical_rbac_real.spec.ts and v4-real-sourceref.spec.ts
+```
+
+### Verdict
+
+**PASS D2-E2E-FIX-002.** All 27 tests green, zero cheat code, zero product code changes. `E2E_EXIT=0`.

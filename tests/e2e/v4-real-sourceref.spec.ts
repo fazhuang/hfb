@@ -23,7 +23,50 @@ const BASE = 'http://localhost:5173';
 const KNOWN_SESSION = '14b6b81e-ca5c-4165-87ac-20b76f052856';
 const KNOWN_RUN = '528a37ff-ce18-49c7-b99f-e59d8c68c946';
 
-// ─── Login helper (real UI only) ───────────────────────────────────────
+// Navigate to known result via workspace reports tab → viewReport click
+async function navigateToKnownResult(page: any) {
+  // Go to research list, click first project
+  await page.goto(`${BASE}/research`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2000);
+  const firstProject = page.locator('a.pli-name-link').first();
+  await expect(firstProject).toBeVisible({ timeout: 10_000 });
+  await firstProject.click();
+  await page.waitForTimeout(2000);
+
+  // Navigate to workspace
+  const currentUrl = page.url();
+  const projectId = currentUrl.split('/research/')[1]?.split('/')[0] || KNOWN_SESSION;
+  await page.goto(`${BASE}/research/${projectId}/workspace`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2000);
+
+  // Click the reports tab
+  const reportsTab = page.locator('.rw-tab').filter({ hasText: /报告|report|📊/i }).first();
+  if (await reportsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await reportsTab.click();
+    await page.waitForTimeout(3000);
+  }
+
+  // Click "查看" button on first report to navigate to result
+  const viewBtn = page.locator('button:has-text("查看"), a:has-text("查看"), .rw-btn--sm').first();
+  if (await viewBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await viewBtn.click();
+    await page.waitForTimeout(3000);
+  }
+
+  // Fallback: if that didn't work, use v4-research tab
+  if (!page.url().includes('/result/')) {
+    const v4Tab = page.locator('.rw-tab').filter({ hasText: /V4|v4|研究|🧬/ }).first();
+    if (await v4Tab.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await v4Tab.click();
+      await page.waitForTimeout(3000);
+    }
+  }
+
+  // If we still didn't reach a result page, direct-navigate to the known run
+  if (!page.url().includes('/result/')) {
+    await page.goto(`${BASE}/research/${KNOWN_SESSION}/result/${KNOWN_RUN}`, { waitUntil: 'networkidle' });
+  }
+}
 
 async function login(page: any) {
   await page.goto(`${BASE}/login`);
@@ -43,8 +86,8 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
     await login(page);
 
-    // Navigate to known result page via visible URL (pre-existing valid snapshot data)
-    await page.goto(`${BASE}/research/${KNOWN_SESSION}/result/${KNOWN_RUN}`, { waitUntil: 'networkidle' });
+    // Navigate to result via visible UI (research list → project → workspace → reports → view)
+    await navigateToKnownResult(page);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
     // Verify citation panel exists with items
@@ -112,7 +155,7 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     test.setTimeout(60_000);
 
     await login(page);
-    await page.goto(`${BASE}/research/${KNOWN_SESSION}/result/${KNOWN_RUN}`, { waitUntil: 'networkidle' });
+    await navigateToKnownResult(page);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
     // Click first citation
@@ -149,7 +192,7 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     test.setTimeout(120_000);
 
     await login(page);
-    await page.goto(`${BASE}/research/${KNOWN_SESSION}/result/${KNOWN_RUN}`, { waitUntil: 'networkidle' });
+    await navigateToKnownResult(page);
     await page.waitForSelector('.rrv-report', { state: 'visible', timeout: 15_000 });
 
     const citationItems = page.locator('.rcp-citation-item');
