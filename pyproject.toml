@@ -36,6 +36,7 @@ dependencies = [
     "asyncpg>=0.30.0",
     "alembic>=1.14.0",
     "httpx>=0.28.0",
+    "httpx2>=2.9.0",
     "bcrypt>=4.0.0",
     "python-jose[cryptography]>=3.3.0",
     "python-dotenv>=1.0.0",
@@ -63,6 +64,7 @@ dev = [
     "coverage[toml]>=7.6.0",
     "pre-commit>=4.0.0",
     "httpx>=0.28.0",
+    "httpx2>=2.9.0",
     "aiosqlite>=0.20.0",
 ]
 milvus = ["pymilvus>=2.4.0"]

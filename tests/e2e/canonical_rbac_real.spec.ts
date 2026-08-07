@@ -18,8 +18,6 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5173';
-
 // ─── Flow A: Anonymous RBAC ───────────────────────────────────────────
 
 test.describe('Flow A — Anonymous RBAC', () => {

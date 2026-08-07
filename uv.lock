@@ -1126,6 +1126,19 @@ wheels = [
 ]
 
 [[package]]
+name = "httpcore2"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "h11" },
+    { name = "truststore" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/39/a8/20ed1ed79cbc2ecdf5301c0968ab7c85547212e2a7bd126ddd2d986e206e/httpcore2-2.9.1.tar.gz", hash = "sha256:4d8acbf8b306f48c9d6046591fd5ba4037d1b1b1000d140fc2c3eab1e9a0c0e2", size = 67089, upload-time = "2026-07-24T09:21:03.867Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9f/fb/46c52b781975c335a2bcf1072c7bbc007cbdc8d674217f5ee1daba2c848b/httpcore2-2.9.1-py3-none-any.whl", hash = "sha256:6182472379e855fe4221246a2bb7ecede403bc61c6798062ae1787d051ccde26", size = 82809, upload-time = "2026-07-24T09:21:01.178Z" },
+]
+
+[[package]]
 name = "httptools"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1177,6 +1190,22 @@ wheels = [
 ]
 
 [[package]]
+name = "httpx2"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "httpcore2" },
+    { name = "idna" },
+    { name = "truststore" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/21/14/38128fbafd7e0ed41d874df6c9a653d47c2d111cfe59e2b4ac95161b4abd/httpx2-2.9.1.tar.gz", hash = "sha256:1932a768737e3666291582833da748cc4e563c337cf96706fccc04fa6e58764a", size = 95458, upload-time = "2026-07-24T09:21:04.972Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/b8/cfd91c4ab9134d386d48f0b6ac662ff3d4be6efdee59ee1c67ebc3c0487c/httpx2-2.9.1-py3-none-any.whl", hash = "sha256:1820fe14a9ab1107bfeff39259987429450b070ec0ff38cc87eb0d8c97fdc71a", size = 91191, upload-time = "2026-07-24T09:21:02.6Z" },
+]
+
+[[package]]
 name = "huangfumi-platform"
 version = "0.2.0"
 source = { editable = "." }
@@ -1188,6 +1217,7 @@ dependencies = [
     { name = "elasticsearch", extra = ["async"] },
     { name = "fastapi" },
     { name = "httpx" },
+    { name = "httpx2" },
     { name = "minio" },
     { name = "numpy" },
     { name = "pillow" },
@@ -1216,6 +1246,7 @@ all = [
     { name = "coverage" },
     { name = "elasticsearch" },
     { name = "httpx" },
+    { name = "httpx2" },
     { name = "langchain" },
     { name = "llama-index" },
     { name = "mypy" },
@@ -1233,6 +1264,7 @@ dev = [
     { name = "aiosqlite" },
     { name = "coverage" },
     { name = "httpx" },
+    { name = "httpx2" },
     { name = "mypy" },
     { name = "pre-commit" },
     { name = "pytest" },
@@ -1264,6 +1296,8 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.28.0" },
+    { name = "httpx2", specifier = ">=2.9.0" },
+    { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.9.0" },
     { name = "huangfumi-platform", extras = ["dev", "milvus", "neo4j", "elasticsearch", "ai"], marker = "extra == 'all'" },
     { name = "langchain", marker = "extra == 'ai'", specifier = ">=0.3.0" },
     { name = "llama-index", marker = "extra == 'ai'", specifier = ">=0.12.0" },
@@ -3217,15 +3251,15 @@ asyncio = [
 
 [[package]]
 name = "starlette"
-version = "1.3.1"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/e3/7c1dc7381d9f8ab7d854328ebfa884e62cb3f3d8549ddfd37c7814f42afa/starlette-1.3.1.tar.gz", hash = "sha256:05d0213193f2fbaae60e2ecb593b4add4262ad4e46536b54abe36f11a71724e0", size = 2703240, upload-time = "2026-06-12T09:23:11.602Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/44/ec35f1b6e83094b997da438a02c8c9b0ade2b1e84cfc48bd4656780760a6/starlette-1.2.1.tar.gz", hash = "sha256:9b9b5ebb992e67d6093741e63c2f59e4f6fff986f81163c087867bd7b924b3f6", size = 2701854, upload-time = "2026-05-31T01:07:51.847Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/bb/2799cc2ede3ed41131f8975621e7213dfc7ef4acbbaadfa440f32500c370/starlette-1.3.1-py3-none-any.whl", hash = "sha256:c7372aae11c3c3f26a42df7bd626cec2f47d03483d261d369516a615a53714c6", size = 73632, upload-time = "2026-06-12T09:23:10.017Z" },
+    { url = "https://files.pythonhosted.org/packages/1c/54/196d0c1db10af76baa4f64894448505d60d3cdf70ef92cbb35f46a4e4c71/starlette-1.2.1-py3-none-any.whl", hash = "sha256:4de0082d08c8f6764a85a54cf1120d6939507a19905c7768acad2a9f875d2b89", size = 73350, upload-time = "2026-05-31T01:07:50.09Z" },
 ]
 
 [[package]]
@@ -3312,6 +3346,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/87/d7/0535a28b1f5f24f6612fb3ff1e89fb1a8d160fee0f976e0aa6803862134b/tqdm-4.68.3.tar.gz", hash = "sha256:00dfa48452b6b6cfae3dd9885636c23d3422d1ec97c66d96818cbd5e0821d482", size = 170596, upload-time = "2026-06-17T07:36:52.105Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/8e/bb97bb0c71802080bfc8952937d174e49cfc50de5c951dd47b2496f0dcdb/tqdm-4.68.3-py3-none-any.whl", hash = "sha256:39832cc2def2789a6f29df83f172db7416cea70052c0907a57801c5f2fdccb03", size = 78337, upload-time = "2026-06-17T07:36:50.132Z" },
+]
+
+[[package]]
+name = "truststore"
+version = "0.10.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/a3/1585216310e344e8102c22482f6060c7a6ea0322b63e026372e6dcefcfd6/truststore-0.10.4.tar.gz", hash = "sha256:9d91bd436463ad5e4ee4aba766628dd6cd7010cf3e2461756b3303710eebc301", size = 26169, upload-time = "2025-08-12T18:49:02.73Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/97/56608b2249fe206a67cd573bc93cd9896e1efb9e98bce9c163bcdc704b88/truststore-0.10.4-py3-none-any.whl", hash = "sha256:adaeaecf1cbb5f4de3b1959b42d41f6fab57b2b1666adb59e89cb0b53361d981", size = 18660, upload-time = "2025-08-12T18:49:01.46Z" },
 ]
 
 [[package]]

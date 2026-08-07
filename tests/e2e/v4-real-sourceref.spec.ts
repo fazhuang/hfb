@@ -18,12 +18,8 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5173';
-
 // Pre-existing valid session+run with 2 different passages, both with real source_ref_ids.
 // Source: session 14b6b81e, run 528a37ff (C1-2 UAT), doc bd42b503
-const KNOWN_SESSION = '14b6b81e-ca5c-4165-87ac-20b76f052856';
-const KNOWN_RUN = '528a37ff-ce18-49c7-b99f-e59d8c68c946';
 
 // ─── Login helper (real UI only) ───────────────────────────────────────
 
