@@ -528,7 +528,7 @@ class TestInstitutionRepository:
         assert count == 0
 
 
-class TestBaseRepository:
+class TestBaseRepositoryEdge:
     """Cover BaseRepository list with order_by and update-not-found."""
 
     @pytest.mark.anyio
