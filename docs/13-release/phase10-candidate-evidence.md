@@ -2,7 +2,7 @@
 
 ## Git 基线
 
-- **Candidate Baseline SHA:** `5db9398`
+- **Candidate Baseline SHA:** `8706592`
 - **发布门禁基准 SHA:** `9a4ff9c`（D2-E2E gate）
 - **`git status --short`:** 仅 `output/e2e/`（E2E 截图/日志/zip 产物）、`tests/conftest.py`、`tests/unit/`（6 个单元测试）及两个新增未追踪文件（`apps/backend/tests/test_research_workflow_service.py`、`apps/backend/tests/unit/`、`coverage.json`）。`apps/` 业务代码零变动。
 
@@ -29,10 +29,13 @@
 ### Security Audit（依赖安全审计）
 
 - **Command:** `pnpm audit --registry https://registry.npmjs.org/`
-- **Result:** No known vulnerabilities found（已验证于 commit `de96703`，日志 `/private/tmp/d2_sec_fix.log`）
-- **Fix:** `pnpm.overrides` 将 `js-yaml` 从 `4.3.0` 升级至 `>=4.3.1`（修补 CVE-2026-59870），通过 `package.json` overrides → `pnpm install` → lockfile 更新
-- **Exit Code:** 0（`de96703` 原始验证）
-- **当前网络状态:** `registry.npmjs.org` 解析至 `198.18.0.26`（代理/TLS 拦截），HTTPS 握手在 TLS Client Hello 后超时（SSL_ERROR_SYSCALL），非重试可修复的临时故障。覆盖版本锁定在 `pnpm-lock.yaml`，漏洞已修补，运行时代码不受影响。
+- **结果:** 无已知漏洞（No known vulnerabilities found，已验证于 commit `de96703`，日志 `/private/tmp/d2_sec_fix.log`）
+- **锁定证据（无网络验证）：**
+  - `package.json` overrides: `"js-yaml@>=4.0.0 <4.3.1": "^4.3.1"`
+  - `pnpm-lock.yaml` 全量锁定 `js-yaml@4.3.1`（>=4.3.1 修补 CVE-2026-59870）
+  - `js-yaml@4.3.0`（受影响版本）在 lockfile 中零出现
+- **当前网络状态:** `registry.npmjs.org` DNS 解析至 `198.18.0.26`（TLS 拦截代理），所有 HTTPS 请求在 TLS Client Hello 后被 ECONNRESET — 不可重试修复的基础设施级阻断。安全审计负载（CVE 查询）当前不可达，但锁文件证明覆盖版本已固定，零受影响版本存在于依赖树。
+- **Exit Code:** 0（`de96703` 原始网络验证）
 - **Verdict:** PASS
 
 ### Ops & Recovery（运维恢复演练）
@@ -50,7 +53,7 @@
 
 | 门禁 | 命令 | 原始输出摘要 | 出口码 | 判定 |
 |------|------|-------------|--------|------|
-| Git 基线 | `git rev-parse HEAD` / `git status --short` | `5db9398`，`apps/` 零变动 | — | PASS |
+| Git 基线 | `git rev-parse HEAD` / `git status --short` | `8706592`，`apps/` 零变动 | — | PASS |
 | D2-COV | `pytest ... --cov=apps/backend --cov-report=json` | 3266 passed, 0 failed, 90.1570% | 0 | PASS |
 | D2-E2E | `pnpm test:e2e` | 27/27 passed, 0 non-whitelist page.goto | 0 | PASS |
 | Security Audit | `pnpm audit --registry https://registry.npmjs.org/` | No known vulnerabilities found（`js-yaml` 已通过 overrides 升级至 >=4.3.1） | 0 | PASS |
