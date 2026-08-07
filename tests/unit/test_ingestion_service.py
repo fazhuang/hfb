@@ -11,16 +11,10 @@ Targets uncovered lines from coverage analysis:
 
 from __future__ import annotations
 
-import hashlib
 import io
-import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pypdf.errors import PdfReadError
-from sqlalchemy import select, text
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.models.academic_evidence import SourceRef
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -32,9 +26,10 @@ from app.services.ingestion import (
     IngestionService,
     PDFExtractionError,
 )
+from pypdf.errors import PdfReadError
+from sqlalchemy import select, text
 
 from tests.conftest_db import db_session  # noqa: F401
-
 
 _COMPLIANCE = {
     "copyright_status": "public_domain",
@@ -926,12 +921,11 @@ class TestIngestPdfWithPages:
             # Mock OCR to also return empty → no page_data at all
             with patch.object(
                 IngestionService, "_ocr_pdf_pages", return_value={}
-            ):
-                with pytest.raises(PDFExtractionError, match="No extractable text"):
-                    await svc.ingest_pdf_with_pages(
-                        title="No Text", file=io.BytesIO(b"empty pdf"),
-                        metadata=_COMPLIANCE,
-                    )
+            ), pytest.raises(PDFExtractionError, match="No extractable text"):
+                await svc.ingest_pdf_with_pages(
+                    title="No Text", file=io.BytesIO(b"empty pdf"),
+                    metadata=_COMPLIANCE,
+                )
 
     async def test_copyright_gate_rejects(self, db_session) -> None:
         """Lines 606-608: copyright gate check before document creation."""
@@ -1190,7 +1184,7 @@ class TestAppendPassageEdgeCases:
             select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
         )).scalar_one()
 
-        result = await svc.append_passage(
+        await svc.append_passage(
             document_id=doc.id, text="New passage text.",
             passage_id=passage_id,
         )

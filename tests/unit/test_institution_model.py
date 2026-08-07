@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import pytest
+from app.core.exceptions import ValidationException
 from app.models.institution import (
     Institution,
-    InstitutionType,
     InstitutionStatus,
+    InstitutionType,
 )
-from app.core.exceptions import ValidationException
 
 
 class TestInstitutionType:

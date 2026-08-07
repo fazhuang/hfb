@@ -9,26 +9,21 @@ edge cases, rendering punctuation logic.
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
-from app.schemas.generation import LLMClaimsResponse
 from app.services.generation_service import (
     CanonicalClaim,
     GenerationOutcome,
     GenerationPipeline,
-    _canonicalize_claims,
-    _detect_prompt_injection_chunk,
-    _detect_prompt_injection_text,
     _normalize_whitespace,
 )
 from app.services.retrieval import RetrievalResult
 from sqlalchemy import select
 
 from tests.conftest_db import db_session, db_session_persistent  # noqa: F401
-
 
 # ---------------------------------------------------------------------------
 # Helpers

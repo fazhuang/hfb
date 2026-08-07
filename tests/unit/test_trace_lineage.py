@@ -11,6 +11,8 @@ from app.services.trace_lineage import (
     InternalTraceRecord,
     ResolvedTrace,
     TraceLineageError,
+    _is_valid_score,
+    _is_valid_uuidv5,
     build_internal_traces,
     build_viz_traces,
     extract_source_documents,
@@ -19,8 +21,6 @@ from app.services.trace_lineage import (
     passage_mapping_stats,
     resolve_time_evidence,
     resolve_trace_lineage,
-    _is_valid_score,
-    _is_valid_uuidv5,
 )
 
 

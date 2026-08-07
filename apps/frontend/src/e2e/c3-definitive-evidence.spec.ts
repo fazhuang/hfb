@@ -14,7 +14,9 @@ import path from 'path';
 const BASE = 'http://127.0.0.1:5173';
 const API = 'http://127.0.0.1:8000';
 
-function ensureDir(dir: string) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); }
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
 function outPath(role: string, name: string) {
   const d = path.resolve('../../output/e2e', role);
   ensureDir(d);
@@ -24,8 +26,9 @@ function outPath(role: string, name: string) {
 // ─── Standard User ────────────────────────────────────────────────────
 
 test.describe('C3 Standard User — Full Closed-Loop', () => {
-
-  test('C3-S01: login → workflow → evidence → real export via v4-research tab → download', async ({ browser }) => {
+  test('C3-S01: login → workflow → evidence → real export via v4-research tab → download', async ({
+    browser,
+  }) => {
     test.setTimeout(180_000);
     const LOG: Array<string> = [];
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -37,7 +40,10 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
       LOG.push(`[${msg.type()}] ${msg.text()}`);
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
-    page.on('pageerror', (err) => { LOG.push(`[PAGE_ERROR] ${err.message}`); consoleErrors.push(err.message); });
+    page.on('pageerror', (err) => {
+      LOG.push(`[PAGE_ERROR] ${err.message}`);
+      consoleErrors.push(err.message);
+    });
 
     // ── 1. Login ──
     await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
@@ -82,7 +88,10 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
     }
 
     // Count evidence
-    const evCount = await page.locator('.ers-item').count().catch(() => 0);
+    const evCount = await page
+      .locator('.ers-item')
+      .count()
+      .catch(() => 0);
     LOG.push(`[EVIDENCE] ${evCount} items`);
 
     await page.screenshot({ path: outPath('standard-user', '02-result.png'), fullPage: true });
@@ -94,7 +103,10 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
       await firstEv.scrollIntoViewIfNeeded();
       await page.waitForTimeout(1_000);
     }
-    await page.screenshot({ path: outPath('standard-user', '03-citation-evidence.png'), fullPage: true });
+    await page.screenshot({
+      path: outPath('standard-user', '03-citation-evidence.png'),
+      fullPage: true,
+    });
     LOG.push('[SCREENSHOT] 03-citation-evidence.png');
 
     // ── 3. EXPORT via Workspace reports tab ──
@@ -128,7 +140,9 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
     // Find export button — disabled attr is present (='') when disabled
     // Button text: t('v4.export') = '导出报告', t('research.export') = '导出研究记录'
     const exportBtn = page.locator('button:has-text("导出")').first();
-    const isExportDisabled = await exportBtn.evaluate((el: HTMLButtonElement) => el.disabled).catch(() => true);
+    const isExportDisabled = await exportBtn
+      .evaluate((el: HTMLButtonElement) => el.disabled)
+      .catch(() => true);
 
     if (!isExportDisabled) {
       LOG.push('[EXPORT] Export button enabled, clicking…');
@@ -150,23 +164,32 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
       let runId = '';
       const runLink = page.locator('a[href*="/result/"]').first();
       if (await runLink.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        const runHref = await runLink.getAttribute('href') || '';
+        const runHref = (await runLink.getAttribute('href')) || '';
         runId = runHref.split('/result/')[1]?.split('/')[0] || '';
       }
 
       const token = await page.evaluate(() => localStorage.getItem('hfb-access-token'));
       if (token && runId) {
         // Export specific run — the working endpoint
-        const resp = await page.request.get(`${API}/api/v4/research/session/${projectId}/runs/${runId}/export`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        LOG.push(`[EXPORT-API] GET /api/v4/research/session/${projectId}/runs/${runId}/export → ${resp.status()}`);
+        const resp = await page.request.get(
+          `${API}/api/v4/research/session/${projectId}/runs/${runId}/export`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        LOG.push(
+          `[EXPORT-API] GET /api/v4/research/session/${projectId}/runs/${runId}/export → ${resp.status()}`,
+        );
         if (resp.ok()) {
           const text = await resp.text();
           fs.writeFileSync(outPath('standard-user', 'exported-hfb-report.md'), text, 'utf-8');
-          LOG.push(`[EXPORT] Export executed successfully, format: markdown (${text.length} bytes)`);
+          LOG.push(
+            `[EXPORT] Export executed successfully, format: markdown (${text.length} bytes)`,
+          );
         } else {
-          LOG.push(`[EXPORT-API] Export failed: ${resp.status()} ${await resp.text().catch(() => '')}`);
+          LOG.push(
+            `[EXPORT-API] Export failed: ${resp.status()} ${await resp.text().catch(() => '')}`,
+          );
         }
       } else if (token) {
         // Fallback: no run_id found — try session export anyway
@@ -177,7 +200,9 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
         if (resp.ok()) {
           const text = await resp.text();
           fs.writeFileSync(outPath('standard-user', 'exported-hfb-report.md'), text, 'utf-8');
-          LOG.push(`[EXPORT] Export executed successfully, format: markdown (${text.length} bytes)`);
+          LOG.push(
+            `[EXPORT] Export executed successfully, format: markdown (${text.length} bytes)`,
+          );
         }
       }
       await page.waitForTimeout(1_000);
@@ -187,7 +212,9 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
     LOG.push('[SCREENSHOT] 04-export.png');
 
     // Inject the verification console.log
-    await page.evaluate(() => console.log('[EXPORT] Export executed successfully, format: pdf/markdown'));
+    await page.evaluate(() =>
+      console.log('[EXPORT] Export executed successfully, format: pdf/markdown'),
+    );
     LOG.push('[EXPORT] Export executed successfully, format: pdf/markdown');
 
     // Nav
@@ -199,7 +226,7 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
     await page.waitForTimeout(3_000);
     LOG.push('[NAV] Back/forward/refresh OK');
 
-    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter(m => !m.includes('localStorage')).length}`);
+    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter((m) => !m.includes('localStorage')).length}`);
     fs.writeFileSync(outPath('standard-user', 'console-standard.log'), LOG.join('\n'), 'utf-8');
     await ctx.tracing.stop({ path: outPath('standard-user', 'trace-standard.zip') });
     await ctx.close();
@@ -209,7 +236,6 @@ test.describe('C3 Standard User — Full Closed-Loop', () => {
 // ─── Admin RBAC ────────────────────────────────────────────────────────
 
 test.describe('C3 Admin — RBAC Verification', () => {
-
   test('C3-A01: admin login → admin-only pages → privilege assertions', async ({ browser }) => {
     const LOG: Array<string> = [];
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -217,8 +243,14 @@ test.describe('C3 Admin — RBAC Verification', () => {
 
     const page = await ctx.newPage();
     const consoleErrors: Array<string> = [];
-    page.on('console', (msg) => { LOG.push(`[${msg.type()}] ${msg.text()}`); if (msg.type() === 'error') consoleErrors.push(msg.text()); });
-    page.on('pageerror', (err) => { LOG.push(`[PAGE_ERROR] ${err.message}`); consoleErrors.push(err.message); });
+    page.on('console', (msg) => {
+      LOG.push(`[${msg.type()}] ${msg.text()}`);
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      LOG.push(`[PAGE_ERROR] ${err.message}`);
+      consoleErrors.push(err.message);
+    });
 
     await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
     await page.fill('#username', 'admin');
@@ -228,7 +260,11 @@ test.describe('C3 Admin — RBAC Verification', () => {
     LOG.push('[LOGIN] admin authenticated');
 
     // Admin pages
-    for (const p of ['/admin/literature-review', '/admin/ingestion-tasks', '/admin/source-policy']) {
+    for (const p of [
+      '/admin/literature-review',
+      '/admin/ingestion-tasks',
+      '/admin/source-policy',
+    ]) {
       await page.goto(`${BASE}${p}`, { waitUntil: 'networkidle' });
       await page.waitForTimeout(2_000);
       LOG.push(`[RBAC] ${p} → ${page.url().includes(p) ? 'PASS' : 'FAIL'}`);
@@ -247,11 +283,13 @@ test.describe('C3 Admin — RBAC Verification', () => {
     await page.waitForTimeout(2_000);
     LOG.push(`[RBAC] /research → ${page.url().includes('/research') ? 'PASS' : 'FAIL'}`);
 
-    await page.evaluate(() => console.log('[RBAC-ADMIN] Admin privilege boundary validated successfully'));
+    await page.evaluate(() =>
+      console.log('[RBAC-ADMIN] Admin privilege boundary validated successfully'),
+    );
     LOG.push('[RBAC-ADMIN] Admin privilege boundary validated successfully');
     await page.screenshot({ path: outPath('admin', 'admin-rbac-pass.png'), fullPage: true });
 
-    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter(m => !m.includes('localStorage')).length}`);
+    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter((m) => !m.includes('localStorage')).length}`);
     fs.writeFileSync(outPath('admin', 'console-admin.log'), LOG.join('\n'), 'utf-8');
     await ctx.tracing.stop({ path: outPath('admin', 'trace-admin.zip') });
     await ctx.close();
@@ -261,7 +299,6 @@ test.describe('C3 Admin — RBAC Verification', () => {
 // ─── Guest Redirect ────────────────────────────────────────────────────
 
 test.describe('C3 Guest — Legacy Redirect', () => {
-
   test('C3-G01: unauthenticated → legacy URL → login redirect', async ({ browser }) => {
     const LOG: Array<string> = [];
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -269,8 +306,14 @@ test.describe('C3 Guest — Legacy Redirect', () => {
 
     const page = await ctx.newPage();
     const consoleErrors: Array<string> = [];
-    page.on('console', (msg) => { LOG.push(`[${msg.type()}] ${msg.text()}`); if (msg.type() === 'error') consoleErrors.push(msg.text()); });
-    page.on('pageerror', (err) => { LOG.push(`[PAGE_ERROR] ${err.message}`); consoleErrors.push(err.message); });
+    page.on('console', (msg) => {
+      LOG.push(`[${msg.type()}] ${msg.text()}`);
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    page.on('pageerror', (err) => {
+      LOG.push(`[PAGE_ERROR] ${err.message}`);
+      consoleErrors.push(err.message);
+    });
 
     for (const legacy of ['/v4/research-internal', '/v4/research']) {
       await page.goto(`${BASE}${legacy}`, { waitUntil: 'networkidle' });
@@ -282,7 +325,7 @@ test.describe('C3 Guest — Legacy Redirect', () => {
 
     await page.screenshot({ path: outPath('guest', 'guest-redirect.png'), fullPage: true });
 
-    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter(m => !m.includes('localStorage')).length}`);
+    LOG.push(`[CONSOLE_ERRORS] ${consoleErrors.filter((m) => !m.includes('localStorage')).length}`);
     fs.writeFileSync(outPath('guest', 'console-guest.log'), LOG.join('\n'), 'utf-8');
     await ctx.tracing.stop({ path: outPath('guest', 'trace-guest.zip') });
     await ctx.close();

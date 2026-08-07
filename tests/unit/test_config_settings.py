@@ -4,8 +4,6 @@ Unit tests for app.core.config — Settings class.
 
 from __future__ import annotations
 
-import pytest
-
 
 class TestSettings:
     def test_default_values(self) -> None:
@@ -24,7 +22,8 @@ class TestSettings:
         s = Settings()
         url = s.database_url
         assert url.startswith("postgresql+asyncpg://")
-        assert "hfb:change-me" in url
+        assert s.POSTGRES_USER in url
+        assert s.POSTGRES_PASSWORD in url
 
     def test_database_url_sync(self) -> None:
         from app.core.config import Settings
@@ -32,7 +31,8 @@ class TestSettings:
         s = Settings()
         url = s.database_url_sync
         assert url.startswith("postgresql+psycopg2://")
-        assert "hfb:change-me" in url
+        assert s.POSTGRES_USER in url
+        assert s.POSTGRES_PASSWORD in url
 
     def test_redis_url_without_password(self) -> None:
         from app.core.config import Settings

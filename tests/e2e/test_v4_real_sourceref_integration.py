@@ -73,7 +73,7 @@ def _is_pseudo_id(value: str | None) -> bool:
     """Return True if value is a pseudo document: or passage: ID."""
     if not value or not isinstance(value, str):
         return False
-    return value.startswith("document:") or value.startswith("passage:")
+    return value.startswith(("document:", "passage:"))
 
 
 # =============================================================================

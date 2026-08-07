@@ -34,14 +34,18 @@ const App = {
       ),
 
       // Dialog
-      h(HfbDialog, {
-        open: (this as unknown as { dialogOpen: boolean }).dialogOpen,
-        title: 'Confirm Action',
-        description: 'Are you sure you want to proceed?',
-        'onUpdate:open': (val: boolean) => {
-          (this as unknown as { dialogOpen: boolean }).dialogOpen = val;
+      h(
+        HfbDialog,
+        {
+          open: (this as unknown as { dialogOpen: boolean }).dialogOpen,
+          title: 'Confirm Action',
+          description: 'Are you sure you want to proceed?',
+          'onUpdate:open': (val: boolean) => {
+            (this as unknown as { dialogOpen: boolean }).dialogOpen = val;
+          },
         },
-      }, () => 'This action cannot be undone. Please confirm.'),
+        () => 'This action cannot be undone. Please confirm.',
+      ),
 
       // Drawer trigger
       h(
@@ -58,17 +62,17 @@ const App = {
       ),
 
       // Drawer
-      h(HfbDrawer, {
-        open: (this as unknown as { drawerOpen: boolean }).drawerOpen,
-        title: 'Settings Panel',
-        placement: 'right',
-        'onUpdate:open': (val: boolean) => {
-          (this as unknown as { drawerOpen: boolean }).drawerOpen = val;
+      h(
+        HfbDrawer,
+        {
+          open: (this as unknown as { drawerOpen: boolean }).drawerOpen,
+          title: 'Settings Panel',
+          placement: 'right',
+          'onUpdate:open': (val: boolean) => {
+            (this as unknown as { drawerOpen: boolean }).drawerOpen = val;
+          },
         },
-      }, () =>
-        h('div', [
-          h('p', 'Configure your preferences here.'),
-        ]),
+        () => h('div', [h('p', 'Configure your preferences here.')]),
       ),
     ]);
   },

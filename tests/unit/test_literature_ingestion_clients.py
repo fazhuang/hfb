@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -475,20 +474,26 @@ class TestInternetArchiveClient:
 
     @pytest.mark.asyncio
     async def test_extract_doi_from_doi_field(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         assert _extract_doi({"doi": "10.1234/foo"}) == "10.1234/foo"
 
     @pytest.mark.asyncio
     async def test_extract_doi_from_identifier_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         doc = {"identifier": ["not-a-doi", "10.5678/from-list"]}
         assert _extract_doi(doc) == "10.5678/from-list"
 
     @pytest.mark.asyncio
     async def test_extract_doi_no_match(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         assert _extract_doi({}) == ""
         assert _extract_doi({"doi": "not-a-doi-prefix"}) == ""
@@ -512,38 +517,50 @@ class TestInternetArchiveClient:
 
     @pytest.mark.asyncio
     async def test_first_lang_string(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({"language": "eng"}) == "eng"
         assert _first_lang({"language": "zh-Hans"}) == "zh-Ha"
 
     @pytest.mark.asyncio
     async def test_first_lang_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({"language": ["eng", "fra"]}) == "eng"
 
     @pytest.mark.asyncio
     async def test_first_lang_missing(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({}) == "en"
 
     @pytest.mark.asyncio
     async def test_join_creators_string(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators("Single Author") == "Single Author"
 
     @pytest.mark.asyncio
     async def test_join_creators_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators(["A", "B"]) == "A, B"
 
     @pytest.mark.asyncio
     async def test_join_creators_none(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators(None) == ""
 

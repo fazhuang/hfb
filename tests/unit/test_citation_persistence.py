@@ -1,13 +1,11 @@
 """Unit tests for CitationPersistenceService — deduplication, existing check, backfill."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
 from app.services.citation_persistence import CitationPersistenceService
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -3,8 +3,6 @@ Tests for entity service validation hooks — Book, Version, Chapter, Passage, P
 """
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.schemas.entities import (
     BookCreate,
     ChapterCreate,
@@ -21,6 +19,7 @@ from app.services.entities import (
     PassageService,
     VersionService,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.conftest_db import db_session  # noqa: F401
 

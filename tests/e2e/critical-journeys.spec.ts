@@ -105,7 +105,9 @@ test.describe('Auth', () => {
     await page.waitForSelector('#username', { state: 'visible', timeout: 10000 });
 
     // Click "还没有账号？立即注册" or similar register link
-    const registerLink = page.locator('a:has-text("注册"), a[href*="/register"], a[href*="register"]').first();
+    const registerLink = page
+      .locator('a:has-text("注册"), a[href*="/register"], a[href*="register"]')
+      .first();
     if (await registerLink.isVisible({ timeout: 3000 }).catch(() => false)) {
       await registerLink.click();
       await page.waitForTimeout(2000);

@@ -343,15 +343,9 @@ describe('LibrarySearchPage', () => {
 
     // Assert DOM select elements are reset to empty
     await wrapper.vm.$nextTick();
-    expect(
-      (wrapper.find('#lib-copyright-filter').element as HTMLSelectElement).value,
-    ).toBe('');
-    expect(
-      (wrapper.find('#lib-review-filter').element as HTMLSelectElement).value,
-    ).toBe('');
-    expect(
-      (wrapper.find('#lib-search-input').element as HTMLInputElement).value,
-    ).toBe('');
+    expect((wrapper.find('#lib-copyright-filter').element as HTMLSelectElement).value).toBe('');
+    expect((wrapper.find('#lib-review-filter').element as HTMLSelectElement).value).toBe('');
+    expect((wrapper.find('#lib-search-input').element as HTMLInputElement).value).toBe('');
   });
 });
 
@@ -621,9 +615,8 @@ describe('LibraryDetailPage', () => {
   it('15b. version badge renders "版本信息不可用" on document card', async () => {
     // LibraryDocumentCard must always show a version badge.
     // The LibraryDocument type has no `version` field — honest fallback.
-    const { default: LibraryDocumentCard } = await import(
-      '@/components/library/LibraryDocumentCard.vue'
-    );
+    const { default: LibraryDocumentCard } =
+      await import('@/components/library/LibraryDocumentCard.vue');
     const wrapper = mount(LibraryDocumentCard, {
       props: {
         doc: {

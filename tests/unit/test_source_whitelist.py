@@ -8,19 +8,15 @@ All YAML content is constructed via tmp_path — no real files read.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 import yaml
-
 from app.services.source_whitelist import (
     SourcePolicyEntry,
     SourceWhitelist,
     get_whitelist,
 )
-
 
 # =============================================================================
 # Helpers
@@ -409,7 +405,7 @@ class TestLRUCacheIsolation:
                  "metadata_allowed": True, "fulltext_allowed": True},
             ],
         })
-        wl_a = get_whitelist(config_path=str(yaml_a))
+        get_whitelist(config_path=str(yaml_a))
         # lru_cache(maxsize=1) — second call with different arg evicts first
         _clear_whitelist_cache()
         wl_b = get_whitelist(config_path=str(yaml_b))

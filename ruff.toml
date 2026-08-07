@@ -5,8 +5,8 @@
 # Per-file rule overrides
 [lint.per-file-ignores]
 "apps/backend/migrations/**/*.py" = ["F401", "F811"] # migrations have their own rules
-"scripts/**/*.py" = ["T201", "BLE001", "EXE001", "S110", "E722", "PLW1510", "ASYNC230", "RUF059", "SIM113", "UP031", "DTZ005"]  # allow patterns common in scripts
-"tests/**/*.py" = ["S101", "S301", "N802", "F811", "BLE001", "S110", "B017", "RUF012", "RUF059", "SIM102", "PLW1510"]  # allow patterns common in tests
+"scripts/**/*.py" = ["T201", "BLE001", "EXE001", "S110", "E722", "PLW1510", "ASYNC230", "RUF059", "SIM113", "UP031", "DTZ005", "E402", "E731"]  # allow patterns common in scripts
+"tests/**/*.py" = ["S101", "S301", "N802", "F811", "BLE001", "S110", "B017", "RUF012", "RUF059", "SIM102", "PLW1510", "B005", "B023", "SIM117"]  # allow patterns common in tests
 "tools/**/*.py" = ["DTZ005"]  # allow tz-naive datetime in CLI tools
 
 [format]

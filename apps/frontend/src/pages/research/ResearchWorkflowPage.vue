@@ -42,7 +42,12 @@
           :steps="navSteps"
           :current-index="currentStepIndex"
           :submitting="submitting"
-          @go-to="(idx: number) => { if (idx === 0) goToQuestion(); else if (idx === 1) goToSelection(); }"
+          @go-to="
+            (idx: number) => {
+              if (idx === 0) goToQuestion();
+              else if (idx === 1) goToSelection();
+            }
+          "
         />
 
         <!-- Error banner -->
@@ -256,13 +261,15 @@ watch(
   () => route.params.projectId,
   () => {
     reset();
-    loadSession().then(() => {
-      if (session.value) {
-        initPendingQuestion();
-      }
-    }).catch(() => {
-      // loadSession handles its own errors
-    });
+    loadSession()
+      .then(() => {
+        if (session.value) {
+          initPendingQuestion();
+        }
+      })
+      .catch(() => {
+        // loadSession handles its own errors
+      });
   },
 );
 </script>

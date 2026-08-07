@@ -12,10 +12,8 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.schemas.generation import GenerationMetadata, GroundedGenerationResponse
-
+from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # FastAPI app with auth/permission/db overrides for every test
@@ -24,10 +22,10 @@ from app.schemas.generation import GenerationMetadata, GroundedGenerationRespons
 @pytest.fixture
 def client():
     """TestClient with auth/permission/db overrides per test."""
-    from main import app
-    from app.middleware.auth import get_current_user
-    from app.db.database import get_session
     from app.api.v1.ai import guard_ai_read, guard_workspace_read, guard_workspace_write
+    from app.db.database import get_session
+    from app.middleware.auth import get_current_user
+    from main import app
 
     async def _fake_user() -> str:
         return "test-user-id"

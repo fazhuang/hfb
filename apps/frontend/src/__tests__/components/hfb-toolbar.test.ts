@@ -147,9 +147,7 @@ describe('HfbToolbar', () => {
       expect(w.emitted('search')).toBeDefined();
       const searchEvents = w.emitted('search');
       expect(searchEvents).toBeDefined();
-      expect(searchEvents![0]).toEqual([
-        { query: 'test', filters: {} },
-      ]);
+      expect(searchEvents![0]).toEqual([{ query: 'test', filters: {} }]);
 
       vi.useRealTimers();
     });
@@ -169,9 +167,7 @@ describe('HfbToolbar', () => {
       // Should emit immediately without waiting for debounce
       const immediateEvents = w.emitted('search');
       expect(immediateEvents).toBeDefined();
-      expect(immediateEvents![0]).toEqual([
-        { query: 'enter query', filters: {} },
-      ]);
+      expect(immediateEvents![0]).toEqual([{ query: 'enter query', filters: {} }]);
 
       vi.useRealTimers();
     });
@@ -227,9 +223,7 @@ describe('HfbToolbar', () => {
       // Should emit update:filterValues
       const emittedValues = w.emitted('update:filterValues');
       expect(emittedValues).toBeDefined();
-      expect(emittedValues![0]).toEqual([
-        { status: 'ready' },
-      ]);
+      expect(emittedValues![0]).toEqual([{ status: 'ready' }]);
     });
   });
 
@@ -256,9 +250,7 @@ describe('HfbToolbar', () => {
 
       const emittedValues2 = w.emitted('update:filterValues');
       expect(emittedValues2).toBeDefined();
-      expect(emittedValues2![0]).toEqual([
-        { status: null },
-      ]);
+      expect(emittedValues2![0]).toEqual([{ status: null }]);
     });
 
     it('does not show clear-all button when no filters are active', () => {

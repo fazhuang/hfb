@@ -1,17 +1,15 @@
 """Unit tests for SearchService — pure helpers and mocked async paths."""
 
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
+from app.schemas.search import SearchParams
 from app.services.search_service import (
     ENTITY_CONFIG,
     SearchService,
     _compute_score,
     _make_snippet,
 )
-from app.schemas.search import SearchParams, SuggestItem
-
 
 # ---------------------------------------------------------------------------
 # _make_snippet

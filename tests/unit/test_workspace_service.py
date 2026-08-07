@@ -10,7 +10,6 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
-
 from app.models.workspace import (
     CitationCollection,
     QueryHistory,
@@ -18,7 +17,6 @@ from app.models.workspace import (
     ResearchSession,
 )
 from app.services.workspace_service import WorkspaceService
-
 
 # ---------------------------------------------------------------------------
 # Helpers

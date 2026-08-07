@@ -8,14 +8,14 @@
 
 ## 1. 现状基线
 
-| 维度 | 实况 |
-|---|---|
-| 当前实现 | Unicode 文字符号 + emoji，无 SVG 组件 |
-| 图标 count（去重） | ~24 种，分布在 14 个 .vue 文件中 |
-| 图标类型 | 状态 (✓✕⚠ℹ📭)、导航 (🏠📚🔬📊🏛️👤📄📜📖🔗🔐✅📋⚙️🤖🧬校📝👥ℹ️)、操作 (→←)、古籍空白 (卷/页/版本/校勘/异文) |
-| 无障碍 | `aria-hidden="true"` 使用存在但不一致；无 label 语义绑定 |
-| 暗色模式 | emoji 在 dark 下可读但不协调 (会受操作系统/浏览器渲染)；Unicode 文字符号 size/weight 不可控 |
-| 性能 | 零额外包体积 (无库)，但不可 tree-shake 单个 icon |
+| 维度               | 实况                                                                                                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 当前实现           | Unicode 文字符号 + emoji，无 SVG 组件                                                                      |
+| 图标 count（去重） | ~24 种，分布在 14 个 .vue 文件中                                                                           |
+| 图标类型           | 状态 (✓✕⚠ℹ📭)、导航 (🏠📚🔬📊🏛️👤📄📜📖🔗🔐✅📋⚙️🤖🧬校📝👥ℹ️)、操作 (→←)、古籍空白 (卷/页/版本/校勘/异文) |
+| 无障碍             | `aria-hidden="true"` 使用存在但不一致；无 label 语义绑定                                                   |
+| 暗色模式           | emoji 在 dark 下可读但不协调 (会受操作系统/浏览器渲染)；Unicode 文字符号 size/weight 不可控                |
+| 性能               | 零额外包体积 (无库)，但不可 tree-shake 单个 icon                                                           |
 
 ---
 
@@ -34,41 +34,44 @@
 > **Vue 3**：`@lucide/vue` 专为 Vue 3 构建
 
 **导入方式**：
+
 ```ts
 import { BookOpen, Search, FileText, ChevronRight } from '@lucide/vue';
 ```
+
 单文件每个 icon 一个 named export，支持 `size` / `color` / `stroke-width` / `class` props。
 
 **匹配清单（对照现有 24 种 Unicode）**：
 
-| 现有 emoji | Lucide 候选 | 匹配度 | 备注 |
-|---|---|---|---|
-| 🏠 | `House` | exact | |
-| 📚 | `Library` 或 `BookOpen` | 需区分：Library (书架) vs BookOpen (单书) |
-| 🔬 | `FlaskConical` 或 `Search` | loose — 无微观镜 icon；Flask 更近"研究"语义 |
-| 📊 | `BarChart3` | exact | |
-| 🏛️ | `Building2` 或 `Landmark` | loose — 无"古籍版本库"专用 icon |
-| 👤 | `User` | exact | |
-| 📄 | `FileText` | exact | |
-| 📜 | `ScrollText` | exact — 卷轴 icon，最贴近古籍语义 |
-| 📖 | `BookOpen` | exact | |
-| 🔗 | `Link` | exact | |
-| 🔐 | `Shield` 或 `Lock` | exact (Lock) | |
-| ✅ | `Check` | exact | |
-| 📋 | `ClipboardList` | exact | |
-| ⚙️ | `Settings` | exact | |
-| ✓ (success) | `Check` | exact | |
-| ✕ (error) | `X` | exact | |
-| ⚠ (warning) | `TriangleAlert` | exact | |
-| ℹ (info) | `Info` | exact | |
-| 📭 (empty) | `Inbox` 或 `PackageOpen` | loose | |
-| → ← | `ArrowRight` / `ArrowLeft` | exact | |
-| 🤖 (AI) | `Bot` | exact | |
-| 校 (校对) | `PenLine` 或 `Diff` | loose — "校"是中国古籍校对术语，无直接匹配 | |
-| 🧬 (v4) | `Dna` 或自定义 | loose | |
-| 👥 (users) | `Users` | exact | |
+| 现有 emoji  | Lucide 候选                | 匹配度                                      | 备注 |
+| ----------- | -------------------------- | ------------------------------------------- | ---- |
+| 🏠          | `House`                    | exact                                       |      |
+| 📚          | `Library` 或 `BookOpen`    | 需区分：Library (书架) vs BookOpen (单书)   |
+| 🔬          | `FlaskConical` 或 `Search` | loose — 无微观镜 icon；Flask 更近"研究"语义 |
+| 📊          | `BarChart3`                | exact                                       |      |
+| 🏛️          | `Building2` 或 `Landmark`  | loose — 无"古籍版本库"专用 icon             |
+| 👤          | `User`                     | exact                                       |      |
+| 📄          | `FileText`                 | exact                                       |      |
+| 📜          | `ScrollText`               | exact — 卷轴 icon，最贴近古籍语义           |
+| 📖          | `BookOpen`                 | exact                                       |      |
+| 🔗          | `Link`                     | exact                                       |      |
+| 🔐          | `Shield` 或 `Lock`         | exact (Lock)                                |      |
+| ✅          | `Check`                    | exact                                       |      |
+| 📋          | `ClipboardList`            | exact                                       |      |
+| ⚙️          | `Settings`                 | exact                                       |      |
+| ✓ (success) | `Check`                    | exact                                       |      |
+| ✕ (error)   | `X`                        | exact                                       |      |
+| ⚠ (warning) | `TriangleAlert`            | exact                                       |      |
+| ℹ (info)    | `Info`                     | exact                                       |      |
+| 📭 (empty)  | `Inbox` 或 `PackageOpen`   | loose                                       |      |
+| → ←         | `ArrowRight` / `ArrowLeft` | exact                                       |      |
+| 🤖 (AI)     | `Bot`                      | exact                                       |      |
+| 校 (校对)   | `PenLine` 或 `Diff`        | loose — "校"是中国古籍校对术语，无直接匹配  |      |
+| 🧬 (v4)     | `Dna` 或自定义             | loose                                       |      |
+| 👥 (users)  | `Users`                    | exact                                       |      |
 
 **古籍专用缺口（Lucide 不覆盖）**：
+
 - 卷 (juàn) — 古籍分卷，无匹配
 - 页 (yè) — 古籍页，`BookMarked` 可近似
 - 版本/异文/校勘 — 无 CJK 学术 icon 集
@@ -92,14 +95,17 @@ import { BookOpen, Search, FileText, ChevronRight } from '@lucide/vue';
 > **Vue 3**：原生 Vue 3 组件。Iconify 同时推荐 framework-agnostic `iconify-icon` web component 用于 SSR/Nuxt/性能敏感场景。
 
 **导入方式**：
+
 ```ts
 import { Icon } from '@iconify/vue';
 ```
+
 单一 `<Icon icon="mdi:book-open" />` 组件，通过字符串 ID 引用任意 icon set。
 
 **匹配清单**：覆盖 Lucide (lucide:)、Material Design Icons (mdi:)、HeroIcons (heroicons:)、Phosphor (ph:)、Carbon (carbon:) 等 150+ icon sets。因此所有 A 的匹配都成立，且可混合选择最佳语义匹配。
 
 **关键优势**：
+
 - 单一 API → 组件封装极简，props (`icon` / `width` / `color`) 统一
 - 可混合多个 icon set 最佳匹配
 - "古籍卷" 可通过 `mdi:book-open-page-variant` 或 `ph:scroll` 近似
@@ -126,6 +132,7 @@ import { Icon } from '@iconify/vue';
 > **Vue 3**：专为 Vue 3 构建，组件 `Ph` 前缀 (e.g. `PhHorse`)。提供全局注册 `app.use(PhosphorIcons)`
 
 **导入方式**：
+
 ```ts
 import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 ```
@@ -133,6 +140,7 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 **匹配清单**：与 Lucide 高度重叠。Phosphor 风格更统一 (6 种 weight: thin/light/regular/bold/fill/duotone)，但 icon 总量更少 (~1,300 vs Lucide ~800 vs Iconify 150,000+)。
 
 **关键区别**：
+
 - 6 种 weight variant per icon — 对无障碍/contrast 有利
 - `Scroll` icon 更贴近古籍卷轴语义
 - 无 `Flask` — 研究需用 `Flask` → `Beaker` 替代
@@ -150,22 +158,22 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ## 3. 三候选对比矩阵
 
-| 维度 | A: Lucide Vue | B: Iconify Vue | C: Phosphor Vue |
-|---|---|---|---|
-| **包名** | `@lucide/vue` (recommended; deprecated: `lucide-vue-next`) | `@iconify/vue` | `@phosphor-icons/vue` |
-| **许可证** | ISC | MIT | MIT |
-| **icon 总数** | 1,600+ | 250,000+ (200+ sets) | 1,248 |
-| **现有 24 种覆盖率** | ~21/24 exact | ~24/24 exact (多源混合) | ~19/24 exact |
-| **古籍语义覆盖** | 弱 — ScrollText 仅卷轴 | 中 — 可混用 mdi + ph + lucide | 中 — Scroll + BookOpen 组合 |
-| **CJK 学术缺项** | 高 | 高 (所有 set 均无) | 高 |
-| **Weight variant** | 1 (strokeWidth 可调) | 取决于 set | 6 (thin → fill) |
-| **Tree-shaking** | per-export | on-demand API | per-export |
-| **版本** | 1.24.0 (npm, 2026-07) | 5.0.1 (npm, 2026-05) | 2.2.1 (npm, GitHub releases, 2024-04) |
-| **Vue 版本** | 3.x only | 3.x (also web component) | 3.x |
-| **无障碍** | `role="img"` + `aria-hidden` (v1 default) | `role="img"` + `aria-hidden` (default) | `role="img"` (no auto label) |
-| **替换工作量** | 中 — ~24 处替换 + 14 文件 | 低 — 单一 `<Icon>` 组件封装后批量替换 | 中 — 同 Lucide |
-| **古籍 icon 自绘扩展** | 不支持 | 支持 (`addCollection` + `IconInline`) | 不支持 |
-| **npm 周下载** | ~246K | ~500K+ | ~43K |
+| 维度                   | A: Lucide Vue                                              | B: Iconify Vue                         | C: Phosphor Vue                       |
+| ---------------------- | ---------------------------------------------------------- | -------------------------------------- | ------------------------------------- |
+| **包名**               | `@lucide/vue` (recommended; deprecated: `lucide-vue-next`) | `@iconify/vue`                         | `@phosphor-icons/vue`                 |
+| **许可证**             | ISC                                                        | MIT                                    | MIT                                   |
+| **icon 总数**          | 1,600+                                                     | 250,000+ (200+ sets)                   | 1,248                                 |
+| **现有 24 种覆盖率**   | ~21/24 exact                                               | ~24/24 exact (多源混合)                | ~19/24 exact                          |
+| **古籍语义覆盖**       | 弱 — ScrollText 仅卷轴                                     | 中 — 可混用 mdi + ph + lucide          | 中 — Scroll + BookOpen 组合           |
+| **CJK 学术缺项**       | 高                                                         | 高 (所有 set 均无)                     | 高                                    |
+| **Weight variant**     | 1 (strokeWidth 可调)                                       | 取决于 set                             | 6 (thin → fill)                       |
+| **Tree-shaking**       | per-export                                                 | on-demand API                          | per-export                            |
+| **版本**               | 1.24.0 (npm, 2026-07)                                      | 5.0.1 (npm, 2026-05)                   | 2.2.1 (npm, GitHub releases, 2024-04) |
+| **Vue 版本**           | 3.x only                                                   | 3.x (also web component)               | 3.x                                   |
+| **无障碍**             | `role="img"` + `aria-hidden` (v1 default)                  | `role="img"` + `aria-hidden` (default) | `role="img"` (no auto label)          |
+| **替换工作量**         | 中 — ~24 处替换 + 14 文件                                  | 低 — 单一 `<Icon>` 组件封装后批量替换  | 中 — 同 Lucide                        |
+| **古籍 icon 自绘扩展** | 不支持                                                     | 支持 (`addCollection` + `IconInline`)  | 不支持                                |
+| **npm 周下载**         | ~246K                                                      | ~500K+                                 | ~43K                                  |
 
 ---
 
@@ -173,17 +181,18 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 以上三候选 **均不包含** 以下 CJK 古籍学术 icon：
 
-| 概念 | 英文近似 | 缺失 |
-|---|---|---|
-| 卷 (juàn) | volume/scroll | `ScrollText` (Lucide) / `ph:scroll` 可近似，但语义差异大 |
-| 页 (yè) | page/folio | `BookMarked` / `StickyNote` 可近似 |
-| 版本 (version/edition) | — | 无匹配 — 无"手稿/glyph/版本差异" icon |
-| 异文 (variant reading) | glyph variant | 无匹配 |
-| 校勘 (collation) | text comparison | `Diff` / `GitCompare` 可近似 |
-| 善本 (rare/authoritative edition) | — | 无匹配 |
-| 典籍/医经 (classic/medical canon) | — | 无匹配 |
+| 概念                              | 英文近似        | 缺失                                                     |
+| --------------------------------- | --------------- | -------------------------------------------------------- |
+| 卷 (juàn)                         | volume/scroll   | `ScrollText` (Lucide) / `ph:scroll` 可近似，但语义差异大 |
+| 页 (yè)                           | page/folio      | `BookMarked` / `StickyNote` 可近似                       |
+| 版本 (version/edition)            | —               | 无匹配 — 无"手稿/glyph/版本差异" icon                    |
+| 异文 (variant reading)            | glyph variant   | 无匹配                                                   |
+| 校勘 (collation)                  | text comparison | `Diff` / `GitCompare` 可近似                             |
+| 善本 (rare/authoritative edition) | —               | 无匹配                                                   |
+| 典籍/医经 (classic/medical canon) | —               | 无匹配                                                   |
 
 **处置路径**（供 B3-n 实施）：
+
 1. Lucide `ScrollText` + `BookOpen` + `FileText` 覆盖卷/书/页基础语义
 2. `Diff` (Lucide) 或 `GitCompare` 替代校勘/异文
 3. 若 PO 要求精确古籍语义，需 B3 阶段自定义 SVG (<8 个 icon)，嵌入 HfbIcon 组件
@@ -193,11 +202,11 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ## 5. 建议排序（供 PO 选择）
 
-| 优先级 | 候选 | 理由 |
-|---|---|---|
-| **首选** | **B: Iconify Vue** | 一个 API 覆盖所有现有 + 可混合最佳语义 icon set + 支持未来自定义古籍 SVG set；替换工作量最低；核心最轻 |
-| **次选 (注意弃用)** | A: Lucide Vue | 若追求每 icon 独立 tree-shaking + 最小化依赖，且接受 `ScrollText` 为古籍卷轴语义。注意：`lucide-vue-next` 已弃用，必须安装 `@lucide/vue`，锁定 `^1.24.0` |
-| **不推荐** | C: Phosphor Vue | 若要求 6 weight variant 的无障碍/暗色模式 uniformly；但最后 stable 发布于 2024-04-05，>2 年无更新，锁定 `^2.2.1` |
+| 优先级              | 候选               | 理由                                                                                                                                                     |
+| ------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **首选**            | **B: Iconify Vue** | 一个 API 覆盖所有现有 + 可混合最佳语义 icon set + 支持未来自定义古籍 SVG set；替换工作量最低；核心最轻                                                   |
+| **次选 (注意弃用)** | A: Lucide Vue      | 若追求每 icon 独立 tree-shaking + 最小化依赖，且接受 `ScrollText` 为古籍卷轴语义。注意：`lucide-vue-next` 已弃用，必须安装 `@lucide/vue`，锁定 `^1.24.0` |
+| **不推荐**          | C: Phosphor Vue    | 若要求 6 weight variant 的无障碍/暗色模式 uniformly；但最后 stable 发布于 2024-04-05，>2 年无更新，锁定 `^2.2.1`                                         |
 
 ---
 
@@ -205,38 +214,38 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 若 PO 选 B，B3 单卡可产出此映射的一次性替换：
 
-| 位置 | 当前 | Iconify ID | 候选 set |
-|---|---|---|---|
-| `HfbAlert` info | `ℹ` | `lucide:info` | lucide |
-| `HfbAlert` success | `✓` | `lucide:check` | lucide |
-| `HfbAlert` warning | `⚠` | `lucide:triangle-alert` | lucide |
-| `HfbAlert` error | `✕` | `lucide:x` | lucide |
-| `EmptyState` default | `📭` | `lucide:inbox` | lucide |
-| `ErrorState` | `⚠️` | `lucide:circle-alert` | lucide |
-| `StatusCard` connected | `✓` | `lucide:check-circle` | lucide |
-| `StatusCard` disconnected | `✗` | `lucide:x-circle` | lucide |
-| `AppNavbar` home | `🏠` | `lucide:house` | lucide |
-| `AppNavbar` research | `🔬` | `lucide:flask-conical` | lucide |
-| `AppNavbar` library | `📚` | `lucide:library` | lucide |
-| `AppNavbar` knowledge | `🔗` | `lucide:link` | lucide |
-| `AppNavbar` reports | `📊` | `lucide:bar-chart-3` | lucide |
-| `AppNavbar` books | `📚` | `lucide:book-open` | lucide |
-| `AppNavbar` literature | `📄` | `lucide:file-text` | lucide |
-| `AppNavbar` classical | `🏛️` | `lucide:building-2` | lucide |
-| `AppNavbar` persons | `👤` | `lucide:user` | lucide |
-| `AppNavbar` about | `ℹ️` | `lucide:info` | lucide |
-| `AppNavbar` adminReview | `✅` | `lucide:check-check` | lucide |
-| `AppNavbar` adminIngestion | `📋` | `lucide:clipboard-list` | lucide |
-| `AppNavbar` adminSourcePolicy | `🔐` | `lucide:shield-check` | lucide |
-| `Dashboard` users | `👥` | `lucide:users` | lucide |
-| `Dashboard` passages | `📜` | `lucide:scroll-text` | lucide |
-| `ResearchWorkspace` assistant | `🤖` | `lucide:bot` | lucide |
-| `ResearchWorkspace` 校 | `校` | `lucide:pen-line` | lucide (有语义差距) |
-| `ResearchWorkspace` v4 | `🧬` | `lucide:dna` | lucide |
-| 古籍卷 | (缺失) | `lucide:scroll-text` | lucide |
-| 古籍页 | (缺失) | `lucide:book-marked` | lucide |
-| 校勘/异文 | (缺失) | `lucide:diff` | lucide |
-| 版本 | (缺失) | `lucide:git-branch` | lucide (loose) |
+| 位置                          | 当前   | Iconify ID              | 候选 set            |
+| ----------------------------- | ------ | ----------------------- | ------------------- |
+| `HfbAlert` info               | `ℹ`    | `lucide:info`           | lucide              |
+| `HfbAlert` success            | `✓`    | `lucide:check`          | lucide              |
+| `HfbAlert` warning            | `⚠`    | `lucide:triangle-alert` | lucide              |
+| `HfbAlert` error              | `✕`    | `lucide:x`              | lucide              |
+| `EmptyState` default          | `📭`   | `lucide:inbox`          | lucide              |
+| `ErrorState`                  | `⚠️`   | `lucide:circle-alert`   | lucide              |
+| `StatusCard` connected        | `✓`    | `lucide:check-circle`   | lucide              |
+| `StatusCard` disconnected     | `✗`    | `lucide:x-circle`       | lucide              |
+| `AppNavbar` home              | `🏠`   | `lucide:house`          | lucide              |
+| `AppNavbar` research          | `🔬`   | `lucide:flask-conical`  | lucide              |
+| `AppNavbar` library           | `📚`   | `lucide:library`        | lucide              |
+| `AppNavbar` knowledge         | `🔗`   | `lucide:link`           | lucide              |
+| `AppNavbar` reports           | `📊`   | `lucide:bar-chart-3`    | lucide              |
+| `AppNavbar` books             | `📚`   | `lucide:book-open`      | lucide              |
+| `AppNavbar` literature        | `📄`   | `lucide:file-text`      | lucide              |
+| `AppNavbar` classical         | `🏛️`   | `lucide:building-2`     | lucide              |
+| `AppNavbar` persons           | `👤`   | `lucide:user`           | lucide              |
+| `AppNavbar` about             | `ℹ️`   | `lucide:info`           | lucide              |
+| `AppNavbar` adminReview       | `✅`   | `lucide:check-check`    | lucide              |
+| `AppNavbar` adminIngestion    | `📋`   | `lucide:clipboard-list` | lucide              |
+| `AppNavbar` adminSourcePolicy | `🔐`   | `lucide:shield-check`   | lucide              |
+| `Dashboard` users             | `👥`   | `lucide:users`          | lucide              |
+| `Dashboard` passages          | `📜`   | `lucide:scroll-text`    | lucide              |
+| `ResearchWorkspace` assistant | `🤖`   | `lucide:bot`            | lucide              |
+| `ResearchWorkspace` 校        | `校`   | `lucide:pen-line`       | lucide (有语义差距) |
+| `ResearchWorkspace` v4        | `🧬`   | `lucide:dna`            | lucide              |
+| 古籍卷                        | (缺失) | `lucide:scroll-text`    | lucide              |
+| 古籍页                        | (缺失) | `lucide:book-marked`    | lucide              |
+| 校勘/异文                     | (缺失) | `lucide:diff`           | lucide              |
+| 版本                          | (缺失) | `lucide:git-branch`     | lucide (loose)      |
 
 ---
 
@@ -246,13 +255,13 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ### 7.1 分类与标签规则
 
-| 图标类别 | 示例（Hfb 内） | `aria-hidden` | 可访问名称 | 备注 |
-|---|---|---|---|---|
-| **纯装饰** | 按钮内前缀 icon（无独立语义，纯视觉增强） | `true` | 无需 | 按钮本身的文本/aria-label 承载语义 |
-| **状态指示器** | Alert variant icon (✓✕⚠ℹ)、StatusCard、LineageStatusBadge | `true` | 通过相邻可见文本传达 | 颜色/形状为视觉冗余；状态由 variant 文本承载 |
-| **独立操作** | 仅 icon 的按钮（如排序箭头、关闭按钮）、clickable icon | `false` | `<Icon aria-label="排序" />` 或父 button 的 aria-label | 无可见文本时必须提供可访问名称 |
-| **导航项前缀** | Navbar icon + 文本链接 | `true` | 链接文本承载语义 | 与按钮规则一致：相邻可见文本提供含义 |
-| **内容图标** | EmptyState、PlaceholderPage | `true` | H3/p description 承载语义 | icon 为视觉装饰 |
+| 图标类别       | 示例（Hfb 内）                                            | `aria-hidden` | 可访问名称                                             | 备注                                         |
+| -------------- | --------------------------------------------------------- | ------------- | ------------------------------------------------------ | -------------------------------------------- |
+| **纯装饰**     | 按钮内前缀 icon（无独立语义，纯视觉增强）                 | `true`        | 无需                                                   | 按钮本身的文本/aria-label 承载语义           |
+| **状态指示器** | Alert variant icon (✓✕⚠ℹ)、StatusCard、LineageStatusBadge | `true`        | 通过相邻可见文本传达                                   | 颜色/形状为视觉冗余；状态由 variant 文本承载 |
+| **独立操作**   | 仅 icon 的按钮（如排序箭头、关闭按钮）、clickable icon    | `false`       | `<Icon aria-label="排序" />` 或父 button 的 aria-label | 无可见文本时必须提供可访问名称               |
+| **导航项前缀** | Navbar icon + 文本链接                                    | `true`        | 链接文本承载语义                                       | 与按钮规则一致：相邻可见文本提供含义         |
+| **内容图标**   | EmptyState、PlaceholderPage                               | `true`        | H3/p description 承载语义                              | icon 为视觉装饰                              |
 
 ### 7.2 实施规则
 
@@ -265,13 +274,13 @@ import { BookOpen, MagnifyingGlass, Scroll } from '@phosphor-icons/vue';
 
 ### 7.3 候选无障碍差异
 
-| 维度 | Lucide Vue | Iconify Vue | Phosphor Vue |
-|---|---|---|---|
-| 默认 role | `role="img"` | `role="img"` | `role="img"` |
-| 默认 aria-hidden | 无（需手动） | `aria-hidden="true"` | 无（需手动） |
-| aria-label 传递 | 通过 `$attrs` | 需显式 prop 或 `$attrs` | 通过 `$attrs` |
-| focusable 默认 | `focusable="false"` | `focusable="false"` | `focusable="false"` |
-| weight/contrast control | `strokeWidth` (1–3) | 取决于 icon set | 6 weights (thin→fill) |
+| 维度                    | Lucide Vue          | Iconify Vue             | Phosphor Vue          |
+| ----------------------- | ------------------- | ----------------------- | --------------------- |
+| 默认 role               | `role="img"`        | `role="img"`            | `role="img"`          |
+| 默认 aria-hidden        | 无（需手动）        | `aria-hidden="true"`    | 无（需手动）          |
+| aria-label 传递         | 通过 `$attrs`       | 需显式 prop 或 `$attrs` | 通过 `$attrs`         |
+| focusable 默认          | `focusable="false"` | `focusable="false"`     | `focusable="false"`   |
+| weight/contrast control | `strokeWidth` (1–3) | 取决于 icon set         | 6 weights (thin→fill) |
 
 **结论**：Iconify 的默认 `aria-hidden="true"` 符合"装饰优先"的安全默认策略，Lucide/Phosphor 需在 HfbIcon 封装中手动设置。Phosphor 的 6 weight 在高对比度/暗色模式下提供更多选项。
 

@@ -56,9 +56,9 @@ class _FakeRole:
 
 def _make_auth_app(**svc_kwargs):
     """Build a FastAPI app with the auth router and overridden AuthService."""
-    from fastapi import FastAPI
     from app.api.v1.auth import router as auth_router
     from app.middleware.auth import get_auth_service
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.include_router(auth_router)
@@ -450,8 +450,8 @@ class TestMe:
 
     async def test_me_requires_authentication(self):
         """No dependency override for get_current_user -> 401."""
-        from fastapi import FastAPI
         from app.api.v1.auth import router as auth_router
+        from fastapi import FastAPI
 
         app = FastAPI(debug=False)
         app.include_router(auth_router)
@@ -463,10 +463,10 @@ class TestMe:
 
 def _make_me_only_app(user_id: str, user_repo_mock: MagicMock):
     """Build an app with auth router, overridden get_current_user + UserRepository."""
-    from fastapi import FastAPI
     from app.api.v1.auth import router as auth_router
-    from app.middleware.auth import get_current_user
     from app.db.database import get_session
+    from app.middleware.auth import get_current_user
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.include_router(auth_router)

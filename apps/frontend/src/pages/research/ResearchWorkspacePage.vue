@@ -30,7 +30,13 @@
 
     <div class="rwp-body">
       <!-- Page-level skeleton -->
-      <div v-if="showSkeleton" class="rwp-skeleton" role="status" aria-busy="true" aria-label="正在加载工作区...">
+      <div
+        v-if="showSkeleton"
+        class="rwp-skeleton"
+        role="status"
+        aria-busy="true"
+        aria-label="正在加载工作区..."
+      >
         <div class="rwp-skeleton-section">
           <HfbSkeleton variant="text" width="30%" height="1.2em" />
           <div class="rwp-skeleton-cards">
@@ -90,16 +96,11 @@
           <div class="rwp-welcome-card">
             <div class="rwp-welcome-icon" aria-hidden="true">🚀</div>
             <h2 class="rwp-welcome-title">开始您的研究</h2>
-            <p class="rwp-welcome-desc">
-              提出研究问题，系统将自动检索古籍文献并生成循证报告。
-            </p>
+            <p class="rwp-welcome-desc">提出研究问题，系统将自动检索古籍文献并生成循证报告。</p>
             <div class="rwp-welcome-form">
               <ResearchAssistantEntry :project-id="project.id" mode="inline" />
             </div>
-            <router-link
-              :to="`/research/${project.id}/workflow`"
-              class="rwp-welcome-secondary"
-            >
+            <router-link :to="`/research/${project.id}/workflow`" class="rwp-welcome-secondary">
               进入完整工作流
             </router-link>
           </div>
@@ -135,11 +136,7 @@
           />
         </main>
 
-        <ResearchAssistantEntry
-          v-if="!isGlobalEmpty"
-          :project-id="project.id"
-          :mode="raeMode"
-        />
+        <ResearchAssistantEntry v-if="!isGlobalEmpty" :project-id="project.id" :mode="raeMode" />
       </template>
     </div>
   </div>
@@ -269,9 +266,7 @@ const isGlobalEmpty = computed(() => {
   if (citationsError.value !== null) return false;
   // All data must be empty
   return (
-    mergedResearch.value.length === 0 &&
-    notes.value.length === 0 &&
-    citations.value.length === 0
+    mergedResearch.value.length === 0 && notes.value.length === 0 && citations.value.length === 0
   );
 });
 
@@ -305,9 +300,18 @@ let sessionAbort: AbortController | null = null;
 let sectionsAbort: AbortController | null = null;
 
 function abortAll() {
-  if (sessionAbort) { sessionAbort.abort(); sessionAbort = null; }
-  if (sectionsAbort) { sectionsAbort.abort(); sectionsAbort = null; }
-  if (skeletonTimer) { clearTimeout(skeletonTimer); skeletonTimer = null; }
+  if (sessionAbort) {
+    sessionAbort.abort();
+    sessionAbort = null;
+  }
+  if (sectionsAbort) {
+    sectionsAbort.abort();
+    sectionsAbort = null;
+  }
+  if (skeletonTimer) {
+    clearTimeout(skeletonTimer);
+    skeletonTimer = null;
+  }
 }
 
 function resetSkeletonTimer() {
@@ -421,7 +425,10 @@ function normalizeActivities(activityItems: ActivityItem[]): MergedResearchItem[
   }));
 }
 
-function mergeAndSort(runItems: MergedResearchItem[], activityItems: MergedResearchItem[]): MergedResearchItem[] {
+function mergeAndSort(
+  runItems: MergedResearchItem[],
+  activityItems: MergedResearchItem[],
+): MergedResearchItem[] {
   const merged = [...runItems, ...activityItems];
   merged.sort((a, b) => {
     if (!a.timestamp && !b.timestamp) return 0;
@@ -451,8 +458,19 @@ async function loadMergedResearch(myReqId: number, signal: AbortSignal) {
   let historyErr = '';
 
   const [runsResult, historyResult] = await Promise.allSettled([
-    fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, { signal, maxRetries: 0 }).catch((e: unknown) => { throw e; }),
-    fetchWithRetry(`/api/v4/research/session/${id}/history`, { limit: 5 }, { signal, maxRetries: 0 }).catch((e: unknown) => { throw e; }),
+    fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, {
+      signal,
+      maxRetries: 0,
+    }).catch((e: unknown) => {
+      throw e;
+    }),
+    fetchWithRetry(
+      `/api/v4/research/session/${id}/history`,
+      { limit: 5 },
+      { signal, maxRetries: 0 },
+    ).catch((e: unknown) => {
+      throw e;
+    }),
   ]);
 
   if (myReqId !== mergedReqId || signal.aborted) return;
@@ -519,7 +537,8 @@ async function loadNotes(myReqId: number, signal: AbortSignal) {
   } catch (e: unknown) {
     if (myReqId !== notesReqId || signal.aborted) return;
     if ((e as any)?.name !== 'AbortError') {
-      notesError.value = (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
+      notesError.value =
+        (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
     }
   } finally {
     if (myReqId === notesReqId) {
@@ -554,7 +573,8 @@ async function loadCitations(myReqId: number, signal: AbortSignal) {
   } catch (e: unknown) {
     if (myReqId !== citationsReqId || signal.aborted) return;
     if ((e as any)?.name !== 'AbortError') {
-      citationsError.value = (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
+      citationsError.value =
+        (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
     }
   } finally {
     if (myReqId === citationsReqId) {
@@ -639,7 +659,9 @@ async function retryRunsOnly() {
   mergedPartial.value = null;
 
   try {
-    const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, { signal });
+    const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, {
+      signal,
+    });
     const body = (data as any).data ?? data;
     const runItems = (body.runs ?? []) as RunItem[];
     const normalizedRuns = normalizeRuns(runItems);
@@ -662,7 +684,11 @@ async function retryHistoryOnly() {
   mergedPartial.value = null;
 
   try {
-    const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/history`, { limit: 5 }, { signal });
+    const { data } = await fetchWithRetry(
+      `/api/v4/research/session/${id}/history`,
+      { limit: 5 },
+      { signal },
+    );
     const body = (data as any).data ?? data;
     const activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
     const normalizedActivities = normalizeActivities(activityItems);

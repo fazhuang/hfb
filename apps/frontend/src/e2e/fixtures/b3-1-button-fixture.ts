@@ -50,27 +50,29 @@ const App = {
       // display:none removes from accessibility tree but keeps it
       // programmatically focusable; use a 1px placeholder instead
       // so all viewports (incl. Mobile) can Tab from it.
-      h('button', {
-        'data-testid': 'tab-anchor',
-        type: 'button',
-        style: {
-          width: '1px',
-          height: '1px',
-          padding: '0',
-          margin: '0',
-          border: 'none',
-          background: 'transparent',
-          color: 'transparent',
-          overflow: 'hidden',
-          position: 'absolute',
+      h(
+        'button',
+        {
+          'data-testid': 'tab-anchor',
+          type: 'button',
+          style: {
+            width: '1px',
+            height: '1px',
+            padding: '0',
+            margin: '0',
+            border: 'none',
+            background: 'transparent',
+            color: 'transparent',
+            overflow: 'hidden',
+            position: 'absolute',
+          },
+          tabindex: '0',
         },
-        tabindex: '0',
-      }, 'anchor'),
+        'anchor',
+      ),
 
       // 1. Normal button — Enter/Space must fire click
-      h('div', { 'data-testid': 'btn-normal' }, [
-        h(HfbButton, {}, () => 'Normal Button'),
-      ]),
+      h('div', { 'data-testid': 'btn-normal' }, [h(HfbButton, {}, () => 'Normal Button')]),
 
       // 2. Disabled button — Enter/Space must NOT fire click
       h('div', { 'data-testid': 'btn-disabled' }, [
@@ -85,30 +87,40 @@ const App = {
 
       // 4. Icon-only — exact aria-label, no text content
       h('div', { 'data-testid': 'btn-icon-only' }, [
-        h(HfbButton, { ariaLabel: 'Close dialog' }, {
-          icon: () => h('span', { class: 'icon-x' }, '✕'),
-        }),
+        h(
+          HfbButton,
+          { ariaLabel: 'Close dialog' },
+          {
+            icon: () => h('span', { class: 'icon-x' }, '✕'),
+          },
+        ),
       ]),
 
       // 5. Extra variants for DOM coverage
-      h('div', {
-        'data-testid': 'btn-secondary',
-        style: { display: 'inline-block', margin: '4px' },
-      }, [
-        h(HfbButton, { variant: 'secondary' }, () => 'Secondary'),
-      ]),
-      h('div', {
-        'data-testid': 'btn-ghost',
-        style: { display: 'inline-block', margin: '4px' },
-      }, [
-        h(HfbButton, { variant: 'ghost' }, () => 'Ghost'),
-      ]),
-      h('div', {
-        'data-testid': 'btn-danger',
-        style: { display: 'inline-block', margin: '4px' },
-      }, [
-        h(HfbButton, { variant: 'danger' }, () => 'Danger'),
-      ]),
+      h(
+        'div',
+        {
+          'data-testid': 'btn-secondary',
+          style: { display: 'inline-block', margin: '4px' },
+        },
+        [h(HfbButton, { variant: 'secondary' }, () => 'Secondary')],
+      ),
+      h(
+        'div',
+        {
+          'data-testid': 'btn-ghost',
+          style: { display: 'inline-block', margin: '4px' },
+        },
+        [h(HfbButton, { variant: 'ghost' }, () => 'Ghost')],
+      ),
+      h(
+        'div',
+        {
+          'data-testid': 'btn-danger',
+          style: { display: 'inline-block', margin: '4px' },
+        },
+        [h(HfbButton, { variant: 'danger' }, () => 'Danger')],
+      ),
 
       // 6. Large block button
       h('div', { 'data-testid': 'btn-block' }, [

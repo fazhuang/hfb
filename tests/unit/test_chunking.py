@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 from app.services.chunking import (
-    chunk_text,
-    _split_paragraphs,
     _char_split,
+    _split_paragraphs,
+    chunk_text,
 )
 
 

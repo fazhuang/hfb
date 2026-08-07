@@ -775,9 +775,9 @@ describe('ResearchReportsPage', () => {
         }),
       );
 
-      const nextBtn = wrapper.findAll('button').find(
-        (b) => b.attributes('aria-label') === 'Next page',
-      );
+      const nextBtn = wrapper
+        .findAll('button')
+        .find((b) => b.attributes('aria-label') === 'Next page');
       expect(nextBtn).toBeTruthy();
       // next page button should be enabled (page 1 of 2)
       expect(nextBtn!.attributes('disabled')).toBeUndefined();
@@ -789,14 +789,19 @@ describe('ResearchReportsPage', () => {
 
       // Now resolve the fast (current) fetch with different content
       resolveFast!(
-        makeReportsResponse([
-          makeReportItem({
-            run_id: 'current-run',
-            topic: 'CURRENT',
-            report_status: 'ready',
-            session_id: SESSION_A,
-          }),
-        ], 21, 2, 20),
+        makeReportsResponse(
+          [
+            makeReportItem({
+              run_id: 'current-run',
+              topic: 'CURRENT',
+              report_status: 'ready',
+              session_id: SESSION_A,
+            }),
+          ],
+          21,
+          2,
+          20,
+        ),
       );
       await flushPromises();
 
@@ -852,9 +857,9 @@ describe('ResearchReportsPage', () => {
       expect(wrapper.find('[aria-label="Next page"]').exists()).toBe(true);
 
       // Click next page
-      const nextBtn = wrapper.findAll('button').find(
-        (b) => b.attributes('aria-label') === 'Next page',
-      );
+      const nextBtn = wrapper
+        .findAll('button')
+        .find((b) => b.attributes('aria-label') === 'Next page');
       expect(nextBtn).toBeTruthy();
       await nextBtn!.trigger('click');
       await flushPromises();

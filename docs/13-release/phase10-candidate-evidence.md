@@ -47,13 +47,13 @@
 
 ## Phase 10 证据大盘终极汇总
 
-| 门禁 | 命令 | 原始输出摘要 | 出口码 | 判定 |
-|------|------|-------------|--------|------|
-| Git 基线 | `git rev-parse HEAD` / `git status --short` | `b8e1b288`，`apps/` 零变动 | — | PASS |
-| D2-COV | `pytest ... --cov=apps/backend --cov-report=json` | 3266 passed, 0 failed, 90.1570% | 0 | PASS |
-| D2-E2E | `pnpm test:e2e` | 27/27 passed, 0 non-whitelist page.goto | 0 | PASS |
-| Security Audit | `pnpm audit --registry https://registry.npmjs.org/` | No known vulnerabilities found（`js-yaml` 已通过 overrides 升级至 >=4.3.1） | 0 | PASS |
-| Ops Recovery | `scripts/backup.sh config` / `scripts/restore.sh --list`（独立 env） | 双脚本语法零错误，备份/恢复逻辑正确 | 0 | PASS |
+| 门禁           | 命令                                                                 | 原始输出摘要                                                                | 出口码 | 判定 |
+| -------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------- | ------ | ---- |
+| Git 基线       | `git rev-parse HEAD` / `git status --short`                          | `b8e1b288`，`apps/` 零变动                                                  | —      | PASS |
+| D2-COV         | `pytest ... --cov=apps/backend --cov-report=json`                    | 3266 passed, 0 failed, 90.1570%                                             | 0      | PASS |
+| D2-E2E         | `pnpm test:e2e`                                                      | 27/27 passed, 0 non-whitelist page.goto                                     | 0      | PASS |
+| Security Audit | `pnpm audit --registry https://registry.npmjs.org/`                  | No known vulnerabilities found（`js-yaml` 已通过 overrides 升级至 >=4.3.1） | 0      | PASS |
+| Ops Recovery   | `scripts/backup.sh config` / `scripts/restore.sh --list`（独立 env） | 双脚本语法零错误，备份/恢复逻辑正确                                         | 0      | PASS |
 
 ### 综合结论
 
@@ -98,25 +98,25 @@
 
 ### Canonical Research Flow — Full Closed-Loop (ALL PASS)
 
-| Test | Status | Evidence |
-|------|--------|----------|
-| C3-S01: login → workflow → evidence → real export | ✓ PASS | 5 screenshots, console log, markdown export (2178 bytes) |
-| C1-2: Citation → Evidence → SourceRef full chain isolation + RBAC | ✓ PASS | 22.6s duration |
-| C2-5: Full closed loop — login → workflow → result, 0 console errors | ✓ PASS | 18.3s duration |
-| C2-5: Non-existent projectId → fail-closed, 0 errors (workflow) | ✓ PASS | 3.5s duration |
-| C2-5: Non-existent projectId → fail-closed, 0 errors (result) | ✓ PASS | 3.5s duration |
-| C2-5: 375×812 viewport — no overflow, focus visible (workflow) | ✓ PASS | 4.2s duration |
-| C2-5: 375×812 viewport — no overflow, focus visible (result) | ✓ PASS | 3.9s duration |
-| C2-5: 200% zoom (640×450) — no overflow, focus visible (workflow) | ✓ PASS | 4.0s duration |
-| C2-5: 200% zoom (640×450) — no overflow, focus visible (result) | ✓ PASS | 3.9s duration |
+| Test                                                                 | Status | Evidence                                                 |
+| -------------------------------------------------------------------- | ------ | -------------------------------------------------------- |
+| C3-S01: login → workflow → evidence → real export                    | ✓ PASS | 5 screenshots, console log, markdown export (2178 bytes) |
+| C1-2: Citation → Evidence → SourceRef full chain isolation + RBAC    | ✓ PASS | 22.6s duration                                           |
+| C2-5: Full closed loop — login → workflow → result, 0 console errors | ✓ PASS | 18.3s duration                                           |
+| C2-5: Non-existent projectId → fail-closed, 0 errors (workflow)      | ✓ PASS | 3.5s duration                                            |
+| C2-5: Non-existent projectId → fail-closed, 0 errors (result)        | ✓ PASS | 3.5s duration                                            |
+| C2-5: 375×812 viewport — no overflow, focus visible (workflow)       | ✓ PASS | 4.2s duration                                            |
+| C2-5: 375×812 viewport — no overflow, focus visible (result)         | ✓ PASS | 3.9s duration                                            |
+| C2-5: 200% zoom (640×450) — no overflow, focus visible (workflow)    | ✓ PASS | 4.0s duration                                            |
+| C2-5: 200% zoom (640×450) — no overflow, focus visible (result)      | ✓ PASS | 3.9s duration                                            |
 
 ### Three-Role RBAC Isolation (ALL PASS)
 
-| Role | Test | Status | Evidence |
-|------|------|--------|----------|
-| Researcher | C3-S01: full workflow → evidence → export | ✓ PASS | 5 screenshots, export file, 0 console errors |
-| Admin | C3-A01: admin login → `/admin/literature-review`, `/admin/ingestion-tasks`, `/admin/source-policy` → `/research` | ✓ PASS | All 4 pages PASS, console-admin.log (0 errors) |
-| Guest | C3-G01: unauthenticated → `/v4/research-internal`, `/v4/research` → login redirect | ✓ PASS | Both redirect to `/login?redirect=...`, console-guest.log (0 errors) |
+| Role       | Test                                                                                                             | Status | Evidence                                                             |
+| ---------- | ---------------------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------- |
+| Researcher | C3-S01: full workflow → evidence → export                                                                        | ✓ PASS | 5 screenshots, export file, 0 console errors                         |
+| Admin      | C3-A01: admin login → `/admin/literature-review`, `/admin/ingestion-tasks`, `/admin/source-policy` → `/research` | ✓ PASS | All 4 pages PASS, console-admin.log (0 errors)                       |
+| Guest      | C3-G01: unauthenticated → `/v4/research-internal`, `/v4/research` → login redirect                               | ✓ PASS | Both redirect to `/login?redirect=...`, console-guest.log (0 errors) |
 
 ### RBAC API Verification
 
@@ -126,26 +126,26 @@
 
 ### Pre-existing E2E Test Failures (10 tests — NOT product bugs)
 
-| Failing Test | Root Cause |
-|---|---|
-| C1-1-V09: pagination renders when total items > page limit | Selector mismatch in fixture data |
-| task010: Page 3 workspace / Page 6 reports / export | Pre-existing page name/selector drift |
-| task011: A4, B1, F1-F4 nav active state | `.rpn-link--active` selector does not match current `<a>` element class (nav component refactored; active state tracked via `item.active` in JS, CSS class name changed) |
-| task012: Cancel button restores focus to create button | Focus restoration timing differs in Mobile viewport |
+| Failing Test                                               | Root Cause                                                                                                                                                               |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| C1-1-V09: pagination renders when total items > page limit | Selector mismatch in fixture data                                                                                                                                        |
+| task010: Page 3 workspace / Page 6 reports / export        | Pre-existing page name/selector drift                                                                                                                                    |
+| task011: A4, B1, F1-F4 nav active state                    | `.rpn-link--active` selector does not match current `<a>` element class (nav component refactored; active state tracked via `item.active` in JS, CSS class name changed) |
+| task012: Cancel button restores focus to create button     | Focus restoration timing differs in Mobile viewport                                                                                                                      |
 
 **Verification:** All 10 failures originate in test script selectors, not in product code. No `.rpn-link--active` or `.rpn-link` class exists in current production components — nav uses a different CSS class name. The canonical research flow, RBAC, and 200% zoom tests all pass cleanly.
 
 ### Screenshot Index (Real Browser Evidence)
 
-| File | Role | Description |
-|------|------|-------------|
-| `output/e2e/standard-user/01-workflow.png` | Researcher | Workflow page before submit |
-| `output/e2e/standard-user/02-result.png` | Researcher | Evidence results (5 items) |
-| `output/e2e/standard-user/03-citation-evidence.png` | Researcher | Citation → Evidence detail |
-| `output/e2e/standard-user/04-export.png` | Researcher | Export / report tab |
-| `output/e2e/standard-user/exported-hfb-report.md` | Researcher | Exported markdown report |
-| `output/e2e/admin/admin-rbac-pass.png` | Admin | Admin privilege validation |
-| `output/e2e/guest/guest-redirect.png` | Guest | Login redirect page |
+| File                                                | Role       | Description                 |
+| --------------------------------------------------- | ---------- | --------------------------- |
+| `output/e2e/standard-user/01-workflow.png`          | Researcher | Workflow page before submit |
+| `output/e2e/standard-user/02-result.png`            | Researcher | Evidence results (5 items)  |
+| `output/e2e/standard-user/03-citation-evidence.png` | Researcher | Citation → Evidence detail  |
+| `output/e2e/standard-user/04-export.png`            | Researcher | Export / report tab         |
+| `output/e2e/standard-user/exported-hfb-report.md`   | Researcher | Exported markdown report    |
+| `output/e2e/admin/admin-rbac-pass.png`              | Admin      | Admin privilege validation  |
+| `output/e2e/guest/guest-redirect.png`               | Guest      | Login redirect page         |
 
 ### D2-E2E Conclusion
 

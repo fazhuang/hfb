@@ -11,13 +11,12 @@ import os as _os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db.database import get_session
 from app.middleware.auth import get_auth_service, get_current_user
 from app.services.trace_lineage import InternalTraceRecord, make_trace_id
+from fastapi.testclient import TestClient
 from main import app
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Dependency overrides — all auth gates pass, DB is a mock
@@ -918,7 +917,7 @@ class TestExportRunMarkdown:
     def test_unsupported_format(self):
         session = _make_session_mock()
         with patch("app.api.v4.research.WorkspaceService") as MockWS, \
-             patch("app.api.v4.research.ResearchWorkflowService") as MockRWF:
+             patch("app.api.v4.research.ResearchWorkflowService"):
             MockWS.return_value.get_session = AsyncMock(return_value=session)
 
             resp = _client.get("/api/v4/research/session/sess-001/runs/run-001/export?format=pdf")
@@ -976,7 +975,7 @@ class TestReplayResearchRun:
 
     def test_run_not_found(self):
         with patch("app.api.v4.research.WorkspaceService") as MockWS, \
-             patch("app.api.v4.research.ResearchWorkflowService") as MockRWF:
+             patch("app.api.v4.research.ResearchWorkflowService"):
             MockWS.return_value.list_sessions = AsyncMock(return_value=[])
 
             resp = _client.post("/api/v4/research/runs/nonexistent/replay", json={})
@@ -1222,9 +1221,9 @@ class TestSeedResearchRun:
 
 def _build_valid_manifest(snapshot, trace_data, topic="test", workflow_type="full_research_flow"):
     from app.services.research_workflow_service import (
-        canonical_sha256,
         _build_corpus_payload,
         _build_input_payload,
+        canonical_sha256,
         canonicalize_traces,
     )
     canonical_traces = canonicalize_traces(trace_data)
@@ -1739,9 +1738,13 @@ class TestReplayTidNotInPassageMap:
         })
 
         from app.services.research_workflow_service import (
-            canonical_sha256, _build_canonical_payload, _build_corpus_payload,
-            _build_input_payload, _build_report_sections,
-            _group_snapshot_into_sections, _snapshot_to_evidence_list,
+            _build_canonical_payload,
+            _build_corpus_payload,
+            _build_input_payload,
+            _build_report_sections,
+            _group_snapshot_into_sections,
+            _snapshot_to_evidence_list,
+            canonical_sha256,
             canonicalize_traces,
         )
         canonical_traces = canonicalize_traces(trace_data)

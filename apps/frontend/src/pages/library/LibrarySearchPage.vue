@@ -12,12 +12,32 @@
 
       <!-- Loading: Skeleton cards -->
       <div v-if="loading" class="lib-skeleton-list" aria-busy="true" aria-label="正在加载文献列表">
-        <div v-for="i in 5" :key="i" class="lib-skeleton-card hfb-skeleton hfb-skeleton--rect hfb-skeleton--pulse">
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="lib-skeleton-card hfb-skeleton hfb-skeleton--rect hfb-skeleton--pulse"
+        >
           <div class="lib-skeleton-title hfb-skeleton__line hfb-skeleton__line--pulse" />
           <div class="lib-skeleton-meta hfb-skeleton__line hfb-skeleton__line--pulse" />
           <div class="lib-skeleton-badges">
-            <span class="hfb-skeleton hfb-skeleton--pulse" style="width:56px;height:20px;display:inline-block;border-radius:var(--radius-sm)" />
-            <span class="hfb-skeleton hfb-skeleton--pulse" style="width:48px;height:20px;display:inline-block;border-radius:var(--radius-sm)" />
+            <span
+              class="hfb-skeleton hfb-skeleton--pulse"
+              style="
+                width: 56px;
+                height: 20px;
+                display: inline-block;
+                border-radius: var(--radius-sm);
+              "
+            />
+            <span
+              class="hfb-skeleton hfb-skeleton--pulse"
+              style="
+                width: 48px;
+                height: 20px;
+                display: inline-block;
+                border-radius: var(--radius-sm);
+              "
+            />
           </div>
         </div>
       </div>

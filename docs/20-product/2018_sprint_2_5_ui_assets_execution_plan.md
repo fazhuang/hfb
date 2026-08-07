@@ -23,16 +23,16 @@ IA、研究主流程和主要页面迁移已形成可收敛的骨架。当前短
 
 ## 2. 事实源与产品裁决
 
-| 项目 | 权威性/裁决 |
-|---|---|
-| Token、组件、测试 | 代码实现行为事实源：`apps/frontend/src/styles/tokens/`、`components/common/`、测试文件 |
-| UI 资产账本 | `docs/20-product/UI_ASSET_LEDGER.md` 是资产清单与采用状态权威文档，不替代代码事实 |
-| Design System | `docs/06-ui/0601_Design_System.md` 与 `0602_UI_Component_Standard.md` 为规范基线 |
-| V4 处置 | PO 批准：canonical 等价验证后删除 `V4ResearchView.vue` 及仅服务它的遗留实现/测试 |
-| Canonical 目标 | `ResearchWorkspacePage`、`ResearchWorkflowPage`、`ResearchResultPage`；不得回退到 `ResearchWorkspaceView.vue` 单体 |
-| Knowledge Explorer | MVP UI 工作冻结，不投入高保真或样式重构 |
-| 覆盖率 | 后端 ≥90%、前端 ≥80% 是 **Phase 10** 最终硬门禁，不是 WP-0 结束条件 |
-| 图标 | PO 允许引入统一 SVG 包，但须先完成一手许可证、维护、构建/tree-shaking、无障碍与替换映射审查 |
+| 项目               | 权威性/裁决                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Token、组件、测试  | 代码实现行为事实源：`apps/frontend/src/styles/tokens/`、`components/common/`、测试文件                             |
+| UI 资产账本        | `docs/20-product/UI_ASSET_LEDGER.md` 是资产清单与采用状态权威文档，不替代代码事实                                  |
+| Design System      | `docs/06-ui/0601_Design_System.md` 与 `0602_UI_Component_Standard.md` 为规范基线                                   |
+| V4 处置            | PO 批准：canonical 等价验证后删除 `V4ResearchView.vue` 及仅服务它的遗留实现/测试                                   |
+| Canonical 目标     | `ResearchWorkspacePage`、`ResearchWorkflowPage`、`ResearchResultPage`；不得回退到 `ResearchWorkspaceView.vue` 单体 |
+| Knowledge Explorer | MVP UI 工作冻结，不投入高保真或样式重构                                                                            |
+| 覆盖率             | 后端 ≥90%、前端 ≥80% 是 **Phase 10** 最终硬门禁，不是 WP-0 结束条件                                                |
+| 图标               | PO 允许引入统一 SVG 包，但须先完成一手许可证、维护、构建/tree-shaking、无障碍与替换映射审查                        |
 
 ## 3. 工作包
 

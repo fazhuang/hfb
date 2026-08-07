@@ -22,19 +22,19 @@ import pytest
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.generation_service import (
+    PROMPT_INJECTION_PATTERNS,
     STRUCTURED_CLAIMS_SYSTEM_PROMPT,
-    GenerationPipeline,
-    GenerationOutcome,
     CanonicalClaim,
+    GenerationOutcome,
+    GenerationPipeline,
+    _canonicalize_claims,
+    _detect_duplicate_keys,
     _detect_prompt_injection_chunk,
     _detect_prompt_injection_text,
-    _detect_duplicate_keys,
-    _is_substring,
-    _substring_start_pos,
-    _normalize_whitespace,
-    _canonicalize_claims,
     _expected_claims_to_canonical,
-    PROMPT_INJECTION_PATTERNS,
+    _is_substring,
+    _normalize_whitespace,
+    _substring_start_pos,
 )
 from app.services.retrieval import RetrievalResult, RetrievalService
 from sqlalchemy import select
@@ -2129,7 +2129,7 @@ class TestSubstringStartPos:
         assert pos == -1
 
     def test_ignores_whitespace_diff(self) -> None:
-        pos = _substring_start_pos("甲乙经", "针灸  甲乙  经")
+        _substring_start_pos("甲乙经", "针灸  甲乙  经")
         # normalized haystack = "针灸 甲乙 经", needle = "甲乙经"
         # normalized: needle="甲乙经", haystack="针灸 甲乙 经" → "甲乙经" not contiguous in normalized
         # Need a case where whitespace collapse makes them match

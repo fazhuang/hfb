@@ -14,12 +14,12 @@ from app.models.book import Book
 from app.models.person import Person
 from app.services.ai_service import (
     EVIDENCE_GATED_SYSTEM_PROMPT,
-    RateLimiter,
     AIService,
-    _rate_limiter,
+    RateLimiter,
+    _mock_compare,
     _mock_summarize,
     _mock_translate,
-    _mock_compare,
+    _rate_limiter,
 )
 from app.services.rag_service import RAGService
 from app.services.workspace_service import WorkspaceService

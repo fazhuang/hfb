@@ -57,14 +57,14 @@ pnpm typecheck
 
 #### WP-0 执行证据摘要（HEAD `ba32ea3`）
 
-| 门禁 | 命令 | 原始输出摘要 | 判定 |
-|---|---|---|---|
-| A1 | `pytest tests/e2e/test_v4_real_sourceref_integration.py -q` | `1 passed in 41.18s` — 两个 passage、两个不同 source_ref_id、两个精确 Reader href、真实 click 200 | PASS |
-| A2-1 | `ruff check apps tests tools` | `All checks passed!` — 0 errors | PASS |
-| A2-2 | `pnpm lint` | `0 errors, 66 warnings` (全部预存 `no-explicit-any`) | PASS |
-| A2-3 | `pnpm typecheck` | 5/5 workspaces clean | PASS |
-| WA | `git diff --check` | clean | PASS |
-| WA | `git status --short` | clean，`uv.lock` 在 HEAD | PASS |
+| 门禁 | 命令                                                        | 原始输出摘要                                                                                      | 判定 |
+| ---- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---- |
+| A1   | `pytest tests/e2e/test_v4_real_sourceref_integration.py -q` | `1 passed in 41.18s` — 两个 passage、两个不同 source_ref_id、两个精确 Reader href、真实 click 200 | PASS |
+| A2-1 | `ruff check apps tests tools`                               | `All checks passed!` — 0 errors                                                                   | PASS |
+| A2-2 | `pnpm lint`                                                 | `0 errors, 66 warnings` (全部预存 `no-explicit-any`)                                              | PASS |
+| A2-3 | `pnpm typecheck`                                            | 5/5 workspaces clean                                                                              | PASS |
+| WA   | `git diff --check`                                          | clean                                                                                             | PASS |
+| WA   | `git status --short`                                        | clean，`uv.lock` 在 HEAD                                                                          | PASS |
 
 **A3 综合结论**：A1 + A2 全部独立通过 → **PASS A3**。`BLOCK_RELEASE` 本卡闭合；阶段 B1（资产账本）可开始。
 
@@ -112,6 +112,7 @@ pnpm typecheck
 **Codex**：验证没有个人敏感信息、真实数据导入或 URL/mock 绕过。
 
 **执行状态**：✅ PASS D1（Codex 验证通过，HEAD `b3264de`）
+
 - 协议文档：`docs/20-product/d1-postgraduate-user-testing-protocol.md`
 - Codex 判定：白名单合格、代码差异为空、git diff --check 通过、工作区干净；任务链仅可见 UI 导航、隐私边界闭合、合成/脱敏测试数据限定、无 Mock/后端注入；弱网/AI/繁简/200% 原生缩放/375×812 均有观察记录项；D1 隔离声明明确不替代安全/RBAC/数据准入/Phase 10/D2、不解除 BLOCK_RELEASE
 - D1 闭合。仅许可进入 D2 候选评估阶段；整体 `BLOCK_RELEASE` 保持。
@@ -124,6 +125,7 @@ pnpm typecheck
 **执行状态**：✅ PASS D2-FINAL-LOCK（HEAD `de96703`，Authoritative audit clean + SHA synced `2026-08-07`）
 
 ### D2-COV — Backend Coverage（c11cad5）
+
 - PASS, 90.1570%, 3266 passed, 0 failed, exit 0 (archived `2026-08-07`)
 
 ### D2-E2E — Real Browser E2E & RBAC（9a4ff9c）
@@ -132,29 +134,33 @@ pnpm typecheck
 **Command:** `pnpm test:e2e`
 **Result:** 27 passed, 0 failed, 27.0s, E2E_EXIT=0
 
-| File | Tests | Coverage |
-|------|-------|----------|
-| `canonical_rbac_real.spec.ts` | 12 | Flow A (Anonymous, 4 tests) + Flow B (Researcher canonical, 4 tests) + Flow C (Admin, 4 tests) |
-| `critical-journeys.spec.ts` | 12 | Home, Navigation (5 pages via UI click), Search, Book Browse, Auth (login + register) |
-| `v4-real-sourceref.spec.ts` | 3 | SR01: citation→evidence→SourceRef real IDs; SR02: reader link nav; SR03: all cards non-null |
+| File                          | Tests | Coverage                                                                                       |
+| ----------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
+| `canonical_rbac_real.spec.ts` | 12    | Flow A (Anonymous, 4 tests) + Flow B (Researcher canonical, 4 tests) + Flow C (Admin, 4 tests) |
+| `critical-journeys.spec.ts`   | 12    | Home, Navigation (5 pages via UI click), Search, Book Browse, Auth (login + register)          |
+| `v4-real-sourceref.spec.ts`   | 3     | SR01: citation→evidence→SourceRef real IDs; SR02: reader link nav; SR03: all cards non-null    |
 
 **Three-Role RBAC:**
+
 - Anonymous: home loads, protected nav absent, /research /admin redirect → /login, guest click 登录 → login form
 - Researcher: form login, nav shows 开始研究, Research list via nav click, first project → workspace → workflow, question submit → evidence, admin nav links not rendered, admin pages blocked
 - Admin: form login, 管理员 greeting, 全文审核 nav link click → /admin, logout → session cleared
 
 **Citation → Evidence → SourceRef:**
+
 - Real session `14b6b81e`, run `528a37ff`, doc `bd42b503` (C1-2 UAT baseline)
 - Every SourceRef card: non-null source_ref_id, no pseudo `document:` ID
 - SourceRef reader link: navigates to `/library/{docId}?passage={id}`, no 404
 
 **Purification Gate:**
+
 - 24 `page.goto` calls total — exclusively `/` (20x) or `/login` (4x) — **0 non-whitelist**
 - 0 `page.route`, 0 `localStorage`, 0 `Bearer`, 0 `request.post/get`, 0 `beforeAll(request)`
 
 ### D2 Total Verdict
 
 All sub-gates green:
+
 - D2-COV: 90.1570% ≥ 90%, exit 0
 - D2-E2E: 27/27 passed, E2E_EXIT=0, full RBAC isolation + SourceRef chain verified
 - D2-PURIFY: dead scan clean — 0 non-whitelist page.goto, 0 cheat code patterns
@@ -165,6 +171,7 @@ All sub-gates green:
 ### D2-FINAL-LOCK — Security & Ops 收口（de96703, 2026-08-07）
 
 **Security Audit（已修复）:**
+
 - Command: `pnpm audit --registry https://registry.npmjs.org/`
 - Fix: `pnpm.overrides` — `js-yaml` 升级至 `>=4.3.1`（修补 CVE-2026-59870）
 - Result: No known vulnerabilities found
@@ -172,6 +179,7 @@ All sub-gates green:
 - Verdict: **PASS**
 
 **Ops & Recovery:**
+
 - Scripts: `scripts/backup.sh`（PostgreSQL + Neo4j + config），`scripts/restore.sh`
 - Syntax: `bash -n` both scripts — 0 errors
 - Execution: `backup.sh config` + `restore.sh --list` — both exit 0（clean env）
@@ -182,13 +190,13 @@ All sub-gates green:
 
 All five hard gates verified:
 
-| Gate | Result | Exit |
-|------|--------|------|
-| D2-COV | 90.157% ≥ 90%, 3266 passed | 0 |
-| D2-E2E | 27/27 passed, 3-role RBAC + SourceRef | 0 |
-| D2-PURIFY | 0 non-whitelist page.goto, 0 cheat | 0 |
-| Security Audit | No known vulnerabilities（js-yaml >=4.3.1） | 0 |
-| Ops Recovery | backup/restore syntax OK, execution PASS | 0 |
+| Gate           | Result                                      | Exit |
+| -------------- | ------------------------------------------- | ---- |
+| D2-COV         | 90.157% ≥ 90%, 3266 passed                  | 0    |
+| D2-E2E         | 27/27 passed, 3-role RBAC + SourceRef       | 0    |
+| D2-PURIFY      | 0 non-whitelist page.goto, 0 cheat          | 0    |
+| Security Audit | No known vulnerabilities（js-yaml >=4.3.1） | 0    |
+| Ops Recovery   | backup/restore syntax OK, execution PASS    | 0    |
 
 **D2-FINAL PASS.** `BLOCK_RELEASE` 保持，等待 Codex 独立复验后解除。
 

@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
-import pytest
-from app.schemas.institution import InstitutionCreate, InstitutionUpdate, InstitutionResponse
+from app.schemas.institution import (
+    InstitutionCreate,
+    InstitutionResponse,
+    InstitutionUpdate,
+)
 
 
 class TestInstitutionCreate:

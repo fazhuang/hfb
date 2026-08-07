@@ -12,15 +12,11 @@ Covers:
 Uses FastAPI TestClient with dependency overrides for auth and DB session.
 """
 
-import os
-import warnings
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
-
-from main import app
+from app.services.document_service import DocumentService
 from app.services.entities import (
     BookService,
     ChapterService,
@@ -30,7 +26,8 @@ from app.services.entities import (
     VersionService,
 )
 from app.services.person_service import PersonService
-from app.services.document_service import DocumentService
+from fastapi.testclient import TestClient
+from main import app
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -953,7 +950,6 @@ class TestSeedReaderData:
         mock_session.add = MagicMock()
         mock_session.flush = AsyncMock()
 
-        from sqlalchemy import select as _real_select
 
         def _fake_select(*args):
             return MagicMock()

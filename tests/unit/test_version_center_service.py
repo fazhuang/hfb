@@ -7,13 +7,11 @@ get_passage_mappings, add_relation, run_full_compare, and commentary CRUD.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from datetime import datetime, timezone
-
 import pytest
-
 from app.models.commentary import Commentary
 from app.models.passage import Passage
 from app.models.version import Version
@@ -28,7 +26,6 @@ from app.services.version_center import (
     get_commentary_chain,
     get_commentary_graph,
 )
-
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -525,8 +522,8 @@ class TestCreateCommentary:
         c.target_position_end = 10
         c.parent_id = None
         c.relation_type = None
-        c.created_at = datetime.now(timezone.utc)
-        c.updated_at = datetime.now(timezone.utc)
+        c.created_at = datetime.now(UTC)
+        c.updated_at = datetime.now(UTC)
 
         session = MagicMock()
         session.flush = AsyncMock()
@@ -561,7 +558,7 @@ class TestGetCommentariesForPassage:
     @pytest.mark.asyncio
     async def test_returns_all_commentaries(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = "c1"
         c.passage_id = pid
@@ -589,7 +586,7 @@ class TestGetCommentariesForPassage:
     @pytest.mark.asyncio
     async def test_filters_by_layer(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = "c1"
         c.passage_id = pid
@@ -618,7 +615,7 @@ class TestGetCommentaryChain:
     @pytest.mark.asyncio
     async def test_single_commentary_chain(self):
         cid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = cid
         c.passage_id = str(uuid4())
@@ -648,7 +645,7 @@ class TestGetCommentaryChain:
         mid_id = str(uuid4())
         leaf_id = str(uuid4())
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         leaf = MagicMock(spec=Commentary)
         leaf.id = leaf_id
@@ -724,7 +721,7 @@ class TestGetCommentaryGraph:
     @pytest.mark.asyncio
     async def test_returns_nodes_and_edges(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         parent = MagicMock(spec=Commentary)
         parent.id = "c-root"
         parent.passage_id = pid

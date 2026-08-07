@@ -1,5 +1,13 @@
 <template>
-  <component :is="IconComponent" :size="size" :color="color" :class="iconClass" :aria-hidden="ariaHidden" :aria-label="ariaLabel" role="img" />
+  <component
+    :is="IconComponent"
+    :size="size"
+    :color="color"
+    :class="iconClass"
+    :aria-hidden="ariaHidden"
+    :aria-label="ariaLabel"
+    role="img"
+  />
 </template>
 
 <script setup lang="ts">
@@ -147,11 +155,11 @@ const props = withDefaults(
 
 const IconComponent = computed(() => ICON_MAP[props.icon]);
 
-const ariaHidden = computed(() =>
-  props.ariaLabel ? undefined : props.ariaHidden,
-);
+const ariaHidden = computed(() => (props.ariaLabel ? undefined : props.ariaHidden));
 
-const iconClass = computed(() => ['hfb-icon', props.ariaLabel ? '' : 'hfb-icon--decorative'].filter(Boolean).join(' '));
+const iconClass = computed(() =>
+  ['hfb-icon', props.ariaLabel ? '' : 'hfb-icon--decorative'].filter(Boolean).join(' '),
+);
 </script>
 
 <style scoped>

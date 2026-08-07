@@ -49,8 +49,14 @@
       @click="openSidebar"
       :aria-label="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
       :title="sidebarCollapsed ? '展开导航菜单' : '折叠导航菜单'"
-      @keydown.enter.prevent="openSidebar(); focusFirstNavLink()"
-      @keydown.space.prevent="openSidebar(); focusFirstNavLink()"
+      @keydown.enter.prevent="
+        openSidebar();
+        focusFirstNavLink();
+      "
+      @keydown.space.prevent="
+        openSidebar();
+        focusFirstNavLink();
+      "
     >
       {{ sidebarCollapsed ? '☰' : '✕' }}
     </button>
@@ -349,7 +355,9 @@ const userName = auth.userName || '未登录';
     left: 0;
     z-index: var(--z-sidebar, 310);
     transform: translateX(0);
-    transition: transform var(--transition-slow), width var(--transition-slow);
+    transition:
+      transform var(--transition-slow),
+      width var(--transition-slow);
   }
 
   .ral-sidebar--collapsed {
@@ -373,7 +381,6 @@ const userName = auth.userName || '未登录';
 }
 
 /* ---- Mobile toggle (media-moved after @640px block, already in cascade) ---- */
-
 </style>
 
 <!-- Global style: hide DefaultLayout's AppNavbar on mobile when ResearchAppLayout is active.

@@ -30,16 +30,11 @@ async function assertNoOverflow(page: Page, label: string, tolerance = 2) {
     if (el) return el.scrollWidth - el.clientWidth;
     return document.documentElement.scrollWidth - document.documentElement.clientWidth;
   });
-  expect(
-    overflow,
-    `Overflow at ${label}: ${overflow}px`,
-  ).toBeLessThanOrEqual(tolerance);
+  expect(overflow, `Overflow at ${label}: ${overflow}px`).toBeLessThanOrEqual(tolerance);
 }
 
 async function getConsoleErrors(page: Page): Promise<Array<string>> {
-  const all: Array<string> = await page.evaluate(() =>
-    (window as any).__consoleErrors || [],
-  );
+  const all: Array<string> = await page.evaluate(() => (window as any).__consoleErrors || []);
   return all.filter((m: string) => !m.includes('localStorage'));
 }
 
@@ -60,19 +55,14 @@ async function login(page: Page) {
   await page.fill('#username', 'researcher');
   await page.fill('#password', 'researcher123');
   await page.click('button.login-btn');
-  await page.waitForURL(
-    (url: URL) => !url.pathname.includes('/login'),
-    { timeout: 15_000 },
-  );
+  await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15_000 });
 }
 
 async function focusInFirst10Tabs(page: Page): Promise<boolean> {
   for (let i = 0; i < 10; i++) {
     await page.keyboard.press('Tab');
     await page.waitForTimeout(80);
-    const tag = await page.evaluate(() =>
-      document.activeElement?.tagName?.toLowerCase() || 'none',
-    );
+    const tag = await page.evaluate(() => document.activeElement?.tagName?.toLowerCase() || 'none');
     if (tag !== 'body' && tag !== 'html' && tag !== 'none') return true;
   }
   return false;
@@ -82,9 +72,7 @@ async function focusInFirst5ShiftTabs(page: Page): Promise<boolean> {
   for (let i = 0; i < 5; i++) {
     await page.keyboard.press('Shift+Tab');
     await page.waitForTimeout(80);
-    const tag = await page.evaluate(() =>
-      document.activeElement?.tagName?.toLowerCase() || 'none',
-    );
+    const tag = await page.evaluate(() => document.activeElement?.tagName?.toLowerCase() || 'none');
     if (tag !== 'body' && tag !== 'html' && tag !== 'none') return true;
   }
   return false;
@@ -108,9 +96,7 @@ async function resolveCompletedRun(request: any): Promise<{ sessionId: string; r
     });
     if (!rResp.ok()) continue;
     const runs: Array<Record<string, unknown>> = (await rResp.json()).data?.runs ?? [];
-    const done = runs.filter(
-      (r) => r.status === 'completed' || r.output_artifacts || r.run_id,
-    );
+    const done = runs.filter((r) => r.status === 'completed' || r.output_artifacts || r.run_id);
     if (done.length > 0) {
       return { sessionId: s.id, runId: (done[0] as { run_id: string }).run_id };
     }
@@ -157,21 +143,27 @@ test.describe('C2-5 Final E2E Regression', () => {
     await page.locator('.pli-name-link').first().click();
     await page.waitForURL(/\/research\/[0-9a-f-]+$/, { timeout: 10_000 });
     const workspaceLink = page.locator('a[href*="/workspace"]').first();
-    await expect(workspaceLink, 'Workspace link must exist on detail page').toBeVisible({ timeout: 5_000 });
+    await expect(workspaceLink, 'Workspace link must exist on detail page').toBeVisible({
+      timeout: 5_000,
+    });
     await workspaceLink.click();
     await page.waitForURL(/\/research\/[0-9a-f-]+\/workspace/, { timeout: 10_000 });
     console.log('[e2e] navigated to workspace');
 
     // Step D: Click "研究流程" → workflow page
     const workflowLink = page.locator('a[href*="/workflow"]').first();
-    await expect(workflowLink, 'Workflow link must exist on workspace page').toBeVisible({ timeout: 5_000 });
+    await expect(workflowLink, 'Workflow link must exist on workspace page').toBeVisible({
+      timeout: 5_000,
+    });
     await workflowLink.click();
     await page.waitForURL(/\/research\/[0-9a-f-]+\/workflow/, { timeout: 10_000 });
     console.log('[e2e] navigated to workflow');
 
     // Step E: Step 1 — fill question, press Enter/Submit to go to Step 2 selection
     await page.waitForSelector('.rqs-form', { state: 'visible', timeout: 10_000 });
-    const questionInput = page.locator('.rqs-form textarea, .rqs-form input[type="text"], .rqs-form input').first();
+    const questionInput = page
+      .locator('.rqs-form textarea, .rqs-form input[type="text"], .rqs-form input')
+      .first();
     await expect(questionInput, 'Question input must be visible').toBeVisible({ timeout: 5_000 });
     const topic = '婴幼儿喘息的中医针灸治疗临床研究';
     await questionInput.fill(topic);
@@ -219,7 +211,9 @@ test.describe('C2-5 Final E2E Regression', () => {
 
       // Step I: Click "查看完整结果"
       const viewResultLink = page.locator('a.rrs-action-btn--primary').first();
-      await expect(viewResultLink, 'View full results link must be visible').toBeVisible({ timeout: 5_000 });
+      await expect(viewResultLink, 'View full results link must be visible').toBeVisible({
+        timeout: 5_000,
+      });
       await viewResultLink.click();
       await page.waitForURL(/\/research\/[0-9a-f-]+\/result\/[0-9a-f-]+/, { timeout: 10_000 });
 
@@ -229,7 +223,10 @@ test.describe('C2-5 Final E2E Regression', () => {
       expect(resultMatch, 'Result URL must contain runId').toBeTruthy();
       console.log(`[e2e] result page: runId=${resultMatch![1]}`);
 
-      const isError = await page.locator('.rpage-error, [data-error-state], .rpage-state--error').count().catch(() => 0);
+      const isError = await page
+        .locator('.rpage-error, [data-error-state], .rpage-state--error')
+        .count()
+        .catch(() => 0);
       expect(isError, 'Result page must not show error state').toBe(0);
     }
 
@@ -238,7 +235,10 @@ test.describe('C2-5 Final E2E Regression', () => {
     for (const e of errors) {
       console.log(`[console error] ${e}`);
     }
-    expect(errors.length, `Expected 0 console errors, got ${errors.length}: ${errors.join(' | ')}`).toBe(0);
+    expect(
+      errors.length,
+      `Expected 0 console errors, got ${errors.length}: ${errors.join(' | ')}`,
+    ).toBe(0);
 
     await browser.close();
   });
@@ -249,13 +249,17 @@ test.describe('C2-5 Final E2E Regression', () => {
 
   test('Workflow: non-existent projectId → fail-closed, 0 errors', async () => {
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);
     await login(page);
 
-    await page.goto(`${BASE}/research/00000000-0000-0000-0000-000000000000/workflow`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}/research/00000000-0000-0000-0000-000000000000/workflow`, {
+      waitUntil: 'networkidle',
+    });
     await page.waitForTimeout(2000);
 
     const hasState = await page
@@ -277,13 +281,18 @@ test.describe('C2-5 Final E2E Regression', () => {
 
   test('Result: non-existent projectId → fail-closed, 0 errors', async () => {
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);
     await login(page);
 
-    await page.goto(`${BASE}/research/00000000-0000-0000-0000-000000000000/result/00000000-0000-0000-0000-000000000000`, { waitUntil: 'networkidle' });
+    await page.goto(
+      `${BASE}/research/00000000-0000-0000-0000-000000000000/result/00000000-0000-0000-0000-000000000000`,
+      { waitUntil: 'networkidle' },
+    );
     await page.waitForTimeout(2000);
 
     const hasState = await page
@@ -303,11 +312,15 @@ test.describe('C2-5 Final E2E Regression', () => {
   // ④ 375×812 viewport — Workflow completed
   // ═══════════════════════════════════════════════════════════════════════
 
-  test('Workflow completed: 375×812 — no overflow, focus visible, 0 errors', async ({ request }) => {
+  test('Workflow completed: 375×812 — no overflow, focus visible, 0 errors', async ({
+    request,
+  }) => {
     const { sessionId } = await resolveCompletedRun(request);
 
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);
@@ -337,7 +350,9 @@ test.describe('C2-5 Final E2E Regression', () => {
     const { sessionId, runId } = await resolveCompletedRun(request);
 
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 375, height: 812 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);
@@ -360,11 +375,15 @@ test.describe('C2-5 Final E2E Regression', () => {
   // ⑥ 200% zoom (640×450) — Workflow completed
   // ═══════════════════════════════════════════════════════════════════════
 
-  test('Workflow completed: 200% zoom (640×450) — no overflow, focus visible, 0 errors', async ({ request }) => {
+  test('Workflow completed: 200% zoom (640×450) — no overflow, focus visible, 0 errors', async ({
+    request,
+  }) => {
     const { sessionId } = await resolveCompletedRun(request);
 
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 640, height: 450 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 640, height: 450 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);
@@ -390,11 +409,15 @@ test.describe('C2-5 Final E2E Regression', () => {
   // ⑦ 200% zoom (640×450) — Result completed
   // ═══════════════════════════════════════════════════════════════════════
 
-  test('Result completed: 200% zoom (640×450) — no overflow, focus visible, 0 errors', async ({ request }) => {
+  test('Result completed: 200% zoom (640×450) — no overflow, focus visible, 0 errors', async ({
+    request,
+  }) => {
     const { sessionId, runId } = await resolveCompletedRun(request);
 
     const browser: Browser = await chromium.launch({ args: ['--no-sandbox'] });
-    const context: BrowserContext = await browser.newContext({ viewport: { width: 640, height: 450 } });
+    const context: BrowserContext = await browser.newContext({
+      viewport: { width: 640, height: 450 },
+    });
     const page: Page = await context.newPage();
 
     await injectErrorCollector(page);

@@ -3,8 +3,7 @@
 
 from __future__ import annotations
 
-import pytest
-from app.schemas.user import UserCreate, UserResponse, LoginRequest, RegisterRequest
+from app.schemas.user import LoginRequest, RegisterRequest, UserCreate
 
 
 class TestLoginRequest:

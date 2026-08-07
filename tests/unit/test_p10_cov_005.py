@@ -6,9 +6,8 @@ Goal: close 117-hit gap to reach >=90% total coverage.
 
 from __future__ import annotations
 
-import os
+from datetime import UTC
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -177,22 +176,22 @@ class TestInstitutionValidators:
     """Cover validate_name (line 117), validate_type."""
 
     def test_validate_name_exceeds_max_length(self) -> None:
-        from app.models.institution import Institution
         from app.core.exceptions import ValidationException
+        from app.models.institution import Institution
         inst = Institution()
         with pytest.raises(ValidationException, match="exceeds maximum length"):
             inst.validate_name("name", "x" * 301)
 
     def test_validate_type_invalid(self) -> None:
-        from app.models.institution import Institution
         from app.core.exceptions import ValidationException
+        from app.models.institution import Institution
         inst = Institution()
         with pytest.raises(ValidationException, match="Invalid institution type"):
             inst.validate_type("type", "invalid_type")
 
     def test_validate_name_none(self) -> None:
-        from app.models.institution import Institution
         from app.core.exceptions import ValidationException
+        from app.models.institution import Institution
         inst = Institution()
         with pytest.raises(ValidationException, match="must not be null"):
             inst.validate_name("name", None)
@@ -242,7 +241,9 @@ class TestEvidenceRagSchemas:
 
     def test_evidence_rag_response_enforce(self) -> None:
         from app.schemas.evidence_rag import (
-            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+            EvidenceBoundChunk,
+            EvidenceCitation,
+            EvidenceRAGResponse,
         )
         chunk = EvidenceBoundChunk(
             document_id="d1", chunk_id="c1", content="content",
@@ -262,7 +263,9 @@ class TestEvidenceRagSchemas:
         """Line 116: refusal=True + non-empty citations raises ValueError."""
         import pytest
         from app.schemas.evidence_rag import (
-            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+            EvidenceBoundChunk,
+            EvidenceCitation,
+            EvidenceRAGResponse,
         )
         chunk = EvidenceBoundChunk(
             document_id="d1", chunk_id="c1", content="content",
@@ -283,7 +286,9 @@ class TestEvidenceRagSchemas:
         """Lines 105+111: refusal=False + no answer triggers contract error."""
         import pytest
         from app.schemas.evidence_rag import (
-            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+            EvidenceBoundChunk,
+            EvidenceCitation,
+            EvidenceRAGResponse,
         )
         chunk = EvidenceBoundChunk(
             document_id="d1", chunk_id="c1", content="content",
@@ -303,7 +308,8 @@ class TestEvidenceRagSchemas:
         """Line 107+111: refusal=False + no citations raises."""
         import pytest
         from app.schemas.evidence_rag import (
-            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+            EvidenceBoundChunk,
+            EvidenceRAGResponse,
         )
         chunk = EvidenceBoundChunk(
             document_id="d1", chunk_id="c1", content="content",
@@ -320,7 +326,8 @@ class TestEvidenceRagSchemas:
         """Line 109+111: refusal=False + no evidence raises."""
         import pytest
         from app.schemas.evidence_rag import (
-            EvidenceBoundChunk, EvidenceCitation, EvidenceRAGResponse,
+            EvidenceCitation,
+            EvidenceRAGResponse,
         )
         citation = EvidenceCitation(
             document_id="d1", chunk_id="c1", citation="[d1:c1]",
@@ -513,7 +520,8 @@ class TestInstitutionRepository:
     @pytest.mark.anyio
     async def test_search_query_calls_search(self) -> None:
         """Line 32: search_query calls self.search with proper fields."""
-        from unittest.mock import AsyncMock, MagicMock, patch
+        from unittest.mock import AsyncMock, MagicMock
+
         from app.repositories.institution import InstitutionRepository
 
         mock_session = AsyncMock()
@@ -535,8 +543,9 @@ class TestBaseRepositoryEdge:
     async def test_list_with_order_by(self) -> None:
         """Line 70: list query with order_by param."""
         from unittest.mock import AsyncMock, MagicMock
-        from app.repositories.base import BaseRepository
+
         from app.models.book import Book
+        from app.repositories.base import BaseRepository
 
         mock_session = AsyncMock()
         mock_session.execute = AsyncMock()
@@ -554,8 +563,9 @@ class TestBaseRepositoryEdge:
     async def test_update_not_found_returns_none(self) -> None:
         """Line 141: update returns None when entity not found."""
         from unittest.mock import AsyncMock, MagicMock
-        from app.repositories.base import BaseRepository
+
         from app.models.book import Book
+        from app.repositories.base import BaseRepository
 
         mock_session = AsyncMock()
         mock_session.execute = AsyncMock()
@@ -607,6 +617,7 @@ class TestInfrastructureCheck:
             side_effect=OSError("connection refused"),
         ):
             import importlib
+
             import app.startup.check_infrastructure as ci
             importlib.reload(ci)
             result = await ci._check_postgres()
@@ -620,6 +631,7 @@ class TestInfrastructureCheck:
 
         with patch("redis.asyncio.from_url", side_effect=OSError("redis down")):
             import importlib
+
             import app.startup.check_infrastructure as ci
             importlib.reload(ci)
             result = await ci._check_redis()
@@ -635,6 +647,7 @@ class TestInfrastructureCheck:
             side_effect=BaseException("crash"),
         ):
             import importlib
+
             import app.startup.check_infrastructure as ci
             importlib.reload(ci)
             status = await ci.run_health_checks()
@@ -651,9 +664,10 @@ class TestAcademicEdgeModel:
     """Cover AcademicEdge ORM model instantiation."""
 
     def test_instantiate_academic_edge(self) -> None:
-        from datetime import datetime, timezone
+        from datetime import datetime
+
         from app.models.academic_edge import AcademicEdge
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         edge = AcademicEdge(
             id="e1",
             source_entity_type="Book",
@@ -738,6 +752,7 @@ class TestTraceLineagePureFunctions:
 
     def test_resolved_trace_to_public_dict(self) -> None:
         from unittest.mock import MagicMock
+
         from app.services.trace_lineage import ResolvedTrace
 
         mock_chunk = MagicMock()
@@ -761,8 +776,8 @@ class TestTraceLineagePureFunctions:
         assert d["document_title"] == "Test Title"
 
     def test_extract_trace_ids(self) -> None:
-        from app.services.trace_lineage import extract_trace_ids
         from app.services.retrieval import RetrievalResult
+        from app.services.trace_lineage import extract_trace_ids
         r1 = RetrievalResult(document_id="d1", chunk_id="c1",
                             document_title="", chunk_index=0, content="",
                             citation="", score=0.5)
@@ -774,8 +789,8 @@ class TestTraceLineagePureFunctions:
         assert len(result) == 2
 
     def test_extract_source_documents(self) -> None:
-        from app.services.trace_lineage import extract_source_documents
         from app.services.retrieval import RetrievalResult
+        from app.services.trace_lineage import extract_source_documents
         r1 = RetrievalResult(document_id="d1", chunk_id="c1",
                             document_title="", chunk_index=0, content="",
                             citation="", score=0.5)

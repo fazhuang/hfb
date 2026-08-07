@@ -36,8 +36,8 @@
           <span
             :class="['hfb-select__chevron', open ? 'hfb-select__chevron--open' : '']"
             aria-hidden="true"
-            ><HfbIcon icon="chevron-down" :size="14" /></span
-          >
+            ><HfbIcon icon="chevron-down" :size="14"
+          /></span>
         </span>
       </button>
       <ul

@@ -5,8 +5,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-from app.schemas.evidence_rag import EvidenceBoundChunk
 from app.services.evidence_rag_service import EvidenceRAGService
 
 

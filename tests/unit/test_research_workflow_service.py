@@ -15,11 +15,9 @@ from dataclasses import dataclass
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from app.services.trace_lineage import InternalTraceRecord, make_trace_id
-
 import pytest
-
 from app.services.research_workflow_service import (
+    ResearchWorkflowService,
     _build_canonical_payload,
     _build_corpus_payload,
     _build_input_payload,
@@ -29,13 +27,12 @@ from app.services.research_workflow_service import (
     _pack_academic_step,
     _snapshot_to_evidence_list,
     _step_to_record,
-    ResearchWorkflowService,
     canonical_json_bytes,
     canonical_sha256,
     canonicalize_trace,
     canonicalize_traces,
 )
-
+from app.services.trace_lineage import InternalTraceRecord, make_trace_id
 
 # =============================================================================
 # Helpers
@@ -367,7 +364,7 @@ class TestCanonicalJsonBytes:
     def test_utf8_content(self):
         payload = {"text": "经络"}
         b = canonical_json_bytes(payload)
-        assert "经络".encode("utf-8") in b
+        assert "经络".encode() in b
 
     def test_nested_structure(self):
         payload = {"outer": {"inner": [3, 1, 2], "z": 0, "a": 1}}

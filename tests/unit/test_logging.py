@@ -7,7 +7,6 @@ import json
 import logging
 import sys
 
-import pytest
 from app.core.logging import ConsoleFormatter, JSONFormatter, configure_logging
 
 

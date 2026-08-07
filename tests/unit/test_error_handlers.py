@@ -17,9 +17,7 @@ from app.core.error_handlers import (
 from app.core.exceptions import DomainException
 from app.core.status_machine import InvalidStatusTransitionError
 from fastapi import Request
-from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
 
 # --- Pure functions (no async dependency) ---
 
@@ -98,7 +96,7 @@ class TestHandlers:
         scope = {"type": "http", "method": "POST", "path": "/"}
         request = Request(scope)
         from fastapi.exceptions import RequestValidationError
-        from pydantic import BaseModel, ValidationError
+        from pydantic import BaseModel
 
         # Build a minimal validation error
         class TestModel(BaseModel):

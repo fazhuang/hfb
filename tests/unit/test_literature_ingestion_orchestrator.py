@@ -11,8 +11,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from sqlalchemy.exc import SQLAlchemyError
-
 
 # =============================================================================
 # Helpers
@@ -309,7 +307,7 @@ class TestResultAggregation:
                 mock_filter.return_value = [_make_item("Only One", "mock", "https://x.com")]
                 with patch("app.services.literature_ingestion.orchestrator._save_items",
                            new_callable=AsyncMock):
-                    jobs = await ingest(
+                    await ingest(
                         mock_session,
                         queries=["test"],
                         sources=["mock"],
@@ -324,7 +322,6 @@ class TestResultAggregation:
     async def test_save_items_preserved_count(self):
         """After successful save, job records new_added and total_found."""
         from app.services.literature_ingestion.orchestrator import ingest
-        from app.services.literature_ingestion import IngestionJob
 
         mock_session = AsyncMock()
 
@@ -344,7 +341,7 @@ class TestResultAggregation:
                     _make_item("Item 2", "mock", "https://x.com/2"),
                 ]
                 with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock) as mock_save:
+                           new_callable=AsyncMock):
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],
@@ -380,7 +377,7 @@ class TestPageLevelErrorHandling:
                        new_callable=AsyncMock) as mock_filter:
                 mock_filter.return_value = [_make_item("Page1", "mock", "https://x.com/p1")]
                 with patch("app.services.literature_ingestion.orchestrator._save_items",
-                           new_callable=AsyncMock) as mock_save:
+                           new_callable=AsyncMock):
                     jobs = await ingest(
                         mock_session,
                         queries=["test"],

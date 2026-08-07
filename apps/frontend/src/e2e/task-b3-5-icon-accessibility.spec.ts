@@ -20,7 +20,10 @@ const FIXTURE = 'http://127.0.0.1:5173/src/e2e/fixtures/b3-5-icon-fixture.html';
 test.describe('B3-5 HfbIcon — Raw Icon Rendering', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="icon-decorative"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="icon-decorative"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('decorative icon has role="img" and aria-hidden="true"', async ({ page }) => {
@@ -61,7 +64,10 @@ test.describe('B3-5 HfbIcon — Raw Icon Rendering', () => {
 test.describe('B3-5 Icon-Only Button — ARIA Contract', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="icon-button"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="icon-button"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('button has aria-label "Close dialog"', async ({ page }) => {
@@ -82,7 +88,10 @@ test.describe('B3-5 Icon-Only Button — ARIA Contract', () => {
 test.describe('B3-5 Converted Components — SVG Icons', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="alert-error-svg"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="alert-error-svg"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('HfbAlert error variant shows SVG icon (not unicode ✕)', async ({ page }) => {

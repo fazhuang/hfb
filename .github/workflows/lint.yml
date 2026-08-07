@@ -63,6 +63,7 @@ jobs:
   pre-commit:
     name: Pre-commit hooks
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

@@ -27,7 +27,12 @@ const API = 'http://127.0.0.1:8000';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Shared API login helper — fetches a fresh JWT for direct API tests and inspection. */
-async function apiToken(request: { post: (url: string, opts: Record<string, unknown>) => Promise<{ ok: () => boolean; json: () => Promise<{ data: { access_token: string } }> }> }) {
+async function apiToken(request: {
+  post: (
+    url: string,
+    opts: Record<string, unknown>,
+  ) => Promise<{ ok: () => boolean; json: () => Promise<{ data: { access_token: string } }> }>;
+}) {
   const resp = await request.post(`${API}/api/v1/auth/login`, {
     data: { username: 'researcher', password: 'researcher123' },
   });
@@ -41,7 +46,6 @@ async function apiToken(request: { post: (url: string, opts: Record<string, unkn
 // ═══════════════════════════════════════════════════════════════════════════════
 
 test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
-
   // ── V01: Real UI login ────────────────────────────────────────────────────
 
   test('C1-1-V01: real UI login lands on authenticated page', async ({ page }) => {
@@ -89,15 +93,15 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
 
     // A real report list or one of the state indicators must be present
     // (loading, empty, or list — exactly one must be visible)
-    const anyContent = page.locator(
-      '.rrl-list, .loading-state, .empty-state, [role="alert"]',
-    );
+    const anyContent = page.locator('.rrl-list, .loading-state, .empty-state, [role="alert"]');
     await expect(anyContent.first()).toBeVisible({ timeout: 10_000 });
   });
 
   // ── V03: API contract — page/limit via direct API ────────────────────────
 
-  test('C1-1-V03: GET /api/v4/research/reports returns page/limit contract via direct API', async ({ request }) => {
+  test('C1-1-V03: GET /api/v4/research/reports returns page/limit contract via direct API', async ({
+    request,
+  }) => {
     const token = await apiToken(request);
 
     const resp = await request.get(`${API}/api/v4/research/reports`, {
@@ -155,7 +159,9 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
 
   // ── V05: Search input filters displayed items in browser ─────────────────
 
-  test('C1-1-V05: search input filters displayed items in browser with real list', async ({ page }) => {
+  test('C1-1-V05: search input filters displayed items in browser with real list', async ({
+    page,
+  }) => {
     // Login
     await page.goto('/login');
     await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
@@ -367,7 +373,9 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
 
   // ── V10: Report list item renders title, topic, status badges, view link ──
 
-  test('C1-1-V10: report list items render title, topic, badges, and view link', async ({ page }) => {
+  test('C1-1-V10: report list items render title, topic, badges, and view link', async ({
+    page,
+  }) => {
     // Login
     await page.goto('/login');
     await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });
@@ -414,7 +422,9 @@ test.describe('C1-1 — HfbToolbar / Reports browser evidence', () => {
 
   // ── V11: Status filter via real browser — select "报告失败" → empty state ─
 
-  test('C1-1-V11: status filter "报告失败" returns empty state then recover via clear-all', async ({ page }) => {
+  test('C1-1-V11: status filter "报告失败" returns empty state then recover via clear-all', async ({
+    page,
+  }) => {
     // Login
     await page.goto('/login');
     await page.waitForSelector('#username', { state: 'visible', timeout: 10_000 });

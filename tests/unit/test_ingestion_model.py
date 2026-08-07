@@ -3,16 +3,15 @@
 
 from __future__ import annotations
 
-import pytest
 from app.services.ingestion import (
-    IngestionResult,
-    AppendResult,
-    IngestionError,
-    PDFExtractionError,
-    FulltextRejectedError,
-    _ALLOWED_METADATA_KEYS,
     _ALLOWED_COPYRIGHT_STATUSES,
+    _ALLOWED_METADATA_KEYS,
     _FORBIDDEN_COPYRIGHT_STATUSES,
+    AppendResult,
+    FulltextRejectedError,
+    IngestionError,
+    IngestionResult,
+    PDFExtractionError,
 )
 
 

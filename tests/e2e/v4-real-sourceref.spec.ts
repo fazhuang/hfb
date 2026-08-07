@@ -36,7 +36,11 @@ async function login(page: any) {
 
 async function navigateToKnownResult(page: any) {
   // Click "开始研究" nav link from authenticated page
-  await page.locator('a.nav-link').filter({ hasText: /开始研究|课题|Research/i }).first().click();
+  await page
+    .locator('a.nav-link')
+    .filter({ hasText: /开始研究|课题|Research/i })
+    .first()
+    .click();
   await page.waitForTimeout(2000);
 
   // Click first project in the list
@@ -46,13 +50,19 @@ async function navigateToKnownResult(page: any) {
   await page.waitForTimeout(2000);
 
   // Click workspace/reports tab in project detail
-  const reportsTab = page.locator('.rw-tab').filter({ hasText: /报告|report|📊/i }).first();
+  const reportsTab = page
+    .locator('.rw-tab')
+    .filter({ hasText: /报告|report|📊/i })
+    .first();
   if (await reportsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
     await reportsTab.click();
     await page.waitForTimeout(3000);
   } else {
     // Maybe workspace page — try v4-research tab
-    const v4Tab = page.locator('.rw-tab').filter({ hasText: /V4|v4|研究|🧬/ }).first();
+    const v4Tab = page
+      .locator('.rw-tab')
+      .filter({ hasText: /V4|v4|研究|🧬/ })
+      .first();
     if (await v4Tab.isVisible({ timeout: 3000 }).catch(() => false)) {
       await v4Tab.click();
       await page.waitForTimeout(3000);
@@ -72,7 +82,11 @@ async function navigateToKnownResult(page: any) {
     await page.goto('/');
     await page.waitForTimeout(1000);
     // Navigate via UI to research list
-    await page.locator('a.nav-link').filter({ hasText: /开始研究|课题|Research/i }).first().click();
+    await page
+      .locator('a.nav-link')
+      .filter({ hasText: /开始研究|课题|Research/i })
+      .first()
+      .click();
     await page.waitForTimeout(2000);
   }
 }
@@ -80,8 +94,9 @@ async function navigateToKnownResult(page: any) {
 // ─── Suite ─────────────────────────────────────────────────────────────
 
 test.describe('V4 Real SourceRef — Browser Closure', () => {
-
-  test('V4-SR01: login → navigate to known result → Citation → Evidence → SourceRef real IDs, 0 null', async ({ page }) => {
+  test('V4-SR01: login → navigate to known result → Citation → Evidence → SourceRef real IDs, 0 null', async ({
+    page,
+  }) => {
     test.setTimeout(120_000);
 
     await login(page);
@@ -130,7 +145,12 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
     // Final: click a citation marker on report text → verify evidence popup
     const citationMarkers = page.locator('.rrv-citation-marker');
-    if (await citationMarkers.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (
+      await citationMarkers
+        .first()
+        .isVisible({ timeout: 5000 })
+        .catch(() => false)
+    ) {
       await citationMarkers.first().click();
       await page.waitForTimeout(1000);
 
@@ -142,7 +162,9 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
     }
   });
 
-  test('V4-SR02: SourceRef reader link navigates to real document page with correct passage', async ({ page }) => {
+  test('V4-SR02: SourceRef reader link navigates to real document page with correct passage', async ({
+    page,
+  }) => {
     test.setTimeout(60_000);
 
     await login(page);
@@ -195,7 +217,9 @@ test.describe('V4 Real SourceRef — Browser Closure', () => {
 
       for (let j = 0; j < cardCount; j++) {
         const cardText = (await srcCards.nth(j).textContent()) || '';
-        expect(cardText, `Citation ${i}, SourceRef card ${j}: pseudo document: ID`).not.toContain('document:');
+        expect(cardText, `Citation ${i}, SourceRef card ${j}: pseudo document: ID`).not.toContain(
+          'document:',
+        );
       }
     }
   });

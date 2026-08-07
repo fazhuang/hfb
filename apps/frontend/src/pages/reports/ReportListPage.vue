@@ -9,10 +9,7 @@
 
     <div class="rp-body">
       <!-- Toolbar — C1-1 unified HfbToolbar -->
-      <form
-        class="rp-toolbar-form"
-        @submit.prevent="toolbarRef?.handleEnter()"
-      >
+      <form class="rp-toolbar-form" @submit.prevent="toolbarRef?.handleEnter()">
         <HfbToolbar
           ref="toolbarRef"
           :searchable="true"
@@ -28,11 +25,7 @@
       </form>
 
       <!-- Main content region -->
-      <div
-        class="rp-content"
-        aria-live="polite"
-        :aria-busy="loading"
-      >
+      <div class="rp-content" aria-live="polite" :aria-busy="loading">
         <!-- Loading -->
         <LoadingState v-if="loading" message="正在加载报告..." />
 
@@ -107,10 +100,7 @@
  * ref: docs/20-product/2010-project-list-migration.md
  */
 import { ref, computed, onMounted } from 'vue';
-import {
-  useResearchReports,
-  REPORT_TOOLBAR_FILTERS,
-} from '@/composables/useResearchReports';
+import { useResearchReports, REPORT_TOOLBAR_FILTERS } from '@/composables/useResearchReports';
 import type { ReportItem } from '@/composables/useResearchReports';
 import type { ToolbarFilterValues } from '@/types/toolbar';
 

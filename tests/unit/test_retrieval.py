@@ -1,16 +1,13 @@
 """Unit tests for RetrievalService — edge cases in search, tokenization, and scoring."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from app.services.retrieval import (
-    RetrievalResult,
     RetrievalService,
     _expand_variants,
 )
 from app.services.retrieval import SearchResponse as RetrievalSearchResponse
-
 
 # ---------------------------------------------------------------------------
 # RetrievalService.search — edge cases

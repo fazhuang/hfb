@@ -4,7 +4,14 @@ import hashlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
+from app.schemas.academic_rag import (
+    AcademicCitation,
+    AcademicKGEdge,
+    AcademicKGNode,
+    AcademicKGPath,
+    AcademicRAGResponse,
+)
+from app.schemas.graph import GraphEdge, GraphEvidence, GraphNode, NeighborResult
 from app.services.academic_rag_service import (
     AcademicRAGService,
     _expand_classical_variants,
@@ -16,16 +23,6 @@ from app.services.academic_rag_service import (
     _make_stable_id,
     parse_chinese_query,
 )
-from app.schemas.academic_rag import (
-    AcademicCitation,
-    AcademicEvidenceLink,
-    AcademicKGEdge,
-    AcademicKGNode,
-    AcademicKGPath,
-    AcademicRAGResponse,
-)
-from app.schemas.graph import GraphEdge, GraphEvidence, GraphNode, NeighborResult
-
 
 # ============================================================
 # _extract_keywords
@@ -1213,7 +1210,7 @@ async def test_compute_corpus_sha256_no_chunks(rag_svc):
     rag_svc.session.execute = AsyncMock(return_value=mock_result)
     result = await rag_svc._compute_corpus_sha256()
     assert len(result) == 64
-    assert result == hashlib.sha256("".encode()).hexdigest()
+    assert result == hashlib.sha256(b"").hexdigest()
 
 
 # ============================================================
