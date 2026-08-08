@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 from app.schemas.generation import GroundedGenerationResponse
 from app.services.generation_proof import (
@@ -492,3 +494,63 @@ class TestSnapshotToDicts:
 
         with pytest.raises(ValueError, match="retrieval_method"):
             _snapshot_to_dicts({"c1": BadResult()})
+
+    def test_non_number_score_raises(self) -> None:
+        """Score that is not int or float raises ValueError."""
+        class BadResult:
+            score = "not-a-number"
+            document_id = "d1"
+            content = "test"
+            metadata = {"retrieval_method": "keyword"}
+
+        with pytest.raises(ValueError, match="not a number"):
+            _snapshot_to_dicts({"c1": BadResult()})
+
+
+# =============================================================================
+# _canonical_to_verified — pure mapping
+# =============================================================================
+
+
+class TestCanonicalToVerified:
+    def test_quote_ends_with_punctuation_stays_unchanged(self) -> None:
+        """Quote ending with 。stays as-is, no extra 。appended."""
+        from app.services.generation_proof import _canonical_to_verified
+
+        cc = MagicMock()
+        cc.quote = "针灸治疗哮喘。"
+        cc.document_id = "d1"
+        cc.chunk_id = "c1"
+        cc.citation = "cite1"
+        cc.chunk_rank = 1
+        cc.quote_norm = "针灸治疗哮喘"
+        result = _canonical_to_verified(cc)
+        assert result.claim_text == "针灸治疗哮喘。"
+
+    def test_quote_without_punctuation_appends_period(self) -> None:
+        """Quote ending without punctuation gets 。appended."""
+        from app.services.generation_proof import _canonical_to_verified
+
+        cc = MagicMock()
+        cc.quote = "针灸治疗哮喘"
+        cc.document_id = "d1"
+        cc.chunk_id = "c1"
+        cc.citation = "cite1"
+        cc.chunk_rank = 1
+        cc.quote_norm = "针灸治疗哮喘"
+        result = _canonical_to_verified(cc)
+        assert result.claim_text == "针灸治疗哮喘。"
+
+    def test_empty_quote_returns_empty(self) -> None:
+        """Empty quote stays empty — no modification."""
+        from app.services.generation_proof import _canonical_to_verified
+
+        cc = MagicMock()
+        cc.quote = ""
+        cc.document_id = "d1"
+        cc.chunk_id = "c1"
+        cc.citation = "cite1"
+        cc.chunk_rank = 1
+        cc.quote_norm = ""
+        result = _canonical_to_verified(cc)
+        assert result.claim_text == ""
