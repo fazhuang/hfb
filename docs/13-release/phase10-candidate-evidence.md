@@ -3,7 +3,7 @@
 ## Git 基线
 
 - **Candidate Baseline SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`
-- **发布门禁基准 SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`（CI 4/4 全绿门禁，Docs workflow skipped — no docs/** changes）
+- **发布门禁基准 SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`（CI 4/4 全绿门禁，Docs workflow skipped — no docs/\*\* changes）
 - **`git status --short`:** Clean worktree — zero uncommitted changes.
 - **CI 全绿批次:** 4/4 workflows all passing on `master` (SHA `8c8fefc`)
 
@@ -38,4 +38,4 @@
 | Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624562 |
 | Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624580 |
 | Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624594 |
-| Documentation | ⏭ skipped | (no docs/** changes on this SHA)                         |
+| Documentation | ⏭ skipped | (no docs/\*\* changes on this SHA)                       |
