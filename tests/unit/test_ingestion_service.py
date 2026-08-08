@@ -11,16 +11,10 @@ Targets uncovered lines from coverage analysis:
 
 from __future__ import annotations
 
-import hashlib
 import io
-import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pypdf.errors import PdfReadError
-from sqlalchemy import select, text
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.models.academic_evidence import SourceRef
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -32,9 +26,10 @@ from app.services.ingestion import (
     IngestionService,
     PDFExtractionError,
 )
+from pypdf.errors import PdfReadError
+from sqlalchemy import select, text
 
 from tests.conftest_db import db_session  # noqa: F401
-
 
 _COMPLIANCE = {
     "copyright_status": "public_domain",
@@ -75,8 +70,11 @@ def _simple_pdf_bytes() -> bytes:
 
 async def _create_doc(session, **kwargs) -> Document:
     """Shortcut to create a Document directly in the test DB."""
-    defaults = {"title": "Test Doc", "copyright_status": "public_domain",
-                 "authorization_basis": "test"}
+    defaults = {
+        "title": "Test Doc",
+        "copyright_status": "public_domain",
+        "authorization_basis": "test",
+    }
     defaults.update(kwargs)
     doc = Document(**defaults)
     session.add(doc)
@@ -100,7 +98,9 @@ class TestComputeChecksum:
         assert len(c1) == 64
 
     def test_different_text_different_hash(self) -> None:
-        assert IngestionService._compute_checksum("A") != IngestionService._compute_checksum("B")
+        assert IngestionService._compute_checksum(
+            "A"
+        ) != IngestionService._compute_checksum("B")
 
 
 class TestIsFulltextAllowed:
@@ -118,12 +118,19 @@ class TestIsFulltextAllowed:
         assert "copyright_status" in reason
 
     def test_empty_copyright_status_rejected(self) -> None:
-        allowed, reason = IngestionService._is_fulltext_allowed({"copyright_status": ""})
+        allowed, reason = IngestionService._is_fulltext_allowed(
+            {"copyright_status": ""}
+        )
         assert allowed is False
 
     def test_forbidden_status_rejected(self) -> None:
-        for status in ("unknown", "metadata_only", "forbidden_fulltext",
-                       "commercial_restricted", "pirated"):
+        for status in (
+            "unknown",
+            "metadata_only",
+            "forbidden_fulltext",
+            "commercial_restricted",
+            "pirated",
+        ):
             allowed, reason = IngestionService._is_fulltext_allowed(
                 {"copyright_status": status}
             )
@@ -147,8 +154,10 @@ class TestIsFulltextAllowed:
 
     def test_allowed_with_auth_basis(self) -> None:
         allowed, reason = IngestionService._is_fulltext_allowed(
-            {"copyright_status": "public_domain",
-             "authorization_basis": "expired copyright"}
+            {
+                "copyright_status": "public_domain",
+                "authorization_basis": "expired copyright",
+            }
         )
         assert allowed is True
         assert reason == ""
@@ -170,10 +179,16 @@ class TestIsMetadataOnly:
         assert IngestionService._is_metadata_only(None) is True
 
     def test_metadata_only_status(self) -> None:
-        assert IngestionService._is_metadata_only({"copyright_status": "metadata_only"}) is True
+        assert (
+            IngestionService._is_metadata_only({"copyright_status": "metadata_only"})
+            is True
+        )
 
     def test_non_metadata_only(self) -> None:
-        assert IngestionService._is_metadata_only({"copyright_status": "public_domain"}) is False
+        assert (
+            IngestionService._is_metadata_only({"copyright_status": "public_domain"})
+            is False
+        )
 
     def test_empty_metadata_defaults_to_metadata_only(self) -> None:
         """Empty metadata → copyright_status '' → 'metadata_only' check fails → False."""
@@ -188,24 +203,36 @@ class TestIsForbiddenFulltext:
         assert IngestionService._is_forbidden_fulltext(None) is False
 
     def test_copyright_status_forbidden_fulltext(self) -> None:
-        assert IngestionService._is_forbidden_fulltext(
-            {"copyright_status": "forbidden_fulltext"}
-        ) is True
+        assert (
+            IngestionService._is_forbidden_fulltext(
+                {"copyright_status": "forbidden_fulltext"}
+            )
+            is True
+        )
 
     def test_forbidden_fulltext_bool_true(self) -> None:
-        assert IngestionService._is_forbidden_fulltext(
-            {"copyright_status": "unknown", "forbidden_fulltext": True}
-        ) is True
+        assert (
+            IngestionService._is_forbidden_fulltext(
+                {"copyright_status": "unknown", "forbidden_fulltext": True}
+            )
+            is True
+        )
 
     def test_forbidden_fulltext_string_true(self) -> None:
-        assert IngestionService._is_forbidden_fulltext(
-            {"copyright_status": "unknown", "forbidden_fulltext": "true"}
-        ) is True
+        assert (
+            IngestionService._is_forbidden_fulltext(
+                {"copyright_status": "unknown", "forbidden_fulltext": "true"}
+            )
+            is True
+        )
 
     def test_forbidden_fulltext_boolean_false(self) -> None:
-        assert IngestionService._is_forbidden_fulltext(
-            {"copyright_status": "unknown", "forbidden_fulltext": False}
-        ) is False
+        assert (
+            IngestionService._is_forbidden_fulltext(
+                {"copyright_status": "unknown", "forbidden_fulltext": False}
+            )
+            is False
+        )
 
 
 # ============================================================
@@ -301,10 +328,13 @@ class TestOcrPdfPages:
         mock_pdf2image = MagicMock()
         mock_pdf2image.convert_from_bytes.return_value = [MagicMock(), MagicMock()]
 
-        with patch.dict("sys.modules", {
-            "pytesseract": mock_pytesseract,
-            "pdf2image": mock_pdf2image,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "pytesseract": mock_pytesseract,
+                "pdf2image": mock_pdf2image,
+            },
+        ):
             result = IngestionService._ocr_pdf_pages(
                 b"fake pdf bytes", [1, 2], lang="chi_sim", dpi=200
             )
@@ -323,12 +353,17 @@ class TestOcrPdfPages:
         mock_pdf2image = MagicMock()
         mock_pdf2image.convert_from_bytes.return_value = [mock_img1, mock_img2]
 
-        with patch.dict("sys.modules", {
-            "pytesseract": mock_pytesseract,
-            "pdf2image": mock_pdf2image,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "pytesseract": mock_pytesseract,
+                "pdf2image": mock_pdf2image,
+            },
+        ):
             result = IngestionService._ocr_pdf_pages(
-                b"fake pdf", [2], lang="eng"  # Only page 2
+                b"fake pdf",
+                [2],
+                lang="eng",  # Only page 2
             )
             # Page 1 is index 0 in the images list → not in page_numbers → skipped
             # Page 2 is index 1 → in page_numbers → OCR'd
@@ -343,18 +378,24 @@ class TestOcrPdfPages:
         mock_pdf2image = MagicMock()
         mock_pdf2image.convert_from_bytes.return_value = [MagicMock()]
 
-        with patch.dict("sys.modules", {
-            "pytesseract": mock_pytesseract,
-            "pdf2image": mock_pdf2image,
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "pytesseract": mock_pytesseract,
+                "pdf2image": mock_pdf2image,
+            },
+        ):
             result = IngestionService._ocr_pdf_pages(b"fake", [1])
             assert result == {}  # Page extracted blank → omitted
 
     def test_ocr_import_error_raises(self) -> None:
         """Line 1274-1276: ImportError → PDFExtractionError."""
-        with patch.dict("sys.modules", {
-            "pytesseract": None,  # Not importable
-        }):
+        with patch.dict(
+            "sys.modules",
+            {
+                "pytesseract": None,  # Not importable
+            },
+        ):
             with pytest.raises(PDFExtractionError, match="OCR requires"):
                 IngestionService._ocr_pdf_pages(b"fake", [1])
 
@@ -379,8 +420,10 @@ class TestEnsureSourceRef:
         """Lines 1127-1128: urlparse raises ValueError → norm_url = raw."""
         with patch("urllib.parse.urlparse", side_effect=ValueError("bad url")):
             result = await IngestionService._ensure_source_ref(
-                db_session, title="Test", url="http://bad:url",
-                page_location="passage:1"
+                db_session,
+                title="Test",
+                url="http://bad:url",
+                page_location="passage:1",
             )
         assert result is not None
         # Verify the SourceRef was created with the raw URL
@@ -393,23 +436,29 @@ class TestEnsureSourceRef:
     async def test_url_and_loc_existing_returns_existing(self, db_session) -> None:
         """Line 1146: existing URL + loc SourceRef found → return its id."""
         existing = SourceRef(
-            title="Existing Doc", author="Author",
-            page_location="passage:42", url="http://example.com/doc"
+            title="Existing Doc",
+            author="Author",
+            page_location="passage:42",
+            url="http://example.com/doc",
         )
         db_session.add(existing)
         await db_session.flush()
 
         result = await IngestionService._ensure_source_ref(
-            db_session, title="Existing Doc", url="http://example.com/doc",
-            page_location="passage:42"
+            db_session,
+            title="Existing Doc",
+            url="http://example.com/doc",
+            page_location="passage:42",
         )
         assert result == existing.id
 
     async def test_url_and_loc_new_creates_source_ref(self, db_session) -> None:
         """URL + loc, no existing → create new SourceRef."""
         result = await IngestionService._ensure_source_ref(
-            db_session, title="New Doc", url="http://example.com/new",
-            page_location="passage:99"
+            db_session,
+            title="New Doc",
+            url="http://example.com/new",
+            page_location="passage:99",
         )
         assert result is not None
         stmt = select(SourceRef).where(SourceRef.id == result)
@@ -422,7 +471,8 @@ class TestEnsureSourceRef:
         """Lines 1162-1185: URL-only identity → create new SourceRef when
         no existing match found."""
         result = await IngestionService._ensure_source_ref(
-            db_session, title="URL Only Doc",
+            db_session,
+            title="URL Only Doc",
             url="http://example.com/url-only",
             page_location="",  # empty → falls to URL-only branch
         )
@@ -436,15 +486,19 @@ class TestEnsureSourceRef:
     async def test_url_only_existing_returns_existing(self, db_session) -> None:
         """URL-only identity, existing found → return its id (line 1171 path)."""
         existing = SourceRef(
-            title="Old Title", url="http://example.com/dedup",
-            page_location="", author=""
+            title="Old Title",
+            url="http://example.com/dedup",
+            page_location="",
+            author="",
         )
         db_session.add(existing)
         await db_session.flush()
 
         result = await IngestionService._ensure_source_ref(
-            db_session, title="Old Title", url="http://example.com/dedup",
-            page_location=""
+            db_session,
+            title="Old Title",
+            url="http://example.com/dedup",
+            page_location="",
         )
         assert result == existing.id
 
@@ -498,12 +552,16 @@ class TestStoreChunks:
         await svc._store_chunks(doc.id, ["plain chunk A", "plain chunk B"])
         await db_session.flush()
 
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == doc.id)
-            .where(DocumentChunk.is_deleted.is_(False))
-            .order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc.id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         assert len(chunks) == 2
         # para_idx=-1 falls back to idx in _store_chunks: "para_idx if para_idx >= 0 else idx"
         assert chunks[0].paragraph_index == 0
@@ -518,12 +576,16 @@ class TestStoreChunks:
         await svc._store_chunks(doc.id, [("First para", 0), ("Second para", 3)])
         await db_session.flush()
 
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == doc.id)
-            .where(DocumentChunk.is_deleted.is_(False))
-            .order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc.id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         assert chunks[0].paragraph_index == 0
         assert chunks[1].paragraph_index == 3
 
@@ -534,9 +596,11 @@ class TestStoreChunks:
         await svc._store_chunks(doc.id, [("OCR text", 0)], ocr_confidence=0.5)
         await db_session.flush()
 
-        chunk = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
-        )).scalar_one()
+        chunk = (
+            await db_session.execute(
+                select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
+            )
+        ).scalar_one()
         assert chunk.evidence_weight == "reference"
         assert chunk.ocr_confidence == 0.5
 
@@ -547,9 +611,11 @@ class TestStoreChunks:
         await svc._store_chunks(doc.id, [("text", 0)], ocr_confidence=0.85)
         await db_session.flush()
 
-        chunk = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
-        )).scalar_one()
+        chunk = (
+            await db_session.execute(
+                select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
+            )
+        ).scalar_one()
         assert chunk.evidence_weight == "primary"
 
     async def test_per_chunk_page_numbers(self, db_session) -> None:
@@ -563,12 +629,16 @@ class TestStoreChunks:
         )
         await db_session.flush()
 
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == doc.id)
-            .where(DocumentChunk.is_deleted.is_(False))
-            .order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc.id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         assert len(chunks) == 3
         assert chunks[0].page_number == 10
         assert chunks[1].page_number == 20
@@ -586,12 +656,16 @@ class TestStoreChunks:
         )
         await db_session.flush()
 
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == doc.id)
-            .where(DocumentChunk.is_deleted.is_(False))
-            .order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc.id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         assert chunks[0].page_number == 11  # from page_numbers
         assert chunks[1].page_number == 99  # fallback to page_number
         assert chunks[2].page_number == 99  # fallback to page_number
@@ -608,23 +682,25 @@ class TestStoreChunks:
         )
         await db_session.flush()
 
-        chunk = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
-        )).scalar_one()
+        chunk = (
+            await db_session.execute(
+                select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
+            )
+        ).scalar_one()
         assert chunk.page_number == 42  # None → fallback to page_number
 
     async def test_passage_id_assigned_to_chunks(self, db_session) -> None:
         """Passage ID is propagated to chunks."""
         svc = IngestionService(db_session)
         doc = await _create_doc(db_session, title="Passage Doc")
-        await svc._store_chunks(
-            doc.id, [("passage text", 0)], passage_id="pass-test-1"
-        )
+        await svc._store_chunks(doc.id, [("passage text", 0)], passage_id="pass-test-1")
         await db_session.flush()
 
-        chunk = (await db_session.execute(
-            select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
-        )).scalar_one()
+        chunk = (
+            await db_session.execute(
+                select(DocumentChunk).where(DocumentChunk.document_id == doc.id)
+            )
+        ).scalar_one()
         assert chunk.passage_id == "pass-test-1"
 
 
@@ -642,8 +718,10 @@ class TestIngestTextEdgeCases:
         svc = IngestionService(db_session)
         with pytest.raises(ValueError, match="passage_id must be non-empty"):
             await svc.ingest_text(
-                title="Test", text="Some content",
-                metadata=_COMPLIANCE, passage_id="   ",
+                title="Test",
+                text="Some content",
+                metadata=_COMPLIANCE,
+                passage_id="   ",
             )
 
     async def test_nonexistent_passage_id_raises(self, db_session) -> None:
@@ -652,16 +730,20 @@ class TestIngestTextEdgeCases:
         nonexistent = "00000000-0000-0000-0000-000000000099"
         with pytest.raises(ValueError, match="not found or deleted"):
             await svc.ingest_text(
-                title="Test", text="Some content",
-                metadata=_COMPLIANCE, passage_id=nonexistent,
+                title="Test",
+                text="Some content",
+                metadata=_COMPLIANCE,
+                passage_id=nonexistent,
             )
 
     async def test_valid_passage_id_proceeds(self, db_session) -> None:
         """pass-test-1 exists in conftest_db seed → ingestion succeeds."""
         svc = IngestionService(db_session)
         result = await svc.ingest_text(
-            title="Passage Test", text="Valid passage content.",
-            metadata=_COMPLIANCE, passage_id="pass-test-1",
+            title="Passage Test",
+            text="Valid passage content.",
+            metadata=_COMPLIANCE,
+            passage_id="pass-test-1",
         )
         assert result.chunk_count > 0
 
@@ -669,7 +751,8 @@ class TestIngestTextEdgeCases:
         """Lines 364-368, 366: allowed metadata keys copied from meta to doc_data."""
         svc = IngestionService(db_session)
         result = await svc.ingest_text(
-            title="Meta Copy Test", text="Content here.",
+            title="Meta Copy Test",
+            text="Content here.",
             metadata={
                 "dynasty": "Tang",
                 "category": "acupuncture",
@@ -679,9 +762,11 @@ class TestIngestTextEdgeCases:
                 **{k: v for k, v in _COMPLIANCE.items()},  # compliance fields
             },
         )
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.dynasty == "Tang"
         assert doc.category == "acupuncture"
         assert doc.source_url == "http://example.com/source"
@@ -692,7 +777,8 @@ class TestIngestTextEdgeCases:
         """Keys not in _ALLOWED_METADATA_KEYS are excluded from doc_data."""
         svc = IngestionService(db_session)
         result = await svc.ingest_text(
-            title="Filtered Meta", text="Content.",
+            title="Filtered Meta",
+            text="Content.",
             metadata={
                 "copyright_status": "public_domain",
                 "authorization_basis": "pd",
@@ -701,9 +787,11 @@ class TestIngestTextEdgeCases:
                 "dynasty": "Han",  # whitelisted
             },
         )
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         # is_deleted / deleted_at should NOT be set (default False / None)
         assert doc.is_deleted is False
         assert doc.deleted_at is None
@@ -716,7 +804,8 @@ class TestIngestTextEdgeCases:
         with patch("app.services.ingestion.chunk_text") as mock_chunk:
             mock_chunk.return_value = ["Chunk one", "Chunk two"]
             result = await svc.ingest_text(
-                title="Compat Test", text="Some text.",
+                title="Compat Test",
+                text="Some text.",
                 metadata=_COMPLIANCE,
             )
         assert result.chunk_count == 2
@@ -724,39 +813,46 @@ class TestIngestTextEdgeCases:
     async def test_rollback_on_store_chunks_error(self, db_session) -> None:
         """Lines 437-454: chunk/storage failure → rollback document + audit + raise."""
         svc = IngestionService(db_session)
-        count_before = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count_before = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
 
         with patch.object(svc, "_store_chunks", new_callable=AsyncMock) as mock_store:
             mock_store.side_effect = ValueError("injected storage failure")
             with pytest.raises(ValueError, match="injected storage failure"):
                 await svc.ingest_text(
-                    title="Rollback Test", text="Will be rolled back.",
+                    title="Rollback Test",
+                    text="Will be rolled back.",
                     metadata=_COMPLIANCE,
                 )
 
         # Document should be rolled back (hard-deleted)
-        count_after = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count_after = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
         assert count_after == count_before
 
         # Audit record should exist with skipped status
         from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
-        audits = list((await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.action == "skip",
-                FulltextIngestionAudit.status == "skipped",
-            )
-        )).scalars())
+
+        audits = list(
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.action == "skip",
+                        FulltextIngestionAudit.status == "skipped",
+                    )
+                )
+            ).scalars()
+        )
         assert len(audits) >= 1
 
     async def test_source_ref_created_on_ingest(self, db_session) -> None:
         """Ingestion creates a SourceRef row."""
         svc = IngestionService(db_session)
         result = await svc.ingest_text(
-            title="SourceRef Test", text="Content with source ref.",
+            title="SourceRef Test",
+            text="Content with source ref.",
             metadata={
                 "copyright_status": "public_domain",
                 "authorization_basis": "pd",
@@ -786,7 +882,9 @@ class TestIngestPdfEdgeCases:
         """Line 496: empty text from PDF → PDFExtractionError."""
         svc = IngestionService(db_session)
         with patch.object(IngestionService, "_extract_pdf_text", return_value=""):
-            with pytest.raises(PDFExtractionError, match="does not contain extractable"):
+            with pytest.raises(
+                PDFExtractionError, match="does not contain extractable"
+            ):
                 await svc.ingest_pdf(
                     title="Empty PDF",
                     file=io.BytesIO(b"deadbeef"),
@@ -799,15 +897,21 @@ class TestIngestPdfEdgeCases:
         raw = b"\x89PNG...not actually a PDF but we mock extraction"
         extracted = "Extracted PDF content for raw storage test."
 
-        with patch.object(IngestionService, "_extract_pdf_text", return_value=extracted):
+        with patch.object(
+            IngestionService, "_extract_pdf_text", return_value=extracted
+        ):
             result = await svc.ingest_pdf(
-                title="Store Raw PDF", file=io.BytesIO(raw),
-                metadata=_COMPLIANCE, store_raw_pdf=True,
+                title="Store Raw PDF",
+                file=io.BytesIO(raw),
+                metadata=_COMPLIANCE,
+                store_raw_pdf=True,
             )
 
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.raw_pdf_blob == raw
         assert "pdf:" in (doc.source_url or "")
 
@@ -817,26 +921,35 @@ class TestIngestPdfEdgeCases:
         svc = IngestionService(db_session)
         extracted = "Extracted text without raw PDF."
 
-        with patch.object(IngestionService, "_extract_pdf_text", return_value=extracted):
+        with patch.object(
+            IngestionService, "_extract_pdf_text", return_value=extracted
+        ):
             result = await svc.ingest_pdf(
-                title="No Raw", file=io.BytesIO(b"bytes"),
+                title="No Raw",
+                file=io.BytesIO(b"bytes"),
                 metadata={**_COMPLIANCE, "source_url": "http://custom.url"},
                 store_raw_pdf=False,
             )
 
-        doc = (await db_session.execute(
-            select(Document).where(Document.id == result.document_id)
-        )).scalar_one()
+        doc = (
+            await db_session.execute(
+                select(Document).where(Document.id == result.document_id)
+            )
+        ).scalar_one()
         assert doc.raw_pdf_blob is None
         assert doc.source_url == "http://custom.url"
 
-    async def test_ingest_pdf_without_metadata_passes_compliance(self, db_session) -> None:
+    async def test_ingest_pdf_without_metadata_passes_compliance(
+        self, db_session
+    ) -> None:
         """ingest_pdf with metadata=None — _extract_pdf_text mocked with valid text,
         but compliance gate still checked."""
         svc = IngestionService(db_session)
         extracted = "Some text content."
 
-        with patch.object(IngestionService, "_extract_pdf_text", return_value=extracted):
+        with patch.object(
+            IngestionService, "_extract_pdf_text", return_value=extracted
+        ):
             # No metadata → compliance gate will reject
             with pytest.raises(FulltextRejectedError):
                 await svc.ingest_pdf(
@@ -864,12 +977,16 @@ class TestIngestPdfWithPages:
         )
         assert result.chunk_count > 0
 
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == result.document_id)
-            .where(DocumentChunk.is_deleted.is_(False))
-            .order_by(DocumentChunk.chunk_index)
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == result.document_id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                    .order_by(DocumentChunk.chunk_index)
+                )
+            ).scalars()
+        )
         for ch in chunks:
             assert ch.page_number is not None
             assert ch.page_number >= 1
@@ -885,7 +1002,8 @@ class TestIngestPdfWithPages:
 
             with pytest.raises(PDFExtractionError, match="encrypted"):
                 await svc.ingest_pdf_with_pages(
-                    title="Encrypted", file=io.BytesIO(b"encrypted"),
+                    title="Encrypted",
+                    file=io.BytesIO(b"encrypted"),
                     metadata=_COMPLIANCE,
                 )
 
@@ -904,7 +1022,8 @@ class TestIngestPdfWithPages:
             mock_reader_cls.return_value = mock_reader
 
             result = await svc.ingest_pdf_with_pages(
-                title="Decrypt OK", file=io.BytesIO(b"encrypted pdf"),
+                title="Decrypt OK",
+                file=io.BytesIO(b"encrypted pdf"),
                 metadata=_COMPLIANCE,
             )
             assert result.chunk_count > 0
@@ -924,14 +1043,15 @@ class TestIngestPdfWithPages:
             mock_reader_cls.return_value = mock_reader
 
             # Mock OCR to also return empty → no page_data at all
-            with patch.object(
-                IngestionService, "_ocr_pdf_pages", return_value={}
+            with (
+                patch.object(IngestionService, "_ocr_pdf_pages", return_value={}),
+                pytest.raises(PDFExtractionError, match="No extractable text"),
             ):
-                with pytest.raises(PDFExtractionError, match="No extractable text"):
-                    await svc.ingest_pdf_with_pages(
-                        title="No Text", file=io.BytesIO(b"empty pdf"),
-                        metadata=_COMPLIANCE,
-                    )
+                await svc.ingest_pdf_with_pages(
+                    title="No Text",
+                    file=io.BytesIO(b"empty pdf"),
+                    metadata=_COMPLIANCE,
+                )
 
     async def test_copyright_gate_rejects(self, db_session) -> None:
         """Lines 606-608: copyright gate check before document creation."""
@@ -975,11 +1095,13 @@ class TestIngestPdfWithPages:
 
             # _ocr_pdf_pages is a sync staticmethod, mock with MagicMock (not AsyncMock)
             with patch.object(
-                IngestionService, "_ocr_pdf_pages",
+                IngestionService,
+                "_ocr_pdf_pages",
                 return_value={2: "Scanned text", 3: "More scanned text"},
             ):
                 result = await svc.ingest_pdf_with_pages(
-                    title="OCR Ratio", file=io.BytesIO(_simple_pdf_bytes()),
+                    title="OCR Ratio",
+                    file=io.BytesIO(_simple_pdf_bytes()),
                     metadata=_COMPLIANCE,
                 )
                 # Should have chunks with ocr_confidence set
@@ -988,9 +1110,9 @@ class TestIngestPdfWithPages:
     async def test_rollback_on_chunk_storage_failure(self, db_session) -> None:
         """Lines 709-726: rollback on SQLAlchemyError during chunk storage."""
         svc = IngestionService(db_session)
-        count_before = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count_before = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
 
         with patch("app.services.ingestion.PdfReader") as mock_reader_cls:
             mock_reader = MagicMock()
@@ -1000,17 +1122,20 @@ class TestIngestPdfWithPages:
             mock_reader.pages = [page]
             mock_reader_cls.return_value = mock_reader
 
-            with patch.object(svc, "_store_chunks", new_callable=AsyncMock) as mock_store:
+            with patch.object(
+                svc, "_store_chunks", new_callable=AsyncMock
+            ) as mock_store:
                 mock_store.side_effect = ValueError("storage failure")
                 with pytest.raises(ValueError, match="storage failure"):
                     await svc.ingest_pdf_with_pages(
-                        title="Rollback PDF", file=io.BytesIO(_simple_pdf_bytes()),
+                        title="Rollback PDF",
+                        file=io.BytesIO(_simple_pdf_bytes()),
                         metadata=_COMPLIANCE,
                     )
 
-        count_after = (await db_session.execute(
-            text("SELECT COUNT(*) FROM documents")
-        )).scalar_one()
+        count_after = (
+            await db_session.execute(text("SELECT COUNT(*) FROM documents"))
+        ).scalar_one()
         assert count_after == count_before
 
 
@@ -1027,49 +1152,64 @@ class TestAppendPassageEdgeCases:
         """Lines 802-815: metadata_only doc → append rejected with audit."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="Meta Only Doc",
+            db_session,
+            title="Meta Only Doc",
             copyright_status="metadata_only",
             content_text="Initial text",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         with pytest.raises(FulltextRejectedError, match="metadata_only"):
             await svc.append_passage(
-                document_id=doc.id, text="Appended text.",
+                document_id=doc.id,
+                text="Appended text.",
                 passage_id=passage_id,
             )
 
         # Audit record exists
         from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
-        audits = list((await db_session.execute(
-            select(FulltextIngestionAudit).where(
-                FulltextIngestionAudit.result_entity_id == doc.id,
-                FulltextIngestionAudit.action == "skip",
-            )
-        )).scalars())
+
+        audits = list(
+            (
+                await db_session.execute(
+                    select(FulltextIngestionAudit).where(
+                        FulltextIngestionAudit.result_entity_id == doc.id,
+                        FulltextIngestionAudit.action == "skip",
+                    )
+                )
+            ).scalars()
+        )
         assert any("metadata_only" in (a.skipped_reason or "") for a in audits)
 
     async def test_forbidden_fulltext_document_rejected(self, db_session) -> None:
         """forbidden_fulltext doc → append rejected."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="Forbidden Doc",
+            db_session,
+            title="Forbidden Doc",
             copyright_status="forbidden_fulltext",
             content_text="Initial text",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         with pytest.raises(FulltextRejectedError, match="forbidden_fulltext"):
             await svc.append_passage(
-                document_id=doc.id, text="Appended.",
+                document_id=doc.id,
+                text="Appended.",
                 passage_id=passage_id,
             )
 
@@ -1078,19 +1218,24 @@ class TestAppendPassageEdgeCases:
         rejects append."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="Unrecognized Doc",
+            db_session,
+            title="Unrecognized Doc",
             copyright_status="made_up_status",
             content_text="Initial text",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         with pytest.raises(FulltextRejectedError, match="unrecognized|copyright"):
             await svc.append_passage(
-                document_id=doc.id, text="Appended.",
+                document_id=doc.id,
+                text="Appended.",
                 passage_id=passage_id,
             )
 
@@ -1098,21 +1243,26 @@ class TestAppendPassageEdgeCases:
         """Line 838: chunk_text returns list[str] → backward compat wrapping."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="Compat Append",
+            db_session,
+            title="Compat Append",
             copyright_status="public_domain",
             authorization_basis="pd",
             content_text="Initial text.",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         with patch("app.services.ingestion.chunk_text") as mock_chunk:
             mock_chunk.return_value = ["Append chunk 1", "Append chunk 2"]
             result = await svc.append_passage(
-                document_id=doc.id, text="Appended passage text.",
+                document_id=doc.id,
+                text="Appended passage text.",
                 passage_id=passage_id,
             )
         assert result.appended_chunk_count == 2
@@ -1122,21 +1272,26 @@ class TestAppendPassageEdgeCases:
         """Line 843: chunk_list is empty → ValueError."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="Empty Chunks Doc",
+            db_session,
+            title="Empty Chunks Doc",
             copyright_status="public_domain",
             authorization_basis="pd",
             content_text="Initial text.",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         with patch("app.services.ingestion.chunk_text", return_value=[]):
             with pytest.raises(ValueError, match="No chunks produced"):
                 await svc.append_passage(
-                    document_id=doc.id, text="Some text.",
+                    document_id=doc.id,
+                    text="Some text.",
                     passage_id=passage_id,
                 )
 
@@ -1145,32 +1300,41 @@ class TestAppendPassageEdgeCases:
         sets para_idx=-1 which then falls back to chunk index."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="String Item Test",
+            db_session,
+            title="String Item Test",
             copyright_status="public_domain",
             authorization_basis="pd",
             content_text="Initial text.",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
+
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
 
         # chunk_text returns list[str] → each item is a string
         with patch("app.services.ingestion.chunk_text", return_value=["Raw chunk"]):
             result = await svc.append_passage(
-                document_id=doc.id, text="Appended text.",
+                document_id=doc.id,
+                text="Appended text.",
                 passage_id=passage_id,
             )
 
         assert result.appended_chunk_count == 1
         # Verify the chunk was created (paragraph_index falls back to chunk_index)
-        chunks = list((await db_session.execute(
-            select(DocumentChunk)
-            .where(DocumentChunk.document_id == doc.id)
-            .where(DocumentChunk.passage_id == passage_id)
-            .where(DocumentChunk.is_deleted.is_(False))
-        )).scalars())
+        chunks = list(
+            (
+                await db_session.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.document_id == doc.id)
+                    .where(DocumentChunk.passage_id == passage_id)
+                    .where(DocumentChunk.is_deleted.is_(False))
+                )
+            ).scalars()
+        )
         assert len(chunks) == 1
         # para_idx=-1 → falls back to "next_index + offset" in the loop
         assert chunks[0].paragraph_index >= 0
@@ -1179,19 +1343,24 @@ class TestAppendPassageEdgeCases:
         """Append creates a passage-scoped SourceRef."""
         svc = IngestionService(db_session)
         doc = await _create_doc(
-            db_session, title="SR Append",
+            db_session,
+            title="SR Append",
             copyright_status="public_domain",
             authorization_basis="pd",
             content_text="Initial content.",
         )
 
         from app.models.passage import Passage
-        passage_id = (await db_session.execute(
-            select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
-        )).scalar_one()
 
-        result = await svc.append_passage(
-            document_id=doc.id, text="New passage text.",
+        passage_id = (
+            await db_session.execute(
+                select(Passage.id).where(Passage.is_deleted.is_(False)).limit(1)
+            )
+        ).scalar_one()
+
+        await svc.append_passage(
+            document_id=doc.id,
+            text="New passage text.",
             passage_id=passage_id,
         )
 
@@ -1203,9 +1372,9 @@ class TestAppendPassageEdgeCases:
         assert ref is not None
 
         # Document review_status reset
-        doc_after = (await db_session.execute(
-            select(Document).where(Document.id == doc.id)
-        )).scalar_one()
+        doc_after = (
+            await db_session.execute(select(Document).where(Document.id == doc.id))
+        ).scalar_one()
         assert doc_after.review_status == "pending"
         assert doc_after.rag_enabled is False
 
@@ -1220,8 +1389,11 @@ class TestResultClasses:
 
     def test_ingestion_result_fields(self) -> None:
         r = IngestionResult(
-            document_id="doc-1", title="Test",
-            chunk_count=5, total_chars=1000, checksum="abc123"
+            document_id="doc-1",
+            title="Test",
+            chunk_count=5,
+            total_chars=1000,
+            checksum="abc123",
         )
         assert r.document_id == "doc-1"
         assert r.chunk_count == 5
@@ -1230,11 +1402,13 @@ class TestResultClasses:
 
     def test_append_result_fields(self) -> None:
         r = AppendResult(
-            document_id="doc-1", passage_id="pass-1",
+            document_id="doc-1",
+            passage_id="pass-1",
             appended_chunk_count=3,
             appended_chunk_ids=["c1", "c2", "c3"],
-            first_chunk_index=10, last_chunk_index=12,
-            content_checksum="def456"
+            first_chunk_index=10,
+            last_chunk_index=12,
+            content_checksum="def456",
         )
         assert r.appended_chunk_count == 3
         assert r.first_chunk_index == 10

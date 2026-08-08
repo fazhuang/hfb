@@ -18,12 +18,9 @@
 
 import { test, expect } from '@playwright/test';
 
-const BASE = 'http://localhost:5173';
-
 // ─── Flow A: Anonymous RBAC ───────────────────────────────────────────
 
 test.describe('Flow A — Anonymous RBAC', () => {
-
   test('A01: home page loads, protected nav items absent for anonymous', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
@@ -81,7 +78,6 @@ test.describe('Flow A — Anonymous RBAC', () => {
 // ─── Flow B: Researcher Canonical Full Chain ─────────────────────────
 
 test.describe('Flow B — Researcher Canonical Full Chain', () => {
-
   test('B01: real form login → redirected, nav shows research links', async ({ page }) => {
     await page.goto('/login');
     await page.waitForSelector('#username', { state: 'visible', timeout: 10000 });
@@ -107,7 +103,10 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
     await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
     // Click research nav link from authenticated homepage
-    const researchLink = page.locator('a.nav-link').filter({ hasText: /开始研究|课题|Research|研究/ }).first();
+    const researchLink = page
+      .locator('a.nav-link')
+      .filter({ hasText: /开始研究|课题|Research|研究/ })
+      .first();
     await expect(researchLink).toBeVisible({ timeout: 5000 });
     await researchLink.click();
 
@@ -128,7 +127,11 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
     await p.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
     // Click research nav link
-    await p.locator('a.nav-link').filter({ hasText: /开始研究|课题|Research|研究/ }).first().click();
+    await p
+      .locator('a.nav-link')
+      .filter({ hasText: /开始研究|课题|Research|研究/ })
+      .first()
+      .click();
     await p.waitForTimeout(2000);
 
     // Click first project link
@@ -150,7 +153,9 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
         await p.waitForTimeout(2000);
 
         await expect(
-          p.locator('.rqs-step, .dss-step, .ers-summary-bar, .rrs-card, [class*="workflow"]').first(),
+          p
+            .locator('.rqs-step, .dss-step, .ers-summary-bar, .rrs-card, [class*="workflow"]')
+            .first(),
         ).toBeVisible({ timeout: 10000 });
       }
     }
@@ -171,13 +176,20 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
     await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
     // Click research nav link
-    await page.locator('a.nav-link').filter({ hasText: /开始研究|课题|Research|研究/ }).first().click();
+    await page
+      .locator('a.nav-link')
+      .filter({ hasText: /开始研究|课题|Research|研究/ })
+      .first()
+      .click();
     await page.waitForTimeout(2000);
     await page.locator('a.pli-name-link').first().click();
     await page.waitForTimeout(2000);
 
     // Click workspace tab
-    const wsTab = page.locator('.rw-tab').filter({ hasText: /校|工作区|workspace|v4|报告/i }).first();
+    const wsTab = page
+      .locator('.rw-tab')
+      .filter({ hasText: /校|工作区|workspace|v4|报告/i })
+      .first();
     if (await wsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
       await wsTab.click();
       await page.waitForTimeout(2000);
@@ -214,7 +226,10 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
           timeout: 120_000,
         });
 
-        const evidenceCount = await page.locator('.ers-item').count().catch(() => 0);
+        const evidenceCount = await page
+          .locator('.ers-item')
+          .count()
+          .catch(() => 0);
         expect(evidenceCount).toBeGreaterThanOrEqual(0);
       }
     }
@@ -226,7 +241,6 @@ test.describe('Flow B — Researcher Canonical Full Chain', () => {
 // ─── Flow C: Admin RBAC Isolation ─────────────────────────────────────
 
 test.describe('Flow C — Admin RBAC Isolation', () => {
-
   test('C01: admin login → admin greeting visible in navbar', async ({ page }) => {
     await page.goto('/login');
     await page.fill('#username', 'admin');
@@ -248,7 +262,10 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
     // Click "全文审核" nav link → /admin/literature-review
-    const adminReviewLink = page.locator('a.nav-link').filter({ hasText: /全文审核|✅/ }).first();
+    const adminReviewLink = page
+      .locator('a.nav-link')
+      .filter({ hasText: /全文审核|✅/ })
+      .first();
     if (await adminReviewLink.isVisible({ timeout: 5000 }).catch(() => false)) {
       await adminReviewLink.click();
       await page.waitForTimeout(3000);
@@ -259,7 +276,9 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     }
   });
 
-  test('C03: researcher cannot access admin page — admin nav link not rendered', async ({ page }) => {
+  test('C03: researcher cannot access admin page — admin nav link not rendered', async ({
+    page,
+  }) => {
     await page.goto('/login');
     await page.fill('#username', 'researcher');
     await page.fill('#password', 'researcher123');
@@ -274,10 +293,16 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     expect(navText).not.toContain('管理员');
 
     // Admin nav items must not be visible to researcher
-    const adminReviewLink = page.locator('a.nav-link').filter({ hasText: /全文审核/ }).first();
+    const adminReviewLink = page
+      .locator('a.nav-link')
+      .filter({ hasText: /全文审核/ })
+      .first();
     await expect(adminReviewLink).not.toBeVisible({ timeout: 3000 });
 
-    const adminIngestLink = page.locator('a.nav-link').filter({ hasText: /采集任务/ }).first();
+    const adminIngestLink = page
+      .locator('a.nav-link')
+      .filter({ hasText: /采集任务/ })
+      .first();
     await expect(adminIngestLink).not.toBeVisible({ timeout: 3000 });
   });
 
@@ -289,7 +314,9 @@ test.describe('Flow C — Admin RBAC Isolation', () => {
     await page.waitForURL((url: URL) => !url.pathname.includes('/login'), { timeout: 15000 });
 
     // Logout via UI
-    const logoutBtn = page.locator('button:has-text("退出"), a:has-text("退出"), .auth-btn').first();
+    const logoutBtn = page
+      .locator('button:has-text("退出"), a:has-text("退出"), .auth-btn')
+      .first();
     if (await logoutBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await logoutBtn.click();
       await page.waitForTimeout(2000);

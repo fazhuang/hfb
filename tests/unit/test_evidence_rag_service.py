@@ -1,12 +1,9 @@
-
 """Unit tests for evidence_rag_service — static methods: _build_citation, _to_citation, _tokenize, _score."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
-from app.schemas.evidence_rag import EvidenceBoundChunk
 from app.services.evidence_rag_service import EvidenceRAGService
 
 
@@ -18,7 +15,9 @@ class TestBuildCitation:
         chunk.page_number = 3
         chunk.paragraph_index = 2
         chunk.ocr_confidence = 0.85
-        result = EvidenceRAGService._build_citation("针灸甲乙经", chunk, "https://source")
+        result = EvidenceRAGService._build_citation(
+            "针灸甲乙经", chunk, "https://source"
+        )
         assert "《针灸甲乙经》" in result
         assert "[doc-1:chk-1]" in result
         assert "p.3" in result

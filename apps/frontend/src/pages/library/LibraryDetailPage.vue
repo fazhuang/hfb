@@ -12,14 +12,46 @@
 
     <div class="lib-detail-body">
       <!-- Loading: Skeleton detail -->
-      <div v-if="loading" class="lib-detail-skeleton" aria-busy="true" aria-label="正在加载文献详情">
+      <div
+        v-if="loading"
+        class="lib-detail-skeleton"
+        aria-busy="true"
+        aria-label="正在加载文献详情"
+      >
         <div class="lib-skeleton-meta-row">
-          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:36px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
-          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:48px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
-          <span class="hfb-skeleton hfb-skeleton--pulse" style="width:80px;height:24px;border-radius:var(--radius-sm);display:inline-block" />
+          <span
+            class="hfb-skeleton hfb-skeleton--pulse"
+            style="
+              width: 36px;
+              height: 24px;
+              border-radius: var(--radius-sm);
+              display: inline-block;
+            "
+          />
+          <span
+            class="hfb-skeleton hfb-skeleton--pulse"
+            style="
+              width: 48px;
+              height: 24px;
+              border-radius: var(--radius-sm);
+              display: inline-block;
+            "
+          />
+          <span
+            class="hfb-skeleton hfb-skeleton--pulse"
+            style="
+              width: 80px;
+              height: 24px;
+              border-radius: var(--radius-sm);
+              display: inline-block;
+            "
+          />
         </div>
         <section class="lib-panel lib-skeleton-panel">
-          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:30%;margin-bottom:var(--space-3)" />
+          <div
+            class="hfb-skeleton__line hfb-skeleton__line--pulse"
+            style="width: 30%; margin-bottom: var(--space-3)"
+          />
           <div class="hfb-skeleton__lines">
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
@@ -27,14 +59,20 @@
           </div>
         </section>
         <section class="lib-panel lib-skeleton-panel">
-          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:25%;margin-bottom:var(--space-3)" />
+          <div
+            class="hfb-skeleton__line hfb-skeleton__line--pulse"
+            style="width: 25%; margin-bottom: var(--space-3)"
+          />
           <div class="hfb-skeleton__lines">
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
           </div>
         </section>
         <section class="lib-panel lib-skeleton-panel">
-          <div class="hfb-skeleton__line hfb-skeleton__line--pulse" style="width:20%;margin-bottom:var(--space-3)" />
+          <div
+            class="hfb-skeleton__line hfb-skeleton__line--pulse"
+            style="width: 20%; margin-bottom: var(--space-3)"
+          />
           <div class="hfb-skeleton__lines">
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
             <div class="hfb-skeleton__line hfb-skeleton__line--pulse" />
@@ -53,7 +91,9 @@
         <div class="lib-detail-meta">
           <span v-if="doc.dynasty" class="lib-meta-tag">{{ doc.dynasty }}</span>
           <span v-if="doc.category" class="lib-meta-tag">{{ doc.category }}</span>
-          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{ doc.language }}</span>
+          <span v-if="doc.language" class="lib-meta-tag lib-meta-tag--source">{{
+            doc.language
+          }}</span>
           <span v-if="doc.year" class="lib-meta-tag lib-meta-tag--source">{{ doc.year }}</span>
         </div>
 
@@ -78,12 +118,15 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 class="lib-external-link"
-              >查看来源</a>
+                >查看来源</a
+              >
               <span v-else class="lib-field-missing">—</span>
             </div>
             <div class="lib-field">
               <span class="lib-field-label">内容校验</span>
-              <span class="lib-mono">{{ doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—' }}</span>
+              <span class="lib-mono">{{
+                doc.content_checksum ? doc.content_checksum.slice(0, 16) : '—'
+              }}</span>
             </div>
           </div>
         </section>

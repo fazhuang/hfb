@@ -10,10 +10,9 @@ import logging
 import re
 
 import pytest
+from app.middleware.logging import RequestLoggingMiddleware
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-
-from app.middleware.logging import RequestLoggingMiddleware
 
 pytestmark = pytest.mark.anyio
 

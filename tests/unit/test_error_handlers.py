@@ -1,4 +1,3 @@
-
 """Unit tests for app.core.error_handlers — all exception handlers."""
 
 from __future__ import annotations
@@ -17,9 +16,7 @@ from app.core.error_handlers import (
 from app.core.exceptions import DomainException
 from app.core.status_machine import InvalidStatusTransitionError
 from fastapi import Request
-from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
 
 # --- Pure functions (no async dependency) ---
 
@@ -35,7 +32,9 @@ class TestErrorEnvelope:
         assert "timestamp" in envelope
 
     def test_with_metadata(self) -> None:
-        envelope = _error_envelope(422, "Bad", "VALIDATION", "r2", metadata={"fields": ["x"]})
+        envelope = _error_envelope(
+            422, "Bad", "VALIDATION", "r2", metadata={"fields": ["x"]}
+        )
         assert envelope["meta"]["metadata"] == {"fields": ["x"]}
 
 
@@ -98,7 +97,7 @@ class TestHandlers:
         scope = {"type": "http", "method": "POST", "path": "/"}
         request = Request(scope)
         from fastapi.exceptions import RequestValidationError
-        from pydantic import BaseModel, ValidationError
+        from pydantic import BaseModel
 
         # Build a minimal validation error
         class TestModel(BaseModel):

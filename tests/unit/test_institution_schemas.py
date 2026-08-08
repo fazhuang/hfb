@@ -1,10 +1,12 @@
-
 """Unit tests for app.schemas.institution — InstitutionCreate, InstitutionUpdate, InstitutionResponse."""
 
 from __future__ import annotations
 
-import pytest
-from app.schemas.institution import InstitutionCreate, InstitutionUpdate, InstitutionResponse
+from app.schemas.institution import (
+    InstitutionCreate,
+    InstitutionResponse,
+    InstitutionUpdate,
+)
 
 
 class TestInstitutionCreate:
@@ -34,10 +36,14 @@ class TestInstitutionUpdate:
 
 class TestInstitutionResponse:
     def test_basic(self) -> None:
-        resp = InstitutionResponse(id="00000000-0000-0000-0000-000000000001", name="中科院", type="research")
+        resp = InstitutionResponse(
+            id="00000000-0000-0000-0000-000000000001", name="中科院", type="research"
+        )
         assert resp.name == "中科院"
         assert resp.type == "research"
 
     def test_none_description(self) -> None:
-        resp = InstitutionResponse(id="00000000-0000-0000-0000-000000000002", name="Fudan", type="university")
+        resp = InstitutionResponse(
+            id="00000000-0000-0000-0000-000000000002", name="Fudan", type="university"
+        )
         assert resp.description is None

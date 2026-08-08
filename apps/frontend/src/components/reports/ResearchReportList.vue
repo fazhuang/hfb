@@ -5,7 +5,7 @@
       :key="item.run_id"
       :item="item"
       :exporting="exporting"
-      :export-error="(item.run_id === lastExportRunId) ? exportError : ''"
+      :export-error="item.run_id === lastExportRunId ? exportError : ''"
       @export="$emit('export', $event)"
     />
   </ul>

@@ -22,19 +22,19 @@ import pytest
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.services.generation_service import (
+    PROMPT_INJECTION_PATTERNS,
     STRUCTURED_CLAIMS_SYSTEM_PROMPT,
-    GenerationPipeline,
-    GenerationOutcome,
     CanonicalClaim,
+    GenerationOutcome,
+    GenerationPipeline,
+    _canonicalize_claims,
+    _detect_duplicate_keys,
     _detect_prompt_injection_chunk,
     _detect_prompt_injection_text,
-    _detect_duplicate_keys,
-    _is_substring,
-    _substring_start_pos,
-    _normalize_whitespace,
-    _canonicalize_claims,
     _expected_claims_to_canonical,
-    PROMPT_INJECTION_PATTERNS,
+    _is_substring,
+    _normalize_whitespace,
+    _substring_start_pos,
 )
 from app.services.retrieval import RetrievalResult, RetrievalService
 from sqlalchemy import select
@@ -2113,7 +2113,10 @@ class TestNormalizeWhitespace:
         assert _normalize_whitespace("  a  \n  b  ") == "a b"
 
     def test_preserves_cjk_chars(self) -> None:
-        assert _normalize_whitespace("皇甫谧编撰《针灸甲乙经》。") == "皇甫谧编撰《针灸甲乙经》。"
+        assert (
+            _normalize_whitespace("皇甫谧编撰《针灸甲乙经》。")
+            == "皇甫谧编撰《针灸甲乙经》。"
+        )
 
 
 class TestSubstringStartPos:
@@ -2129,7 +2132,7 @@ class TestSubstringStartPos:
         assert pos == -1
 
     def test_ignores_whitespace_diff(self) -> None:
-        pos = _substring_start_pos("甲乙经", "针灸  甲乙  经")
+        _substring_start_pos("甲乙经", "针灸  甲乙  经")
         # normalized haystack = "针灸 甲乙 经", needle = "甲乙经"
         # normalized: needle="甲乙经", haystack="针灸 甲乙 经" → "甲乙经" not contiguous in normalized
         # Need a case where whitespace collapse makes them match
@@ -2141,16 +2144,40 @@ class TestSubstringStartPos:
 class TestCanonicalizeClaims:
     def test_deduplicates_identical_claims(self) -> None:
         claims = [
-            {"chunk_id": "c1", "quote_norm": "a", "chunk_rank": 0, "start_pos": 0, "citation_str": "[d:c1]"},
-            {"chunk_id": "c1", "quote_norm": "a", "chunk_rank": 0, "start_pos": 0, "citation_str": "[d:c1]"},
+            {
+                "chunk_id": "c1",
+                "quote_norm": "a",
+                "chunk_rank": 0,
+                "start_pos": 0,
+                "citation_str": "[d:c1]",
+            },
+            {
+                "chunk_id": "c1",
+                "quote_norm": "a",
+                "chunk_rank": 0,
+                "start_pos": 0,
+                "citation_str": "[d:c1]",
+            },
         ]
         result = _canonicalize_claims(claims)
         assert len(result) == 1
 
     def test_sorts_by_chunk_rank(self) -> None:
         claims = [
-            {"chunk_id": "c2", "quote_norm": "b", "chunk_rank": 2, "start_pos": 0, "citation_str": "[d:c2]"},
-            {"chunk_id": "c1", "quote_norm": "a", "chunk_rank": 1, "start_pos": 0, "citation_str": "[d:c1]"},
+            {
+                "chunk_id": "c2",
+                "quote_norm": "b",
+                "chunk_rank": 2,
+                "start_pos": 0,
+                "citation_str": "[d:c2]",
+            },
+            {
+                "chunk_id": "c1",
+                "quote_norm": "a",
+                "chunk_rank": 1,
+                "start_pos": 0,
+                "citation_str": "[d:c1]",
+            },
         ]
         result = _canonicalize_claims(claims)
         assert result[0]["chunk_id"] == "c1"
@@ -2162,7 +2189,16 @@ class TestCanonicalizeClaims:
 class TestExpectedClaimsToCanonical:
     def test_converts_to_frozen(self) -> None:
         expected = [
-            {"quote": "经络者", "document_id": "d1", "chunk_id": "c1", "citation_str": "[d1:c1]", "chunk_rank": 0, "start_pos": 0, "quote_norm": "经络者", "citation": "[d1:c1]"},
+            {
+                "quote": "经络者",
+                "document_id": "d1",
+                "chunk_id": "c1",
+                "citation_str": "[d1:c1]",
+                "chunk_rank": 0,
+                "start_pos": 0,
+                "quote_norm": "经络者",
+                "citation": "[d1:c1]",
+            },
         ]
         result = _expected_claims_to_canonical(expected)
         assert len(result) == 1
@@ -2171,7 +2207,13 @@ class TestExpectedClaimsToCanonical:
 
     def test_fallback_defaults(self) -> None:
         expected = [
-            {"quote": "a", "document_id": "d", "chunk_id": "c", "quote_norm": "a", "citation": "[d:c]"},
+            {
+                "quote": "a",
+                "document_id": "d",
+                "chunk_id": "c",
+                "quote_norm": "a",
+                "citation": "[d:c]",
+            },
         ]
         result = _expected_claims_to_canonical(expected)
         assert result[0].chunk_rank == 9999
@@ -2181,16 +2223,37 @@ class TestExpectedClaimsToCanonical:
 class TestCanonicalClaim:
     def test_frozen(self) -> None:
         c = CanonicalClaim(
-            quote="q", document_id="d", chunk_id="c",
-            citation="[d:c]", chunk_rank=0, start_pos=0, quote_norm="q",
+            quote="q",
+            document_id="d",
+            chunk_id="c",
+            citation="[d:c]",
+            chunk_rank=0,
+            start_pos=0,
+            quote_norm="q",
         )
         assert c.quote == "q"
         with pytest.raises(Exception):
             c.quote = "new"  # type: ignore[misc]
 
     def test_equality(self) -> None:
-        a = CanonicalClaim(quote="a", document_id="d", chunk_id="c", citation="[d:c]", chunk_rank=0, start_pos=0, quote_norm="a")
-        b = CanonicalClaim(quote="a", document_id="d", chunk_id="c", citation="[d:c]", chunk_rank=0, start_pos=0, quote_norm="a")
+        a = CanonicalClaim(
+            quote="a",
+            document_id="d",
+            chunk_id="c",
+            citation="[d:c]",
+            chunk_rank=0,
+            start_pos=0,
+            quote_norm="a",
+        )
+        b = CanonicalClaim(
+            quote="a",
+            document_id="d",
+            chunk_id="c",
+            citation="[d:c]",
+            chunk_rank=0,
+            start_pos=0,
+            quote_norm="a",
+        )
         assert a == b
         assert hash(a) == hash(b)
 
@@ -2198,7 +2261,10 @@ class TestCanonicalClaim:
 class TestGenerationOutcome:
     def test_fields(self) -> None:
         from app.schemas.generation import GroundedGenerationResponse
-        resp = GroundedGenerationResponse(query="q", answer="a", results=[], citations=[])
+
+        resp = GroundedGenerationResponse(
+            query="q", answer="a", results=[], citations=[]
+        )
         outcome = GenerationOutcome(
             response=resp,
             canonical_claims=(),

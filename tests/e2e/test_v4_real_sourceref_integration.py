@@ -73,7 +73,7 @@ def _is_pseudo_id(value: str | None) -> bool:
     """Return True if value is a pseudo document: or passage: ID."""
     if not value or not isinstance(value, str):
         return False
-    return value.startswith("document:") or value.startswith("passage:")
+    return value.startswith(("document:", "passage:"))
 
 
 # =============================================================================
@@ -290,17 +290,25 @@ class TestV4A1SourceRefMultiPassageClosure:
         passage_1_text = (
             f"{SEARCH_TERM} 黄帝问曰：余闻九针于夫子，众多博大，不可胜数。余愿闻要道。"
         )
-        passage_2_text = (
-            f"{SEARCH_TERM} 天地之至数，始于一终于九焉。一者天二者地三者人。三部九候以决死生。"
-        )
+        passage_2_text = f"{SEARCH_TERM} 天地之至数，始于一终于九焉。一者天二者地三者人。三部九候以决死生。"
 
         passage_1_id = self._create_passage(
-            base, user_h, chain["chapter_id"], chain["version_id"],
-            passage_1_text, order=1, tags="A1-passage-1",
+            base,
+            user_h,
+            chain["chapter_id"],
+            chain["version_id"],
+            passage_1_text,
+            order=1,
+            tags="A1-passage-1",
         )
         passage_2_id = self._create_passage(
-            base, user_h, chain["chapter_id"], chain["version_id"],
-            passage_2_text, order=2, tags="A1-passage-2",
+            base,
+            user_h,
+            chain["chapter_id"],
+            chain["version_id"],
+            passage_2_text,
+            order=2,
+            tags="A1-passage-2",
         )
 
         # ---- Phase 4: Ingest document with passage 1 ----
@@ -311,8 +319,12 @@ class TestV4A1SourceRefMultiPassageClosure:
             "A1闭环保真结束"
         )
         doc_id = self._ingest_document(
-            base, user_h, UNIQUE_TITLE, ingest_text,
-            source_url=UNIQUE_URL, source_name="a1-passage-1-source",
+            base,
+            user_h,
+            UNIQUE_TITLE,
+            ingest_text,
+            source_url=UNIQUE_URL,
+            source_name="a1-passage-1-source",
             passage_id=passage_1_id,
         )
 
@@ -329,7 +341,8 @@ class TestV4A1SourceRefMultiPassageClosure:
         append_resp = httpx.post(
             f"{base}/api/v1/search/documents/{doc_id}/append-passage",
             json={"text": append_text, "passage_id": passage_2_id},
-            headers=user_h, timeout=15,
+            headers=user_h,
+            timeout=15,
         )
         if append_resp.status_code == 403:
             admin_login = httpx.post(
@@ -337,7 +350,9 @@ class TestV4A1SourceRefMultiPassageClosure:
                 json={"username": "admin", "password": "admin123"},
                 timeout=5,
             )
-            assert admin_login.status_code == 200, f"Admin login: {admin_login.text[:200]}"
+            assert admin_login.status_code == 200, (
+                f"Admin login: {admin_login.text[:200]}"
+            )
             admin_token = admin_login.json()["data"]["access_token"]
             append_resp = httpx.post(
                 f"{base}/api/v1/search/documents/{doc_id}/append-passage",
@@ -477,9 +492,7 @@ class TestV4A1SourceRefMultiPassageClosure:
                 f"Snapshot count: {len(retrieval_snapshot)}"
             )
             pid = trace_to_passage[tid]
-            assert _is_real_uuid(pid), (
-                f"T={tid}: passage_id not a real UUID: {pid!r}"
-            )
+            assert _is_real_uuid(pid), f"T={tid}: passage_id not a real UUID: {pid!r}"
 
         # =====================================================================
         # Phase 11: Select at least two traces with distinct passage_ids
@@ -497,13 +510,15 @@ class TestV4A1SourceRefMultiPassageClosure:
         for tid, pid in trace_to_passage.items():
             if pid not in seen_pids and tid in trace_to_sr:
                 sr = trace_to_sr[tid]
-                selected.append({
-                    "trace_id": tid,
-                    "passage_id": pid,
-                    "source_ref_id": sr["source_ref_id"],
-                    "source_ref_title": sr["source_ref_title"],
-                    "document_id": sr["document_id"],
-                })
+                selected.append(
+                    {
+                        "trace_id": tid,
+                        "passage_id": pid,
+                        "source_ref_id": sr["source_ref_id"],
+                        "source_ref_title": sr["source_ref_title"],
+                        "document_id": sr["document_id"],
+                    }
+                )
                 seen_pids.add(pid)
             if len(selected) >= 2:
                 break
@@ -593,7 +608,9 @@ class TestV4A1SourceRefMultiPassageClosure:
             for j in range(passage_meta_rows.count()):
                 row = passage_meta_rows.nth(j)
                 label_el = row.locator(".eed-meta-label")
-                if label_el.count() > 0 and "Passage" in (label_el.first.text_content() or ""):
+                if label_el.count() > 0 and "Passage" in (
+                    label_el.first.text_content() or ""
+                ):
                     value_el = row.locator(".eed-meta-value")
                     if value_el.count() > 0:
                         visible_passage = (value_el.first.text_content() or "").strip()
@@ -647,7 +664,11 @@ class TestV4A1SourceRefMultiPassageClosure:
 
             def _capture(response):
                 url = response.url
-                if f"/api/v1/documents/{did}" in url and "/reader" not in url and "/stats" not in url:
+                if (
+                    f"/api/v1/documents/{did}" in url
+                    and "/reader" not in url
+                    and "/stats" not in url
+                ):
                     if response.status == 200:
                         captured_200.append(response.url)
 
@@ -710,5 +731,7 @@ class TestV4A1SourceRefMultiPassageClosure:
         print(f"  Session:  {session_id}")
         print(f"  Verified passages: {verified_passages}")
         for s in selected:
-            print(f"    T={s['trace_id'][:16]}... P={s['passage_id'][:16]}... "
-                  f"SR={s['source_ref_title'][:30]}...")
+            print(
+                f"    T={s['trace_id'][:16]}... P={s['passage_id'][:16]}... "
+                f"SR={s['source_ref_title'][:30]}..."
+            )

@@ -9,6 +9,13 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from app.middleware.auth import (
+    OptionalUser,
+    _extract_token,
+    get_current_user,
+    require_any_permission,
+    require_permission,
+)
 from app.repositories.user import PermissionRepository, RoleRepository, UserRepository
 from app.services.auth_service import (
     AuthService,
@@ -17,13 +24,6 @@ from app.services.auth_service import (
     decode_token,
     hash_password,
     verify_password,
-)
-from app.middleware.auth import (
-    _extract_token,
-    get_current_user,
-    OptionalUser,
-    require_any_permission,
-    require_permission,
 )
 from fastapi import Depends, FastAPI, Request
 from httpx import ASGITransport, AsyncClient
@@ -331,6 +331,8 @@ class TestRequirePermission:
         """Happy path: user has the permission."""
         from app.middleware.auth import (
             get_auth_service as auth_svc_dep,
+        )
+        from app.middleware.auth import (
             get_current_user as gcu_dep,
         )
 
@@ -363,6 +365,8 @@ class TestRequirePermission:
         """Line 79-81 (via require_permission): denied -> 403."""
         from app.middleware.auth import (
             get_auth_service as auth_svc_dep,
+        )
+        from app.middleware.auth import (
             get_current_user as gcu_dep,
         )
 
@@ -401,6 +405,8 @@ class TestRequireAnyPermission:
         """Line 119-122: user has at least one match."""
         from app.middleware.auth import (
             get_auth_service as auth_svc_dep,
+        )
+        from app.middleware.auth import (
             get_current_user as gcu_dep,
         )
 
@@ -433,6 +439,8 @@ class TestRequireAnyPermission:
         """Lines 95-97: no permission matched -> 403 with formatted detail."""
         from app.middleware.auth import (
             get_auth_service as auth_svc_dep,
+        )
+        from app.middleware.auth import (
             get_current_user as gcu_dep,
         )
 

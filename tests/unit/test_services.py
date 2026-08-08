@@ -3,16 +3,13 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-from app.services.person_service import PersonService
 from app.services.document_service import DocumentService
-from app.schemas.person import PersonCreate
-from app.schemas.document import DocumentCreate
-
+from app.services.person_service import PersonService
 
 # ---------------------------------------------------------------------------
 # PersonService
 # ---------------------------------------------------------------------------
+
 
 class TestPersonServiceValidateCreate:
     """Lines 20-21: _validate_create raises on empty/missing name."""
@@ -66,6 +63,7 @@ class TestPersonServiceGetByDynasty:
 # ---------------------------------------------------------------------------
 # DocumentService
 # ---------------------------------------------------------------------------
+
 
 class TestDocumentServiceValidateCreate:
     """Line 23: _validate_create raises on empty/missing title."""

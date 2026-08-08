@@ -18,7 +18,10 @@ const FIXTURE = 'http://127.0.0.1:5173/src/e2e/fixtures/b3-3-dialog-drawer-fixtu
 test.describe('B3-3 HfbDialog — States & Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="open-dialog-btn"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="open-dialog-btn"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('dialog opens with role="dialog" and aria-modal="true"', async ({ page }) => {
@@ -62,7 +65,10 @@ test.describe('B3-3 HfbDialog — States & Accessibility', () => {
 test.describe('B3-3 HfbDrawer — States & Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="open-drawer-btn"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="open-drawer-btn"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('drawer opens with role="dialog" and aria-modal="true"', async ({ page }) => {

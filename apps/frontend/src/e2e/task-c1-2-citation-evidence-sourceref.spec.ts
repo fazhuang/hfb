@@ -36,7 +36,8 @@ const API = 'http://127.0.0.1:8000';
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** PO must provide: real report URL (e.g. /research/{sessionId}/result/{runId}) */
-const REPORT_URL = '/research/14b6b81e-ca5c-4165-87ac-20b76f052856/result/528a37ff-ce18-49c7-b99f-e59d8c68c946';
+const REPORT_URL =
+  '/research/14b6b81e-ca5c-4165-87ac-20b76f052856/result/528a37ff-ce18-49c7-b99f-e59d8c68c946';
 
 /** PO must provide: real document_id shared by both passages */
 const DOC_ID = 'bd42b503-9546-4a70-94cf-889056c56c2d';
@@ -91,24 +92,52 @@ async function loginAdmin(page: any) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => {
-
   test('C1-2: full chain isolation + RBAC', async ({ page, browser }) => {
-
     // ── Section 0: Prerequisite check ──────────────────────────────────
 
     await test.step('PREREQ: verify PO-provided real data', async () => {
-      expect(REPORT_URL, 'BLOCK_C1_2_EVIDENCE: PO must provide real report URL').not.toContain('TODO');
+      expect(REPORT_URL, 'BLOCK_C1_2_EVIDENCE: PO must provide real report URL').not.toContain(
+        'TODO',
+      );
       expect(DOC_ID, 'BLOCK_C1_2_EVIDENCE: PO must provide real document_id').not.toContain('TODO');
-      expect(PASSAGE_A.citationTraceId, 'BLOCK_C1_2_EVIDENCE: PO must provide citation A trace_id').not.toContain('TODO');
-      expect(PASSAGE_A.passageId, 'BLOCK_C1_2_EVIDENCE: PO must provide passage A id').not.toContain('TODO');
-      expect(PASSAGE_A.sourceRefTitle, 'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef A title').not.toContain('TODO');
-      expect(PASSAGE_A.sourceRefId, 'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef A id').not.toContain('TODO');
-      expect(PASSAGE_B.citationTraceId, 'BLOCK_C1_2_EVIDENCE: PO must provide citation B trace_id').not.toContain('TODO');
-      expect(PASSAGE_B.passageId, 'BLOCK_C1_2_EVIDENCE: PO must provide passage B id').not.toContain('TODO');
-      expect(PASSAGE_B.sourceRefTitle, 'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef B title').not.toContain('TODO');
-      expect(PASSAGE_B.sourceRefId, 'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef B id').not.toContain('TODO');
-      expect(PASSAGE_A.passageId, 'Passages A and B must be different').not.toBe(PASSAGE_B.passageId);
-      expect(PASSAGE_A.sourceRefId, 'SourceRef A and B must be different').not.toBe(PASSAGE_B.sourceRefId);
+      expect(
+        PASSAGE_A.citationTraceId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide citation A trace_id',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_A.passageId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide passage A id',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_A.sourceRefTitle,
+        'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef A title',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_A.sourceRefId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef A id',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_B.citationTraceId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide citation B trace_id',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_B.passageId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide passage B id',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_B.sourceRefTitle,
+        'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef B title',
+      ).not.toContain('TODO');
+      expect(
+        PASSAGE_B.sourceRefId,
+        'BLOCK_C1_2_EVIDENCE: PO must provide SourceRef B id',
+      ).not.toContain('TODO');
+      expect(PASSAGE_A.passageId, 'Passages A and B must be different').not.toBe(
+        PASSAGE_B.passageId,
+      );
+      expect(PASSAGE_A.sourceRefId, 'SourceRef A and B must be different').not.toBe(
+        PASSAGE_B.sourceRefId,
+      );
     });
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -138,7 +167,10 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
           break;
         }
       }
-      expect(found, `Citation A not found by trace_id prefix: ${PASSAGE_A.citationTraceId.slice(0, 8)}`).toBe(true);
+      expect(
+        found,
+        `Citation A not found by trace_id prefix: ${PASSAGE_A.citationTraceId.slice(0, 8)}`,
+      ).toBe(true);
 
       const evidenceArea = page.locator('.rcp-evidence-area');
       await expect(evidenceArea).toBeVisible({ timeout: 5_000 });
@@ -169,7 +201,9 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
       await page.waitForTimeout(4000);
       const urlA = new URL(page.url());
       expect(urlA.pathname + urlA.search).toBe(expectedHrefA);
-      expect(urlA.pathname + urlA.search).not.toBe(`/library/${DOC_ID}?passage=${PASSAGE_B.passageId}`);
+      expect(urlA.pathname + urlA.search).not.toBe(
+        `/library/${DOC_ID}?passage=${PASSAGE_B.passageId}`,
+      );
 
       // Page body must not contain B's passage identity
       const bodyText = (await page.textContent('body')) || '';
@@ -199,7 +233,10 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
           break;
         }
       }
-      expect(found, `Citation B not found by trace_id prefix: ${PASSAGE_B.citationTraceId.slice(0, 8)}`).toBe(true);
+      expect(
+        found,
+        `Citation B not found by trace_id prefix: ${PASSAGE_B.citationTraceId.slice(0, 8)}`,
+      ).toBe(true);
 
       const evidenceArea = page.locator('.rcp-evidence-area');
       await expect(evidenceArea).toBeVisible({ timeout: 5_000 });
@@ -235,7 +272,9 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
       await page.waitForTimeout(4000);
       const urlB = new URL(page.url());
       expect(urlB.pathname + urlB.search).toBe(expectedHrefB);
-      expect(urlB.pathname + urlB.search).not.toBe(`/library/${DOC_ID}?passage=${PASSAGE_A.passageId}`);
+      expect(urlB.pathname + urlB.search).not.toBe(
+        `/library/${DOC_ID}?passage=${PASSAGE_A.passageId}`,
+      );
 
       // Page body must not contain A's passage identity
       const bodyText = (await page.textContent('body')) || '';
@@ -353,32 +392,43 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
       type R02OkBranch = { error: null; meStatus: number; reviewStatus: number };
       type R02Result = R02ErrorBranch | R02OkBranch;
 
-      const result: R02Result = await page.evaluate(({ apiUrl, docId }): Promise<R02Result> => {
-        const token = localStorage.getItem('hfb-access-token');
-        if (!token) return Promise.resolve({ error: 'NO_TOKEN', status: -1 });
+      const result: R02Result = await page.evaluate(
+        ({ apiUrl, docId }): Promise<R02Result> => {
+          const token = localStorage.getItem('hfb-access-token');
+          if (!token) return Promise.resolve({ error: 'NO_TOKEN', status: -1 });
 
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        };
+          const headers = {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          };
 
-        // Confirm token is valid and belongs to authenticated user
-        return fetch(`${apiUrl}/api/v1/auth/me`, { headers, credentials: 'include' })
-          .then(meResp => {
-            if (meResp.status !== 200) return Promise.resolve({ error: 'AUTH_ME_FAILED', status: meResp.status } as R02Result);
-            // Authorized probe: same token, review endpoint — must be 403
-            return fetch(`${apiUrl}/api/v1/documents/${docId}/review`, {
-              method: 'PATCH',
-              headers,
-              body: JSON.stringify({ review_status: 'approved', rag_enabled: true }),
-              credentials: 'include',
-            }).then(reviewResp => ({
-              error: null,
-              meStatus: meResp.status,
-              reviewStatus: reviewResp.status,
-            } as R02Result));
-          });
-      }, { apiUrl: API, docId: RBAC_DOC_ID });
+          // Confirm token is valid and belongs to authenticated user
+          return fetch(`${apiUrl}/api/v1/auth/me`, { headers, credentials: 'include' }).then(
+            (meResp) => {
+              if (meResp.status !== 200)
+                return Promise.resolve({
+                  error: 'AUTH_ME_FAILED',
+                  status: meResp.status,
+                } as R02Result);
+              // Authorized probe: same token, review endpoint — must be 403
+              return fetch(`${apiUrl}/api/v1/documents/${docId}/review`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ review_status: 'approved', rag_enabled: true }),
+                credentials: 'include',
+              }).then(
+                (reviewResp) =>
+                  ({
+                    error: null,
+                    meStatus: meResp.status,
+                    reviewStatus: reviewResp.status,
+                  }) as R02Result,
+              );
+            },
+          );
+        },
+        { apiUrl: API, docId: RBAC_DOC_ID },
+      );
 
       if (result.error !== null) {
         expect(result.error, `Token probe failed: ${JSON.stringify(result)}`).toBeNull();
@@ -386,7 +436,10 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
       }
 
       expect(result.meStatus, '/api/v1/auth/me must return 200 for logged-in researcher').toBe(200);
-      expect(result.reviewStatus, `Expected 403, got ${result.reviewStatus} — 服务端越权拒绝证据`).toBe(403);
+      expect(
+        result.reviewStatus,
+        `Expected 403, got ${result.reviewStatus} — 服务端越权拒绝证据`,
+      ).toBe(403);
     });
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -433,26 +486,28 @@ test.describe('C1-2 — Citation / Evidence / SourceRef browser closure', () => 
         // refresh confirms "已通过". No silent swallow.
         try {
           const currentStatus = (await adminPage.textContent('body')) || '';
-              if (currentStatus.includes('已驳回')) {
-                const restorePromise = adminPage.waitForResponse(
-                  (r) =>
-                    r.url().includes(`/api/v1/documents/${RBAC_DOC_ID}/review`) &&
-                    r.request().method() === 'PATCH',
-                  { timeout: 15_000 },
-                );
-                await adminPage.locator('.action-select').first().selectOption('approved');
-                await adminPage.waitForTimeout(300);
-                await adminPage.locator('button.btn-primary').first().click();
-                const restoreResp = await restorePromise;
-                expect(restoreResp.status(), 'RESTORE FAILED: PATCH did not return 200').toBe(200);
-                await adminPage.waitForTimeout(1000);
-                const finalText = (await adminPage.textContent('body')) || '';
-                expect(finalText, 'RESTORE FAILED: page does not show 已通过 after restore').toContain('已通过');
-              }
-            } finally {
-              await adminContext.close();
-            }
+          if (currentStatus.includes('已驳回')) {
+            const restorePromise = adminPage.waitForResponse(
+              (r) =>
+                r.url().includes(`/api/v1/documents/${RBAC_DOC_ID}/review`) &&
+                r.request().method() === 'PATCH',
+              { timeout: 15_000 },
+            );
+            await adminPage.locator('.action-select').first().selectOption('approved');
+            await adminPage.waitForTimeout(300);
+            await adminPage.locator('button.btn-primary').first().click();
+            const restoreResp = await restorePromise;
+            expect(restoreResp.status(), 'RESTORE FAILED: PATCH did not return 200').toBe(200);
+            await adminPage.waitForTimeout(1000);
+            const finalText = (await adminPage.textContent('body')) || '';
+            expect(finalText, 'RESTORE FAILED: page does not show 已通过 after restore').toContain(
+              '已通过',
+            );
           }
-      });
+        } finally {
+          await adminContext.close();
+        }
+      }
     });
   });
+});

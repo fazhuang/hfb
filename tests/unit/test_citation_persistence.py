@@ -1,17 +1,16 @@
 """Unit tests for CitationPersistenceService — deduplication, existing check, backfill."""
 
 import json
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
 from app.services.citation_persistence import CitationPersistenceService
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_citation(doc_id="doc-1", chunk_id="chunk-1", quote="test quote", **kwargs):
     """Build a mock citation with attributes for all getter lambdas."""
@@ -32,8 +31,8 @@ def _make_citation(doc_id="doc-1", chunk_id="chunk-1", quote="test quote", **kwa
 # persist_academic_rag_citations — dedup + skip paths
 # ---------------------------------------------------------------------------
 
-class TestPersistAcademicRagCitations:
 
+class TestPersistAcademicRagCitations:
     @pytest.mark.asyncio
     async def test_empty_list_returns_zero(self):
         """Line 133-134: empty citations => return 0."""
@@ -75,7 +74,9 @@ class TestPersistAcademicRagCitations:
 
         c1 = _make_citation(doc_id="doc-1", chunk_id="chunk-1")
 
-        with patch.object(svc, "_find_existing", AsyncMock(return_value={("doc-1", "chunk-1")})):
+        with patch.object(
+            svc, "_find_existing", AsyncMock(return_value={("doc-1", "chunk-1")})
+        ):
             count = await svc.persist_academic_rag_citations([c1], query="")
             assert count == 0
 
@@ -112,8 +113,12 @@ class TestPersistAcademicRagCitations:
         c = _make_citation(doc_id="doc-1", chunk_id="chunk-1", quote="test quote")
 
         with patch.object(svc, "_find_existing", AsyncMock(return_value=set())):
-            with patch.object(svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")):
-                count = await svc.persist_academic_rag_citations([c], query="test query")
+            with patch.object(
+                svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")
+            ):
+                count = await svc.persist_academic_rag_citations(
+                    [c], query="test query"
+                )
                 assert count == 1
 
     @pytest.mark.asyncio
@@ -132,12 +137,16 @@ class TestPersistAcademicRagCitations:
 
         svc = CitationPersistenceService(session, creator_id=str(uuid4()))
         c = _make_citation(
-            doc_id="doc-1", chunk_id="chunk-1", quote="test quote",
+            doc_id="doc-1",
+            chunk_id="chunk-1",
+            quote="test quote",
             version_id="version-withdrawn",
         )
 
         with patch.object(svc, "_find_existing", AsyncMock(return_value=set())):
-            with patch.object(svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")):
+            with patch.object(
+                svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")
+            ):
                 with pytest.raises(RuntimeError, match="withdrawn"):
                     await svc.persist_academic_rag_citations([c], query="")
 
@@ -163,8 +172,8 @@ class TestPersistAcademicRagCitations:
 # _find_existing — note JSON parsing edge cases
 # ---------------------------------------------------------------------------
 
-class TestFindExisting:
 
+class TestFindExisting:
     @pytest.mark.asyncio
     async def test_empty_chunk_ids_returns_empty_set(self):
         """Line 300-301: no chunk_ids in citations => return empty set."""
@@ -278,8 +287,8 @@ class TestFindExisting:
 # _resolve_source_ref
 # ---------------------------------------------------------------------------
 
-class TestResolveSourceRef:
 
+class TestResolveSourceRef:
     @pytest.mark.asyncio
     async def test_url_match_returns_source_ref_id(self):
         """Lines 346-355: match by URL."""
@@ -337,8 +346,8 @@ class TestResolveSourceRef:
 # persist_evidence_rag_citations
 # ---------------------------------------------------------------------------
 
-class TestPersistEvidenceRagCitations:
 
+class TestPersistEvidenceRagCitations:
     @pytest.mark.asyncio
     async def test_empty_list_returns_zero(self):
         session = AsyncMock()
@@ -364,7 +373,9 @@ class TestPersistEvidenceRagCitations:
         c.source_url = "https://ctext.org/foo"
 
         with patch.object(svc, "_find_existing", AsyncMock(return_value=set())):
-            with patch.object(svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")):
+            with patch.object(
+                svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")
+            ):
                 count = await svc.persist_evidence_rag_citations([c], query="")
                 assert count == 1
 
@@ -373,8 +384,8 @@ class TestPersistEvidenceRagCitations:
 # backfill_missing_source_refs
 # ---------------------------------------------------------------------------
 
-class TestBackfillMissingSourceRefs:
 
+class TestBackfillMissingSourceRefs:
     @pytest.mark.asyncio
     async def test_empty_orphans_returns_zero(self):
         """Line 403: no orphan Evidence rows => return 0."""
@@ -504,8 +515,8 @@ class TestBackfillMissingSourceRefs:
 # _truncate
 # ---------------------------------------------------------------------------
 
-class TestTruncate:
 
+class TestTruncate:
     def test_short_string_unchanged(self):
         result = CitationPersistenceService._truncate("hello", 10)
         assert result == "hello"
@@ -531,8 +542,8 @@ class TestTruncate:
 # persist_academic_citations
 # ---------------------------------------------------------------------------
 
-class TestPersistAcademicCitations:
 
+class TestPersistAcademicCitations:
     @pytest.mark.asyncio
     async def test_empty_list_returns_zero(self):
         session = AsyncMock()
@@ -556,6 +567,8 @@ class TestPersistAcademicCitations:
         c.text = "academic citation text"
 
         with patch.object(svc, "_find_existing", AsyncMock(return_value=set())):
-            with patch.object(svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")):
+            with patch.object(
+                svc, "_resolve_source_ref", AsyncMock(return_value="sr-1")
+            ):
                 count = await svc.persist_academic_citations([c], query="")
                 assert count == 1

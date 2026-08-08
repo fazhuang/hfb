@@ -12,7 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-
 # =============================================================================
 # Helpers
 # =============================================================================
@@ -45,34 +44,36 @@ class TestCoreClient:
         from app.services.literature_ingestion.core_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "totalHits": 2,
-            "results": [
-                {
-                    "id": "123",
-                    "title": "Study on Acupuncture",
-                    "authors": [{"name": "Li Si"}, {"name": "Wang Wu"}],
-                    "yearPublished": 2020,
-                    "abstract": "An important study.",
-                    "subjects": ["acupuncture", "TCM"],
-                    "doi": "10.1000/test.1",
-                    "publisher": "Journal of TCM",
-                    "downloadUrl": "https://api.core.ac.uk/v3/download/123/pdf",
-                    "language": {"code": "en"},
-                },
-                {
-                    "id": "456",
-                    "title": "Huangfu Mi Research",
-                    "authors": [],
-                    "yearPublished": 2019,
-                    "abstract": "",
-                    "subjects": [],
-                    "doi": "",
-                    "publisher": "",
-                    "language": {"code": "zh"},
-                },
-            ],
-        })
+        mock_client.get.return_value = _json_response(
+            {
+                "totalHits": 2,
+                "results": [
+                    {
+                        "id": "123",
+                        "title": "Study on Acupuncture",
+                        "authors": [{"name": "Li Si"}, {"name": "Wang Wu"}],
+                        "yearPublished": 2020,
+                        "abstract": "An important study.",
+                        "subjects": ["acupuncture", "TCM"],
+                        "doi": "10.1000/test.1",
+                        "publisher": "Journal of TCM",
+                        "downloadUrl": "https://api.core.ac.uk/v3/download/123/pdf",
+                        "language": {"code": "en"},
+                    },
+                    {
+                        "id": "456",
+                        "title": "Huangfu Mi Research",
+                        "authors": [],
+                        "yearPublished": 2019,
+                        "abstract": "",
+                        "subjects": [],
+                        "doi": "",
+                        "publisher": "",
+                        "language": {"code": "zh"},
+                    },
+                ],
+            }
+        )
 
         items, total = await search("acupuncture", http_client=mock_client)
 
@@ -129,19 +130,21 @@ class TestCoreClient:
         from app.services.literature_ingestion.core_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "totalHits": 1,
-            "results": [
-                {
-                    "id": "999",
-                    "title": "Minimal Paper",
-                    "yearPublished": None,
-                    "abstract": "",
-                    "publisher": "",
-                    "language": "en",  # string not dict — edge case
-                }
-            ],
-        })
+        mock_client.get.return_value = _json_response(
+            {
+                "totalHits": 1,
+                "results": [
+                    {
+                        "id": "999",
+                        "title": "Minimal Paper",
+                        "yearPublished": None,
+                        "abstract": "",
+                        "publisher": "",
+                        "language": "en",  # string not dict — edge case
+                    }
+                ],
+            }
+        )
 
         items, total = await search("minimal", http_client=mock_client)
         assert len(items) == 1
@@ -175,9 +178,13 @@ class TestCoreClient:
         """When no http_client is passed, the function creates its own and closes it."""
         from app.services.literature_ingestion.core_client import search
 
-        with patch("app.services.literature_ingestion.core_client._http_client") as mock_factory:
+        with patch(
+            "app.services.literature_ingestion.core_client._http_client"
+        ) as mock_factory:
             mock_client = AsyncMock()
-            mock_client.get.return_value = _json_response({"totalHits": 0, "results": []})
+            mock_client.get.return_value = _json_response(
+                {"totalHits": 0, "results": []}
+            )
             mock_factory.return_value = mock_client
 
             items, total = await search("test")
@@ -198,30 +205,32 @@ class TestCrossrefClient:
         from app.services.literature_ingestion.crossref_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "message": {
-                "total-results": 1,
-                "items": [
-                    {
-                        "DOI": "10.1000/cr.test",
-                        "title": ["Crossref Test Paper"],
-                        "author": [
-                            {"given": "Si", "family": "Li"},
-                            {"given": "Wu", "family": "Wang"},
-                        ],
-                        "published-print": {"date-parts": [[2021, 3, 15]]},
-                        "abstract": "<jats:p>An abstract with</jats:p><jats:p>structured content.</jats:p>",
-                        "subject": ["Medicine", "History"],
-                        "container-title": ["Journal of Medical History"],
-                        "license": [
-                            {"URL": "http://creativecommons.org/licenses/by/4.0/"}
-                        ],
-                        "language": "en",
-                        "URL": "https://example.com/fallback",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "message": {
+                    "total-results": 1,
+                    "items": [
+                        {
+                            "DOI": "10.1000/cr.test",
+                            "title": ["Crossref Test Paper"],
+                            "author": [
+                                {"given": "Si", "family": "Li"},
+                                {"given": "Wu", "family": "Wang"},
+                            ],
+                            "published-print": {"date-parts": [[2021, 3, 15]]},
+                            "abstract": "<jats:p>An abstract with</jats:p><jats:p>structured content.</jats:p>",
+                            "subject": ["Medicine", "History"],
+                            "container-title": ["Journal of Medical History"],
+                            "license": [
+                                {"URL": "http://creativecommons.org/licenses/by/4.0/"}
+                            ],
+                            "language": "en",
+                            "URL": "https://example.com/fallback",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("test", http_client=mock_client)
 
@@ -244,9 +253,9 @@ class TestCrossrefClient:
         from app.services.literature_ingestion.crossref_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "message": {"total-results": 0, "items": []}
-        })
+        mock_client.get.return_value = _json_response(
+            {"message": {"total-results": 0, "items": []}}
+        )
 
         items, total = await search("nonexistent", http_client=mock_client)
         assert total == 0
@@ -278,20 +287,22 @@ class TestCrossrefClient:
         from app.services.literature_ingestion.crossref_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "message": {
-                "total-results": 1,
-                "items": [
-                    {
-                        "title": ["No DOI Paper"],
-                        "URL": "https://example.com/no-doi",
-                        "author": [],
-                        "abstract": "",
-                        "language": "en",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "message": {
+                    "total-results": 1,
+                    "items": [
+                        {
+                            "title": ["No DOI Paper"],
+                            "URL": "https://example.com/no-doi",
+                            "author": [],
+                            "abstract": "",
+                            "language": "en",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("test", http_client=mock_client)
         assert len(items) == 1
@@ -353,21 +364,23 @@ class TestCrossrefClient:
         from app.services.literature_ingestion.crossref_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "message": {
-                "total-results": 1,
-                "items": [
-                    {
-                        "title": ["Fallback Year Paper"],
-                        "URL": "https://example.com/fallback",
-                        "created": {"date-parts": [[2019, 6, 1]]},
-                        "author": [],
-                        "abstract": "",
-                        "language": "en",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "message": {
+                    "total-results": 1,
+                    "items": [
+                        {
+                            "title": ["Fallback Year Paper"],
+                            "URL": "https://example.com/fallback",
+                            "created": {"date-parts": [[2019, 6, 1]]},
+                            "author": [],
+                            "abstract": "",
+                            "language": "en",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("test", http_client=mock_client)
         assert items[0].year == 2019
@@ -384,24 +397,26 @@ class TestInternetArchiveClient:
         from app.services.literature_ingestion.internet_archive_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "response": {
-                "numFound": 1,
-                "docs": [
-                    {
-                        "identifier": "test-item-001",
-                        "title": "Classic Chinese Medicine Text",
-                        "creator": ["Author One", "Author Two"],
-                        "year": "1923",
-                        "description": ["A scanned ancient text."],
-                        "subject": ["Medicine, Chinese Traditional"],
-                        "language": "zh",
-                        "doi": "10.1000/ia.test",
-                        "licenseurl": "http://creativecommons.org/publicdomain/zero/1.0/",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "response": {
+                    "numFound": 1,
+                    "docs": [
+                        {
+                            "identifier": "test-item-001",
+                            "title": "Classic Chinese Medicine Text",
+                            "creator": ["Author One", "Author Two"],
+                            "year": "1923",
+                            "description": ["A scanned ancient text."],
+                            "subject": ["Medicine, Chinese Traditional"],
+                            "language": "zh",
+                            "doi": "10.1000/ia.test",
+                            "licenseurl": "http://creativecommons.org/publicdomain/zero/1.0/",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("Chinese medicine", http_client=mock_client)
 
@@ -421,9 +436,9 @@ class TestInternetArchiveClient:
         from app.services.literature_ingestion.internet_archive_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "response": {"numFound": 0, "docs": []}
-        })
+        mock_client.get.return_value = _json_response(
+            {"response": {"numFound": 0, "docs": []}}
+        )
 
         items, total = await search("nonexistent", http_client=mock_client)
         assert total == 0
@@ -455,19 +470,21 @@ class TestInternetArchiveClient:
         from app.services.literature_ingestion.internet_archive_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "response": {
-                "numFound": 1,
-                "docs": [
-                    {
-                        "title": "No ID Item",
-                        "creator": [],
-                        "description": [],
-                        "language": "en",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "response": {
+                    "numFound": 1,
+                    "docs": [
+                        {
+                            "title": "No ID Item",
+                            "creator": [],
+                            "description": [],
+                            "language": "en",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("test", http_client=mock_client)
         assert total == 1
@@ -475,20 +492,26 @@ class TestInternetArchiveClient:
 
     @pytest.mark.asyncio
     async def test_extract_doi_from_doi_field(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         assert _extract_doi({"doi": "10.1234/foo"}) == "10.1234/foo"
 
     @pytest.mark.asyncio
     async def test_extract_doi_from_identifier_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         doc = {"identifier": ["not-a-doi", "10.5678/from-list"]}
         assert _extract_doi(doc) == "10.5678/from-list"
 
     @pytest.mark.asyncio
     async def test_extract_doi_no_match(self):
-        from app.services.literature_ingestion.internet_archive_client import _extract_doi
+        from app.services.literature_ingestion.internet_archive_client import (
+            _extract_doi,
+        )
 
         assert _extract_doi({}) == ""
         assert _extract_doi({"doi": "not-a-doi-prefix"}) == ""
@@ -506,44 +529,64 @@ class TestInternetArchiveClient:
     async def test_is_ia_oa_cc_license(self):
         from app.services.literature_ingestion.internet_archive_client import _is_ia_oa
 
-        assert _is_ia_oa({"licenseurl": "http://creativecommons.org/licenses/by/4.0/"}) is True
-        assert _is_ia_oa({"licenseurl": "http://creativecommons.org/publicdomain/zero/1.0/"}) is True
+        assert (
+            _is_ia_oa({"licenseurl": "http://creativecommons.org/licenses/by/4.0/"})
+            is True
+        )
+        assert (
+            _is_ia_oa(
+                {"licenseurl": "http://creativecommons.org/publicdomain/zero/1.0/"}
+            )
+            is True
+        )
         assert _is_ia_oa({"licenseurl": "https://example.com/cc0-waiver"}) is True
 
     @pytest.mark.asyncio
     async def test_first_lang_string(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({"language": "eng"}) == "eng"
         assert _first_lang({"language": "zh-Hans"}) == "zh-Ha"
 
     @pytest.mark.asyncio
     async def test_first_lang_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({"language": ["eng", "fra"]}) == "eng"
 
     @pytest.mark.asyncio
     async def test_first_lang_missing(self):
-        from app.services.literature_ingestion.internet_archive_client import _first_lang
+        from app.services.literature_ingestion.internet_archive_client import (
+            _first_lang,
+        )
 
         assert _first_lang({}) == "en"
 
     @pytest.mark.asyncio
     async def test_join_creators_string(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators("Single Author") == "Single Author"
 
     @pytest.mark.asyncio
     async def test_join_creators_list(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators(["A", "B"]) == "A, B"
 
     @pytest.mark.asyncio
     async def test_join_creators_none(self):
-        from app.services.literature_ingestion.internet_archive_client import _join_creators
+        from app.services.literature_ingestion.internet_archive_client import (
+            _join_creators,
+        )
 
         assert _join_creators(None) == ""
 
@@ -559,33 +602,38 @@ class TestOpenAlexClient:
         from app.services.literature_ingestion.openalex_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "meta": {"count": 1},
-            "results": [
-                {
-                    "id": "https://openalex.org/W12345",
-                    "title": "Acupuncture Mechanisms",
-                    "authorships": [
-                        {"author": {"display_name": "Li Si"}},
-                        {"author": {"display_name": "Wang Wu"}},
-                    ],
-                    "publication_year": 2022,
-                    "abstract_inverted_index": {
-                        "This": [0], "study": [1], "examines": [2], "pain": [3]
-                    },
-                    "concepts": [
-                        {"display_name": "Medicine"},
-                        {"display_name": "Acupuncture"},
-                    ],
-                    "doi": "https://doi.org/10.1000/oa.test",
-                    "primary_location": {
-                        "source": {"display_name": "Pain Research Journal"}
-                    },
-                    "open_access": {"is_oa": True},
-                    "language": "en",
-                }
-            ],
-        })
+        mock_client.get.return_value = _json_response(
+            {
+                "meta": {"count": 1},
+                "results": [
+                    {
+                        "id": "https://openalex.org/W12345",
+                        "title": "Acupuncture Mechanisms",
+                        "authorships": [
+                            {"author": {"display_name": "Li Si"}},
+                            {"author": {"display_name": "Wang Wu"}},
+                        ],
+                        "publication_year": 2022,
+                        "abstract_inverted_index": {
+                            "This": [0],
+                            "study": [1],
+                            "examines": [2],
+                            "pain": [3],
+                        },
+                        "concepts": [
+                            {"display_name": "Medicine"},
+                            {"display_name": "Acupuncture"},
+                        ],
+                        "doi": "https://doi.org/10.1000/oa.test",
+                        "primary_location": {
+                            "source": {"display_name": "Pain Research Journal"}
+                        },
+                        "open_access": {"is_oa": True},
+                        "language": "en",
+                    }
+                ],
+            }
+        )
 
         items, total = await search("acupuncture", http_client=mock_client)
 
@@ -606,9 +654,9 @@ class TestOpenAlexClient:
         from app.services.literature_ingestion.openalex_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "meta": {"count": 0}, "results": []
-        })
+        mock_client.get.return_value = _json_response(
+            {"meta": {"count": 0}, "results": []}
+        )
 
         items, total = await search("nonexistent", http_client=mock_client)
         assert total == 0
@@ -656,19 +704,21 @@ class TestOpenAlexClient:
         # First call: 403, second call: 200 with valid data
         mock_client.get.side_effect = [
             _json_response({}, status=403),
-            _json_response({
-                "meta": {"count": 1},
-                "results": [
-                    {
-                        "id": "https://openalex.org/W999",
-                        "title": "Retry Success Paper",
-                        "authorships": [],
-                        "abstract_inverted_index": {},
-                        "open_access": {"is_oa": False},
-                        "language": "en",
-                    }
-                ],
-            }),
+            _json_response(
+                {
+                    "meta": {"count": 1},
+                    "results": [
+                        {
+                            "id": "https://openalex.org/W999",
+                            "title": "Retry Success Paper",
+                            "authorships": [],
+                            "abstract_inverted_index": {},
+                            "open_access": {"is_oa": False},
+                            "language": "en",
+                        }
+                    ],
+                }
+            ),
         ]
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -700,19 +750,21 @@ class TestOpenAlexClient:
         mock_client = AsyncMock()
         mock_client.get.side_effect = [
             httpx.ConnectError("timeout"),
-            _json_response({
-                "meta": {"count": 1},
-                "results": [
-                    {
-                        "id": "https://openalex.org/W888",
-                        "title": "Recovered Paper",
-                        "authorships": [],
-                        "abstract_inverted_index": {},
-                        "open_access": {"is_oa": False},
-                        "language": "en",
-                    }
-                ],
-            }),
+            _json_response(
+                {
+                    "meta": {"count": 1},
+                    "results": [
+                        {
+                            "id": "https://openalex.org/W888",
+                            "title": "Recovered Paper",
+                            "authorships": [],
+                            "abstract_inverted_index": {},
+                            "open_access": {"is_oa": False},
+                            "language": "en",
+                        }
+                    ],
+                }
+            ),
         ]
 
         with patch("asyncio.sleep", new_callable=AsyncMock):
@@ -782,25 +834,27 @@ class TestPubMedClient:
         from app.services.literature_ingestion.pubmed_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "resultList": {
-                "hitCount": 1,
-                "result": [
-                    {
-                        "id": "12345",
-                        "title": "Huangfu Mi and the Jiayi Jing",
-                        "authorString": "Zhang S, Liu W",
-                        "pubYear": "2018",
-                        "abstractText": "A study on the earliest acupuncture classic.",
-                        "keywordList": {"keyword": ["Acupuncture", "History"]},
-                        "doi": "10.1000/pm.test",
-                        "journalTitle": "Chinese Medicine Journal",
-                        "language": "en",
-                        "isOpenAccess": "Y",
-                    }
-                ],
+        mock_client.get.return_value = _json_response(
+            {
+                "resultList": {
+                    "hitCount": 1,
+                    "result": [
+                        {
+                            "id": "12345",
+                            "title": "Huangfu Mi and the Jiayi Jing",
+                            "authorString": "Zhang S, Liu W",
+                            "pubYear": "2018",
+                            "abstractText": "A study on the earliest acupuncture classic.",
+                            "keywordList": {"keyword": ["Acupuncture", "History"]},
+                            "doi": "10.1000/pm.test",
+                            "journalTitle": "Chinese Medicine Journal",
+                            "language": "en",
+                            "isOpenAccess": "Y",
+                        }
+                    ],
+                }
             }
-        })
+        )
 
         items, total = await search("Huangfu Mi", http_client=mock_client)
 
@@ -821,9 +875,9 @@ class TestPubMedClient:
         from app.services.literature_ingestion.pubmed_client import search
 
         mock_client = AsyncMock()
-        mock_client.get.return_value = _json_response({
-            "resultList": {"hitCount": 0, "result": []}
-        })
+        mock_client.get.return_value = _json_response(
+            {"resultList": {"hitCount": 0, "result": []}}
+        )
 
         items, total = await search("nonexistent", http_client=mock_client)
         assert total == 0
@@ -916,9 +970,7 @@ class TestPubMedClient:
 
         # PubMed returns empty results
         esearch_resp = MagicMock()
-        esearch_resp.json.return_value = {
-            "esearchresult": {"idlist": [], "count": "0"}
-        }
+        esearch_resp.json.return_value = {"esearchresult": {"idlist": [], "count": "0"}}
         esearch_resp.raise_for_status.return_value = None
 
         mock_client.get.side_effect = [bad_resp, esearch_resp]

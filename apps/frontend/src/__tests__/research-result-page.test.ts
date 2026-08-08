@@ -1216,8 +1216,7 @@ describe('ResearchResultPage', () => {
       // Markdown still has doc-01 first, so doc-01 = [1], doc-02 = [2] regardless.
       const reversedRun = makeRun({
         output_artifacts: {
-          markdown:
-            '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
+          markdown: '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
           title: 'Report',
           citations: [
             {
@@ -1290,9 +1289,7 @@ describe('ResearchResultPage', () => {
 
       // Panel item 0 holds doc-02 (second in markdown → #[2])
       // Panel item 1 holds doc-01 (first in markdown → #[1])
-      const itemNums = panelItems.map((item) =>
-        item.find('.rcp-citation-number').text(),
-      );
+      const itemNums = panelItems.map((item) => item.find('.rcp-citation-number').text());
       expect(itemNums).toContain('#[2]');
       expect(itemNums).toContain('#[1]');
       // Neither should be '?' (unmapped)
@@ -1306,8 +1303,18 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nOnly ref [doc-01:chk-01].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Q1' },
-            { trace_id: 'doc-orphan:chk', citation_text: '[doc-orphan:chk]', document_id: 'doc-orphan', quote: 'Orphan' },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Q1',
+            },
+            {
+              trace_id: 'doc-orphan:chk',
+              citation_text: '[doc-orphan:chk]',
+              document_id: 'doc-orphan',
+              quote: 'Orphan',
+            },
           ],
         },
         replay_manifest: {
@@ -1342,9 +1349,7 @@ describe('ResearchResultPage', () => {
       const panelItems = wrapper.findAll('.rcp-citation-item');
       expect(panelItems.length).toBe(2);
 
-      const itemNums = panelItems.map((item) =>
-        item.find('.rcp-citation-number').text(),
-      );
+      const itemNums = panelItems.map((item) => item.find('.rcp-citation-number').text());
       // doc-01 appears in markdown → #[1]
       // doc-orphan never appears → #[?]
       expect(itemNums).toContain('#[1]');
@@ -1401,22 +1406,57 @@ describe('ResearchResultPage', () => {
     it('C1-2b.3: full chain survives reversed citationList order', async () => {
       const reversedRun = makeRun({
         output_artifacts: {
-          markdown:
-            '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
+          markdown: '# Report\n\nFirst ref [doc-01:chk-01]. Second ref [doc-02:chk-02].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-02:chk-02', citation_text: '[doc-02:chk-02]', document_id: 'doc-02', quote: 'Q2' },
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: '经络者，所以行血气' },
+            {
+              trace_id: 'doc-02:chk-02',
+              citation_text: '[doc-02:chk-02]',
+              document_id: 'doc-02',
+              quote: 'Q2',
+            },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: '经络者，所以行血气',
+            },
           ],
         },
         replay_manifest: {
           retrieval_snapshot: [
-            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', claim_text: 'C1', quote: '经络者，所以行血气', citation_text: '[doc-01:chk-01]', source_ref_title: '针灸甲乙经' },
-            { trace_id: 'doc-02:chk-02', document_id: 'doc-02', chunk_id: 'chk-02', claim_text: 'C2', quote: '刺之要，气至而有效', citation_text: '[doc-02:chk-02]', source_ref_title: '黄帝内经' },
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              claim_text: 'C1',
+              quote: '经络者，所以行血气',
+              citation_text: '[doc-01:chk-01]',
+              source_ref_title: '针灸甲乙经',
+            },
+            {
+              trace_id: 'doc-02:chk-02',
+              document_id: 'doc-02',
+              chunk_id: 'chk-02',
+              claim_text: 'C2',
+              quote: '刺之要，气至而有效',
+              citation_text: '[doc-02:chk-02]',
+              source_ref_title: '黄帝内经',
+            },
           ],
           traces: [
-            { trace_id: 'doc-01:chk-01', document_id: 'doc-01', chunk_id: 'chk-01', passage_id: 'passage-001' },
-            { trace_id: 'doc-02:chk-02', document_id: 'doc-02', chunk_id: 'chk-02', passage_id: 'passage-002' },
+            {
+              trace_id: 'doc-01:chk-01',
+              document_id: 'doc-01',
+              chunk_id: 'chk-01',
+              passage_id: 'passage-001',
+            },
+            {
+              trace_id: 'doc-02:chk-02',
+              document_id: 'doc-02',
+              chunk_id: 'chk-02',
+              passage_id: 'passage-002',
+            },
           ],
         },
       });
@@ -1453,7 +1493,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nRef [doc-01:chk-01].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-01:chk-01', citation_text: '[doc-01:chk-01]', document_id: 'doc-01', quote: 'Q' },
+            {
+              trace_id: 'doc-01:chk-01',
+              citation_text: '[doc-01:chk-01]',
+              document_id: 'doc-01',
+              quote: 'Q',
+            },
           ],
         },
         replay_manifest: {
@@ -1481,7 +1526,12 @@ describe('ResearchResultPage', () => {
           markdown: '# Report\n\nRef [doc-03:chk-03].',
           title: 'Report',
           citations: [
-            { trace_id: 'doc-03:chk-03', citation_text: '[doc-03:chk-03]', document_id: 'doc-03', quote: 'Q3' },
+            {
+              trace_id: 'doc-03:chk-03',
+              citation_text: '[doc-03:chk-03]',
+              document_id: 'doc-03',
+              quote: 'Q3',
+            },
           ],
         },
         replay_manifest: {

@@ -21,7 +21,10 @@ const FIXTURE = 'http://127.0.0.1:5173/src/e2e/fixtures/b3-2-input-select-fixtur
 test.describe('B3-2 HfbInput — States & Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="input-normal"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="input-normal"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('label is linked to input via for/id', async ({ page }) => {
@@ -50,7 +53,9 @@ test.describe('B3-2 HfbInput — States & Accessibility', () => {
     await expect(input).toBeDisabled();
   });
 
-  test('clearable: clear button has aria-label "Clear input" and clears value', async ({ page }) => {
+  test('clearable: clear button has aria-label "Clear input" and clears value', async ({
+    page,
+  }) => {
     const container = page.locator('[data-testid="input-clearable"]');
     const input = container.locator('input');
     await expect(input).toHaveValue('text');
@@ -72,7 +77,10 @@ test.describe('B3-2 HfbInput — States & Accessibility', () => {
 test.describe('B3-2 HfbSelect — States & Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="select-normal"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="select-normal"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('trigger has aria-expanded="false" when closed, "true" when open', async ({ page }) => {
@@ -118,10 +126,9 @@ test.describe('B3-2 HfbSelect — States & Accessibility', () => {
     });
 
     // Wait for Vue to process the event and close the menu (v-if="open")
-    await page.waitForFunction(
-      () => document.querySelector('.hfb-select__menu') === null,
-      { timeout: 5_000 },
-    );
+    await page.waitForFunction(() => document.querySelector('.hfb-select__menu') === null, {
+      timeout: 5_000,
+    });
 
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
@@ -131,7 +138,10 @@ test.describe('B3-2 HfbSelect — States & Accessibility', () => {
     await expect(trigger).toBeDisabled();
 
     await trigger.click({ force: true });
-    const menuVisible = await page.locator('.hfb-select__menu').isVisible().catch(() => false);
+    const menuVisible = await page
+      .locator('.hfb-select__menu')
+      .isVisible()
+      .catch(() => false);
     expect(menuVisible).toBe(false);
   });
 

@@ -8,19 +8,15 @@ All YAML content is constructed via tmp_path — no real files read.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 import yaml
-
 from app.services.source_whitelist import (
     SourcePolicyEntry,
     SourceWhitelist,
     get_whitelist,
 )
-
 
 # =============================================================================
 # Helpers
@@ -53,14 +49,16 @@ def _clear_cache():
 
 class TestSourcePolicyEntry:
     def test_all_fields_explicit(self):
-        entry = SourcePolicyEntry({
-            "name": "OpenAlex",
-            "domain": "openalex.org",
-            "category": "A",
-            "metadata_allowed": True,
-            "fulltext_allowed": True,
-            "requires_manual_review": False,
-        })
+        entry = SourcePolicyEntry(
+            {
+                "name": "OpenAlex",
+                "domain": "openalex.org",
+                "category": "A",
+                "metadata_allowed": True,
+                "fulltext_allowed": True,
+                "requires_manual_review": False,
+            }
+        )
         assert entry.name == "OpenAlex"
         assert entry.domain == "openalex.org"
         assert entry.category == "A"
@@ -70,23 +68,27 @@ class TestSourcePolicyEntry:
 
     def test_defaults_false(self):
         """Omitted boolean fields default to False."""
-        entry = SourcePolicyEntry({
-            "name": "Unknown Source",
-            "domain": "example.com",
-            "category": "B",
-        })
+        entry = SourcePolicyEntry(
+            {
+                "name": "Unknown Source",
+                "domain": "example.com",
+                "category": "B",
+            }
+        )
         assert entry.metadata_allowed is False
         assert entry.fulltext_allowed is False
         assert entry.requires_manual_review is False
 
     def test_partial_overrides(self):
         """metadata_allowed overridden but fulltext_allowed defaulted."""
-        entry = SourcePolicyEntry({
-            "name": "CNKI",
-            "domain": "cnki.net",
-            "category": "B",
-            "metadata_allowed": True,
-        })
+        entry = SourcePolicyEntry(
+            {
+                "name": "CNKI",
+                "domain": "cnki.net",
+                "category": "B",
+                "metadata_allowed": True,
+            }
+        )
         assert entry.metadata_allowed is True
         assert entry.fulltext_allowed is False
 
@@ -120,30 +122,54 @@ class TestNormalize:
 
 class TestLookup:
     def test_hit_exact_name(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
+                ]
+            }
+        )
         entry = wl.lookup("OpenAlex")
         assert entry is not None
         assert entry.name == "OpenAlex"
 
     def test_hit_case_insensitive(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
+                ]
+            }
+        )
         assert wl.lookup("openalex") is not None
         assert wl.lookup("OPENALEX") is not None
 
     def test_hit_underscore_equivalent(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "Internet Archive", "domain": "archive.org", "category": "A"}
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "Internet Archive",
+                        "domain": "archive.org",
+                        "category": "A",
+                    }
+                ]
+            }
+        )
         assert wl.lookup("internet_archive") is not None
 
     def test_miss_unlisted_source(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "PubMed", "domain": "pubmed.ncbi.nlm.nih.gov", "category": "A"}
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "PubMed",
+                        "domain": "pubmed.ncbi.nlm.nih.gov",
+                        "category": "A",
+                    }
+                ]
+            }
+        )
         assert wl.lookup("SciHub") is None
 
     def test_miss_empty_sources(self):
@@ -152,9 +178,13 @@ class TestLookup:
 
     def test_whitespace_insensitive(self):
         """Extra spaces on either side don't matter for lookup."""
-        wl = SourceWhitelist({"sources": [
-            {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {"name": "OpenAlex", "domain": "openalex.org", "category": "A"}
+                ]
+            }
+        )
         # Normalization strips spaces from name, not from argument.
         # Argument "openalex" matches "openalex" (lowered) — and " OpenAlex "
         # lowered and space-collapsed becomes " openalex " which is NOT "openalex".
@@ -174,27 +204,36 @@ class TestLookup:
 class TestDefaultDeny:
     def test_unlisted_source_denied_by_default_policy(self):
         """Default policy metadata_allowed=false → unlisted sources denied."""
-        wl = SourceWhitelist({
-            "sources": [],
-            "default_policy": {"metadata_allowed": False, "fulltext_allowed": False},
-        })
+        wl = SourceWhitelist(
+            {
+                "sources": [],
+                "default_policy": {
+                    "metadata_allowed": False,
+                    "fulltext_allowed": False,
+                },
+            }
+        )
         assert wl.is_source_allowed("unknown", metadata=True) is False
         assert wl.is_source_allowed("unknown", metadata=False) is False
 
     def test_unlisted_source_allowed_when_default_true(self):
         """When default policy allows, unlisted sources inherit that."""
-        wl = SourceWhitelist({
-            "sources": [],
-            "default_policy": {"metadata_allowed": True, "fulltext_allowed": False},
-        })
+        wl = SourceWhitelist(
+            {
+                "sources": [],
+                "default_policy": {"metadata_allowed": True, "fulltext_allowed": False},
+            }
+        )
         assert wl.is_source_allowed("unknown", metadata=True) is True
         assert wl.is_source_allowed("unknown", metadata=False) is False
 
     def test_unlisted_fulltext_denied_even_when_metadata_allowed(self):
-        wl = SourceWhitelist({
-            "sources": [],
-            "default_policy": {"metadata_allowed": True, "fulltext_allowed": False},
-        })
+        wl = SourceWhitelist(
+            {
+                "sources": [],
+                "default_policy": {"metadata_allowed": True, "fulltext_allowed": False},
+            }
+        )
         assert wl.is_source_allowed("unknown", metadata=True) is True
         assert wl.is_source_allowed("unknown", metadata=False) is False
 
@@ -212,25 +251,52 @@ class TestDefaultDeny:
 
 class TestCategoryDRejection:
     def test_d_category_always_rejected_metadata(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "SciHub", "domain": "sci-hub.se", "category": "D",
-             "metadata_allowed": True, "fulltext_allowed": True},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "SciHub",
+                        "domain": "sci-hub.se",
+                        "category": "D",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("SciHub", metadata=True) is False
 
     def test_d_category_always_rejected_fulltext(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "SciHub", "domain": "sci-hub.se", "category": "D",
-             "metadata_allowed": True, "fulltext_allowed": True},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "SciHub",
+                        "domain": "sci-hub.se",
+                        "category": "D",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("SciHub", metadata=False) is False
 
     def test_d_category_rejected_even_with_true_flags(self):
         """Even if metadata_allowed=True on the entry, D category overrides."""
-        wl = SourceWhitelist({"sources": [
-            {"name": "PirateBay", "domain": "*.se", "category": "D",
-             "metadata_allowed": True, "fulltext_allowed": False},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "PirateBay",
+                        "domain": "*.se",
+                        "category": "D",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("PirateBay", metadata=True) is False
 
 
@@ -241,27 +307,54 @@ class TestCategoryDRejection:
 
 class TestAllowedCombinations:
     def test_category_a_full_access(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "OpenAlex", "domain": "openalex.org", "category": "A",
-             "metadata_allowed": True, "fulltext_allowed": True},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "OpenAlex",
+                        "domain": "openalex.org",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("OpenAlex", metadata=True) is True
         assert wl.is_source_allowed("OpenAlex", metadata=False) is True
 
     def test_category_b_metadata_only(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "CNKI", "domain": "cnki.net", "category": "B",
-             "metadata_allowed": True, "fulltext_allowed": False},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "CNKI",
+                        "domain": "cnki.net",
+                        "category": "B",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("CNKI", metadata=True) is True
         assert wl.is_source_allowed("CNKI", metadata=False) is False
 
     def test_category_c_metadata_with_review(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "Forum", "domain": "*", "category": "C",
-             "metadata_allowed": True, "fulltext_allowed": False,
-             "requires_manual_review": True},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "Forum",
+                        "domain": "*",
+                        "category": "C",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                        "requires_manual_review": True,
+                    },
+                ]
+            }
+        )
         assert wl.is_source_allowed("Forum", metadata=True) is True
         assert wl.is_source_allowed("Forum", metadata=False) is False
 
@@ -273,16 +366,40 @@ class TestAllowedCombinations:
 
 class TestAllowedSources:
     def test_returns_only_non_d_with_metadata(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "OpenAlex", "domain": "openalex.org", "category": "A",
-             "metadata_allowed": True, "fulltext_allowed": True},
-            {"name": "CNKI", "domain": "cnki.net", "category": "B",
-             "metadata_allowed": True, "fulltext_allowed": False},
-            {"name": "SciHub", "domain": "sci-hub.se", "category": "D",
-             "metadata_allowed": False, "fulltext_allowed": False},
-            {"name": "NoMetaSource", "domain": "example.com", "category": "A",
-             "metadata_allowed": False, "fulltext_allowed": True},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "OpenAlex",
+                        "domain": "openalex.org",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                    {
+                        "name": "CNKI",
+                        "domain": "cnki.net",
+                        "category": "B",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                    {
+                        "name": "SciHub",
+                        "domain": "sci-hub.se",
+                        "category": "D",
+                        "metadata_allowed": False,
+                        "fulltext_allowed": False,
+                    },
+                    {
+                        "name": "NoMetaSource",
+                        "domain": "example.com",
+                        "category": "A",
+                        "metadata_allowed": False,
+                        "fulltext_allowed": True,
+                    },
+                ]
+            }
+        )
         names = wl.allowed_sources()
         assert "OpenAlex" in names
         assert "CNKI" in names
@@ -294,10 +411,19 @@ class TestAllowedSources:
         assert wl.allowed_sources() == []
 
     def test_all_d_category_returns_empty(self):
-        wl = SourceWhitelist({"sources": [
-            {"name": "Pirate", "domain": "*", "category": "D",
-             "metadata_allowed": True, "fulltext_allowed": False},
-        ]})
+        wl = SourceWhitelist(
+            {
+                "sources": [
+                    {
+                        "name": "Pirate",
+                        "domain": "*",
+                        "category": "D",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                ]
+            }
+        )
         assert wl.allowed_sources() == []
 
 
@@ -308,12 +434,20 @@ class TestAllowedSources:
 
 class TestGetWhitelistExplicitPath:
     def test_loads_from_explicit_tmp_path(self, tmp_path):
-        yaml_path = _write_yaml(tmp_path / "wl.yaml", {
-            "sources": [
-                {"name": "TestSource", "domain": "test.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
+        yaml_path = _write_yaml(
+            tmp_path / "wl.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "TestSource",
+                        "domain": "test.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
         wl = get_whitelist(config_path=str(yaml_path))
         assert wl.lookup("TestSource") is not None
         assert wl.is_source_allowed("TestSource", metadata=True) is True
@@ -331,12 +465,20 @@ class TestGetWhitelistExplicitPath:
 
 class TestGetWhitelistEnvVar:
     def test_loads_from_env_var(self, tmp_path, monkeypatch):
-        yaml_path = _write_yaml(tmp_path / "env_wl.yaml", {
-            "sources": [
-                {"name": "EnvSource", "domain": "env.example", "category": "B",
-                 "metadata_allowed": True, "fulltext_allowed": False},
-            ],
-        })
+        yaml_path = _write_yaml(
+            tmp_path / "env_wl.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "EnvSource",
+                        "domain": "env.example",
+                        "category": "B",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": False,
+                    },
+                ],
+            },
+        )
         monkeypatch.setenv("SOURCE_WHITELIST_PATH", str(yaml_path))
         wl = get_whitelist()
         assert wl.lookup("EnvSource") is not None
@@ -344,12 +486,20 @@ class TestGetWhitelistEnvVar:
     def test_env_var_takes_priority_over_default(self, tmp_path, monkeypatch):
         """When both config_path and env var are absent, fallback path is used.
         When env var IS set, it takes priority."""
-        yaml_path = _write_yaml(tmp_path / "priority_wl.yaml", {
-            "sources": [
-                {"name": "PrioritySource", "domain": "p.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
+        yaml_path = _write_yaml(
+            tmp_path / "priority_wl.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "PrioritySource",
+                        "domain": "p.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
         monkeypatch.setenv("SOURCE_WHITELIST_PATH", str(yaml_path))
         wl = get_whitelist()
         assert wl.lookup("PrioritySource") is not None
@@ -368,24 +518,40 @@ class TestGetWhitelistEnvVar:
 class TestLRUCacheIsolation:
     def test_cache_returns_same_instance(self, tmp_path):
         """Cached calls return the same SourceWhitelist object."""
-        yaml_path = _write_yaml(tmp_path / "cache_wl.yaml", {
-            "sources": [
-                {"name": "Cached", "domain": "c.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
+        yaml_path = _write_yaml(
+            tmp_path / "cache_wl.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "Cached",
+                        "domain": "c.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
         wl1 = get_whitelist(config_path=str(yaml_path))
         wl2 = get_whitelist(config_path=str(yaml_path))
         assert wl1 is wl2
 
     def test_cache_clear_returns_new_instance(self, tmp_path):
         """After cache clear, a new instance is created."""
-        yaml_path = _write_yaml(tmp_path / "clear_wl.yaml", {
-            "sources": [
-                {"name": "ClearTest", "domain": "cl.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
+        yaml_path = _write_yaml(
+            tmp_path / "clear_wl.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "ClearTest",
+                        "domain": "cl.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
         wl1 = get_whitelist(config_path=str(yaml_path))
         _clear_whitelist_cache()
         wl2 = get_whitelist(config_path=str(yaml_path))
@@ -397,19 +563,35 @@ class TestLRUCacheIsolation:
 
     def test_different_config_path_not_cached_together(self, tmp_path):
         """Different config_path arguments produce different results."""
-        yaml_a = _write_yaml(tmp_path / "a.yaml", {
-            "sources": [
-                {"name": "SourceA", "domain": "a.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
-        yaml_b = _write_yaml(tmp_path / "b.yaml", {
-            "sources": [
-                {"name": "SourceB", "domain": "b.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
-        wl_a = get_whitelist(config_path=str(yaml_a))
+        yaml_a = _write_yaml(
+            tmp_path / "a.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "SourceA",
+                        "domain": "a.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
+        yaml_b = _write_yaml(
+            tmp_path / "b.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "SourceB",
+                        "domain": "b.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
+        get_whitelist(config_path=str(yaml_a))
         # lru_cache(maxsize=1) — second call with different arg evicts first
         _clear_whitelist_cache()
         wl_b = get_whitelist(config_path=str(yaml_b))
@@ -421,11 +603,19 @@ class TestLRUCacheIsolation:
         with pytest.raises(FileNotFoundError):
             get_whitelist(config_path=str(bad))
         # lru_cache doesn't cache exceptions — next call is fresh
-        good = _write_yaml(tmp_path / "good.yaml", {
-            "sources": [
-                {"name": "Good", "domain": "g.example", "category": "A",
-                 "metadata_allowed": True, "fulltext_allowed": True},
-            ],
-        })
+        good = _write_yaml(
+            tmp_path / "good.yaml",
+            {
+                "sources": [
+                    {
+                        "name": "Good",
+                        "domain": "g.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    },
+                ],
+            },
+        )
         wl = get_whitelist(config_path=str(good))
         assert wl.lookup("Good") is not None

@@ -106,45 +106,45 @@ function buildNetwork() {
     props.nodes
       .filter((n) => n && n.id)
       .map((n) => {
-      const colors = TYPE_COLORS[n.entity_type] || DEFAULT_COLOR;
-      const icon = TYPE_ICONS[n.entity_type] || '●';
-      return {
-        id: n.id,
-        label: `${icon} ${n.label}`,
-        title: buildTooltip(n),
-        color: {
-          background: colors.bg,
-          border: colors.border,
-          highlight: { background: colors.highlight, border: colors.border },
-        },
-        font: { size: 13, face: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif' },
-        shape: 'box' as const,
-        borderWidth: 2,
-        margin: { top: 8, right: 12, bottom: 8, left: 12 },
-      };
-    }),
+        const colors = TYPE_COLORS[n.entity_type] || DEFAULT_COLOR;
+        const icon = TYPE_ICONS[n.entity_type] || '●';
+        return {
+          id: n.id,
+          label: `${icon} ${n.label}`,
+          title: buildTooltip(n),
+          color: {
+            background: colors.bg,
+            border: colors.border,
+            highlight: { background: colors.highlight, border: colors.border },
+          },
+          font: { size: 13, face: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif' },
+          shape: 'box' as const,
+          borderWidth: 2,
+          margin: { top: 8, right: 12, bottom: 8, left: 12 },
+        };
+      }),
   );
 
   const visEdges = new DataSet(
     props.edges
       .filter((e) => e && e.id && e.source_id && e.target_id)
       .map((e) => ({
-      id: e.id,
-      from: e.source_id,
-      to: e.target_id,
-      label: e.label,
-      title: `${e.label} (${e.source})`,
-      arrows: 'to',
-      font: {
-        size: 10,
-        color: 'var(--color-text-secondary)',
-        strokeWidth: 0,
-        align: 'middle' as const,
-      },
-      color: { color: 'var(--color-text-muted)', highlight: 'var(--color-accent)' },
-      width: 1.5,
-      smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
-    })),
+        id: e.id,
+        from: e.source_id,
+        to: e.target_id,
+        label: e.label,
+        title: `${e.label} (${e.source})`,
+        arrows: 'to',
+        font: {
+          size: 10,
+          color: 'var(--color-text-secondary)',
+          strokeWidth: 0,
+          align: 'middle' as const,
+        },
+        color: { color: 'var(--color-text-muted)', highlight: 'var(--color-accent)' },
+        width: 1.5,
+        smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
+      })),
   );
 
   const options = {

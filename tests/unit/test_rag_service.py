@@ -14,17 +14,24 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from app.schemas.search import SearchResponse, SearchResultItem
 
 
-def _make_item(entity_type: str, item_id: str = "id-1", title: str = "Test", score: float = 0.9) -> SearchResultItem:
+def _make_item(
+    entity_type: str, item_id: str = "id-1", title: str = "Test", score: float = 0.9
+) -> SearchResultItem:
     return SearchResultItem(
-        id=item_id, entity_type=entity_type, title=title, snippet="...", score=score,
+        id=item_id,
+        entity_type=entity_type,
+        title=title,
+        snippet="...",
+        score=score,
     )
 
 
-def _make_response(items: list[SearchResultItem], total: int = 0, page: int = 1, limit: int = 20) -> SearchResponse:
+def _make_response(
+    items: list[SearchResultItem], total: int = 0, page: int = 1, limit: int = 20
+) -> SearchResponse:
     return SearchResponse(
         items=items,
         total=total or len(items),
@@ -52,15 +59,22 @@ class TestRetrieve:
         search_svc_mock.search = AsyncMock(return_value=_make_response([]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="expanded"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="expanded",
+            ),
         ):
             svc = RAGService(mock_session)
             result = await svc.retrieve("some question")
             assert isinstance(result, list)
             # Should have called search with all four default entity types
             call_args = search_svc_mock.search.call_args[0][0]
-            assert sorted(call_args.entity_types) == sorted(["passage", "book", "version", "person"])
+            assert sorted(call_args.entity_types) == sorted(
+                ["passage", "book", "version", "person"]
+            )
 
     async def test_custom_entity_types(self):
         """Custom entity_types are passed through to SearchService."""
@@ -71,8 +85,13 @@ class TestRetrieve:
         search_svc_mock.search = AsyncMock(return_value=_make_response([]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="expanded"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="expanded",
+            ),
         ):
             svc = RAGService(mock_session)
             await svc.retrieve("query", entity_types=["passage", "person"])
@@ -91,11 +110,25 @@ class TestRetrieve:
         search_svc_mock.search = AsyncMock(return_value=_make_response([passage_item]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="expanded keywords"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="expanded keywords",
+            ),
             patch.object(
-                RAGService, "_enrich_result",
-                AsyncMock(return_value={"entity_type": "passage", "entity_id": "p-1", "title": "P", "score": 0.9, "content": "x"}),
+                RAGService,
+                "_enrich_result",
+                AsyncMock(
+                    return_value={
+                        "entity_type": "passage",
+                        "entity_id": "p-1",
+                        "title": "P",
+                        "score": 0.9,
+                        "content": "x",
+                    }
+                ),
             ),
         ):
             svc = RAGService(mock_session)
@@ -115,17 +148,33 @@ class TestRetrieve:
         passage_item = _make_item("passage", "p-2", "P2")
 
         # First call returns empty, second returns items
-        search_svc_mock.search = AsyncMock(side_effect=[
-            _make_response([]),      # expanded → empty
-            _make_response([passage_item]),  # original → hit
-        ])
+        search_svc_mock.search = AsyncMock(
+            side_effect=[
+                _make_response([]),  # expanded → empty
+                _make_response([passage_item]),  # original → hit
+            ]
+        )
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="expanded"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="expanded",
+            ),
             patch.object(
-                RAGService, "_enrich_result",
-                AsyncMock(return_value={"entity_type": "passage", "entity_id": "p-2", "title": "P2", "score": 0.9, "content": "y"}),
+                RAGService,
+                "_enrich_result",
+                AsyncMock(
+                    return_value={
+                        "entity_type": "passage",
+                        "entity_id": "p-2",
+                        "title": "P2",
+                        "score": 0.9,
+                        "content": "y",
+                    }
+                ),
             ),
         ):
             svc = RAGService(mock_session)
@@ -145,12 +194,26 @@ class TestRetrieve:
         search_svc_mock.search = AsyncMock(return_value=_make_response([item]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
             # expanded_q = "" → stripped to "" → continue; original="acupuncture" → searched
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value=""),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="",
+            ),
             patch.object(
-                RAGService, "_enrich_result",
-                AsyncMock(return_value={"entity_type": "book", "entity_id": "b-1", "title": "Book", "score": 0.9, "content": "z"}),
+                RAGService,
+                "_enrich_result",
+                AsyncMock(
+                    return_value={
+                        "entity_type": "book",
+                        "entity_id": "b-1",
+                        "title": "Book",
+                        "score": 0.9,
+                        "content": "z",
+                    }
+                ),
             ),
         ):
             svc = RAGService(mock_session)
@@ -170,12 +233,26 @@ class TestRetrieve:
         search_svc_mock.search = AsyncMock(return_value=_make_response([item]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
             # expanded_q = "   " → stripped to "" → continue; original="针灸" → searched
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="   "),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="   ",
+            ),
             patch.object(
-                RAGService, "_enrich_result",
-                AsyncMock(return_value={"entity_type": "passage", "entity_id": "p-x", "title": "Px", "score": 0.8, "content": "x"}),
+                RAGService,
+                "_enrich_result",
+                AsyncMock(
+                    return_value={
+                        "entity_type": "passage",
+                        "entity_id": "p-x",
+                        "title": "Px",
+                        "score": 0.8,
+                        "content": "x",
+                    }
+                ),
             ),
         ):
             svc = RAGService(mock_session)
@@ -190,16 +267,38 @@ class TestRetrieve:
 
         mock_session = AsyncMock()
         search_svc_mock = MagicMock()
-        search_svc_mock.search = AsyncMock(return_value=_make_response([
-            _make_item("passage", "p-a", "A"), _make_item("passage", "p-b", "B"),
-        ]))
+        search_svc_mock.search = AsyncMock(
+            return_value=_make_response(
+                [
+                    _make_item("passage", "p-a", "A"),
+                    _make_item("passage", "p-b", "B"),
+                ]
+            )
+        )
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="kw"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="kw",
+            ),
             patch.object(
-                RAGService, "_enrich_result",
-                AsyncMock(side_effect=[None, {"entity_type": "passage", "entity_id": "p-b", "title": "B", "score": 0.8, "content": "b"}]),
+                RAGService,
+                "_enrich_result",
+                AsyncMock(
+                    side_effect=[
+                        None,
+                        {
+                            "entity_type": "passage",
+                            "entity_id": "p-b",
+                            "title": "B",
+                            "score": 0.8,
+                            "content": "b",
+                        },
+                    ]
+                ),
             ),
         ):
             svc = RAGService(mock_session)
@@ -270,7 +369,9 @@ class TestEnrichResult:
         # Patch _get_book_title and _get_version_name
         with (
             patch.object(svc, "_get_book_title", AsyncMock(return_value="针灸甲乙经")),
-            patch.object(svc, "_get_version_name", AsyncMock(return_value="明嘉靖刻本")),
+            patch.object(
+                svc, "_get_version_name", AsyncMock(return_value="明嘉靖刻本")
+            ),
         ):
             item = _make_item("passage", "p-1", "凡刺之道...")
             result = await svc._enrich_result(item)
@@ -533,8 +634,13 @@ class TestAssembleContext:
         search_svc_mock.search = AsyncMock(return_value=_make_response([]))
 
         with (
-            patch("app.services.rag_service.SearchService", return_value=search_svc_mock),
-            patch("app.services.rag_service.build_academic_retrieval_query", return_value="q"),
+            patch(
+                "app.services.rag_service.SearchService", return_value=search_svc_mock
+            ),
+            patch(
+                "app.services.rag_service.build_academic_retrieval_query",
+                return_value="q",
+            ),
         ):
             svc = RAGService(mock_session)
             result = await svc.assemble_context("test query")
@@ -550,9 +656,30 @@ class TestAssembleContext:
 
         # Mock retrieve to return chunks, one with no content
         chunks = [
-            {"entity_type": "passage", "citation": "《书》", "content": "", "entity_id": "p-1", "title": "T1", "score": 0.9},
-            {"entity_type": "book", "citation": "《易》", "content": "valid content", "entity_id": "b-1", "title": "T2", "score": 0.8},
-            {"entity_type": "passage", "citation": "《礼》", "content": None, "entity_id": "p-2", "title": "T3", "score": 0.7},
+            {
+                "entity_type": "passage",
+                "citation": "《书》",
+                "content": "",
+                "entity_id": "p-1",
+                "title": "T1",
+                "score": 0.9,
+            },
+            {
+                "entity_type": "book",
+                "citation": "《易》",
+                "content": "valid content",
+                "entity_id": "b-1",
+                "title": "T2",
+                "score": 0.8,
+            },
+            {
+                "entity_type": "passage",
+                "citation": "《礼》",
+                "content": None,
+                "entity_id": "p-2",
+                "title": "T3",
+                "score": 0.7,
+            },
         ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
@@ -570,15 +697,17 @@ class TestAssembleContext:
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
 
-        chunks = [{
-            "entity_type": "passage",
-            "citation": "《灵枢》#1",
-            "content": "凡刺之道，必通十二经络之所终始。",
-            "translation": "The way of needling requires understanding the twelve meridians.",
-            "entity_id": "p-1",
-            "title": "...",
-            "score": 0.95,
-        }]
+        chunks = [
+            {
+                "entity_type": "passage",
+                "citation": "《灵枢》#1",
+                "content": "凡刺之道，必通十二经络之所终始。",
+                "translation": "The way of needling requires understanding the twelve meridians.",
+                "entity_id": "p-1",
+                "title": "...",
+                "score": 0.95,
+            }
+        ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
             result = await svc.assemble_context("针灸")
@@ -594,15 +723,17 @@ class TestAssembleContext:
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
 
-        chunks = [{
-            "entity_type": "book",
-            "citation": "《针灸甲乙经》(晋)",
-            "content": "晋代皇甫谧编纂的针灸学专著。",
-            "author": "皇甫谧",
-            "entity_id": "b-1",
-            "title": "针灸甲乙经",
-            "score": 0.9,
-        }]
+        chunks = [
+            {
+                "entity_type": "book",
+                "citation": "《针灸甲乙经》(晋)",
+                "content": "晋代皇甫谧编纂的针灸学专著。",
+                "author": "皇甫谧",
+                "entity_id": "b-1",
+                "title": "针灸甲乙经",
+                "score": 0.9,
+            }
+        ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
             result = await svc.assemble_context("甲乙经")
@@ -617,15 +748,17 @@ class TestAssembleContext:
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
 
-        chunks = [{
-            "entity_type": "passage",
-            "citation": "《灵枢》#2",
-            "content": "经脉者，所以行血气而营阴阳。",
-            "version": "明赵府居敬堂刊本",
-            "entity_id": "p-2",
-            "title": "...",
-            "score": 0.92,
-        }]
+        chunks = [
+            {
+                "entity_type": "passage",
+                "citation": "《灵枢》#2",
+                "content": "经脉者，所以行血气而营阴阳。",
+                "version": "明赵府居敬堂刊本",
+                "entity_id": "p-2",
+                "title": "...",
+                "score": 0.92,
+            }
+        ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
             result = await svc.assemble_context("经脉")
@@ -640,8 +773,22 @@ class TestAssembleContext:
         svc.search_svc = MagicMock()
 
         chunks = [
-            {"entity_type": "passage", "citation": "《甲》#1", "content": "第一条。", "entity_id": "p-1", "title": "A", "score": 0.9},
-            {"entity_type": "passage", "citation": "《乙》#5", "content": "第二条。", "entity_id": "p-2", "title": "B", "score": 0.8},
+            {
+                "entity_type": "passage",
+                "citation": "《甲》#1",
+                "content": "第一条。",
+                "entity_id": "p-1",
+                "title": "A",
+                "score": 0.9,
+            },
+            {
+                "entity_type": "passage",
+                "citation": "《乙》#5",
+                "content": "第二条。",
+                "entity_id": "p-2",
+                "title": "B",
+                "score": 0.8,
+            },
         ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
@@ -659,19 +806,23 @@ class TestAssembleContext:
         svc.search_svc = MagicMock()
 
         long_content = "文" * 600
-        chunks = [{
-            "entity_type": "passage",
-            "citation": "《书》#9",
-            "content": long_content,
-            "entity_id": "p-long",
-            "title": "L",
-            "score": 0.7,
-        }]
+        chunks = [
+            {
+                "entity_type": "passage",
+                "citation": "《书》#9",
+                "content": long_content,
+                "entity_id": "p-long",
+                "title": "L",
+                "score": 0.7,
+            }
+        ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
             result = await svc.assemble_context("q")
             # Only first 500 chars should appear
-            assert len(long_content[:500]) in [len(s) for s in result.split("\n") if "文" in s]
+            assert len(long_content[:500]) in [
+                len(s) for s in result.split("\n") if "文" in s
+            ]
             assert long_content not in result  # full 600 not present
 
     async def test_translation_truncated_at_300(self):
@@ -683,15 +834,17 @@ class TestAssembleContext:
         svc.search_svc = MagicMock()
 
         long_translation = "T" * 500
-        chunks = [{
-            "entity_type": "passage",
-            "citation": "《书》#9",
-            "content": "正文",
-            "translation": long_translation,
-            "entity_id": "p-tr",
-            "title": "Tr",
-            "score": 0.7,
-        }]
+        chunks = [
+            {
+                "entity_type": "passage",
+                "citation": "《书》#9",
+                "content": "正文",
+                "translation": long_translation,
+                "entity_id": "p-tr",
+                "title": "Tr",
+                "score": 0.7,
+            }
+        ]
 
         with patch.object(svc, "retrieve", AsyncMock(return_value=chunks)):
             result = await svc.assemble_context("q")
@@ -720,10 +873,12 @@ class TestGetBookTitle:
         mock_book = MagicMock()
         mock_book.title = "针灸甲乙经"
 
-        mock_session.execute = AsyncMock(side_effect=[
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_chapter)),
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_book)),
-        ])
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_chapter)),
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_book)),
+            ]
+        )
 
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
@@ -764,10 +919,12 @@ class TestGetBookTitle:
         mock_chapter = MagicMock()
         mock_chapter.book_id = "book-gone"
 
-        mock_session.execute = AsyncMock(side_effect=[
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_chapter)),
-            MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
-        ])
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_chapter)),
+                MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
+            ]
+        )
 
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
@@ -791,10 +948,12 @@ class TestGetBookTitle:
         mock_book = MagicMock()
         mock_book.title = "黄帝内经"
 
-        mock_session.execute = AsyncMock(side_effect=[
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_version)),
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_book)),
-        ])
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_version)),
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_book)),
+            ]
+        )
 
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
@@ -835,10 +994,12 @@ class TestGetBookTitle:
         mock_version = MagicMock()
         mock_version.book_id = "book-gone"
 
-        mock_session.execute = AsyncMock(side_effect=[
-            MagicMock(scalar_one_or_none=MagicMock(return_value=mock_version)),
-            MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
-        ])
+        mock_session.execute = AsyncMock(
+            side_effect=[
+                MagicMock(scalar_one_or_none=MagicMock(return_value=mock_version)),
+                MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
+            ]
+        )
 
         svc = RAGService(mock_session)
         svc.search_svc = MagicMock()
@@ -886,7 +1047,9 @@ class TestGetVersionName:
         mock_version.version_name = "宋刊本"
 
         mock_session.execute = AsyncMock(
-            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=mock_version))
+            return_value=MagicMock(
+                scalar_one_or_none=MagicMock(return_value=mock_version)
+            )
         )
 
         svc = RAGService(mock_session)
@@ -929,7 +1092,9 @@ class TestGetPersonName:
         mock_person.name = "张仲景"
 
         mock_session.execute = AsyncMock(
-            return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=mock_person))
+            return_value=MagicMock(
+                scalar_one_or_none=MagicMock(return_value=mock_person)
+            )
         )
 
         svc = RAGService(mock_session)

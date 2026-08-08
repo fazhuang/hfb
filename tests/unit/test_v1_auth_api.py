@@ -56,9 +56,9 @@ class _FakeRole:
 
 def _make_auth_app(**svc_kwargs):
     """Build a FastAPI app with the auth router and overridden AuthService."""
-    from fastapi import FastAPI
     from app.api.v1.auth import router as auth_router
     from app.middleware.auth import get_auth_service
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.include_router(auth_router)
@@ -122,10 +122,14 @@ class TestLogin:
             authenticate_result=(fake_user, "access-abc", "refresh-xyz"),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "researcher",
-            "password": "secure-password",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "researcher",
+                "password": "secure-password",
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -142,10 +146,14 @@ class TestLogin:
             authenticate_result=(None, None, None),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "bad",
-            "password": "bad",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "bad",
+                "password": "bad",
+            },
+        )
 
         assert resp.status_code == 401
         data = resp.json()
@@ -169,10 +177,14 @@ class TestLogin:
             authenticate_result=(fake_user, "access-2", "refresh-2"),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "admin",
-            "password": "admin123",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "admin",
+                "password": "admin123",
+            },
+        )
 
         assert resp.status_code == 200
         user_data = resp.json()["data"]["user"]
@@ -199,10 +211,14 @@ class TestLogin:
             authenticate_result=(fake_user, "access-3", "refresh-3"),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "noroles",
-            "password": "nr-pass-123",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "noroles",
+                "password": "nr-pass-123",
+            },
+        )
 
         assert resp.status_code == 200
         user_data = resp.json()["data"]["user"]
@@ -226,10 +242,14 @@ class TestLogin:
             authenticate_result=(fake_user, "access-4", "refresh-4"),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "strroles",
-            "password": "sr-pass-123",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "strroles",
+                "password": "sr-pass-123",
+            },
+        )
 
         assert resp.status_code == 200
         user_data = resp.json()["data"]["user"]
@@ -237,9 +257,11 @@ class TestLogin:
 
     async def test_login_user_to_dict_roles_triggers_exception_safe(self):
         """Lines 54-55: AttributeError during role iteration -> empty roles."""
+
         class _BadRoleIter:
             def __iter__(self):
                 raise AttributeError("lazy-load failure")
+
             def __len__(self):
                 return 0
 
@@ -259,10 +281,14 @@ class TestLogin:
             authenticate_result=(fake_user, "access-5", "refresh-5"),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "badroles",
-            "password": "br-pass-123",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "badroles",
+                "password": "br-pass-123",
+            },
+        )
 
         assert resp.status_code == 200
         user_data = resp.json()["data"]["user"]
@@ -274,10 +300,14 @@ class TestLogin:
             authenticate_result=(None, None, None),
         )
 
-        resp = await _post(app, "/auth/login", json={
-            "username": "inactive-user",
-            "password": "some-pass",
-        })
+        resp = await _post(
+            app,
+            "/auth/login",
+            json={
+                "username": "inactive-user",
+                "password": "some-pass",
+            },
+        )
 
         assert resp.status_code == 401
 
@@ -306,12 +336,16 @@ class TestRegister:
         )
         app, svc = _make_auth_app(register_result=fake_user)
 
-        resp = await _post(app, "/auth/register", json={
-            "username": "newuser",
-            "email": "new@test.com",
-            "password": "newuser-password",
-            "display_name": "New User",
-        })
+        resp = await _post(
+            app,
+            "/auth/register",
+            json={
+                "username": "newuser",
+                "email": "new@test.com",
+                "password": "newuser-password",
+                "display_name": "New User",
+            },
+        )
 
         assert resp.status_code == 201
         data = resp.json()
@@ -326,11 +360,15 @@ class TestRegister:
             register_result=ValueError("Username already taken"),
         )
 
-        resp = await _post(app, "/auth/register", json={
-            "username": "dup",
-            "email": "dup@test.com",
-            "password": "dup-pass-123",
-        })
+        resp = await _post(
+            app,
+            "/auth/register",
+            json={
+                "username": "dup",
+                "email": "dup@test.com",
+                "password": "dup-pass-123",
+            },
+        )
 
         assert resp.status_code == 409
         data = resp.json()
@@ -342,11 +380,15 @@ class TestRegister:
             register_result=ValueError("Email already registered"),
         )
 
-        resp = await _post(app, "/auth/register", json={
-            "username": "u2",
-            "email": "dup-email@test.com",
-            "password": "pass-123456",
-        })
+        resp = await _post(
+            app,
+            "/auth/register",
+            json={
+                "username": "u2",
+                "email": "dup-email@test.com",
+                "password": "pass-123456",
+            },
+        )
 
         assert resp.status_code == 409
         data = resp.json()
@@ -367,9 +409,13 @@ class TestRefresh:
             refresh_result=("new-access", "new-refresh"),
         )
 
-        resp = await _post(app, "/auth/refresh", json={
-            "refresh_token": "valid-refresh-token",
-        })
+        resp = await _post(
+            app,
+            "/auth/refresh",
+            json={
+                "refresh_token": "valid-refresh-token",
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -382,9 +428,13 @@ class TestRefresh:
         """Lines 126-134: refresh_access_token returns None -> 401."""
         app, svc = _make_auth_app(refresh_result=None)
 
-        resp = await _post(app, "/auth/refresh", json={
-            "refresh_token": "expired-token",
-        })
+        resp = await _post(
+            app,
+            "/auth/refresh",
+            json={
+                "refresh_token": "expired-token",
+            },
+        )
 
         assert resp.status_code == 401
         data = resp.json()
@@ -394,9 +444,13 @@ class TestRefresh:
         """Also 401: None for malformed JWT."""
         app, svc = _make_auth_app(refresh_result=None)
 
-        resp = await _post(app, "/auth/refresh", json={
-            "refresh_token": "not.a.jwt",
-        })
+        resp = await _post(
+            app,
+            "/auth/refresh",
+            json={
+                "refresh_token": "not.a.jwt",
+            },
+        )
 
         assert resp.status_code == 401
 
@@ -450,8 +504,8 @@ class TestMe:
 
     async def test_me_requires_authentication(self):
         """No dependency override for get_current_user -> 401."""
-        from fastapi import FastAPI
         from app.api.v1.auth import router as auth_router
+        from fastapi import FastAPI
 
         app = FastAPI(debug=False)
         app.include_router(auth_router)
@@ -463,10 +517,10 @@ class TestMe:
 
 def _make_me_only_app(user_id: str, user_repo_mock: MagicMock):
     """Build an app with auth router, overridden get_current_user + UserRepository."""
-    from fastapi import FastAPI
     from app.api.v1.auth import router as auth_router
-    from app.middleware.auth import get_current_user
     from app.db.database import get_session
+    from app.middleware.auth import get_current_user
+    from fastapi import FastAPI
 
     app = FastAPI(debug=False)
     app.include_router(auth_router)
@@ -481,6 +535,7 @@ def _make_me_only_app(user_id: str, user_repo_mock: MagicMock):
     app.dependency_overrides[get_session] = _fake_session
 
     import app.api.v1.auth as auth_module
+
     auth_module.UserRepository = MagicMock(return_value=user_repo_mock)
 
     return app

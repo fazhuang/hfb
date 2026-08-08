@@ -19,7 +19,10 @@ const FIXTURE = 'http://127.0.0.1:5173/src/e2e/fixtures/b3-4-state-components-fi
 test.describe('B3-4 EmptyState — Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="empty-state-container"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="empty-state-container"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('has role="status"', async ({ page }) => {
@@ -37,7 +40,10 @@ test.describe('B3-4 EmptyState — Accessibility', () => {
 test.describe('B3-4 ErrorState — Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="error-state-container"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="error-state-container"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('has role="alert" and aria-live="assertive"', async ({ page }) => {
@@ -56,7 +62,10 @@ test.describe('B3-4 ErrorState — Accessibility', () => {
 test.describe('B3-4 LoadingState — Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="loading-state-container"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="loading-state-container"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('has role="status" and aria-live="polite"', async ({ page }) => {
@@ -74,7 +83,10 @@ test.describe('B3-4 LoadingState — Accessibility', () => {
   test('prefers-reduced-motion: reduce disables spinner animation', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="loading-state-container"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="loading-state-container"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
 
     const animName = await page
       .locator('[data-testid="loading-state-container"] .loading-spinner')
@@ -86,7 +98,10 @@ test.describe('B3-4 LoadingState — Accessibility', () => {
 test.describe('B3-4 HfbSkeleton — Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="skeleton-text"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="skeleton-text"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
   });
 
   test('has role="status" and aria-busy="true"', async ({ page }) => {
@@ -113,7 +128,10 @@ test.describe('B3-4 HfbSkeleton — Accessibility', () => {
   test('prefers-reduced-motion: reduce disables skeleton animation', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(FIXTURE);
-    await page.waitForSelector('[data-testid="skeleton-text"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="skeleton-text"]', {
+      state: 'visible',
+      timeout: 10_000,
+    });
 
     const animName = await page
       .locator('[data-testid="skeleton-text"] .hfb-skeleton')

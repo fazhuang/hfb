@@ -59,7 +59,11 @@
     "export_format": "markdown",
     "export_endpoint_200": "/api/v4/research/session/{id}/runs/{run_id}/export",
     "console_errors": 0,
-    "rbac_admin_pages": ["/admin/literature-review", "/admin/ingestion-tasks", "/admin/source-policy"],
+    "rbac_admin_pages": [
+      "/admin/literature-review",
+      "/admin/ingestion-tasks",
+      "/admin/source-policy"
+    ],
     "legacy_redirects": ["/v4/research-internal", "/v4/research"],
     "back_forward_refresh": "OK"
   }

@@ -7,13 +7,11 @@ get_passage_mappings, add_relation, run_full_compare, and commentary CRUD.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-from datetime import datetime, timezone
-
 import pytest
-
 from app.models.commentary import Commentary
 from app.models.passage import Passage
 from app.models.version import Version
@@ -28,7 +26,6 @@ from app.services.version_center import (
     get_commentary_chain,
     get_commentary_graph,
 )
-
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -296,7 +293,9 @@ class TestGetSavedDiff:
         diff_id = str(uuid4())
         src_id = str(uuid4())
         tgt_id = str(uuid4())
-        diff_data = json.dumps([{"op": "replace", "source_text": "a", "target_text": "b"}])
+        diff_data = json.dumps(
+            [{"op": "replace", "source_text": "a", "target_text": "b"}]
+        )
         diff = _make_version_diff(diff_id, src_id, tgt_id, diff_data, "1 diff", 1)
 
         session = AsyncMock()
@@ -336,7 +335,9 @@ class TestCreatePassageMapping:
         session.flush = AsyncMock()
         svc = VersionComparisonService(session)
 
-        mapping = await svc.create_passage_mapping(sid, tid, "equivalent", "same passage")
+        mapping = await svc.create_passage_mapping(
+            sid, tid, "equivalent", "same passage"
+        )
 
         assert mapping.source_passage_id == sid
         assert mapping.target_passage_id == tid
@@ -426,7 +427,11 @@ class TestGetPassageMappings:
 def _run_full_compare_session(execute_side_effect):
     """Create a MagicMock session for run_full_compare with sync add + async execute/flush."""
     s = MagicMock()
-    s.execute = AsyncMock(side_effect=execute_side_effect) if isinstance(execute_side_effect, list) else AsyncMock(return_value=execute_side_effect)
+    s.execute = (
+        AsyncMock(side_effect=execute_side_effect)
+        if isinstance(execute_side_effect, list)
+        else AsyncMock(return_value=execute_side_effect)
+    )
     s.flush = AsyncMock()
     return s
 
@@ -439,11 +444,13 @@ class TestRunFullCompare:
         p1 = _make_passage("p1", "甲乙丙丁")
         p2 = _make_passage("p2", "甲乙戊丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(p1),  # src passages
-            _execute_scalars_all(p2),  # tgt passages
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(p1),  # src passages
+                _execute_scalars_all(p2),  # tgt passages
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         # Patch compare_passages to avoid needing actual passage_repo
@@ -452,7 +459,9 @@ class TestRunFullCompare:
                 "source_passage": {"id": "p1", "text": "甲乙丙丁"},
                 "target_passage": {"id": "p2", "text": "甲乙戊丁"},
                 "differences": 1,
-                "operations": [{"op": "replace", "source_text": "丙", "target_text": "戊"}],
+                "operations": [
+                    {"op": "replace", "source_text": "丙", "target_text": "戊"}
+                ],
                 "similarity_ratio": 0.75,
             }
         )
@@ -469,11 +478,13 @@ class TestRunFullCompare:
         tgt_id = str(uuid4())
         p1 = _make_passage("p1", "甲乙丙丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(p1),  # src passages
-            _execute_scalars_all(),  # tgt passages — empty
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(p1),  # src passages
+                _execute_scalars_all(),  # tgt passages — empty
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         result = await svc.run_full_compare(src_id, tgt_id)
@@ -489,11 +500,13 @@ class TestRunFullCompare:
         tgt_id = str(uuid4())
         p2 = _make_passage("p2", "甲乙丙丁")
 
-        session = _run_full_compare_session([
-            _execute_scalars_all(),  # src passages — empty
-            _execute_scalars_all(p2),  # tgt passages
-            _execute_scalars_all(),  # mappings — empty
-        ])
+        session = _run_full_compare_session(
+            [
+                _execute_scalars_all(),  # src passages — empty
+                _execute_scalars_all(p2),  # tgt passages
+                _execute_scalars_all(),  # mappings — empty
+            ]
+        )
         svc = VersionComparisonService(session)
 
         result = await svc.run_full_compare(src_id, tgt_id)
@@ -525,8 +538,8 @@ class TestCreateCommentary:
         c.target_position_end = 10
         c.parent_id = None
         c.relation_type = None
-        c.created_at = datetime.now(timezone.utc)
-        c.updated_at = datetime.now(timezone.utc)
+        c.created_at = datetime.now(UTC)
+        c.updated_at = datetime.now(UTC)
 
         session = MagicMock()
         session.flush = AsyncMock()
@@ -561,7 +574,7 @@ class TestGetCommentariesForPassage:
     @pytest.mark.asyncio
     async def test_returns_all_commentaries(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = "c1"
         c.passage_id = pid
@@ -589,7 +602,7 @@ class TestGetCommentariesForPassage:
     @pytest.mark.asyncio
     async def test_filters_by_layer(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = "c1"
         c.passage_id = pid
@@ -618,7 +631,7 @@ class TestGetCommentaryChain:
     @pytest.mark.asyncio
     async def test_single_commentary_chain(self):
         cid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         c = MagicMock(spec=Commentary)
         c.id = cid
         c.passage_id = str(uuid4())
@@ -648,7 +661,7 @@ class TestGetCommentaryChain:
         mid_id = str(uuid4())
         leaf_id = str(uuid4())
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         leaf = MagicMock(spec=Commentary)
         leaf.id = leaf_id
@@ -724,7 +737,7 @@ class TestGetCommentaryGraph:
     @pytest.mark.asyncio
     async def test_returns_nodes_and_edges(self):
         pid = str(uuid4())
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         parent = MagicMock(spec=Commentary)
         parent.id = "c-root"
         parent.passage_id = pid

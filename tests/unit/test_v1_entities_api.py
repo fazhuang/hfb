@@ -12,15 +12,11 @@ Covers:
 Uses FastAPI TestClient with dependency overrides for auth and DB session.
 """
 
-import os
-import warnings
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
-
-from main import app
+from app.services.document_service import DocumentService
 from app.services.entities import (
     BookService,
     ChapterService,
@@ -30,7 +26,8 @@ from app.services.entities import (
     VersionService,
 )
 from app.services.person_service import PersonService
-from app.services.document_service import DocumentService
+from fastapi.testclient import TestClient
+from main import app
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -132,7 +129,14 @@ class TestBookCRUD:
         assert data["data"]["total"] == 0
 
     def test_list_with_results(self, client):
-        book = _MockEntity(id=uuid4(), title="针灸甲乙经", dynasty="晋", category="针灸", author_id=None, created_at=None)
+        book = _MockEntity(
+            id=uuid4(),
+            title="针灸甲乙经",
+            dynasty="晋",
+            category="针灸",
+            author_id=None,
+            created_at=None,
+        )
         with patch.object(BookService, "list", new_callable=AsyncMock) as m:
             m.return_value = ([book], 1)
             r = client.get("/api/v1/books")
@@ -142,7 +146,14 @@ class TestBookCRUD:
         assert data["data"]["items"][0]["title"] == "针灸甲乙经"
 
     def test_search(self, client):
-        book = _MockEntity(id=uuid4(), title="伤寒论", dynasty="汉", category="伤寒", author_id=None, created_at=None)
+        book = _MockEntity(
+            id=uuid4(),
+            title="伤寒论",
+            dynasty="汉",
+            category="伤寒",
+            author_id=None,
+            created_at=None,
+        )
         with patch.object(BookService, "search", new_callable=AsyncMock) as m:
             m.return_value = ([book], 1)
             r = client.get("/api/v1/books?q=伤寒")
@@ -153,10 +164,19 @@ class TestBookCRUD:
     def test_get_found(self, client):
         bid = uuid4()
         book = _MockEntity(
-            id=bid, title="神农本草经", dynasty="汉", category="本草",
-            title_pinyin=None, title_english=None, author_id=None, year=None,
-            abstract=None, language="zh", source_url=None,
-            created_at=None, updated_at=None,
+            id=bid,
+            title="神农本草经",
+            dynasty="汉",
+            category="本草",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            year=None,
+            abstract=None,
+            language="zh",
+            source_url=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(BookService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = book
@@ -173,14 +193,26 @@ class TestBookCRUD:
     def test_create_success(self, client):
         bid = uuid4()
         book = _MockEntity(
-            id=bid, title="新书", dynasty="唐", category="方剂",
-            title_pinyin=None, title_english=None, author_id=None, year=None,
-            abstract=None, language="zh", source_url=None,
-            created_at=None, updated_at=None,
+            id=bid,
+            title="新书",
+            dynasty="唐",
+            category="方剂",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            year=None,
+            abstract=None,
+            language="zh",
+            source_url=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(BookService, "create", new_callable=AsyncMock) as m:
             m.return_value = book
-            r = client.post("/api/v1/books", json={"title": "新书", "dynasty": "唐", "category": "方剂"})
+            r = client.post(
+                "/api/v1/books",
+                json={"title": "新书", "dynasty": "唐", "category": "方剂"},
+            )
         assert r.status_code == 201
         assert r.json()["data"]["title"] == "新书"
 
@@ -197,10 +229,19 @@ class TestBookCRUD:
     def test_update_found(self, client):
         bid = uuid4()
         updated = _MockEntity(
-            id=bid, title="更新书名", dynasty="宋", category="针灸",
-            title_pinyin=None, title_english=None, author_id=None, year=None,
-            abstract=None, language="zh", source_url=None,
-            created_at=None, updated_at=None,
+            id=bid,
+            title="更新书名",
+            dynasty="宋",
+            category="针灸",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            year=None,
+            abstract=None,
+            language="zh",
+            source_url=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(BookService, "update", new_callable=AsyncMock) as m:
             m.return_value = updated
@@ -237,7 +278,15 @@ class TestPaperCRUD:
     """Paper is private. All routes need auth; list/get would 401 without it."""
 
     def test_list_success(self, client):
-        paper = _MockEntity(id=uuid4(), title="Test Paper", authors="A", journal="J", year=2025, doi=None, created_at=None)
+        paper = _MockEntity(
+            id=uuid4(),
+            title="Test Paper",
+            authors="A",
+            journal="J",
+            year=2025,
+            doi=None,
+            created_at=None,
+        )
         with patch.object(PaperService, "list", new_callable=AsyncMock) as m:
             m.return_value = ([paper], 1)
             r = client.get("/api/v1/papers")
@@ -246,11 +295,24 @@ class TestPaperCRUD:
     def test_create_success(self, client):
         pid = uuid4()
         paper = _MockEntity(
-            id=pid, title="New Paper",
-            title_english=None, authors=None, journal=None, year=None, doi=None,
-            volume=None, issue=None, pages=None, abstract=None, keywords=None,
-            language="zh", paper_type=None, source_url=None, full_text=None,
-            created_at=None, updated_at=None,
+            id=pid,
+            title="New Paper",
+            title_english=None,
+            authors=None,
+            journal=None,
+            year=None,
+            doi=None,
+            volume=None,
+            issue=None,
+            pages=None,
+            abstract=None,
+            keywords=None,
+            language="zh",
+            paper_type=None,
+            source_url=None,
+            full_text=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(PaperService, "create", new_callable=AsyncMock) as m:
             m.return_value = paper
@@ -293,7 +355,9 @@ class TestAuthRequired:
             r = c.get("/api/v1/papers")
         assert r.status_code == 401
 
-    def test_papers_list_denied_with_forbidden_user(self, _clear_overrides, mock_session):
+    def test_papers_list_denied_with_forbidden_user(
+        self, _clear_overrides, mock_session
+    ):
         """When user exists but lacks permission, 403."""
         mock_auth = MagicMock()
         mock_auth.has_permission = AsyncMock(return_value=False)
@@ -326,7 +390,14 @@ class TestVersionCRUD:
         assert r.status_code == 404
 
     def test_list_success(self, client):
-        ver = _MockEntity(id=uuid4(), book_id=str(uuid4()), version_name="v1", era="宋", repository=None, created_at=None)
+        ver = _MockEntity(
+            id=uuid4(),
+            book_id=str(uuid4()),
+            version_name="v1",
+            era="宋",
+            repository=None,
+            created_at=None,
+        )
         with patch.object(VersionService, "list", new_callable=AsyncMock) as m:
             m.return_value = ([ver], 1)
             r = client.get("/api/v1/versions")
@@ -342,10 +413,21 @@ class TestChapterCRUD:
 
     def test_create_success(self, client):
         cid = uuid4()
-        ch = _MockEntity(id=cid, book_id=str(uuid4()), parent_id=None, title="第一章", order=0, description=None, created_at=None, updated_at=None)
+        ch = _MockEntity(
+            id=cid,
+            book_id=str(uuid4()),
+            parent_id=None,
+            title="第一章",
+            order=0,
+            description=None,
+            created_at=None,
+            updated_at=None,
+        )
         with patch.object(ChapterService, "create", new_callable=AsyncMock) as m:
             m.return_value = ch
-            r = client.post("/api/v1/chapters", json={"book_id": str(uuid4()), "title": "第一章"})
+            r = client.post(
+                "/api/v1/chapters", json={"book_id": str(uuid4()), "title": "第一章"}
+            )
         assert r.status_code == 201
 
 
@@ -359,37 +441,67 @@ class TestPassageCRUD:
     def test_create_success(self, client):
         pid = uuid4()
         psg = _MockEntity(
-            id=pid, chapter_id=str(uuid4()), version_id=None,
+            id=pid,
+            chapter_id=str(uuid4()),
+            version_id=None,
             content_text="经络者，所以行血气而营阴阳。",
-            translation=None, notes=None, order=0, tags=None,
-            created_at=None, updated_at=None,
+            translation=None,
+            notes=None,
+            order=0,
+            tags=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(PassageService, "create", new_callable=AsyncMock) as m:
             m.return_value = psg
-            r = client.post("/api/v1/passages", json={
-                "chapter_id": str(uuid4()),
-                "content_text": "经络者，所以行血气而营阴阳。",
-            })
+            r = client.post(
+                "/api/v1/passages",
+                json={
+                    "chapter_id": str(uuid4()),
+                    "content_text": "经络者，所以行血气而营阴阳。",
+                },
+            )
         assert r.status_code == 201
 
 
 class TestImageCRUD:
     def test_create_success(self, client):
         iid = uuid4()
-        img = _MockEntity(id=iid, related_entity_type="Book", related_entity_id=str(uuid4()), url="https://x.com/i.jpg", caption=None, source=None, license_info=None, order=None, created_at=None, updated_at=None)
+        img = _MockEntity(
+            id=iid,
+            related_entity_type="Book",
+            related_entity_id=str(uuid4()),
+            url="https://x.com/i.jpg",
+            caption=None,
+            source=None,
+            license_info=None,
+            order=None,
+            created_at=None,
+            updated_at=None,
+        )
         with patch.object(ImageService, "create", new_callable=AsyncMock) as m:
             m.return_value = img
-            r = client.post("/api/v1/images", json={"related_entity_type": "Book", "related_entity_id": str(uuid4()), "url": "https://x.com/i.jpg"})
+            r = client.post(
+                "/api/v1/images",
+                json={
+                    "related_entity_type": "Book",
+                    "related_entity_id": str(uuid4()),
+                    "url": "https://x.com/i.jpg",
+                },
+            )
         assert r.status_code == 201
 
     def test_update_not_found(self, client):
         with patch.object(ImageService, "update", new_callable=AsyncMock) as m:
             m.return_value = None
-            r = client.patch(f"/api/v1/images/{uuid4()}", json={
-                "url": "https://new.url/img.jpg",
-                "related_entity_type": "Book",
-                "related_entity_id": str(uuid4()),
-            })
+            r = client.patch(
+                f"/api/v1/images/{uuid4()}",
+                json={
+                    "url": "https://new.url/img.jpg",
+                    "related_entity_type": "Book",
+                    "related_entity_id": str(uuid4()),
+                },
+            )
         assert r.status_code == 404
 
 
@@ -397,11 +509,23 @@ class TestPersonCRUD:
     def test_create_success(self, client):
         pid = uuid4()
         person = _MockEntity(
-            id=pid, name="皇甫谧",
-            name_pinyin=None, name_zh=None, courtesy_name=None, pseudonym=None,
-            dynasty="晋", birth_year=215, death_year=282, birth_place=None,
-            biography=None, biography_source=None, notable_works=None, expertise=None,
-            external_ref=None, created_at=None, updated_at=None,
+            id=pid,
+            name="皇甫谧",
+            name_pinyin=None,
+            name_zh=None,
+            courtesy_name=None,
+            pseudonym=None,
+            dynasty="晋",
+            birth_year=215,
+            death_year=282,
+            birth_place=None,
+            biography=None,
+            biography_source=None,
+            notable_works=None,
+            expertise=None,
+            external_ref=None,
+            created_at=None,
+            updated_at=None,
         )
         with patch.object(PersonService, "create", new_callable=AsyncMock) as m:
             m.return_value = person
@@ -416,7 +540,15 @@ class TestPersonCRUD:
         assert r.status_code == 404
 
     def test_list_success(self, client):
-        person = _MockEntity(id=uuid4(), name="张仲景", name_zh=None, dynasty="汉", birth_year=150, death_year=219, created_at=None)
+        person = _MockEntity(
+            id=uuid4(),
+            name="张仲景",
+            name_zh=None,
+            dynasty="汉",
+            birth_year=150,
+            death_year=219,
+            created_at=None,
+        )
         with patch.object(PersonService, "list", new_callable=AsyncMock) as m:
             m.return_value = ([person], 1)
             r = client.get("/api/v1/persons")
@@ -441,7 +573,9 @@ class TestDocumentList:
     def test_list_with_filters(self, client):
         with patch.object(DocumentService, "search", new_callable=AsyncMock) as m:
             m.return_value = ([], 0)
-            r = client.get("/api/v1/documents?copyright_status=public_domain&review_status=approved&rag_enabled=true&source_name=wikisource&dynasty=汉&category=针灸")
+            r = client.get(
+                "/api/v1/documents?copyright_status=public_domain&review_status=approved&rag_enabled=true&source_name=wikisource&dynasty=汉&category=针灸"
+            )
         assert r.status_code == 200
         m.assert_awaited_once()
         kwargs = m.call_args.kwargs
@@ -450,7 +584,21 @@ class TestDocumentList:
         assert kwargs["dynasty"] == "汉"
 
     def test_list_with_results(self, client):
-        doc = _MockEntity(id=uuid4(), title="Test Doc", dynasty="汉", category="针灸", author_id=None, copyright_status="public_domain", review_status="approved", rag_enabled=True, source_name=None, session_id=None, uploaded_by=None, withdrawn_at=None, created_at=None)
+        doc = _MockEntity(
+            id=uuid4(),
+            title="Test Doc",
+            dynasty="汉",
+            category="针灸",
+            author_id=None,
+            copyright_status="public_domain",
+            review_status="approved",
+            rag_enabled=True,
+            source_name=None,
+            session_id=None,
+            uploaded_by=None,
+            withdrawn_at=None,
+            created_at=None,
+        )
         with patch.object(DocumentService, "search", new_callable=AsyncMock) as m:
             m.return_value = ([doc], 1)
             r = client.get("/api/v1/documents")
@@ -488,28 +636,55 @@ class TestDocumentCreate:
     def test_create_success(self, client):
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="新建文献",
-            title_pinyin=None, title_english=None, author_id=None, dynasty="唐",
-            year=None, category="方剂", abstract=None, content_text=None,
-            source_url=None, page_count=None, language="zh", session_id=None,
-            created_at=None, updated_at=None,
-            copyright_status="unknown", license_type=None, authorization_basis=None,
-            review_status="pending_review", reviewed_by=None, reviewed_at=None,
-            rag_enabled=False, content_checksum=None, source_name=None,
-            uploaded_by=TEST_USER_ID, withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="新建文献",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty="唐",
+            year=None,
+            category="方剂",
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            language="zh",
+            session_id=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="unknown",
+            license_type=None,
+            authorization_basis=None,
+            review_status="pending_review",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=False,
+            content_checksum=None,
+            source_name=None,
+            uploaded_by=TEST_USER_ID,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
-        with patch.object(DocumentService, "_validate_create", new_callable=AsyncMock), \
-             patch("app.api.v1.entities.DocumentService") as MockSvcCls:
+        with (
+            patch.object(DocumentService, "_validate_create", new_callable=AsyncMock),
+            patch("app.api.v1.entities.DocumentService") as MockSvcCls,
+        ):
             mock_inst = MockSvcCls.return_value
             mock_inst._validate_create = AsyncMock()
             mock_inst.repo = MagicMock()
             mock_inst.repo.create = AsyncMock(return_value=doc)
-            r = client.post("/api/v1/documents", json={"title": "新建文献", "dynasty": "唐"})
+            r = client.post(
+                "/api/v1/documents", json={"title": "新建文献", "dynasty": "唐"}
+            )
         assert r.status_code == 201
 
     def test_create_validation_error(self, client):
-        with patch.object(DocumentService, "_validate_create", new_callable=AsyncMock) as m, \
-             patch("app.api.v1.entities.DocumentService") as MockSvcCls:
+        with (
+            patch.object(
+                DocumentService, "_validate_create", new_callable=AsyncMock
+            ) as m,
+            patch("app.api.v1.entities.DocumentService") as MockSvcCls,
+        ):
             mock_inst = MockSvcCls.return_value
             mock_inst._validate_create = m
             m.side_effect = ValueError("Document title is required")
@@ -522,12 +697,16 @@ class TestDocumentCreate:
         sess_id = str(uuid4())
         sess = _MockEntity(id=sess_id, user_id="other-user")
         mock_session.get = AsyncMock(return_value=sess)
-        r = client.post("/api/v1/documents", json={"title": "Test", "session_id": sess_id})
+        r = client.post(
+            "/api/v1/documents", json={"title": "Test", "session_id": sess_id}
+        )
         assert r.status_code == 403
 
     def test_create_nonexistent_session(self, client, mock_session):
         mock_session.get = AsyncMock(return_value=None)
-        r = client.post("/api/v1/documents", json={"title": "Test", "session_id": str(uuid4())})
+        r = client.post(
+            "/api/v1/documents", json={"title": "Test", "session_id": str(uuid4())}
+        )
         assert r.status_code == 403
 
 
@@ -562,14 +741,34 @@ class TestDocumentGet:
     def test_success_public_doc(self, client):
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="Public Document", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Public Document",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
@@ -580,14 +779,34 @@ class TestDocumentGet:
     def test_success_owned_doc(self, client):
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="My Document", uploaded_by=TEST_USER_ID, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="user_uploaded_with_permission", license_type=None, authorization_basis=None,
-            review_status="pending_review", reviewed_by=None, reviewed_at=None,
-            rag_enabled=False, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="My Document",
+            uploaded_by=TEST_USER_ID,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="user_uploaded_with_permission",
+            license_type=None,
+            authorization_basis=None,
+            review_status="pending_review",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=False,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
@@ -619,7 +838,9 @@ class TestDocumentUpdate:
         mock_session.get = AsyncMock(return_value=sess)
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
-            r = client.patch(f"/api/v1/documents/{doc.id}", json={"session_id": sess_id})
+            r = client.patch(
+                f"/api/v1/documents/{doc.id}", json={"session_id": sess_id}
+            )
         assert r.status_code == 403
 
     def test_clear_session_id(self, client, mock_session):
@@ -627,17 +848,39 @@ class TestDocumentUpdate:
         doc_id = uuid4()
         doc = _MockEntity(id=doc_id, uploaded_by=None, session_id=None)
         updated = _MockEntity(
-            id=doc_id, title="Updated", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Updated",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
-        with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get, \
-             patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd:
+        with (
+            patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get,
+            patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd,
+        ):
             m_get.return_value = doc
             m_upd.return_value = updated
             r = client.patch(f"/api/v1/documents/{doc_id}", json={"session_id": ""})
@@ -647,28 +890,54 @@ class TestDocumentUpdate:
         doc_id = uuid4()
         doc = _MockEntity(id=doc_id, uploaded_by=TEST_USER_ID, session_id=None)
         updated = _MockEntity(
-            id=doc_id, title="Updated Title", uploaded_by=TEST_USER_ID, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Updated Title",
+            uploaded_by=TEST_USER_ID,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
-        with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get, \
-             patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd:
+        with (
+            patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get,
+            patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd,
+        ):
             m_get.return_value = doc
             m_upd.return_value = updated
-            r = client.patch(f"/api/v1/documents/{doc_id}", json={"title": "Updated Title"})
+            r = client.patch(
+                f"/api/v1/documents/{doc_id}", json={"title": "Updated Title"}
+            )
         assert r.status_code == 200
         assert r.json()["data"]["title"] == "Updated Title"
 
     def test_update_not_found_after_lookup(self, client):
         """Document exists but update returns None (race condition) => 404."""
         doc = _MockEntity(id=uuid4(), uploaded_by=None, session_id=None)
-        with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get, \
-             patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd:
+        with (
+            patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get,
+            patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd,
+        ):
             m_get.return_value = doc
             m_upd.return_value = None
             r = client.patch(f"/api/v1/documents/{doc.id}", json={"title": "X"})
@@ -706,27 +975,35 @@ class TestDocumentStats:
         assert r.status_code == 404
 
     def test_deleted_doc(self, client, mock_session):
-        doc = _MockEntity(id=str(uuid4()), is_deleted=True, uploaded_by=None, session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=True, uploaded_by=None, session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         r = client.get(f"/api/v1/documents/{doc.id}/stats")
         assert r.status_code == 404
 
     def test_other_owner(self, client, mock_session):
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by="other-user", session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by="other-user", session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         r = client.get(f"/api/v1/documents/{doc.id}/stats")
         assert r.status_code == 404
 
     def test_session_isolation(self, client, mock_session):
         sess_id = str(uuid4())
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=sess_id)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=sess_id
+        )
         sess = _MockEntity(id=sess_id, user_id="other-user")
         mock_session.get = AsyncMock(side_effect=[doc, sess])
         r = client.get(f"/api/v1/documents/{doc.id}/stats")
         assert r.status_code == 404
 
     def test_success(self, client, mock_session):
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         mock_result = MagicMock()
         mock_result.scalar.return_value = 10
@@ -741,7 +1018,9 @@ class TestDocumentStats:
 
     def test_success_zero_ocr(self, client, mock_session):
         """When ocr_chunks == 0, ocr_text_available is False."""
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         mock_result = MagicMock()
         mock_result.scalar.return_value = 0
@@ -756,7 +1035,9 @@ class TestDocumentStats:
         """SQL errors in stats queries => zeros, not 500."""
         from sqlalchemy.exc import SQLAlchemyError
 
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         mock_session.execute = AsyncMock(side_effect=SQLAlchemyError("DB error"))
         r = client.get(f"/api/v1/documents/{doc.id}/stats")
@@ -769,7 +1050,9 @@ class TestDocumentStats:
 
     def test_avg_ocr_confidence_included(self, client, mock_session):
         """Average OCR confidence is computed and returned as float."""
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=None
+        )
         mock_session.get = AsyncMock(return_value=doc)
         mock_result = MagicMock()
         mock_result.scalar.return_value = 0.85
@@ -824,15 +1107,34 @@ class TestDocumentReader:
         monkeypatch.delenv("SEED_TEST_DATA", raising=False)
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="Reader Doc", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty="汉", year=None, category="针灸", abstract=None,
-            content_text=None, source_url=None, page_count=None,
-            created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Reader Doc",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty="汉",
+            year=None,
+            category="针灸",
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
@@ -855,27 +1157,59 @@ class TestDocumentReader:
         monkeypatch.delenv("SEED_TEST_DATA", raising=False)
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="Mixed Chunks Doc", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Mixed Chunks Doc",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
             # Create mock chunks
             ocr_chunk = _MockEntity(
-                id=str(uuid4()), chunk_index=1, content="OCR content",
-                page_number=2, paragraph_index=1, ocr_confidence=0.85,
-                passage_id=str(uuid4()), match_method="ocr", quote_bbox=None,
+                id=str(uuid4()),
+                chunk_index=1,
+                content="OCR content",
+                page_number=2,
+                paragraph_index=1,
+                ocr_confidence=0.85,
+                passage_id=str(uuid4()),
+                match_method="ocr",
+                quote_bbox=None,
             )
             non_ocr_chunk = _MockEntity(
-                id=str(uuid4()), chunk_index=0, content="Original text",
-                page_number=1, paragraph_index=0, ocr_confidence=None,
-                passage_id=None, match_method=None, quote_bbox=None,
+                id=str(uuid4()),
+                chunk_index=0,
+                content="Original text",
+                page_number=1,
+                paragraph_index=0,
+                ocr_confidence=None,
+                passage_id=None,
+                match_method=None,
+                quote_bbox=None,
             )
 
             # We need multiple execute calls with different returns.
@@ -888,23 +1222,28 @@ class TestDocumentReader:
             pid_result.scalars.return_value.all.return_value = []
 
             all_chunks_result = MagicMock()
-            all_chunks_result.scalars.return_value.all.return_value = [non_ocr_chunk, ocr_chunk]
+            all_chunks_result.scalars.return_value.all.return_value = [
+                non_ocr_chunk,
+                ocr_chunk,
+            ]
 
             empty_result = MagicMock()
             empty_result.scalars.return_value.all.return_value = []
 
             # Order: ocr_chunks, passage_ids, all_chunks, anchored citations, extra_ev, extra_cit, anchored evidence, extra_ev
-            mock_session.execute = AsyncMock(side_effect=[
-                ocr_result,       # 1: ocr chunks query
-                pid_result,       # 2: passage_ids for chunks
-                all_chunks_result,  # 3: all chunks
-                empty_result,     # 4: anchored citations
-                # extra_ev (if doc_passage_ids non-empty)
-                empty_result,     # 5: extra evidence for passages (from pids)
-                empty_result,     # 6: extra citations
-                empty_result,     # 7: anchored evidence
-                empty_result,     # 8: extra evidence for doc_passage_ids
-            ])
+            mock_session.execute = AsyncMock(
+                side_effect=[
+                    ocr_result,  # 1: ocr chunks query
+                    pid_result,  # 2: passage_ids for chunks
+                    all_chunks_result,  # 3: all chunks
+                    empty_result,  # 4: anchored citations
+                    # extra_ev (if doc_passage_ids non-empty)
+                    empty_result,  # 5: extra evidence for passages (from pids)
+                    empty_result,  # 6: extra citations
+                    empty_result,  # 7: anchored evidence
+                    empty_result,  # 8: extra evidence for doc_passage_ids
+                ]
+            )
 
             r = client.get(f"/api/v1/documents/{doc_id}/reader")
 
@@ -929,12 +1268,15 @@ class TestSeedReaderData:
     def test_env_guard_rejects(self, client, monkeypatch):
         """Without SEED_TEST_DATA=1, returns 404 Not Found."""
         monkeypatch.delenv("SEED_TEST_DATA", raising=False)
-        r = client.post("/api/v1/_test/seed-reader-data", json={
-            "username": "test",
-            "password": "test",
-            "document_title": "Test Doc",
-            "document_text": "一段文字。\n\n二段文字。",
-        })
+        r = client.post(
+            "/api/v1/_test/seed-reader-data",
+            json={
+                "username": "test",
+                "password": "test",
+                "document_title": "Test Doc",
+                "document_text": "一段文字。\n\n二段文字。",
+            },
+        )
         # Route starts with _ — returns 404 Not Found when env guard rejects
         assert r.status_code == 404
 
@@ -953,20 +1295,21 @@ class TestSeedReaderData:
         mock_session.add = MagicMock()
         mock_session.flush = AsyncMock()
 
-        from sqlalchemy import select as _real_select
-
         def _fake_select(*args):
             return MagicMock()
 
         from app.api.v1 import entities
 
         with patch.object(entities, "sql_select", side_effect=_fake_select):
-            r = client.post("/api/v1/_test/seed-reader-data", json={
-                "username": "seeduser",
-                "password": "secret",
-                "document_title": "Seed Doc",
-                "document_text": "段落一\n\n段落二\n\n段落三",
-            })
+            r = client.post(
+                "/api/v1/_test/seed-reader-data",
+                json={
+                    "username": "seeduser",
+                    "password": "secret",
+                    "document_title": "Seed Doc",
+                    "document_text": "段落一\n\n段落二\n\n段落三",
+                },
+            )
         assert r.status_code == 200
         data = r.json()["data"]
         assert data["username"] == "seeduser"
@@ -985,7 +1328,12 @@ class TestSeedReaderData:
                 for k, v in kw.items():
                     setattr(self, k, v)
 
-        existing_user = _FakeModel(id=existing_user_id, username="existing", email="old@test.com", is_active=True)
+        existing_user = _FakeModel(
+            id=existing_user_id,
+            username="existing",
+            email="old@test.com",
+            is_active=True,
+        )
         user_result = MagicMock()
         user_result.scalar_one_or_none.return_value = existing_user
         mock_session.execute = AsyncMock(return_value=user_result)
@@ -995,12 +1343,15 @@ class TestSeedReaderData:
         from app.api.v1 import entities
 
         with patch.object(entities, "sql_select", side_effect=lambda *a: MagicMock()):
-            r = client.post("/api/v1/_test/seed-reader-data", json={
-                "username": "existing",
-                "password": "pw",
-                "document_title": "Doc",
-                "document_text": "A\n\nB",
-            })
+            r = client.post(
+                "/api/v1/_test/seed-reader-data",
+                json={
+                    "username": "existing",
+                    "password": "pw",
+                    "document_title": "Doc",
+                    "document_text": "A\n\nB",
+                },
+            )
 
         assert r.status_code == 200
         assert r.json()["data"]["user_id"] == existing_user_id
@@ -1015,7 +1366,12 @@ class TestSeedReaderData:
                 for k, v in kw.items():
                     setattr(self, k, v)
 
-        existing_user = _FakeModel(id=existing_user_id, username="nopassage", email="np@test.com", is_active=True)
+        existing_user = _FakeModel(
+            id=existing_user_id,
+            username="nopassage",
+            email="np@test.com",
+            is_active=True,
+        )
         user_result = MagicMock()
         user_result.scalar_one_or_none.return_value = existing_user
         mock_session.execute = AsyncMock(return_value=user_result)
@@ -1025,13 +1381,16 @@ class TestSeedReaderData:
         from app.api.v1 import entities
 
         with patch.object(entities, "sql_select", side_effect=lambda *a: MagicMock()):
-            r = client.post("/api/v1/_test/seed-reader-data", json={
-                "username": "nopassage",
-                "password": "pw",
-                "document_title": "NoPassage Doc",
-                "document_text": "Just text.",
-                "with_passage": False,
-            })
+            r = client.post(
+                "/api/v1/_test/seed-reader-data",
+                json={
+                    "username": "nopassage",
+                    "password": "pw",
+                    "document_title": "NoPassage Doc",
+                    "document_text": "Just text.",
+                    "with_passage": False,
+                },
+            )
 
         assert r.status_code == 200
         data = r.json()["data"]
@@ -1131,24 +1490,47 @@ class TestDocumentCreateSessionOwned:
         mock_session.get = AsyncMock(return_value=sess)
 
         doc = _MockEntity(
-            id=uuid4(), title="My Session Doc",
-            title_pinyin=None, title_english=None, author_id=None, dynasty="唐",
-            year=None, category="方剂", abstract=None, content_text=None,
-            source_url=None, page_count=None, language="zh", session_id=sess_id,
-            created_at=None, updated_at=None,
-            copyright_status="unknown", license_type=None, authorization_basis=None,
-            review_status="pending_review", reviewed_by=None, reviewed_at=None,
-            rag_enabled=False, content_checksum=None, source_name=None,
-            uploaded_by=TEST_USER_ID, withdrawn_at=None, withdraw_reason=None,
+            id=uuid4(),
+            title="My Session Doc",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty="唐",
+            year=None,
+            category="方剂",
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            language="zh",
+            session_id=sess_id,
+            created_at=None,
+            updated_at=None,
+            copyright_status="unknown",
+            license_type=None,
+            authorization_basis=None,
+            review_status="pending_review",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=False,
+            content_checksum=None,
+            source_name=None,
+            uploaded_by=TEST_USER_ID,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         with patch("app.api.v1.entities.DocumentService") as MockSvcCls:
             mock_inst = MockSvcCls.return_value
             mock_inst._validate_create = AsyncMock()
             mock_inst.repo = MagicMock()
             mock_inst.repo.create = AsyncMock(return_value=doc)
-            r = client.post("/api/v1/documents", json={
-                "title": "My Session Doc", "session_id": sess_id,
-            })
+            r = client.post(
+                "/api/v1/documents",
+                json={
+                    "title": "My Session Doc",
+                    "session_id": sess_id,
+                },
+            )
         assert r.status_code == 201
         assert r.json()["data"]["session_id"] == sess_id
 
@@ -1166,14 +1548,34 @@ class TestDocumentGetSessionOwned:
         sess_id = str(uuid4())
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="My Session Doc", uploaded_by=None, session_id=sess_id,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="My Session Doc",
+            uploaded_by=None,
+            session_id=sess_id,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         sess = _MockEntity(id=sess_id, user_id=TEST_USER_ID)
         mock_session.get = AsyncMock(return_value=sess)
@@ -1201,21 +1603,44 @@ class TestDocumentUpdateSessionOwned:
         sess = _MockEntity(id=sess_id, user_id=TEST_USER_ID)
         mock_session.get = AsyncMock(return_value=sess)
         updated = _MockEntity(
-            id=doc_id, title="Reassigned", uploaded_by=TEST_USER_ID,
+            id=doc_id,
+            title="Reassigned",
+            uploaded_by=TEST_USER_ID,
             session_id=sess_id,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
-        with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get, \
-             patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd:
+        with (
+            patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m_get,
+            patch.object(DocumentService, "update", new_callable=AsyncMock) as m_upd,
+        ):
             m_get.return_value = doc
             m_upd.return_value = updated
-            r = client.patch(f"/api/v1/documents/{doc_id}", json={"session_id": sess_id})
+            r = client.patch(
+                f"/api/v1/documents/{doc_id}", json={"session_id": sess_id}
+            )
         assert r.status_code == 200
         assert r.json()["data"]["session_id"] == sess_id
 
@@ -1231,7 +1656,9 @@ class TestDocumentStatsSessionOwned:
     def test_stats_with_owned_session(self, client, mock_session):
         """Doc in a session owned by user — stats succeed, not 404."""
         sess_id = str(uuid4())
-        doc = _MockEntity(id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=sess_id)
+        doc = _MockEntity(
+            id=str(uuid4()), is_deleted=False, uploaded_by=None, session_id=sess_id
+        )
         sess = _MockEntity(id=sess_id, user_id=TEST_USER_ID)
         mock_session.get = AsyncMock(side_effect=[doc, sess])
         mock_result = MagicMock()
@@ -1253,6 +1680,7 @@ class TestReaderSeedTestDataTriggers:
     TRIGGER_422 = "00000000-0000-0000-0000-000000000422"
     TRIGGER_500 = "00000000-0000-0000-0000-000000000500"
 
+
 # ======================================================================
 # Reader — session owned by user (through 673->679)
 # ======================================================================
@@ -1267,14 +1695,34 @@ class TestReaderSessionOwned:
         sess_id = str(uuid4())
         doc_id = uuid4()
         doc = _MockEntity(
-            id=doc_id, title="Session Reader Doc", uploaded_by=None, session_id=sess_id,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Session Reader Doc",
+            uploaded_by=None,
+            session_id=sess_id,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
         sess = _MockEntity(id=sess_id, user_id=TEST_USER_ID)
         mock_session.get = AsyncMock(return_value=sess)
@@ -1300,7 +1748,9 @@ class TestReaderSessionOwned:
 class TestReaderWithPassagesCitationsEvidence:
     """Reader with passages, anchored citations, unanchored citations/evidence."""
 
-    def test_reader_with_passages_and_citations(self, client, mock_session, monkeypatch):
+    def test_reader_with_passages_and_citations(
+        self, client, mock_session, monkeypatch
+    ):
         """Full reader with OCR chunks, passages, citations, and evidence."""
         monkeypatch.delenv("SEED_TEST_DATA", raising=False)
         doc_id = uuid4()
@@ -1311,64 +1761,117 @@ class TestReaderWithPassagesCitationsEvidence:
         cit_id2 = str(uuid4())
 
         doc = _MockEntity(
-            id=doc_id, title="Rich Doc", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty="汉", year=None, category="针灸", abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Rich Doc",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty="汉",
+            year=None,
+            category="针灸",
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
 
         # OCR chunk with passage_id set
         ocr_chunk = _MockEntity(
-            id=str(uuid4()), chunk_index=1, content="OCR content",
-            page_number=2, paragraph_index=1, ocr_confidence=0.85,
-            passage_id=passage_pid, match_method="ocr", quote_bbox=None,
+            id=str(uuid4()),
+            chunk_index=1,
+            content="OCR content",
+            page_number=2,
+            paragraph_index=1,
+            ocr_confidence=0.85,
+            passage_id=passage_pid,
+            match_method="ocr",
+            quote_bbox=None,
         )
         # Non-OCR chunk with passage_id set (for doc_passage_ids population)
         orig_chunk = _MockEntity(
-            id=str(uuid4()), chunk_index=0, content="Original text",
-            page_number=1, paragraph_index=0, ocr_confidence=None,
-            passage_id=passage_pid, match_method=None, quote_bbox=None,
+            id=str(uuid4()),
+            chunk_index=0,
+            content="Original text",
+            page_number=1,
+            paragraph_index=0,
+            ocr_confidence=None,
+            passage_id=passage_pid,
+            match_method=None,
+            quote_bbox=None,
         )
         # Chunk with no passage_id (for original_chunks filtering)
         unlinked_chunk = _MockEntity(
-            id=str(uuid4()), chunk_index=2, content="Unlinked text",
-            page_number=1, paragraph_index=2, ocr_confidence=None,
-            passage_id=None, match_method=None, quote_bbox=None,
+            id=str(uuid4()),
+            chunk_index=2,
+            content="Unlinked text",
+            page_number=1,
+            paragraph_index=2,
+            ocr_confidence=None,
+            passage_id=None,
+            match_method=None,
+            quote_bbox=None,
         )
 
         # Passage object
         passage = _MockEntity(
-            id=passage_pid, content_text="经络者所以行血气",
-            translation="The channels conduct qi and blood", notes="医经",
-            order=1, tags="E2E",
+            id=passage_pid,
+            content_text="经络者所以行血气",
+            translation="The channels conduct qi and blood",
+            notes="医经",
+            order=1,
+            tags="E2E",
         )
 
         # Anchored citation
         anchored_cit = _MockEntity(
-            id=cit_id1, target_type="Passage", target_id=passage_pid,
-            evidence_id=ev_id1, quote_text="quote 1", note="note 1",
+            id=cit_id1,
+            target_type="Passage",
+            target_id=passage_pid,
+            evidence_id=ev_id1,
+            quote_text="quote 1",
+            note="note 1",
         )
         # Unanchored citation (will come via extra_ev -> extra_cit)
         unanchored_cit = _MockEntity(
-            id=cit_id2, target_type="Passage", target_id=passage_pid,
-            evidence_id=ev_id2, quote_text="quote 2", note="note 2",
+            id=cit_id2,
+            target_type="Passage",
+            target_id=passage_pid,
+            evidence_id=ev_id2,
+            quote_text="quote 2",
+            note="note 2",
         )
 
         # Anchored evidence
         anchored_ev = _MockEntity(
-            id=ev_id1, description="Evidence 1",
+            id=ev_id1,
+            description="Evidence 1",
             evidence_level=_mock_evidence_level(2),
-            source_passage_id=passage_pid, source_ref_id=None,
+            source_passage_id=passage_pid,
+            source_ref_id=None,
         )
         # Unanchored evidence (source_passage in doc_passage_ids but no chunk join)
         unanchored_ev = _MockEntity(
-            id=ev_id2, description="Evidence 2",
+            id=ev_id2,
+            description="Evidence 2",
             evidence_level=_mock_evidence_level(3),
-            source_passage_id=passage_pid, source_ref_id=None,
+            source_passage_id=passage_pid,
+            source_ref_id=None,
         )
 
         # --- Build mock results ---
@@ -1383,7 +1886,9 @@ class TestReaderWithPassagesCitationsEvidence:
 
         all_chunks_result = MagicMock()
         all_chunks_result.scalars.return_value.all.return_value = [
-            orig_chunk, ocr_chunk, unlinked_chunk,
+            orig_chunk,
+            ocr_chunk,
+            unlinked_chunk,
         ]
 
         anchored_cit_result = MagicMock()
@@ -1406,17 +1911,19 @@ class TestReaderWithPassagesCitationsEvidence:
 
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
-            mock_session.execute = AsyncMock(side_effect=[
-                ocr_result,                # 1: OCR chunks
-                pid_result,                # 2: passage_ids
-                passage_result,            # 3: passage objects (720-724)
-                all_chunks_result,         # 4: all chunks
-                anchored_cit_result,       # 5: anchored citations
-                extra_ev_for_all_result,   # 6: extra evidence (all_passage_ids)
-                extra_cit_result,          # 7: extra citations (792-801)
-                anchored_ev_result,        # 8: anchored evidence
-                extra_ev_for_doc_result,   # 9: extra evidence (doc_passage_ids)
-            ])
+            mock_session.execute = AsyncMock(
+                side_effect=[
+                    ocr_result,  # 1: OCR chunks
+                    pid_result,  # 2: passage_ids
+                    passage_result,  # 3: passage objects (720-724)
+                    all_chunks_result,  # 4: all chunks
+                    anchored_cit_result,  # 5: anchored citations
+                    extra_ev_for_all_result,  # 6: extra evidence (all_passage_ids)
+                    extra_cit_result,  # 7: extra citations (792-801)
+                    anchored_ev_result,  # 8: anchored evidence
+                    extra_ev_for_doc_result,  # 9: extra evidence (doc_passage_ids)
+                ]
+            )
             r = client.get(f"/api/v1/documents/{doc_id}/reader")
 
         assert r.status_code == 200
@@ -1458,26 +1965,54 @@ class TestReaderUnanchoredEvidence:
         ev_id = str(uuid4())
 
         doc = _MockEntity(
-            id=doc_id, title="Ev Doc", uploaded_by=None, session_id=None,
-            language="zh", title_pinyin=None, title_english=None, author_id=None,
-            dynasty=None, year=None, category=None, abstract=None, content_text=None,
-            source_url=None, page_count=None, created_at=None, updated_at=None,
-            copyright_status="public_domain", license_type=None, authorization_basis=None,
-            review_status="approved", reviewed_by=None, reviewed_at=None,
-            rag_enabled=True, content_checksum=None, source_name=None,
-            withdrawn_at=None, withdraw_reason=None,
+            id=doc_id,
+            title="Ev Doc",
+            uploaded_by=None,
+            session_id=None,
+            language="zh",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text=None,
+            source_url=None,
+            page_count=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="public_domain",
+            license_type=None,
+            authorization_basis=None,
+            review_status="approved",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=True,
+            content_checksum=None,
+            source_name=None,
+            withdrawn_at=None,
+            withdraw_reason=None,
         )
 
         # Chunk with passage_id — needed for doc_passage_ids
         chunk = _MockEntity(
-            id=str(uuid4()), chunk_index=0, content="text",
-            page_number=1, paragraph_index=0, ocr_confidence=None,
-            passage_id=passage_pid, match_method=None, quote_bbox=None,
+            id=str(uuid4()),
+            chunk_index=0,
+            content="text",
+            page_number=1,
+            paragraph_index=0,
+            ocr_confidence=None,
+            passage_id=passage_pid,
+            match_method=None,
+            quote_bbox=None,
         )
         unanchored_ev = _MockEntity(
-            id=ev_id, description="Orphan evidence",
+            id=ev_id,
+            description="Orphan evidence",
             evidence_level=_mock_evidence_level(1),
-            source_passage_id=passage_pid, source_ref_id=None,
+            source_passage_id=passage_pid,
+            source_ref_id=None,
         )
 
         ocr_result = MagicMock()
@@ -1498,15 +2033,17 @@ class TestReaderUnanchoredEvidence:
 
         with patch.object(DocumentService, "get_by_id", new_callable=AsyncMock) as m:
             m.return_value = doc
-            mock_session.execute = AsyncMock(side_effect=[
-                ocr_result,          # 1: OCR chunks
-                pid_result,          # 2: passage_ids (empty → no passage query)
-                all_chunks_result,   # 3: all chunks (skip passages query since pids empty)
-                empty_result,        # 4: anchored citations
-                empty_result,        # 5: extra evidence (all_passage_ids_for_doc)
-                empty_result,        # 6: anchored evidence
-                extra_ev_result,     # 7: extra evidence (doc_passage_ids) → 841-843, 847-848
-            ])
+            mock_session.execute = AsyncMock(
+                side_effect=[
+                    ocr_result,  # 1: OCR chunks
+                    pid_result,  # 2: passage_ids (empty → no passage query)
+                    all_chunks_result,  # 3: all chunks (skip passages query since pids empty)
+                    empty_result,  # 4: anchored citations
+                    empty_result,  # 5: extra evidence (all_passage_ids_for_doc)
+                    empty_result,  # 6: anchored evidence
+                    extra_ev_result,  # 7: extra evidence (doc_passage_ids) → 841-843, 847-848
+                ]
+            )
             r = client.get(f"/api/v1/documents/{doc_id}/reader")
 
         assert r.status_code == 200
@@ -1537,7 +2074,10 @@ class TestSeedReaderDataEmptyChunks:
                     setattr(self, k, v)
 
         existing_user = _FakeModel(
-            id=existing_user_id, username="emptytxt", email="et@test.com", is_active=True,
+            id=existing_user_id,
+            username="emptytxt",
+            email="et@test.com",
+            is_active=True,
         )
         user_result = MagicMock()
         user_result.scalar_one_or_none.return_value = existing_user
@@ -1548,12 +2088,15 @@ class TestSeedReaderDataEmptyChunks:
         from app.api.v1 import entities
 
         with patch.object(entities, "sql_select", side_effect=lambda *a: MagicMock()):
-            r = client.post("/api/v1/_test/seed-reader-data", json={
-                "username": "emptytxt",
-                "password": "pw",
-                "document_title": "Empty Doc",
-                "document_text": "",
-            })
+            r = client.post(
+                "/api/v1/_test/seed-reader-data",
+                json={
+                    "username": "emptytxt",
+                    "password": "pw",
+                    "document_title": "Empty Doc",
+                    "document_text": "",
+                },
+            )
         assert r.status_code == 200
         # With empty text, passage is created but not linked to any chunk
         data = r.json()["data"]

@@ -33,12 +33,7 @@
       <span class="rae-toggle-icon" aria-hidden="true">{{ sidebarOpen ? '◀' : '▶' }}</span>
     </button>
 
-    <aside
-      v-if="sidebarOpen"
-      :id="sidebarId"
-      class="rae-sidebar"
-      aria-labelledby="rae-heading"
-    >
+    <aside v-if="sidebarOpen" :id="sidebarId" class="rae-sidebar" aria-labelledby="rae-heading">
       <h2 id="rae-heading" class="rae-heading">AI 研究助手</h2>
       <p class="rae-description">输入研究问题，进入研究工作流进行系统研究。</p>
 
@@ -118,12 +113,15 @@ import { useRouter } from 'vue-router';
 
 type RAEIMode = 'inline' | 'sidebar' | 'sheet';
 
-const props = withDefaults(defineProps<{
-  projectId: string;
-  mode?: RAEIMode;
-}>(), {
-  mode: 'sidebar',
-});
+const props = withDefaults(
+  defineProps<{
+    projectId: string;
+    mode?: RAEIMode;
+  }>(),
+  {
+    mode: 'sidebar',
+  },
+);
 
 const router = useRouter();
 const question = ref('');
@@ -147,7 +145,11 @@ function onSubmit() {
   const q = question.value;
   if (!q) return;
   submitting.value = true;
-  try { sessionStorage.setItem(STORAGE_KEY, q); } catch { /* unavailable */ }
+  try {
+    sessionStorage.setItem(STORAGE_KEY, q);
+  } catch {
+    /* unavailable */
+  }
   router.push(`/research/${props.projectId}/workflow`);
 }
 
@@ -155,7 +157,11 @@ function onSheetSubmit() {
   const q = question.value;
   if (!q) return;
   submitting.value = true;
-  try { sessionStorage.setItem(STORAGE_KEY, q); } catch { /* unavailable */ }
+  try {
+    sessionStorage.setItem(STORAGE_KEY, q);
+  } catch {
+    /* unavailable */
+  }
   closeSheetForNavigation();
   router.push(`/research/${props.projectId}/workflow`);
 }
@@ -434,8 +440,12 @@ watch(sheetOpen, (open) => {
 }
 
 @keyframes rae-sheet-slide-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

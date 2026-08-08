@@ -42,6 +42,7 @@
 **问题:** `setInterval` 在 `active` 变为 false 后仍运行（仅不增量），组件卸载时也未清理。
 
 **修复:**
+
 - `watch(() => props.active, (val) => { if (!val) stopTimer() })`
 - `onUnmounted(() => stopTimer())`
 - `stopTimer()` 清 interval 并设 `timer = null`
@@ -53,6 +54,7 @@
 **问题:** `submitting` prop 已声明但 `isStepClickable()` 未使用。提交中用户可通过鼠标点击或键盘 Enter/Space 触发 step-change。
 
 **修复:**
+
 - `isStepClickable(idx)` 增加 `if (props.submitting) return false` 作为第一行
 - 按钮元素已有 `:disabled`，但额外在函数层防御，覆盖键盘路径
 
@@ -109,6 +111,7 @@
 ### 2.7 200% Zoom 验证
 
 在 1280px 视口 200% 缩放下实测：
+
 - ResearchWorkflowPage 及所有 step 的 `scrollWidth <= clientWidth`
 - 所有按钮可点击，焦点环可见
 - Tab 键顺序正确
@@ -124,15 +127,15 @@
 
 ### 字体尺寸映射
 
-| 硬编码 | Token | 等值? |
-|--------|-------|-------|
-| `12px` | `--text-xs` | 精确 (12px) |
-| `13px` | `--text-sm` | 精确 (13px) |
+| 硬编码 | Token         | 等值?       |
+| ------ | ------------- | ----------- |
+| `12px` | `--text-xs`   | 精确 (12px) |
+| `13px` | `--text-sm`   | 精确 (13px) |
 | `14px` | `--text-base` | 精确 (14px) |
-| `16px` | `--text-lg` | 精确 (16px) |
-| `20px` | `--text-xl` | 精确 (20px) |
-| `22px` | `--text-2xl` | 精确 (22px) |
-| `24px` | `--text-3xl` | 精确 (24px) |
+| `16px` | `--text-lg`   | 精确 (16px) |
+| `20px` | `--text-xl`   | 精确 (20px) |
+| `22px` | `--text-2xl`  | 精确 (22px) |
+| `24px` | `--text-3xl`  | 精确 (24px) |
 
 **保留不替换：** `11px`、`15px`、`18px` — 无精确 token。标注 `# ponytail: add --text-2xs (11px), --text-md (15px), --text-2xl (18px) when typography token grid fills out`。
 
@@ -140,19 +143,19 @@
 
 所有硬编码 margin/padding px 均有精确 `--space-*` token：
 
-| px | Token |
-|----|-------|
-| 4px | `--space-1` |
-| 5px | `--space-1-25` |
-| 6px | `--space-1-5` |
-| 8px | `--space-2` |
-| 10px | `--space-2-5` |
-| 12px | `--space-3` |
-| 14px | `--space-3-5` |
-| 16px | `--space-4` |
-| 18px | `--space-4-5` |
-| 20px | `--space-5` |
-| 24px | `--space-6` |
+| px   | Token          |
+| ---- | -------------- |
+| 4px  | `--space-1`    |
+| 5px  | `--space-1-25` |
+| 6px  | `--space-1-5`  |
+| 8px  | `--space-2`    |
+| 10px | `--space-2-5`  |
+| 12px | `--space-3`    |
+| 14px | `--space-3-5`  |
+| 16px | `--space-4`    |
+| 18px | `--space-4-5`  |
+| 20px | `--space-5`    |
+| 24px | `--space-6`    |
 
 ### 保留不替换
 
@@ -180,18 +183,19 @@
 
 替换 emoji 为 `@lucide/vue` 图标。项目已有 `^1.24.0`。
 
-| 数量 | Emoji | Lucide | 文件 | 位置 |
-|------|-------|--------|------|------|
-| 1 | ℹ️ | `Info` | DocumentSelectionStep | 系统提示 |
-| 1 | ⚠️ | `AlertTriangle` | EvidenceReviewStep | 空证据警告 |
-| 1 | ⚠️ | `AlertTriangle` | EvidenceReviewStep | 世系不完整警告 |
-| 1 | ⚠️ | `AlertTriangle` | ResearchReportStep | 未持久化报告警告 |
-| 1 | 🔍 | `Search` | ResearchReportStep | "基于报告重新搜索"按钮 |
-| 1 | 📄 | `FileText` | ResearchReportStep | 报告卡片 |
+| 数量 | Emoji | Lucide          | 文件                  | 位置                   |
+| ---- | ----- | --------------- | --------------------- | ---------------------- |
+| 1    | ℹ️    | `Info`          | DocumentSelectionStep | 系统提示               |
+| 1    | ⚠️    | `AlertTriangle` | EvidenceReviewStep    | 空证据警告             |
+| 1    | ⚠️    | `AlertTriangle` | EvidenceReviewStep    | 世系不完整警告         |
+| 1    | ⚠️    | `AlertTriangle` | ResearchReportStep    | 未持久化报告警告       |
+| 1    | 🔍    | `Search`        | ResearchReportStep    | "基于报告重新搜索"按钮 |
+| 1    | 📄    | `FileText`      | ResearchReportStep    | 报告卡片               |
 
 **跳过:** ResearchWorkflowPage 传给 EmptyState 的 `icon="🔍"` — EmptyState 组件不在白名单内。
 
 **规范:**
+
 - `:size` 匹配周围文字 (16px / 18px)
 - `aria-hidden="true"`
 - 颜色通过 CSS `color` 继承或显式设置为 `var(--color-text-secondary)` / `var(--color-warning-text)`
@@ -246,10 +250,10 @@ npx vitest run                # 42 workflow 测试全部通过
 
 ### 手动浏览器验证
 
-| 断点 | 验收项 |
-|------|--------|
-| 375×812 (移动端) | 无溢出/截断/重叠，所有按钮可点击 |
-| 1280×800 (桌面端) | 正常布局，无退化 |
+| 断点                | 验收项                                                 |
+| ------------------- | ------------------------------------------------------ |
+| 375×812 (移动端)    | 无溢出/截断/重叠，所有按钮可点击                       |
+| 1280×800 (桌面端)   | 正常布局，无退化                                       |
 | 1280×800, 200% zoom | `scrollWidth <= clientWidth`，焦点环可见，Tab 顺序正确 |
 
 ### 状态节点验证

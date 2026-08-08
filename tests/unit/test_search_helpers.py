@@ -1,21 +1,20 @@
 """Unit tests for SearchService — pure helpers and mocked async paths."""
 
-from unittest.mock import ANY, AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
+from app.schemas.search import SearchParams
 from app.services.search_service import (
     ENTITY_CONFIG,
     SearchService,
     _compute_score,
     _make_snippet,
 )
-from app.schemas.search import SearchParams, SuggestItem
-
 
 # ---------------------------------------------------------------------------
 # _make_snippet
 # ---------------------------------------------------------------------------
+
 
 class TestMakeSnippet:
     """Pure helper — lines 142-161."""
@@ -58,6 +57,7 @@ class TestMakeSnippet:
 # _compute_score
 # ---------------------------------------------------------------------------
 
+
 class TestComputeScore:
     """Pure helper — lines 164-172."""
 
@@ -85,8 +85,8 @@ class TestComputeScore:
 # SearchService._search_entity_type — edge cases via mock
 # ---------------------------------------------------------------------------
 
-class TestSearchEntityType:
 
+class TestSearchEntityType:
     @pytest.mark.asyncio
     async def test_unknown_entity_type_skipped(self):
         """Line 207: entity_type not in ENTITY_CONFIG => continue."""
@@ -143,8 +143,8 @@ class TestSearchEntityType:
 # SearchService.suggest — edge cases
 # ---------------------------------------------------------------------------
 
-class TestSuggest:
 
+class TestSuggest:
     @pytest.mark.asyncio
     async def test_empty_query_returns_empty(self):
         session = AsyncMock()
@@ -158,9 +158,11 @@ class TestSuggest:
         session = AsyncMock()
         session.execute = AsyncMock()
         mock_result = MagicMock()
-        mock_result.__aiter__.return_value = iter([
-            ("皇甫谧", "person", "id-1"),
-        ])
+        mock_result.__aiter__.return_value = iter(
+            [
+                ("皇甫谧", "person", "id-1"),
+            ]
+        )
         session.execute.return_value = mock_result
 
         svc = SearchService(session)
@@ -194,11 +196,20 @@ class TestSuggest:
             clear=False,
         ):
             from app.models.person import Person
+
             result = await svc._search_entity_type(
-                "person", {"model": Person, "title_field": "nonexistent_field",
-                           "subtitle_field": "dynasty", "search_fields": ["nonexistent_field"],
-                           "snippet_field": None, "meta_fields": [], "route_prefix": None},
-                "test", SearchParams(q="test", entity_types=["person"])
+                "person",
+                {
+                    "model": Person,
+                    "title_field": "nonexistent_field",
+                    "subtitle_field": "dynasty",
+                    "search_fields": ["nonexistent_field"],
+                    "snippet_field": None,
+                    "meta_fields": [],
+                    "route_prefix": None,
+                },
+                "test",
+                SearchParams(q="test", entity_types=["person"]),
             )
             assert result == []
 
@@ -250,6 +261,7 @@ class TestSuggest:
 # ---------------------------------------------------------------------------
 # SearchService.search — dynasty and category filter branches
 # ---------------------------------------------------------------------------
+
 
 class TestSearchDynastyFilter:
     """Lines 303->306: dynasty filter on search."""
@@ -306,8 +318,8 @@ class TestSearchCategoryFilter:
 # SearchService.reindex
 # ---------------------------------------------------------------------------
 
-class TestReindex:
 
+class TestReindex:
     @pytest.mark.asyncio
     async def test_reindex_counts_all_entities(self):
         session = AsyncMock()

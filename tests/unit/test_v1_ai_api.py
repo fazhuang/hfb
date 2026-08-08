@@ -12,22 +12,21 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.schemas.generation import GenerationMetadata, GroundedGenerationResponse
-
+from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # FastAPI app with auth/permission/db overrides for every test
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def client():
     """TestClient with auth/permission/db overrides per test."""
-    from main import app
-    from app.middleware.auth import get_current_user
-    from app.db.database import get_session
     from app.api.v1.ai import guard_ai_read, guard_workspace_read, guard_workspace_write
+    from app.db.database import get_session
+    from app.middleware.auth import get_current_user
+    from main import app
 
     async def _fake_user() -> str:
         return "test-user-id"
@@ -48,6 +47,7 @@ def client():
 # Shared mock factories
 # ---------------------------------------------------------------------------
 
+
 def _mock_ai_service_instance(**overrides):
     """Return a MagicMock AIService instance with async methods."""
     m = MagicMock()
@@ -58,6 +58,7 @@ def _mock_ai_service_instance(**overrides):
     async def _chat_stream(messages, context="", model=None):
         yield "chunk-1"
         yield "chunk-2"
+
     m.chat_stream = _chat_stream
 
     for k, v in overrides.items():
@@ -73,8 +74,9 @@ def _mock_rag_instance(chunks=None):
     return m
 
 
-def _mock_generation_pipeline(query="test query", answer="Test answer",
-                               error_code=None):
+def _mock_generation_pipeline(
+    query="test query", answer="Test answer", error_code=None
+):
     """Return a MagicMock GenerationPipeline with .generate()"""
     metadata = GenerationMetadata(top_k=5, error_code=error_code)
     response = GroundedGenerationResponse(
@@ -93,12 +95,14 @@ def _mock_generation_pipeline(query="test query", answer="Test answer",
 # TestAuth — verify unauthenticated access is rejected
 # ===================================================================
 
+
 class TestAuth:
     """401/403 when dependency_overrides are NOT in place."""
 
     @pytest.fixture
     def bare_client(self):
         from main import app
+
         app.dependency_overrides.clear()
         c = TestClient(app)
         yield c
@@ -106,13 +110,11 @@ class TestAuth:
         app.dependency_overrides.clear()
 
     def test_ai_summarize_unauthorized(self, bare_client):
-        resp = bare_client.post("/api/v1/ai/summarize",
-                                json={"text": "test"})
+        resp = bare_client.post("/api/v1/ai/summarize", json={"text": "test"})
         assert resp.status_code == 401
 
     def test_ai_chat_unauthorized(self, bare_client):
-        resp = bare_client.post("/api/v1/ai/chat",
-                                json={"message": "hi"})
+        resp = bare_client.post("/api/v1/ai/chat", json={"message": "hi"})
         assert resp.status_code == 401
 
     def test_ws_sessions_unauthorized(self, bare_client):
@@ -124,14 +126,16 @@ class TestAuth:
 # TestSummarize
 # ===================================================================
 
+
 class TestSummarize:
     """POST /api/v1/ai/summarize"""
 
     def test_success_returns_summary(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            resp = client.post("/api/v1/ai/summarize",
-                               json={"text": "test text", "max_words": 100})
+            resp = client.post(
+                "/api/v1/ai/summarize", json={"text": "test text", "max_words": 100}
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["success"] is True
@@ -140,8 +144,7 @@ class TestSummarize:
     def test_passes_max_words_to_service(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            client.post("/api/v1/ai/summarize",
-                        json={"text": "test", "max_words": 50})
+            client.post("/api/v1/ai/summarize", json={"text": "test", "max_words": 50})
         mock_svc.summarize.assert_awaited_once_with("test", 50)
 
     def test_default_max_words_is_200(self, client):
@@ -163,14 +166,16 @@ class TestSummarize:
 # TestTranslate
 # ===================================================================
 
+
 class TestTranslate:
     """POST /api/v1/ai/translate"""
 
     def test_success_returns_translation(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            resp = client.post("/api/v1/ai/translate",
-                               json={"text": "test", "target_lang": "现代汉语"})
+            resp = client.post(
+                "/api/v1/ai/translate", json={"text": "test", "target_lang": "现代汉语"}
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["translation"] == "翻译结果"
@@ -178,8 +183,9 @@ class TestTranslate:
     def test_passes_target_lang_to_service(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            client.post("/api/v1/ai/translate",
-                        json={"text": "test", "target_lang": "英文"})
+            client.post(
+                "/api/v1/ai/translate", json={"text": "test", "target_lang": "英文"}
+            )
         mock_svc.translate.assert_awaited_once_with("test", "英文")
 
     def test_default_target_lang_modern_chinese(self, client):
@@ -201,14 +207,16 @@ class TestTranslate:
 # TestAiCompare
 # ===================================================================
 
+
 class TestAiCompare:
     """POST /api/v1/ai/compare"""
 
     def test_success_returns_comparison(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            resp = client.post("/api/v1/ai/compare",
-                               json={"source_text": "s", "target_text": "t"})
+            resp = client.post(
+                "/api/v1/ai/compare", json={"source_text": "s", "target_text": "t"}
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["comparison"] == "版本比较结果"
@@ -216,26 +224,35 @@ class TestAiCompare:
     def test_passes_labels_to_service(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            client.post("/api/v1/ai/compare",
-                        json={"source_text": "s", "target_text": "t",
-                              "source_label": "A", "target_label": "B"})
+            client.post(
+                "/api/v1/ai/compare",
+                json={
+                    "source_text": "s",
+                    "target_text": "t",
+                    "source_label": "A",
+                    "target_label": "B",
+                },
+            )
         mock_svc.ai_compare.assert_awaited_once_with("s", "t", "A", "B")
 
     def test_default_labels(self, client):
         mock_svc = _mock_ai_service_instance()
         with patch("app.api.v1.ai.AIService", return_value=mock_svc):
-            client.post("/api/v1/ai/compare",
-                        json={"source_text": "s", "target_text": "t"})
+            client.post(
+                "/api/v1/ai/compare", json={"source_text": "s", "target_text": "t"}
+            )
         mock_svc.ai_compare.assert_awaited_once_with("s", "t", "源版本", "目标版本")
 
     def test_422_empty_source_text(self, client):
-        resp = client.post("/api/v1/ai/compare",
-                           json={"source_text": "", "target_text": "t"})
+        resp = client.post(
+            "/api/v1/ai/compare", json={"source_text": "", "target_text": "t"}
+        )
         assert resp.status_code == 422
 
     def test_422_empty_target_text(self, client):
-        resp = client.post("/api/v1/ai/compare",
-                           json={"source_text": "s", "target_text": ""})
+        resp = client.post(
+            "/api/v1/ai/compare", json={"source_text": "s", "target_text": ""}
+        )
         assert resp.status_code == 422
 
     def test_422_missing_source_text(self, client):
@@ -250,6 +267,7 @@ class TestAiCompare:
 # ===================================================================
 # TestChatEndpoint
 # ===================================================================
+
 
 class TestChatEndpoint:
     """POST /api/v1/ai/chat — SSE streaming with evidence-gated RAG"""
@@ -272,13 +290,14 @@ class TestChatEndpoint:
 
     def test_refusal_when_rag_returns_empty(self, client):
         mock_ai = _mock_ai_service_instance()
-        mock_rag = _mock_rag_instance(chunks=[])   # empty RAG
+        mock_rag = _mock_rag_instance(chunks=[])  # empty RAG
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": True,
-                                         "session_id": None})
+                resp = client.post(
+                    "/api/v1/ai/chat",
+                    json={"message": "test", "use_rag": True, "session_id": None},
+                )
         assert resp.status_code == 200
         assert resp.headers["content-type"].startswith("text/event-stream")
 
@@ -294,8 +313,9 @@ class TestChatEndpoint:
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": True})
+                resp = client.post(
+                    "/api/v1/ai/chat", json={"message": "test", "use_rag": True}
+                )
         events = _parse_sse_events(resp.text)
         structured = events[0]["structured"]
         assert structured["evidence"] == []
@@ -308,17 +328,25 @@ class TestChatEndpoint:
 
     def test_streams_chunks_when_rag_has_results(self, client):
         mock_ai = _mock_ai_service_instance()
-        mock_rag = _mock_rag_instance(chunks=[{
-            "entity_type": "passage", "entity_id": "p1",
-            "title": "Test", "content": "test content",
-            "citation": "Test citation", "score": 0.9,
-        }])
+        mock_rag = _mock_rag_instance(
+            chunks=[
+                {
+                    "entity_type": "passage",
+                    "entity_id": "p1",
+                    "title": "Test",
+                    "content": "test content",
+                    "citation": "Test citation",
+                    "score": 0.9,
+                }
+            ]
+        )
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": True,
-                                         "session_id": None})
+                resp = client.post(
+                    "/api/v1/ai/chat",
+                    json={"message": "test", "use_rag": True, "session_id": None},
+                )
         assert resp.status_code == 200
         events = _parse_sse_events(resp.text)
         # At least content, structured, done
@@ -327,16 +355,24 @@ class TestChatEndpoint:
 
     def test_stream_contains_structured_envelope(self, client):
         mock_ai = _mock_ai_service_instance()
-        mock_rag = _mock_rag_instance(chunks=[{
-            "entity_type": "passage", "entity_id": "p1",
-            "title": "Test Title", "content": "test content",
-            "citation": "Test citation", "score": 0.9,
-        }])
+        mock_rag = _mock_rag_instance(
+            chunks=[
+                {
+                    "entity_type": "passage",
+                    "entity_id": "p1",
+                    "title": "Test Title",
+                    "content": "test content",
+                    "citation": "Test citation",
+                    "score": 0.9,
+                }
+            ]
+        )
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": True})
+                resp = client.post(
+                    "/api/v1/ai/chat", json={"message": "test", "use_rag": True}
+                )
         events = _parse_sse_events(resp.text)
         structured_event = next(e for e in events if "structured" in e)
         struct = structured_event["structured"]
@@ -348,16 +384,20 @@ class TestChatEndpoint:
     def test_structured_includes_evidence_from_rag_chunks(self, client):
         mock_ai = _mock_ai_service_instance()
         chunk = {
-            "entity_type": "passage", "entity_id": "p-123",
-            "title": "针灸甲乙经", "content": "some content data",
-            "citation": "《针灸甲乙经》卷三", "score": 0.95,
+            "entity_type": "passage",
+            "entity_id": "p-123",
+            "title": "针灸甲乙经",
+            "content": "some content data",
+            "citation": "《针灸甲乙经》卷三",
+            "score": 0.95,
         }
         mock_rag = _mock_rag_instance(chunks=[chunk])
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": True})
+                resp = client.post(
+                    "/api/v1/ai/chat", json={"message": "test", "use_rag": True}
+                )
         events = _parse_sse_events(resp.text)
         structured_event = next(e for e in events if "structured" in e)
         struct = structured_event["structured"]
@@ -378,8 +418,9 @@ class TestChatEndpoint:
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test", "use_rag": False})
+                resp = client.post(
+                    "/api/v1/ai/chat", json={"message": "test", "use_rag": False}
+                )
         events = _parse_sse_events(resp.text)
         assert "抱歉" in events[0]["content"]
 
@@ -389,24 +430,34 @@ class TestChatEndpoint:
 
     def test_chat_with_session_id_fetches_history(self, client):
         mock_ai = _mock_ai_service_instance()
-        mock_rag = _mock_rag_instance(chunks=[{
-            "entity_type": "passage", "entity_id": "p1",
-            "title": "T", "content": "c", "citation": "cit", "score": 1.0,
-        }])
+        mock_rag = _mock_rag_instance(
+            chunks=[
+                {
+                    "entity_type": "passage",
+                    "entity_id": "p1",
+                    "title": "T",
+                    "content": "c",
+                    "citation": "cit",
+                    "score": 1.0,
+                }
+            ]
+        )
         mock_ws = MagicMock()
-        mock_ws.get_chat_history = AsyncMock(return_value=[
-            {"role": "user", "content": "prior question"},
-            {"role": "assistant", "content": "prior answer"},
-        ])
+        mock_ws.get_chat_history = AsyncMock(
+            return_value=[
+                {"role": "user", "content": "prior question"},
+                {"role": "assistant", "content": "prior answer"},
+            ]
+        )
         mock_ws.append_chat_message = AsyncMock()
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                with patch("app.api.v1.ai.WorkspaceService",
-                           return_value=mock_ws):
-                    client.post("/api/v1/ai/chat",
-                                json={"message": "test", "session_id": "s-1",
-                                      "use_rag": True})
+                with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
+                    client.post(
+                        "/api/v1/ai/chat",
+                        json={"message": "test", "session_id": "s-1", "use_rag": True},
+                    )
         mock_ws.get_chat_history.assert_awaited_once_with("s-1")
         # User message is saved
         assert mock_ws.append_chat_message.call_count >= 2
@@ -423,10 +474,11 @@ class TestChatEndpoint:
                 with patch("app.api.v1.ai.WorkspaceService") as mock_ws_cls:
                     mock_ws_cls.return_value.append_chat_message = AsyncMock()
                     mock_ws_cls.return_value.get_chat_history = AsyncMock(
-                        return_value=[])
-                    resp = client.post("/api/v1/ai/chat",
-                                       json={"message": "test",
-                                             "session_id": None})
+                        return_value=[]
+                    )
+                    resp = client.post(
+                        "/api/v1/ai/chat", json={"message": "test", "session_id": None}
+                    )
                     assert resp.status_code == 200
                     assert mock_ws_cls.return_value.get_chat_history.call_count == 0
 
@@ -440,8 +492,7 @@ class TestChatEndpoint:
 
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test"})
+                resp = client.post("/api/v1/ai/chat", json={"message": "test"})
         assert resp.headers["Cache-Control"] == "no-cache"
         assert resp.headers["X-Accel-Buffering"] == "no"
 
@@ -454,14 +505,14 @@ class TestChatEndpoint:
         mock_rag = _mock_rag_instance(chunks=[])
         with patch("app.api.v1.ai.AIService", return_value=mock_ai):
             with patch("app.api.v1.ai.RAGService", return_value=mock_rag):
-                resp = client.post("/api/v1/ai/chat",
-                                   json={"message": "test"})
+                resp = client.post("/api/v1/ai/chat", json={"message": "test"})
         assert resp.status_code == 200
 
 
 # ===================================================================
 # TestGroundedGenerate
 # ===================================================================
+
 
 class TestGroundedGenerate:
     """POST /api/v1/ai/generate — GenerationPipeline"""
@@ -470,10 +521,10 @@ class TestGroundedGenerate:
         mock_pipeline = _mock_generation_pipeline(
             query="什么是针灸", answer="针灸是..."
         )
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "什么是针灸", "top_k": 5})
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post(
+                "/api/v1/ai/generate", json={"query": "什么是针灸", "top_k": 5}
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["success"] is True
@@ -486,22 +537,15 @@ class TestGroundedGenerate:
 
     def test_passes_top_k_to_pipeline(self, client):
         mock_pipeline = _mock_generation_pipeline()
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            client.post("/api/v1/ai/generate",
-                        json={"query": "test", "top_k": 10})
-        mock_pipeline.generate.assert_awaited_once_with(
-            query="test", top_k=10
-        )
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            client.post("/api/v1/ai/generate", json={"query": "test", "top_k": 10})
+        mock_pipeline.generate.assert_awaited_once_with(query="test", top_k=10)
 
     def test_default_top_k_is_5(self, client):
         mock_pipeline = _mock_generation_pipeline()
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
             client.post("/api/v1/ai/generate", json={"query": "test"})
-        mock_pipeline.generate.assert_awaited_once_with(
-            query="test", top_k=5
-        )
+        mock_pipeline.generate.assert_awaited_once_with(query="test", top_k=5)
 
     # ------------------------------------------------------------------
     # Input validation (422)
@@ -521,34 +565,28 @@ class TestGroundedGenerate:
 
     def test_top_k_minimum_1(self, client):
         mock_pipeline = _mock_generation_pipeline()
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "test", "top_k": 1})
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post(
+                "/api/v1/ai/generate", json={"query": "test", "top_k": 1}
+            )
         assert resp.status_code == 200
-        mock_pipeline.generate.assert_awaited_once_with(
-            query="test", top_k=1
-        )
+        mock_pipeline.generate.assert_awaited_once_with(query="test", top_k=1)
 
     def test_top_k_maximum_20(self, client):
         mock_pipeline = _mock_generation_pipeline()
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "test", "top_k": 20})
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post(
+                "/api/v1/ai/generate", json={"query": "test", "top_k": 20}
+            )
         assert resp.status_code == 200
-        mock_pipeline.generate.assert_awaited_once_with(
-            query="test", top_k=20
-        )
+        mock_pipeline.generate.assert_awaited_once_with(query="test", top_k=20)
 
     def test_422_top_k_below_minimum(self, client):
-        resp = client.post("/api/v1/ai/generate",
-                           json={"query": "test", "top_k": 0})
+        resp = client.post("/api/v1/ai/generate", json={"query": "test", "top_k": 0})
         assert resp.status_code == 422
 
     def test_422_top_k_above_maximum(self, client):
-        resp = client.post("/api/v1/ai/generate",
-                           json={"query": "test", "top_k": 21})
+        resp = client.post("/api/v1/ai/generate", json={"query": "test", "top_k": 21})
         assert resp.status_code == 422
 
     # ------------------------------------------------------------------
@@ -557,21 +595,15 @@ class TestGroundedGenerate:
 
     def test_metadata_included_without_error_code(self, client):
         mock_pipeline = _mock_generation_pipeline(error_code=None)
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "test"})
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post("/api/v1/ai/generate", json={"query": "test"})
         data = resp.json()["data"]
         assert data["metadata"]["error_code"] is None
 
     def test_metadata_included_with_error_code(self, client):
-        mock_pipeline = _mock_generation_pipeline(
-            error_code="QUOTE_NOT_IN_CHUNK"
-        )
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "test"})
+        mock_pipeline = _mock_generation_pipeline(error_code="QUOTE_NOT_IN_CHUNK")
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post("/api/v1/ai/generate", json={"query": "test"})
         data = resp.json()["data"]
         assert data["metadata"]["error_code"] == "QUOTE_NOT_IN_CHUNK"
 
@@ -581,10 +613,8 @@ class TestGroundedGenerate:
 
     def test_response_envelope_has_timestamp(self, client):
         mock_pipeline = _mock_generation_pipeline()
-        with patch("app.api.v1.ai.GenerationPipeline",
-                   return_value=mock_pipeline):
-            resp = client.post("/api/v1/ai/generate",
-                               json={"query": "test"})
+        with patch("app.api.v1.ai.GenerationPipeline", return_value=mock_pipeline):
+            resp = client.post("/api/v1/ai/generate", json={"query": "test"})
         body = resp.json()
         assert "timestamp" in body
 
@@ -592,6 +622,7 @@ class TestGroundedGenerate:
 # ===================================================================
 # TestWorkspaceSessions
 # ===================================================================
+
 
 class TestWorkspaceSessions:
     """GET/POST/PATCH/DELETE /api/v1/workspace/sessions"""
@@ -615,11 +646,14 @@ class TestWorkspaceSessions:
 
     def test_list_sessions_success(self, client):
         mock_ws = MagicMock()
-        mock_ws.list_sessions = AsyncMock(return_value=[
-            self._make_session_mock(title="S1"),
-            self._make_session_mock(id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-                                     title="S2"),
-        ])
+        mock_ws.list_sessions = AsyncMock(
+            return_value=[
+                self._make_session_mock(title="S1"),
+                self._make_session_mock(
+                    id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", title="S2"
+                ),
+            ]
+        )
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.get("/api/v1/workspace/sessions")
         assert resp.status_code == 200
@@ -640,38 +674,31 @@ class TestWorkspaceSessions:
 
     def test_create_session_success(self, client):
         mock_ws = MagicMock()
-        mock_ws.create_session = AsyncMock(
-            return_value=self._make_session_mock())
+        mock_ws.create_session = AsyncMock(return_value=self._make_session_mock())
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.post("/api/v1/workspace/sessions",
-                               json={"title": "New Study"})
+            resp = client.post(
+                "/api/v1/workspace/sessions", json={"title": "New Study"}
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["message"] == "Created"
         assert body["data"]["title"] == "Test Session"
-        mock_ws.create_session.assert_awaited_once_with(
-            "test-user-id", "New Study"
-        )
+        mock_ws.create_session.assert_awaited_once_with("test-user-id", "New Study")
 
     def test_create_session_default_title(self, client):
         mock_ws = MagicMock()
-        mock_ws.create_session = AsyncMock(
-            return_value=self._make_session_mock())
+        mock_ws.create_session = AsyncMock(return_value=self._make_session_mock())
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.post("/api/v1/workspace/sessions", json={})
         assert resp.status_code == 200
-        mock_ws.create_session.assert_awaited_once_with(
-            "test-user-id", "未命名研究"
-        )
+        mock_ws.create_session.assert_awaited_once_with("test-user-id", "未命名研究")
 
     def test_create_session_empty_title_uses_default(self, client):
         """SessionCreateRequest has no min_length, empty string is accepted."""
         mock_ws = MagicMock()
-        mock_ws.create_session = AsyncMock(
-            return_value=self._make_session_mock())
+        mock_ws.create_session = AsyncMock(return_value=self._make_session_mock())
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.post("/api/v1/workspace/sessions",
-                               json={"title": ""})
+            resp = client.post("/api/v1/workspace/sessions", json={"title": ""})
         # SessionCreateRequest has no validation on title, so empty is OK
         assert resp.status_code == 200
 
@@ -683,8 +710,8 @@ class TestWorkspaceSessions:
         mock_ws.get_session = AsyncMock(return_value=sess)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.get(
-                "/api/v1/workspace/sessions/"
-                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+                "/api/v1/workspace/sessions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            )
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["id"] == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
@@ -694,8 +721,8 @@ class TestWorkspaceSessions:
         mock_ws.get_session = AsyncMock(return_value=None)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.get(
-                "/api/v1/workspace/sessions/"
-                "00000000-0000-0000-0000-000000000000")
+                "/api/v1/workspace/sessions/00000000-0000-0000-0000-000000000000"
+            )
         assert resp.status_code == 404
 
     def test_get_session_wrong_user(self, client):
@@ -704,8 +731,8 @@ class TestWorkspaceSessions:
         mock_ws.get_session = AsyncMock(return_value=sess)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.get(
-                "/api/v1/workspace/sessions/"
-                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+                "/api/v1/workspace/sessions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            )
         assert resp.status_code == 404
 
     # --- update_session ---
@@ -717,8 +744,7 @@ class TestWorkspaceSessions:
         mock_ws.update_session = AsyncMock(return_value=sess)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.patch(
-                "/api/v1/workspace/sessions/"
-                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "/api/v1/workspace/sessions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
                 json={"title": "Updated"},
             )
         assert resp.status_code == 200
@@ -729,8 +755,7 @@ class TestWorkspaceSessions:
         mock_ws.get_session = AsyncMock(return_value=None)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.patch(
-                "/api/v1/workspace/sessions/"
-                "00000000-0000-0000-0000-000000000000",
+                "/api/v1/workspace/sessions/00000000-0000-0000-0000-000000000000",
                 json={"title": "Nope"},
             )
         assert resp.status_code == 404
@@ -743,8 +768,7 @@ class TestWorkspaceSessions:
         mock_ws.update_session = AsyncMock(return_value=sess)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.patch(
-                "/api/v1/workspace/sessions/"
-                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "/api/v1/workspace/sessions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
                 json={},
             )
         assert resp.status_code == 200
@@ -758,8 +782,8 @@ class TestWorkspaceSessions:
         mock_ws.delete_session = AsyncMock()
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.delete(
-                "/api/v1/workspace/sessions/"
-                "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+                "/api/v1/workspace/sessions/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+            )
         assert resp.status_code == 200
         assert resp.json()["message"] == "Deleted"
 
@@ -768,14 +792,15 @@ class TestWorkspaceSessions:
         mock_ws.get_session = AsyncMock(return_value=None)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.delete(
-                "/api/v1/workspace/sessions/"
-                "00000000-0000-0000-0000-000000000000")
+                "/api/v1/workspace/sessions/00000000-0000-0000-0000-000000000000"
+            )
         assert resp.status_code == 404
 
 
 # ===================================================================
 # TestWorkspaceNotes
 # ===================================================================
+
 
 class TestWorkspaceNotes:
     """Notes CRUD under /api/v1/workspace/sessions/{id}/notes and /notes/{id}"""
@@ -814,16 +839,17 @@ class TestWorkspaceNotes:
 
     def test_list_notes_success(self, client):
         mock_ws = MagicMock()
-        mock_ws.get_session = AsyncMock(
-            return_value=self._make_session_mock())
-        mock_ws.list_notes = AsyncMock(return_value=[
-            self._make_note_mock(content="N1"),
-            self._make_note_mock(id="22222222-2222-2222-2222-222222222222",
-                                  content="N2"),
-        ])
+        mock_ws.get_session = AsyncMock(return_value=self._make_session_mock())
+        mock_ws.list_notes = AsyncMock(
+            return_value=[
+                self._make_note_mock(content="N1"),
+                self._make_note_mock(
+                    id="22222222-2222-2222-2222-222222222222", content="N2"
+                ),
+            ]
+        )
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.get(
-                f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes")
+            resp = client.get(f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes")
         assert resp.status_code == 200
         body = resp.json()
         assert len(body["data"]) == 2
@@ -832,23 +858,24 @@ class TestWorkspaceNotes:
         mock_ws = MagicMock()
         mock_ws.get_session = AsyncMock(return_value=None)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.get(
-                f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes")
+            resp = client.get(f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes")
         assert resp.status_code == 404
 
     # --- create_note ---
 
     def test_create_note_success(self, client):
         mock_ws = MagicMock()
-        mock_ws.get_session = AsyncMock(
-            return_value=self._make_session_mock())
-        mock_ws.create_note = AsyncMock(
-            return_value=self._make_note_mock())
+        mock_ws.get_session = AsyncMock(return_value=self._make_session_mock())
+        mock_ws.create_note = AsyncMock(return_value=self._make_note_mock())
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.post(
                 f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes",
-                json={"content": "New note", "entity_type": "passage",
-                      "entity_id": "p-1", "tags": "tag1"},
+                json={
+                    "content": "New note",
+                    "entity_type": "passage",
+                    "entity_id": "p-1",
+                    "tags": "tag1",
+                },
             )
         assert resp.status_code == 200
         body = resp.json()
@@ -860,8 +887,8 @@ class TestWorkspaceNotes:
 
     def test_create_note_missing_content(self, client):
         resp = client.post(
-            f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes",
-            json={})
+            f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes", json={}
+        )
         assert resp.status_code == 422
 
     def test_create_note_session_not_found(self, client):
@@ -870,7 +897,8 @@ class TestWorkspaceNotes:
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.post(
                 f"/api/v1/workspace/sessions/{self._SESSION_ID}/notes",
-                json={"content": "test"})
+                json={"content": "test"},
+            )
         assert resp.status_code == 404
 
     # --- update_note ---
@@ -880,8 +908,7 @@ class TestWorkspaceNotes:
         note = self._make_note_mock()
         sess = self._make_session_mock()
         # get_note_with_session returns (note, session) tuple
-        mock_ws.get_note_with_session = AsyncMock(
-            return_value=(note, sess))
+        mock_ws.get_note_with_session = AsyncMock(return_value=(note, sess))
         mock_ws.update_note = AsyncMock(return_value=note)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
             resp = client.patch(
@@ -907,12 +934,10 @@ class TestWorkspaceNotes:
         mock_ws = MagicMock()
         note = self._make_note_mock()
         sess = self._make_session_mock()
-        mock_ws.get_note_with_session = AsyncMock(
-            return_value=(note, sess))
+        mock_ws.get_note_with_session = AsyncMock(return_value=(note, sess))
         mock_ws.delete_note = AsyncMock()
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.delete(
-                f"/api/v1/workspace/notes/{self._NOTE_ID}")
+            resp = client.delete(f"/api/v1/workspace/notes/{self._NOTE_ID}")
         assert resp.status_code == 200
         assert resp.json()["message"] == "Deleted"
 
@@ -920,14 +945,14 @@ class TestWorkspaceNotes:
         mock_ws = MagicMock()
         mock_ws.get_note_with_session = AsyncMock(return_value=None)
         with patch("app.api.v1.ai.WorkspaceService", return_value=mock_ws):
-            resp = client.delete(
-                f"/api/v1/workspace/notes/{self._NOTE_ID}")
+            resp = client.delete(f"/api/v1/workspace/notes/{self._NOTE_ID}")
         assert resp.status_code == 404
 
 
 # ===================================================================
 # TestSummaryCrossCuttingValidation
 # ===================================================================
+
 
 class TestSummaryCrossCuttingValidation:
     """Cross-cutting input validation tests across endpoints."""
@@ -966,6 +991,7 @@ class TestSummaryCrossCuttingValidation:
 # ===================================================================
 # Helpers
 # ===================================================================
+
 
 def _parse_sse_events(text: str) -> list[dict]:
     """Parse SSE text/event-stream output into a list of JSON objects."""

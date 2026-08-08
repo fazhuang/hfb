@@ -1,20 +1,18 @@
 """Unit tests for RetrievalService — edge cases in search, tokenization, and scoring."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from app.services.retrieval import (
-    RetrievalResult,
     RetrievalService,
     _expand_variants,
 )
 from app.services.retrieval import SearchResponse as RetrievalSearchResponse
 
-
 # ---------------------------------------------------------------------------
 # RetrievalService.search — edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestSearchEmptyKeywords:
     """Line 220: empty keywords return early."""
@@ -52,6 +50,7 @@ class TestSearchAuthorIdFilter:
 # ---------------------------------------------------------------------------
 # RetrievalService._tokenize — variant expansion
 # ---------------------------------------------------------------------------
+
 
 class TestExpandVariants:
     """Tests for _expand_variants helper."""
@@ -105,7 +104,9 @@ class TestSearchEvidenceMetadata:
 
         # Document lookup result
         mock_doc_row = MagicMock()
-        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+        mock_doc_row.__iter__.return_value = iter(
+            ["doc-1", "Test Doc", "https://example.com", "public_domain", True]
+        )
 
         session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
 
@@ -134,7 +135,9 @@ class TestSearchEvidenceMetadata:
         mock_chunks_result.scalars.return_value.all.return_value = [chunk]
 
         mock_doc_row = MagicMock()
-        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+        mock_doc_row.__iter__.return_value = iter(
+            ["doc-1", "Test Doc", "https://example.com", "public_domain", True]
+        )
 
         session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
 
@@ -163,7 +166,9 @@ class TestSearchEvidenceMetadata:
         mock_chunks_result.scalars.return_value.all.return_value = [chunk]
 
         mock_doc_row = MagicMock()
-        mock_doc_row.__iter__.return_value = iter(["doc-1", "Test Doc", "https://example.com", "public_domain", True])
+        mock_doc_row.__iter__.return_value = iter(
+            ["doc-1", "Test Doc", "https://example.com", "public_domain", True]
+        )
 
         session.execute.side_effect = [mock_chunks_result, [mock_doc_row]]
 
@@ -178,11 +183,14 @@ class TestSearchEvidenceMetadata:
 # RetrievalService._score_chunk
 # ---------------------------------------------------------------------------
 
+
 class TestScoreChunk:
     """Static _score_chunk method."""
 
     def test_content_with_all_keywords_scores_high(self):
-        score = RetrievalService._score_chunk(["key1", "key2"], "key1 and key2 appear here")
+        score = RetrievalService._score_chunk(
+            ["key1", "key2"], "key1 and key2 appear here"
+        )
         assert score > 0.4
 
     def test_content_with_no_keywords_scores_zero(self):

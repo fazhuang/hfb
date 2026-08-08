@@ -116,9 +116,7 @@ test.describe('B3-1 HfbButton — ARIA & DOM State', () => {
     await page.waitForSelector(normalBtn(), { state: 'visible', timeout: 10_000 });
   });
 
-  test('loading button has aria-busy="true", disabled, aria-disabled="true"', async ({
-    page,
-  }) => {
+  test('loading button has aria-busy="true", disabled, aria-disabled="true"', async ({ page }) => {
     const btn = page.locator(loadingBtn());
 
     await expect(btn).toHaveAttribute('aria-busy', 'true');
@@ -184,8 +182,7 @@ test.describe('B3-1 HfbButton — Focus-Visible', () => {
     // Mobile browsers do not have a physical Tab key; Playwright's device
     // emulation cannot reliably simulate Tab-based focus-visible on Mobile/Tablet.
     test.skip(
-      test.info().project.name.includes('Mobile') ||
-        test.info().project.name.includes('Tablet'),
+      test.info().project.name.includes('Mobile') || test.info().project.name.includes('Tablet'),
       'Tab → :focus-visible is desktop-only; mobile has no physical keyboard Tab',
     );
 
@@ -200,16 +197,13 @@ test.describe('B3-1 HfbButton — Focus-Visible', () => {
     expect(focusedId).toBe('btn-normal');
 
     // After real Tab key, browser heuristic should set :focus-visible
-    const matches = await page.evaluate(() =>
-      document.activeElement?.matches(':focus-visible'),
-    );
+    const matches = await page.evaluate(() => document.activeElement?.matches(':focus-visible'));
     expect(matches).toBe(true);
   });
 
   test('focus-visible produces computed outline on HfbButton after Tab', async ({ page }) => {
     test.skip(
-      test.info().project.name.includes('Mobile') ||
-        test.info().project.name.includes('Tablet'),
+      test.info().project.name.includes('Mobile') || test.info().project.name.includes('Tablet'),
       'Tab → focus-visible is desktop-only; mobile has no physical keyboard Tab',
     );
 
@@ -224,9 +218,9 @@ test.describe('B3-1 HfbButton — Focus-Visible', () => {
     expect(focusedId).toBe('btn-normal');
 
     // After Tab, button must match :focus-visible
-    const focusVisibleAfterTab = await page.locator(normalBtn()).evaluate((el) =>
-      el.matches(':focus-visible'),
-    );
+    const focusVisibleAfterTab = await page
+      .locator(normalBtn())
+      .evaluate((el) => el.matches(':focus-visible'));
     expect(focusVisibleAfterTab).toBe(true);
 
     // Computed style must show a visible outline (button.css:
