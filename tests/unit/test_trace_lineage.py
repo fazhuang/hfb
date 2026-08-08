@@ -550,6 +550,165 @@ class TestResolveTraceLineage:
         with pytest.raises(TraceLineageError, match="not found"):
             await resolve_trace_lineage(db, tid)
 
+    @pytest.mark.asyncio
+    async def test_brute_force_scan_finds_chunk_when_qh_miss(self) -> None:
+        """When QueryHistory has no match, brute-force scans chunks and finds trace_id."""
+        db = AsyncMock()
+        tid = make_trace_id("d1", "c1")
+
+        # QH returns None (no match)
+        qh_result = MagicMock()
+        qh_result.scalar_one_or_none.return_value = None
+
+        # Brute-force scan returns chunk ("c1", "d1") that matches trace_id
+        chunks_iter = _make_iter_mock([("c1", "d1")])
+
+        # Chunk query returns a real chunk
+        chunk = MagicMock()
+        chunk.id = "c1"
+        chunk.document_id = "d1"
+        chunk.passage_id = "p1"
+        chunk.content = "some content"
+        chunk.chunk_index = 0
+        chunk_result = MagicMock()
+        chunk_result.scalar_one_or_none.return_value = chunk
+
+        # Document query
+        doc = MagicMock()
+        doc.id = "d1"
+        doc.title = "Test Doc"
+        doc_result = MagicMock()
+        doc_result.scalar_one_or_none.return_value = doc
+
+        # Passage query with joined Version/Book/Chapter
+        passage = MagicMock()
+        passage.id = "p1"
+        passage.content = "passage text"
+        passage.order = 1
+        version = MagicMock()
+        version.version_name = "v1"
+        book = None
+        chapter = None
+        passage_result = MagicMock()
+        passage_result.one_or_none.return_value = (passage, version, book, chapter)
+
+        db.execute = AsyncMock(
+            side_effect=[
+                qh_result, chunks_iter, chunk_result, doc_result, passage_result,
+            ]
+        )
+        result = await resolve_trace_lineage(db, tid)
+        assert result.trace_id == tid
+        assert result.chunk.id == "c1"
+        assert result.passage.content == "passage text"
+
+    @pytest.mark.asyncio
+    async def test_brute_force_scan_raises_when_no_match(self) -> None:
+        """Brute-force scan iterates chunks but finds no matching trace_id."""
+        db = AsyncMock()
+        tid = make_trace_id("d1", "c1")
+
+        qh_result = MagicMock()
+        qh_result.scalar_one_or_none.return_value = None
+
+        # Chunks exist but none match the trace_id
+        chunks_iter = _make_iter_mock([("cx", "dx"), ("cy", "dy")])
+
+        db.execute = AsyncMock(side_effect=[qh_result, chunks_iter])
+        with pytest.raises(TraceLineageError, match="not found"):
+            await resolve_trace_lineage(db, tid)
+
+    @pytest.mark.asyncio
+    async def test_no_passage_id_raises(self) -> None:
+        """When chunk has empty passage_id, raises TraceLineageError."""
+        db = AsyncMock()
+        tid = make_trace_id("d1", "c1")
+
+        # Need 3 execute calls: QH, chunk query, document query, then passage check
+        qh = MagicMock()
+        qh.result_summary = _json.dumps(
+            {"traces": [{"trace_id": tid, "chunk_id": "c1"}]}
+        )
+        qh_result = MagicMock()
+        qh_result.scalar_one_or_none.return_value = qh
+
+        chunk = MagicMock()
+        chunk.id = "c1"
+        chunk.document_id = "d1"
+        chunk.passage_id = ""
+        chunk.chunk_index = 0
+        chunk_result = MagicMock()
+        chunk_result.scalar_one_or_none.return_value = chunk
+
+        doc = MagicMock()
+        doc.id = "d1"
+        doc.title = "Test Doc"
+        doc_result = MagicMock()
+        doc_result.scalar_one_or_none.return_value = doc
+
+        db.execute = AsyncMock(side_effect=[qh_result, chunk_result, doc_result])
+        with pytest.raises(TraceLineageError, match="no passage_id"):
+            await resolve_trace_lineage(db, tid)
+
+    @pytest.mark.asyncio
+    async def test_chunk_passage_id_whitespace_only_raises(self) -> None:
+        """When chunk has whitespace-only passage_id, raises TraceLineageError."""
+        db = AsyncMock()
+        tid = make_trace_id("d1", "c1")
+
+        qh = MagicMock()
+        qh.result_summary = _json.dumps(
+            {"traces": [{"trace_id": tid, "chunk_id": "c1"}]}
+        )
+        qh_result = MagicMock()
+        qh_result.scalar_one_or_none.return_value = qh
+
+        chunk = MagicMock()
+        chunk.id = "c1"
+        chunk.document_id = "d1"
+        chunk.passage_id = "   "
+        chunk.chunk_index = 0
+        chunk_result = MagicMock()
+        chunk_result.scalar_one_or_none.return_value = chunk
+
+        doc = MagicMock()
+        doc.id = "d1"
+        doc.title = "Test Doc"
+        doc_result = MagicMock()
+        doc_result.scalar_one_or_none.return_value = doc
+
+        db.execute = AsyncMock(side_effect=[qh_result, chunk_result, doc_result])
+        with pytest.raises(TraceLineageError, match="no passage_id"):
+            await resolve_trace_lineage(db, tid)
+
+    @pytest.mark.asyncio
+    async def test_document_not_found_raises(self) -> None:
+        """When chunk is found but document is deleted/missing."""
+        db = AsyncMock()
+        tid = make_trace_id("d1", "c1")
+
+        qh = MagicMock()
+        qh.result_summary = _json.dumps(
+            {"traces": [{"trace_id": tid, "chunk_id": "c1"}]}
+        )
+        qh_result = MagicMock()
+        qh_result.scalar_one_or_none.return_value = qh
+
+        chunk = MagicMock()
+        chunk.id = "c1"
+        chunk.document_id = "d1"
+        chunk.passage_id = "p1"
+        chunk.chunk_index = 0
+        chunk_result = MagicMock()
+        chunk_result.scalar_one_or_none.return_value = chunk
+
+        doc_result = MagicMock()
+        doc_result.scalar_one_or_none.return_value = None
+
+        db.execute = AsyncMock(side_effect=[qh_result, chunk_result, doc_result])
+        with pytest.raises(TraceLineageError, match="document.*not found"):
+            await resolve_trace_lineage(db, tid)
+
 
 class TestPassageMappingStats:
     """Tests for passage_mapping_stats."""

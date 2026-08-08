@@ -619,3 +619,64 @@ class TestLRUCacheIsolation:
         )
         wl = get_whitelist(config_path=str(good))
         assert wl.lookup("Good") is not None
+
+
+# =============================================================================
+# get_whitelist — fallback path resolution (lines 96-106)
+# =============================================================================
+
+
+class TestGetWhitelistFallbackPaths:
+    """Cover the 3-tier fallback path resolution when no config_path or env."""
+
+    def test_fallback_canonical_path_exists(self, tmp_path, monkeypatch):
+        """When config exists at app_dir / config / source_whitelist.yaml."""
+        # Temporarily simulate __file__ pointing into tmp_path
+        svc_dir = tmp_path / "services"
+        svc_dir.mkdir(parents=True)
+        app_dir = tmp_path
+        config_dir = app_dir / "config"
+        config_dir.mkdir()
+        yaml_path = _write_yaml(
+            config_dir / "source_whitelist.yaml",
+            {"sources": [{"name": "Canonical", "domain": "canon.example", "category": "A", "metadata_allowed": True, "fulltext_allowed": True}]},
+        )
+        monkeypatch.delenv("SOURCE_WHITELIST_PATH", raising=False)
+        # Inject the fake __file__ into source_whitelist module
+        import app.services.source_whitelist as swl
+
+        orig_file = swl.__file__
+        try:
+            swl.__file__ = str(svc_dir / "source_whitelist.py")
+            _clear_whitelist_cache()
+            wl = get_whitelist()
+            assert wl.lookup("Canonical") is not None
+        finally:
+            swl.__file__ = orig_file
+            _clear_whitelist_cache()
+
+    def test_fallback_absolute_path_resolves(self, tmp_path, monkeypatch):
+        """When neither canonical nor parent path exist, uses absolute resolve('backend/app/config/...')."""
+        svc_dir = tmp_path / "services"
+        svc_dir.mkdir(parents=True)
+        # The absolute fallback: Path("backend/app/config/source_whitelist.yaml").resolve()
+        # = cwd / backend/app/config/source_whitelist.yaml
+        abs_config_dir = tmp_path / "backend" / "app" / "config"
+        abs_config_dir.mkdir(parents=True)
+        yaml_path = _write_yaml(
+            abs_config_dir / "source_whitelist.yaml",
+            {"sources": [{"name": "AbsoluteFb", "domain": "abs.example", "category": "A", "metadata_allowed": True, "fulltext_allowed": True}]},
+        )
+        monkeypatch.delenv("SOURCE_WHITELIST_PATH", raising=False)
+        # We need to chdir so that the absolute resolve lands in our tmp_path
+        import os as _os_abs
+
+        orig_cwd = _os_abs.getcwd()
+        try:
+            _os_abs.chdir(str(tmp_path))
+            _clear_whitelist_cache()
+            wl = get_whitelist()
+            assert wl.lookup("AbsoluteFb") is not None
+        finally:
+            _os_abs.chdir(orig_cwd)
+            _clear_whitelist_cache()
