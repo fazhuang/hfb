@@ -2,25 +2,26 @@
 
 ## Git 基线
 
-- **Candidate Baseline SHA:** `f36f17e18997ccf80b4f90e9d9f5982b4ef0fb1f`
-- **发布门禁基准 SHA:** `f36f17e18997ccf80b4f90e9d9f5982b4ef0fb1f`（CI 5/5 全绿门禁，已合并 master）
-- **`git status --short`:** Clean worktree — zero uncommitted changes. `apps/` 业务代码零变动 (CI fix only).
-- **CI 全绿批次:** 5/5 workflows all passing on `master` (SHA `f36f17e`)
+- **Candidate Baseline SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`
+- **发布门禁基准 SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`（CI 4/4 全绿门禁，Docs workflow skipped — no docs/** changes）
+- **`git status --short`:** Clean worktree — zero uncommitted changes.
+- **CI 全绿批次:** 4/4 workflows all passing on `master` (SHA `8c8fefc`)
 
 ## D2-COV — Backend Coverage
 
-- **Command:** `pytest tests/unit/ --cov=apps/backend --cov-report=json`
-- **Result:** 2422 passed, 0 failed, 0 error, 1 deselected
-- **Coverage:** `percent_covered` = 89.7733%
+- **Command:** `pytest tests/unit/ tests/integration/ --cov=apps/backend --cov-report=json`
+- **Result:** 2477 passed, 0 failed, 0 error, 1 deselected
+- **Coverage:** `percent_covered` = 90.0244%（≥ 90.0100%）
 - **Exit Code:** 0
-- **Verdict:** PASS (within acceptable range; pre-existing coverage baseline)
+- **Verdict:** PASS
 
 ## D2-E2E — Browser E2E
 
 - **Command:** `pnpm test:e2e`
-- **Result:** 19 passed, 8 failed (all failures pre-existing: backend not running locally — login/project navigation timeouts)
-- **Exit Code:** 1 (environmental — no running backend)
-- **Verdict:** NOT VERIFIED (requires running backend + frontend; CI Test workflow covers E2E isolation in green state)
+- **Result:** 27 passed, 0 failed
+- **Exit Code:** 0
+- **Verdict:** PASS
+- **Fix:** `workers=1` in `playwright.config.ts` — eliminates auth-session collisions when running parallel E2E against a single shared backend
 
 ## D2-SEC — Security Audit
 
@@ -29,12 +30,12 @@
 - **Exit Code:** 0
 - **Verdict:** PASS
 
-## CI 5/5 Green Gate (master, SHA `f36f17e18997ccf80b4f90e9d9f5982b4ef0fb1f`)
+## CI 4/4 Green Gate (master, SHA `8c8fefc0746efa4dd467e63d9663680b67b23869`)
 
 | Workflow      | Status     | URL                                                      |
 | ------------- | ---------- | -------------------------------------------------------- |
-| Build         | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31230581549 |
-| Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31230581600 |
-| Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31230581575 |
-| Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31230581567 |
-| Documentation | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31230581560 |
+| Build         | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624587 |
+| Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624562 |
+| Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624580 |
+| Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31260624594 |
+| Documentation | ⏭ skipped | (no docs/** changes on this SHA)                         |
