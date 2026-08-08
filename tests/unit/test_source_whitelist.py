@@ -639,7 +639,17 @@ class TestGetWhitelistFallbackPaths:
         config_dir.mkdir()
         _write_yaml(
             config_dir / "source_whitelist.yaml",
-            {"sources": [{"name": "Canonical", "domain": "canon.example", "category": "A", "metadata_allowed": True, "fulltext_allowed": True}]},
+            {
+                "sources": [
+                    {
+                        "name": "Canonical",
+                        "domain": "canon.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    }
+                ]
+            },
         )
         monkeypatch.delenv("SOURCE_WHITELIST_PATH", raising=False)
         # Inject the fake __file__ into source_whitelist module
@@ -665,7 +675,17 @@ class TestGetWhitelistFallbackPaths:
         abs_config_dir.mkdir(parents=True)
         _write_yaml(
             abs_config_dir / "source_whitelist.yaml",
-            {"sources": [{"name": "AbsoluteFb", "domain": "abs.example", "category": "A", "metadata_allowed": True, "fulltext_allowed": True}]},
+            {
+                "sources": [
+                    {
+                        "name": "AbsoluteFb",
+                        "domain": "abs.example",
+                        "category": "A",
+                        "metadata_allowed": True,
+                        "fulltext_allowed": True,
+                    }
+                ]
+            },
         )
         monkeypatch.delenv("SOURCE_WHITELIST_PATH", raising=False)
         # We need to chdir so that the absolute resolve lands in our tmp_path
