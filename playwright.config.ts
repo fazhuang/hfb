@@ -5,7 +5,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,  // single worker prevents auth-session collisions in shared-backend E2E
+  workers: 1, // single worker prevents auth-session collisions in shared-backend E2E
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:5173',
