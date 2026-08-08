@@ -497,6 +497,7 @@ class TestSnapshotToDicts:
 
     def test_non_number_score_raises(self) -> None:
         """Score that is not int or float raises ValueError."""
+
         class BadResult:
             score = "not-a-number"
             document_id = "d1"
