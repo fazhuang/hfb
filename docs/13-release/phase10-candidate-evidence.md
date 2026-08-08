@@ -2,10 +2,10 @@
 
 ## Git 基线
 
-- **Candidate Baseline SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`
-- **发布门禁基准 SHA:** `8c8fefc0746efa4dd467e63d9663680b67b23869`（CI 5/5 全绿门禁）
+- **Candidate Baseline SHA:** `2667905150ca0da16bd7149774493ad49055ef5d`
+- **发布门禁基准 SHA:** `2667905150ca0da16bd7149774493ad49055ef5d`（CI 5/5 全绿门禁）
 - **`git status --short`:** Clean worktree — zero uncommitted changes.
-- **CI 全绿批次:** 5/5 workflows all passing on `master` (SHA `8c8fefc`)
+- **CI 全绿批次:** 5/5 workflows all passing on `master` (HEAD `2667905`)
 
 ## D2-COV — Backend Coverage
 
@@ -30,12 +30,12 @@
 - **Exit Code:** 0
 - **Verdict:** PASS
 
-## CI 5/5 Green Gate (master, SHA `8c8fefc0746efa4dd467e63d9663680b67b23869`)
+## CI 5/5 Green Gate (master, HEAD `2667905150ca0da16bd7149774493ad49055ef5d`)
 
 | Workflow      | Status     | URL                                                      |
 | ------------- | ---------- | -------------------------------------------------------- |
-| Build         | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31264884842 |
-| Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31264884846 |
-| Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31264884854 |
-| Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31264884849 |
-| Documentation | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31264884872 |
+| Build         | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31265795027 |
+| Test          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31265795052 |
+| Documentation | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31265795033 |
+| Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31265795034 |
+| Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31265795056 |
