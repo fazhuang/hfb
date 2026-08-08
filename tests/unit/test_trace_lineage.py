@@ -594,7 +594,11 @@ class TestResolveTraceLineage:
 
         db.execute = AsyncMock(
             side_effect=[
-                qh_result, chunks_iter, chunk_result, doc_result, passage_result,
+                qh_result,
+                chunks_iter,
+                chunk_result,
+                doc_result,
+                passage_result,
             ]
         )
         result = await resolve_trace_lineage(db, tid)
