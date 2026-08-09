@@ -1,4 +1,4 @@
-> **[ARCHIVED AUDIT TRAIL - NO-GO DECISION]**
+[ARCHIVED AUDIT TRAIL - GO DECISION] > **[ARCHIVED AUDIT TRAIL - NO-GO DECISION]**
 > 本文档为历史 E0 审批阶段保存的只读追溯档案（记录了从 `5f1ea42` 质量门禁到 P1 安全加固的演进）。最新的候选基线与 4 项硬性门禁核验请参照 [lean-release-and-refactoring-plan-v3.md](file:///users/likeming/sites/hfb/docs/13-release/lean-release-and-refactoring-plan-v3.md) 及对应的 Git Tag 存证。
 
 # E0 生产发布决策包（Production Release Go/No-Go Decision Package）
