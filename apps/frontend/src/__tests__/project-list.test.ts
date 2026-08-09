@@ -265,7 +265,7 @@ describe('ProjectListPage', () => {
   it('9. create button opens create dialog', async () => {
     const { wrapper } = await mountPage([]);
 
-    const createBtn = wrapper.find('.rpp-create-btn');
+    const createBtn = wrapper.find('button.rpp-create-btn');
     await createBtn.trigger('click');
     await flushPromises();
 
@@ -277,7 +277,7 @@ describe('ProjectListPage', () => {
   it('10. missing name disables submit', async () => {
     const { wrapper } = await mountPage([]);
 
-    const createBtn = wrapper.find('.rpp-create-btn');
+    const createBtn = wrapper.find('button.rpp-create-btn');
     await createBtn.trigger('click');
     await flushPromises();
 
@@ -294,7 +294,7 @@ describe('ProjectListPage', () => {
 
     const { wrapper } = await mountPage([]);
 
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
 
     await wrapper.find('#cpd-name').setValue('New Project');
@@ -313,7 +313,7 @@ describe('ProjectListPage', () => {
 
     const { wrapper } = await mountPage([makeSession({ id: 'old', title: 'Old Project' })]);
 
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
 
     await wrapper.find('#cpd-name').setValue('New Project');
@@ -335,7 +335,7 @@ describe('ProjectListPage', () => {
 
     const { wrapper } = await mountPage([]);
 
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
 
     await wrapper.find('#cpd-name').setValue('Duplicate');
@@ -443,7 +443,7 @@ describe('ProjectListPage', () => {
     await flushPromises();
 
     // Now trigger create → POST succeeds → calls loadProjects → consumes promise 2
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
     await wrapper.find('#cpd-name').setValue('Newer');
     await wrapper.find('.cpd-form').trigger('submit.prevent');
@@ -789,7 +789,7 @@ describe('Domain mapping contract', () => {
 
     const { wrapper } = await mountPage([]);
 
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
 
     await wrapper.find('#cpd-name').setValue('My Project');
@@ -826,7 +826,7 @@ describe('Domain mapping contract', () => {
     );
 
     // Phase 2 — Open dialog and set up the next loadProjects response.
-    await wrapper.find('.rpp-create-btn').trigger('click');
+    await wrapper.find('button.rpp-create-btn').trigger('click');
     await flushPromises();
 
     // Prepare the refresh response (will be consumed by onProjectCreated's loadProjects)
