@@ -14,9 +14,9 @@
 
 | 属性 | 值 |
 |---|---|
-| **HEAD Commit SHA** | `0ceea334db65c25af4171f67079cf6dc968e3975` |
-| **Commit 消息** | `docs(e0): sanitize plain text credentials and strictly constrain git diff to single e0 package file` |
-| **提交时间** | `2026-08-09T13:53:08+08:00` |
+| **HEAD Commit SHA** | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da` |
+| **Commit 消息** | `fix(security): bind internal prod service ports to localhost and replace default minio credentials` |
+| **提交时间** | `2026-08-09` |
 | **分支** | `master` |
 | **远端仓库** | `https://github.com/fazhuang/hfb.git` |
 | **远端分支** | `origin/master` |
@@ -24,22 +24,28 @@
 | **空白符/格式** | `git diff --check` 无报错 — **通过** |
 | **apps/ 业务代码变动** | `git diff HEAD~1 -- 'apps/'` 输出 0 行 — **零变动** |
 
-### 1.2 链条追踪 — Phase 10 候选证据归档
+### 1.2 链条追踪 — E0 发布候选证据归档
 
 | 链条节点 | SHA/标识 | 说明 |
 |---|---|---|
 | D2-FINAL 候选基线 | `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9` | Phase 10 全部门禁基准 SHA |
-| 发布候选 HEAD | `0ceea334db65c25af4171f67079cf6dc968e3975` | 当前 HEAD（docs: 无 apps/ 变动） |
+| 纯 docs 追加 | `0ceea334db65c25af4171f67079cf6dc968e3975` | docs(e0): E0 决策包初版 + 凭证明文化 |
+| 生产配置安全收紧 | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da` | fix(security): 端口绑定 localhost + MinIO 默认凭据替换 |
 | 证据归档文档 | `docs/13-release/phase10-candidate-evidence.md` | D2-FINAL 终期归档，记录 5/5 CI 全绿 |
-| CI Build Run | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success |
-| CI Test Run | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success |
-| CI Documentation Run | https://github.com/fazhuang/hfb/actions/runs/31295398194 | ✅ success |
-| CI Lint Run | https://github.com/fazhuang/hfb/actions/runs/31295398187 | ✅ success |
-| CI Security Run | https://github.com/fazhuang/hfb/actions/runs/31295398192 | ✅ success |
+| CI Build Run | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success（在 `0ceea33` 上运行） |
+| CI Test Run | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success（在 `0ceea33` 上运行） |
+| CI Documentation Run | https://github.com/fazhuang/hfb/actions/runs/31295398194 | ✅ success（在 `0ceea33` 上运行） |
+| CI Lint Run | https://github.com/fazhuang/hfb/actions/runs/31295398187 | ✅ success（在 `0ceea33` 上运行） |
+| CI Security Run | https://github.com/fazhuang/hfb/actions/runs/31295398192 | ✅ success（在 `0ceea33` 上运行） |
 
 ### 1.3 HEAD → D2 基线链条一致性声明
 
-`0ceea33` 与 `5f1ea42` 之间的差异仅限于 `docs/` 目录文件（Phase 10 文档更新），`apps/` 及 `packages/` 代码树完全一致。发布候选 HEAD 等同于在 D2 全绿门禁基线上追加纯文档提交。
+`8c6793e` 与 `5f1ea42` 之间的差异为 2 个 docs 提交 + 1 个安全收紧提交：
+
+1. `0ceea33`: 纯 docs 提交（E0 决策包初版 + 凭证明文化），`apps/` 及 `packages/` 代码树完全一致。
+2. `8c6793e`: **非纯 docs 变动** — 修改 `docker-compose.prod.yml`（4 个内部服务端口绑定 `127.0.0.1`）及 `.env.example`（MinIO 默认凭据替换为占位文本）。`apps/` 业务代码仍为零变动。
+
+CI 5/5 check-run 最近一次通过记录在 `0ceea33` 上。新 HEAD `8c6793e` 的 CI 尚未运行。
 
 ---
 
@@ -234,7 +240,7 @@
 ```bash
 # Step 1: 拉取代码
 git fetch origin master
-git checkout 0ceea334db65c25af4171f67079cf6dc968e3975
+git checkout 8c6793ec2566d5d0fd82eebc204e59e9a8d032da
 
 # Step 2: 验证工作区干净
 git status --short  # 必须为空
@@ -376,7 +382,7 @@ curl -f http://localhost:80/health
 
 ### 5.4 Schema 降级说明
 
-当前发布候选 HEAD (`0ceea33`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量（含 1 个可重建视图 DROP VIEW）。回滚至前一版本无需执行 Schema 降级操作。
+当前发布候选 HEAD (`8c6793e`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量（含 1 个可重建视图 DROP VIEW）。回滚至前一版本无需执行 Schema 降级操作。
 
 若回滚跨越多个版本且涉及 Migration 降级，使用 Alembic 降级：
 
@@ -435,13 +441,13 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 | 测试覆盖 | ✅ Backend 90.02%, Frontend 371 unit + 27 E2E |
 | Schema 兼容 | ✅ 向下兼容，支持无缝回滚 |
 | 配置审计 | ✅ 无密钥明文泄露 |
-| BLOCK_RELEASE | ✅ 正式解封（Phase 10 D2-FINAL） |
+| BLOCK_RELEASE | ⚠️ BLOCK_RELEASE (NO-GO) — 新 HEAD `8c6793e` CI 尚未通过，待 5/5 check-run 全绿后重估 |
 
 ### 6.3 最终建议
 
-**GO / NO-GO 建议：GO**
+**GO / NO-GO 建议：NO-GO（暂缓）**
 
-全部门禁满足，发布候选已冻结，无阻塞项。建议 PO 在 2026-08-09 发布窗口内授权生产部署。
+D2 门禁在 `0ceea33` 上全绿，但新 HEAD `8c6793e` 包含 `docker-compose.prod.yml` 安全收紧（非纯 docs 变动），CI 5/5 check-run 尚未在该 SHA 上运行。待 CI 全绿后重新评估，方可转为 GO。
 
 ---
 
@@ -455,7 +461,7 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 
 ---
 
-**文档版本:** 1.0
-**生成 SHA:** `0ceea334db65c25af4171f67079cf6dc968e3975`
+**文档版本:** 1.1
+**生成 SHA:** `8c6793ec2566d5d0fd82eebc204e59e9a8d032da`
 **证据索引:** `docs/13-release/phase10-candidate-evidence.md`
-**BLOCK_RELEASE 状态:** ✅ 已解封
+**BLOCK_RELEASE 状态:** ⚠️ BLOCK_RELEASE (NO-GO) — 待 CI 在 `8c6793e` 上全绿后重估
