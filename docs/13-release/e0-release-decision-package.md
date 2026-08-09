@@ -468,3 +468,4 @@ D2 门禁在 `0ceea33` 上全绿，但新 HEAD `8c6793e` 包含 `docker-compose.
 **生成 SHA:** `8c6793ec2566d5d0fd82eebc204e59e9a8d032da`
 **证据索引:** `docs/13-release/phase10-candidate-evidence.md`
 **BLOCK_RELEASE 状态:** ⚠️ BLOCK_RELEASE (NO-GO) — 待 CI 在 `8c6793e` 上全绿后重估
+dummy doc trigger for docs workflow validation
