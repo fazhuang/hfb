@@ -39,3 +39,29 @@
 | Documentation | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31295398194 |
 | Lint          | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31295398187 |
 | Security      | ✅ success | https://github.com/fazhuang/hfb/actions/runs/31295398192 |
+
+## D2-FINAL — Release Gate Verdict
+
+- **Date:** 2026-08-09
+- **Gate SHA:** `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9`
+- **Verdict:** ✅ **PASS D2**
+- **BLOCK_RELEASE:** 正式解封
+
+### 门禁核验清单
+
+| 门禁           | 指标                      | 结果            | 状态 |
+| -------------- | ------------------------- | --------------- | ---- |
+| D2-COV         | `percent_covered` ≥ 90.01% | 90.0174%        | ✅   |
+| D2-E2E         | 27/27 passed              | 27 passed       | ✅   |
+| D2-SEC         | 0 known vulnerabilities   | 0               | ✅   |
+| CI Build       | `31295398193`             | success         | ✅   |
+| CI Test        | `31295398226`             | success         | ✅   |
+| CI Docs        | `31295398194`             | success         | ✅   |
+| CI Lint        | `31295398187`             | success         | ✅   |
+| CI Security    | `31295398192`             | success         | ✅   |
+| Worktree       | `git status --short`      | Clean           | ✅   |
+| Apps diff      | `apps/` 业务代码变更      | 0               | ✅   |
+
+### 宣告
+
+全盘门禁满足，Release Ready。`BLOCK_RELEASE` 正式解封。
