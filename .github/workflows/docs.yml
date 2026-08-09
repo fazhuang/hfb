@@ -48,7 +48,7 @@ jobs:
           use-verbose-mode: 'yes'
           config-file: '.github/mlc_config.json'
           check-modified-files-only: 'yes'
-          base-branch: master
+          base-branch: main
 
   doc-build:
     name: Build Documentation
