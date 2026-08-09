@@ -9,7 +9,7 @@
       <template #actions>
         <router-link
           v-if="allProjects.length > 0"
-          :to="`/research/${allProjects[0].id}/workflow`"
+          :to="`/research/${allProjects[0]!.id}/workflow`"
           class="rpp-create-btn rpp-create-btn--secondary"
           style="margin-right: 8px; text-decoration: none"
           aria-label="发起新研究"

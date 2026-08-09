@@ -1335,7 +1335,9 @@ class TestResearchWorkflowPageE2E:
 
         # Step 0 should be completed (✓), step 1 should be current
         assert page.locator(".wsn-step--completed").locator("text=研究问题").count() > 0
-        assert page.locator(".wsn-step--current").locator("text=检索范围确认").count() > 0
+        assert (
+            page.locator(".wsn-step--current").locator("text=检索范围确认").count() > 0
+        )
 
 
 class TestV4ResearchPortal:
