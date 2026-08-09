@@ -25,7 +25,7 @@
 
       <div class="rqs-actions">
         <button type="submit" class="rqs-submit-btn" :disabled="disabled || !question.trim()">
-          下一步：文献选择
+          下一步：检索范围确认
         </button>
       </div>
     </form>

@@ -713,7 +713,7 @@ class TestResearchWorkflowPageE2E:
         nav = page.locator(".wsn-nav")
         assert nav.is_visible(), "Step navigation bar should be visible"
         assert nav.locator("text=研究问题").is_visible()
-        assert nav.locator("text=文献选择").is_visible()
+        assert nav.locator("text=检索范围确认").is_visible()
         assert nav.locator("text=AI 分析").is_visible()
         assert nav.locator("text=证据审查").is_visible()
         assert nav.locator("text=研究报告").is_visible()
@@ -782,7 +782,7 @@ class TestResearchWorkflowPageE2E:
 
         # Step 1: Should now be on document selection step
         page.wait_for_selector(".dss-submit-btn", timeout=5000)
-        assert page.locator("text=第二步：文献选择").is_visible()
+        assert page.locator("text=第二步：检索范围确认").is_visible()
         assert page.locator("text=针灸甲乙经中的经络理论").is_visible()
 
         # Step 2: Submit — must land on a definite terminal state
@@ -923,7 +923,7 @@ class TestResearchWorkflowPageE2E:
 
         # Step 1: Document Selection
         page.wait_for_selector(".dss-submit-btn", timeout=5000)
-        assert page.locator("text=第二步：文献选择").is_visible()
+        assert page.locator("text=第二步：检索范围确认").is_visible()
 
         # Step 3: Submit → AI Analysis → wait for terminal state
         page.click(".dss-submit-btn")
@@ -1335,7 +1335,7 @@ class TestResearchWorkflowPageE2E:
 
         # Step 0 should be completed (✓), step 1 should be current
         assert page.locator(".wsn-step--completed").locator("text=研究问题").count() > 0
-        assert page.locator(".wsn-step--current").locator("text=文献选择").count() > 0
+        assert page.locator(".wsn-step--current").locator("text=检索范围确认").count() > 0
 
 
 class TestV4ResearchPortal:

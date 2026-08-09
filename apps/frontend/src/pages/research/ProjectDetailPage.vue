@@ -7,11 +7,20 @@
       :breadcrumbs="[{ label: 'Research', to: '/research' }, { label: pageTitle }]"
     >
       <template #actions>
+        <!-- Launch New Research -->
+        <router-link
+          v-if="project"
+          :to="`/research/${project.id}/workflow`"
+          class="pdp-action-btn pdp-action-btn--primary"
+        >
+          发起新研究
+        </router-link>
+
         <!-- Continue Research -->
         <router-link
           v-if="project"
           :to="`/research/${project.id}/workspace`"
-          class="pdp-action-btn pdp-action-btn--primary"
+          class="pdp-action-btn pdp-action-btn--secondary"
         >
           继续研究
         </router-link>

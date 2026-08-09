@@ -20,7 +20,7 @@ services:
       dockerfile: docker/prod/Dockerfile.backend
     container_name: hfb-backend
     ports:
-      - '${BACKEND_PORT:-8000}:8000'
+      - '127.0.0.1:${BACKEND_PORT:-8000}:8000'
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
@@ -75,7 +75,7 @@ services:
       dockerfile: docker/prod/Dockerfile.frontend
     container_name: hfb-frontend
     ports:
-      - '${FRONTEND_PORT:-80}:80'
+      - '127.0.0.1:${FRONTEND_PORT:-80}:80'
     depends_on:
       - backend
     networks:
@@ -193,7 +193,7 @@ services:
     profiles:
       - post-mvp
     ports:
-      - '${NEO4J_BOLT_PORT:-7687}:7687'
+      - '127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687'
     environment:
       NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD}
       NEO4J_server_memory_heap_initial__size: 1g

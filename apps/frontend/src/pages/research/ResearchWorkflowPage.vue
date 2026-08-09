@@ -200,7 +200,7 @@ const errorBannerRef = ref<HTMLElement | null>(null);
 // ---- Navigation steps ----
 const navSteps = [
   { label: '研究问题' },
-  { label: '文献选择' },
+  { label: '检索范围确认' },
   { label: 'AI 分析' },
   { label: '证据审查' },
   { label: '研究报告' },

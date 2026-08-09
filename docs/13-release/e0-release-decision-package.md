@@ -1,3 +1,6 @@
+> **[ARCHIVED AUDIT TRAIL - NO-GO DECISION]**
+> 本文档为历史 E0 审批阶段保存的只读追溯档案（记录了从 `5f1ea42` 质量门禁到 P1 安全加固的演进）。最新的候选基线与 4 项硬性门禁核验请参照 [lean-release-and-refactoring-plan-v3.md](file:///users/likeming/sites/hfb/docs/13-release/lean-release-and-refactoring-plan-v3.md) 及对应的 Git Tag 存证。
+
 # E0 生产发布决策包（Production Release Go/No-Go Decision Package）
 
 **文档编号:** E0-2026-08-09
@@ -12,31 +15,31 @@
 
 ### 1.1 发布候选 HEAD
 
-| 属性 | 值 |
-|---|---|
-| **HEAD Commit SHA** | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da` |
-| **Commit 消息** | `fix(security): bind internal prod service ports to localhost and replace default minio credentials` |
-| **提交时间** | `2026-08-09` |
-| **分支** | `master` |
-| **远端仓库** | `https://github.com/fazhuang/hfb.git` |
-| **远端分支** | `origin/master` |
-| **工作区状态** | `git status --short` 输出为空 — **Clean** |
-| **空白符/格式** | `git diff --check` 无报错 — **通过** |
-| **apps/ 业务代码变动** | `git diff HEAD~1 -- 'apps/'` 输出 0 行 — **零变动** |
+| 属性                   | 值                                                                                                   |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| **HEAD Commit SHA**    | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da`                                                           |
+| **Commit 消息**        | `fix(security): bind internal prod service ports to localhost and replace default minio credentials` |
+| **提交时间**           | `2026-08-09`                                                                                         |
+| **分支**               | `master`                                                                                             |
+| **远端仓库**           | `https://github.com/fazhuang/hfb.git`                                                                |
+| **远端分支**           | `origin/master`                                                                                      |
+| **工作区状态**         | `git status --short` 输出为空 — **Clean**                                                            |
+| **空白符/格式**        | `git diff --check` 无报错 — **通过**                                                                 |
+| **apps/ 业务代码变动** | `git diff HEAD~1 -- 'apps/'` 输出 0 行 — **零变动**                                                  |
 
 ### 1.2 链条追踪 — E0 发布候选证据归档
 
-| 链条节点 | SHA/标识 | 说明 |
-|---|---|---|
-| D2-FINAL 候选基线 | `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9` | Phase 10 全部门禁基准 SHA |
-| 纯 docs 追加 | `0ceea334db65c25af4171f67079cf6dc968e3975` | docs(e0): E0 决策包初版 + 凭证明文化 |
-| 生产配置安全收紧 | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da` | fix(security): 端口绑定 localhost + MinIO 默认凭据替换 |
-| 证据归档文档 | `docs/13-release/phase10-candidate-evidence.md` | D2-FINAL 终期归档，记录 5/5 CI 全绿 |
-| CI Build Run | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success（在 `0ceea33` 上运行） |
-| CI Test Run | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success（在 `0ceea33` 上运行） |
-| CI Documentation Run | https://github.com/fazhuang/hfb/actions/runs/31295398194 | ✅ success（在 `0ceea33` 上运行） |
-| CI Lint Run | https://github.com/fazhuang/hfb/actions/runs/31295398187 | ✅ success（在 `0ceea33` 上运行） |
-| CI Security Run | https://github.com/fazhuang/hfb/actions/runs/31295398192 | ✅ success（在 `0ceea33` 上运行） |
+| 链条节点             | SHA/标识                                                 | 说明                                                   |
+| -------------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| D2-FINAL 候选基线    | `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9`               | Phase 10 全部门禁基准 SHA                              |
+| 纯 docs 追加         | `0ceea334db65c25af4171f67079cf6dc968e3975`               | docs(e0): E0 决策包初版 + 凭证明文化                   |
+| 生产配置安全收紧     | `8c6793ec2566d5d0fd82eebc204e59e9a8d032da`               | fix(security): 端口绑定 localhost + MinIO 默认凭据替换 |
+| 证据归档文档         | `docs/13-release/phase10-candidate-evidence.md`          | D2-FINAL 终期归档，记录 5/5 CI 全绿                    |
+| CI Build Run         | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success（在 `0ceea33` 上运行）                      |
+| CI Test Run          | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success（在 `0ceea33` 上运行）                      |
+| CI Documentation Run | https://github.com/fazhuang/hfb/actions/runs/31295398194 | ✅ success（在 `0ceea33` 上运行）                      |
+| CI Lint Run          | https://github.com/fazhuang/hfb/actions/runs/31295398187 | ✅ success（在 `0ceea33` 上运行）                      |
+| CI Security Run      | https://github.com/fazhuang/hfb/actions/runs/31295398192 | ✅ success（在 `0ceea33` 上运行）                      |
 
 ### 1.3 HEAD → D2 基线链条一致性声明
 
@@ -53,62 +56,62 @@ CI 5/5 check-run 最近一次通过记录在 `0ceea33` 上。新 HEAD `8c6793e` 
 
 ### 2.1 应用版本
 
-| 组件 | 版本 | 说明 |
-|---|---|---|
-| 平台整体 | `0.2.0` | `pyproject.toml` / `package.json` 统一版本号 |
-| 后端 | `huangfumi-platform==0.2.0` | Python 3.12+, FastAPI |
-| 前端 | `@hfb/frontend@0.2.0` | Vue 3.5, TypeScript 5.7, Vite 6 |
+| 组件     | 版本                        | 说明                                         |
+| -------- | --------------------------- | -------------------------------------------- |
+| 平台整体 | `0.2.0`                     | `pyproject.toml` / `package.json` 统一版本号 |
+| 后端     | `huangfumi-platform==0.2.0` | Python 3.12+, FastAPI                        |
+| 前端     | `@hfb/frontend@0.2.0`       | Vue 3.5, TypeScript 5.7, Vite 6              |
 
 ### 2.2 Docker 镜像标签/基础镜像
 
-| 服务 | 基础镜像 | 自定义 Dockerfile |
-|---|---|---|
-| Backend | `python:3.12.1-slim` | `docker/prod/Dockerfile.backend` |
-| Frontend | `node:22.1.0-slim` (build) → `nginx:1.27.0-alpine` (runtime) | `docker/prod/Dockerfile.frontend` |
-| PostgreSQL | `pgvector/pgvector:v0.6.0-pg16` | 无（官方镜像） |
-| Redis | `redis:7.2.4-alpine` | 无（官方镜像） |
-| MinIO | `minio/minio:RELEASE.2024-01-16T16-07-38Z` | 无（官方镜像） |
-| Elasticsearch | `docker.elastic.co/elasticsearch/elasticsearch:8.17.0` | 无（官方镜像） |
-| Neo4j (post-MVP) | `neo4j:5.15.0` | 无（官方镜像，post-mvp profile） |
+| 服务             | 基础镜像                                                     | 自定义 Dockerfile                 |
+| ---------------- | ------------------------------------------------------------ | --------------------------------- |
+| Backend          | `python:3.12.1-slim`                                         | `docker/prod/Dockerfile.backend`  |
+| Frontend         | `node:22.1.0-slim` (build) → `nginx:1.27.0-alpine` (runtime) | `docker/prod/Dockerfile.frontend` |
+| PostgreSQL       | `pgvector/pgvector:v0.6.0-pg16`                              | 无（官方镜像）                    |
+| Redis            | `redis:7.2.4-alpine`                                         | 无（官方镜像）                    |
+| MinIO            | `minio/minio:RELEASE.2024-01-16T16-07-38Z`                   | 无（官方镜像）                    |
+| Elasticsearch    | `docker.elastic.co/elasticsearch/elasticsearch:8.17.0`       | 无（官方镜像）                    |
+| Neo4j (post-MVP) | `neo4j:5.15.0`                                               | 无（官方镜像，post-mvp profile）  |
 
 ### 2.3 依赖包锁文件校验和
 
-| 文件 | 大小 | MD5 | SHA256 |
-|---|---|---|---|
+| 文件             | 大小          | MD5                                | SHA256                                                             |
+| ---------------- | ------------- | ---------------------------------- | ------------------------------------------------------------------ |
 | `pnpm-lock.yaml` | 136,065 bytes | `b6dbd9852d24ae56396c98c546208fc6` | `75617a599736c700623c4dcfd686b578de859529d5e335cee60a7e53d1aa72ef` |
 
 ### 2.4 前端构建产物标识
 
-| 产物 | MD5 | SHA256 |
-|---|---|---|
+| 产物                            | MD5                                | SHA256                                                             |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------ |
 | `apps/frontend/dist/index.html` | `e2db79e54171ee48e6fe1339744c29a1` | `3e5b6a6bf385ce69aff0edff100c2611e6bc02e6213ee10ac03b044d6861720d` |
 
 ### 2.5 核心前端依赖（运行时）
 
-| 包 | 版本约束 |
-|---|---|
-| vue | `^3.5.0` |
-| pinia | `^2.3.0` |
-| vue-router | `^4.5.0` |
-| axios | `^1.7.0` |
+| 包          | 版本约束  |
+| ----------- | --------- |
+| vue         | `^3.5.0`  |
+| pinia       | `^2.3.0`  |
+| vue-router  | `^4.5.0`  |
+| axios       | `^1.7.0`  |
 | @lucide/vue | `^1.24.0` |
-| vis-data | `^8.0.3` |
+| vis-data    | `^8.0.3`  |
 | vis-network | `^10.1.0` |
-| vue-i18n | `^10.0.0` |
+| vue-i18n    | `^10.0.0` |
 
 ### 2.6 核心后端依赖（运行时）
 
-| 包 | 版本约束 |
-|---|---|
-| fastapi | `>=0.115.0` |
-| uvicorn[standard] | `>=0.34.0` |
-| pydantic[email] | `>=2.10.0` |
-| sqlalchemy[asyncio] | `>=2.0.36` |
-| asyncpg | `>=0.30.0` |
-| alembic | `>=1.14.0` |
-| redis | `>=5.2.0` |
+| 包                   | 版本约束          |
+| -------------------- | ----------------- |
+| fastapi              | `>=0.115.0`       |
+| uvicorn[standard]    | `>=0.34.0`        |
+| pydantic[email]      | `>=2.10.0`        |
+| sqlalchemy[asyncio]  | `>=2.0.36`        |
+| asyncpg              | `>=0.30.0`        |
+| alembic              | `>=1.14.0`        |
+| redis                | `>=5.2.0`         |
 | elasticsearch[async] | `>=8.17.0,<9.0.0` |
-| minio | `>=7.2.0` |
+| minio                | `>=7.2.0`         |
 
 ---
 
@@ -120,59 +123,59 @@ CI 5/5 check-run 最近一次通过记录在 `0ceea33` 上。新 HEAD `8c6793e` 
 
 #### 必需变量（缺少将导致容器启动失败）
 
-| 变量 | 用途 | 存储位置 |
-|---|---|---|
-| `POSTGRES_PASSWORD` | PostgreSQL 数据库密码 | `<SECRET_STORE_KEY>` |
-| `REDIS_PASSWORD` | Redis 认证密码 | `<SECRET_STORE_KEY>` |
-| `MINIO_ROOT_USER` | MinIO 对象存储管理员用户名 | `<SECRET_STORE_KEY>` |
-| `MINIO_ROOT_PASSWORD` | MinIO 对象存储管理员密码 | `<SECRET_STORE_KEY>` |
+| 变量                     | 用途                             | 存储位置             |
+| ------------------------ | -------------------------------- | -------------------- |
+| `POSTGRES_PASSWORD`      | PostgreSQL 数据库密码            | `<SECRET_STORE_KEY>` |
+| `REDIS_PASSWORD`         | Redis 认证密码                   | `<SECRET_STORE_KEY>` |
+| `MINIO_ROOT_USER`        | MinIO 对象存储管理员用户名       | `<SECRET_STORE_KEY>` |
+| `MINIO_ROOT_PASSWORD`    | MinIO 对象存储管理员密码         | `<SECRET_STORE_KEY>` |
 | `ELASTICSEARCH_PASSWORD` | Elasticsearch `elastic` 用户密码 | `<SECRET_STORE_KEY>` |
 
 #### 可选变量（有默认值）
 
-| 变量 | 默认值 | 用途 |
-|---|---|---|
-| `ENVIRONMENT` | `production` | 运行环境标识 |
-| `LOG_LEVEL` | `INFO` | 日志级别 |
-| `BACKEND_PORT` | `8000` | 后端服务端口 |
-| `FRONTEND_PORT` | `80` | 前端 Nginx 端口 |
-| `POSTGRES_HOST` | `postgres` | PostgreSQL 主机名 |
-| `POSTGRES_PORT` | `5432` | PostgreSQL 端口 |
-| `POSTGRES_DB` | `hfb` | 数据库名 |
-| `POSTGRES_USER` | `hfb` | 数据库用户 |
-| `REDIS_HOST` | `redis` | Redis 主机名 |
-| `REDIS_PORT` | `6379` | Redis 端口 |
-| `MINIO_HOST` | `minio` | MinIO 主机名 |
-| `MINIO_PORT` | `9000` | MinIO API 端口 |
-| `MINIO_CONSOLE_PORT` | `9001` | MinIO 控制台端口 |
+| 变量                 | 默认值          | 用途                 |
+| -------------------- | --------------- | -------------------- |
+| `ENVIRONMENT`        | `production`    | 运行环境标识         |
+| `LOG_LEVEL`          | `INFO`          | 日志级别             |
+| `BACKEND_PORT`       | `8000`          | 后端服务端口         |
+| `FRONTEND_PORT`      | `80`            | 前端 Nginx 端口      |
+| `POSTGRES_HOST`      | `postgres`      | PostgreSQL 主机名    |
+| `POSTGRES_PORT`      | `5432`          | PostgreSQL 端口      |
+| `POSTGRES_DB`        | `hfb`           | 数据库名             |
+| `POSTGRES_USER`      | `hfb`           | 数据库用户           |
+| `REDIS_HOST`         | `redis`         | Redis 主机名         |
+| `REDIS_PORT`         | `6379`          | Redis 端口           |
+| `MINIO_HOST`         | `minio`         | MinIO 主机名         |
+| `MINIO_PORT`         | `9000`          | MinIO API 端口       |
+| `MINIO_CONSOLE_PORT` | `9001`          | MinIO 控制台端口     |
 | `ELASTICSEARCH_HOST` | `elasticsearch` | Elasticsearch 主机名 |
-| `ELASTICSEARCH_PORT` | `9200` | Elasticsearch 端口 |
-| `ELASTICSEARCH_USER` | `elastic` | Elasticsearch 用户名 |
+| `ELASTICSEARCH_PORT` | `9200`          | Elasticsearch 端口   |
+| `ELASTICSEARCH_USER` | `elastic`       | Elasticsearch 用户名 |
 
 #### AI/LLM 相关变量（可选，不影响核心功能）
 
-| 变量 | 用途 | 存储位置 |
-|---|---|---|
-| `OPENAI_API_KEY` | OpenAI API 密钥 | `<SECRET_STORE_KEY>` |
-| `ANTHROPIC_API_KEY` | Anthropic API 密钥 | `<SECRET_STORE_KEY>` |
-| `DEFAULT_LLM_MODEL` | 默认 LLM 模型（默认 `gpt-4o`） | — |
-| `DEFAULT_EMBEDDING_MODEL` | 默认嵌入模型（默认 `text-embedding-3-small`） | — |
+| 变量                      | 用途                                          | 存储位置             |
+| ------------------------- | --------------------------------------------- | -------------------- |
+| `OPENAI_API_KEY`          | OpenAI API 密钥                               | `<SECRET_STORE_KEY>` |
+| `ANTHROPIC_API_KEY`       | Anthropic API 密钥                            | `<SECRET_STORE_KEY>` |
+| `DEFAULT_LLM_MODEL`       | 默认 LLM 模型（默认 `gpt-4o`）                | —                    |
+| `DEFAULT_EMBEDDING_MODEL` | 默认嵌入模型（默认 `text-embedding-3-small`） | —                    |
 
 #### 安全敏感变量
 
-| 变量 | 用途 | 存储位置 |
-|---|---|---|
-| `SECRET_KEY` | FastAPI 应用密钥 | `<SECRET_STORE_KEY>` |
-| `JWT_SECRET_KEY` | JWT 签名密钥 | `<SECRET_STORE_KEY>` |
-| `JWT_ALGORITHM` | JWT 签名算法（默认 `HS256`） | — |
-| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT 过期时间（默认 `60`） | — |
+| 变量                              | 用途                         | 存储位置             |
+| --------------------------------- | ---------------------------- | -------------------- |
+| `SECRET_KEY`                      | FastAPI 应用密钥             | `<SECRET_STORE_KEY>` |
+| `JWT_SECRET_KEY`                  | JWT 签名密钥                 | `<SECRET_STORE_KEY>` |
+| `JWT_ALGORITHM`                   | JWT 签名算法（默认 `HS256`） | —                    |
+| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT 过期时间（默认 `60`）    | —                    |
 
 #### Post-MVP Profile 变量（非必需）
 
-| 变量 | 用途 | 存储位置 |
-|---|---|---|
-| `NEO4J_USER` | Neo4j 用户名（默认 `neo4j`） | — |
-| `NEO4J_PASSWORD` | Neo4j 密码 | `<SECRET_STORE_KEY>` |
+| 变量             | 用途                         | 存储位置             |
+| ---------------- | ---------------------------- | -------------------- |
+| `NEO4J_USER`     | Neo4j 用户名（默认 `neo4j`） | —                    |
+| `NEO4J_PASSWORD` | Neo4j 密码                   | `<SECRET_STORE_KEY>` |
 
 ### 3.2 密钥明文禁令检查
 
@@ -180,13 +183,13 @@ CI 5/5 check-run 最近一次通过记录在 `0ceea33` 上。新 HEAD `8c6793e` 
 
 ### 3.3 数据库 Migration 状态
 
-| 属性 | 值 |
-|---|---|
-| Migration 管理工具 | Alembic（`apps/backend/alembic.ini`） |
+| 属性               | 值                                         |
+| ------------------ | ------------------------------------------ |
+| Migration 管理工具 | Alembic（`apps/backend/alembic.ini`）      |
 | Migration 脚本目录 | `apps/backend/app/db/migrations/versions/` |
-| Migration 文件数量 | **23** |
-| 总代码行数 | 3,288 lines |
-| 最近 Migration | `rag_evidence_binding_v2.py` |
+| Migration 文件数量 | **23**                                     |
+| 总代码行数         | 3,288 lines                                |
+| 最近 Migration     | `rag_evidence_binding_v2.py`               |
 
 ### 3.4 Schema 向下兼容性评估
 
@@ -262,33 +265,33 @@ docker ps --filter "name=hfb-" --format "table {{.Names}}\t{{.Status}}"
 
 #### 预期运行服务
 
-| 容器名 | 健康检查端点 |
-|---|---|
-| `hfb-backend` | `curl http://localhost:8000/health` |
-| `hfb-frontend` | `curl http://localhost:80/health` |
-| `hfb-postgres` | `pg_isready` |
-| `hfb-redis` | `redis-cli ping` |
-| `hfb-minio` | `curl http://localhost:9000/minio/health/live` |
-| `hfb-elasticsearch` | `curl http://localhost:9200/_cluster/health` |
+| 容器名              | 健康检查端点                                   |
+| ------------------- | ---------------------------------------------- |
+| `hfb-backend`       | `curl http://localhost:8000/health`            |
+| `hfb-frontend`      | `curl http://localhost:80/health`              |
+| `hfb-postgres`      | `pg_isready`                                   |
+| `hfb-redis`         | `redis-cli ping`                               |
+| `hfb-minio`         | `curl http://localhost:9000/minio/health/live` |
+| `hfb-elasticsearch` | `curl http://localhost:9200/_cluster/health`   |
 
 ### 4.2 部署后健康检查探针
 
 #### HTTP 探针
 
-| 探针 | 方法 | 端点 | 期待响应 | 超时 |
-|---|---|---|---|---|
-| Backend Liveness | GET | `http://localhost:8000/health` | 200 OK | 10s |
-| Frontend Liveness | GET | `http://localhost:80/health` | 200 OK | 10s |
-| Backend Readiness | GET | `http://localhost:8000/api/v1/` | 200 OK (JSON) | 15s |
+| 探针              | 方法 | 端点                            | 期待响应      | 超时 |
+| ----------------- | ---- | ------------------------------- | ------------- | ---- |
+| Backend Liveness  | GET  | `http://localhost:8000/health`  | 200 OK        | 10s  |
+| Frontend Liveness | GET  | `http://localhost:80/health`    | 200 OK        | 10s  |
+| Backend Readiness | GET  | `http://localhost:8000/api/v1/` | 200 OK (JSON) | 15s  |
 
 #### TCP 探针
 
-| 服务 | 端口 | 超时 |
-|---|---|---|
-| PostgreSQL | 5432 | 5s |
-| Redis | 6379 | 5s |
-| MinIO | 9000 | 5s |
-| Elasticsearch | 9200 | 10s |
+| 服务          | 端口 | 超时 |
+| ------------- | ---- | ---- |
+| PostgreSQL    | 5432 | 5s   |
+| Redis         | 6379 | 5s   |
+| MinIO         | 9000 | 5s   |
+| Elasticsearch | 9200 | 10s  |
 
 ### 4.3 核心业务烟雾测试路径（Smoke Scenarios）
 
@@ -328,12 +331,12 @@ docker ps --filter "name=hfb-" --format "table {{.Names}}\t{{.Status}}"
 
 ### 4.4 生产资源配置参考
 
-| 服务 | CPU Limit | Memory Limit |
-|---|---|---|
-| Backend | 2 cores | 2 GB |
-| Frontend (Nginx) | — | — |
-| PostgreSQL | 2 cores | 4 GB |
-| Elasticsearch | — | 2 GB (JVM) |
+| 服务             | CPU Limit | Memory Limit |
+| ---------------- | --------- | ------------ |
+| Backend          | 2 cores   | 2 GB         |
+| Frontend (Nginx) | —         | —            |
+| PostgreSQL       | 2 cores   | 4 GB         |
+| Elasticsearch    | —         | 2 GB (JVM)   |
 
 ---
 
@@ -343,14 +346,14 @@ docker ps --filter "name=hfb-" --format "table {{.Names}}\t{{.Status}}"
 
 以下任一条件满足时立即触发回滚：
 
-| 条件编号 | 指标 | 阈值 | 检测方式 |
-|---|---|---|---|
-| R1 | API 5xx 错误率 | > 1%（观察窗口内） | 应用日志 / 反向代理监控 |
-| R2 | P95 API 响应延迟 | > 2000ms（观察窗口内） | APM / 反向代理日志 |
-| R3 | 数据库连接失败率 | > 0%（任何失败） | Backend 健康检查失败 |
-| R4 | 健康检查连续失败 | ≥ 3 次 | Docker healthcheck / 外部探针 |
-| R5 | 数据校验异常 | 任何数据不一致报告 | 用户反馈 / 自动化校验 |
-| R6 | 安全事件 | 任何未授权访问或数据泄露迹象 | 安全监控 / 审计日志 |
+| 条件编号 | 指标             | 阈值                         | 检测方式                      |
+| -------- | ---------------- | ---------------------------- | ----------------------------- |
+| R1       | API 5xx 错误率   | > 1%（观察窗口内）           | 应用日志 / 反向代理监控       |
+| R2       | P95 API 响应延迟 | > 2000ms（观察窗口内）       | APM / 反向代理日志            |
+| R3       | 数据库连接失败率 | > 0%（任何失败）             | Backend 健康检查失败          |
+| R4       | 健康检查连续失败 | ≥ 3 次                       | Docker healthcheck / 外部探针 |
+| R5       | 数据校验异常     | 任何数据不一致报告           | 用户反馈 / 自动化校验         |
+| R6       | 安全事件         | 任何未授权访问或数据泄露迹象 | 安全监控 / 审计日志           |
 
 ### 5.2 观察窗口期
 
@@ -392,24 +395,24 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 
 ### 5.5 责任矩阵（Escalation Matrix）
 
-| 角色 | 职责 | 通知方式 |
-|---|---|---|
-| **PO（产品负责人）** | 最终发布 Go/No-Go 决策；回滚授权 | Email / 即时通讯 |
-| **架构负责人** | 部署技术审批；回滚执行监督；Schema 兼容性终裁 | Email / On-call 电话 |
-| **运维/DevOps** | 实际部署执行；健康监控；回滚第一响应人 | On-call PagerDuty / 告警群 |
-| **后端 Lead** | API 异常排查；数据库问题诊断 | 即时通讯 / On-call |
-| **前端 Lead** | UI 渲染异常排查；浏览器兼容性 | 即时通讯 |
-| **安全工程师** | 安全事件响应（触发条件 R6） | On-call 电话 |
+| 角色                 | 职责                                          | 通知方式                   |
+| -------------------- | --------------------------------------------- | -------------------------- |
+| **PO（产品负责人）** | 最终发布 Go/No-Go 决策；回滚授权              | Email / 即时通讯           |
+| **架构负责人**       | 部署技术审批；回滚执行监督；Schema 兼容性终裁 | Email / On-call 电话       |
+| **运维/DevOps**      | 实际部署执行；健康监控；回滚第一响应人        | On-call PagerDuty / 告警群 |
+| **后端 Lead**        | API 异常排查；数据库问题诊断                  | 即时通讯 / On-call         |
+| **前端 Lead**        | UI 渲染异常排查；浏览器兼容性                 | 即时通讯                   |
+| **安全工程师**       | 安全事件响应（触发条件 R6）                   | On-call 电话               |
 
 ### 5.6 日志与告警监控入口
 
-| 监控目标 | 工具/入口 | 说明 |
-|---|---|---|
-| 应用日志 | Docker logs (`docker logs hfb-backend`) | 结构化日志，`LOG_LEVEL=INFO` |
-| 反向代理日志 | Nginx access/error log (`docker logs hfb-frontend`) | HTTP 请求与错误 |
-| 数据库慢查询 | PostgreSQL `log_min_duration_statement` | 建议设置 500ms 阈值 |
-| 容器资源 | `docker stats` / Prometheus + Grafana | CPU / Memory / Network |
-| 健康检查 | Docker healthcheck + 外部 Uptime Monitor | 30s 间隔，3 次重试 |
+| 监控目标     | 工具/入口                                           | 说明                         |
+| ------------ | --------------------------------------------------- | ---------------------------- |
+| 应用日志     | Docker logs (`docker logs hfb-backend`)             | 结构化日志，`LOG_LEVEL=INFO` |
+| 反向代理日志 | Nginx access/error log (`docker logs hfb-frontend`) | HTTP 请求与错误              |
+| 数据库慢查询 | PostgreSQL `log_min_duration_statement`             | 建议设置 500ms 阈值          |
+| 容器资源     | `docker stats` / Prometheus + Grafana               | CPU / Memory / Network       |
+| 健康检查     | Docker healthcheck + 外部 Uptime Monitor            | 30s 间隔，3 次重试           |
 
 ---
 
@@ -417,30 +420,30 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 
 ### 6.1 D2-FINAL 门禁逐项
 
-| 门禁 | 指标 | 结果 | 状态 |
-|---|---|---|---|
-| D2-COV | Backend `percent_covered` ≥ 90.01% | 90.0174% | ✅ PASS |
-| D2-E2E | Browser E2E 27/27 | 27 passed, 0 failed | ✅ PASS |
-| D2-SEC | `pnpm audit` 0 vulnerabilities | 0 known | ✅ PASS |
-| CI Build | GitHub Actions | success | ✅ PASS |
-| CI Test | GitHub Actions | success | ✅ PASS |
-| CI Documentation | GitHub Actions | success | ✅ PASS |
-| CI Lint | GitHub Actions (ruff + prettier + vue-tsc) | success | ✅ PASS |
-| CI Security | GitHub Actions | success | ✅ PASS |
-| Worktree Clean | `git status --short` | Clean | ✅ PASS |
-| Apps Diff | `git diff HEAD~1 -- 'apps/'` | 0 lines | ✅ PASS |
-| Whitespace Check | `git diff --check` | No output | ✅ PASS |
+| 门禁             | 指标                                       | 结果                | 状态    |
+| ---------------- | ------------------------------------------ | ------------------- | ------- |
+| D2-COV           | Backend `percent_covered` ≥ 90.01%         | 90.0174%            | ✅ PASS |
+| D2-E2E           | Browser E2E 27/27                          | 27 passed, 0 failed | ✅ PASS |
+| D2-SEC           | `pnpm audit` 0 vulnerabilities             | 0 known             | ✅ PASS |
+| CI Build         | GitHub Actions                             | success             | ✅ PASS |
+| CI Test          | GitHub Actions                             | success             | ✅ PASS |
+| CI Documentation | GitHub Actions                             | success             | ✅ PASS |
+| CI Lint          | GitHub Actions (ruff + prettier + vue-tsc) | success             | ✅ PASS |
+| CI Security      | GitHub Actions                             | success             | ✅ PASS |
+| Worktree Clean   | `git status --short`                       | Clean               | ✅ PASS |
+| Apps Diff        | `git diff HEAD~1 -- 'apps/'`               | 0 lines             | ✅ PASS |
+| Whitespace Check | `git diff --check`                         | No output           | ✅ PASS |
 
 ### 6.2 发布候选最终评估
 
-| 评估维度 | 结论 |
-|---|---|
-| 代码冻结 | ✅ 已冻结 — 无 `apps/` 变动，仅 docs 追加 |
-| CI 门禁 | ✅ 5/5 全绿 |
-| 安全审计 | ✅ 0 known vulnerabilities |
-| 测试覆盖 | ✅ Backend 90.02%, Frontend 371 unit + 27 E2E |
-| Schema 兼容 | ✅ 向下兼容，支持无缝回滚 |
-| 配置审计 | ✅ 无密钥明文泄露 |
+| 评估维度      | 结论                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------- |
+| 代码冻结      | ✅ 已冻结 — 无 `apps/` 变动，仅 docs 追加                                             |
+| CI 门禁       | ✅ 5/5 全绿                                                                           |
+| 安全审计      | ✅ 0 known vulnerabilities                                                            |
+| 测试覆盖      | ✅ Backend 90.02%, Frontend 371 unit + 27 E2E                                         |
+| Schema 兼容   | ✅ 向下兼容，支持无缝回滚                                                             |
+| 配置审计      | ✅ 无密钥明文泄露                                                                     |
 | BLOCK_RELEASE | ⚠️ BLOCK_RELEASE (NO-GO) — 新 HEAD `8c6793e` CI 尚未通过，待 5/5 check-run 全绿后重估 |
 
 ### 6.3 最终建议
@@ -453,11 +456,11 @@ D2 门禁在 `0ceea33` 上全绿，但新 HEAD `8c6793e` 包含 `docker-compose.
 
 ## 7. 审批签署
 
-| 角色 | 签名 | 日期 |
-|---|---|---|
-| PO（产品负责人） | ______________________ | ________ |
-| 架构负责人 | ______________________ | ________ |
-| DevOps / 运维 | ______________________ | ________ |
+| 角色             | 签名                     | 日期         |
+| ---------------- | ------------------------ | ------------ |
+| PO（产品负责人） | **********\_\_********** | **\_\_\_\_** |
+| 架构负责人       | **********\_\_********** | **\_\_\_\_** |
+| DevOps / 运维    | **********\_\_********** | **\_\_\_\_** |
 
 ---
 

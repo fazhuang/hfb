@@ -7,6 +7,15 @@
       :breadcrumbs="[{ label: 'Research' }]"
     >
       <template #actions>
+        <router-link
+          v-if="allProjects.length > 0"
+          :to="`/research/${allProjects[0].id}/workflow`"
+          class="rpp-create-btn rpp-create-btn--secondary"
+          style="margin-right: 8px; text-decoration: none"
+          aria-label="发起新研究"
+        >
+          ⚡ 发起新研究
+        </router-link>
         <button
           ref="createBtnRef"
           class="rpp-create-btn"
@@ -34,7 +43,7 @@
         <EmptyState
           v-else-if="allProjects.length === 0 && !searchActive"
           title="还没有研究课题"
-          description="创建您的第一个研究课题，开始研究古典医籍。"
+          description="创建您的第一个研究课题，开始对《针灸甲乙经》等古籍进行可计算、可验证的证据研究。"
           icon="🔬"
         >
           <template #action>

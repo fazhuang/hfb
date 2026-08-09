@@ -1,6 +1,6 @@
 <template>
   <section class="dss-step" aria-labelledby="dss-heading">
-    <h2 id="dss-heading" class="dss-heading">第二步：文献选择</h2>
+    <h2 id="dss-heading" class="dss-heading">第二步：检索范围确认</h2>
 
     <div class="dss-system-notice" role="note">
       <Info :size="16" class="dss-notice-icon" aria-hidden="true" />

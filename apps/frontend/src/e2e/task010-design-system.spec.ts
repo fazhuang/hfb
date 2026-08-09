@@ -243,7 +243,7 @@ test.describe('Task 010 E2E — Design System Integration', () => {
 
     // After clicking next, the workflow should advance to step 2 (document selection)
     // Verify the second step UI appears
-    const step2 = page.locator('.dss-step, #dss-heading, h2:has-text("文献选择")').first();
+    const step2 = page.locator('.dss-step, #dss-heading, h2:has-text("检索范围确认")').first();
     await expect(step2).toBeVisible({ timeout: 10_000 });
 
     const critical = errors.filter((e) => !e.includes('favicon'));
