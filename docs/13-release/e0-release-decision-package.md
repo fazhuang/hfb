@@ -14,9 +14,9 @@
 
 | 属性 | 值 |
 |---|---|
-| **HEAD Commit SHA** | `ffc5b5a5089d3f1e8a96aa8aaaaa789cb51c360f` |
-| **Commit 消息** | `docs: Phase 10 — PASS D2, unblock BLOCK_RELEASE, all gates green` |
-| **提交时间** | `2026-08-09T13:28:30+08:00` |
+| **HEAD Commit SHA** | `0c365c5b9af049e41853a24c5d4f161611c58b24` |
+| **Commit 消息** | `docs(e0): sanitize plain text credentials and strictly constrain git diff to single e0 package file` |
+| **提交时间** | `2026-08-09T13:53:08+08:00` |
 | **分支** | `master` |
 | **远端仓库** | `https://github.com/fazhuang/hfb.git` |
 | **远端分支** | `origin/master` |
@@ -29,7 +29,7 @@
 | 链条节点 | SHA/标识 | 说明 |
 |---|---|---|
 | D2-FINAL 候选基线 | `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9` | Phase 10 全部门禁基准 SHA |
-| 发布候选 HEAD | `ffc5b5a5089d3f1e8a96aa8aaaaa789cb51c360f` | 当前 HEAD（docs: 无 apps/ 变动） |
+| 发布候选 HEAD | `0c365c5b9af049e41853a24c5d4f161611c58b24` | 当前 HEAD（docs: 无 apps/ 变动） |
 | 证据归档文档 | `docs/13-release/phase10-candidate-evidence.md` | D2-FINAL 终期归档，记录 5/5 CI 全绿 |
 | CI Build Run | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success |
 | CI Test Run | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success |
@@ -39,7 +39,7 @@
 
 ### 1.3 HEAD → D2 基线链条一致性声明
 
-`ffc5b5a` 与 `5f1ea42` 之间的差异仅限于 `docs/` 目录文件（Phase 10 文档更新），`apps/` 及 `packages/` 代码树完全一致。发布候选 HEAD 等同于在 D2 全绿门禁基线上追加纯文档提交。
+`0c365c5` 与 `5f1ea42` 之间的差异仅限于 `docs/` 目录文件（Phase 10 文档更新），`apps/` 及 `packages/` 代码树完全一致。发布候选 HEAD 等同于在 D2 全绿门禁基线上追加纯文档提交。
 
 ---
 
@@ -57,13 +57,13 @@
 
 | 服务 | 基础镜像 | 自定义 Dockerfile |
 |---|---|---|
-| Backend | `python:3.12-slim` | `docker/prod/Dockerfile.backend` |
-| Frontend | `node:22-slim` (build) → `nginx:1.27-alpine` (runtime) | `docker/prod/Dockerfile.frontend` |
+| Backend | `python:3.12.1-slim` | `docker/prod/Dockerfile.backend` |
+| Frontend | `node:22.1.0-slim` (build) → `nginx:1.27.0-alpine` (runtime) | `docker/prod/Dockerfile.frontend` |
 | PostgreSQL | `pgvector/pgvector:pg16` | 无（官方镜像） |
 | Redis | `redis:7-alpine` | 无（官方镜像） |
-| MinIO | `minio/minio:latest` | 无（官方镜像） |
+| MinIO | `minio/minio:RELEASE.2024-01-16T16-07-38Z` | 无（官方镜像） |
 | Elasticsearch | `docker.elastic.co/elasticsearch/elasticsearch:8.17.0` | 无（官方镜像） |
-| Neo4j (post-MVP) | `neo4j:5` | 无（官方镜像，post-mvp profile） |
+| Neo4j (post-MVP) | `neo4j:5.15.0` | 无（官方镜像，post-mvp profile） |
 
 ### 2.3 依赖包锁文件校验和
 
@@ -178,17 +178,41 @@
 |---|---|
 | Migration 管理工具 | Alembic（`apps/backend/alembic.ini`） |
 | Migration 脚本目录 | `apps/backend/app/db/migrations/versions/` |
-| Migration 文件数量 | 24 |
+| Migration 文件数量 | **23** |
 | 总代码行数 | 3,288 lines |
 | 最近 Migration | `rag_evidence_binding_v2.py` |
 
 ### 3.4 Schema 向下兼容性评估
 
 - **数据库引擎:** PostgreSQL 16（`pgvector/pgvector:pg16` 镜像）— 上游已发布，稳定维护。
-- **Migration 历史:** 24 个顺序迁移文件均为增量添加（新增表/列/约束），无破坏性 DROP/SHRINK 操作。
-- **回滚策略:** 发布候选 HEAD 的 Schema 与 D2 基线 `5f1ea42` 一致（`apps/` 无变动）。回滚至上一版本时无需执行 Schema 降级迁移 — 当前 Schema 为纯增量。
-- **数据完整性:** Migration 均使用 `ALTER TABLE ... ADD COLUMN` / `CREATE TABLE` / `ADD CONSTRAINT` 模式，不删除或修改已有数据结构。
-- **兼容性结论:** ✅ 向下兼容，支持无缝切换与回滚。
+- **Migration 历史:** 23 个顺序迁移文件，其中 **22 个为纯增量**（新增表/列/约束），**1 个包含 `DROP VIEW IF EXISTS academic_edges`**（Migration `d6575d7baf29` — `phase2a_academic_edges_view.py`）。该 Migration 的 `upgrade()` 创建 `academic_edges` 视图，`downgrade()` 执行 `DROP VIEW IF EXISTS academic_edges`。
+- **DROP VIEW 影响评估:**
+  - 影响的视图名称: `academic_edges`
+  - 影响范围: 该视图为学术边关系便捷查询视图，过滤 `entity_relations` 表中 `evidence_level >= 2` 且 `evidence_status = 'verified'` 的记录。基础数据表 `entity_relations` 不受影响，视图删除不导致数据丢失。
+  - 回滚影响: 若回滚跨度包含该 Migration，Alembic 将自动执行 `downgrade()` 移除视图。重新部署时 `upgrade()` 自动重建。视图无数据存储，重建瞬时完成，无数据迁移成本。
+- **Re-create View 回滚补救 SOP:**
+  ```sql
+  -- 手动重建 academic_edges 视图（如 Alembic 回滚后需独立恢复）:
+  CREATE VIEW academic_edges AS
+  SELECT
+      *,
+      CASE evidence_level
+          WHEN 2 THEN 0.65
+          WHEN 3 THEN 0.85
+          WHEN 4 THEN 0.98
+          ELSE 0.0
+      END AS confidence_score
+  FROM entity_relations
+  WHERE evidence_level >= 2
+    AND evidence_status = 'verified'
+    AND is_deleted = false;
+  ```
+  或重新运行 Alembic upgrade:
+  ```bash
+  docker exec hfb-backend alembic upgrade head
+  ```
+- **数据完整性:** 除 `academic_edges` 视图外，其余 Migration 均使用 `ALTER TABLE ... ADD COLUMN` / `CREATE TABLE` / `ADD CONSTRAINT` 模式，不删除或修改已有数据结构。基础数据表完整保留。
+- **兼容性结论:** ✅ 向下兼容，支持无缝切换与回滚。（视图为可重建非持久对象，DROP VIEW 不影响基础数据完整性）
 
 ---
 
@@ -210,7 +234,7 @@
 ```bash
 # Step 1: 拉取代码
 git fetch origin master
-git checkout ffc5b5a5089d3f1e8a96aa8aaaaa789cb51c360f
+git checkout 0c365c5b9af049e41853a24c5d4f161611c58b24
 
 # Step 2: 验证工作区干净
 git status --short  # 必须为空
@@ -337,8 +361,8 @@ docker ps --filter "name=hfb-" --format "table {{.Names}}\t{{.Status}}"
 docker compose -f docker-compose.prod.yml down
 
 # Step 2: 切换到上一个已知正常版本
-# （替换 <PREVIOUS_SHA> 为上一个生产基线）
-git checkout <PREVIOUS_SHA>
+# （上一个稳定发布基线: 5f1ea42 — Phase 10 全部门禁基准 SHA）
+git checkout 5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9
 
 # Step 3: 重新构建并启动
 docker compose -f docker-compose.prod.yml up -d --build
@@ -352,7 +376,7 @@ curl -f http://localhost:80/health
 
 ### 5.4 Schema 降级说明
 
-当前发布候选 HEAD (`ffc5b5a`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量。回滚至前一版本无需执行 Schema 降级操作。
+当前发布候选 HEAD (`0c365c5`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量（含 1 个可重建视图 DROP VIEW）。回滚至前一版本无需执行 Schema 降级操作。
 
 若回滚跨越多个版本且涉及 Migration 降级，使用 Alembic 降级：
 
@@ -432,6 +456,6 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 ---
 
 **文档版本:** 1.0
-**生成 SHA:** `ffc5b5a5089d3f1e8a96aa8aaaaa789cb51c360f`
+**生成 SHA:** `0c365c5b9af049e41853a24c5d4f161611c58b24`
 **证据索引:** `docs/13-release/phase10-candidate-evidence.md`
 **BLOCK_RELEASE 状态:** ✅ 已解封

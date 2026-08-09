@@ -136,7 +136,7 @@ services:
 
   # --- MinIO (MVP) ---
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2024-01-16T16-07-38Z
     container_name: hfb-minio
     command: server /data --console-address ":9001"
     ports:
@@ -188,7 +188,7 @@ services:
 
   # --- Neo4j (Post-MVP) ---
   neo4j:
-    image: neo4j:5
+    image: neo4j:5.15.0
     container_name: hfb-neo4j
     profiles:
       - post-mvp
