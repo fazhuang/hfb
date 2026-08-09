@@ -59,8 +59,8 @@
 |---|---|---|
 | Backend | `python:3.12.1-slim` | `docker/prod/Dockerfile.backend` |
 | Frontend | `node:22.1.0-slim` (build) → `nginx:1.27.0-alpine` (runtime) | `docker/prod/Dockerfile.frontend` |
-| PostgreSQL | `pgvector/pgvector:pg16` | 无（官方镜像） |
-| Redis | `redis:7-alpine` | 无（官方镜像） |
+| PostgreSQL | `pgvector/pgvector:v0.6.0-pg16` | 无（官方镜像） |
+| Redis | `redis:7.2.4-alpine` | 无（官方镜像） |
 | MinIO | `minio/minio:RELEASE.2024-01-16T16-07-38Z` | 无（官方镜像） |
 | Elasticsearch | `docker.elastic.co/elasticsearch/elasticsearch:8.17.0` | 无（官方镜像） |
 | Neo4j (post-MVP) | `neo4j:5.15.0` | 无（官方镜像，post-mvp profile） |

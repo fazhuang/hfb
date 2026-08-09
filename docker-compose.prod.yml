@@ -84,7 +84,7 @@ services:
 
   # --- PostgreSQL (pgvector) ---
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:v0.6.0-pg16
     container_name: hfb-postgres
     ports:
       - '${POSTGRES_PORT:-5432}:5432'
@@ -110,7 +110,7 @@ services:
 
   # --- Redis (MVP) ---
   redis:
-    image: redis:7-alpine
+    image: redis:7.2.4-alpine
     container_name: hfb-redis
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
