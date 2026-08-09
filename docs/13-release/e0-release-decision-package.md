@@ -14,7 +14,7 @@
 
 | 属性 | 值 |
 |---|---|
-| **HEAD Commit SHA** | `14569ec6c1d1cb0eb235c31532e4119508672a56` |
+| **HEAD Commit SHA** | `0ceea334db65c25af4171f67079cf6dc968e3975` |
 | **Commit 消息** | `docs(e0): sanitize plain text credentials and strictly constrain git diff to single e0 package file` |
 | **提交时间** | `2026-08-09T13:53:08+08:00` |
 | **分支** | `master` |
@@ -29,7 +29,7 @@
 | 链条节点 | SHA/标识 | 说明 |
 |---|---|---|
 | D2-FINAL 候选基线 | `5f1ea42249c87f5030ec3f0aea4284ae7b8b0aa9` | Phase 10 全部门禁基准 SHA |
-| 发布候选 HEAD | `14569ec6c1d1cb0eb235c31532e4119508672a56` | 当前 HEAD（docs: 无 apps/ 变动） |
+| 发布候选 HEAD | `0ceea334db65c25af4171f67079cf6dc968e3975` | 当前 HEAD（docs: 无 apps/ 变动） |
 | 证据归档文档 | `docs/13-release/phase10-candidate-evidence.md` | D2-FINAL 终期归档，记录 5/5 CI 全绿 |
 | CI Build Run | https://github.com/fazhuang/hfb/actions/runs/31295398193 | ✅ success |
 | CI Test Run | https://github.com/fazhuang/hfb/actions/runs/31295398226 | ✅ success |
@@ -39,7 +39,7 @@
 
 ### 1.3 HEAD → D2 基线链条一致性声明
 
-`14569ec` 与 `5f1ea42` 之间的差异仅限于 `docs/` 目录文件（Phase 10 文档更新），`apps/` 及 `packages/` 代码树完全一致。发布候选 HEAD 等同于在 D2 全绿门禁基线上追加纯文档提交。
+`0ceea33` 与 `5f1ea42` 之间的差异仅限于 `docs/` 目录文件（Phase 10 文档更新），`apps/` 及 `packages/` 代码树完全一致。发布候选 HEAD 等同于在 D2 全绿门禁基线上追加纯文档提交。
 
 ---
 
@@ -234,7 +234,7 @@
 ```bash
 # Step 1: 拉取代码
 git fetch origin master
-git checkout 14569ec6c1d1cb0eb235c31532e4119508672a56
+git checkout 0ceea334db65c25af4171f67079cf6dc968e3975
 
 # Step 2: 验证工作区干净
 git status --short  # 必须为空
@@ -376,7 +376,7 @@ curl -f http://localhost:80/health
 
 ### 5.4 Schema 降级说明
 
-当前发布候选 HEAD (`14569ec`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量（含 1 个可重建视图 DROP VIEW）。回滚至前一版本无需执行 Schema 降级操作。
+当前发布候选 HEAD (`0ceea33`) 与 D2 基线 (`5f1ea42`) 的 `apps/` 代码完全一致，Migration 为纯增量（含 1 个可重建视图 DROP VIEW）。回滚至前一版本无需执行 Schema 降级操作。
 
 若回滚跨越多个版本且涉及 Migration 降级，使用 Alembic 降级：
 
@@ -456,6 +456,6 @@ docker exec hfb-backend alembic downgrade -1  # 回退一个版本
 ---
 
 **文档版本:** 1.0
-**生成 SHA:** `14569ec6c1d1cb0eb235c31532e4119508672a56`
+**生成 SHA:** `0ceea334db65c25af4171f67079cf6dc968e3975`
 **证据索引:** `docs/13-release/phase10-candidate-evidence.md`
 **BLOCK_RELEASE 状态:** ✅ 已解封
