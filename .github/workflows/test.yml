@@ -86,6 +86,16 @@ jobs:
           flags: python
         continue-on-error: true
 
+      - name: Upload python test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-artifacts
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 90
+        continue-on-error: true
+
   node-test:
     name: Node Tests
     runs-on: ubuntu-latest
@@ -117,4 +127,12 @@ jobs:
         with:
           files: ./coverage/cobertura-coverage.xml
           flags: node
+        continue-on-error: true
+
+      - name: Upload node test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-test-artifacts
+          path: apps/frontend/coverage/
+          retention-days: 90
         continue-on-error: true
