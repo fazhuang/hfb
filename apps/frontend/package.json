@@ -11,6 +11,7 @@
     "type-check": "npm run typecheck",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "playwright test --config playwright.config.ts",
     "check-design": "node scripts/check-design-compliance.mjs",
