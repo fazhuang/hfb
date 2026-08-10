@@ -92,7 +92,7 @@ jobs:
           name: python-test-artifacts
           path: |
             coverage.xml
-            htmlcov/
+            htmlcov/**
           retention-days: 90
         continue-on-error: true
 
@@ -133,8 +133,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-test-artifacts
-          path: |
-            apps/frontend/coverage/
-            coverage/
+          path: apps/frontend/coverage/**
           retention-days: 90
         continue-on-error: true
