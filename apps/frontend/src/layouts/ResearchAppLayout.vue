@@ -16,7 +16,7 @@
       <ResearchPrimaryNav :collapsed="sidebarCollapsed" />
 
       <div class="ral-sidebar-footer">
-        <div class="ral-project-badge" v-if="!sidebarCollapsed">
+        <div class="ral-project-badge" v-if="!sidebarCollapsed && route.params.projectId">
           <span class="ral-project-dot"></span>
           <span class="ral-project-name">当前项目</span>
         </div>
@@ -82,11 +82,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 
 const router = useRouter();
+const route = useRoute();
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
 
