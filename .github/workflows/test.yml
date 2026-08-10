@@ -122,6 +122,17 @@ jobs:
       - name: Run tests
         run: pnpm run test:coverage
 
+      - name: Prepare node test artifacts
+        shell: bash
+        run: |
+          mkdir -p apps/frontend/test-results
+          cat > apps/frontend/test-results/node-tests-summary.txt << 'END'
+      Node Tests: PASSED (${{ job.status }})
+      Run ID: ${{ github.run_id }}
+      SHA: ${{ github.sha }}
+      END
+        continue-on-error: false
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -133,6 +144,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: node-test-artifacts
-          path: apps/frontend/coverage/**
+          path: apps/frontend/test-results/
           retention-days: 90
         continue-on-error: true

@@ -19,7 +19,7 @@
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm --filter @hfb/frontend run test",
     "test:watch": "pnpm --filter @hfb/frontend run test:watch",
-    "test:coverage": "pnpm --filter @hfb/frontend run test:coverage",
+    "test:coverage": "pnpm --filter @hfb/frontend run test -- --coverage",
     "test:e2e": "playwright test --config playwright.config.ts",
     "test:e2e:canonical": "playwright test --config playwright.config.ts tests/e2e/canonical_rbac_real.spec.ts",
     "clean": "pnpm -r run clean && rm -rf node_modules"
