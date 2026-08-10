@@ -331,28 +331,6 @@ const userName = auth.userName || '未登录';
   flex: 1;
 }
 
-/* ---- Mobile toggle (base: hidden, shown via media query) ---- */
-.ral-mobile-toggle {
-  display: none;
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: var(--z-drawer, 1100);
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text-secondary);
-  font-size: 20px;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  padding: 0;
-  line-height: 1;
-}
-
 .ral-mobile-toggle:hover {
   background: var(--color-hover);
 }
@@ -402,6 +380,4 @@ const userName = auth.userName || '未登录';
     word-break: break-word;
   }
 }
-
-/* ---- Mobile toggle (media-moved after @640px block, already in cascade) ---- */
 </style>
