@@ -18,6 +18,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { setActivePinia, createPinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import zhCN from '@/i18n/locales/zh-CN';
+import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import ResearchAppLayout from '@/layouts/ResearchAppLayout.vue';
 
 // Mock auth store — needed because ResearchPrimaryNav uses useAuthStore()
@@ -172,5 +173,33 @@ describe('ResearchAppLayout — structural invariants (P6 explicit doc)', () => 
 
     const toggle = wrapper.find('.ral-mobile-toggle');
     expect(toggle.classes()).toContain('ral-mobile-toggle');
+  });
+});
+
+describe('DefaultLayout — research shell chrome', () => {
+  it('does not render the legacy navbar or footer inside the research app shell', async () => {
+    const router = createRouter({
+      history: createWebHistory(),
+      routes: [
+        { path: '/', component: { template: '<div />' } },
+        {
+          path: '/research',
+          component: { template: '<div>research</div>' },
+          meta: { appShell: 'research' },
+        },
+      ],
+    });
+    await router.push('/research');
+    await router.isReady();
+
+    const wrapper = mount(DefaultLayout, {
+      global: {
+        plugins: [router],
+        stubs: { AppNavbar: { template: '<nav class="app-navbar" />' }, AppFooter: { template: '<footer class="app-footer" />' } },
+      },
+    });
+
+    expect(wrapper.find('.app-navbar').exists()).toBe(false);
+    expect(wrapper.find('.app-footer').exists()).toBe(false);
   });
 });

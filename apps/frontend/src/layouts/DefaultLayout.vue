@@ -1,17 +1,22 @@
 <template>
   <div class="default-layout">
-    <AppNavbar />
+    <AppNavbar v-if="!isResearchApp" />
     <AppMain>
       <router-view />
     </AppMain>
-    <AppFooter />
+    <AppFooter v-if="!isResearchApp" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import AppNavbar from '@/components/layout/AppNavbar.vue';
 import AppMain from '@/components/layout/AppMain.vue';
 import AppFooter from '@/components/layout/AppFooter.vue';
+
+const route = useRoute();
+const isResearchApp = computed(() => route.meta.appShell === 'research');
 </script>
 
 <style scoped>

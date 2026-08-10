@@ -104,7 +104,7 @@ const router = createRouter({
         {
           path: 'research',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
-          meta: { section: 'research', requiresAuth: true },
+          meta: { section: 'research', requiresAuth: true, appShell: 'research' },
           children: [
             {
               path: '',
@@ -143,7 +143,7 @@ const router = createRouter({
         {
           path: 'library',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
-          meta: { section: 'library', requiresAuth: true },
+          meta: { section: 'library', requiresAuth: true, appShell: 'research' },
           children: [
             {
               path: '',
@@ -170,7 +170,7 @@ const router = createRouter({
         {
           path: 'knowledge',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
-          meta: { section: 'knowledge', requiresAuth: true },
+          meta: { section: 'knowledge', requiresAuth: true, appShell: 'research' },
           children: [
             {
               path: '',
@@ -184,7 +184,7 @@ const router = createRouter({
         {
           path: 'reports',
           component: () => import('@/layouts/ResearchAppLayout.vue'),
-          meta: { section: 'reports', requiresAuth: true },
+          meta: { section: 'reports', requiresAuth: true, appShell: 'research' },
           children: [
             {
               path: '',

@@ -23,6 +23,15 @@
         <div class="ral-user-area">
           <span class="ral-user-avatar">{{ userInitial }}</span>
           <span v-if="!sidebarCollapsed" class="ral-user-name">{{ userName }}</span>
+          <button
+            v-if="!sidebarCollapsed"
+            class="ral-logout-btn"
+            title="退出登录"
+            aria-label="退出登录"
+            @click="handleLogout"
+          >
+            退出
+          </button>
         </div>
         <button
           class="ral-collapse-btn"
@@ -73,11 +82,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
 
+const router = useRouter();
 const auth = useAuthStore();
 const sidebarCollapsed = ref(false);
+
+function handleLogout() {
+  auth.logout();
+  router.push('/login');
+}
 
 // Sidebar becomes overlay at ≤640px, stays in-flow at ≥641px.
 const MOBILE_BREAKPOINT = 640;
@@ -94,23 +110,12 @@ onMounted(() => {
   mql.addEventListener('change', syncMobile);
   syncMobile();
 
-  // Hide DefaultLayout's AppNavbar when this child layout is active.
-  // DefaultLayout renders AppNavbar as sibling to AppMain; CSS can't reach
-  // a previous sibling, so we set a class on the parent container.
-  const wrapper = document.querySelector('.ral-main-wrapper');
-  if (wrapper) {
-    const root = wrapper.closest('.default-layout');
-    if (root) root.classList.add('ral-mobile-active');
-  }
-
   // Keyboard: Escape closes mobile sidebar overlay and returns focus to toggle.
   document.addEventListener('keydown', handleEscape);
 });
 
 onUnmounted(() => {
   if (mql) mql.removeEventListener('change', syncMobile);
-  const root = document.querySelector('.default-layout.ral-mobile-active');
-  if (root) root.classList.remove('ral-mobile-active');
   document.removeEventListener('keydown', handleEscape);
 });
 
@@ -183,12 +188,12 @@ const userName = auth.userName || '未登录';
 }
 
 .ral-brand-icon {
-  font-size: 22px;
+  font-size: var(--text-2xl);
   flex-shrink: 0;
 }
 
 .ral-brand-text {
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -210,7 +215,7 @@ const userName = auth.userName || '未登录';
   align-items: center;
   gap: var(--space-1-5);
   padding: var(--space-1-5) 8px;
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
@@ -238,17 +243,34 @@ const userName = auth.userName || '未登录';
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .ral-user-name {
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.ral-logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-1) var(--space-1-5);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.ral-logout-btn:hover {
+  background: var(--color-hover);
+  color: var(--color-error);
 }
 
 .ral-collapse-btn {
@@ -256,7 +278,7 @@ const userName = auth.userName || '未登录';
   border: none;
   cursor: pointer;
   padding: var(--space-1-5);
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   border-radius: var(--radius-sm);
 }
@@ -289,7 +311,7 @@ const userName = auth.userName || '未登录';
   border-radius: var(--radius-md);
   background: var(--color-surface);
   color: var(--color-text-secondary);
-  font-size: 20px;
+  font-size: var(--text-xl);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   padding: 0;
@@ -381,15 +403,4 @@ const userName = auth.userName || '未登录';
 }
 
 /* ---- Mobile toggle (media-moved after @640px block, already in cascade) ---- */
-</style>
-
-<!-- Global style: hide DefaultLayout's AppNavbar on mobile when ResearchAppLayout is active.
-     ResearchAppLayout has its own sidebar + toggle; the global navbar duplicates chrome
-     and eats 56px of viewport at 375px, truncating the page header.                 -->
-<style>
-@media (max-width: 640px) {
-  .default-layout.ral-mobile-active > .app-navbar {
-    display: none;
-  }
-}
 </style>
