@@ -126,12 +126,10 @@ jobs:
         shell: bash
         run: |
           mkdir -p apps/frontend/test-results
-          cat > apps/frontend/test-results/node-tests-summary.txt << 'END'
-      Node Tests: PASSED (${{ job.status }})
-      Run ID: ${{ github.run_id }}
-      SHA: ${{ github.sha }}
-      END
-        continue-on-error: false
+          printf '%s\n' "Node Tests: PASSED" "Run ID: $RUN_ID" "SHA: $SHA" > apps/frontend/test-results/node-tests-summary.txt
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
