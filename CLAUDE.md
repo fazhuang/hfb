@@ -19,6 +19,7 @@
 ## 前端开发规范
 
 - 无直接 Hex 颜色硬编码，必须使用 Design Token（`--color-*`、`--text-*`、`--space-*`）
+- 视觉规范：`docs/design-system.md` — 修改任何 UI 前必读。含色彩隐喻（宣纸/墨/石青）、组件规则、Prompt 公式、Do's/Don'ts
 - 禁止 `any` 类型
 - 数组类型用 `Array<T>` 而非 `T[]`
 - 提交前必须运行 `npx eslint`、`npx vue-tsc --noEmit`、`npx vitest run`
