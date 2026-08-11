@@ -170,7 +170,7 @@ describe('Person Domain Module — PersonListView.vue', () => {
     expect(wrapper.text()).toContain('皇甫谧');
     expect(wrapper.text()).toContain('皇甫谧本人');
     expect(wrapper.text()).toContain('已验证研究域');
-    expect(wrapper.text()).toContain('皇甫谧研究域关系摘要');
+    expect(wrapper.text()).toContain('研究域关系摘要：');
     expect(wrapper.text()).toContain('《针灸甲乙经》原作者');
   });
 

@@ -11,11 +11,22 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
 import ResearchReportStatusBadge from '@/components/reports/ResearchReportStatusBadge.vue';
 import ResearchRunSummary from '@/components/research/result/ResearchRunSummary.vue';
 import ResearchReportListItem from '@/components/reports/ResearchReportListItem.vue';
 import ProjectReports from '@/components/research/ProjectReports.vue';
 import ResearchResultErrorState from '@/components/research/result/ResearchResultErrorState.vue';
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': {
+      common: { loading: '加载中...' },
+    },
+  },
+});
 
 // Mock API client for components that make network requests
 const mockApiGet = vi.fn();
@@ -182,6 +193,7 @@ describe('Report Status Badges and Container Deformity Repairs', () => {
           projectId: 'project-1',
         },
         global: {
+          plugins: [i18n],
           stubs: {
             RouterLink: true,
           },

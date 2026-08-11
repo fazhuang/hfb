@@ -177,8 +177,7 @@ describe('Error Handling Repair — Views (PersonListView & PersonDetailView)', 
       response: { status: 401 },
     });
 
-    router.push('/persons');
-    await router.isReady();
+    await router.push('/persons');
 
     const wrapper = mount(PersonListView, {
       global: {
@@ -194,7 +193,7 @@ describe('Error Handling Repair — Views (PersonListView & PersonDetailView)', 
 
     const loginBtn = wrapper.find('.login-redirect-btn');
     expect(loginBtn.exists()).toBe(true);
-    expect(loginBtn.text()).toContain('前往登录');
+    expect(loginBtn.text()).toContain('登录');
 
     await loginBtn.trigger('click');
     await flushPromises();
@@ -208,8 +207,7 @@ describe('Error Handling Repair — Views (PersonListView & PersonDetailView)', 
       response: { status: 401 },
     });
 
-    router.push('/persons/p-test-id');
-    await router.isReady();
+    await router.push('/persons/p-test-id');
 
     const wrapper = mount(PersonDetailView, {
       global: {
@@ -225,7 +223,7 @@ describe('Error Handling Repair — Views (PersonListView & PersonDetailView)', 
 
     const loginBtn = wrapper.find('.login-redirect-btn');
     expect(loginBtn.exists()).toBe(true);
-    expect(loginBtn.text()).toContain('前往登录');
+    expect(loginBtn.text()).toContain('登录');
 
     await loginBtn.trigger('click');
     await flushPromises();

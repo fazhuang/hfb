@@ -66,6 +66,11 @@ vi.mock('vue-router', () => ({
 
 describe('Phase 5 & 6 Components', () => {
   beforeEach(() => {
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn(() => null),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
     setActivePinia(createPinia());
     vi.clearAllMocks();
   });
