@@ -66,6 +66,12 @@ const router = createRouter({
           component: () => import('@/views/PersonListView.vue'),
         },
         {
+          path: 'persons/intro',
+          name: 'person-intro',
+          component: () => import('@/views/PersonIntroView.vue'),
+          meta: { title: '人物研究网络导览' },
+        },
+        {
           path: 'persons/:id',
           name: 'person-detail',
           component: () => import('@/views/PersonDetailView.vue'),
@@ -284,10 +290,25 @@ const router = createRouter({
           component: () => import('@/views/admin/SourcePolicyView.vue'),
           meta: { requiresAuth: true, requiresSuperAdmin: true },
         },
+        // Admin: system health diagnostics
+        {
+          path: 'admin/system-health',
+          name: 'admin-system-health',
+          component: () => import('@/views/admin/SystemHealthView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true, title: '系统健康诊断' },
+        },
+        // Phase 2 Prototype — clickable harness for the 4-page main loop
+        {
+          path: 'prototype',
+          name: 'phase2-prototype',
+          component: () => import('@/pages/prototype/Phase2PrototypePage.vue'),
+          meta: { title: 'Phase 2 Prototype' },
+        },
       ],
     },
   ],
 });
+
 
 // Auth navigation guard
 router.beforeEach(async (to: RouteLocationNormalized, _from, next) => {

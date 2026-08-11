@@ -15,31 +15,34 @@
         <span class="esrc-field-label">来源 ID</span>
         <code class="esrc-field-code">{{ evidence.source_ref_id.slice(0, 16) }}...</code>
       </div>
-
-      <!-- Internal document route (preferred) -->
-      <div v-if="hasInternalRoute" class="esrc-field">
-        <span class="esrc-field-label">查看原文</span>
-        <router-link v-if="internalRoute" :to="internalRoute" class="esrc-link esrc-link--internal">
-          打开原文 →
-        </router-link>
-      </div>
-
-      <!-- External link (fallback, only when no internal route) -->
-      <div v-else-if="safeSourceUrl" class="esrc-field">
-        <span class="esrc-field-label">原文链接</span>
-        <a :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="esrc-link">
-          打开原文 →
-        </a>
-      </div>
     </template>
 
-    <!-- No SourceRef — fail-closed: display missing state, never fallback to Document -->
+    <!-- No SourceRef title — fail-closed for source metadata, but internal route
+         (reader / library) must still render when document_id exists -->
     <template v-else>
       <div class="esrc-missing">
         <span class="esrc-missing-icon" aria-hidden="true">⚠️</span>
-        <p>此证据缺少文献来源信息。</p>
+        <p v-if="hasInternalRoute">来源信息未提供；可打开文档定位</p>
+        <p v-else>此证据缺少文献来源信息。</p>
       </div>
     </template>
+
+    <!-- Internal document route — renders ALWAYS when hasInternalRoute,
+         regardless of source_ref_title -->
+    <div v-if="hasInternalRoute" class="esrc-field">
+      <span class="esrc-field-label">查看原文</span>
+      <router-link v-if="internalRoute" :to="internalRoute" class="esrc-link esrc-link--internal">
+        打开原文 →
+      </router-link>
+    </div>
+
+    <!-- External link (fallback, only when no internal route) -->
+    <div v-else-if="safeSourceUrl" class="esrc-field">
+      <span class="esrc-field-label">原文链接</span>
+      <a :href="safeSourceUrl" target="_blank" rel="noopener noreferrer" class="esrc-link">
+        打开原文 →
+      </a>
+    </div>
 
     <!-- Passage locator -->
     <div v-if="evidence.passage_id" class="esrc-field esrc-field--passage">
@@ -68,25 +71,28 @@ const props = defineProps<{
 /**
  * Build an internal app route when we have a document_id.
  *
- * Priority:
- *  1. document_id → /library/:document_id (document is a documents table PK)
- *     Append ?passage= query param when passage_id is also present.
- *  2. No document_id → no internal route (use external link or hide)
+ * Priority (readerAddressable → /reader, fallback → /library):
+ *  1. document_id + chunk_id → /reader/:documentId#chunk-<chunk_id>
+ *  2. document_id only → /library/:documentId
+ *  3. No document_id → no internal route (use external link or hide)
  *
  * evidence.document_id is the primary key of the documents table.
- * Do NOT map it to /versions/ — that requires a real version_id field
- * from the API, which is not present in retrieval_snapshot entries.
+ * Do NOT map it to /versions/ — that requires a real version_id field.
  */
 const internalRoute = computed((): RouteLocationRaw | null => {
   const docId = props.evidence.document_id;
   if (!docId) return null;
 
-  const base = `/library/${docId}`;
-  if (props.evidence.passage_id) {
-    return `${base}?passage=${props.evidence.passage_id}`;
+  // readerAddressable: document_id + chunk_id → /reader/:id#chunk-<chunk_id>
+  if (props.evidence.chunk_id) {
+    const chunkFragment = props.evidence.chunk_id.startsWith('chunk-')
+      ? props.evidence.chunk_id
+      : `chunk-${props.evidence.chunk_id}`;
+    return `/reader/${docId}#${encodeURIComponent(chunkFragment)}`;
   }
 
-  return base;
+  // Fallback: no chunk_id → /library/:documentId
+  return `/library/${docId}`;
 });
 
 const hasInternalRoute = computed(() => internalRoute.value !== null);

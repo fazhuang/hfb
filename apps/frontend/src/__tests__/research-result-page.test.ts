@@ -1380,13 +1380,13 @@ describe('ResearchResultPage', () => {
       // SourceRef shows correct title
       expect(evidenceArea.html()).toContain('针灸甲乙经');
 
-      // SourceRef has internal link to /library/doc-01?passage=passage-001
+      // SourceRef has readerAddressable link to /reader/doc-01#chunk-chk-01
       const sourceRefCard = evidenceArea.find('.esrc-card');
       expect(sourceRefCard.html()).toContain('打开原文');
-      // The router-link should point to /library/doc-01
+      // The router-link should point to /reader/doc-01 (readerAddressable)
       const link = sourceRefCard.find('a[href]');
-      expect(link.attributes('href')).toContain('/library/doc-01');
-      expect(link.attributes('href')).toContain('passage=passage-001');
+      expect(link.attributes('href')).toContain('/reader/doc-01');
+      expect(link.attributes('href')).toContain('chunk-chk-01');
     });
 
     it('C1-2b.2: clicking marker [2] selects different Evidence + SourceRef (no cross-contamination)', async () => {
@@ -1481,9 +1481,9 @@ describe('ResearchResultPage', () => {
       expect(evidenceArea.html()).toContain('针灸甲乙经');
       expect(evidenceArea.html()).not.toContain('黄帝内经');
 
-      // doc-01 has passage_id → internal link
+      // doc-01 has chunk_id → readerAddressable → /reader/doc-01
       const link = evidenceArea.find('.esrc-card a[href]');
-      expect(link.attributes('href')).toContain('/library/doc-01');
+      expect(link.attributes('href')).toContain('/reader/doc-01');
     });
 
     it('C1-2b.4: fail-closed — Citation with no Evidence shows missing state', async () => {
@@ -1556,9 +1556,9 @@ describe('ResearchResultPage', () => {
       await nextTick();
 
       const evidenceArea = wrapper.find('.rcp-evidence-area');
-      expect(evidenceArea.html()).toContain('缺少文献来源信息');
-      // Must NOT fabricate an internal link when no source_ref
-      expect(evidenceArea.html()).not.toContain('打开原文');
+      expect(evidenceArea.html()).toContain('来源信息未提供');
+      // Internal route now renders even without source_ref_title (readerAddressable)
+      expect(evidenceArea.html()).toContain('打开原文');
     });
   });
 
@@ -1590,7 +1590,7 @@ describe('ResearchResultPage', () => {
       const citation = wrapper.find('.rcp-citation-item');
       await citation.trigger('click');
       await nextTick();
-      expect(wrapper.html()).toContain('缺少文献来源信息');
+      expect(wrapper.html()).toContain('来源信息未提供');
     });
 
     it('35. full lineage evidence shows complete badge after citation select', async () => {
@@ -1651,7 +1651,7 @@ describe('ResearchResultPage', () => {
       await nextTick();
       const html = wrapper.html();
       // Should show honest "missing source" rather than fabricating one
-      expect(html).toContain('缺少文献来源信息');
+      expect(html).toContain('来源信息未提供');
     });
   });
 
@@ -1660,22 +1660,22 @@ describe('ResearchResultPage', () => {
   // ==============================================================
 
   describe('SourceRef', () => {
-    it('42. evidence with document_id + passage_id → internal document link', async () => {
-      // Evidence with both doc and passage → internal router-link to /library/:docId?passage=...
+    it('42. evidence with document_id + chunk_id → readerAddressable /reader link', async () => {
+      // Evidence with doc + chunk_id → readerAddressable → /reader/:docId#chunk-<chunk_id>
+      // Test fixture doc-01:chk-01 has chunk_id, so routes to /reader not /library.
       const wrapper = await setupAndMount(makeSession(), [makeRun()]);
       const citation = wrapper.find('.rcp-citation-item');
       if (citation.exists()) {
         await citation.trigger('click');
         await nextTick();
       }
-      // Should show internal "查看原文" link, not external
-      expect(wrapper.html()).toContain('查看原文');
+      // Should show internal "打开原文" link, not external
+      expect(wrapper.html()).toContain('打开原文');
       const internalLinks = wrapper.findAll('.esrc-link--internal');
       expect(internalLinks.length).toBeGreaterThan(0);
-      // Exact href: /library/doc-01?passage=passage-001
-      // router-link is stubbed as <a :href="to"> — verify rendered HTML
+      // New readerAddressable: document_id + chunk_id → /reader/doc-01#chunk-chk-01
       const html = wrapper.html();
-      expect(html).toContain('href="/library/doc-01?passage=passage-001"');
+      expect(html).toContain('href="/reader/doc-01#chunk-chk-01"');
       expect(html).not.toContain('/versions/');
       expect(html).not.toContain('/research/library/');
     });
@@ -1685,7 +1685,7 @@ describe('ResearchResultPage', () => {
       const citation = wrapper.find('.rcp-citation-item');
       await citation.trigger('click');
       await nextTick();
-      expect(wrapper.html()).toContain('缺少文献来源信息');
+      expect(wrapper.html()).toContain('来源信息未提供');
     });
 
     it('44. evidence with passage_id + document_id shows passage-level internal link', async () => {
@@ -1700,7 +1700,8 @@ describe('ResearchResultPage', () => {
     });
 
     it('45. evidence with document_id only → document-level internal link to /library', async () => {
-      // Create evidence with document_id but no passage_id
+      // Create evidence with document_id but NO chunk_id.
+      // No chunk_id → not readerAddressable → falls back to /library/:documentId.
       const docOnlyRun = makeRun({
         run_id: RUN_A,
         output_artifacts: {
@@ -1720,7 +1721,7 @@ describe('ResearchResultPage', () => {
             {
               trace_id: 'doc-only:chk',
               document_id: 'doc-only-version-id',
-              chunk_id: 'chk',
+              // NO chunk_id — not readerAddressable
               claim_text: 'Claim',
               quote: 'Text.',
               citation_text: '[doc-only:chk]',
@@ -1732,9 +1733,8 @@ describe('ResearchResultPage', () => {
             {
               trace_id: 'doc-only:chk',
               document_id: 'doc-only-version-id',
-              chunk_id: 'chk',
+              // NO chunk_id, NO passage_id
               provenance_kind: 'retrieval',
-              // NO passage_id
             },
           ],
         },
@@ -1744,13 +1744,13 @@ describe('ResearchResultPage', () => {
       await citation.trigger('click');
       await nextTick();
       expect(wrapper.html()).toContain('仅文献级定位');
-      // Should have internal router-link (document-level, no passage query)
+      // Should have internal router-link (document-level, no chunk → /library)
       const internalLinks = wrapper.findAll('.esrc-link--internal');
       expect(internalLinks.length).toBeGreaterThan(0);
-      // Exact href: /library/doc-only-version-id (no passage query,
-      // no /research/library/ prefix, no /versions/)
+      // Exact href: /library/doc-only-version-id (no chunk, no /reader)
       const html = wrapper.html();
       expect(html).toContain('href="/library/doc-only-version-id"');
+      expect(html).not.toContain('/reader/');
       expect(html).not.toContain('/versions/');
       expect(html).not.toContain('/research/library/');
     });
