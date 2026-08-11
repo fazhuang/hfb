@@ -34,7 +34,7 @@ const sourceTypeLabel = computed((): string => {
 const verificationLabel = computed((): string => {
   switch (props.verificationStatus) {
     case 'verified':
-      return '已核验';
+      return '来源可追溯';
     case 'unverified':
       return '未核验';
     case 'disputed':
@@ -44,14 +44,14 @@ const verificationLabel = computed((): string => {
 
 /**
  * v4.2 映射表 → HfbBadge variant:
- *   verified  → success
- *   unverified → neutral (严禁 success / "已核验" 字样)
+ *   verified  → info (严禁 success/绿色)
+ *   unverified → neutral
  *   disputed  → error
  */
-const badgeVariant = computed((): 'success' | 'warning' | 'error' | 'info' | 'neutral' => {
+const badgeVariant = computed((): 'warning' | 'error' | 'info' | 'neutral' => {
   switch (props.verificationStatus) {
     case 'verified':
-      return 'success';
+      return 'info';
     case 'unverified':
       return 'neutral';
     case 'disputed':
