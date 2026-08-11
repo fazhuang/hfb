@@ -83,7 +83,7 @@
 import { ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -113,7 +113,7 @@ interface PassageBrief {
 }
 
 const version = ref<VersionDetail | null>(null);
-const passages = ref<PassageBrief[]>([]);
+const passages = ref<Array<PassageBrief>>([]);
 const loading = ref(false);
 const passagesLoading = ref(false);
 const error = ref<string | null>(null);
@@ -127,9 +127,7 @@ async function fetchVersion() {
     const { data: d } = await api.get(`/api/v1/versions/${id}`);
     version.value = (d.data ?? d) as VersionDetail;
   } catch (e: unknown) {
-    const msg =
-      (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load version';
-    error.value = msg;
+    error.value = getErrorMessage(e, '加载版本详情失败');
   } finally {
     loading.value = false;
   }
@@ -144,12 +142,10 @@ async function fetchPassages() {
       params: { limit: 500 },
     });
     const items = d.data?.items ?? [];
-    passages.value = items as PassageBrief[];
+    passages.value = items as Array<PassageBrief>;
   } catch (e: unknown) {
     // Don't block the page — just show the error state
-    const msg =
-      (e as any)?.response?.data?.detail ?? (e as Error).message ?? 'Failed to load passages';
-    passagesError.value = msg;
+    passagesError.value = getErrorMessage(e, '加载正文段落失败');
   } finally {
     passagesLoading.value = false;
   }

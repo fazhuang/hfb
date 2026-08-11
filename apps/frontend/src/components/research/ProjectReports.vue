@@ -107,7 +107,8 @@ async function fetchReports() {
     reports.value = (body.runs ?? []) as ReportItem[];
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载报告失败';
+    const errObj = e as { response?: { data?: { message?: string } }; message?: string };
+    const msg = errObj?.response?.data?.message || errObj?.message || '加载报告失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {
@@ -179,13 +180,17 @@ onBeforeUnmount(() => {
 }
 
 .pr-step-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: var(--space-0-25) 6px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: var(--font-medium);
   background: var(--color-hover);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .pr-step--completed {

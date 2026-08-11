@@ -58,6 +58,28 @@ class Person(BaseModel):
     external_ref: Mapped[str | None] = mapped_column(
         String(500), nullable=True, comment="外部参考 (Wikidata/百度百科)"
     )
+    domain_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        comment="研究域状态: pending/verified/excluded",
+    )
+    anchor_path: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="锚点回溯路径 JSON 序列"
+    )
+    research_relation_role: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment=(
+            "研究域角色:"
+            " huangfu_mi_self/master_predecessor/friend_contemporary/annotator_editor/transmission_scholar/modern_researcher"
+        ),
+    )
+    domain_relation_summary: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="皇甫谧研究域关系摘要"
+    )
+
 
     def __repr__(self) -> str:
         return f"<Person id={self.id} name={self.name!r}>"

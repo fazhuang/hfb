@@ -16,7 +16,12 @@
     </div>
 
     <div v-if="loading" class="loading-state">{{ t('common.loading') }}</div>
-    <div v-else-if="error" class="error-state">{{ error }}</div>
+    <div v-else-if="error" class="error-state">
+      <p class="error-text">{{ error }}</p>
+      <button v-if="isAuthError" class="login-redirect-btn" @click="goToLogin">
+        {{ t('auth.login', '前往登录') }}
+      </button>
+    </div>
     <div v-else-if="items.length === 0" class="empty-state">{{ t('common.noData') }}</div>
 
     <div v-else class="entity-grid">
@@ -49,9 +54,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter, useRoute } from 'vue-router';
 import { useEntityList, type EntityBrief } from '@/composables/useApi';
 
 const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
 
 const props = withDefaults(
   defineProps<{
@@ -68,6 +76,19 @@ const props = withDefaults(
 );
 
 const { items, total, loading, error, fetch } = useEntityList<EntityBrief>(props.endpoint);
+
+const isAuthError = computed<boolean>(() => {
+  if (!error.value) return false;
+  return (
+    error.value.includes('未登录') ||
+    error.value.includes('登录会话已过期') ||
+    error.value.includes('401')
+  );
+});
+
+function goToLogin(): void {
+  router.push({ name: 'login', query: { redirect: route.fullPath } });
+}
 
 const query = ref('');
 const page = ref(1);
@@ -197,6 +218,34 @@ onMounted(() => fetch());
   padding: var(--space-15) var(--space-5);
   color: var(--color-text-muted);
   font-size: var(--text-base);
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.error-text {
+  margin: 0;
+}
+
+.login-redirect-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  transition: background var(--transition-base);
+}
+
+.login-redirect-btn:hover {
+  background: var(--color-accent-hover);
 }
 
 .pagination {

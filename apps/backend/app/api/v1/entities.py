@@ -278,14 +278,122 @@ class _DocumentUpdateOverride(DocumentUpdate):
     pass
 
 
-_make_crud(
-    "person",
-    PersonService,
-    _PersonCreateOverride,
-    _PersonCreateOverride,
-    PersonBrief,
-    PersonResponse,
+# Person is hand-wired (not via _make_crud) because we need extra filter params
+# (domain_status, research_relation_role) on the list endpoint.
+
+person_guard_read = require_permission("person", "read")
+person_guard_create = require_permission("person", "create")
+person_guard_update = require_permission("person", "update")
+person_guard_delete = require_permission("person", "delete")
+
+_person_list_deps: list = [Depends(person_guard_read)]
+_person_get_deps: list = [Depends(person_guard_read)]
+
+
+@router.get(
+    "/persons",
+    response_model=dict,
+    dependencies=_person_list_deps,
 )
+async def list_persons(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    q: str = Query(default="", description="Search query"),
+    domain_status: str | None = Query(default=None),
+    research_relation_role: str | None = Query(default=None),
+) -> dict:
+    svc = PersonService(session)
+    items, total = await svc.list_persons(
+        page=page,
+        limit=limit,
+        q=q,
+        domain_status=domain_status,
+        research_relation_role=research_relation_role,
+    )
+    results = [PersonBrief.model_validate(i).model_dump(mode="json") for i in items]
+    return api_response(data={"items": results, "total": total})
+
+
+@router.post(
+    "/persons",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(person_guard_create)],
+)
+async def create_person(
+    body: _PersonCreateOverride,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = PersonService(session)
+    try:
+        obj = await svc.create(body)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        )
+    return api_response(
+        data=PersonResponse.model_validate(obj).model_dump(mode="json"), message="Created"
+    )
+
+
+@router.get(
+    "/persons/{item_id}",
+    response_model=dict,
+    dependencies=_person_get_deps,
+)
+async def get_person(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = PersonService(session)
+    obj = await svc.get_by_id(item_id)
+    if obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="person not found"
+        )
+    return api_response(data=PersonResponse.model_validate(obj).model_dump(mode="json"))
+
+
+@router.patch(
+    "/persons/{item_id}",
+    response_model=dict,
+    dependencies=[Depends(person_guard_update)],
+)
+async def update_person(
+    item_id: UUID,
+    body: _PersonCreateOverride,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = PersonService(session)
+    updates = body.model_dump(exclude_unset=True)
+    partial = _PersonCreateOverride(**updates)
+    obj = await svc.update(item_id, partial)
+    if obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="person not found"
+        )
+    return api_response(
+        data=PersonResponse.model_validate(obj).model_dump(mode="json"), message="Updated"
+    )
+
+
+@router.delete(
+    "/persons/{item_id}",
+    response_model=dict,
+    dependencies=[Depends(person_guard_delete)],
+)
+async def delete_person(
+    item_id: UUID,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict:
+    svc = PersonService(session)
+    success = await svc.delete(item_id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="person not found"
+        )
+    return api_response(message="Deleted")
 
 # Document is hand-wired (not via _make_crud) because we need extra filter params
 # on the list endpoint that the factory doesn't support.

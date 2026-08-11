@@ -58,23 +58,31 @@ const badgeClass = computed(() => {
 .rsb-root {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .rsb-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-1);
   padding: var(--space-0-5) var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  line-height: var(--leading-normal);
+  line-height: 1.2;
   white-space: nowrap;
+  flex-shrink: 0;
+  height: fit-content;
+  align-self: center;
 }
 
 .rsb-icon {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
+  flex-shrink: 0;
+  line-height: 1;
+  margin-right: 2px;
 }
 
 /* ---- Run status colors ---- */

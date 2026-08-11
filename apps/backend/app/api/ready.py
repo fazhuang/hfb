@@ -1,26 +1,23 @@
 """
-Readiness endpoint — checks all infrastructure dependencies.
+Readiness and Admin Infrastructure Health endpoints.
 
-Returns HTTP 200 when all required services are healthy.
-Returns HTTP 503 when any required service is unhealthy.
-
-In testing mode (TESTING=1) only PostgreSQL is required; Redis, ES, MinIO
-are skipped so E2E subprocess backends can pass readiness without real infra.
+- Anonymous /ready & /api/v1/ready: returns summary readiness status without leaking infra details (connection strings, logs, latency).
+- Admin /api/v1/admin/health-details: requires admin auth, returns full infrastructure diagnostic details.
 """
 
 import os
-from typing import Any
+from datetime import UTC, datetime
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 
+from app.middleware.auth import get_current_admin_user
 from app.startup.check_infrastructure import run_health_checks
 from app.utils.response import api_response
 
 router = APIRouter()
 
 # Required services whose health determines platform readiness.
-# Non-required services (e.g. Post-MVP) are checked but don't block readiness.
-# In testing mode only the database is mandatory.
 if os.environ.get("TESTING") == "1":
     REQUIRED_SERVICES: set[str] = {"PostgreSQL"}
 else:
@@ -28,23 +25,54 @@ else:
 
 
 @router.get("/ready")
+@router.get("/api/v1/ready")
 async def readiness_check(response: Response) -> dict[str, Any]:
-    """Readiness probe — checks database, Redis, ES, MinIO connectivity.
+    """Readiness probe — checks platform readiness without leaking infrastructure details.
 
     HTTP 200: all required services healthy.
-    HTTP 503: any required service unhealthy or missing.
+    HTTP 503: any required service unhealthy.
+    Returns ONLY summary {"status": "healthy", "ready": true} to anonymous callers.
     """
     status = await run_health_checks()
-    services = {}
+    services_map = {svc.name: svc for svc in status.services}
+
+    required_healthy = all(
+        getattr(services_map.get(name), "healthy", False) for name in REQUIRED_SERVICES
+    )
+
+    response.status_code = 200 if required_healthy else 503
+
+    return api_response(
+        data={
+            "status": "healthy" if required_healthy else "unhealthy",
+            "ready": required_healthy,
+        },
+        success=required_healthy,
+        message="All services healthy"
+        if required_healthy
+        else "Some services are unhealthy",
+    )
+
+
+@router.get("/api/v1/admin/health-details")
+@router.get("/admin/health-details")
+async def get_admin_health_details(
+    response: Response,
+    admin_user_id: Annotated[str, Depends(get_current_admin_user)],
+) -> dict[str, Any]:
+    """Admin infrastructure health diagnostic details.
+
+    Requires admin authentication.
+    Returns full connectivity status, latencies, and error logs for DB, Redis, ES, MinIO, etc.
+    """
+    status = await run_health_checks()
+    services: dict[str, dict[str, Any]] = {}
     for svc in status.services:
-        # Sanitize error messages: never leak connection strings, passwords, or paths
-        safe_error = None
-        if not svc.healthy and svc.error:
-            safe_error = "connection failed"
         services[svc.name] = {
+            "name": svc.name,
             "healthy": svc.healthy,
             "latency_ms": svc.latency_ms if svc.healthy else None,
-            "error": safe_error,
+            "error": svc.error if not svc.healthy else None,
         }
 
     required_healthy = all(
@@ -55,11 +83,11 @@ async def readiness_check(response: Response) -> dict[str, Any]:
 
     return api_response(
         data={
+            "status": "healthy" if required_healthy else "unhealthy",
             "ready": required_healthy,
             "services": services,
+            "timestamp": datetime.now(UTC).isoformat(),
         },
         success=required_healthy,
-        message="All services healthy"
-        if required_healthy
-        else "Some services are unhealthy",
+        message="Full infrastructure diagnostics retrieved successfully",
     )

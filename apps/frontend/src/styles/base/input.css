@@ -17,18 +17,22 @@
 
 .hfb-input__required {
   color: var(--color-error-text);
-  margin-left: 2px;
+  margin-left: var(--space-0-5);
 }
 
 .hfb-input__container {
   position: relative;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .hfb-input__field {
   width: 100%;
-  padding: var(--space-2) 12px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-input-border);
   border-radius: var(--radius-lg);
   background: var(--color-input-bg);
@@ -83,29 +87,29 @@
 
 /* ---- Sizes ---- */
 .hfb-input__field--sm {
-  padding: var(--space-1-25) 10px;
+  padding: var(--space-1-25) var(--space-2-5);
   font-size: var(--text-xs);
 }
 
 .hfb-input__field--lg {
-  padding: var(--space-2-5) 16px;
+  padding: var(--space-2-5) var(--space-4);
   font-size: var(--text-lg);
 }
 
 /* ---- Clearable ---- */
 .hfb-input__clear {
   position: absolute;
-  right: 8px;
+  right: var(--space-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: var(--space-5);
+  height: var(--space-5);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   background: var(--color-text-muted);
   color: var(--color-on-accent);
-  font-size: 12px;
+  font-size: var(--text-xs);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
@@ -125,9 +129,9 @@
 }
 
 .hfb-input__container--with-prefix .hfb-input__field {
-  padding-left: 4px;
+  padding-left: var(--space-1);
 }
 
 .hfb-input__container--with-suffix .hfb-input__field {
-  padding-right: 4px;
+  padding-right: var(--space-1);
 }

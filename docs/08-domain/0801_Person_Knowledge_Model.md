@@ -1,11 +1,11 @@
 ---
 title: Person Knowledge Model
 document_id: HFB-DOM-0801
-version: 1.1.0
+version: 1.2.0
 status: Approved
 owner: Academic Committee
 reviewer: Chief Knowledge Architect
-effective_date: 2026-06-24
+effective_date: 2026-08-10
 scope: Person Domain Model
 priority: P0
 related_documents:
@@ -16,6 +16,7 @@ related_documents:
   - HFB-AI-0402 RAG Specification
   - HFB-PS-1709 MVP Implementation Specification
   - HFB-RF-1602 Huangfu Mi Studies Framework
+  - HFB-ADR-0012 Huangfu Mi Domain Anchor Admission
 ---
 
 # Person Knowledge Model
@@ -62,6 +63,37 @@ Person：
 - 研究者
 
 Person 不是姓名，而是知识实体。
+
+---
+
+## 2.1 皇甫谧研究域准入与关系回溯规则
+
+根据 [ADR-0012](file:///users/likeming/sites/hfb/docs/11-adr/ADR-0012-HuangfuMi-Domain-Anchor-Admission.md)，为防止知识图谱无序膨胀与 GraphRAG 语义漂移，所有进入平台的 Person 实体均须遵循严格的研究域准入与关系回溯规则。
+
+### 2.1.1 唯一主锚点定位
+固定 **皇甫谧** (`person:huangfu_mi` / `ENTITY-PER-0001`) 作为研究域全局唯一主锚点 (Primary Domain Anchor)。平台内所有 Person 实体及关系的准入合法性，均需基于其与主锚点的图拓扑可达性与学术关联度进行判定。
+
+### 2.1.2 锚点可达性与步长约束 ($N \le 3$)
+1. **证据链路径追溯**：每一个准入为 `verified`（已验证）状态的 Person 实体，必须具备至少一条可追溯至主锚点 `person:huangfu_mi` 的可靠古籍证据链路径。
+2. **步长硬约束**：锚点可达路径步长必须满足 $N \le 3$（即在图拓扑中与主锚点连接的最短距离不超过 3 步）。
+3. **`anchor_path` 预计算保存**：在实体审核发布（Publish）阶段，后台自动计算并持久化保存实体至主锚点的最短路径 `anchor_path`（例如：`["ENTITY-PER-0001", "REL-0023", "ENTITY-PER-0042"]`），避免在线检索时的漫游开销。
+4. **无链实体处理**：凡无有效证据链追溯至主锚点或路径步长 $N > 3$ 的 Person 实体，一律置为 `pending`（待考）状态，禁止作为正式学术实体公开发布。
+
+### 2.1.3 三态生命周期与状态变更约束
+Person 实体与关系采用三态隔离生命周期：
+
+- **`pending`（待考）**：新录入、人工草稿或暂未建立可靠主锚点证据链的实体。仅限研究员/管理员在特定“待考工作台”中受控检索与考据研讨。
+- **`verified`（已验证）**：通过古籍证据校验、满足 $N \le 3$ 锚点可达性约束且通过学术审核的正式实体。全面对全局 RAG、GraphRAG 及前台视图开放。
+- **`excluded`（排除）**：经学术考据认定为与皇甫谧及《针灸甲乙经》无关、伪作或被废弃的实体。全站硬隔离屏蔽。
+
+**状态变更流转约束规则：**
+1. **`pending` $\rightarrow$ `verified`**：当且仅当补充了有效的古籍证据链，校验存在 $N \le 3$ 的主锚点可达路径并预计算保存 `anchor_path`，且通过学术审核时，方可升级为 `verified`。
+2. **`verified` $\rightarrow$ `pending`（动态降级）**：当支撑实体的古籍证据被撤销、标记失效或关联关系删除，导致其失去所有满足 $N \le 3$ 的主锚点可达路径时，系统自动触发降级机制，将其重置为 `pending`。
+3. **`pending` / `verified` $\rightarrow$ `excluded`**：当学术考据确定实体与研究域彻底无关或属于错误建模时，由研究员/管理员手动标记为 `excluded`，强制屏蔽。
+
+### 2.1.4 检索与 RAG 硬过滤约束
+- **全局硬过滤屏蔽**：全局 RAG 向量检索、GraphRAG 子图漫游、API 导出及匿名/普通视图，必须在数据库与搜索引擎层面施加强制过滤（`status == 'verified'`），绝对禁止 `pending` 与 `excluded` 状态的数据泄漏至生成上下文。
+- **特定工作台受控访问**：`pending` 数据仅在登录研究员与管理员的“待考工作台”（Pending Workbench）中提供显式过滤检索。
 
 ---
 
@@ -434,3 +466,4 @@ Metadata 缺失不得发布。
 | Version | Date       | Description                              |
 | ------- | ---------- | ---------------------------------------- |
 | 1.0.0   | 2026-06-24 | 首版发布，作为平台人物知识模型统一规范。 |
+| 1.2.0   | 2026-08-10 | 新增 2.1 节皇甫谧研究域准入与关系回溯规则，补充三态生命周期隔离与锚点可达性约束 (ADR-0012)。 |

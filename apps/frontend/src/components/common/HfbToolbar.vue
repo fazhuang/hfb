@@ -87,7 +87,7 @@ const props = withDefaults(
     /** Search input placeholder text. */
     searchPlaceholder?: string;
     /** Array of filter definitions (label + options). Empty = no filter dropdowns. */
-    filters?: ToolbarFilter[];
+    filters?: Array<ToolbarFilter>;
     /** Current filter values, keyed by filter.key. */
     filterValues?: ToolbarFilterValues;
     /** Whether the toolbar is in loading state. */
@@ -215,7 +215,6 @@ onBeforeUnmount(() => {
 <style scoped>
 .hfb-toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-3);
   margin-bottom: var(--space-5);
@@ -226,14 +225,32 @@ onBeforeUnmount(() => {
   flex: 1;
   min-width: 0;
   max-width: 480px;
+  display: flex;
+  align-items: center;
+}
+
+.hfb-toolbar__search :deep(.hfb-input-wrapper),
+.hfb-toolbar__search :deep(.hfb-input__container),
+.hfb-toolbar__search :deep(.hfb-input__field) {
+  width: 100%;
 }
 
 /* ---- Filters ---- */
 .hfb-toolbar__filters {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+}
+
+.hfb-toolbar__filters :deep(.hfb-select-wrapper),
+.hfb-toolbar__filters :deep(.hfb-select__container),
+.hfb-toolbar__filters :deep(.hfb-select__trigger) {
+  min-width: var(--space-20);
+}
+
+.hfb-toolbar__filters :deep(.hfb-select__trigger) {
+  display: flex;
+  align-items: center;
 }
 
 /* ---- Actions ---- */
@@ -255,8 +272,8 @@ onBeforeUnmount(() => {
 
 .hfb-toolbar__loading-dot {
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: var(--space-2);
+  height: var(--space-2);
   border-radius: var(--radius-round);
   background: var(--color-accent);
   animation: hfb-toolbar-pulse var(--transition-spinner) var(--ease-in-out) infinite;
@@ -285,11 +302,16 @@ onBeforeUnmount(() => {
 
   .hfb-toolbar__filters {
     flex-direction: column;
+    align-items: stretch;
+    width: 100%;
   }
 
-  .hfb-toolbar__filters :deep(.hfb-select-wrapper) {
+  .hfb-toolbar__filters :deep(.hfb-select-wrapper),
+  .hfb-toolbar__filters :deep(.hfb-select__container),
+  .hfb-toolbar__filters :deep(.hfb-select__trigger) {
     max-width: none;
     width: 100%;
+    min-width: 100%;
   }
 }
 </style>

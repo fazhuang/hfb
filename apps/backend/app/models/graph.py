@@ -240,6 +240,14 @@ class EntityRelation(BaseModel):
     verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, comment="校核时间"
     )
+    domain_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="pending",
+        server_default="pending",
+        comment="研究域状态: pending/verified/excluded",
+    )
+
 
     def __repr__(self) -> str:
         return (

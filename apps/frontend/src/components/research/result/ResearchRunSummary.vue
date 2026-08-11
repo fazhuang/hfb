@@ -138,11 +138,17 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-status {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-0-5) 10px;
   border-radius: var(--radius-sm);
   font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: fit-content;
+  line-height: 1.2;
 }
 
 .rrs-status--completed {
@@ -167,11 +173,17 @@ function formatDate(iso?: string | null): string {
 }
 
 .rrs-step-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: var(--space-0-5) 8px;
   border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: fit-content;
+  line-height: 1.2;
 }
 
 .rrs-step-badge--completed {

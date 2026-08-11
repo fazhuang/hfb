@@ -59,7 +59,7 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -115,7 +115,7 @@ async function fetchBook() {
     const allVer = (ver.data?.items ?? []) as Array<VersionBrief>;
     versions.value = allVer.filter((v) => (v as VersionBrief).book_id === id);
   } catch (e: unknown) {
-    error.value = (e as Error).message ?? 'Failed to load book';
+    error.value = getErrorMessage(e, '加载古籍详情失败');
   } finally {
     loading.value = false;
   }

@@ -133,6 +133,7 @@ const exportButtonLabel = computed(() => {
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .rrli-time {

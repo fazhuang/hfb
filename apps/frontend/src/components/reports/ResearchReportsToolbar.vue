@@ -58,14 +58,18 @@ function onChange(e: Event) {
 }
 
 .rrt-select {
-  padding: var(--space-1-5) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text-primary);
   cursor: pointer;
-  min-width: 120px;
+  min-width: var(--space-20);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   transition: border-color var(--transition-base);
 }
 

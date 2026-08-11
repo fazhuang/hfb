@@ -27,6 +27,10 @@ class PersonBase(BaseModel):
     notable_works: str | None = Field(default=None)
     expertise: str | None = Field(default=None, max_length=500)
     external_ref: str | None = Field(default=None, max_length=500)
+    domain_status: str = Field(default="pending")
+    anchor_path: str | None = Field(default=None)
+    research_relation_role: str | None = Field(default=None)
+    domain_relation_summary: str | None = Field(default=None)
 
 
 class PersonCreate(PersonBase):
@@ -38,10 +42,15 @@ class PersonBrief(BaseModel):
 
     id: UUID
     name: str
-    name_zh: str | None
-    dynasty: str | None
-    birth_year: int | None
-    death_year: int | None
+    name_zh: str | None = None
+    dynasty: str | None = None
+    birth_year: int | None = None
+    death_year: int | None = None
+    expertise: str | None = None
+    domain_status: str = Field(default="pending")
+    anchor_path: str | None = Field(default=None)
+    research_relation_role: str | None = Field(default=None)
+    domain_relation_summary: str | None = Field(default=None)
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
@@ -51,7 +60,12 @@ class PersonResponse(PersonBase):
     """Full person representation returned by the API."""
 
     id: UUID
+    domain_status: str = Field(default="pending")
+    anchor_path: str | None = Field(default=None)
+    research_relation_role: str | None = Field(default=None)
+    domain_relation_summary: str | None = Field(default=None)
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+

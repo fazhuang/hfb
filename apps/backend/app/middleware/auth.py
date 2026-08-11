@@ -120,3 +120,33 @@ class OptionalUser:
         if token is None:
             return None
         return auth_svc.get_current_user_id(token)
+
+
+async def get_current_admin_user(
+    user_id: Annotated[str, Depends(get_current_user)],
+    auth_svc: Annotated[AuthService, Depends(get_auth_service)],
+) -> str:
+    """Dependency: validate JWT and verify that current user is an admin or superuser."""
+    user = await auth_svc.user_repo.get_by_id(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    if user.is_superuser:
+        return user_id
+
+    has_review = await auth_svc.has_permission(user_id, "document", "review")
+    has_user = await auth_svc.has_permission(user_id, "user", "update")
+    if not (has_review or has_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privilege required",
+        )
+    return user_id
+
+
+def requires_admin():
+    """Dependency factory for requiring admin privilege."""
+    return Depends(get_current_admin_user)
+

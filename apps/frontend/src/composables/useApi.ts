@@ -2,7 +2,7 @@
  * Shared composable for fetching paginated entity lists from the API.
  */
 import { ref, type Ref } from 'vue';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 
 export interface PaginatedResult<T> {
   items: Array<T>;
@@ -29,7 +29,7 @@ export function useEntityList<T extends EntityBrief>(endpoint: string) {
       items.value = body.items ?? [];
       total.value = body.total ?? 0;
     } catch (e: unknown) {
-      error.value = (e as Error).message ?? 'Failed to fetch';
+      error.value = getErrorMessage(e, '获取列表失败');
     } finally {
       loading.value = false;
     }
@@ -50,7 +50,7 @@ export function useEntityDetail<T>(endpoint: (id: string) => string) {
       const { data } = await api.get(endpoint(id));
       entity.value = (data.data ?? data) as T;
     } catch (e: unknown) {
-      error.value = (e as Error).message ?? 'Failed to fetch';
+      error.value = getErrorMessage(e, '获取详情失败');
     } finally {
       loading.value = false;
     }
@@ -58,3 +58,4 @@ export function useEntityDetail<T>(endpoint: (id: string) => string) {
 
   return { entity, loading, error, fetch };
 }
+

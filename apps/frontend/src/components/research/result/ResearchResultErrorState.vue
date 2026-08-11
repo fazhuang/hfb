@@ -141,6 +141,9 @@ const workflowLink = computed(() => `/research/${props.projectId}/workflow`);
   padding: var(--space-10) 32px;
   border-radius: var(--radius-2xl);
   align-items: flex-start;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .rre-state--not-found {

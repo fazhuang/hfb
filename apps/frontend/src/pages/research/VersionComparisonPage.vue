@@ -197,8 +197,8 @@ onMounted(async () => {
 }
 
 .vc-validation-banner {
-  background: var(--color-warning-light, #fff8e1);
-  border: 1px solid var(--color-warning, #ffc107);
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
   border-radius: 8px;
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
@@ -221,13 +221,13 @@ onMounted(async () => {
 .vc-step-nav li {
   padding: var(--space-1) var(--space-3);
   border-radius: 20px;
-  background: var(--color-bg-muted);
+  background: var(--color-hover);
   transition: background 0.2s;
 }
 
 .vc-step-nav li.active {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-accent);
+  color: var(--color-surface);
 }
 
 .vc-workflow-grid {
@@ -296,7 +296,7 @@ onMounted(async () => {
 .vc-result-meta span {
   display: inline-block;
   font-size: 0.8rem;
-  background: var(--color-bg-muted);
+  background: var(--color-hover);
   padding: 2px 8px;
   border-radius: 4px;
   margin-right: var(--space-2);
@@ -315,14 +315,14 @@ onMounted(async () => {
   font-size: 0.8rem;
   border: 1px solid var(--color-border);
   border-radius: 4px;
-  background: var(--color-bg);
+  background: var(--color-surface);
   cursor: pointer;
 }
 
 .button--compact.selected {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
+  background: var(--color-accent);
+  color: var(--color-surface);
+  border-color: var(--color-accent);
 }
 
 .vc-selection-slots {
@@ -354,14 +354,14 @@ onMounted(async () => {
 .vc-text-button {
   background: none;
   border: none;
-  color: var(--color-danger, #dc3545);
+  color: var(--color-error);
   cursor: pointer;
   padding: 0;
   font-size: 0.85rem;
 }
 
 .vc-inline-warning {
-  color: var(--color-danger, #dc3545);
+  color: var(--color-error);
   font-size: 0.9rem;
   margin-bottom: var(--space-3);
 }
@@ -430,7 +430,7 @@ onMounted(async () => {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 4px;
-  background: var(--color-bg-muted);
+  background: var(--color-hover);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -449,14 +449,14 @@ onMounted(async () => {
   font-size: 0.8rem;
   padding: 2px 10px;
   border-radius: 12px;
-  background: var(--color-warning-light, #fff8e1);
-  color: #856404;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
   flex-shrink: 0;
 }
 
 .vc-evidence-status.complete {
-  background: var(--color-success-light, #d4edda);
-  color: #155724;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 
 .vc-back-link {
