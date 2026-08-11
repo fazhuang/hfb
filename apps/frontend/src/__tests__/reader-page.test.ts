@@ -435,7 +435,7 @@ describe('ReaderPage', () => {
     await wrapper.vm.$nextTick();
     const text = wrapper.text();
     expect(text).toContain('证据定位');
-    expect(text).toContain('证据等级: L2');
+    expect(text).toContain('一手文献 · 未核验');
     expect(text).toContain('定位到原文');
   });
 

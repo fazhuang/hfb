@@ -43,19 +43,44 @@
 
     <!-- Lineage --><LineageStatusBadge :evidence="evidence" />
 
+    <!-- Evidence metadata badge (v4.2: never "verified" in Evidence/Citation/Claim context) -->
+    <EvidenceBadge
+      source-type="primary_source"
+      :verification-status="evidenceVerificationStatus"
+      :locator-completeness="evidenceLocatorCompleteness"
+    />
+
     <!-- SourceRef -->
-    <SourceReferenceCard :evidence="evidence" />
+    <SourceReferenceCard :evidence="evidence" reader-addressable />
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ResultEvidence } from '@/composables/useResearchResult';
 import LineageStatusBadge from './LineageStatusBadge.vue';
+import EvidenceBadge from '@/components/common/EvidenceBadge.vue';
+import type { EvidenceBadgeProps } from '@/components/common/EvidenceBadge.vue';
 import SourceReferenceCard from './SourceReferenceCard.vue';
 
-defineProps<{
+const props = defineProps<{
   evidence: ResultEvidence;
 }>();
+
+/**
+ * v4.2 映射: Evidence/Citation/Claim 语境下严禁 "已核验/已证实"。
+ * 当前 ResultEvidence 无显式 verification_status 字段，一律 fallback 为 'unverified'
+ * 以保持 v4.2 合规。后端补充字段后由此处读取。
+ */
+const evidenceVerificationStatus = computed(
+  (): EvidenceBadgeProps['verificationStatus'] => 'unverified',
+);
+
+const evidenceLocatorCompleteness = computed((): EvidenceBadgeProps['locatorCompleteness'] => {
+  if (props.evidence.passage_id) return 'complete';
+  if (props.evidence.chunk_id) return 'partial';
+  return 'missing';
+});
 </script>
 
 <style scoped>

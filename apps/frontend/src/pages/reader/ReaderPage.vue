@@ -250,7 +250,13 @@
             class="reader-evidence-item"
             :class="{ 'reader-highlight': highlightedEvidenceId === evidence.id }"
           >
-            <div class="reader-evidence-level">证据等级: L{{ evidence.evidence_level }}</div>
+            <div class="reader-evidence-level">
+              <EvidenceBadge
+                :source-type="readerEvidenceSourceType(evidence)"
+                verification-status="unverified"
+                :locator-completeness="readerEvidenceLocatorCompleteness(evidence)"
+              />
+            </div>
             <div class="reader-evidence-desc">{{ evidence.description }}</div>
             <div v-if="evidence.source_passage_id" class="reader-evidence-passage">
               关联段落: {{ evidence.source_passage_id }}
@@ -295,6 +301,8 @@ import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import LoadingState from '@/components/common/LoadingState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import EvidenceBadge from '@/components/common/EvidenceBadge.vue';
+import type { EvidenceBadgeProps } from '@/components/common/EvidenceBadge.vue';
 import api from '@/api/client';
 import type { Breadcrumb } from '@/components/layout/ResearchPageHeader.vue';
 
@@ -448,6 +456,22 @@ const avgOcrConfidence = computed(() => {
 });
 
 const passagesWithTranslation = computed(() => passages.value.filter((p) => p.translation));
+
+// ---- EvidenceBadge helpers (v4.2: always 'unverified' in Evidence context) ----
+
+function readerEvidenceSourceType(_evidence: ReaderEvidence): EvidenceBadgeProps['sourceType'] {
+  // Reader data model has no source_type field — default to primary_source.
+  // Backend can add source_type to ReaderEvidence when available.
+  return 'primary_source';
+}
+
+function readerEvidenceLocatorCompleteness(
+  evidence: ReaderEvidence,
+): EvidenceBadgeProps['locatorCompleteness'] {
+  if (evidence.source_passage_id) return 'complete';
+  if (evidence.anchor_chunk_ids.length > 0) return 'partial';
+  return 'missing';
+}
 
 // ---- Data fetching ----
 

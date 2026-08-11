@@ -66,24 +66,29 @@ import type { RouteLocationRaw } from 'vue-router';
 
 const props = defineProps<{
   evidence: ResultEvidence;
+  /** When true, construct internal route /reader/:id#chunk-... or fallback /library/:id.
+   *  When false/omitted, skip internal routing (degrade to external link or missing state).
+   *  v4.2: Evidence / Citation / Claim context — caller must set this explicitly. */
+  readerAddressable?: boolean;
 }>();
 
 /**
- * Build an internal app route when we have a document_id.
+ * Build an internal app route when readerAddressable === true and document_id exists.
  *
- * Priority (readerAddressable → /reader, fallback → /library):
- *  1. document_id + chunk_id → /reader/:documentId#chunk-<chunk_id>
- *  2. document_id only → /library/:documentId
- *  3. No document_id → no internal route (use external link or hide)
+ * Priority:
+ *  1. readerAddressable + document_id + chunk_id → /reader/:documentId#chunk-<chunk_id>
+ *  2. readerAddressable + document_id (no chunk_id) → /library/:documentId (fallback)
+ *  3. readerAddressable === false/undefined → no internal route (degrade gracefully)
  *
  * evidence.document_id is the primary key of the documents table.
  * Do NOT map it to /versions/ — that requires a real version_id field.
  */
 const internalRoute = computed((): RouteLocationRaw | null => {
+  if (!props.readerAddressable) return null;
   const docId = props.evidence.document_id;
   if (!docId) return null;
 
-  // readerAddressable: document_id + chunk_id → /reader/:id#chunk-<chunk_id>
+  // readerAddressable + chunk_id → /reader/:id#chunk-<chunk_id>
   if (props.evidence.chunk_id) {
     const chunkFragment = props.evidence.chunk_id.startsWith('chunk-')
       ? props.evidence.chunk_id
@@ -91,7 +96,7 @@ const internalRoute = computed((): RouteLocationRaw | null => {
     return `/reader/${docId}#${encodeURIComponent(chunkFragment)}`;
   }
 
-  // Fallback: no chunk_id → /library/:documentId
+  // Fallback: readerAddressable but no chunk_id → /library/:documentId
   return `/library/${docId}`;
 });
 
