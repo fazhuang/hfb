@@ -20,6 +20,17 @@
 
     <!-- Reader content -->
     <template v-else>
+      <!-- Anchor toast -->
+      <div
+        v-if="anchorToast"
+        :class="['reader-anchor-toast', anchorToast === '已定位至原文' ? 'reader-anchor-toast--found' : 'reader-anchor-toast--missing']"
+        data-testid="anchor-toast"
+        role="status"
+        aria-live="polite"
+      >
+        {{ anchorToast }}
+      </div>
+
       <!-- Header -->
       <ResearchPageHeader
         :title="doc.title"
@@ -417,6 +428,18 @@ const highlightedPassageIds = ref<Set<string>>(new Set());
 const highlightedCitationId = ref<string | null>(null);
 const highlightedEvidenceId = ref<string | null>(null);
 
+// Anchor toast for chunk-hash navigation feedback
+const anchorToast = ref<string | null>(null);
+let anchorToastTimer: ReturnType<typeof setTimeout> | null = null;
+
+function showAnchorToast(msg: string) {
+  anchorToast.value = msg;
+  if (anchorToastTimer) clearTimeout(anchorToastTimer);
+  anchorToastTimer = setTimeout(() => {
+    anchorToast.value = null;
+  }, 4000);
+}
+
 // Request serial for race-condition protection
 let reqSerial = 0;
 let mounted = false;
@@ -536,6 +559,9 @@ function scrollToChunk(chunkId: string) {
     const el = chunkElMap.value.get(chunkId);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showAnchorToast('已定位至原文');
+    } else {
+      showAnchorToast('目标定位点不可用');
     }
   });
 }
@@ -600,6 +626,9 @@ function restoreAnchorFromUrl() {
     if (ev) scrollToEvidenceAnchor(ev);
   } else if (hash.startsWith('chunk-')) {
     const chunkId = hash.replace('chunk-', '');
+    // Show toast before scrolling — scrollToChunk will update it
+    const el = chunkElMap.value.get(chunkId);
+    if (!el) showAnchorToast('目标定位点不可用');
     scrollToChunk(chunkId);
   }
 }
@@ -619,6 +648,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   mounted = false;
+  if (anchorToastTimer) clearTimeout(anchorToastTimer);
 });
 
 // Watch route param changes for same-component navigation
@@ -676,7 +706,7 @@ watch(
   font-size: 13px;
   padding: var(--space-0-75) 10px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
   border-radius: var(--radius-sm);
 }
 
@@ -1030,12 +1060,12 @@ watch(
 
 .reader-anchor-btn:hover {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .reader-anchor-btn:focus-visible {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .reader-no-anchor {
@@ -1081,6 +1111,30 @@ watch(
 .reader-external-link {
   color: var(--color-accent);
   text-decoration: underline;
+}
+
+/* Anchor toast */
+.reader-anchor-toast {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-toast);
+  padding: var(--space-2-5) 20px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  box-shadow: var(--shadow-toast);
+  animation: hfb-toast-in var(--transition-slow) var(--ease-out);
+}
+
+.reader-anchor-toast--found {
+  background: var(--color-success-text);
+  color: var(--color-on-accent);
+}
+
+.reader-anchor-toast--missing {
+  background: var(--color-error-icon-bg);
+  color: var(--color-on-accent);
 }
 
 /* Responsive */

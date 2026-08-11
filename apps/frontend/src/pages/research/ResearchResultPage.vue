@@ -357,7 +357,7 @@ onBeforeUnmount(() => {
 
 .rpage-replay-retry-btn:hover {
   background: var(--color-error-icon-bg);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 .rpage-replay-result {
