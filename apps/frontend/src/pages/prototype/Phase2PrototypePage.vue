@@ -6,6 +6,7 @@
     />
 
     <div class="proto-body">
+      <div class="proto-main">
       <!-- ============================================================ -->
       <!-- Page 1: Anonymous Draft Input -->
       <!-- ============================================================ -->
@@ -296,7 +297,7 @@
             <div
               :class="['proto-bp-zone', currentBreakpoint === 'desktop' ? 'proto-bp-zone--active' : '']"
             >
-              ≥ 1440px<br />Docked 模式
+              ≥ 1440px<br />常驻 Flex 侧栏
             </div>
           </div>
           <p class="proto-bp-current">
@@ -313,9 +314,9 @@
             </button>
           </div>
 
-          <p class="proto-hint">
-            缩放浏览器窗口以测试断点切换。Drawer 在 &lt; 1024px 覆盖、1024–1439px 悬浮、≥ 1440px Docked。200% 缩放下验证无溢出破版。
-          </p>
+            <p class="proto-hint">
+              缩放浏览器窗口以测试断点切换。&lt; 1024px 覆盖 Drawer、1024–1439px 悬浮 Drawer、≥ 1440px 常驻 Flex &lt;aside&gt; 侧栏。200% 缩放下验证无溢出破版。
+            </p>
 
           <!-- Zoom status -->
           <div v-if="zoomActive" class="proto-notice proto-notice--warn" role="alert">
@@ -326,9 +327,11 @@
       </section>
 
       <!-- ============================================================ -->
-      <!-- Live HfbDrawer for responsive prototyping -->
+      <!-- Live HfbDrawer for responsive prototyping (mobile/tablet)   -->
+      <!-- Replaced by persistent <aside> at ≥ 1440px                 -->
       <!-- ============================================================ -->
       <HfbDrawer
+        v-if="currentBreakpoint !== 'desktop'"
         :open="drawerOpen"
         title="Phase 2 — 响应式断点验证抽屉"
         :placement="currentBreakpoint === 'mobile' ? 'bottom' : 'right'"
@@ -379,7 +382,51 @@
           </button>
         </template>
       </HfbDrawer>
-    </div>
+      </div><!-- .proto-main -->
+
+      <!-- Persistent sidebar: flex <aside> pinned to viewport at ≥1440px -->
+      <aside v-if="currentBreakpoint === 'desktop'" class="proto-aside">
+        <div class="proto-aside-header">
+          <h3 class="proto-aside-title">Phase 2 — 响应式侧栏</h3>
+        </div>
+        <div class="proto-drawer-content">
+          <h3>断点信息</h3>
+          <div class="proto-drawer-info-grid">
+            <div class="proto-drawer-info-item">
+              <span class="proto-drawer-info-label">断点</span>
+              <span class="proto-drawer-info-value">{{ currentBreakpointLabel }}</span>
+            </div>
+            <div class="proto-drawer-info-item">
+              <span class="proto-drawer-info-label">视口宽度</span>
+              <span class="proto-drawer-info-value">{{ viewportWidth }}px</span>
+            </div>
+            <div class="proto-drawer-info-item">
+              <span class="proto-drawer-info-label">布局模式</span>
+              <span class="proto-drawer-info-value">常住 Flex 侧栏</span>
+            </div>
+            <div class="proto-drawer-info-item">
+              <span class="proto-drawer-info-label">缩放级别</span>
+              <span class="proto-drawer-info-value">{{ zoomActive ? '200%' : '100%' }}</span>
+            </div>
+          </div>
+
+          <h3 style="margin-top: var(--space-6)">黄金行宽测试文本（40 字）</h3>
+          <p class="proto-golden-line">
+            皇甫谧幼年过继给叔父十五岁时随叔父迁居新安因战乱频仍皇甫谧失去了正规求学的机会但他并未气馁
+          </p>
+          <p class="proto-golden-note">
+            ← 此段恰好 40 汉字，在 1024–1439px 断点下应在一行内完整显示不折行。
+          </p>
+
+          <h3 style="margin-top: var(--space-6)">溢出测试</h3>
+          <div class="proto-overflow-box">
+            <code>hfb.research.{{ projectIdInput || '<projectId>' }}.pending-question</code>
+          </div>
+          <p class="proto-golden-note">
+            ← 长 Key 字符串应自动折行，不产生水平溢出。
+          </p>
+        </div>
+      </aside>
   </div>
 </template>
 
@@ -543,7 +590,7 @@ const currentBreakpointLabel = computed(() => {
   switch (currentBreakpoint.value) {
     case 'mobile': return '覆盖式 Drawer';
     case 'tablet': return '悬浮 Overlay Drawer (40 字黄金行宽)';
-    case 'desktop': return 'Docked 模式';
+    case 'desktop': return '常驻 Flex 侧栏 (≥ 1440px)';
     default: return '';
   }
 });
@@ -558,7 +605,7 @@ const drawerModeLabel = computed(() => {
   switch (currentBreakpoint.value) {
     case 'mobile': return '覆盖式 (bottom, sm)';
     case 'tablet': return '悬浮 Overlay (right, md)';
-    case 'desktop': return 'Docked (right, lg)';
+    case 'desktop': return '常驻侧栏 (≥ 1440px, no overlay)';
     default: return '';
   }
 });
@@ -613,6 +660,57 @@ onBeforeUnmount(() => {
 .proto-body {
   padding: var(--space-6) var(--space-8);
   max-width: 960px;
+}
+
+.proto-main {
+  /* content flows naturally */
+}
+
+/* ---- Persistent aside at ≥ 1440px ---- */
+.proto-aside {
+  display: none;
+}
+
+@media (min-width: 1440px) {
+  .proto-body {
+    display: flex;
+    gap: var(--space-6);
+    max-width: none;
+    padding: var(--space-6) var(--space-8);
+    align-items: flex-start;
+  }
+
+  .proto-main {
+    flex: 1;
+    min-width: 0;
+    max-width: 960px;
+  }
+
+  .proto-aside {
+    display: block;
+    flex: 0 0 360px;
+    position: sticky;
+    top: var(--space-6);
+    max-height: calc(100vh - var(--space-6) * 2);
+    overflow-y: auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+  }
+}
+
+.proto-aside-header {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.proto-aside-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .proto-section {
