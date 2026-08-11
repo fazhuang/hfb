@@ -321,8 +321,17 @@ export function usePrototypeDraft() {
     chunkId: string,
   ): string | null {
     if (!isReaderAddressable(documentId, chunkId)) return null;
-    const chunkFragment = chunkId.startsWith('chunk-') ? chunkId : `chunk-${chunkId}`;
-    return `/reader/${encodeURIComponent(documentId)}#${encodeURIComponent(chunkFragment)}`;
+    const fragment = formatChunkAnchor(chunkId);
+    return `/reader/${encodeURIComponent(documentId)}#${encodeURIComponent(fragment)}`;
+  }
+
+  /**
+   * Format chunk ID as a reader anchor fragment.
+   * Guards against double-prefix: "chunk-1" and "1" both produce "#chunk-1".
+   */
+  function formatChunkAnchor(chunkId: string): string {
+    const cleanId = chunkId.startsWith('chunk-') ? chunkId.slice(6) : chunkId;
+    return `chunk-${cleanId}`;
   }
 
   // ==========================================================================
@@ -359,6 +368,7 @@ export function usePrototypeDraft() {
     // readerAddressable
     isReaderAddressable,
     buildReaderUrl,
+    formatChunkAnchor,
 
     // Init
     init,
