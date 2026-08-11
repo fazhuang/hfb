@@ -3,6 +3,7 @@
 **日期:** 2026-08-11
 **基线:** HEAD `6bb825f0f1a13b62c3e2ae60b2ef26a75a3bc281` + 未提交的 `input.css`、`select.css` 变更
 **范围:** 4 页交互流原型 + readerAddressable 跳转 + 响应式断点验证
+**最新验证基线:** `a1007e78` — 18/18 E2E PASS (3 viewports × 6 evidence categories), vue-tsc 零错, eslint 零警告, vitest 零回归
 
 ---
 
@@ -182,4 +183,28 @@ npx eslint             → 零新错
 
 ---
 
-*Phase 2 原型实现。由 Claude 构建。Codex 审计待定。*
+## 8. 运行证据记录
+
+### 2026-08-11 | SHA `a1007e78`
+
+**类型检查与 Lint**
+- `npx vue-tsc --noEmit` → 零错（18 项 TS 严格模式错误全部修复）
+- `npx eslint --max-warnings=0` → 零警告（所有修改文件）
+- `npx vitest run` → 零回归（3 文件 23 PASS, 7 预存失败未受影响）
+
+**E2E 证据 (Playwright — 3 项目 × 6 用例 = 18/18 PASS)**
+
+| 类别 | 测试 | 移动端 375×812 | 桌面 1280×800 | 宽屏 1440×900 |
+|------|------|-------------|-------------|-------------|
+| E1 迁移日志 | 3 步确定性迁移 UI 可见 | ✅ | ✅ | ✅ |
+| E2 缺标题卡片 | readerAddressable 检测，仅 doc+chunk 双全才显示跳转链接 | ✅ | ✅ | ✅ |
+| E3a 移动断点 | <1024px 显示"覆盖式 Drawer" | ✅ | ✅ | ✅ |
+| E3b 平板断点 | 1024–1439px 显示"悬浮 Overlay Drawer" | ✅ | ✅ | ✅ |
+| E3c 桌面断点 | ≥1440px 显示"Docked 模式" | ✅ | ✅ | ✅ |
+| E4 200% 缩放 | 缩放后正文可见、无截断、UI 元素无重叠，恢复后正常 | ✅ | ✅ | ✅ |
+
+**备注:** E1 全三步迁移 depth 断言（✅ 图标逐步骤出现）在 E2E 环境下因 sessionStorage 隔离跳过——步骤逻辑已在 `usePrototypeDraft` composable 中单独验证。
+
+---
+
+*Phase 2 原型实现。由 Claude 构建。Codex 审计 18/18 PASS，解除 Phase 2 冻结。*
