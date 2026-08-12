@@ -199,7 +199,7 @@ onMounted(async () => {
 .vc-validation-banner {
   background: var(--color-warning-bg);
   border: 1px solid var(--color-warning);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
   display: flex;
@@ -213,16 +213,16 @@ onMounted(async () => {
   list-style: none;
   padding: 0;
   margin: 0 0 var(--space-6);
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
   flex-wrap: wrap;
 }
 
 .vc-step-nav li {
   padding: var(--space-1) var(--space-3);
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   background: var(--color-hover);
-  transition: background 0.2s;
+  transition: background var(--transition-base);
 }
 
 .vc-step-nav li.active {
@@ -245,7 +245,7 @@ onMounted(async () => {
   }
   .vc-step-nav {
     gap: var(--space-2);
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
   }
 }
 </style>
@@ -261,16 +261,14 @@ onMounted(async () => {
 }
 
 .vc-step-number {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin: 0 0 var(--space-1);
 }
 
 .vc-step-heading h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--text-xl);
 }
 
 .vc-search-row {
@@ -284,21 +282,22 @@ onMounted(async () => {
 
 .vc-result-item {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
   margin-bottom: var(--space-3);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
+  box-shadow: var(--shadow-card-xs);
 }
 
 .vc-result-meta span {
   display: inline-block;
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   background: var(--color-hover);
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
   margin-right: var(--space-2);
   margin-bottom: var(--space-1);
 }
@@ -311,10 +310,10 @@ onMounted(async () => {
 }
 
 .button--compact {
-  padding: 4px 12px;
-  font-size: 0.8rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   cursor: pointer;
 }
@@ -334,14 +333,13 @@ onMounted(async () => {
 
 .vc-selection-slot {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
+  box-shadow: var(--shadow-card-xs);
 }
 
 .vc-slot-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
   margin-bottom: var(--space-1);
 }
@@ -357,19 +355,19 @@ onMounted(async () => {
   color: var(--color-error);
   cursor: pointer;
   padding: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .vc-inline-warning {
   color: var(--color-error);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   margin-bottom: var(--space-3);
 }
 
 .vc-diff-metrics {
   display: flex;
   gap: var(--space-3);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   color: var(--color-text-muted);
   flex-shrink: 0;
 }
@@ -383,8 +381,9 @@ onMounted(async () => {
 
 .vc-passage-column {
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
+  box-shadow: var(--shadow-card-xs);
 }
 
 .vc-passage-heading {
@@ -392,20 +391,18 @@ onMounted(async () => {
 }
 
 .vc-passage-heading span {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 .vc-passage-text {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   line-height: 1.6;
   margin-bottom: var(--space-2);
 }
 
 .vc-citation {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 
@@ -416,7 +413,7 @@ onMounted(async () => {
 .vc-diff-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: var(--text-base);
 }
 
 .vc-diff-table th,
@@ -428,10 +425,10 @@ onMounted(async () => {
 
 .vc-diff-type {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
   background: var(--color-hover);
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -440,15 +437,16 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: flex-start;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   padding: var(--space-3);
   margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-card-xs);
 }
 
 .vc-evidence-status {
-  font-size: 0.8rem;
-  padding: 2px 10px;
-  border-radius: 12px;
+  font-size: var(--text-xs);
+  padding: var(--space-0-5) var(--space-2-5);
+  border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
   flex-shrink: 0;
@@ -460,7 +458,7 @@ onMounted(async () => {
 }
 
 .vc-back-link {
-  color: var(--color-primary);
+  color: var(--color-text-primary);
   text-decoration: none;
 }
 
@@ -471,14 +469,14 @@ onMounted(async () => {
 }
 
 .vc-empty-hint {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
 }
 
 .vc-note-step textarea {
   width: 100%;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   resize: vertical;
   margin-bottom: var(--space-3);
 }
