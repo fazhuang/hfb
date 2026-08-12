@@ -329,6 +329,7 @@ onMounted(() => {
   background: var(--color-surface);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-lg, 8px);
+  box-shadow: var(--shadow-accent-sm, 0 2px 8px rgba(43, 108, 176, 0.1));
 }
 
 .relation-card-header {
@@ -358,6 +359,7 @@ onMounted(() => {
   border-radius: var(--radius-xl, 12px);
   padding: var(--space-6, 24px);
   margin-bottom: var(--space-6, 24px);
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .section-title {
