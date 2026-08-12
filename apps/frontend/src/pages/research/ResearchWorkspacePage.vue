@@ -207,6 +207,31 @@ interface NoteItem {
   updated_at: string | null;
 }
 
+// ---- API envelope / error shapes ----
+type ApiErrorLike = {
+  name?: string;
+  message?: string;
+  response?: { status?: number; data?: { message?: string } };
+};
+type Envelope = { data?: unknown };
+
+function errStatus(e: unknown): number | undefined {
+  return (e as ApiErrorLike)?.response?.status;
+}
+
+function errMessage(e: unknown, fallback: string): string {
+  const err = e as ApiErrorLike;
+  return err?.response?.data?.message || err?.message || fallback;
+}
+
+function isAbortError(e: unknown): boolean {
+  return (e as ApiErrorLike)?.name === 'AbortError';
+}
+
+function unwrap<T = unknown>(data: unknown): T {
+  return ((data as Envelope).data ?? data) as T;
+}
+
 // ---- Session state ----
 const project = ref<ResearchProjectDetail | null>(null);
 const notFound = ref(false);
@@ -358,9 +383,7 @@ async function loadSession() {
       { signal },
     );
     if (myReqId !== sessionReqId || signal.aborted) return;
-    const body = res.data as Record<string, unknown>;
-    const raw = (body.data ?? body) as Record<string, unknown>;
-    project.value = toProjectDetail(raw);
+    project.value = toProjectDetail(unwrap<Record<string, unknown>>(res.data));
 
     // Session gate passed — load sections concurrently
     sectionsAbort = new AbortController();
@@ -369,22 +392,19 @@ async function loadSession() {
     loadCitations(++citationsReqId, sectionsAbort.signal);
   } catch (e: unknown) {
     if (myReqId !== sessionReqId || signal.aborted) return;
-    const status = (e as any)?.response?.status;
+    const status = errStatus(e);
     if (status === 404) {
       notFound.value = true;
       return;
     }
     if (status === 403) {
       pageError.value = true;
-      pageErrorMessage.value = (e as any)?.response?.data?.message || '权限不足';
+      pageErrorMessage.value = errMessage(e, '权限不足');
       return;
     }
     // Network/5xx — fetchWithRetry already exhausted retries
     pageError.value = true;
-    pageErrorMessage.value =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载失败，请检查网络连接后重试。';
+    pageErrorMessage.value = errMessage(e, '加载失败，请检查网络连接后重试。');
   }
 }
 
@@ -476,24 +496,24 @@ async function loadMergedResearch(myReqId: number, signal: AbortSignal) {
   if (myReqId !== mergedReqId || signal.aborted) return;
 
   if (runsResult.status === 'fulfilled') {
-    const body = (runsResult.value.data as any).data ?? runsResult.value.data;
-    runItems = (body.runs ?? []) as RunItem[];
+    const body = unwrap<{ runs?: RunItem[] }>(runsResult.value.data);
+    runItems = body.runs ?? [];
     runsOk = true;
   } else {
     const e = runsResult.reason;
-    if ((e as any)?.name !== 'AbortError') {
-      runsErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载运行记录失败';
+    if (!isAbortError(e)) {
+      runsErr = errMessage(e, '加载运行记录失败');
     }
   }
 
   if (historyResult.status === 'fulfilled') {
-    const body = (historyResult.value.data as any).data ?? historyResult.value.data;
-    activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    const body = unwrap<{ history?: ActivityItem[] }>(historyResult.value.data);
+    activityItems = (body.history ?? []).slice(0, 5);
     historyOk = true;
   } else {
     const e = historyResult.reason;
-    if ((e as any)?.name !== 'AbortError') {
-      historyErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动记录失败';
+    if (!isAbortError(e)) {
+      historyErr = errMessage(e, '加载活动记录失败');
     }
   }
 
@@ -532,13 +552,12 @@ async function loadNotes(myReqId: number, signal: AbortSignal) {
       { signal, maxRetries: 0 },
     );
     if (myReqId !== notesReqId || signal.aborted) return;
-    const body = (data as any).data ?? data;
+    const body = unwrap<unknown>(data);
     notes.value = (Array.isArray(body) ? body : []) as NoteItem[];
   } catch (e: unknown) {
     if (myReqId !== notesReqId || signal.aborted) return;
-    if ((e as any)?.name !== 'AbortError') {
-      notesError.value =
-        (e as any)?.response?.data?.message || (e as any)?.message || '加载笔记失败';
+    if (!isAbortError(e)) {
+      notesError.value = errMessage(e, '加载笔记失败');
     }
   } finally {
     if (myReqId === notesReqId) {
@@ -565,16 +584,15 @@ async function loadCitations(myReqId: number, signal: AbortSignal) {
       { signal, maxRetries: 0 },
     );
     if (myReqId !== citationsReqId || signal.aborted) return;
-    const body = (data as any).data ?? data;
+    const body = unwrap<unknown>(data);
     const { toCitationSummary } = await import('@/types/research');
     citations.value = ((Array.isArray(body) ? body : []) as Record<string, unknown>[]).map(
       toCitationSummary,
     );
   } catch (e: unknown) {
     if (myReqId !== citationsReqId || signal.aborted) return;
-    if ((e as any)?.name !== 'AbortError') {
-      citationsError.value =
-        (e as any)?.response?.data?.message || (e as any)?.message || '加载研究资料失败';
+    if (!isAbortError(e)) {
+      citationsError.value = errMessage(e, '加载研究资料失败');
     }
   } finally {
     if (myReqId === citationsReqId) {
@@ -612,23 +630,23 @@ async function retryMergedResearch() {
   if (myReqId !== mergedReqId || signal.aborted) return;
 
   if (runsResult.status === 'fulfilled') {
-    const body = (runsResult.value.data as any).data ?? runsResult.value.data;
-    runItems = (body.runs ?? []) as RunItem[];
+    const body = unwrap<{ runs?: RunItem[] }>(runsResult.value.data);
+    runItems = body.runs ?? [];
     runsOk = true;
   } else {
     const e = runsResult.reason;
-    if ((e as any)?.name !== 'AbortError') {
-      runsErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载运行记录失败';
+    if (!isAbortError(e)) {
+      runsErr = errMessage(e, '加载运行记录失败');
     }
   }
   if (historyResult.status === 'fulfilled') {
-    const body = (historyResult.value.data as any).data ?? historyResult.value.data;
-    activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    const body = unwrap<{ history?: ActivityItem[] }>(historyResult.value.data);
+    activityItems = (body.history ?? []).slice(0, 5);
     historyOk = true;
   } else {
     const e = historyResult.reason;
-    if ((e as any)?.name !== 'AbortError') {
-      historyErr = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动记录失败';
+    if (!isAbortError(e)) {
+      historyErr = errMessage(e, '加载活动记录失败');
     }
   }
 
@@ -662,15 +680,15 @@ async function retryRunsOnly() {
     const { data } = await fetchWithRetry(`/api/v4/research/session/${id}/runs`, undefined, {
       signal,
     });
-    const body = (data as any).data ?? data;
-    const runItems = (body.runs ?? []) as RunItem[];
+    const body = unwrap<{ runs?: RunItem[] }>(data);
+    const runItems = body.runs ?? [];
     const normalizedRuns = normalizeRuns(runItems);
     // Re-merge: keep existing history (activity items) from current display
     const historyItems = mergedResearch.value.filter((m) => m.type === 'activity');
     mergedResearch.value = mergeAndSort(normalizedRuns, historyItems);
     mergedError.value = null;
   } catch (e: unknown) {
-    if ((e as any)?.name !== 'AbortError') {
+    if (!isAbortError(e)) {
       mergedPartial.value = 'runs';
     }
   }
@@ -689,14 +707,14 @@ async function retryHistoryOnly() {
       { limit: 5 },
       { signal },
     );
-    const body = (data as any).data ?? data;
-    const activityItems = ((body.history ?? []) as ActivityItem[]).slice(0, 5);
+    const body = unwrap<{ history?: ActivityItem[] }>(data);
+    const activityItems = (body.history ?? []).slice(0, 5);
     const normalizedActivities = normalizeActivities(activityItems);
     const runItems = mergedResearch.value.filter((m) => m.type === 'run');
     mergedResearch.value = mergeAndSort(runItems, normalizedActivities);
     mergedError.value = null;
   } catch (e: unknown) {
-    if ((e as any)?.name !== 'AbortError') {
+    if (!isAbortError(e)) {
       mergedPartial.value = 'history';
     }
   }
