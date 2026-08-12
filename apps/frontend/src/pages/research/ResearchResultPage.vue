@@ -297,6 +297,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-navbar-bg, var(--color-surface));
+  box-shadow: var(--shadow-card-xs);
 }
 
 .rpage-replay-btn {
@@ -397,7 +398,7 @@ onBeforeUnmount(() => {
 
 .rpage-replay-hash-value {
   font-size: var(--text-xs);
-  font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+  font-family: var(--font-mono);
   color: var(--color-text-secondary);
   background: var(--color-page-bg);
   padding: var(--space-1) 8px;

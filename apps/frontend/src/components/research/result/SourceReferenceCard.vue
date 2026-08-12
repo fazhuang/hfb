@@ -130,7 +130,8 @@ const safeSourceUrl = computed(() => {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-page-bg);
-}
+
+  box-shadow: var(--shadow-card-xs);}
 
 .esrc-header {
   display: flex;

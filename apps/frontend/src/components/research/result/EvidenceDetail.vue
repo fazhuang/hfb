@@ -89,7 +89,8 @@ const evidenceLocatorCompleteness = computed((): EvidenceBadgeProps['locatorComp
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-navbar-bg, var(--color-surface));
-}
+
+  box-shadow: var(--shadow-card-xs);}
 
 .eed-section {
   margin-bottom: 12px;

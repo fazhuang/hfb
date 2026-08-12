@@ -140,7 +140,8 @@ const selectedEvidence = computed(() => {
   background: var(--color-navbar-bg, var(--color-surface));
   cursor: pointer;
   transition: all var(--transition-base);
-}
+
+  box-shadow: var(--shadow-card-xs);}
 
 .rcp-citation-item:hover {
   border-color: var(--color-accent);
