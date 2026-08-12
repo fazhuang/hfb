@@ -594,7 +594,8 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .result-card:hover {
   border-color: var(--color-accent);

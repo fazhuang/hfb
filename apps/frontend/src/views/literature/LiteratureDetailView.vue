@@ -504,7 +504,8 @@ async function askAIAboutDoc() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-navbar-bg, var(--color-surface));
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 .panel h3 {
   font-size: 15px;
   font-weight: 600;

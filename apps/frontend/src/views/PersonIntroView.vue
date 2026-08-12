@@ -372,7 +372,8 @@ function navigateToCategory(roleKey: string): void {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl, 12px);
   padding: var(--space-6, 24px);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .bio-card-header {
   display: flex;
@@ -453,7 +454,8 @@ function navigateToCategory(roleKey: string): void {
   border-radius: var(--radius-xl, 12px);
   padding: var(--space-5, 20px);
   transition: all var(--transition-base, 0.2s);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .category-card:hover {
   border-color: var(--color-accent);
@@ -682,7 +684,8 @@ function navigateToCategory(roleKey: string): void {
   display: flex;
   flex-direction: column;
   gap: var(--space-2, 8px);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .grade-header {
   display: flex;

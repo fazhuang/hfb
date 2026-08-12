@@ -168,7 +168,8 @@ async function handleRegister(): Promise<void> {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   text-align: center;
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .register-card h1 {
   font-size: 24px;
@@ -301,9 +302,10 @@ async function handleRegister(): Promise<void> {
 .login-value-card {
   flex: 0 0 260px;
   padding: var(--space-7) 24px;
-  background: linear-gradient(135deg, var(--color-accent-light), var(--color-accent-light));
+  background: var(--color-accent-light);
   border: 1px solid var(--color-accent-alpha-12);
   border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));
 }
 
 .login-value-card h3 {

@@ -340,7 +340,8 @@ onMounted(() => fetch());
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .lib-panel h3 {
   font-size: 15px;

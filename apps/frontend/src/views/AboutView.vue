@@ -117,7 +117,8 @@ const { t } = useI18n();
   border-radius: var(--radius-lg);
   text-align: center;
   transition: border-color var(--transition-base);
-}
+
+  box-shadow: var(--shadow-card-xs, 0 2px 8px rgba(0, 0, 0, 0.05));}
 
 .tech-card:hover {
   border-color: var(--color-accent);
