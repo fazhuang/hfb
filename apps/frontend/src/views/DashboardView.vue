@@ -364,7 +364,6 @@ onMounted(loadDashboard);
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text-primary);
-  letter-spacing: 0.02em;
   margin: 0;
   line-height: 1.3;
 }
@@ -380,7 +379,6 @@ onMounted(loadDashboard);
   font-weight: 600;
   color: var(--color-text-primary);
   margin: 0 0 var(--space-4);
-  letter-spacing: 0.01em;
 }
 
 .sr-only {
@@ -591,7 +589,6 @@ onMounted(loadDashboard);
   color: var(--color-text-primary);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 
 .stat-label {
@@ -785,7 +782,6 @@ onMounted(loadDashboard);
   font-size: 20px;
   font-weight: 600;
   color: var(--color-text-primary);
-  letter-spacing: -0.01em;
 }
 
 .sys-value--mono {

@@ -419,7 +419,6 @@ function getIcon(entityType: string): string {
 .results-header {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: 6px;
 }
@@ -486,7 +485,7 @@ function getIcon(entityType: string): string {
 }
 
 .detail-title {
-  margin: 0 0 2px;
+  margin: 0 0 var(--space-0-5);
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -495,7 +494,6 @@ function getIcon(entityType: string): string {
 .detail-type {
   font-size: 11px;
   color: var(--color-text-muted);
-  text-transform: uppercase;
 }
 
 .detail-props {
@@ -561,7 +559,6 @@ function getIcon(entityType: string): string {
   display: block;
   font-size: 10px;
   font-weight: 600;
-  text-transform: uppercase;
   color: var(--color-text-muted);
   margin-bottom: 2px;
 }

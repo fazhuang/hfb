@@ -1002,7 +1002,6 @@ watch(
   gap: var(--space-3);
   font-size: 11px;
   color: var(--color-text-muted);
-  text-transform: uppercase;
 }
 
 /* Evidence */
