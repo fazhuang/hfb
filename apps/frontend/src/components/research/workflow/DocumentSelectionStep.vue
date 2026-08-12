@@ -82,13 +82,13 @@ defineEmits<{
   border-radius: var(--radius-lg);
   background: var(--color-page-bg);
   margin-bottom: var(--space-6);
+  box-shadow: var(--shadow-card-xs);
 }
 
 .dss-summary-title {
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-text-muted);
-  text-transform: uppercase;
   margin: 0 0 var(--space-2);
 }
 

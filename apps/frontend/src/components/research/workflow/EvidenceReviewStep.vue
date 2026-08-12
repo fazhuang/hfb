@@ -245,6 +245,7 @@ function hasFullLineage(ev: WorkflowEvidence): boolean {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-navbar-bg, var(--color-surface));
+  box-shadow: var(--shadow-card-xs);
 }
 
 .ers-item-header {

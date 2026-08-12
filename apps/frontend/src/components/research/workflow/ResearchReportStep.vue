@@ -181,6 +181,7 @@ function formatDate(iso?: string | null): string {
   border-radius: var(--radius-lg);
   background: var(--color-navbar-bg, var(--color-surface));
   overflow: hidden;
+  box-shadow: var(--shadow-card-xs);
 }
 
 .rrs-card-header {
@@ -223,7 +224,6 @@ function formatDate(iso?: string | null): string {
 .rrs-stat-label {
   font-size: 11px;
   color: var(--color-text-muted);
-  text-transform: uppercase;
 }
 
 .rrs-stat-value {
