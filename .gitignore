@@ -139,6 +139,11 @@ output/p0_page_image_artifact.json
 output/p0_*_preprocessed.png
 output/p0_page_*_v2.png
 
+# --- 针灸甲乙经 source files (large scans, ingested via scripts/) ---
+/针灸甲乙经*.pdf
+/针灸甲乙经*.html
+/黄帝针灸甲乙经*.pdf
+
 # --- Runtime evidence (not for release) ---
 output/batch4/
 output/p0_codex_commands_evidence.txt
