@@ -1260,12 +1260,17 @@ class IngestionService:
         page_numbers: list[int],
         lang: str = "chi_sim",
         dpi: int = 300,
+        batch_size: int = 30,
     ) -> dict[int, str]:
         """OCR specific pages of a scanned PDF using tesseract.
 
         Uses pdf2image to render pages to PNG, then pytesseract to OCR.
         Returns a dict mapping page number (1-based) to OCR text.
         Empty pages are omitted from the result.
+
+        Renders in batches of `batch_size` pages so a 1000+ page scan never
+        holds all rendered bitmaps in memory at once (all-at-once would OOM
+        at ~12GB of raw RGB for a 1100-page A4 scan).
         """
         try:
             import pytesseract
@@ -1276,27 +1281,29 @@ class IngestionService:
             ) from e
 
         result: dict[int, str] = {}
+        sorted_pages = sorted(page_numbers)
 
-        # Convert only the requested pages
-        images = convert_from_bytes(
-            raw_bytes,
-            dpi=dpi,
-            first_page=min(page_numbers),
-            last_page=max(page_numbers),
-            fmt="png",
-            thread_count=2,
-        )
-
-        # Map back: images list is [first_page..last_page] in order
-        for i, img in enumerate(images):
-            pg = min(page_numbers) + i
-            if pg not in page_numbers:
-                continue
-            try:
-                text = pytesseract.image_to_string(img, lang=lang, config="--psm 6")
-            except (OSError, RuntimeError):
-                text = ""
-            if text and text.strip():
-                result[pg] = text
+        for i in range(0, len(sorted_pages), batch_size):
+            chunk = sorted_pages[i : i + batch_size]
+            images = convert_from_bytes(
+                raw_bytes,
+                dpi=dpi,
+                first_page=chunk[0],
+                last_page=chunk[-1],
+                fmt="png",
+                thread_count=2,
+            )
+            for offset, img in enumerate(images):
+                pg = chunk[0] + offset
+                if pg not in page_numbers:
+                    continue
+                try:
+                    text = pytesseract.image_to_string(
+                        img, lang=lang, config="--psm 6"
+                    )
+                except (OSError, RuntimeError):
+                    text = ""
+                if text and text.strip():
+                    result[pg] = text.strip()
 
         return result
