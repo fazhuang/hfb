@@ -601,7 +601,7 @@
 import { ref, watch, nextTick, computed, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
 import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';
@@ -615,6 +615,10 @@ const store = useResearchStore();
 // ---- Tab state ----
 // Support ?tab=materials|versions|notes|reports|assistant|research|v4-research
 const activeTab = ref('materials');
+
+// ---- Deferred deep-link state (?run= / ?ask=) ----
+let pendingRunId: string | undefined;
+let pendingAsk: string | undefined;
 
 interface TabDef {
   key: string;
@@ -670,8 +674,21 @@ interface ReportRun {
   topic: string;
   completed_at: string;
   step_execution_trace?: Array<{ name: string; status: string }>;
-  output_artifacts?: Record<string, any>;
-  replay_manifest?: Record<string, any>;
+  output_artifacts?: {
+    report_sections?: Array<{
+      title?: string;
+      heading?: string;
+      content?: string;
+      body?: string;
+      evidence_ids?: Array<string>;
+    }>;
+    markdown?: string;
+    citations?: Array<Record<string, unknown>>;
+  };
+  replay_manifest?: {
+    traces?: Array<Record<string, unknown>>;
+    retrieval_snapshot?: Array<Record<string, unknown>>;
+  };
 }
 interface EvidenceItem {
   entity_type: string;
@@ -771,8 +788,8 @@ async function fetchMaterials(p: number) {
     const { data } = await api.get('/api/v1/documents', { params });
     materials.value = (data.data ?? []) as MaterialItem[];
     materialsTotal.value = (data.total ?? data.meta?.total ?? 0) as number;
-  } catch (e: any) {
-    materialsError.value = e?.message || t('common.error');
+  } catch (e: unknown) {
+    materialsError.value = getErrorMessage(e, t('common.error'));
   } finally {
     materialsLoading.value = false;
   }
@@ -791,8 +808,8 @@ async function fetchVersions(p: number) {
     const { data } = await api.get('/api/v1/classical-versions', { params });
     versions.value = (data.data ?? []) as VersionItem[];
     versionsTotal.value = (data.total ?? data.meta?.total ?? 0) as number;
-  } catch (e: any) {
-    versionsError.value = e?.message || t('common.error');
+  } catch (e: unknown) {
+    versionsError.value = getErrorMessage(e, t('common.error'));
   } finally {
     versionsLoading.value = false;
   }
@@ -893,8 +910,8 @@ async function fetchReports() {
     reports.value = allRuns.sort((a, b) =>
       (b.completed_at || '').localeCompare(a.completed_at || ''),
     );
-  } catch (e: any) {
-    reportsError.value = e?.message || t('common.error');
+  } catch (e: unknown) {
+    reportsError.value = getErrorMessage(e, t('common.error'));
   } finally {
     reportsLoading.value = false;
   }
@@ -1013,8 +1030,8 @@ async function runV4WorkflowInline() {
     } else {
       v4Error.value = wfResp.data.message || t('v4.workflowFailed');
     }
-  } catch (e: any) {
-    v4Error.value = e?.message || t('v4.workflowFailed');
+  } catch (e: unknown) {
+    v4Error.value = getErrorMessage(e, t('v4.workflowFailed'));
   } finally {
     v4Loading.value = false;
   }
@@ -1396,13 +1413,13 @@ onMounted(() => {
   if (runParam) {
     activeTab.value = 'v4-research';
     // The run will be opened after reports load
-    (window as any).__pendingRunId = runParam;
+    pendingRunId = runParam;
   }
   // P0-③: Honor ?ask= query param (auto-ask in assistant tab)
   const askParam = route.query.ask as string | undefined;
   if (askParam) {
     activeTab.value = 'assistant';
-    (window as any).__pendingAsk = askParam;
+    pendingAsk = askParam;
   }
 });
 
@@ -1412,18 +1429,15 @@ loadSessions().then(async () => {
   fetchNotesForSession();
   fetchReports().then(() => {
     // If a run was requested via ?run=, open it inline
-    const pendingRunId = (window as any).__pendingRunId as string | undefined;
     if (pendingRunId) {
-      delete (window as any).__pendingRunId;
       const found = reports.value.find((r) => r.run_id === pendingRunId);
       if (found) openReportDetail(found);
+      pendingRunId = undefined;
     }
   });
 
   // P0-③: Handle deferred ask — create session and send the question
-  const pendingAsk = (window as any).__pendingAsk as string | undefined;
   if (pendingAsk) {
-    delete (window as any).__pendingAsk;
     // Ensure a chat session exists
     if (!chatSessionId.value) {
       try {
