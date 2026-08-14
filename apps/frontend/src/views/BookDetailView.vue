@@ -1,56 +1,82 @@
 <template>
   <div class="book-detail-page">
-    <div v-if="loading" class="loading-state">{{ t('common.loading') }}</div>
-    <div v-else-if="error" class="error-state">{{ error }}</div>
+    <div v-if="loading" class="loading-state" aria-busy="true">{{ t('common.loading') }}</div>
+
+    <ErrorState v-else-if="error" :message="error" @retry="fetchBook" />
+
     <div v-else-if="book" class="book-content">
+      <!-- 面包屑 -->
+      <nav class="detail-breadcrumb" aria-label="面包屑">
+        <router-link :to="{ name: 'books' }" class="crumb-link">
+          {{ t('nav.books') }}
+        </router-link>
+        <HfbIcon icon="chevron-right" :size="12" class="crumb-sep" />
+        <span class="crumb-current">{{ book.title }}</span>
+      </nav>
+
       <div class="detail-header">
         <h1>{{ book.title }}</h1>
         <div class="header-meta">
           <span v-if="book.dynasty" class="meta-tag">{{ book.dynasty }}</span>
-          <span v-if="book.category" class="meta-tag">{{ book.category }}</span>
-          <span v-if="book.year" class="meta-tag">{{ book.year }}</span>
+          <span v-if="book.category" class="meta-tag meta-tag--category">{{ book.category }}</span>
+          <span v-if="book.year" class="meta-tag meta-tag--year">{{ book.year }} 年</span>
         </div>
       </div>
 
-      <div v-if="book.title_pinyin" class="info-row">
-        <span class="info-label">拼音</span>
-        <span>{{ book.title_pinyin }}</span>
-      </div>
-
-      <div v-if="book.title_english" class="info-row">
-        <span class="info-label">英文</span>
-        <span>{{ book.title_english }}</span>
+      <div v-if="book.title_pinyin || book.title_english" class="info-group">
+        <div v-if="book.title_pinyin" class="info-row">
+          <span class="info-label">拼音</span>
+          <span>{{ book.title_pinyin }}</span>
+        </div>
+        <div v-if="book.title_english" class="info-row">
+          <span class="info-label">英文</span>
+          <span>{{ book.title_english }}</span>
+        </div>
       </div>
 
       <div v-if="book.abstract" class="book-abstract">
-        <h3>{{ t('book.abstract') }}</h3>
+        <h3><HfbIcon icon="scroll-text" :size="16" /> {{ t('book.abstract') }}</h3>
         <p>{{ book.abstract }}</p>
       </div>
 
       <!-- Chapters -->
-      <div v-if="chapters.length" class="book-chapters">
-        <h3>{{ t('book.chapters') }} ({{ chapters.length }})</h3>
+      <section v-if="chapters.length" class="book-chapters">
+        <h3>
+          {{ t('book.chapters') }}
+          <span class="section-count">{{ chapters.length }}</span>
+        </h3>
         <div v-for="ch in chapters" :key="ch.id" class="chapter-item">
-          <span class="chapter-order">{{ ch.order }}</span>
+          <span class="chapter-order">{{ String(ch.order).padStart(2, '0') }}</span>
           <span class="chapter-title">{{ ch.title }}</span>
           <span v-if="ch.description" class="chapter-desc">{{ ch.description }}</span>
         </div>
-      </div>
+      </section>
 
       <!-- Versions -->
-      <div v-if="versions.length" class="book-versions">
-        <h3>{{ t('book.versions') }} ({{ versions.length }})</h3>
+      <section v-if="versions.length" class="book-versions">
+        <h3>
+          {{ t('book.versions') }}
+          <span class="section-count">{{ versions.length }}</span>
+        </h3>
         <div
           v-for="v in versions"
           :key="v.id"
           class="version-item"
+          role="button"
+          tabindex="0"
           @click="$router.push(`/versions/${v.id}`)"
+          @keydown.enter="$router.push(`/versions/${v.id}`)"
         >
-          <strong>{{ v.version_name }}</strong>
-          <span v-if="v.era">{{ v.era }}</span>
-          <span v-if="v.repository">{{ v.repository }}</span>
+          <HfbIcon icon="landmark" :size="16" class="version-icon" />
+          <div class="version-main">
+            <strong>{{ v.version_name }}</strong>
+            <span v-if="v.era || v.repository" class="version-sub">
+              {{ [v.era, v.repository].filter(Boolean).join(' · ') }}
+            </span>
+          </div>
+          <HfbIcon icon="chevron-right" :size="16" class="version-arrow" />
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -59,6 +85,8 @@
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import ErrorState from '@/components/common/ErrorState.vue';
 import api, { getErrorMessage } from '@/api/client';
 
 const { t } = useI18n();
@@ -126,65 +154,116 @@ onMounted(fetchBook);
 
 <style scoped>
 .book-detail-page {
+  width: 100%;
   max-width: 800px;
   margin: 0 auto;
   padding: var(--space-8) 24px;
 }
 
+.detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.crumb-link {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.crumb-link:hover {
+  text-decoration: underline;
+}
+
+.crumb-sep {
+  color: var(--color-text-muted);
+}
+
+.crumb-current {
+  color: var(--color-text-secondary);
+}
+
 .detail-header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .detail-header h1 {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-3);
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
 }
 
 .header-meta {
   display: flex;
   gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .meta-tag {
-  font-size: 13px;
-  padding: var(--space-0-75) 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  padding: 3px 10px;
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
   border-radius: var(--radius-sm);
+}
+
+.meta-tag--category {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.meta-tag--year {
+  background: var(--color-hover);
+  color: var(--color-text-secondary);
+}
+
+.info-group {
+  margin-bottom: var(--space-2);
 }
 
 .info-row {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-2) 0;
-  font-size: 14px;
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
 }
 
 .info-label {
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   min-width: 48px;
   color: var(--color-text-muted);
 }
 
 .book-abstract {
-  margin-top: 24px;
+  margin-top: var(--space-6);
   padding: var(--space-5);
-  background: var(--color-hover, var(--color-page-bg));
+  background: var(--color-page-bg);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
   border-radius: var(--radius-lg);
 }
 
 .book-abstract h3 {
-  font-size: 15px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   margin: 0 0 var(--space-2);
   color: var(--color-text-primary);
+  font-family: var(--font-serif);
 }
 
 .book-abstract p {
-  font-size: 14px;
+  font-size: var(--text-base);
   line-height: 1.8;
   color: var(--color-text-secondary);
   margin: 0;
@@ -192,12 +271,25 @@ onMounted(fetchBook);
 
 .book-chapters h3,
 .book-versions h3 {
-  font-size: 15px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   margin: var(--space-8) 0 12px;
   padding-bottom: 8px;
   border-bottom: 2px solid var(--color-accent);
+  font-family: var(--font-serif);
+}
+
+.section-count {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
+  background: var(--color-accent-light);
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
 }
 
 .chapter-item {
@@ -206,52 +298,84 @@ onMounted(fetchBook);
   gap: var(--space-3);
   padding: var(--space-2-5) 12px;
   border-bottom: 1px solid var(--color-border);
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 
 .chapter-order {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   color: var(--color-text-muted);
+  font-family: var(--font-mono);
 }
 
 .chapter-title {
-  font-weight: 600;
+  font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
 
 .chapter-desc {
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 .version-item {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3-5) 16px;
+  gap: var(--space-3);
+  padding: var(--space-3) 16px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: 8px;
   cursor: pointer;
-  transition: border-color var(--transition-base);
-  font-size: 14px;
+  box-shadow: var(--shadow-card-xs);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+  font-size: var(--text-base);
   color: var(--color-text-secondary);
+  background: var(--color-surface);
 }
 
-.version-item:hover {
+.version-item:hover,
+.version-item:focus-visible {
   border-color: var(--color-accent);
+  box-shadow: var(--shadow-card-hover);
+  outline: none;
+}
+
+.version-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.version-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .version-item strong {
   color: var(--color-text-primary);
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
 }
 
-.loading-state,
-.error-state {
+.version-sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.version-arrow {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.loading-state {
   text-align: center;
   padding: var(--space-20) 20px;
   color: var(--color-text-muted);
-  font-size: 14px;
+  font-size: var(--text-base);
 }
 </style>

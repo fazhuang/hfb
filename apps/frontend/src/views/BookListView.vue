@@ -1,7 +1,7 @@
 <template>
   <EntityListPage
     endpoint="/api/v1/books"
-    :title="t('nav.documents')"
+    :title="t('nav.books')"
     route-prefix="/books"
     :get-title="(b) => b.title as string"
     :get-meta="(b) => [b.dynasty as string, b.category as string].filter(Boolean)"
