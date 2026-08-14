@@ -2,42 +2,48 @@
   <div class="lib-search-bar">
     <div class="lib-search-input-wrap">
       <label for="lib-search-input" class="sr-only">{{ t('common.search') }}</label>
+      <HfbIcon icon="search" :size="16" class="lib-search-leading-icon" />
       <input
         id="lib-search-input"
         v-model="query"
         type="text"
-        :placeholder="'搜索文献标题…'"
+        placeholder="搜索文献标题、拼音或英文名…"
         @keyup.enter="emitSearch"
       />
       <button class="lib-search-btn" @click="emitSearch" aria-label="搜索文献">
-        {{ t('common.search') }}
+        <HfbIcon icon="search" :size="14" />
+        <span>{{ t('common.search') }}</span>
       </button>
     </div>
     <div class="lib-filter-chips">
-      <label for="lib-copyright-filter" class="sr-only">版权筛选</label>
-      <select
-        id="lib-copyright-filter"
-        v-model="copyrightStatus"
-        class="lib-filter-select"
-        @change="emitSearch"
-      >
-        <option value="">— 版权 —</option>
-        <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">
-          {{ COPYRIGHT_LABELS[cs] || cs }}
-        </option>
-      </select>
-      <label for="lib-review-filter" class="sr-only">审核状态筛选</label>
-      <select
-        id="lib-review-filter"
-        v-model="reviewStatus"
-        class="lib-filter-select"
-        @change="emitSearch"
-      >
-        <option value="">— 审核 —</option>
-        <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">
-          {{ REVIEW_LABELS[rs] || rs }}
-        </option>
-      </select>
+      <label class="lib-filter-group">
+        <span class="lib-filter-label">版权</span>
+        <select
+          id="lib-copyright-filter"
+          v-model="copyrightStatus"
+          class="lib-filter-select"
+          @change="emitSearch"
+        >
+          <option value="">全部</option>
+          <option v-for="cs in COPYRIGHT_STATUSES" :key="cs" :value="cs">
+            {{ COPYRIGHT_LABELS[cs] || cs }}
+          </option>
+        </select>
+      </label>
+      <label class="lib-filter-group">
+        <span class="lib-filter-label">审核</span>
+        <select
+          id="lib-review-filter"
+          v-model="reviewStatus"
+          class="lib-filter-select"
+          @change="emitSearch"
+        >
+          <option value="">全部</option>
+          <option v-for="rs in REVIEW_STATUSES" :key="rs" :value="rs">
+            {{ REVIEW_LABELS[rs] || rs }}
+          </option>
+        </select>
+      </label>
     </div>
   </div>
 </template>
@@ -45,6 +51,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import {
   COPYRIGHT_STATUSES,
   COPYRIGHT_LABELS,
@@ -98,14 +105,23 @@ function emitSearch() {
 
 .lib-search-input-wrap {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
   flex: 1;
   min-width: 0;
   max-width: 560px;
+  position: relative;
+}
+
+.lib-search-leading-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
 }
 
 .lib-search-input-wrap input {
-  padding: var(--space-2) 12px;
+  padding: var(--space-2) 12px var(--space-2) 38px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: 14px;
@@ -124,6 +140,9 @@ function emitSearch() {
 }
 
 .lib-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: var(--space-2) 16px;
   background: var(--color-accent);
   color: var(--color-on-accent);
@@ -152,12 +171,23 @@ function emitSearch() {
   flex-wrap: wrap;
 }
 
+.lib-filter-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.lib-filter-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 .lib-filter-select {
   padding: var(--space-2) 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   font-size: 13px;
-  background: var(--color-navbar-bg, var(--color-surface));
+  background: var(--color-surface);
   color: var(--color-text-primary);
   min-width: 120px;
   transition: border-color var(--transition-base);

@@ -57,6 +57,8 @@ defineProps<{ stats: LibraryDocumentStats }>();
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text-primary);
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
   margin: 0 0 var(--space-3);
   padding-bottom: 8px;
   border-bottom: 2px solid var(--color-accent);

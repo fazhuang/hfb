@@ -740,7 +740,7 @@ describe('Frozen pages — zero regressions', () => {
     });
     await wrapper.vm.$nextTick();
     await wrapper.vm.$nextTick();
-    expect(wrapper.text()).toContain('Library');
+    expect(wrapper.text()).toContain('文献库');
   });
 
   it('23. Reader route at /reader/:id is registered', async () => {

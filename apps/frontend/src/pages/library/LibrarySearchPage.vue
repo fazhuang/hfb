@@ -1,9 +1,9 @@
 <template>
   <div class="library-page">
     <ResearchPageHeader
-      title="Library"
-      description="古籍文献搜索与全文阅读"
-      :breadcrumbs="[{ label: 'Library' }]"
+      title="文献库"
+      description="古籍文献检索、浏览与全文阅读"
+      :breadcrumbs="[{ label: '文献库' }]"
     />
 
     <div class="lib-body">
@@ -50,7 +50,7 @@
         v-else-if="total === 0 && !isSearchActive"
         title="暂无文献"
         description="文献库中还没有文献记录，请稍后再来。"
-        icon="📚"
+        icon="book-open"
       />
 
       <!-- Empty: search/filter returned no results -->
@@ -58,7 +58,7 @@
         v-else-if="items.length === 0 && isSearchActive"
         title="未找到匹配的文献"
         :description="searchEmptyDescription"
-        icon="🔍"
+        icon="search"
       >
         <template #action>
           <button class="lib-clear-btn" @click="clearAllFilters">清空筛选条件</button>

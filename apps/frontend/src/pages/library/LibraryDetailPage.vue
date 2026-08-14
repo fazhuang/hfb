@@ -248,7 +248,7 @@ const passageId = computed(() => (route.query.passage as string) || undefined);
 const { doc, stats, loading, error, fetch } = useLibraryDetail(docId);
 
 const breadcrumbs = computed<Breadcrumb[]>(() => [
-  { label: 'Library', to: { name: 'library-search' } },
+  { label: '文献库', to: { name: 'library-search' } },
   { label: doc.value?.title || '文献详情' },
 ]);
 

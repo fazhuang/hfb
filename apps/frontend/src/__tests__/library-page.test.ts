@@ -130,7 +130,7 @@ describe('LibrarySearchPage', () => {
     setActivePinia(createPinia());
   });
 
-  it('1. renders page title "Library"', async () => {
+  it('1. renders page title "文献库"', async () => {
     mockGet('/api/v1/documents', { items: [], total: 0 });
     const router = makeRouter();
     await router.push('/library');
@@ -140,7 +140,7 @@ describe('LibrarySearchPage', () => {
     const wrapper = mount(LibrarySearchPage, {
       global: { plugins: [i18n, router, createPinia()] },
     });
-    expect(wrapper.text()).toContain('Library');
+    expect(wrapper.text()).toContain('文献库');
   });
 
   it('2. loads document list from API on mount', async () => {
@@ -612,9 +612,8 @@ describe('LibraryDetailPage', () => {
     expect(link.exists()).toBe(true);
   });
 
-  it('15b. version badge renders "版本信息不可用" on document card', async () => {
-    // LibraryDocumentCard must always show a version badge.
-    // The LibraryDocument type has no `version` field — honest fallback.
+  it('15b. document card renders dynasty and copyright badges', async () => {
+    // LibraryDocumentCard shows dynasty/category meta and copyright/review badges.
     const { default: LibraryDocumentCard } =
       await import('@/components/library/LibraryDocumentCard.vue');
     const wrapper = mount(LibraryDocumentCard, {
@@ -636,7 +635,8 @@ describe('LibraryDetailPage', () => {
         stubs: { 'router-link': { template: '<a><slot/></a>' } },
       },
     });
-    expect(wrapper.text()).toContain('版本信息不可用');
+    expect(wrapper.text()).toContain('晋');
+    expect(wrapper.text()).toContain('公共领域');
   });
 
   it('15c. passage query param is forwarded to Reader', async () => {
