@@ -117,7 +117,6 @@
           <span class="info-tag" :class="`type-${selectedNode.category}`">
             {{ categoryLabels[selectedNode.category] }}
           </span>
-          <span class="info-id">{{ selectedNode.id }}</span>
         </div>
         <strong class="info-title">{{ selectedNode.label }}</strong>
         <p class="info-desc">{{ selectedNode.description }}</p>
@@ -381,7 +380,8 @@ const computedEdges = computed<Array<ComputedEdge>>(() => {
 
 /** 外围节点标签：统一居中置于节点正下方（相对节点中心的偏移，随 <g> translate 定位） */
 function nodeLabel(n: NodeData): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } {
-  return { x: 0, y: n.r + 12, anchor: 'middle' };
+  const isCenter = n.id === 'person:huangfu_mi';
+  return { x: 0, y: n.r + 12 + (isCenter ? 10 : 0), anchor: 'middle' };
 }
 
 const selectedNode = computed<NodeData | null>(() => {
@@ -738,12 +738,6 @@ const selectedNode = computed<NodeData | null>(() => {
 .info-tag.type-research {
   color: var(--color-success-text);
   background: var(--color-success-bg);
-}
-
-.info-id {
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
-  color: var(--color-text-muted);
 }
 
 .info-title {
