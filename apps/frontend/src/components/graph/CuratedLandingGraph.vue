@@ -27,20 +27,19 @@
         role="img"
         aria-label="皇甫谧与针灸甲乙经学术关系网络"
       >
-        <!-- 连线组 -->
+        <!-- 同心辅助环 (学术舆图底色) -->
+        <g class="guide-rings" aria-hidden="true">
+          <circle cx="300" cy="195" r="86" class="guide-ring" />
+          <circle cx="300" cy="195" r="150" class="guide-ring" />
+        </g>
+
+        <!-- 连线组 (静态，无 hover 联动) -->
         <g class="edges-group">
-          <line
+          <path
             v-for="(edge, idx) in computedEdges"
             :key="`edge-${idx}`"
-            :x1="edge.x1"
-            :y1="edge.y1"
-            :x2="edge.x2"
-            :y2="edge.y2"
+            :d="edge.d"
             class="graph-edge"
-            :class="{
-              'is-active':
-                activeNodeId && (edge.source === activeNodeId || edge.target === activeNodeId),
-            }"
           />
         </g>
 
@@ -50,14 +49,7 @@
             v-for="node in nodes"
             :key="node.id"
             class="graph-node-group"
-            :class="[
-              `type-${node.category}`,
-              {
-                'is-active': activeNodeId === node.id,
-                'is-connected': isConnected(node.id),
-                'is-dimmed': activeNodeId && activeNodeId !== node.id && !isConnected(node.id),
-              },
-            ]"
+            :class="[`type-${node.category}`, { 'is-center': node.id === 'person:huangfu_mi' }]"
             :transform="`translate(${node.x}, ${node.y})`"
             tabindex="0"
             role="button"
@@ -67,12 +59,31 @@
             @focus="activeNodeId = node.id"
             @blur="activeNodeId = null"
           >
+            <!-- 透明热区：比可见圆大，稳定命中，杜绝 hover 边界抖动 -->
+            <circle :r="node.r + 16" class="node-hit" />
             <!-- 节点外圈脉冲光晕 (仅中心节点皇甫谧) -->
             <circle v-if="node.id === 'person:huangfu_mi'" r="44" class="pulse-ring" />
+            <!-- 激活光晕 (纯 CSS :hover 触发) -->
+            <circle :r="node.r + 8" class="node-halo" />
             <!-- 节点主图形 -->
             <circle :r="node.r" class="node-circle" />
-            <!-- 节点文本 -->
-            <text dy="0.35em" text-anchor="middle" class="node-text">
+            <!-- 中心节点文字 (置于圆内) -->
+            <text
+              v-if="node.id === 'person:huangfu_mi'"
+              dy="0.35em"
+              text-anchor="middle"
+              class="node-text node-text--center"
+            >
+              {{ node.label }}
+            </text>
+            <!-- 外围节点标签 (置于圆外，相对节点放射放置，纯 CSS :hover 联动) -->
+            <text
+              v-if="node.id !== 'person:huangfu_mi'"
+              :x="nodeLabel(node).x"
+              :y="nodeLabel(node).y"
+              :text-anchor="nodeLabel(node).anchor"
+              class="node-label"
+            >
               {{ node.label }}
             </text>
           </g>
@@ -126,10 +137,7 @@ export interface EdgeData {
 export interface ComputedEdge {
   source: string;
   target: string;
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
+  d: string;
 }
 
 export interface LegendItem {
@@ -308,39 +316,49 @@ const nodeMap = computed<Map<string, NodeData>>(() => {
   return map;
 });
 
+/** 将连线端点裁剪到节点圆边界，并生成二次贝塞尔曲线，营造学术网络柔和感 */
+function edgePath(s: NodeData, t: NodeData): string {
+  const dx = t.x - s.x;
+  const dy = t.y - s.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 1) return '';
+  const ux = dx / len;
+  const uy = dy / len;
+  const gap = 3;
+  const sx = s.x + ux * (s.r + gap);
+  const sy = s.y + uy * (s.r + gap);
+  const tx = t.x - ux * (t.r + gap);
+  const ty = t.y - uy * (t.r + gap);
+  // 垂向弯曲量：随边长柔和增大
+  const bend = Math.min(20, len * 0.16);
+  const cx = (sx + tx) / 2 - uy * bend;
+  const cy = (sy + ty) / 2 + ux * bend;
+  return `M ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${tx.toFixed(
+    1,
+  )} ${ty.toFixed(1)}`;
+}
+
 const computedEdges = computed<Array<ComputedEdge>>(() => {
   const result: Array<ComputedEdge> = [];
   for (const e of edges) {
     const s = nodeMap.value.get(e.source);
     const t = nodeMap.value.get(e.target);
     if (s && t) {
-      result.push({
-        source: e.source,
-        target: e.target,
-        x1: s.x,
-        y1: s.y,
-        x2: t.x,
-        y2: t.y,
-      });
+      result.push({ source: e.source, target: e.target, d: edgePath(s, t) });
     }
   }
   return result;
 });
 
+/** 外围节点标签：统一居中置于节点正下方（相对节点中心的偏移，随 <g> translate 定位） */
+function nodeLabel(n: NodeData): { x: number; y: number; anchor: 'start' | 'middle' | 'end' } {
+  return { x: 0, y: n.r + 12, anchor: 'middle' };
+}
+
 const selectedNode = computed<NodeData | null>(() => {
   if (!activeNodeId.value) return null;
   return nodeMap.value.get(activeNodeId.value) ?? null;
 });
-
-function isConnected(nodeId: string): boolean {
-  if (!activeNodeId.value) return false;
-  if (nodeId === activeNodeId.value) return true;
-  return edges.some(
-    (e) =>
-      (e.source === activeNodeId.value && e.target === nodeId) ||
-      (e.target === activeNodeId.value && e.source === nodeId),
-  );
-}
 </script>
 
 <style scoped>
@@ -353,13 +371,13 @@ function isConnected(nodeId: string): boolean {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-2xl);
   padding: var(--space-5);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-card-sm);
 }
 
 .graph-header {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .graph-badge {
@@ -370,23 +388,26 @@ function isConnected(nodeId: string): boolean {
   color: var(--color-accent);
   background: var(--color-accent-light);
   padding: var(--space-0-5) var(--space-2-5);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
 }
 
 .graph-title {
   margin: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+  letter-spacing: 0.02em;
 }
 
 /* 5 大分维图例 Legend */
 .graph-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-4);
   align-items: center;
-  padding: var(--space-1) 0;
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
 }
 
 .legend-item {
@@ -400,7 +421,7 @@ function isConnected(nodeId: string): boolean {
 .legend-dot {
   width: 10px;
   height: 10px;
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-round);
   display: inline-block;
   box-sizing: border-box;
 }
@@ -437,61 +458,90 @@ function isConnected(nodeId: string): boolean {
   display: block;
 }
 
-/* 连线 */
-.graph-edge {
+/* 同心辅助环 */
+.guide-ring {
+  fill: none;
   stroke: var(--color-border);
-  stroke-width: 1.5;
-  transition:
-    stroke var(--transition-base),
-    stroke-width var(--transition-base),
-    opacity var(--transition-base);
-  vector-effect: non-scaling-stroke;
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+  opacity: 0.7;
 }
 
-.graph-edge.is-active {
-  stroke: var(--color-accent);
-  stroke-width: 2.5;
-  opacity: 1;
+/* 连线 (静态) */
+.graph-edge {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
 /* 节点 */
 .graph-node-group {
   cursor: pointer;
   outline: none;
-  transition:
-    opacity var(--transition-base),
-    transform var(--transition-base);
 }
 
-.graph-node-group.is-dimmed {
-  opacity: 0.25;
+/* 透明热区 */
+.node-hit {
+  fill: transparent;
+  pointer-events: all;
+}
+
+/* 激活光晕 (纯 CSS 自身 hover 态，无 JS 状态联动) */
+.node-halo {
+  fill: var(--color-accent-alpha-08);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.graph-node-group:hover .node-halo,
+.graph-node-group:focus-visible .node-halo {
+  opacity: 1;
 }
 
 .graph-node-group:focus-visible .node-circle {
   stroke: var(--color-accent);
-  stroke-width: 3px;
 }
 
 .node-circle {
-  transition: all var(--transition-base);
+  transition:
+    fill var(--transition-base),
+    stroke var(--transition-base);
   vector-effect: non-scaling-stroke;
 }
 
 .node-text {
-  font-size: 11px;
   font-weight: var(--font-bold);
   pointer-events: none;
   user-select: none;
+}
+
+.node-text--center {
+  font-size: 14px;
+  fill: var(--color-on-accent);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+}
+
+/* 外围节点标签 */
+.node-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  fill: var(--color-text-secondary);
+  pointer-events: none;
+  user-select: none;
+  transition: fill var(--transition-base);
+}
+
+.graph-node-group:hover .node-label {
+  fill: var(--color-accent);
 }
 
 /* 类型配色方案（零 Hex 色值，全量 Design Tokens） */
 .type-person .node-circle {
   fill: var(--color-accent);
   stroke: var(--color-accent-hover);
-}
-.type-person .node-text {
-  fill: var(--color-on-accent);
-  font-size: 13px;
+  stroke-width: 1;
 }
 
 .type-work .node-circle {
@@ -499,17 +549,11 @@ function isConnected(nodeId: string): boolean {
   stroke: var(--color-accent);
   stroke-width: 2;
 }
-.type-work .node-text {
-  fill: var(--color-accent);
-}
 
 .type-edition .node-circle {
   fill: var(--color-info-bg);
   stroke: var(--color-info);
   stroke-width: 1.5;
-}
-.type-edition .node-text {
-  fill: var(--color-info-text);
 }
 
 .type-transmission .node-circle {
@@ -517,49 +561,40 @@ function isConnected(nodeId: string): boolean {
   stroke: var(--color-warning);
   stroke-width: 1.5;
 }
-.type-transmission .node-text {
-  fill: var(--color-warning-text);
-}
 
 .type-research .node-circle {
   fill: var(--color-success-bg);
   stroke: var(--color-success);
   stroke-width: 1.5;
 }
-.type-research .node-text {
-  fill: var(--color-success-text);
-}
 
-/* 悬停与激活放大 */
-.graph-node-group.is-active .node-circle,
-.graph-node-group:hover .node-circle {
-  transform: scale(1.15);
-  stroke: var(--color-accent-hover);
+/* 中心节点：双环描边，凸显核心 */
+.graph-node-group.is-center .node-circle {
+  stroke: var(--color-on-accent);
   stroke-width: 2.5;
+  paint-order: stroke;
 }
 
-/* 中心节点脉冲微动画 */
+.graph-node-group.is-center .node-halo {
+  fill: var(--color-accent-alpha-12);
+}
+
+/* 中心节点脉冲微动画：仅透明度呼吸，无几何缩放（跨浏览器稳定） */
 .pulse-ring {
   fill: none;
   stroke: var(--color-accent);
   stroke-width: 1.5;
   opacity: 0.3;
-  animation: pulse-ring 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
-  transform-origin: center;
+  animation: pulse-ring 2.5s ease-in-out infinite;
 }
 
 @keyframes pulse-ring {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.6;
+  0%,
+  100% {
+    opacity: 0.45;
   }
   50% {
-    transform: scale(1.15);
-    opacity: 0.2;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0.6;
+    opacity: 0.12;
   }
 }
 
@@ -569,21 +604,24 @@ function isConnected(nodeId: string): boolean {
     animation: none;
   }
   .node-circle,
-  .graph-node-group,
-  .graph-edge {
+  .node-halo,
+  .node-label {
     transition: none;
   }
 }
 
-/* 底部说明卡片 */
+/* 底部说明卡片：固定高度，避免悬停切换内容时页面上下跳动 */
 .graph-info-card {
-  min-height: 76px;
+  height: 91px;
+  box-sizing: border-box;
   background: var(--color-page-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-lg);
   padding: var(--space-3) var(--space-4);
   display: flex;
   align-items: center;
+  transition: border-color var(--transition-base);
 }
 
 .info-content {
@@ -614,7 +652,7 @@ function isConnected(nodeId: string): boolean {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
   padding: 1px var(--space-2);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-sm);
 }
 
 .info-tag.type-work {
@@ -645,15 +683,16 @@ function isConnected(nodeId: string): boolean {
 }
 
 .info-title {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
+  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
 }
 
 .info-desc {
   margin: 0;
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 </style>
