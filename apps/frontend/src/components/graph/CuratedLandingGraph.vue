@@ -37,7 +37,7 @@
         <!-- 中心节点头像裁剪 -->
         <defs>
           <clipPath id="center-avatar-clip">
-            <circle cx="0" cy="0" r="50" />
+            <circle cx="0" cy="0" r="46" />
           </clipPath>
         </defs>
 
@@ -70,7 +70,7 @@
             <!-- 透明热区：比可见圆大，稳定命中，杜绝 hover 边界抖动 -->
             <circle :r="node.r + 16" class="node-hit" />
             <!-- 节点外圈脉冲光晕 (仅中心节点皇甫谧) -->
-            <circle v-if="node.id === 'person:huangfu_mi'" r="60" class="pulse-ring" />
+            <circle v-if="node.id === 'person:huangfu_mi'" r="56" class="pulse-ring" />
             <!-- 激活光晕 (纯 CSS :hover 触发) -->
             <circle :r="node.r + 8" class="node-halo" />
 
@@ -78,10 +78,10 @@
             <template v-if="node.id === 'person:huangfu_mi'">
               <image
                 :href="huangfuMi"
-                x="-50"
-                y="-50"
-                width="100"
-                height="100"
+                x="-46"
+                y="-46"
+                width="92"
+                height="92"
                 class="node-avatar"
                 clip-path="url(#center-avatar-clip)"
               />
@@ -201,7 +201,7 @@ const nodes: Array<NodeData> = [
     category: 'person',
     x: 300,
     y: 195,
-    r: 50,
+    r: 46,
     description:
       '魏晋时期著名医学家、史学家、文献学家（215–282），字士安，号玄晏先生，撰《针灸甲乙经》。',
   },
