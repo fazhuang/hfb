@@ -18,6 +18,7 @@
         <span class="legend-label">{{ item.label }}</span>
       </div>
     </div>
+    <p class="graph-credit">中心画像：皇甫谧，甘伯宗绘（唐）· Wellcome 藏，CC BY 4.0</p>
 
     <div class="graph-svg-wrapper">
       <svg
@@ -32,6 +33,13 @@
           <circle cx="300" cy="195" r="86" class="guide-ring" />
           <circle cx="300" cy="195" r="150" class="guide-ring" />
         </g>
+
+        <!-- 中心节点头像裁剪 -->
+        <defs>
+          <clipPath id="center-avatar-clip">
+            <circle cx="0" cy="0" r="36" />
+          </clipPath>
+        </defs>
 
         <!-- 连线组 (静态，无 hover 联动) -->
         <g class="edges-group">
@@ -65,20 +73,31 @@
             <circle v-if="node.id === 'person:huangfu_mi'" r="44" class="pulse-ring" />
             <!-- 激活光晕 (纯 CSS :hover 触发) -->
             <circle :r="node.r + 8" class="node-halo" />
-            <!-- 节点主图形 -->
-            <circle :r="node.r" class="node-circle" />
-            <!-- 中心节点文字 (置于圆内) -->
+
+            <!-- 中心节点：皇甫谧木刻画像 -->
+            <template v-if="node.id === 'person:huangfu_mi'">
+              <image
+                :href="huangfuMi"
+                x="-36"
+                y="-36"
+                width="72"
+                height="72"
+                class="node-avatar"
+                clip-path="url(#center-avatar-clip)"
+              />
+              <circle :r="node.r" class="node-circle node-ring" />
+            </template>
+
+            <!-- 类别节点：彩色圆 + 类别印章字 -->
+            <template v-else>
+              <circle :r="node.r" class="node-circle" />
+              <text dy="0.35em" text-anchor="middle" class="node-seal">
+                {{ categoryGlyph[node.category] }}
+              </text>
+            </template>
+
+            <!-- 节点标签 (统一居中置于圆下方) -->
             <text
-              v-if="node.id === 'person:huangfu_mi'"
-              dy="0.35em"
-              text-anchor="middle"
-              class="node-text node-text--center"
-            >
-              {{ node.label }}
-            </text>
-            <!-- 外围节点标签 (置于圆外，相对节点放射放置，纯 CSS :hover 联动) -->
-            <text
-              v-if="node.id !== 'person:huangfu_mi'"
               :x="nodeLabel(node).x"
               :y="nodeLabel(node).y"
               :text-anchor="nodeLabel(node).anchor"
@@ -114,6 +133,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import huangfuMi from '@/assets/huangfu_mi.jpg';
 
 const { t } = useI18n();
 
@@ -146,6 +166,15 @@ export interface LegendItem {
 }
 
 const activeNodeId = ref<string | null>(null);
+
+/** 类别印章单字：著作/人物/版本/传播/研究 */
+const categoryGlyph: Record<NodeCategory, string> = {
+  work: '著',
+  person: '人',
+  edition: '本',
+  transmission: '传',
+  research: '研',
+};
 
 const categoryLabels: Record<NodeCategory, string> = {
   work: '著作',
@@ -443,6 +472,12 @@ const selectedNode = computed<NodeData | null>(() => {
   background: var(--color-success);
 }
 
+.graph-credit {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
 .graph-svg-wrapper {
   position: relative;
   width: 100%;
@@ -511,16 +546,43 @@ const selectedNode = computed<NodeData | null>(() => {
   vector-effect: non-scaling-stroke;
 }
 
-.node-text {
-  font-weight: var(--font-bold);
+/* 中心节点画像 */
+.node-avatar {
   pointer-events: none;
   user-select: none;
 }
 
-.node-text--center {
-  font-size: 14px;
-  fill: var(--color-on-accent);
+.node-ring {
+  fill: none;
+}
+
+/* 类别节点印章字 */
+.node-seal {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  pointer-events: none;
+  user-select: none;
   font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+}
+
+.type-work .node-seal {
+  fill: var(--color-accent);
+}
+
+.type-person .node-seal {
+  fill: var(--color-on-accent);
+}
+
+.type-edition .node-seal {
+  fill: var(--color-info-text);
+}
+
+.type-transmission .node-seal {
+  fill: var(--color-warning-text);
+}
+
+.type-research .node-seal {
+  fill: var(--color-success-text);
 }
 
 /* 外围节点标签 */
@@ -568,8 +630,9 @@ const selectedNode = computed<NodeData | null>(() => {
   stroke-width: 1.5;
 }
 
-/* 中心节点：双环描边，凸显核心 */
+/* 中心节点：头像 + 描边环，凸显核心 */
 .graph-node-group.is-center .node-circle {
+  fill: none;
   stroke: var(--color-on-accent);
   stroke-width: 2.5;
   paint-order: stroke;
