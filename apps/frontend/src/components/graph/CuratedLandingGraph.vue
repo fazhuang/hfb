@@ -18,7 +18,7 @@
         <span class="legend-label">{{ item.label }}</span>
       </div>
     </div>
-    <p class="graph-credit">中心画像：皇甫谧，甘伯宗绘（唐）· Wellcome 藏，CC BY 4.0</p>
+    <p class="graph-credit">中心画像：皇甫谧造像 · 蒋兆和绘（《中华历代名医画像》，北京科学技术出版社 2014）</p>
 
     <div class="graph-svg-wrapper">
       <svg
