@@ -37,6 +37,15 @@ body {
   min-height: 100vh;
 }
 
+/* ---- Global heading typography: titles in literary serif, body stays sans ---- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  letter-spacing: 0.02em;
+}
+
 /* ---- Shared Utility Classes ---- */
 
 /* Screen-reader only */
