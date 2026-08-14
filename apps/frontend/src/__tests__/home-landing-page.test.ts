@@ -129,7 +129,7 @@ describe('Phase 5 & 6 Components', () => {
       expect(firstNode.attributes('role')).toBe('button');
 
       await firstNode.trigger('focus');
-      expect(wrapper.find('.graph-info-card').text()).toContain('皇甫谧');
+      expect(wrapper.find('.graph-info-card').text()).toContain('皇甫謐');
     });
 
     it('renders edges between nodes', () => {

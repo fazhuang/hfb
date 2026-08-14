@@ -167,12 +167,12 @@ export interface LegendItem {
 
 const activeNodeId = ref<string | null>(null);
 
-/** 类别印章单字：著作/人物/版本/传播/研究 */
+/** 类别印章单字：著作/人物/版本/传播/研究（繁体） */
 const categoryGlyph: Record<NodeCategory, string> = {
   work: '著',
   person: '人',
   edition: '本',
-  transmission: '传',
+  transmission: '傳',
   research: '研',
 };
 
@@ -197,7 +197,7 @@ const nodes: Array<NodeData> = [
   // 1. 中心节点 (person)
   {
     id: 'person:huangfu_mi',
-    label: '皇甫谧',
+    label: '皇甫謐',
     category: 'person',
     x: 300,
     y: 195,
@@ -208,7 +208,7 @@ const nodes: Array<NodeData> = [
   // 2. 著作维度 (work)
   {
     id: 'work:zhenjiu_jiayi_jing',
-    label: '针灸甲乙经',
+    label: '針灸甲乙經',
     category: 'work',
     x: 185,
     y: 105,
@@ -217,7 +217,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'work:diwang_shiji',
-    label: '帝王世纪',
+    label: '帝王世紀',
     category: 'work',
     x: 300,
     y: 75,
@@ -226,7 +226,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'work:gaoshi_zhuan',
-    label: '高士传',
+    label: '高士傳',
     category: 'work',
     x: 125,
     y: 80,
@@ -236,7 +236,7 @@ const nodes: Array<NodeData> = [
   // 3. 人物维度 (person)
   {
     id: 'person:huang_longxiang',
-    label: '黄龙祥',
+    label: '黃龍祥',
     category: 'person',
     x: 415,
     y: 110,
@@ -255,7 +255,7 @@ const nodes: Array<NodeData> = [
   // 4. 版本维度 (edition)
   {
     id: 'edition:zhengtong_daozang',
-    label: '正统道藏本',
+    label: '正統道藏本',
     category: 'edition',
     x: 125,
     y: 225,
@@ -264,7 +264,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'edition:siku_quanshu',
-    label: '四库全书本',
+    label: '四庫全書本',
     category: 'edition',
     x: 75,
     y: 155,
@@ -283,7 +283,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'transmission:longdong_chuanbo',
-    label: '陇东传播',
+    label: '隴東傳播',
     category: 'transmission',
     x: 100,
     y: 320,
@@ -292,7 +292,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'transmission:dongya_chuanbo',
-    label: '东亚传播',
+    label: '東亞傳播',
     category: 'transmission',
     x: 300,
     y: 340,
@@ -302,7 +302,7 @@ const nodes: Array<NodeData> = [
   // 6. 现代研究维度 (research)
   {
     id: 'research:jingxue_kaoding',
-    label: '现代经穴考订',
+    label: '現代經穴考訂',
     category: 'research',
     x: 420,
     y: 285,
@@ -311,7 +311,7 @@ const nodes: Array<NodeData> = [
   },
   {
     id: 'research:wenxian_jiliang',
-    label: '文献计量研究',
+    label: '文獻計量研究',
     category: 'research',
     x: 510,
     y: 260,
@@ -562,7 +562,7 @@ const selectedNode = computed<NodeData | null>(() => {
   font-weight: var(--font-bold);
   pointer-events: none;
   user-select: none;
-  font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', serif;
+  font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', serif;
 }
 
 .type-work .node-seal {
@@ -593,6 +593,7 @@ const selectedNode = computed<NodeData | null>(() => {
   pointer-events: none;
   user-select: none;
   transition: fill var(--transition-base);
+  font-family: 'Kaiti SC', 'STKaiti', 'KaiTi', 'Songti SC', serif;
 }
 
 .graph-node-group:hover .node-label {
