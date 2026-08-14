@@ -401,6 +401,53 @@ class TestOcrPdfPages:
 
 
 # ============================================================
+# _paddle_reorder — reading-order logic for PaddleOCR boxes
+# ============================================================
+
+
+def _box(x0: float, y0: float, w: float, h: float) -> list:
+    """Build a PaddleOCR-format box (4 corners) for a line."""
+    return [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]]
+
+
+def _res(lines: list[tuple[list, str]]) -> list:
+    """Wrap (box, text) lines into the RapidOCR result shape."""
+    return [[box, txt, "0.99"] for box, txt in lines]
+
+
+class TestPaddleReorder:
+    """_paddle_reorder — vertical (right-to-left) vs horizontal ordering."""
+
+    def test_vertical_columns_read_right_to_left(self) -> None:
+        # Two tall columns: right column x≈900, left column x≈300.
+        right = _box(900, 100, 60, 800)
+        left = _box(300, 100, 60, 800)
+        res = _res([(right, "右列"), (left, "左列")])
+        out = IngestionService._paddle_reorder(res)
+        assert out == "右列\n左列"  # right column emitted first
+
+    def test_vertical_column_lines_top_to_bottom(self) -> None:
+        # Single tall column, two lines stacked vertically.
+        top = _box(500, 100, 60, 300)
+        bottom = _box(500, 450, 60, 300)
+        res = _res([(bottom, "下句"), (top, "上句")])
+        out = IngestionService._paddle_reorder(res)
+        assert out == "上句\n下句"
+
+    def test_horizontal_rows_read_top_to_bottom(self) -> None:
+        # Wide rows → horizontal layout wins.
+        row1 = _box(100, 100, 800, 40)
+        row2 = _box(100, 200, 800, 40)
+        res = _res([(row2, "第二行"), (row1, "第一行")])
+        out = IngestionService._paddle_reorder(res)
+        assert out == "第一行\n第二行"
+
+    def test_empty_result_returns_empty_string(self) -> None:
+        assert IngestionService._paddle_reorder(None) == ""
+        assert IngestionService._paddle_reorder([]) == ""
+
+
+# ============================================================
 # _ensure_source_ref — async static method, DB required
 # ============================================================
 

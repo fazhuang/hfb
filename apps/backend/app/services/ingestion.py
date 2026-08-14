@@ -11,7 +11,7 @@ import hashlib
 import logging
 from datetime import UTC
 from io import BytesIO
-from typing import BinaryIO
+from typing import Any, BinaryIO
 from uuid import uuid4
 
 from pypdf import PdfReader
@@ -27,6 +27,24 @@ from app.repositories.document import DocumentRepository
 from app.services.chunking import chunk_text
 
 logger = logging.getLogger(__name__)
+
+# Module-level RapidOCR singleton — model load is ~1s, so reusing it across
+# pages avoids a per-page reload (which would add ~30+ min on a 1000-page scan).
+# RapidOCR (onnxruntime + PP-OCRv4) replaces PaddleOCR: paddlepaddle 3.0.0 on
+# py3.13 has a deterministic CPU allocator bug (RuntimeError "No allocator
+# found") on certain page layouts, corrupting every 4th page. RapidOCR runs the
+# same PP-OCRv4 models on onnxruntime with no such failure.
+_rapid_ocr: Any = None
+
+
+def _get_rapid_ocr() -> Any:
+    global _rapid_ocr
+    if _rapid_ocr is None:
+        from rapidocr_onnxruntime import RapidOCR
+
+        _rapid_ocr = RapidOCR()
+    return _rapid_ocr
+
 
 # Whitelist: allowed metadata keys that can be stored on the Document model.
 # Prevents mass-assignment of internal fields (is_deleted, deleted_at, etc.)
@@ -1034,12 +1052,16 @@ class IngestionService:
         page_number: int | None = None,
         ocr_confidence: float | None = None,
         page_numbers: list[int | None] | None = None,
+        page_image_hashes: list[str | None] | None = None,
     ) -> None:
         """Store chunks with optional paragraph_index, page_number, ocr_confidence.
 
         page_numbers, when provided, assigns per-chunk page numbers (by index).
         Falls back to the single page_number parameter when page_numbers is None
         or doesn't have a value at the chunk's index.
+
+        page_image_hashes, when provided, assigns per-chunk page image hashes
+        (by index) for later visual provenance / OCR correction.
         """
         for idx, item in enumerate(chunks):
             if isinstance(item, str):
@@ -1060,6 +1082,11 @@ class IngestionService:
             if pn is None:
                 pn = page_number
 
+            # Per-chunk page image hash (visual provenance)
+            pih: str | None = None
+            if page_image_hashes is not None and idx < len(page_image_hashes):
+                pih = page_image_hashes[idx]
+
             chunk = DocumentChunk(
                 id=str(uuid4()),
                 document_id=document_id,
@@ -1075,6 +1102,7 @@ class IngestionService:
                 else idx,  # fallback to chunk_index
                 ocr_confidence=ocr,
                 evidence_weight=evidence_weight,
+                page_image_hash=pih,
             )
             self.session.add(chunk)
         await self.session.flush()
@@ -1262,23 +1290,23 @@ class IngestionService:
         dpi: int = 300,
         batch_size: int = 30,
     ) -> dict[int, str]:
-        """OCR specific pages of a scanned PDF using tesseract.
+        """OCR specific pages of a scanned PDF.
 
-        Uses pdf2image to render pages to PNG, then pytesseract to OCR.
-        Returns a dict mapping page number (1-based) to OCR text.
-        Empty pages are omitted from the result.
+        Primary engine: PaddleOCR (PP-OCRv4 ch model) — far better than
+        tesseract on classical Chinese, especially vertical (right-to-left)
+        column layout. Output is reordered into reading order per page.
+
+        Falls back to tesseract when PaddleOCR is unavailable.
 
         Renders in batches of `batch_size` pages so a 1000+ page scan never
         holds all rendered bitmaps in memory at once (all-at-once would OOM
         at ~12GB of raw RGB for a 1100-page A4 scan).
         """
         try:
-            import pytesseract
+            import pdf2image  # noqa: F401
             from pdf2image import convert_from_bytes
         except ImportError as e:
-            raise PDFExtractionError(
-                f"OCR requires pdf2image and pytesseract: {e}"
-            ) from e
+            raise PDFExtractionError(f"OCR requires pdf2image: {e}") from e
 
         result: dict[int, str] = {}
         sorted_pages = sorted(page_numbers)
@@ -1297,13 +1325,91 @@ class IngestionService:
                 pg = chunk[0] + offset
                 if pg not in page_numbers:
                     continue
-                try:
-                    text = pytesseract.image_to_string(
-                        img, lang=lang, config="--psm 6"
-                    )
-                except (OSError, RuntimeError):
-                    text = ""
-                if text and text.strip():
-                    result[pg] = text.strip()
+                text = IngestionService._paddle_ocr_image(img, lang=lang)
+                if text:
+                    result[pg] = text
 
         return result
+
+    @staticmethod
+    def _paddle_ocr_image(img: Any, lang: str = "chi_sim") -> str:
+        """OCR one rendered page image with RapidOCR, tesseract fallback.
+
+        Returns the page text in reading order (right-to-left columns for
+        vertical pages, top-to-bottom rows for horizontal pages), or '' when
+        neither engine is available / both fail.
+        """
+        try:
+            from rapidocr_onnxruntime import RapidOCR  # noqa: F401
+        except ImportError:
+            return IngestionService._tesseract_ocr_image(img, lang=lang)
+
+        try:
+            import numpy as np
+
+            ocr = _get_rapid_ocr()
+            res, _elapse = ocr(np.array(img))
+            return IngestionService._paddle_reorder(res)
+        except Exception:
+            return IngestionService._tesseract_ocr_image(img, lang=lang)
+
+    @staticmethod
+    def _paddle_reorder(res: Any) -> str:
+        """Reorder OCR line boxes into reading order.
+
+        Accepts RapidOCR result shape: list of [box, text, score_str], or None.
+        Detects vertical layout (classical Chinese columns read right-to-left)
+        vs horizontal, then emits lines in the correct sequence joined by
+        newlines. Column clustering uses a fixed 40px center gap.
+        """
+        if not res:
+            return ""
+        lines: list[dict[str, Any]] = []
+        for line in res:
+            box, txt, _score = line[0], line[1], line[2]
+            xs = [p[0] for p in box]
+            ys = [p[1] for p in box]
+            x0, y0 = min(xs), min(ys)
+            x1, y1 = max(xs), max(ys)
+            w, h = x1 - x0, y1 - y0
+            lines.append(
+                {"x": x0, "y": y0, "cx": (x0 + x1) / 2, "w": w, "h": h, "txt": txt}
+            )
+        if not lines:
+            return ""
+        n_vert = sum(1 for ln in lines if ln["h"] > ln["w"] * 1.5)
+        n_horiz = sum(1 for ln in lines if ln["w"] > ln["h"] * 1.5)
+        if n_vert > n_horiz:
+            # Vertical layout: columns right-to-left, lines top-to-bottom.
+            lines.sort(key=lambda ln: -ln["cx"])
+            cols: list[dict[str, Any]] = []
+            for ln in lines:
+                placed = False
+                for c in cols:
+                    if abs(c["cx"] - ln["cx"]) < 40:
+                        c["lines"].append(ln)
+                        placed = True
+                        break
+                if not placed:
+                    cols.append({"cx": ln["cx"], "lines": [ln]})
+            ordered: list[str] = []
+            for c in cols:
+                c["lines"].sort(key=lambda ln: ln["y"])
+                ordered.extend(ln["txt"] for ln in c["lines"])
+            return "\n".join(ordered)
+        # Horizontal layout: top-to-bottom, then left-to-right.
+        lines.sort(key=lambda ln: (round(ln["y"] / 25), ln["x"]))
+        return "\n".join(ln["txt"] for ln in lines)
+
+    @staticmethod
+    def _tesseract_ocr_image(img: Any, lang: str = "chi_sim") -> str:
+        """Legacy tesseract OCR fallback for a single rendered page image."""
+        try:
+            import pytesseract
+        except ImportError:
+            return ""
+        try:
+            text = pytesseract.image_to_string(img, lang=lang, config="--psm 6")
+        except (OSError, RuntimeError):
+            text = ""
+        return text.strip() if text and text.strip() else ""

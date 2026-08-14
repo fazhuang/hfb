@@ -144,6 +144,7 @@ module = [
     "fitz",
     "pytesseract",
     "paddleocr",
+    "rapidocr_onnxruntime",
     "pdf2image",
     "playwright.sync_api",
     "pytest_playwright",
