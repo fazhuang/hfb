@@ -86,8 +86,8 @@ export default {
     auto: '跟随系统',
   },
   footer: {
-    copyright: '© 2025 皇甫谧数字人文平台',
-    license: 'MIT License',
+    copyright: '甘肃医学院皇甫谧学院 提供学术支撑',
+    license: '天将智能 负责平台开发',
   },
   book: {
     abstract: '摘要',

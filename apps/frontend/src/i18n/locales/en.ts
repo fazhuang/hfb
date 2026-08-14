@@ -86,8 +86,8 @@ export default {
     auto: 'Auto',
   },
   footer: {
-    copyright: '© 2025 Huangfu Mi Digital Humanities Platform',
-    license: 'MIT License',
+    copyright: 'Academic support: Huangfu Mi College, Gansu Medical University',
+    license: 'Platform development: Tianjiang Intelligence',
   },
   book: {
     abstract: 'Abstract',
