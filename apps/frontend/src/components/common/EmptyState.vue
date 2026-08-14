@@ -28,6 +28,13 @@ const props = withDefaults(
 const emptyIconId = computed((): LucideIconName => {
   const map: Record<string, LucideIconName> = {
     '📭': 'inbox',
+    '🔍': 'search',
+    '📄': 'file-text',
+    '📝': 'pen-line',
+    '📚': 'book-open',
+    '🔬': 'flask-conical',
+    '📎': 'link',
+    '📋': 'clipboard-list',
   };
   return map[props.icon] || 'inbox';
 });

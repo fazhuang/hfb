@@ -15,7 +15,8 @@
       </div>
       <div class="rw-header-actions">
         <span v-if="store.hasActiveResearch" class="rw-topic-badge">
-          🔬 {{ store.currentTopic?.name }}
+          <HfbIcon icon="flask-conical" :size="14" class="rw-badge-icon" />
+          {{ store.currentTopic?.name }}
         </span>
       </div>
     </header>
@@ -30,7 +31,7 @@
         :class="['rw-tab', { active: activeTab === tab.key }]"
         @click="activeTab = tab.key"
       >
-        <span class="rw-tab-icon">{{ tab.icon }}</span>
+        <HfbIcon :icon="tab.icon" :size="16" class="rw-tab-icon" />
         <span class="rw-tab-label">{{ tab.label }}</span>
         <span v-if="tab.badge" class="rw-tab-badge">{{ tab.badge }}</span>
       </button>
@@ -311,7 +312,10 @@
             <div class="rw-report-body" v-text="section.content || section.body"></div>
             <!-- Evidence badges for this section -->
             <div v-if="section.evidence_ids?.length" class="rw-section-evidence">
-              <span class="rw-evidence-label">📎 {{ t('researchWorkspace.linkedEvidence') }}:</span>
+              <span class="rw-evidence-label">
+                <HfbIcon icon="link" :size="13" class="rw-inline-icon" />
+                {{ t('researchWorkspace.linkedEvidence') }}:
+              </span>
               <span
                 v-for="(evId, ei) in section.evidence_ids.slice(0, 5)"
                 :key="ei"
@@ -342,7 +346,8 @@
               class="rw-evidence-pill rw-evidence-pill--link"
               @click="openEvidenceInGraph(cit.trace_id)"
             >
-              🔗 {{ t('researchWorkspace.viewInGraph') }}
+              <HfbIcon icon="link" :size="13" class="rw-inline-icon" />
+              {{ t('researchWorkspace.viewInGraph') }}
             </button>
             <!-- P2-⑤: Create note from citation -->
             <button
@@ -350,7 +355,8 @@
               @click="noteFromCitation(cit)"
               :title="t('v4.noteFromCitation')"
             >
-              📝 {{ t('v4.noteFromCitation') }}
+              <HfbIcon icon="pen-line" :size="13" class="rw-inline-icon" />
+              {{ t('v4.noteFromCitation') }}
             </button>
             <!-- Save citation to collection -->
             <button
@@ -358,7 +364,8 @@
               @click="saveReportCitation(cit)"
               :title="t('v4.saveCitation')"
             >
-              💾 {{ t('v4.saveCitation') }}
+              <HfbIcon icon="check" :size="13" class="rw-inline-icon" />
+              {{ t('v4.saveCitation') }}
             </button>
           </div>
         </div>
@@ -492,11 +499,11 @@
               class="rw-chat-msg"
               :class="`rw-chat-msg--${msg.role}`"
             >
-              <span class="rw-chat-role">{{ msg.role === 'user' ? '👤' : '🤖' }}</span>
+              <HfbIcon :icon="msg.role === 'user' ? 'user' : 'bot'" :size="13" class="rw-chat-role-icon" />
               <div class="rw-chat-content" v-text="msg.content"></div>
             </div>
             <div v-if="chatLoading" class="rw-chat-msg rw-chat-msg--assistant">
-              <span class="rw-chat-role">🤖</span>
+              <HfbIcon icon="bot" :size="13" class="rw-chat-role-icon" />
               <div class="rw-chat-content"><span class="rw-typing">...</span></div>
             </div>
           </div>
@@ -560,7 +567,8 @@
                   :disabled="ev.saving"
                   :title="ev.saved ? t('v4.citationSaved') : t('v4.saveCitation')"
                 >
-                  {{ ev.saving ? '...' : ev.saved ? '💾✓' : '💾' }}
+                  <template v-if="ev.saving">...</template>
+                  <HfbIcon v-else :icon="ev.saved ? 'check-circle' : 'check'" :size="14" />
                 </button>
                 <button
                   v-if="ev.entity_type && ev.id"
@@ -568,14 +576,17 @@
                   @click="openEntityInGraph(ev.entity_type, ev.id)"
                   :title="t('researchWorkspace.viewInGraph')"
                 >
-                  🔗
+                  <HfbIcon icon="link" :size="14" />
                 </button>
               </div>
             </div>
 
             <!-- Graph quick-preview if available -->
             <div v-if="evidenceGraphData" class="rw-evidence-graph-preview">
-              <label class="rw-sidebar-label">📊 {{ t('researchWorkspace.evidenceGraph') }}</label>
+              <label class="rw-sidebar-label">
+                <HfbIcon icon="bar-chart-3" :size="13" class="rw-inline-icon" />
+                {{ t('researchWorkspace.evidenceGraph') }}
+              </label>
               <div class="rw-mini-graph">
                 <div
                   v-for="n in evidenceGraphData.nodes?.slice(0, 5)"
@@ -605,6 +616,8 @@ import api, { getErrorMessage } from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
 import ResearchWorkflowView from '@/views/ResearchWorkflowView.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -622,24 +635,24 @@ let pendingAsk: string | undefined;
 
 interface TabDef {
   key: string;
-  icon: string;
+  icon: LucideIconName;
   label: string;
   badge?: string;
 }
 
 const tabs = computed<TabDef[]>(() => [
-  { key: 'materials', icon: '📄', label: t('researchWorkspace.materials') },
-  { key: 'versions', icon: '🏛️', label: t('researchWorkspace.versions') },
+  { key: 'materials', icon: 'file-text', label: t('researchWorkspace.materials') },
+  { key: 'versions', icon: 'landmark', label: t('researchWorkspace.versions') },
   {
     key: 'notes',
-    icon: '📝',
+    icon: 'pen-line',
     label: t('researchWorkspace.notes'),
     badge: String(notesCount.value),
   },
-  { key: 'reports', icon: '📊', label: t('researchWorkspace.reports') },
-  { key: 'research', icon: '校', label: t('nav.research') },
-  { key: 'v4-research', icon: '🧬', label: t('nav.v4Research') },
-  { key: 'assistant', icon: '🤖', label: t('researchWorkspace.assistant') },
+  { key: 'reports', icon: 'bar-chart-3', label: t('researchWorkspace.reports') },
+  { key: 'research', icon: 'diff', label: t('nav.research') },
+  { key: 'v4-research', icon: 'dna', label: t('nav.v4Research') },
+  { key: 'assistant', icon: 'bot', label: t('researchWorkspace.assistant') },
 ]);
 
 // ---- Types ----
@@ -1525,6 +1538,24 @@ watch(sessions, () => {
   border-radius: var(--radius-xl);
   color: var(--color-accent);
   background: var(--color-accent-light);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.rw-badge-icon,
+.rw-inline-icon,
+.rw-chat-role-icon {
+  flex-shrink: 0;
+}
+
+.rw-inline-icon {
+  vertical-align: -2px;
+}
+
+.rw-chat-role-icon {
+  display: block;
+  margin-bottom: 2px;
 }
 
 /* ---- Tabs ---- */

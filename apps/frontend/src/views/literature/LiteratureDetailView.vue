@@ -9,7 +9,8 @@
 
         <!-- P2-②: Active research topic context banner -->
         <div v-if="researchStore.hasActiveResearch" class="topic-context-banner">
-          🔬 {{ t('researchEntry.currentResearch') }}:
+          <HfbIcon icon="flask-conical" :size="14" class="banner-icon" />
+          {{ t('researchEntry.currentResearch') }}:
           <strong>{{ researchStore.currentTopic?.name }}</strong>
         </div>
 
@@ -22,7 +23,8 @@
         <!-- P0-③: Ask AI about this document -->
         <div class="doc-actions">
           <button class="ask-ai-btn" @click="askAIAboutDoc" :title="t('literature.askAI')">
-            🤖 {{ t('literature.askAI') }}
+            <HfbIcon icon="bot" :size="16" class="btn-icon" />
+            {{ t('literature.askAI') }}
           </button>
         </div>
       </div>
@@ -65,7 +67,8 @@
           </div>
         </div>
         <div v-if="doc.withdrawn_at" class="withdrawn-alert">
-          ⚠️ 该文献已于 {{ new Date(doc.withdrawn_at).toLocaleString('zh-CN') }} 撤回 —
+          <HfbIcon icon="triangle-alert" :size="16" class="alert-icon" />
+          该文献已于 {{ new Date(doc.withdrawn_at).toLocaleString('zh-CN') }} 撤回 —
           {{ doc.withdraw_reason || '未提供原因' }}
         </div>
       </section>
@@ -219,6 +222,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
 import api from '@/api/client';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -457,6 +461,19 @@ async function askAIAboutDoc() {
   border-radius: var(--radius-lg);
   font-size: 13px;
   color: var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.banner-icon,
+.btn-icon,
+.alert-icon {
+  flex-shrink: 0;
+}
+
+.alert-icon {
+  vertical-align: -2px;
 }
 .detail-header h1 {
   font-size: 28px;

@@ -69,7 +69,7 @@
         >
           <div class="card-top">
             <div class="card-icon-title">
-              <span class="card-icon">{{ card.icon }}</span>
+              <HfbIcon :icon="card.icon" :size="24" class="card-icon" />
               <div>
                 <h3 class="card-title">{{ card.title }}</h3>
                 <span class="card-subtitle">{{ card.subtitle }}</span>
@@ -96,7 +96,7 @@
               @click="navigateToCategory(card.roleKey)"
             >
               <span>探索该维度人物</span>
-              <span class="arrow-icon">→</span>
+              <HfbIcon icon="arrow-right" :size="14" class="arrow-icon" />
             </button>
           </div>
         </div>
@@ -187,6 +187,8 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 export interface ResearchDimensionCard {
   id: string;
@@ -194,7 +196,7 @@ export interface ResearchDimensionCard {
   title: string;
   subtitle: string;
   description: string;
-  icon: string;
+  icon: LucideIconName;
   badge: string;
   highlights: Array<string>;
 }
@@ -216,7 +218,7 @@ const dimensionCards: Array<ResearchDimensionCard> = [
     title: '皇甫谧主锚点',
     subtitle: '奠基人与《针灸甲乙经》',
     description: '以皇甫谧（215-282，号玄晏先生）为核心主锚点，统摄《针灸甲乙经》十二卷考据，阐明针灸经络腧穴理论规范与经典地位。',
-    icon: '👑',
+    icon: 'user',
     badge: '主锚点',
     highlights: ['皇甫谧本人', '《针灸甲乙经》原作者', '玄晏先生', '针灸学鼻祖'],
   },
@@ -226,7 +228,7 @@ const dimensionCards: Array<ResearchDimensionCard> = [
     title: '魏晋师承与渊源',
     subtitle: '汉魏针灸脉络与家学渊源',
     description: '追溯从扁鹊、仓公（淳于意）、华佗、张仲景至魏晋名医之汉魏针灸脉络与家学渊源，揭示《甲乙经》学术思想承袭与理论源头。',
-    icon: '📜',
+    icon: 'scroll-text',
     badge: '师承渊源',
     highlights: ['扁鹊', '仓公', '华佗', '张仲景', '汉魏名医'],
   },
@@ -236,7 +238,7 @@ const dimensionCards: Array<ResearchDimensionCard> = [
     title: '魏晋交游与名士',
     subtitle: '与魏晋名士及朝臣的交游考据',
     description: '考证皇甫谧与魏晋名士（如嵇康、阮籍、张华）、朝臣及晋武帝司马炎等人的书信往来、玄学论辩与学术交游。',
-    icon: '🤝',
+    icon: 'users',
     badge: '魏晋交游',
     highlights: ['嵇康', '阮籍', '张华', '晋武帝司马炎', '竹林七贤'],
   },
@@ -246,7 +248,7 @@ const dimensionCards: Array<ResearchDimensionCard> = [
     title: '历代注校与辑佚',
     subtitle: '北宋校正医书局及黄龙祥考证',
     description: '整理自唐宋至明清历代医家对《甲乙经》的校勘与辑佚，包含北宋校正医书局（林亿、高保衡等）权威校定及现代黄龙祥教授学术考订。',
-    icon: '🖋️',
+    icon: 'pen-line',
     badge: '历代注校',
     highlights: ['林亿', '高保衡', '北宋校正医书局', '黄龙祥考证'],
   },
@@ -256,7 +258,7 @@ const dimensionCards: Array<ResearchDimensionCard> = [
     title: '学术传播与现代研究',
     subtitle: '东亚传播史与数字人文考据',
     description: '呈现《针灸甲乙经》向日本、朝鲜半岛（如《医心方》、《东医宝鉴》引用）等东亚世界的跨国学术传播史及现代数字人文考据。',
-    icon: '🌏',
+    icon: 'network',
     badge: '学术传播',
     highlights: ['丹波康赖', '《医心方》', '《东医宝鉴》', '数字人文图谱'],
   },

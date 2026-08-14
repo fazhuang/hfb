@@ -28,7 +28,7 @@
     </div>
 
     <div v-else class="rrv-empty">
-      <span class="rrv-empty-icon" aria-hidden="true">📄</span>
+      <HfbIcon icon="file-text" :size="36" class="rrv-empty-icon" />
       <p>此运行尚未生成报告内容。</p>
     </div>
   </section>
@@ -37,6 +37,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ResultReport } from '@/composables/useResearchResult';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const props = defineProps<{
   report: ResultReport;

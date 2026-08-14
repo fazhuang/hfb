@@ -50,6 +50,11 @@ import {
   ChevronUp,
   CheckCheck,
   Dna,
+  Network,
+  Landmark,
+  LogOut,
+  Sun,
+  Moon,
 } from '@lucide/vue';
 
 type LucideIconName =
@@ -89,7 +94,12 @@ type LucideIconName =
   | 'chevron-down'
   | 'chevron-up'
   | 'check-check'
-  | 'dna';
+  | 'dna'
+  | 'network'
+  | 'landmark'
+  | 'logout'
+  | 'sun'
+  | 'moon';
 
 export type { LucideIconName };
 
@@ -131,6 +141,11 @@ const ICON_MAP: Record<LucideIconName, unknown> = {
   'chevron-up': ChevronUp,
   'check-check': CheckCheck,
   dna: Dna,
+  network: Network,
+  landmark: Landmark,
+  logout: LogOut,
+  sun: Sun,
+  moon: Moon,
 };
 
 const props = withDefaults(

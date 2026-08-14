@@ -4,7 +4,7 @@
 
     <!-- No citations -->
     <div v-if="citations.length === 0" class="rcp-empty">
-      <span class="rcp-empty-icon" aria-hidden="true">📎</span>
+      <HfbIcon icon="link" :size="32" class="rcp-empty-icon" />
       <p>此报告暂无引用记录。</p>
     </div>
 
@@ -48,12 +48,12 @@
           <h3 class="rcp-subheading">证据详情</h3>
           <EvidenceDetail v-for="ev in selectedEvidence" :key="ev.trace_id" :evidence="ev" />
           <div v-if="selectedEvidence.length === 0" class="rcp-no-evidence">
-            <span class="rcp-empty-icon" aria-hidden="true">🔍</span>
+            <HfbIcon icon="search" :size="32" class="rcp-empty-icon" />
             <p>此引用缺少证据关联。</p>
           </div>
         </template>
         <div v-else class="rcp-select-prompt">
-          <span class="rcp-empty-icon" aria-hidden="true">👆</span>
+          <HfbIcon icon="chevron-up" :size="32" class="rcp-empty-icon" />
           <p>请选择左侧引用项查看证据详情。</p>
         </div>
       </div>
@@ -65,6 +65,7 @@
 import { computed } from 'vue';
 import type { ResultCitation, ResultEvidence } from '@/composables/useResearchResult';
 import EvidenceDetail from './EvidenceDetail.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const props = withDefaults(
   defineProps<{

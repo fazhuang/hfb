@@ -10,11 +10,11 @@
       </p>
       <div class="banner-actions">
         <button class="action-btn primary-btn" @click="goToIntroView">
-          <span class="btn-icon">📖</span>
+          <HfbIcon icon="book-open" :size="16" class="btn-icon" />
           <span>人物研究网络导览 (查看专题)</span>
         </button>
         <button class="action-btn secondary-btn" @click="showStandardModal = true">
-          <span class="btn-icon">💡</span>
+          <HfbIcon icon="info" :size="16" class="btn-icon" />
           <span>查看准入规则</span>
         </button>
       </div>
@@ -83,6 +83,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import HfbDialog from '@/components/common/HfbDialog.vue';
 
 const router = useRouter();

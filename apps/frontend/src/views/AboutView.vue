@@ -17,32 +17,32 @@
       <h2>技术栈</h2>
       <div class="tech-grid">
         <div class="tech-card">
-          <span class="tech-icon">⚡</span>
+          <HfbIcon icon="flask-conical" :size="24" class="tech-icon" />
           <strong>FastAPI</strong>
           <span>异步 Python 后端</span>
         </div>
         <div class="tech-card">
-          <span class="tech-icon">🟢</span>
+          <HfbIcon icon="diff" :size="24" class="tech-icon" />
           <strong>Vue 3</strong>
           <span>响应式前端框架</span>
         </div>
         <div class="tech-card">
-          <span class="tech-icon">🐘</span>
+          <HfbIcon icon="inbox" :size="24" class="tech-icon" />
           <strong>PostgreSQL</strong>
           <span>关系型数据库</span>
         </div>
         <div class="tech-card">
-          <span class="tech-icon">🔍</span>
+          <HfbIcon icon="search" :size="24" class="tech-icon" />
           <strong>Elasticsearch</strong>
           <span>全文检索</span>
         </div>
         <div class="tech-card">
-          <span class="tech-icon">🧬</span>
+          <HfbIcon icon="network" :size="24" class="tech-icon" />
           <strong>Neo4j</strong>
           <span>知识图谱</span>
         </div>
         <div class="tech-card">
-          <span class="tech-icon">🧠</span>
+          <HfbIcon icon="bot" :size="24" class="tech-icon" />
           <strong>Milvus</strong>
           <span>智能文献检索</span>
         </div>
@@ -53,6 +53,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 const { t } = useI18n();
 </script>
 

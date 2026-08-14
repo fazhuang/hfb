@@ -10,7 +10,7 @@
           :aria-label="item.label"
           :title="item.label"
         >
-          <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+          <HfbIcon :icon="item.icon" :size="16" class="rpn-link-icon" />
           <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
         </router-link>
       </li>
@@ -22,7 +22,7 @@
       <ul class="rpn-section">
         <li v-for="item in adminNavItems" :key="item.path">
           <a v-if="item.external" :href="item.path" class="rpn-link rpn-link--admin">
-            <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+            <HfbIcon :icon="item.icon" :size="16" class="rpn-link-icon" />
             <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
           </a>
           <router-link
@@ -31,7 +31,7 @@
             class="rpn-link rpn-link--admin"
             :class="{ 'rpn-link--active': item.active }"
           >
-            <span class="rpn-link-icon" aria-hidden="true">{{ item.icon }}</span>
+            <HfbIcon :icon="item.icon" :size="16" class="rpn-link-icon" />
             <span class="rpn-link-label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
           </router-link>
         </li>
@@ -45,6 +45,8 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 defineProps<{
   collapsed?: boolean;
@@ -56,7 +58,7 @@ const auth = useAuthStore();
 
 interface NavItem {
   path: string;
-  icon: string;
+  icon: LucideIconName;
   label: string;
   active: boolean;
   external?: boolean;
@@ -75,25 +77,25 @@ const section = computed(() => currentSection());
 const researchNavItems = computed<NavItem[]>(() => [
   {
     path: '/research',
-    icon: '🔬',
+    icon: 'flask-conical',
     label: t('nav.startResearch'),
     active: section.value === 'research',
   },
   {
     path: '/library',
-    icon: '📚',
+    icon: 'library',
     label: t('nav.library'),
     active: section.value === 'library',
   },
   {
     path: '/knowledge',
-    icon: '🔗',
+    icon: 'link',
     label: t('nav.knowledge'),
     active: section.value === 'knowledge',
   },
   {
     path: '/reports',
-    icon: '📊',
+    icon: 'bar-chart-3',
     label: t('nav.reports'),
     active: section.value === 'reports',
   },
@@ -104,7 +106,7 @@ const adminNavItems = computed<NavItem[]>(() => {
   if (auth.canReviewDocuments || auth.canManageSourcePolicies) {
     items.push({
       path: '/admin/literature-review',
-      icon: '⚙️',
+      icon: 'settings',
       label: t('nav.administration'),
       active: section.value === 'admin',
     });

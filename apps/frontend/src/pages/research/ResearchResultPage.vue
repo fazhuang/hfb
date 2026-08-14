@@ -31,7 +31,7 @@
 
       <!-- Quick stats bar for report-missing but ready -->
       <div v-if="!hasReport && hasEvidence" class="rpage-notice">
-        <span class="rpage-notice-icon" aria-hidden="true">📄</span>
+        <HfbIcon icon="file-text" :size="18" class="rpage-notice-icon" />
         <p>报告正文尚未生成，但以下显示了已检索到的证据和引用。</p>
       </div>
 
@@ -103,7 +103,7 @@
 
         <!-- No evidence or citations -->
         <div v-if="!hasEvidence && !hasCitations && hasReport" class="rpage-empty-section">
-          <span class="rpage-empty-icon" aria-hidden="true">🔍</span>
+          <HfbIcon icon="search" :size="32" class="rpage-empty-icon" />
           <p>此报告暂无关联证据与引用。</p>
         </div>
       </div>
@@ -115,6 +115,7 @@
 import { computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useResearchResult } from '@/composables/useResearchResult';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import ResearchResultHeader from '@/components/research/result/ResearchResultHeader.vue';
 import ResearchReportViewer from '@/components/research/result/ResearchReportViewer.vue';
 import CitationPanel from '@/components/research/result/CitationPanel.vue';

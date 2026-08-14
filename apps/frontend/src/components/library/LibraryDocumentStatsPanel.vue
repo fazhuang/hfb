@@ -9,8 +9,12 @@
       <div class="lib-stat">
         <span class="lib-stat-label">OCR 状态</span>
         <span class="lib-stat-value">
-          <span v-if="stats.ocr_text_available" class="lib-ocr-ok">✅ 可用</span>
-          <span v-else class="lib-ocr-none">⛔ 无 OCR</span>
+          <span v-if="stats.ocr_text_available" class="lib-ocr-ok">
+            <HfbIcon icon="check" :size="14" /> 可用
+          </span>
+          <span v-else class="lib-ocr-none">
+            <HfbIcon icon="x-circle" :size="14" /> 无 OCR
+          </span>
         </span>
       </div>
       <div class="lib-stat">
@@ -34,6 +38,7 @@
 </template>
 
 <script setup lang="ts">
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import type { LibraryDocumentStats } from '@/types/library';
 
 defineProps<{ stats: LibraryDocumentStats }>();

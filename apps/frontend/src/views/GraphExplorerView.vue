@@ -49,7 +49,7 @@
             :class="{ 'result-item--active': activeNode?.id === node.id }"
             @click="exploreNode(node)"
           >
-            <span class="result-icon">{{ getTypeIcon(node.entity_type) }}</span>
+            <HfbIcon :icon="getTypeIcon(node.entity_type)" :size="18" class="result-icon" />
             <div class="result-info">
               <span class="result-label">{{ node.label }}</span>
               <span class="result-type">{{ node.entity_type }}</span>
@@ -69,10 +69,12 @@
         </dl>
         <div class="node-info-actions">
           <button class="action-btn" @click="loadNeighborhood(activeNode)">
-            🔍 {{ t('graph.neighborhood') }}
+            <HfbIcon icon="search" :size="14" class="action-btn-icon" />
+            {{ t('graph.neighborhood') }}
           </button>
           <button class="action-btn" @click="loadSubgraph(activeNode)">
-            🌐 {{ t('graph.expand') }}
+            <HfbIcon icon="network" :size="14" class="action-btn-icon" />
+            {{ t('graph.expand') }}
           </button>
         </div>
       </div>
@@ -117,9 +119,13 @@
 
         <div v-if="pathResult" class="path-result">
           <div v-if="pathResult.nodes.length > 0" class="path-success">
-            ✅ {{ t('graph.pathFound', { length: pathResult.length }) }}
+            <HfbIcon icon="check-circle" :size="14" class="path-icon" />
+            {{ t('graph.pathFound', { length: pathResult.length }) }}
           </div>
-          <div v-else class="path-empty">❌ {{ t('graph.noPath') }}</div>
+          <div v-else class="path-empty">
+            <HfbIcon icon="x-circle" :size="14" class="path-icon" />
+            {{ t('graph.noPath') }}
+          </div>
         </div>
       </div>
     </div>
@@ -133,6 +139,8 @@ import { useRoute } from 'vue-router';
 import api from '@/api/client';
 import GraphCanvas from '@/components/graph/GraphCanvas.vue';
 import type { GraphNodeData, GraphEdgeData } from '@/components/graph/GraphCanvas.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -331,9 +339,14 @@ async function findPath() {
 
 // --- Helpers ---
 
-function getTypeIcon(entityType: string): string {
-  const icons: Record<string, string> = { person: '👤', book: '📚', version: '📖', passage: '📜' };
-  return icons[entityType] || '●';
+function getTypeIcon(entityType: string): LucideIconName {
+  const icons: Record<string, LucideIconName> = {
+    person: 'user',
+    book: 'book-open',
+    version: 'book-marked',
+    passage: 'scroll-text',
+  };
+  return icons[entityType] || 'info';
 }
 </script>
 
@@ -570,6 +583,16 @@ function getTypeIcon(entityType: string): string {
 .action-btn--primary:hover {
   opacity: 0.9;
   background: var(--color-accent);
+}
+
+.action-btn-icon {
+  margin-right: var(--space-1);
+  vertical-align: -2px;
+}
+
+.path-icon {
+  margin-right: var(--space-1);
+  vertical-align: -2px;
 }
 
 /* --- Main Canvas --- */

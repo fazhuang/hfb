@@ -36,19 +36,19 @@
 
           <!-- Disabled message when authed -->
           <div v-if="isAuthed" class="proto-notice">
-            <span aria-hidden="true">🔒</span>
+            <HfbIcon icon="lock" :size="16" />
             <p>已登录用户请通过项目工作流输入问题。当前草稿为匿名模式。</p>
           </div>
 
           <!-- Honest prompt when storage fails -->
           <div v-if="storageUnavailable" class="proto-notice proto-notice--warn" role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <HfbIcon icon="triangle-alert" :size="16" />
             <p>未保存，登录后重新输入。当前浏览器不支持临时存储。</p>
           </div>
 
           <!-- Temp key status -->
           <div v-if="tempExists" class="proto-notice proto-notice--info">
-            <span aria-hidden="true">📝</span>
+            <HfbIcon icon="pen-line" :size="16" />
             <p>草稿已保存到临时存储 (hfb_temp_pending_question)。登录后自动迁移。</p>
           </div>
         </div>
@@ -123,7 +123,7 @@
 
           <!-- Canonical key status -->
           <div v-if="hasCanonicalQuestion" class="proto-notice proto-notice--info">
-            <span aria-hidden="true">📋</span>
+            <HfbIcon icon="clipboard-list" :size="16" />
             <p>Canonical question: "{{ canonicalQuestion }}"</p>
           </div>
         </div>
@@ -136,7 +136,7 @@
         <h2 class="proto-section-title">Page 3 — 范围确认与 Workflow 提交</h2>
         <div class="proto-panel">
           <div v-if="!hasCanonicalQuestion && !workflowQuestion" class="proto-notice">
-            <span aria-hidden="true">📭</span>
+            <HfbIcon icon="inbox" :size="16" />
             <p>未检测到草稿。请先完成 Page 2 迁移，或在下方直接输入问题。</p>
           </div>
 
@@ -182,7 +182,7 @@
             {{ submitError }}
           </div>
           <div v-if="wfRunId" class="proto-notice proto-notice--info">
-            <span aria-hidden="true">✅</span>
+            <HfbIcon icon="check-circle" :size="16" />
             <p>
               Workflow 提交成功！Run ID: {{ wfRunId }}
               <router-link
@@ -195,7 +195,7 @@
             </p>
           </div>
           <div v-if="submitCount > 0" class="proto-notice">
-            <span aria-hidden="true">📊</span>
+            <HfbIcon icon="bar-chart-3" :size="16" />
             <p>物理请求计数：{{ submitCount }} (应恰好为 1)</p>
           </div>
         </div>
@@ -208,7 +208,7 @@
         <h2 class="proto-section-title">Page 4 — Result → Reader 跳转验证 (readerAddressable)</h2>
         <div class="proto-panel">
           <div v-if="!hasEvidence" class="proto-notice">
-            <span aria-hidden="true">📭</span>
+            <HfbIcon icon="inbox" :size="16" />
             <p>无证据数据。请先完成 Page 3 Workflow 提交并在 Result 页面加载数据。</p>
           </div>
 
@@ -319,7 +319,7 @@
 
           <!-- Zoom status -->
           <div v-if="zoomActive" class="proto-notice proto-notice--warn" role="alert">
-            <span aria-hidden="true">🔍</span>
+            <HfbIcon icon="search" :size="16" />
             <p>200% 缩放已激活 — 检查布局无水平溢出、文字不裁剪、交互元素不重叠。</p>
           </div>
         </div>
@@ -388,6 +388,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import HfbBadge from '@/components/common/HfbBadge.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import { usePrototypeDraft } from '@/composables/usePrototypeDraft';
 import { useAuthStore } from '@/stores/auth';
 import HfbDrawer from '@/components/common/HfbDrawer.vue';

@@ -1,6 +1,6 @@
 <template>
   <div :class="['rre-state', variantClass]" role="alert">
-    <div class="rre-icon" aria-hidden="true">{{ icon }}</div>
+    <HfbIcon :icon="icon" :size="36" class="rre-icon" />
     <div class="rre-body">
       <h3 class="rre-title">{{ title }}</h3>
       <p class="rre-message">{{ message }}</p>
@@ -27,6 +27,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ResultPageStatus } from '@/composables/useResearchResult';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const props = defineProps<{
   status: ResultPageStatus;
@@ -40,7 +42,7 @@ defineEmits<{
 
 interface StateView {
   title: string;
-  icon: string;
+  icon: LucideIconName;
   variantClass: string;
   showRetry: boolean;
   retryAction: boolean;
@@ -51,7 +53,7 @@ const stateView = computed((): StateView => {
     case 'not-found':
       return {
         title: '未找到',
-        icon: '🔍',
+        icon: 'search',
         variantClass: 'rre-state--not-found',
         showRetry: false,
         retryAction: false,
@@ -59,7 +61,7 @@ const stateView = computed((): StateView => {
     case 'forbidden':
       return {
         title: '无权限',
-        icon: '🔒',
+        icon: 'lock',
         variantClass: 'rre-state--forbidden',
         showRetry: false,
         retryAction: false,
@@ -67,7 +69,7 @@ const stateView = computed((): StateView => {
     case 'run-pending':
       return {
         title: '运行进行中',
-        icon: '⏳',
+        icon: 'circle-alert',
         variantClass: 'rre-state--pending',
         showRetry: true,
         retryAction: true,
@@ -75,7 +77,7 @@ const stateView = computed((): StateView => {
     case 'run-failed':
       return {
         title: '流程执行失败',
-        icon: '❌',
+        icon: 'x-circle',
         variantClass: 'rre-state--failed',
         showRetry: false,
         retryAction: false,
@@ -83,7 +85,7 @@ const stateView = computed((): StateView => {
     case 'report-pending':
       return {
         title: '报告生成中',
-        icon: '📝',
+        icon: 'pen-line',
         variantClass: 'rre-state--pending',
         showRetry: true,
         retryAction: true,
@@ -91,7 +93,7 @@ const stateView = computed((): StateView => {
     case 'report-failed':
       return {
         title: '报告生成失败',
-        icon: '📄',
+        icon: 'file-text',
         variantClass: 'rre-state--failed',
         showRetry: false,
         retryAction: false,
@@ -99,7 +101,7 @@ const stateView = computed((): StateView => {
     case 'report-missing':
       return {
         title: '报告缺失',
-        icon: '📄',
+        icon: 'file-text',
         variantClass: 'rre-state--missing',
         showRetry: false,
         retryAction: false,
@@ -107,7 +109,7 @@ const stateView = computed((): StateView => {
     case 'error':
       return {
         title: '加载出错',
-        icon: '⚠️',
+        icon: 'triangle-alert',
         variantClass: 'rre-state--error',
         showRetry: true,
         retryAction: true,
@@ -115,7 +117,7 @@ const stateView = computed((): StateView => {
     default:
       return {
         title: '未知状态',
-        icon: '❓',
+        icon: 'circle-alert',
         variantClass: 'rre-state--error',
         showRetry: true,
         retryAction: true,

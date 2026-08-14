@@ -12,7 +12,7 @@
     <div v-else-if="person" class="person-content">
       <!-- 待考资料 Alert -->
       <div v-if="person.domain_status === 'pending'" class="pending-alert-banner">
-        <span class="alert-icon">⚠️</span>
+        <HfbIcon icon="triangle-alert" :size="20" class="alert-icon" />
         <div class="alert-content">
           <strong>待考资料：</strong>
           该人物文献记载与皇甫谧学术域关联尚处于考察研判阶段，需结合进一步古籍出处校验。
@@ -48,7 +48,7 @@
         <!-- 皇甫谧研究域关系摘要 -->
         <div v-if="person.domain_relation_summary" class="domain-relation-card">
           <div class="relation-card-header">
-            <span class="card-icon">📜</span>
+            <HfbIcon icon="scroll-text" :size="16" class="card-icon" />
             <span class="card-title">皇甫谧研究域关系摘要</span>
           </div>
           <p class="relation-card-content">{{ person.domain_relation_summary }}</p>
@@ -58,7 +58,7 @@
       <!-- 【皇甫谧研究域回溯链】区块 -->
       <section v-if="person.anchor_path" class="detail-section backtrace-section">
         <h2 class="section-title">
-          <span class="section-icon">🔗</span>
+          <HfbIcon icon="link" :size="18" class="section-icon" />
           皇甫谧研究域回溯链
         </h2>
         <AnchorPathBreadcrumb :anchor-path="person.anchor_path" />
@@ -67,7 +67,7 @@
       <!-- 【基本信息与生平】区块 -->
       <section class="detail-section bio-section">
         <h2 class="section-title">
-          <span class="section-icon">👤</span>
+          <HfbIcon icon="user" :size="18" class="section-icon" />
           基本信息与生平
         </h2>
         <div class="info-grid">
@@ -97,7 +97,7 @@
       <!-- 【古籍证据与考据出处】区块 -->
       <section class="detail-section evidence-section">
         <h2 class="section-title">
-          <span class="section-icon">📚</span>
+          <HfbIcon icon="book-open" :size="18" class="section-icon" />
           古籍证据与考据出处
         </h2>
         <div class="evidence-content">
@@ -142,6 +142,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useEntityDetail } from '@/composables/useApi';
 import PersonRoleBadge from '@/components/person/PersonRoleBadge.vue';
 import AnchorPathBreadcrumb from '@/components/person/AnchorPathBreadcrumb.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 export interface PersonDetail {
   id: string;

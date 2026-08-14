@@ -15,7 +15,7 @@
         <div class="onboarding-guide-grid">
           <div class="guide-card">
             <div class="card-header">
-              <span class="card-icon" aria-hidden="true">📜</span>
+              <HfbIcon icon="scroll-text" :size="20" class="card-icon" />
               <h3>研究谁</h3>
             </div>
             <p>
@@ -25,7 +25,7 @@
 
           <div class="guide-card">
             <div class="card-header">
-              <span class="card-icon" aria-hidden="true">🔬</span>
+              <HfbIcon icon="flask-conical" :size="20" class="card-icon" />
               <h3>能做什么</h3>
             </div>
             <p>
@@ -35,7 +35,7 @@
 
           <div class="guide-card">
             <div class="card-header">
-              <span class="card-icon" aria-hidden="true">🚀</span>
+              <HfbIcon icon="arrow-right" :size="20" class="card-icon" />
               <h3>如何进入</h3>
             </div>
             <p>
@@ -48,7 +48,7 @@
         <div v-if="!auth.isAuthenticated" class="prototype-draft-section">
           <div class="draft-card">
             <div class="draft-header">
-              <span class="draft-icon" aria-hidden="true">✏️</span>
+              <HfbIcon icon="pen-line" :size="20" class="draft-icon" />
               <h3 class="draft-title">先写下你的研究问题</h3>
               <p class="draft-subtitle">草稿临时保存，登录后自动迁移到你的研究项目</p>
             </div>
@@ -71,11 +71,11 @@
               </button>
             </div>
             <div v-if="draftSaved" class="draft-saved-hint">
-              <span aria-hidden="true">📝</span>
+              <HfbIcon icon="pen-line" :size="14" />
               草稿已暂存。登录后自动迁移至你的研究项目。未保存，登录后重新输入。
             </div>
             <div v-if="storageFailed" class="draft-saved-hint draft-saved-hint--error" role="alert">
-              <span aria-hidden="true">⚠️</span>
+              <HfbIcon icon="triangle-alert" :size="14" />
               未保存，登录后重新输入。浏览器存储不可用。
             </div>
           </div>
@@ -109,6 +109,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '@/stores/auth';
 import LoginForm from '@/components/auth/LoginForm.vue';
 import CuratedLandingGraph from '@/components/graph/CuratedLandingGraph.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 const router = useRouter();

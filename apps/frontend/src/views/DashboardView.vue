@@ -35,7 +35,7 @@
     <!-- Research Entry Card -->
     <div class="research-entry-card">
       <div class="rec-content">
-        <span class="rec-icon">🔬</span>
+        <HfbIcon icon="flask-conical" :size="28" class="rec-icon" />
         <div class="rec-text">
           <span class="rec-label" v-if="researchStore.hasActiveResearch">{{
             t('nav.currentResearch')
@@ -75,7 +75,7 @@
           :style="{ animationDelay: `${120 + i * 60}ms` }"
         >
           <div class="stat-icon">
-            <span>{{ card.icon }}</span>
+            <HfbIcon :icon="card.icon" :size="20" />
           </div>
           <div class="stat-info">
             <span class="stat-number">{{ card.value.toLocaleString() }}</span>
@@ -187,12 +187,7 @@
         <ul v-if="activities.length > 0" class="activity-list">
           <li v-for="(a, i) in activities" :key="i" class="activity-item">
             <div class="activity-icon" :class="[`act-${getActivityCategory(a.entity_type)}`]">
-              <span v-if="a.entity_type === 'person'">👤</span>
-              <span v-else-if="a.entity_type === 'book'">📚</span>
-              <span v-else-if="a.entity_type === 'passage'">📜</span>
-              <span v-else-if="a.entity_type === 'version'">📖</span>
-              <span v-else-if="a.entity_type === 'paper'">📄</span>
-              <span v-else>📌</span>
+              <HfbIcon :icon="getActivityIcon(a.entity_type)" :size="15" />
             </div>
             <div class="activity-main">
               <div class="activity-text">
@@ -238,6 +233,8 @@ import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
 import { useResearchStore } from '@/stores/research';
 import { useAuthStore } from '@/stores/auth';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 
@@ -246,7 +243,7 @@ const auth = useAuthStore();
 
 interface StatCard {
   key: string;
-  icon: string;
+  icon: LucideIconName;
   value: number;
   label: string;
 }
@@ -283,6 +280,17 @@ function getActivityCategory(type: string): string {
     paper: 'graph',
   };
   return map[type] || 'other';
+}
+
+function getActivityIcon(type: string): LucideIconName {
+  const map: Record<string, LucideIconName> = {
+    person: 'user',
+    book: 'book-open',
+    passage: 'scroll-text',
+    version: 'book-marked',
+    paper: 'file-text',
+  };
+  return map[type] || 'info';
 }
 
 function getActivityTypeLabel(type: string): string {
@@ -323,12 +331,12 @@ async function loadDashboard() {
 
     const counts = stats.entity_counts || overview.entity_counts || {};
     statCards.value = [
-      { key: 'persons', icon: '👤', value: counts.persons || 0, label: t('nav.persons') },
-      { key: 'books', icon: '📚', value: counts.books || 0, label: t('nav.books') },
-      { key: 'versions', icon: '📖', value: counts.versions || 0, label: t('graph.versions') },
-      { key: 'passages', icon: '📜', value: counts.passages || 0, label: t('graph.passages') },
-      { key: 'papers', icon: '📄', value: counts.papers || 0, label: t('search.papers') },
-      { key: 'users', icon: '👥', value: counts.users || 0, label: t('dashboard.users') },
+      { key: 'persons', icon: 'user', value: counts.persons || 0, label: t('nav.persons') },
+      { key: 'books', icon: 'book-open', value: counts.books || 0, label: t('nav.books') },
+      { key: 'versions', icon: 'book-marked', value: counts.versions || 0, label: t('graph.versions') },
+      { key: 'passages', icon: 'scroll-text', value: counts.passages || 0, label: t('graph.passages') },
+      { key: 'papers', icon: 'file-text', value: counts.papers || 0, label: t('search.papers') },
+      { key: 'users', icon: 'users', value: counts.users || 0, label: t('dashboard.users') },
     ];
 
     dynastyData.value = stats.dynasty_distribution || [];

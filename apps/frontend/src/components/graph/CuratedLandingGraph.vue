@@ -122,7 +122,7 @@
         <p class="info-desc">{{ selectedNode.description }}</p>
       </div>
       <div v-else class="info-content is-empty">
-        <span class="info-icon">💡</span>
+        <HfbIcon icon="info" :size="16" class="info-icon" />
         <p class="info-desc">悬停或通过键盘 Tab 聚焦节点，可探索魏晋针灸文献考据渊源与 5 大维度演变图谱。</p>
       </div>
     </div>
@@ -132,6 +132,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import huangfuMi from '@/assets/huangfu_mi.jpg';
 
 const { t } = useI18n();

@@ -1,6 +1,6 @@
 <template>
   <div :class="['els-badge', badgeClass]">
-    <span class="els-icon" aria-hidden="true">{{ icon }}</span>
+    <HfbIcon :icon="icon" :size="14" class="els-icon" />
     <span class="els-text">{{ badgeText }}</span>
   </div>
 </template>
@@ -8,6 +8,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { ResultEvidence } from '@/composables/useResearchResult';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const props = defineProps<{
   evidence: ResultEvidence;
@@ -37,7 +39,7 @@ const props = defineProps<{
 
 interface LineageState {
   status: 'full' | 'partial' | 'minimal';
-  icon: string;
+  icon: LucideIconName;
   text: string;
 }
 
@@ -46,19 +48,19 @@ const lineage = computed((): LineageState => {
 
   // Must have basic identifiers
   if (!ev.trace_id || !ev.document_id) {
-    return { status: 'minimal', icon: '❌', text: '证据链不完整 — 缺少基本标识符' };
+    return { status: 'minimal', icon: 'x-circle', text: '证据链不完整 — 缺少基本标识符' };
   }
 
   // Must have content
   if (!ev.claim_text && !ev.quote) {
-    return { status: 'minimal', icon: '⚠️', text: '证据链不完整 — 缺少内容' };
+    return { status: 'minimal', icon: 'triangle-alert', text: '证据链不完整 — 缺少内容' };
   }
 
   const hasSourceRef = !!ev.source_ref_title;
   const hasPassage = !!ev.passage_id;
 
   if (hasSourceRef && hasPassage) {
-    return { status: 'full', icon: '✅', text: '证据链完整' };
+    return { status: 'full', icon: 'check-circle', text: '证据链完整' };
   }
 
   // Partial: missing one or both of source_ref_title and passage_id
@@ -68,7 +70,7 @@ const lineage = computed((): LineageState => {
 
   return {
     status: 'partial',
-    icon: '⚠️',
+    icon: 'triangle-alert',
     text: `证据链不完整 — 缺少${missing.join('、')}`,
   };
 });

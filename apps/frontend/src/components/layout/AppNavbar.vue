@@ -43,7 +43,7 @@
             active-class="nav-link--active"
             @click="closeAllMenus"
           >
-            <span class="nav-icon" aria-hidden="true">🏠</span>
+            <HfbIcon icon="house" :size="16" class="nav-icon" />
             <span>{{ t('nav.home') }}</span>
           </router-link>
         </li>
@@ -59,7 +59,7 @@
               :title="item.pulse ? t('onboarding.pulseStartResearch') : undefined"
               @click="closeAllMenus"
             >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <HfbIcon :icon="item.icon" :size="16" class="nav-icon" />
               <span>{{ t(item.labelKey) }}</span>
             </router-link>
           </li>
@@ -75,9 +75,9 @@
             @click="toggleResourcesMenu"
             @keydown.escape="resourcesOpen = false"
           >
-            <span class="nav-icon" aria-hidden="true">📚</span>
+            <HfbIcon icon="library" :size="16" class="nav-icon" />
             <span>典籍资源</span>
-            <span class="dropdown-caret" :class="{ open: resourcesOpen }">▾</span>
+            <HfbIcon icon="chevron-down" :size="11" class="dropdown-caret" :class="{ open: resourcesOpen }" />
           </button>
           <ul v-show="resourcesOpen" class="dropdown-menu">
             <li v-for="item in publicNavItems" :key="item.path">
@@ -87,8 +87,8 @@
                 active-class="dropdown-item--active"
                 @click="closeAllMenus"
               >
-                <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
-                <span>{{ t(item.labelKey) }}</span>
+              <HfbIcon :icon="item.icon" :size="16" class="nav-icon" />
+              <span>{{ t(item.labelKey) }}</span>
               </router-link>
             </li>
           </ul>
@@ -103,7 +103,7 @@
               active-class="nav-link--active"
               @click="closeAllMenus"
             >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <HfbIcon :icon="item.icon" :size="16" class="nav-icon" />
               <span>{{ t(item.labelKey) }}</span>
             </router-link>
           </li>
@@ -120,9 +120,9 @@
           @click="toggleAdminMenu"
           @keydown.escape="adminOpen = false"
         >
-          <span class="nav-icon" aria-hidden="true">⚙️</span>
+          <HfbIcon icon="settings" :size="16" class="nav-icon" />
           <span>系统管理</span>
-          <span class="dropdown-caret" :class="{ open: adminOpen }">▾</span>
+          <HfbIcon icon="chevron-down" :size="11" class="dropdown-caret" :class="{ open: adminOpen }" />
         </button>
         <ul v-show="adminOpen" class="dropdown-menu">
           <li v-for="item in adminNavItems" :key="item.path">
@@ -132,7 +132,7 @@
               active-class="dropdown-item--active"
               @click="closeAllMenus"
             >
-              <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
+              <HfbIcon :icon="item.icon" :size="16" class="nav-icon" />
               <span>{{ t(item.labelKey) }}</span>
             </router-link>
           </li>
@@ -153,7 +153,7 @@
         >
           <span class="user-avatar">{{ userInitial }}</span>
           <span class="user-name-text">{{ auth.userName }}</span>
-          <span class="dropdown-caret" :class="{ open: userMenuOpen }">▾</span>
+          <HfbIcon icon="chevron-down" :size="11" class="dropdown-caret" :class="{ open: userMenuOpen }" />
         </button>
 
         <ul v-show="userMenuOpen" class="dropdown-menu user-dropdown-menu">
@@ -164,14 +164,14 @@
           <li class="dropdown-divider"></li>
           <li>
             <router-link to="/research" class="dropdown-item" @click="closeAllMenus">
-              <span class="nav-icon" aria-hidden="true">🔬</span>
+              <HfbIcon icon="flask-conical" :size="16" class="nav-icon" />
               <span>进入研究中心</span>
             </router-link>
           </li>
           <li class="dropdown-divider"></li>
           <li>
             <button class="dropdown-item logout-action-btn" @click="handleLogout">
-              <span class="nav-icon" aria-hidden="true">🚪</span>
+              <HfbIcon icon="logout" :size="16" class="nav-icon" />
               <span>{{ t('auth.logout') }}</span>
             </button>
           </li>
@@ -203,8 +203,8 @@
         :title="t('onboarding.themeTooltip')"
         @click="cycleTheme"
       >
-        <span v-if="resolvedTheme === 'light'" aria-hidden="true">☀️</span>
-        <span v-else aria-hidden="true">🌙</span>
+        <HfbIcon v-if="resolvedTheme === 'light'" icon="sun" :size="16" />
+        <HfbIcon v-else icon="moon" :size="16" />
       </button>
     </div>
   </nav>
@@ -219,6 +219,8 @@ import { setLocale, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
 import type { Theme } from '@/composables/useTheme';
 import { useAuthStore } from '@/stores/auth';
 import { useResearchStore } from '@/stores/research';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 const { t, locale } = useI18n();
 const { theme, setTheme } = useTheme();
@@ -299,31 +301,31 @@ function closeAllMenus() {
 
 interface NavItem {
   path: string;
-  icon: string;
+  icon: LucideIconName;
   labelKey: string;
   pulse?: boolean;
 }
 
-/** Research Module Nav Items (Icon 📖 used for Research Library to avoid 📚 collision) */
+/** Research Module Nav Items */
 const researchNavItems = computed<NavItem[]>(() => [
   {
     path: '/research',
-    icon: '🔬',
+    icon: 'flask-conical',
     labelKey: 'nav.startResearch',
     pulse: showResearchPulse.value,
   },
-  { path: '/library', icon: '📖', labelKey: 'nav.library' },
-  { path: '/knowledge', icon: '🔗', labelKey: 'nav.knowledge' },
-  { path: '/reports', icon: '📊', labelKey: 'nav.reports' },
+  { path: '/library', icon: 'book-open', labelKey: 'nav.library' },
+  { path: '/knowledge', icon: 'network', labelKey: 'nav.knowledge' },
+  { path: '/reports', icon: 'bar-chart-3', labelKey: 'nav.reports' },
 ]);
 
 /** Public Classical Catalogue Resources */
 const publicNavItems = computed<NavItem[]>(() => [
-  { path: '/books', icon: '📚', labelKey: 'nav.books' },
-  { path: '/literature', icon: '📄', labelKey: 'nav.literature' },
-  { path: '/classical-versions', icon: '🏛️', labelKey: 'nav.classicalVersions' },
-  { path: '/persons', icon: '👤', labelKey: 'nav.persons' },
-  { path: '/about', icon: 'ℹ️', labelKey: 'nav.about' },
+  { path: '/books', icon: 'library', labelKey: 'nav.books' },
+  { path: '/literature', icon: 'file-text', labelKey: 'nav.literature' },
+  { path: '/classical-versions', icon: 'landmark', labelKey: 'nav.classicalVersions' },
+  { path: '/persons', icon: 'user', labelKey: 'nav.persons' },
+  { path: '/about', icon: 'info', labelKey: 'nav.about' },
 ]);
 
 /** Admin Task Nav Items */
@@ -331,12 +333,12 @@ const adminNavItems = computed<NavItem[]>(() => {
   const items: NavItem[] = [];
   if (auth.canReviewDocuments) {
     items.push(
-      { path: '/admin/literature-review', icon: '✅', labelKey: 'nav.adminReview' },
-      { path: '/admin/ingestion-tasks', icon: '📋', labelKey: 'nav.adminIngestion' },
+      { path: '/admin/literature-review', icon: 'check', labelKey: 'nav.adminReview' },
+      { path: '/admin/ingestion-tasks', icon: 'clipboard-list', labelKey: 'nav.adminIngestion' },
     );
   }
   if (auth.canManageSourcePolicies) {
-    items.push({ path: '/admin/source-policy', icon: '🔐', labelKey: 'nav.adminSourcePolicy' });
+    items.push({ path: '/admin/source-policy', icon: 'lock', labelKey: 'nav.adminSourcePolicy' });
   }
   return items;
 });
@@ -499,6 +501,7 @@ function cycleTheme() {
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-base);
+  font-family: 'HfbSerif', 'Noto Serif SC', 'Songti SC', serif;
 }
 
 .nav-link:hover {
@@ -561,7 +564,6 @@ function cycleTheme() {
 }
 
 .nav-icon {
-  font-size: 16px;
   flex-shrink: 0;
 }
 
@@ -571,7 +573,6 @@ function cycleTheme() {
 }
 
 .dropdown-caret {
-  font-size: 11px;
   margin-left: 2px;
   transition: transform var(--transition-fast);
 }

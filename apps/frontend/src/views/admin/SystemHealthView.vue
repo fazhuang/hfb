@@ -13,7 +13,7 @@
 
     <!-- Error State -->
     <div v-if="errorMessage" class="error-banner">
-      <span class="error-icon">⚠️</span>
+      <HfbIcon icon="triangle-alert" :size="18" class="error-icon" />
       <span class="error-text">{{ errorMessage }}</span>
     </div>
 
@@ -65,7 +65,7 @@
       >
         <div class="card-header">
           <div class="service-name-group">
-            <span class="service-icon">{{ getServiceIcon(svc.name) }}</span>
+            <HfbIcon :icon="getServiceIcon(svc.name)" :size="20" class="service-icon" />
             <h3 class="service-name">{{ svc.name }}</h3>
           </div>
           <span class="badge" :class="svc.healthy ? 'badge-status-healthy' : 'badge-status-unhealthy'">
@@ -94,6 +94,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { fetchAdminHealthDetails, type ServiceStatus } from '@/api/client';
+import HfbIcon from '@/components/common/HfbIcon.vue';
+import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 
 interface ServiceDetail extends ServiceStatus {
   name: string;
@@ -145,13 +147,13 @@ const formattedLastChecked = computed<string>(() => {
   }
 });
 
-function getServiceIcon(name: string): string {
+function getServiceIcon(name: string): LucideIconName {
   const n: string = name.toLowerCase();
-  if (n.includes('postgres') || n.includes('db')) return '🗄️';
-  if (n.includes('redis')) return '⚡';
-  if (n.includes('elastic') || n.includes('es')) return '🔍';
-  if (n.includes('minio') || n.includes('oss') || n.includes('storage')) return '📦';
-  return '🖥️';
+  if (n.includes('postgres') || n.includes('db')) return 'inbox';
+  if (n.includes('redis')) return 'flask-conical';
+  if (n.includes('elastic') || n.includes('es')) return 'search';
+  if (n.includes('minio') || n.includes('oss') || n.includes('storage')) return 'package-open';
+  return 'info';
 }
 
 async function loadHealthDetails(): Promise<void> {

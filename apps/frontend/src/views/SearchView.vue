@@ -3,7 +3,7 @@
     <!-- Search Header -->
     <header class="search-header">
       <div class="search-input-wrapper">
-        <span class="search-icon">🔍</span>
+        <HfbIcon icon="search" :size="20" class="search-icon" />
         <input
           ref="searchInputRef"
           v-model="query"
@@ -126,7 +126,7 @@
 
       <!-- Empty State -->
       <div v-else-if="hasSearched && !loading" class="empty-state">
-        <span class="empty-icon">📭</span>
+        <HfbIcon icon="inbox" :size="48" class="empty-icon" />
         <p>{{ t('search.noResults') }}</p>
         <p class="empty-hint">{{ t('onboarding.searchNoResultHint') }}</p>
         <div class="empty-actions">
@@ -141,7 +141,7 @@
 
       <!-- Initial State -->
       <div v-else-if="!hasSearched" class="empty-state">
-        <span class="empty-icon">🔍</span>
+        <HfbIcon icon="search" :size="48" class="empty-icon" />
         <p>{{ t('search.initialHint') }}</p>
       </div>
 
@@ -165,6 +165,7 @@ import { useI18n } from 'vue-i18n';
 import { useRouter, useRoute } from 'vue-router';
 import { useResearchStore } from '@/stores/research';
 import api from '@/api/client';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const { t } = useI18n();
 const router = useRouter();

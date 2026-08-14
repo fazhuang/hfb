@@ -1,7 +1,7 @@
 <template>
   <div class="esrc-card" aria-label="来源参考">
     <div class="esrc-header">
-      <span class="esrc-icon" aria-hidden="true">📚</span>
+      <HfbIcon icon="book-open" :size="14" class="esrc-icon" />
       <span class="esrc-label">文献来源</span>
     </div>
 
@@ -21,7 +21,7 @@
          (reader / library) must still render when document_id exists -->
     <template v-else>
       <div class="esrc-missing">
-        <span class="esrc-missing-icon" aria-hidden="true">⚠️</span>
+        <HfbIcon icon="triangle-alert" :size="13" class="esrc-missing-icon" />
         <p v-if="hasInternalRoute">来源信息未提供；可打开文档定位</p>
         <p v-else>此证据缺少文献来源信息。</p>
       </div>
@@ -63,6 +63,7 @@
 import { computed } from 'vue';
 import type { ResultEvidence } from '@/composables/useResearchResult';
 import type { RouteLocationRaw } from 'vue-router';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 
 const props = defineProps<{
   evidence: ResultEvidence;

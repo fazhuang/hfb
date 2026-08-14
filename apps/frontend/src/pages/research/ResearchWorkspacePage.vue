@@ -94,7 +94,7 @@
       <template v-else-if="isGlobalEmpty && project">
         <main class="rwp-main">
           <div class="rwp-welcome-card">
-            <div class="rwp-welcome-icon" aria-hidden="true">🚀</div>
+            <HfbIcon icon="flask-conical" :size="40" class="rwp-welcome-icon" />
             <h2 class="rwp-welcome-title">开始您的研究</h2>
             <p class="rwp-welcome-desc">提出研究问题，系统将自动检索古籍文献并生成循证报告。</p>
             <div class="rwp-welcome-form">
@@ -158,6 +158,7 @@ import { toProjectDetail } from '@/types/research';
 import type { ResearchProjectDetail, ResearchCitationSummary } from '@/types/research';
 
 import HfbSkeleton from '@/components/common/HfbSkeleton.vue';
+import HfbIcon from '@/components/common/HfbIcon.vue';
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
