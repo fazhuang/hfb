@@ -139,7 +139,35 @@
               <span v-if="chunk.page_number" class="reader-chunk-page-marker">
                 [页{{ chunk.page_number }}]
               </span>
-              {{ chunk.content }}
+              <template v-if="editingChunkId === chunk.id">
+                <textarea
+                  v-model="editingText"
+                  class="reader-chunk-editor"
+                  rows="6"
+                ></textarea>
+                <div class="reader-chunk-edit-actions">
+                  <button class="reader-edit-btn reader-edit-btn--save" @click="saveChunk(chunk)">
+                    保存
+                  </button>
+                  <button class="reader-edit-btn" @click="cancelEdit">取消</button>
+                </div>
+              </template>
+              <template v-else>
+                {{ chunk.content }}
+                <button
+                  v-if="chunk.page_number"
+                  class="reader-proof-btns"
+                  @click.stop="showPageImage(chunk)"
+                >
+                  看原图
+                </button>
+                <button
+                  class="reader-proof-btns reader-proof-btns--edit"
+                  @click.stop="startEdit(chunk)"
+                >
+                  校正
+                </button>
+              </template>
             </div>
           </div>
         </section>
@@ -287,6 +315,24 @@
         <EmptyState v-else title="暂无证据" description="该文献尚未绑定学术论据。" icon="🔍" />
       </div>
     </template>
+
+    <!-- OCR proofreading: page image modal -->
+    <div v-if="pageImageUrl" class="reader-page-image-overlay" @click="closePageImage">
+      <div class="reader-page-image-modal" @click.stop>
+        <div class="reader-page-image-header">
+          <span>原图 · 第 {{ pageImagePage }} 页</span>
+          <button class="reader-page-image-close" @click="closePageImage">✕</button>
+        </div>
+        <img
+          :src="pageImageUrl"
+          :alt="`第 ${pageImagePage} 页原图`"
+          class="reader-page-image-img"
+        />
+      </div>
+    </div>
+
+    <!-- OCR proofreading: error toast -->
+    <div v-if="proofError" class="reader-proof-error" role="alert">{{ proofError }}</div>
   </div>
 </template>
 
@@ -542,6 +588,66 @@ async function fetchReaderData() {
 
 function chunkPreview(content: string): string {
   return content.replace(/\s+/g, '').substring(0, 40);
+}
+
+// ---- OCR proofreading: page image + chunk correction ----
+
+const editingChunkId = ref<string | null>(null);
+const editingText = ref('');
+const pageImageUrl = ref<string | null>(null);
+const pageImagePage = ref<number | null>(null);
+const proofError = ref<string | null>(null);
+
+function startEdit(chunk: ReaderChunk) {
+  editingChunkId.value = chunk.id;
+  editingText.value = chunk.content;
+}
+
+function cancelEdit() {
+  editingChunkId.value = null;
+  editingText.value = '';
+}
+
+async function saveChunk(chunk: ReaderChunk) {
+  proofError.value = null;
+  try {
+    await api.patch(`/api/v1/documents/${docId.value}/chunks/${chunk.id}`, {
+      content: editingText.value,
+    });
+    chunk.content = editingText.value;
+    cancelEdit();
+  } catch (e: unknown) {
+    const detail =
+      (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+      (e as Error).message ??
+      '保存失败';
+    proofError.value = detail;
+  }
+}
+
+async function showPageImage(chunk: ReaderChunk) {
+  if (!chunk.page_number) return;
+  proofError.value = null;
+  try {
+    const resp = await api.get(`/api/v1/documents/${docId.value}/pages/${chunk.page_number}/image`, {
+      responseType: 'blob',
+    });
+    const blob = resp.data as Blob;
+    pageImagePage.value = chunk.page_number;
+    pageImageUrl.value = URL.createObjectURL(blob);
+  } catch (e: unknown) {
+    const detail =
+      (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+      (e as Error).message ??
+      '加载原图失败';
+    proofError.value = detail;
+  }
+}
+
+function closePageImage() {
+  if (pageImageUrl.value) URL.revokeObjectURL(pageImageUrl.value);
+  pageImageUrl.value = null;
+  pageImagePage.value = null;
 }
 
 // ---- Anchor resolution ----
@@ -829,6 +935,124 @@ watch(
   color: var(--color-text-muted);
   margin-right: 8px;
   user-select: none;
+}
+
+/* OCR proofreading: chunk edit + page image */
+.reader-proof-btns {
+  margin-left: 8px;
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-base), border-color var(--transition-base);
+  font: inherit;
+}
+
+.reader-proof-btns:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-muted);
+}
+
+.reader-proof-btns--edit {
+  color: var(--color-accent, var(--color-text-primary));
+}
+
+.reader-chunk-editor {
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 16px;
+  line-height: 2;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  resize: vertical;
+}
+
+.reader-chunk-edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.reader-edit-btn {
+  padding: 4px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.reader-edit-btn--save {
+  border-color: var(--color-accent, var(--color-text-primary));
+  color: var(--color-accent, var(--color-text-primary));
+}
+
+.reader-page-image-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-dialog);
+}
+
+.reader-page-image-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-width: 80vw;
+  max-height: 90vh;
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+.reader-page-image-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+  color: var(--color-text-primary);
+  font-size: 14px;
+}
+
+.reader-page-image-close {
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.reader-page-image-img {
+  max-width: 100%;
+  max-height: 75vh;
+  display: block;
+}
+
+.reader-proof-error {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-toast);
+  color: var(--color-text-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  z-index: var(--z-toast);
+  font-size: 13px;
 }
 
 /* Paragraph navigation */

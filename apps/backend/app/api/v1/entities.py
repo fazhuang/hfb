@@ -20,6 +20,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import func
 from sqlalchemy import select as sql_select
@@ -27,7 +28,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_session
-from app.middleware.auth import get_current_user, require_permission
+from app.middleware.auth import (
+    get_current_user,
+    require_any_permission,
+    require_permission,
+)
 from app.models.academic_evidence import Citation, Evidence
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
@@ -333,7 +338,8 @@ async def create_person(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         )
     return api_response(
-        data=PersonResponse.model_validate(obj).model_dump(mode="json"), message="Created"
+        data=PersonResponse.model_validate(obj).model_dump(mode="json"),
+        message="Created",
     )
 
 
@@ -374,7 +380,8 @@ async def update_person(
             status_code=status.HTTP_404_NOT_FOUND, detail="person not found"
         )
     return api_response(
-        data=PersonResponse.model_validate(obj).model_dump(mode="json"), message="Updated"
+        data=PersonResponse.model_validate(obj).model_dump(mode="json"),
+        message="Updated",
     )
 
 
@@ -394,6 +401,7 @@ async def delete_person(
             status_code=status.HTTP_404_NOT_FOUND, detail="person not found"
         )
     return api_response(message="Deleted")
+
 
 # Document is hand-wired (not via _make_crud) because we need extra filter params
 # on the list endpoint that the factory doesn't support.
@@ -975,6 +983,124 @@ async def get_document_reader(
             "citations": citations,
             "evidences": evidences,
         }
+    )
+
+
+# ============================================================
+# OCR proofreading: page image + chunk content correction
+# ============================================================
+
+
+class _ChunkCorrectRequest(PydanticBaseModel):
+    content: str
+
+
+@router.get(
+    "/documents/{item_id}/pages/{page_number}/image",
+    response_class=Response,
+    dependencies=_document_get_deps,
+)
+async def get_document_page_image(
+    item_id: UUID,
+    page_number: int,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> Response:
+    """Render a scanned page from raw_pdf_blob as PNG (OCR proofreading ground truth)."""
+    doc = await session.get(Document, str(item_id))
+    if doc is None or doc.raw_pdf_blob is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found or has no scanned PDF",
+        )
+    if doc.uploaded_by is not None and doc.uploaded_by != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+    try:
+        import fitz  # lazy — pymupdf only needed for scanned docs
+    except ImportError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"PDF rendering unavailable: {e}",
+        ) from e
+
+    try:
+        pdf = fitz.open(stream=doc.raw_pdf_blob, filetype="pdf")
+        if page_number < 1 or page_number > pdf.page_count:
+            pdf.close()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Page {page_number} out of range (1-{pdf.page_count})",
+            )
+        pix = pdf[page_number - 1].get_pixmap(dpi=150)
+        pdf.close()
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Failed to render page: {e}",
+        ) from e
+
+    return Response(content=pix.tobytes("png"), media_type="image/png")
+
+
+@router.patch(
+    "/documents/{item_id}/chunks/{chunk_id}",
+    response_model=dict,
+    dependencies=[
+        Depends(
+            require_any_permission(
+                ("document", "update"),
+                ("passage", "update"),
+            )
+        )
+    ],
+)
+async def correct_document_chunk(
+    item_id: UUID,
+    chunk_id: UUID,
+    body: _ChunkCorrectRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+) -> dict:
+    """Correct a chunk's OCR text (manual proofreading write-back)."""
+    doc = await session.get(Document, str(item_id))
+    if doc is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+    if doc.uploaded_by is not None and doc.uploaded_by != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Document not found"
+        )
+
+    chunk = await session.get(DocumentChunk, str(chunk_id))
+    if chunk is None or chunk.document_id != str(item_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Chunk not found"
+        )
+
+    new_content = body.content
+    if not new_content.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="content must be non-empty",
+        )
+
+    chunk.content = new_content
+    chunk.token_count = len(new_content)
+    chunk.ocr_confidence = None  # proofread text is treated as trusted original
+    await session.commit()
+
+    return api_response(
+        data={
+            "id": str(chunk.id),
+            "content": chunk.content,
+            "token_count": chunk.token_count,
+        },
+        message="chunk corrected",
     )
 
 
