@@ -3,8 +3,22 @@
     <!-- Brand logo -->
     <div class="navbar-brand">
       <router-link to="/" class="brand-link">
-        <span class="brand-icon" aria-hidden="true">📜</span>
-        <span class="brand-text">{{ t('system.title') }}</span>
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="3" width="42" height="42" rx="11" fill="none" stroke="currentColor" stroke-width="2.5" />
+            <line x1="15" y1="19" x2="33" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <line x1="15" y1="26" x2="33" y2="26" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            <line x1="24" y1="11" x2="24" y2="37" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="24" cy="11" r="3" fill="currentColor" />
+          </svg>
+        </span>
+        <span class="brand-text-wrap">
+          <span v-if="locale === 'zh-CN'" class="brand-text">
+            <span class="brand-text--main">皇甫谧</span><span class="brand-text--sub">数字人文平台</span>
+          </span>
+          <span v-else class="brand-text">{{ t('system.title') }}</span>
+          <span class="brand-subtitle">{{ t('system.subtitle') }}</span>
+        </span>
       </router-link>
     </div>
 
@@ -394,19 +408,64 @@ function cycleTheme() {
 .brand-link {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-2-5);
   text-decoration: none;
   color: var(--color-text-primary);
+  transition: transform var(--transition-base);
+}
+
+.brand-link:hover {
+  transform: translateY(-1px);
 }
 
 .brand-icon {
-  font-size: var(--text-2xl);
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.brand-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.brand-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
 }
 
 .brand-text {
-  font-size: var(--text-lg);
+  font-size: 17px;
   font-weight: var(--font-bold);
   white-space: nowrap;
+  color: var(--color-text-primary);
+  font-family: 'HfbSerif', 'Noto Serif SC', 'Kaiti SC', 'Songti SC', serif;
+  letter-spacing: 0.06em;
+}
+
+.brand-text--main {
+  font-size: 1.15em;
+  margin-right: 0.35em;
+}
+
+.brand-text--sub {
+  font-size: 0.72em;
+  font-weight: var(--font-medium);
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+.brand-subtitle {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: 'HfbLatin', 'Cormorant Garamond', 'Georgia', serif;
 }
 
 .navbar-links {

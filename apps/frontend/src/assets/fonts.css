@@ -1,0 +1,20 @@
+/* ============================================================
+   HFB Design Tokens — Custom Fonts (self-hosted subsets)
+   思源宋体 (logo 标题) + Cormorant Garamond (英文副标题)
+   ============================================================ */
+
+@font-face {
+  font-family: 'HfbSerif';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fonts/noto-serif-sc-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'HfbLatin';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/cormorant-garamond-600.woff2') format('woff2');
+}

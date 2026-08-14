@@ -4,6 +4,7 @@
    ============================================================ */
 
 /* ---- Design Tokens (modular) ---- */
+@import './fonts.css';
 @import '../styles/tokens/typography.css';
 @import '../styles/tokens/spacing.css';
 @import '../styles/tokens/colors.css';
