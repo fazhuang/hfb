@@ -45,6 +45,7 @@ function handleSuccess(): void {
 <style scoped>
 .login-page {
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
   min-height: calc(100vh - 120px);
@@ -55,7 +56,7 @@ function handleSuccess(): void {
 
 .login-layout {
   display: grid;
-  grid-template-columns: 1fr 400px;
+  grid-template-columns: 1fr 380px;
   gap: var(--space-8);
   align-items: start;
   width: 100%;
