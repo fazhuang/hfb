@@ -46,6 +46,7 @@
 <script setup lang="ts">
 import { ref, watch, nextTick } from 'vue';
 import api from '@/api/client';
+import { getApiErrorDetail } from '@/api/client';
 
 const props = defineProps<{
   open: boolean;
@@ -92,7 +93,7 @@ async function onConfirm() {
     emit('deleted');
     emit('update:open', false);
   } catch (e: unknown) {
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '删除失败';
+    const msg = getApiErrorDetail(e).message || '删除失败';
     errorMessage.value = msg;
   } finally {
     submitting.value = false;

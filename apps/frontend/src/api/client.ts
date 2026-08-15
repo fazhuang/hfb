@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -22,12 +22,55 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response error interceptor: pass through business status codes silently.
+// Response error interceptor: auto-refresh an expired access token once,
+// then pass through business status codes silently.
 // Callers use classifyError() to convert to user-facing messages.
 // Never log to console — all errors surface through UI.
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const status = error?.response?.status;
+    const config = error?.config as
+      | (InternalAxiosRequestConfig & { _retried?: boolean })
+      | undefined;
+
+    // Only retry expired-token 401s on protected endpoints, once, and only
+    // when we have a refresh token to exchange. Login/refresh themselves are
+    // excluded so a bad credential or expired refresh token fails fast instead
+    // of looping.
+    const isRefreshCall = config?.url?.includes('/auth/refresh');
+    const isLoginCall = config?.url?.includes('/auth/login');
+    const refreshToken = localStorage.getItem('hfb-refresh-token');
+
+    if (
+      status === 401 &&
+      config &&
+      !config._retried &&
+      !isRefreshCall &&
+      !isLoginCall &&
+      refreshToken
+    ) {
+      try {
+        const { data } = await axios.post(
+          `${API_BASE}/api/v1/auth/refresh`,
+          { refresh_token: refreshToken },
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+        const body = data?.data ?? data;
+        if (body.access_token) {
+          localStorage.setItem('hfb-access-token', body.access_token);
+          localStorage.setItem('hfb-refresh-token', body.refresh_token ?? refreshToken);
+          config._retried = true;
+          config.headers.Authorization = `Bearer ${body.access_token}`;
+          return api(config);
+        }
+      } catch {
+        // Refresh failed (expired/invalid) — clear session and fall through.
+        localStorage.removeItem('hfb-access-token');
+        localStorage.removeItem('hfb-refresh-token');
+      }
+    }
+
     // Reject without console — caller handles via try/catch + classifyError
     return Promise.reject(error);
   },
@@ -177,5 +220,35 @@ export function getErrorMessage(e: unknown, fallbackMessage = '请求失败，�
 }
 
 export default api;
+
+/**
+ * Typed shape for axios-style errors surfaced by the response interceptor.
+ * Centralizes error unwrapping so callers avoid `as any` casts.
+ */
+export interface ApiErrorDetail {
+  status?: number;
+  message?: string;
+}
+
+/**
+ * Extract { status, message } from an unknown thrown value without `any`.
+ * Falls back to the error's own `message` when no response body is present.
+ */
+export function getApiErrorDetail(e: unknown): ApiErrorDetail {
+  if (typeof e !== 'object' || e === null) return {};
+  const err = e as {
+    response?: {
+      status?: number;
+      data?: { message?: string; detail?: string };
+    };
+    message?: string;
+  };
+  const body = err.response?.data;
+  const bodyMsg = body?.message || body?.detail;
+  return {
+    status: err.response?.status,
+    message: bodyMsg || err.message,
+  };
+}
 
 

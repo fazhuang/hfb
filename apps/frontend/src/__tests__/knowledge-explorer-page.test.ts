@@ -103,6 +103,39 @@ const GraphCanvasStub = {
 };
 
 // ---------------------------------------------------------------------------
+// Stubs for the other multi-view canvases (no real canvas/DOM requirements)
+// ---------------------------------------------------------------------------
+const TimelineCanvasStub = {
+  name: 'TimelineCanvas',
+  template: `<div class="timeline-stub" data-view="timeline"></div>`,
+  props: {
+    events: { type: Array, default: () => [] },
+    activeId: { type: String, default: null },
+  },
+  emits: ['select', 'retry'],
+};
+
+const GenealogyTreeCanvasStub = {
+  name: 'GenealogyTreeCanvas',
+  template: `<div class="genealogy-stub" data-view="genealogy"></div>`,
+  props: {
+    root: { type: Object, default: null },
+    activeId: { type: String, default: null },
+  },
+  emits: ['select', 'retry'],
+};
+
+const GeographicMapCanvasStub = {
+  name: 'GeographicMapCanvas',
+  template: `<div class="geo-stub" data-view="geo"></div>`,
+  props: {
+    points: { type: Array, default: () => [] },
+    activeId: { type: String, default: null },
+  },
+  emits: ['select', 'retry'],
+};
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 function makeRouter() {
@@ -131,7 +164,12 @@ function mountPage() {
   return mount(KnowledgeExplorerPage, {
     global: {
       plugins: [makeRouter(), i18n],
-      stubs: { GraphCanvas: GraphCanvasStub },
+      stubs: {
+        GraphCanvas: GraphCanvasStub,
+        TimelineCanvas: TimelineCanvasStub,
+        GenealogyTreeCanvas: GenealogyTreeCanvasStub,
+        GeographicMapCanvas: GeographicMapCanvasStub,
+      },
     },
   });
 }
@@ -194,6 +232,9 @@ describe('KnowledgeExplorerPage', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    mockGet.mockReset();
+    // onMounted fires loadTimeline() first, consuming this leading response.
+    mockGet.mockResolvedValueOnce({ data: { success: true, data: [], message: 'ok' } });
   });
 
   afterEach(() => {
@@ -468,6 +509,94 @@ describe('KnowledgeExplorerPage', () => {
 
     // Error should be cleared, retry should have been called
     expect(wrapper.text()).not.toContain('Fail');
-    expect(mockGet).toHaveBeenCalledTimes(3); // search + failed neighbors + retry neighbors
+    expect(mockGet).toHaveBeenCalledTimes(4); // timeline + search + failed neighbors + retry neighbors
+  });
+
+  // -----------------------------------------------------------------------
+  // Multi-view switching (1707)
+  // -----------------------------------------------------------------------
+
+  it('renders the three view-mode tabs', () => {
+    const wrapper = mountPage();
+    const tabs = wrapper.findAll('.view-tab');
+    expect(tabs.length).toBe(3);
+    expect(wrapper.text()).toContain('拓扑网络');
+    expect(wrapper.text()).toContain('版本谱系树');
+    expect(wrapper.text()).toContain('地域传播图');
+  });
+
+  it('renders the persistent timeline strip and fetches events on mount', async () => {
+    mockGet.mockResolvedValueOnce({
+      data: { success: true, data: [], message: 'ok' },
+    });
+
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/graph/timeline');
+    expect(wrapper.find('[data-view="timeline"]').exists()).toBe(true);
+  });
+
+  it('switches to the genealogy view and fetches the tree', async () => {
+    mockGet.mockResolvedValueOnce({
+      data: { success: true, data: null, message: 'ok' },
+    });
+
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const tab = wrapper.findAll('.view-tab').find((b) => b.text().includes('版本谱系树'));
+    await tab!.trigger('click');
+    await flushPromises();
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/graph/genealogy');
+    expect(wrapper.find('[data-view="genealogy"]').exists()).toBe(true);
+  });
+
+  it('switches to the geo view and fetches points', async () => {
+    mockGet.mockResolvedValueOnce({
+      data: { success: true, data: [], message: 'ok' },
+    });
+
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const tab = wrapper.findAll('.view-tab').find((b) => b.text().includes('地域传播图'));
+    await tab!.trigger('click');
+    await flushPromises();
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/graph/geo');
+    expect(wrapper.find('[data-view="geo"]').exists()).toBe(true);
+  });
+
+  it('keeps the focused entity highlighted across view switches', async () => {
+    mockGet.mockResolvedValueOnce(MOCK_SEARCH_RESPONSE([mockPersonNode]));
+    mockGet.mockResolvedValueOnce(
+      MOCK_NEIGHBORS_RESPONSE(mockPersonNode, [mockBookNode], [mockEdge]),
+    );
+
+    const wrapper = mountPage();
+    await flushPromises();
+
+    // Search and select 皇甫谧
+    const input = wrapper.find('input.search-input');
+    await input.setValue('皇甫谧');
+    await input.trigger('keyup.enter');
+    await flushPromises();
+
+    const resultItem = wrapper.find('.result-item');
+    await resultItem.trigger('click');
+    await flushPromises();
+
+    expect(mockGet).toHaveBeenCalledWith('/api/v1/graph/neighbors/person/p1');
+
+    // Switch to genealogy — activeNode.id should still be passed as active-id
+    const genealogyTab = wrapper.findAll('.view-tab').find((b) => b.text().includes('版本谱系树'));
+    await genealogyTab!.trigger('click');
+    await flushPromises();
+
+    const genealogyStub = wrapper.findComponent({ name: 'GenealogyTreeCanvas' });
+    expect(genealogyStub.exists()).toBe(true);
+    expect(genealogyStub.props('activeId')).toBe('person:p1');
   });
 });

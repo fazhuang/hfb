@@ -41,13 +41,19 @@ const mockApiGet = vi.fn();
 const mockApiPatch = vi.fn();
 const mockApiDelete = vi.fn();
 
-vi.mock('@/api/client', () => ({
-  default: {
-    get: (...args: Array<unknown>) => mockApiGet(...args),
-    patch: (...args: Array<unknown>) => mockApiPatch(...args),
-    delete: (...args: Array<unknown>) => mockApiDelete(...args),
-  },
-}));
+vi.mock('@/api/client', async (importOriginal) => {
+  const actual = (await importOriginal()) as {
+    getApiErrorDetail: (e: unknown) => { status?: number; message?: string };
+  };
+  return {
+    default: {
+      get: (...args: Array<unknown>) => mockApiGet(...args),
+      patch: (...args: Array<unknown>) => mockApiPatch(...args),
+      delete: (...args: Array<unknown>) => mockApiDelete(...args),
+    },
+    getApiErrorDetail: actual.getApiErrorDetail,
+  };
+});
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({

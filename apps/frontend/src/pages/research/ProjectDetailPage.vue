@@ -137,6 +137,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import api from '@/api/client';
+import { getApiErrorDetail } from '@/api/client';
 import { toProjectDetail } from '@/types/research';
 import type { ResearchProjectDetail } from '@/types/research';
 
@@ -202,11 +203,8 @@ async function loadProject() {
     project.value = toProjectDetail(raw);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const status = (e as any)?.response?.status;
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载失败，请检查网络连接后重试。';
+    const { status, message } = getApiErrorDetail(e);
+    const msg = message || '加载失败，请检查网络连接后重试。';
     if (status === 404) {
       notFound.value = true;
     } else {

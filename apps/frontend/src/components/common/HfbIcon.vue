@@ -55,6 +55,8 @@ import {
   LogOut,
   Sun,
   Moon,
+  History,
+  Map,
 } from '@lucide/vue';
 
 type LucideIconName =
@@ -99,7 +101,9 @@ type LucideIconName =
   | 'landmark'
   | 'logout'
   | 'sun'
-  | 'moon';
+  | 'moon'
+  | 'history'
+  | 'map';
 
 export type { LucideIconName };
 
@@ -146,6 +150,8 @@ const ICON_MAP: Record<LucideIconName, unknown> = {
   logout: LogOut,
   sun: Sun,
   moon: Moon,
+  history: History,
+  map: Map,
 };
 
 const props = withDefaults(

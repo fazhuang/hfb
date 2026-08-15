@@ -25,39 +25,15 @@ import { useI18n } from 'vue-i18n';
 import { Network } from 'vis-network';
 import { DataSet } from 'vis-data';
 import 'vis-network/styles/vis-network.min.css';
+import type { GraphEdgeData, GraphNodeData } from '@/types/graph';
+
+export type { GraphEdgeData, GraphNodeData } from '@/types/graph';
 
 const { t } = useI18n();
 
-export interface GraphNodeData {
-  id: string;
-  entity_type: string;
-  entity_id: string;
-  label: string;
-  properties: Record<string, unknown>;
-}
-
-export interface GraphEdgeData {
-  id: string;
-  source_id: string;
-  target_id: string;
-  relation_type: string;
-  label: string;
-  source: string;
-  evidence?: {
-    document_id?: string;
-    chunk_id?: string;
-    exact_quote?: string;
-    citation?: string;
-    version_id?: string;
-    passage_id?: string;
-    source_uri?: string;
-    claim_text?: string;
-  };
-}
-
 const props = defineProps<{
-  nodes: GraphNodeData[];
-  edges: GraphEdgeData[];
+  nodes: Array<GraphNodeData>;
+  edges: Array<GraphEdgeData>;
   loading?: boolean;
   error?: string | null;
   emptyText?: string;
@@ -74,14 +50,21 @@ const emit = defineEmits<{
 const containerRef = ref<HTMLElement | null>(null);
 const networkRef = ref<HTMLElement | null>(null);
 
+// The vis-network instance is attached to the DOM node so E2E tests can select
+// edges programmatically (edges render on a Canvas, not in the DOM).
+interface NetworkHostElement extends HTMLElement {
+  __visNetwork?: Network | null;
+}
+
 let network: Network | null = null;
 
-// Entity type colors
+// Entity type colors — every value is a design token (resolved to a computed
+// value before being handed to the vis-network canvas).
 const TYPE_COLORS: Record<string, { bg: string; border: string; highlight: string }> = {
-  person: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: '#BBDEFB' },
-  book: { bg: 'var(--color-warning-bg)', border: 'var(--color-warning)', highlight: '#FFE0B2' },
-  version: { bg: 'var(--color-success-bg)', border: 'var(--color-success)', highlight: '#C8E6C9' },
-  passage: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: '#E1BEE7' },
+  person: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: 'var(--color-info-bg)' },
+  book: { bg: 'var(--color-warning-bg)', border: 'var(--color-warning)', highlight: 'var(--color-warning)' },
+  version: { bg: 'var(--color-success-bg)', border: 'var(--color-success)', highlight: 'var(--color-success)' },
+  passage: { bg: 'var(--color-accent-light)', border: 'var(--color-accent)', highlight: 'var(--color-info-bg)' },
 };
 
 const TYPE_ICONS: Record<string, string> = {
@@ -91,7 +74,24 @@ const TYPE_ICONS: Record<string, string> = {
   passage: '📜',
 };
 
-const DEFAULT_COLOR = { bg: '#F5F5F5', border: '#9E9E9E', highlight: '#E0E0E0' };
+const DEFAULT_COLOR = {
+  bg: 'var(--color-page-bg)',
+  border: 'var(--color-border)',
+  highlight: 'var(--color-hover)',
+};
+
+// vis-network draws on a canvas where a CSS var() string is an invalid fill
+// color and falls back to black. Resolve the token to its computed value before
+// handing it to the canvas. Fallback resolves a neutral token — never a raw hex.
+function resolveToken(name: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function resolveColor(value: string): string {
+  const match = value.match(/^var\(([^)]+)\)$/);
+  if (!match || !match[1]) return value;
+  return resolveToken(match[1].trim()) || resolveToken('--color-page-bg');
+}
 
 function buildNetwork() {
   if (!networkRef.value || props.nodes.length === 0) return;
@@ -113,9 +113,9 @@ function buildNetwork() {
           label: `${icon} ${n.label}`,
           title: buildTooltip(n),
           color: {
-            background: colors.bg,
-            border: colors.border,
-            highlight: { background: colors.highlight, border: colors.border },
+            background: resolveColor(colors.bg),
+            border: resolveColor(colors.border),
+            highlight: { background: resolveColor(colors.highlight), border: resolveColor(colors.border) },
           },
           font: { size: 13, face: '-apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif' },
           shape: 'box' as const,
@@ -137,11 +137,11 @@ function buildNetwork() {
         arrows: 'to',
         font: {
           size: 10,
-          color: 'var(--color-text-secondary)',
+          color: resolveColor('var(--color-text-secondary)'),
           strokeWidth: 0,
           align: 'middle' as const,
         },
-        color: { color: 'var(--color-text-muted)', highlight: 'var(--color-accent)' },
+        color: { color: resolveColor('var(--color-text-muted)'), highlight: resolveColor('var(--color-accent)') },
         width: 1.5,
         smooth: { enabled: true, type: 'continuous', roundness: 0.5 },
       })),
@@ -175,7 +175,7 @@ function buildNetwork() {
   // Expose the vis-network instance on the DOM element so E2E tests can
   // select edges programmatically (edges live on a Canvas, not in the DOM).
   if (networkRef.value) {
-    (networkRef.value as any).__visNetwork = network;
+    (networkRef.value as NetworkHostElement).__visNetwork = network;
   }
 
   // Events
@@ -217,19 +217,18 @@ function buildNetwork() {
 
 function buildTooltip(node: GraphNodeData): string {
   const p = node.properties;
-  let tip = `<div style="max-width:300px;font-size:13px;line-height:1.5;">`;
-  tip += `<strong>${node.label}</strong><br>`;
-  tip += `<span style="color:#888;">${node.entity_type}</span>`;
-  if (p.name) tip += `<br>姓名: ${p.name}`;
-  if (p.title) tip += `<br>书名: ${p.title}`;
-  if (p.version_name) tip += `<br>版本: ${p.version_name}`;
-  if (p.dynasty) tip += `<br>朝代: ${p.dynasty}`;
-  if (p.era) tip += `<br>时期: ${p.era}`;
-  if (p.category) tip += `<br>分类: ${p.category}`;
-  if (p.repository) tip += `<br>收藏: ${p.repository}`;
-  if (p.content_preview) tip += `<br>内容: ${p.content_preview}`;
-  tip += `</div>`;
-  return tip;
+  const lines: Array<string> = [];
+  lines.push(`${node.label}`);
+  lines.push(`类型: ${node.entity_type}`);
+  if (p.name) lines.push(`姓名: ${p.name}`);
+  if (p.title) lines.push(`书名: ${p.title}`);
+  if (p.version_name) lines.push(`版本: ${p.version_name}`);
+  if (p.dynasty) lines.push(`朝代: ${p.dynasty}`);
+  if (p.era) lines.push(`时期: ${p.era}`);
+  if (p.category) lines.push(`分类: ${p.category}`);
+  if (p.repository) lines.push(`收藏: ${p.repository}`);
+  if (p.content_preview) lines.push(`内容: ${p.content_preview}`);
+  return lines.join('\n');
 }
 
 function destroyNetwork() {

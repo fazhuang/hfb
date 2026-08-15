@@ -16,12 +16,20 @@ let activeWrappers: Array<ReturnType<typeof mount>> = [];
 const mockApiGet = vi.fn();
 const mockApiPost = vi.fn();
 
-vi.mock('@/api/client', () => ({
-  default: {
-    get: (...args: Array<unknown>) => mockApiGet(...args),
-    post: (...args: Array<unknown>) => mockApiPost(...args),
-  },
-}));
+vi.mock('@/api/client', async (importOriginal) => {
+  const actual = (await importOriginal()) as {
+    getErrorMessage: (e: unknown, fallbackMessage?: string) => string;
+    getApiErrorDetail: (e: unknown) => { status?: number; message?: string };
+  };
+  return {
+    default: {
+      get: (...args: Array<unknown>) => mockApiGet(...args),
+      post: (...args: Array<unknown>) => mockApiPost(...args),
+    },
+    getErrorMessage: actual.getErrorMessage,
+    getApiErrorDetail: actual.getApiErrorDetail,
+  };
+});
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({

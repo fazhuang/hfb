@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import api from '@/api/client';
+import { getApiErrorDetail } from '@/api/client';
 import LoadingState from '@/components/common/LoadingState.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
@@ -103,7 +104,7 @@ async function fetchActivities() {
     activities.value = (body.history ?? []) as ActivityItem[];
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || '加载活动失败';
+    const msg = getApiErrorDetail(e).message || '加载活动失败';
     error.value = msg;
   } finally {
     if (myReqId === reqId) {

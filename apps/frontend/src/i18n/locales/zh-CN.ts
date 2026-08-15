@@ -135,6 +135,15 @@ export default {
     emptyHint: '选择左侧实体开始图谱探索',
     versions: '版本',
     passages: '条文',
+    viewMode: {
+      network: '拓扑网络',
+      timeline: '学术时间轴',
+      genealogy: '版本谱系树',
+      geo: '地域传播图',
+    },
+    timelineUnknownEra: '朝代不详',
+    geoEraFilter: '按时期筛选',
+    geoAllEras: '全部时期',
   },
   search: {
     placeholder: '搜索古籍、人物、版本、条文...',

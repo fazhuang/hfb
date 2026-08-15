@@ -492,3 +492,100 @@ class EvidenceChainEnvelope(BaseModel):
     success: bool = Field(default=True)
     data: list[EvidenceChainPath] = Field(default_factory=list)
     message: str = Field(default="ok")
+
+
+# ======================================================================
+# Multi-view visualization types (Timeline / Genealogy / Geo)
+# ======================================================================
+
+
+class TimelineEvent(BaseModel):
+    """A single point on the academic evolution timeline.
+
+    One event per entity (person birth/death, book composition, version printing).
+    Coordinates are not included; the frontend lays events out along a time axis.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str  # composite key "{entity_type}:{entity_id}"
+    entity_type: str
+    entity_id: str
+    label: str
+    year: int | None = None  # None → unknown date, sorted last
+    era: str = Field(default="", description="朝代/时期")
+    category: str = Field(default="", description="person | book | version")
+    description: str = Field(default="")
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class GenealogyTreeNode(BaseModel):
+    """A node in the version lineage tree.
+
+    kind distinguishes the textual-version role per HFB-DOM-0803 Ch.9:
+      original(正本) / manuscript(抄本) / translation(译本) /
+      collated(校注本) / blockprint(刊本) / root(synthetic) / version(unknown)
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    entity_type: str = Field(default="version")
+    entity_id: str = Field(default="")
+    label: str
+    kind: str = Field(default="version")
+    era: str = Field(default="")
+    year: int | None = None
+    repository: str = Field(default="")
+    children: list["GenealogyTreeNode"] = Field(default_factory=list)
+
+
+class GeoDistributionPoint(BaseModel):
+    """A geographic point for the transmission/repository map.
+
+    Coordinates are approximate display values (city-level), not scholarly
+    geocoding. lat/lng are WGS84.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    entity_type: str = Field(default="")
+    entity_id: str = Field(default="")
+    name: str
+    location: str = Field(default="", description="地名/机构名")
+    lat: float = Field(default=0.0)
+    lng: float = Field(default=0.0)
+    era: str = Field(default="", description="历史时期/朝代")
+    category: str = Field(default="", description="origin | repository")
+    weight: int = Field(default=1, description="流变/馆藏权重")
+
+
+class TimelineEnvelope(BaseModel):
+    """Envelope for /graph/timeline."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    success: bool = Field(default=True)
+    data: list[TimelineEvent] = Field(default_factory=list)
+    message: str = Field(default="ok")
+
+
+class GenealogyEnvelope(BaseModel):
+    """Envelope for /graph/genealogy."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    success: bool = Field(default=True)
+    data: GenealogyTreeNode | None = None
+    message: str = Field(default="ok")
+
+
+class GeoEnvelope(BaseModel):
+    """Envelope for /graph/geo."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    success: bool = Field(default=True)
+    data: list[GeoDistributionPoint] = Field(default_factory=list)
+    message: str = Field(default="ok")

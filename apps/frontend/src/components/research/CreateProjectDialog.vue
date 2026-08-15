@@ -80,6 +80,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '@/api/client';
+import { getApiErrorDetail } from '@/api/client';
 
 const { t } = useI18n();
 
@@ -166,7 +167,7 @@ async function onSubmit() {
     emit('created');
     emit('update:open', false);
   } catch (e: unknown) {
-    const msg = (e as any)?.response?.data?.message || (e as any)?.message || t('common.error');
+    const msg = getApiErrorDetail(e).message || t('common.error');
     errorMessage.value = msg;
   } finally {
     submitting.value = false;

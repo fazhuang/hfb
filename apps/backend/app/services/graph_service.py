@@ -43,6 +43,7 @@ from app.models.person import Person
 from app.models.tcm_entity import TCMEntity
 from app.models.user import Permission, Role, User
 from app.models.version import Version
+from app.models.version_relation import VersionRelation
 from app.schemas.graph import (
     RELATION_LABELS,
     ConceptEdge,
@@ -53,12 +54,15 @@ from app.schemas.graph import (
     CrossDocumentClaim,
     EvidenceChainPath,
     EvidenceHop,
+    GenealogyTreeNode,
+    GeoDistributionPoint,
     GraphEdge,
     GraphEvidence,
     GraphNode,
     NeighborResult,
     PathResult,
     Subgraph,
+    TimelineEvent,
 )
 from app.services.generation_service import _is_substring
 
@@ -2430,3 +2434,242 @@ class GraphService:
         response["output_sha256"] = hashlib.sha256(output_str.encode()).hexdigest()
 
         return response
+
+    # ==================================================================
+    # Multi-view visualization (Timeline / Genealogy / Geo)
+    # ==================================================================
+
+    async def get_timeline(self) -> list[TimelineEvent]:
+        """Build the academic evolution timeline from persons, books, versions.
+
+        Each entity contributes one event. Sort by (year is None, year, label).
+        """
+        events: list[TimelineEvent] = []
+
+        person_stmt = select(Person).where(Person.is_deleted.is_(False))
+        for p in (await self.session.execute(person_stmt)).scalars().all():
+            events.append(
+                TimelineEvent(
+                    id=f"person:{p.id}",
+                    entity_type="person",
+                    entity_id=p.id,
+                    label=p.name,
+                    year=p.birth_year,
+                    era=p.dynasty or "",
+                    category="person",
+                    description=p.biography or "",
+                    properties={
+                        "birth_year": p.birth_year,
+                        "death_year": p.death_year,
+                        "birth_place": p.birth_place,
+                    },
+                )
+            )
+
+        book_stmt = select(Book).where(Book.is_deleted.is_(False))
+        for b in (await self.session.execute(book_stmt)).scalars().all():
+            events.append(
+                TimelineEvent(
+                    id=f"book:{b.id}",
+                    entity_type="book",
+                    entity_id=b.id,
+                    label=b.title,
+                    year=b.year,
+                    era=b.dynasty or "",
+                    category="book",
+                    description=b.abstract or "",
+                    properties={"title": b.title, "category": b.category},
+                )
+            )
+
+        version_stmt = select(Version).where(Version.is_deleted.is_(False))
+        for v in (await self.session.execute(version_stmt)).scalars().all():
+            events.append(
+                TimelineEvent(
+                    id=f"version:{v.id}",
+                    entity_type="version",
+                    entity_id=v.id,
+                    label=v.version_name,
+                    year=v.year,
+                    era=v.era or "",
+                    category="version",
+                    description=v.description or "",
+                    properties={"repository": v.repository, "editor": v.editor},
+                )
+            )
+
+        events.sort(key=lambda e: (e.year is None, e.year or 0, e.label))
+        return events
+
+    async def get_genealogy(self) -> GenealogyTreeNode | None:
+        """Build the version lineage tree for the primary book.
+
+        A synthetic root is created so forests (multiple disconnected version
+        chains) render as a single tree. Children are grouped under the parent
+        named in their VersionRelation (target → source ordering, so a child
+        "承袭自" its parent).
+        """
+        book_stmt = (
+            select(Book)
+            .where(Book.is_deleted.is_(False))
+            .order_by(Book.created_at)
+            .limit(1)
+        )
+        book = (await self.session.execute(book_stmt)).scalar_one_or_none()
+        if book is None:
+            return None
+
+        version_stmt = select(Version).where(
+            Version.book_id == book.id, Version.is_deleted.is_(False)
+        )
+        versions = list((await self.session.execute(version_stmt)).scalars().all())
+
+        rel_stmt = select(VersionRelation).where(
+            VersionRelation.source_version_id.in_([v.id for v in versions]),
+            VersionRelation.target_version_id.in_([v.id for v in versions]),
+            VersionRelation.is_deleted.is_(False),
+        )
+        relations = list((await self.session.execute(rel_stmt)).scalars().all())
+
+        # Build node dict and derive kind from name/era heuristics.
+        nodes: dict[str, GenealogyTreeNode] = {}
+        for v in versions:
+            nodes[v.id] = GenealogyTreeNode(
+                id=f"version:{v.id}",
+                entity_type="version",
+                entity_id=v.id,
+                label=v.version_name,
+                kind=_version_kind(v.version_name or ""),
+                era=v.era or "",
+                year=v.year,
+                repository=v.repository or "",
+            )
+
+        # A relation target --relation--> source means: target derived from source.
+        # Group children under their source (parent) so the tree fans out forward.
+        children_map: dict[str, list[GenealogyTreeNode]] = {}
+        child_of: dict[str, str] = {}
+        for rel in relations:
+            if rel.target_version_id in nodes and rel.source_version_id in nodes:
+                children_map.setdefault(rel.source_version_id, []).append(
+                    nodes[rel.target_version_id]
+                )
+                child_of[rel.target_version_id] = rel.source_version_id
+
+        roots = [n for n in nodes.values() if n.id.split(":", 1)[1] not in child_of]
+
+        if len(roots) == 1:
+            return roots[0]
+
+        # Forest → single synthetic root.
+        root = GenealogyTreeNode(
+            id="root",
+            entity_type="book",
+            entity_id=book.id,
+            label=book.title,
+            kind="root",
+        )
+        for n in nodes.values():
+            if n.id.split(":", 1)[1] not in child_of:
+                root.children.append(n)
+        return root
+
+    async def get_geo(self, era: str | None = None) -> list[GeoDistributionPoint]:
+        """Build geographic distribution points (origin + repository).
+
+        Coordinates are city-level approximations for display only.
+        `era` filters repository points by their version era (substring match).
+        """
+        points: list[GeoDistributionPoint] = []
+
+        # Origin points: person birth places and book composition places.
+        person_stmt = select(Person).where(
+            Person.is_deleted.is_(False), Person.birth_place.is_not(None)
+        )
+        for p in (await self.session.execute(person_stmt)).scalars().all():
+            coord = _origin_coord(p.birth_place or "")
+            points.append(
+                GeoDistributionPoint(
+                    id=f"person:{p.id}",
+                    entity_type="person",
+                    entity_id=p.id,
+                    name=p.name,
+                    location=p.birth_place or "",
+                    lat=coord[0],
+                    lng=coord[1],
+                    era=p.dynasty or "",
+                    category="origin",
+                    weight=1,
+                )
+            )
+
+        # Repository points: version holding institutions.
+        version_stmt = select(Version).where(
+            Version.is_deleted.is_(False), Version.repository.is_not(None)
+        )
+        for v in (await self.session.execute(version_stmt)).scalars().all():
+            if era and era not in (v.era or ""):
+                continue
+            coord = _repository_coord(v.repository or "")
+            points.append(
+                GeoDistributionPoint(
+                    id=f"version:{v.id}",
+                    entity_type="version",
+                    entity_id=v.id,
+                    name=v.version_name,
+                    location=v.repository or "",
+                    lat=coord[0],
+                    lng=coord[1],
+                    era=v.era or "",
+                    category="repository",
+                    weight=1,
+                )
+            )
+
+        return points
+
+
+def _version_kind(version_name: str) -> str:
+    """Derive a version node kind from its name.
+
+    Heuristic only — the exact role (正本/抄本/译本/校注本) is best set as an
+    explicit field when the ontology gains a version kind column.
+    """
+    if any(k in version_name for k in ("校本", "校注", "校勘", "校正")):
+        return "collated"
+    if any(k in version_name for k in ("抄本", "抄")):
+        return "manuscript"
+    if any(k in version_name for k in ("译本", "译", "日", "英", "法", "德")):
+        return "translation"
+    if any(k in version_name for k in ("刊本", "刻本", "刊", "刻")):
+        return "blockprint"
+    if any(k in version_name for k in ("原本", "古本", "初")):
+        return "original"
+    return "version"
+
+
+# City-level approximate coordinates for display only.
+def _origin_coord(place: str) -> tuple[float, float]:
+    if "甘肃" in place or "灵台" in place:
+        return (35.0, 107.6)
+    if "河南" in place or "南阳" in place:
+        return (33.0, 112.5)
+    if "福建" in place:
+        return (26.0, 119.3)
+    if "湖北" in place or "蕲" in place:
+        return (30.2, 115.0)
+    return (34.3, 108.9)  # 关中 fallback
+
+
+def _repository_coord(repo: str) -> tuple[float, float]:
+    if "日本" in repo or "内阁" in repo:
+        return (35.7, 139.7)
+    if "国家图书馆" in repo or "中国国家图书馆" in repo or "北京" in repo:
+        return (39.9, 116.4)
+    if "上海" in repo:
+        return (31.2, 121.5)
+    if "台北" in repo or "台湾" in repo:
+        return (25.0, 121.5)
+    if "哈佛" in repo or "美国" in repo:
+        return (42.4, -71.1)
+    return (34.3, 108.9)  # 关中 fallback

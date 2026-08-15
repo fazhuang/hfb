@@ -138,7 +138,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import api from '@/api/client';
 import GraphCanvas from '@/components/graph/GraphCanvas.vue';
-import type { GraphNodeData, GraphEdgeData } from '@/components/graph/GraphCanvas.vue';
+import type { GraphEdgeData, GraphNodeData } from '@/types/graph';
 import HfbIcon from '@/components/common/HfbIcon.vue';
 import type { LucideIconName } from '@/components/common/HfbIcon.vue';
 

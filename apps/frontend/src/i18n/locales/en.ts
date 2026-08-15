@@ -136,6 +136,15 @@ export default {
     emptyHint: 'Select an entity from the sidebar to start exploring',
     versions: 'Versions',
     passages: 'Passages',
+    viewMode: {
+      network: 'Topology Network',
+      timeline: 'Timeline',
+      genealogy: 'Genealogy Tree',
+      geo: 'Geographic Map',
+    },
+    timelineUnknownEra: 'Unknown era',
+    geoEraFilter: 'Filter by era',
+    geoAllEras: 'All eras',
   },
   search: {
     placeholder: 'Search books, persons, versions, passages...',

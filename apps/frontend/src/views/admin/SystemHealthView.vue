@@ -264,7 +264,7 @@ onMounted(() => {
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   margin-bottom: var(--space-8);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-card-sm);
 }
 
 .overview-card.is-healthy {
@@ -402,7 +402,7 @@ onMounted(() => {
 
 .service-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-card-hover);
 }
 
 .service-card.card-healthy {

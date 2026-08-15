@@ -32,6 +32,8 @@ from app.middleware.auth import (
 from app.schemas.graph import (
     EntityRelationCreate,
     EntityRelationResponse,
+    GenealogyEnvelope,
+    GeoEnvelope,
     GraphCreateRelationEnvelope,
     GraphDeleteEnvelope,
     GraphEntitiesEnvelope,
@@ -42,6 +44,7 @@ from app.schemas.graph import (
     IntelligenceEnvelope,
     IntelligenceRequest,
     IntelligenceResponse,
+    TimelineEnvelope,
     VerifyRelationEnvelope,
     VerifyRelationRequest,
 )
@@ -172,6 +175,54 @@ async def get_entity_subgraph(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
     return GraphSubgraphEnvelope(success=True, data=result, message="ok")
+
+
+# ============================================================
+# Multi-view visualization endpoints (Timeline / Genealogy / Geo)
+# ============================================================
+
+
+@router.get(
+    "/timeline",
+    response_model=TimelineEnvelope,
+    dependencies=[Depends(guard_read)],
+)
+async def get_timeline(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> TimelineEnvelope:
+    """Academic evolution timeline — persons, books, versions on a time axis."""
+    svc = GraphService(session)
+    events = await svc.get_timeline()
+    return TimelineEnvelope(success=True, data=events, message="ok")
+
+
+@router.get(
+    "/genealogy",
+    response_model=GenealogyEnvelope,
+    dependencies=[Depends(guard_read)],
+)
+async def get_genealogy(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> GenealogyEnvelope:
+    """Version lineage tree for the primary classical book."""
+    svc = GraphService(session)
+    root = await svc.get_genealogy()
+    return GenealogyEnvelope(success=True, data=root, message="ok")
+
+
+@router.get(
+    "/geo",
+    response_model=GeoEnvelope,
+    dependencies=[Depends(guard_read)],
+)
+async def get_geo(
+    session: Annotated[AsyncSession, Depends(get_session)],
+    era: str | None = Query(default=None, description="Filter repository points by era"),
+) -> GeoEnvelope:
+    """Geographic distribution of origins and repositories."""
+    svc = GraphService(session)
+    points = await svc.get_geo(era=era)
+    return GeoEnvelope(success=True, data=points, message="ok")
 
 
 # ============================================================

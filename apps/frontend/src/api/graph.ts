@@ -1,61 +1,31 @@
 /**
  * Graph API client — typed wrappers for /api/v1/graph endpoints.
  *
- * Task 2A: Knowledge Graph minimal page — entity search, neighbors, subgraph.
- * Uses real Graph API; no mocks, no static data.
+ * Types live in src/types/graph.ts (single source of truth, mirroring
+ * apps/backend/app/schemas/graph.py). This module re-exports them so existing
+ * `@/api/graph` imports keep working, and adds the request functions.
  */
 
 import api from './client';
+import type {
+  GenealogyTreeNode,
+  GeoDistributionPoint,
+  GraphNodeData,
+  NeighborResult,
+  Subgraph,
+  TimelineEvent,
+} from '@/types/graph';
 
-// ============================================================
-// Types — mirror backend schemas (apps/backend/app/schemas/graph.py)
-// ============================================================
-
-export interface GraphNodeData {
-  id: string; // composite key: "{entity_type}:{entity_id}"
-  entity_type: string;
-  entity_id: string;
-  label: string; // display name
-  properties: Record<string, unknown>;
-}
-
-export interface GraphEvidence {
-  document_id: string;
-  chunk_id: string;
-  exact_quote: string;
-  citation: string; // [document_id:chunk_id]
-  version_id: string;
-  passage_id: string;
-  source_uri: string;
-  claim_text: string;
-}
-
-export interface GraphEdgeData {
-  id: string;
-  source_id: string;
-  target_id: string;
-  relation_type: string;
-  label: string;
-  source: string; // "explicit" | "fk" | "version" | "concept"
-  evidence: GraphEvidence;
-}
-
-export interface NeighborResult {
-  center: GraphNodeData;
-  neighbors: Array<GraphNodeData>;
-  edges: Array<GraphEdgeData>;
-}
-
-export interface Subgraph {
-  nodes: Array<GraphNodeData>;
-  edges: Array<GraphEdgeData>;
-}
-
-interface ApiEnvelope<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
+export type {
+  GenealogyTreeNode,
+  GeoDistributionPoint,
+  GraphEdgeData,
+  GraphEvidence,
+  GraphNodeData,
+  NeighborResult,
+  Subgraph,
+  TimelineEvent,
+} from '@/types/graph';
 
 // ============================================================
 // Entity type constants
@@ -74,6 +44,12 @@ export const ENTITY_TYPE_ICONS: Record<string, string> = {
   version: '📖',
   passage: '📜',
 };
+
+interface ApiEnvelope<T> {
+  success: boolean;
+  data: T;
+  message: string;
+}
 
 // ============================================================
 // API functions
@@ -120,4 +96,39 @@ export async function getEntitySubgraph(
     `/api/v1/graph/entity/${entityType}/${entityId}`,
   );
   return data.data ?? null;
+}
+
+/**
+ * Academic evolution timeline.
+ * GET /api/v1/graph/timeline
+ */
+export async function getTimeline(): Promise<Array<TimelineEvent>> {
+  const { data } = await api.get<ApiEnvelope<Array<TimelineEvent>>>(
+    '/api/v1/graph/timeline',
+  );
+  return data.data ?? [];
+}
+
+/**
+ * Version lineage tree.
+ * GET /api/v1/graph/genealogy
+ */
+export async function getGenealogy(): Promise<GenealogyTreeNode | null> {
+  const { data } = await api.get<ApiEnvelope<GenealogyTreeNode>>(
+    '/api/v1/graph/genealogy',
+  );
+  return data.data ?? null;
+}
+
+/**
+ * Geographic distribution of origins and repositories.
+ * GET /api/v1/graph/geo?era=
+ */
+export async function getGeo(era?: string): Promise<Array<GeoDistributionPoint>> {
+  const { data } = era
+    ? await api.get<ApiEnvelope<Array<GeoDistributionPoint>>>('/api/v1/graph/geo', {
+        params: { era },
+      })
+    : await api.get<ApiEnvelope<Array<GeoDistributionPoint>>>('/api/v1/graph/geo');
+  return data.data ?? [];
 }

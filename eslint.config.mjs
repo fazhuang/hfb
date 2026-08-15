@@ -91,6 +91,16 @@ const eslintConfig = [
       'local/no-hardcoded-colors': 'warn',
     },
   },
+  // HfbTable renders an opt-in `htmlRender` path (default false) for pre-existing
+  // badge markup consumers. The v-html is gated behind that explicit prop; the
+  // HTML comment disable is not honoured without the vue processor, so scope the
+  // rule off here rather than in a non-functional inline directive.
+  {
+    files: ['apps/frontend/src/components/common/HfbTable.vue'],
+    rules: {
+      'vue/no-v-html': 'off',
+    },
+  },
   // Test files
   {
     files: ['**/*.{test,spec}.{ts,js}'],
