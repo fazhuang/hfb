@@ -77,6 +77,7 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("versions.id", ondelete="RESTRICT"),
         nullable=False,
+        index=True,
     )
 
     expected_chunk_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -121,6 +122,7 @@ class CandidateExtraction(BaseModel):
         ),
         default=CandidateStatus.PENDING,
         nullable=False,
+        index=True,
     )
     reviewed_by_user_id: Mapped[str | None] = mapped_column(
         String(36),
@@ -156,6 +158,7 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("metadata.id", ondelete="SET NULL"),
         nullable=True,
+        unique=True,
         comment="关联元数据记录 ID",
     )
 

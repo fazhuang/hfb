@@ -18,11 +18,12 @@ import json
 import logging
 from uuid import uuid4
 
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic_evidence import EvidenceLevel, SourceRef
-from app.models.version import Version
+from app.models.academic_evidence import EvidenceLevel
+from app.repositories.source_ref import SourceRefRepository
+from app.repositories.version import VersionRepository
 
 logger = logging.getLogger(__name__)
 
@@ -395,33 +396,9 @@ class CitationPersistenceService:
 
         Returns the resolved ``source_refs.id``.
         """
-        source_ref_id: str | None = None
-
-        if source_uri:
-            result = await db.execute(
-                select(SourceRef.id)
-                .where(SourceRef.url == source_uri, SourceRef.is_deleted.is_(False))
-                .with_for_update()
-                .limit(1)
-            )
-            row = result.fetchone()
-            if row:
-                source_ref_id = row[0]
-
-        if source_ref_id is None and doc_id:
-            result = await db.execute(
-                select(SourceRef.id)
-                .where(
-                    SourceRef.page_location == f"document:{doc_id}",
-                    SourceRef.is_deleted.is_(False),
-                )
-                .with_for_update()
-                .limit(1)
-            )
-            row = result.fetchone()
-            if row:
-                source_ref_id = row[0]
-
+        source_ref_id = await SourceRefRepository(db).resolve_id_for_update(
+            source_uri=source_uri, doc_id=doc_id
+        )
         if source_ref_id is None:
             raise RuntimeError(
                 f"Cannot resolve pre-existing SourceRef for doc_id={doc_id} "
@@ -430,12 +407,7 @@ class CitationPersistenceService:
             )
 
         if version_id:
-            v_result = await db.execute(
-                select(Version.withdrawn_at)
-                .where(Version.id == version_id, Version.is_deleted.is_(False))
-                .with_for_update()
-            )
-            v_row = v_result.fetchone()
+            v_row = await VersionRepository(db).get_withdrawn_at_for_update(version_id)
             # Fail-closed: a soft-deleted (or missing) version yields no row and
             # must NOT be treated as "not withdrawn".
             if v_row is None:
