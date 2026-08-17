@@ -339,6 +339,17 @@ Audit：
 
 不得删除。
 
+> **例外记录（HFB-DEV-0505-EXC-01，Phase A0）**：追加式防篡改审计表
+> `candidate_audit_logs`（模型 `CandidateAuditLog`）为「证据原生」候选发布管线
+> 专用。该表：
+> 1. 继承 `Base` 而非 `BaseModel`——刻意不含 `updated_at`/`deleted_at`/`is_deleted`
+>    等可变列，配合 DDL 触发器实现 append-only 不可变语义（禁止 UPDATE/DELETE，仅允许
+>    `candidate_id` 置 NULL 的解绑迁移）；
+> 2. 采用复数表名 `candidate_audit_logs`——与现有代码库实际约定一致，并作为审计表
+>    的显式命名保留。
+>
+> 该例外不扩展至其他业务表；其余新增表仍须遵循第七章公共字段与第八章单数命名规范。
+
 ---
 
 # 第十四章 Migration
