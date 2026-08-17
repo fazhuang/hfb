@@ -18,10 +18,11 @@ import json
 import logging
 from uuid import uuid4
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.academic_evidence import EvidenceLevel
+from app.models.academic_evidence import EvidenceLevel, SourceRef
+from app.models.version import Version
 
 logger = logging.getLogger(__name__)
 
@@ -388,16 +389,20 @@ class CitationPersistenceService:
           3. If ``version_id`` points at a withdrawn version, raise
              ``RuntimeError``.
 
+        The SourceRef and Version rows are read with ``SELECT ... FOR UPDATE``
+        so a concurrent withdrawal / soft-delete cannot race past this check and
+        commit before the publishing transaction.
+
         Returns the resolved ``source_refs.id``.
         """
         source_ref_id: str | None = None
 
         if source_uri:
             result = await db.execute(
-                text(
-                    "SELECT id FROM source_refs WHERE url=:url AND is_deleted=false LIMIT 1"
-                ),
-                {"url": source_uri},
+                select(SourceRef.id)
+                .where(SourceRef.url == source_uri, SourceRef.is_deleted.is_(False))
+                .with_for_update()
+                .limit(1)
             )
             row = result.fetchone()
             if row:
@@ -405,10 +410,13 @@ class CitationPersistenceService:
 
         if source_ref_id is None and doc_id:
             result = await db.execute(
-                text(
-                    "SELECT id FROM source_refs WHERE page_location=:loc AND is_deleted=false LIMIT 1"
-                ),
-                {"loc": f"document:{doc_id}"},
+                select(SourceRef.id)
+                .where(
+                    SourceRef.page_location == f"document:{doc_id}",
+                    SourceRef.is_deleted.is_(False),
+                )
+                .with_for_update()
+                .limit(1)
             )
             row = result.fetchone()
             if row:
@@ -423,11 +431,9 @@ class CitationPersistenceService:
 
         if version_id:
             v_result = await db.execute(
-                text(
-                    "SELECT withdrawn_at FROM versions "
-                    "WHERE id=:vid AND is_deleted=false"
-                ),
-                {"vid": version_id},
+                select(Version.withdrawn_at)
+                .where(Version.id == version_id, Version.is_deleted.is_(False))
+                .with_for_update()
             )
             v_row = v_result.fetchone()
             if v_row and v_row[0] is not None:

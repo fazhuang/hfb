@@ -32,7 +32,7 @@ from app.models.document_chunk import DocumentChunk
 from app.models.passage import Passage
 from app.models.user import User
 from app.models.workspace import ResearchSession
-from app.services.auth_service import AuthService
+from app.repositories.candidate_extraction import CandidateExtractionRepository
 from app.services.citation_persistence import CitationPersistenceService
 
 
@@ -143,6 +143,10 @@ async def approve_and_publish_candidate(
     ``async with db.begin()`` and the drift exception is raised after the block
     exits normally. Guard failures (403/404) and SourceRef/version failures
     propagate inside the block and therefore roll back fully.
+
+    RBAC authorization (``extraction:approve``) is enforced by the controller
+    (``POST /api/v1/extractions/{id}/approve`` via ``require_permission``); this
+    service owns ownership + grounding + atomic publish.
     """
     pending_drift_exception: GroundingDriftException | None = None
 
@@ -157,20 +161,9 @@ async def approve_and_publish_candidate(
         )
 
     async with db.begin():
-        # --- double check 1: permission (403) ---
-        auth = AuthService(db)
-        if not await auth.has_permission(reviewer.id, "extraction", "approve"):
-            raise HTTPException(
-                status_code=403, detail="Insufficient permission: extraction.approve"
-            )
-
-        # --- pessimistic lock ---
-        stmt = (
-            select(CandidateExtraction)
-            .where(CandidateExtraction.id == candidate_id)
-            .with_for_update()
-        )
-        candidate = (await db.execute(stmt)).scalar_one_or_none()
+        # --- pessimistic lock (via repository) ---
+        repo = CandidateExtractionRepository(db)
+        candidate = await repo.get_for_update(candidate_id)
 
         if not candidate or candidate.status != CandidateStatus.PENDING:
             raise HTTPException(

@@ -264,29 +264,6 @@ class TestIsolationAndAuthorization:
         assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
-    async def test_unauthorized_review_403(self, db_session: AsyncSession) -> None:
-        await build_world(db_session)
-        candidate = await make_candidate(db_session)
-        no_perm = User(
-            id="no-perm-a0",
-            username="no-perm",
-            email="no-perm@test.com",
-            hashed_password="x",
-            is_active=True,
-            is_superuser=False,
-        )
-        db_session.add(no_perm)
-        await db_session.flush()
-        reviewer = await _reviewer(db_session, "no-perm-a0")
-        await db_session.commit()
-
-        with pytest.raises(HTTPException) as exc_info:
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
-            )
-        assert exc_info.value.status_code == 403
-
-    @pytest.mark.asyncio
     async def test_cross_private_document_session_isolation_404(
         self, db_session: AsyncSession
     ) -> None:
@@ -631,6 +608,43 @@ class TestPostgresTriggers:
                             text(
                                 "UPDATE document_chunks SET content='tampered' "
                                 "WHERE id='chunk-a0'"
+                            )
+                        )
+
+    @pytest.mark.asyncio
+    async def test_postgresql_approval_locks_version_against_withdrawal(
+        self, pg_world
+    ) -> None:
+        """The approval's FOR UPDATE on the version blocks a concurrent withdrawal.
+
+        Reproduces the withdrawn-version race: ``verify_and_resolve_source_ref``
+        must lock the version row so a concurrent ``withdrawn_at`` update cannot
+        slip between the check and the Evidence commit.
+        """
+        session = pg_world["session"]
+        factory = pg_world["factory"]
+        await build_world(session)
+        await make_candidate(session)
+        await session.commit()
+
+        # T1 holds the version lock exactly as verify_and_resolve_source_ref does.
+        async with factory() as t1:
+            async with t1.begin():
+                await t1.execute(
+                    text(
+                        "SELECT withdrawn_at FROM versions "
+                        "WHERE id='ver-a0' AND is_deleted=false FOR UPDATE"
+                    )
+                )
+
+                # T2's withdrawal must be blocked while T1 holds the lock.
+                async with factory() as t2:
+                    await t2.execute(text("SET LOCAL lock_timeout='200ms'"))
+                    with pytest.raises(DBAPIError):
+                        await t2.execute(
+                            text(
+                                "UPDATE versions SET withdrawn_at=now() "
+                                "WHERE id='ver-a0'"
                             )
                         )
 

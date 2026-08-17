@@ -51,7 +51,9 @@ class CandidateAuditLog(Base):
     pre_payload: Mapped[dict | None] = mapped_column(_AUDIT_JSON, nullable=True)
     post_payload: Mapped[dict | None] = mapped_column(_AUDIT_JSON, nullable=True)
     published_evidence_id: Mapped[str | None] = mapped_column(
-        String(36), nullable=True
+        String(36),
+        ForeignKey("evidences.id", ondelete="SET NULL"),
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

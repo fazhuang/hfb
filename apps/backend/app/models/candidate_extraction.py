@@ -137,6 +137,27 @@ class CandidateExtraction(BaseModel):
         nullable=True,
     )
 
+    # Common business-table fields (HFB-DEV-0505 §7): model revision + audit
+    # attribution + metadata linkage.
+    version: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
+        comment="模型修订版本号 (乐观并发控制)",
+    )
+    updated_by: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="最后修改人 user ID",
+    )
+    metadata_id: Mapped[str | None] = mapped_column(
+        String(36),
+        nullable=True,
+        comment="关联元数据记录 ID (Metadata 表落地后建立 FK)",
+    )
+
     # Relationships
     session: Mapped[ResearchSession] = relationship("ResearchSession", lazy="selectin")
     created_by: Mapped[User] = relationship(
