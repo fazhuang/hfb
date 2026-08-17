@@ -370,10 +370,76 @@ class CitationPersistenceService:
         # The caller must seed SourceRefs ahead of time.
         return None
 
+    @staticmethod
+    async def verify_and_resolve_source_ref(
+        db: AsyncSession,
+        *,
+        doc_id: str,
+        source_uri: str | None = None,
+        version_id: str | None = None,
+    ) -> str:
+        """Resolve a pre-existing SourceRef and verify version validity (Phase A0).
+
+        Contract:
+          1. Resolve by ``source_uri`` URL, then by ``page_location``
+             (``document:<doc_id>``).
+          2. If no SourceRef exists, raise ``RuntimeError`` — the caller must
+             abort the transaction (no orphan Evidence / Citation).
+          3. If ``version_id`` points at a withdrawn version, raise
+             ``RuntimeError``.
+
+        Returns the resolved ``source_refs.id``.
+        """
+        source_ref_id: str | None = None
+
+        if source_uri:
+            result = await db.execute(
+                text(
+                    "SELECT id FROM source_refs WHERE url=:url AND is_deleted=false LIMIT 1"
+                ),
+                {"url": source_uri},
+            )
+            row = result.fetchone()
+            if row:
+                source_ref_id = row[0]
+
+        if source_ref_id is None and doc_id:
+            result = await db.execute(
+                text(
+                    "SELECT id FROM source_refs WHERE page_location=:loc AND is_deleted=false LIMIT 1"
+                ),
+                {"loc": f"document:{doc_id}"},
+            )
+            row = result.fetchone()
+            if row:
+                source_ref_id = row[0]
+
+        if source_ref_id is None:
+            raise RuntimeError(
+                f"Cannot resolve pre-existing SourceRef for doc_id={doc_id} "
+                f"source_uri={source_uri[:80] if source_uri else 'N/A'}. "
+                f"Publishing requires a pre-existing SourceRef."
+            )
+
+        if version_id:
+            v_result = await db.execute(
+                text(
+                    "SELECT withdrawn_at FROM versions "
+                    "WHERE id=:vid AND is_deleted=false"
+                ),
+                {"vid": version_id},
+            )
+            v_row = v_result.fetchone()
+            if v_row and v_row[0] is not None:
+                raise RuntimeError(
+                    f"Version {version_id} is withdrawn. Cannot publish on withdrawn content."
+                )
+
+        return source_ref_id
+
     # ------------------------------------------------------------------
     # T2: One-time backfill for orphan Evidence rows
     # ------------------------------------------------------------------
-
     async def backfill_missing_source_refs(self) -> int:
         """Assign SourceRefs to existing Evidence rows that have NULL source_ref_id.
 

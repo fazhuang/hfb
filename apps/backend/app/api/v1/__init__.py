@@ -23,6 +23,7 @@ from app.api.v1.day2_search import router as day2_search_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.evidence_rag import router as evidence_rag_router
 from app.api.v1.evidences import router as evidences_router
+from app.api.v1.extractions import router as extractions_router
 from app.api.v1.graph import router as graph_router
 from app.api.v1.passages import router as passages_router
 from app.api.v1.relations import router as relations_router
@@ -49,5 +50,6 @@ router.include_router(workspace_router)
 router.include_router(dashboard_router)
 router.include_router(evidences_router)
 router.include_router(evidence_rag_router)
+router.include_router(extractions_router)
 router.include_router(passages_router)
 router.include_router(relations_router)

@@ -133,7 +133,7 @@ class TestPersonRepositoryDomainAdmission:
                 p1 = Person(
                     name="皇甫谧",
                     dynasty="Jin",
-                    biography="西晋医学家",
+                    biography="西晋医家",
                     domain_status="verified",
                     anchor_path=json.dumps(["person:huangfu_mi"]),
                 )

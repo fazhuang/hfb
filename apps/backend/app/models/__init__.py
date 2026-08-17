@@ -25,6 +25,8 @@ from app.models.academic_relation import (
     RelationConfidence,
 )
 from app.models.book import Book
+from app.models.candidate_audit_log import CandidateAuditLog
+from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.chapter import Chapter
 from app.models.classical_version import ClassicalVersion
 from app.models.commentary import Commentary
@@ -59,6 +61,9 @@ __all__ = [
     "AcademicEntityType",
     "AcademicRelation",
     "Book",
+    "CandidateAuditLog",
+    "CandidateExtraction",
+    "CandidateStatus",
     "Chapter",
     "Citation",
     "CitationCollection",

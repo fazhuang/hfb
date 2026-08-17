@@ -12,6 +12,8 @@ from app.db.base import Base
 # Import all models to ensure they are registered on Base.metadata
 from app.models import (
     Book,  # noqa: F401
+    CandidateAuditLog,  # noqa: F401
+    CandidateExtraction,  # noqa: F401
     Chapter,  # noqa: F401
     ClassicalVersion,  # noqa: F401
     Commentary,  # noqa: F401

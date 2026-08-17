@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import CheckConstraint, JSON, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -90,6 +90,17 @@ class DocumentChunk(BaseModel):
         String(128),
         nullable=True,
         comment="页面区域截图或 OCR 文本的 hash (SHA-512/256 或感知 hash)",
+    )
+    page_image_hash_alg: Mapped[str] = mapped_column(
+        String(20),
+        CheckConstraint(
+            "page_image_hash_alg IN ('sha256', 'sha512', 'phash')",
+            name="ck_chunk_page_image_hash_alg",
+        ),
+        default="sha256",
+        server_default="sha256",
+        nullable=False,
+        comment="page_image_hash 的算法: sha256 | sha512 | phash",
     )
     ocr_engine_version: Mapped[str | None] = mapped_column(
         String(100),
