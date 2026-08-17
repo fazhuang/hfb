@@ -1,8 +1,8 @@
 {
   "title": "鍼灸甲乙經_(四庫全書本)/卷03",
   "revid": 794138,
-  "fetched_at": "2026-08-17T15:15:29.412895+00:00",
-  "parser_version": "hfb-single-tail-editorial-pipeline-v10.0",
+  "fetched_at": "2026-08-17T15:18:50.721530+00:00",
+  "parser_version": "hfb-exact-literal-tail-editorial-pipeline-v11.0",
   "governance_mode": "editorial_mode",
   "unicode_normalization": "NFC",
   "raw_html_sha256": "b31ce609158d5098e5fd7c78c58a76bd8dcff71f04b663f920357e911750bcd2",
@@ -13,7 +13,7 @@
   "applied_editorial_rules": [
     {
       "rule_id": "rule-wikisource-tail-category-v1.0",
-      "description": "Strip untagged Wikisource category metadata strictly at the last non-empty line",
+      "description": "Strip untagged Wikisource category metadata strictly at the last non-empty line with exact literal matching",
       "raw_dom_start": 16691,
       "raw_dom_end": 16705,
       "stripped_text": "<子部,醫家類,鍼灸甲乙經>",

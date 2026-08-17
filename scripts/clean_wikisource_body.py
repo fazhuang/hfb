@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-Wikisource Single Strict Tail Editorial Pipeline & Full-Field Replay Cleaner (v10.0)
+Wikisource Exact Literal Tail Editorial Pipeline & Full-Field Replay Cleaner (v11.0)
 
 Implements the "Editorial Mode" (编校模式) Academic Evidence Pipeline:
 1. Extracts Raw DOM Text Snapshot (16,705 chars, SHA-256: 8b8c8979...).
-2. Single Strict Tail Rule: ONLY evaluates the VERY LAST non-empty line (rule-wikisource-tail-category-v1.0). Zero global text line scanning.
-3. Complete Audit Trail: Records `raw_dom_start` (16691), `raw_dom_end` (16705), `stripped_text`, `input_sha256`, and `output_sha256`.
-4. Full Field Offline Replay Verification: Verifies raw_dom_text, canonical_body_text, lengths, SHA-256 hashes, and applied_editorial_rules byte-by-byte.
-5. Uses non-assert `if ...: raise ValueError()` checks ensuring `python -O` safety.
+2. Exact Literal Tail Rule: ONLY evaluates the VERY LAST non-empty line against exact literal matches:
+   `<子部,醫家類,鍼灸甲乙經>` or `&lt;子部,醫家類,鍼灸甲乙經&gt;`. Zero fuzzy prefix matching.
+3. Includes Counter-Example Regression Tests ensuring non-target tail text (e.g., `<子部,儒家類,四書>`) is NEVER stripped.
+4. Complete Audit Trail: Records `raw_dom_start` (16691), `raw_dom_end` (16705), `stripped_text`, `input_sha256`, and `output_sha256`.
+5. Full Field Offline Replay Verification: Verifies raw_dom_text, canonical_body_text, lengths, SHA-256 hashes, and applied_editorial_rules byte-by-byte.
+6. Uses non-assert `if ...: raise ValueError()` checks ensuring `python -O` safety.
 """
 
 from __future__ import annotations
@@ -104,10 +106,10 @@ class WikisourcePureStructuralDOMCleaner(HTMLParser):
             self.text_parts.append(data)
 
 
-def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict]]:
+def apply_exact_literal_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict]]:
     """
-    Single Strict Tail Editorial Rule: ONLY evaluates the VERY LAST non-empty line.
-    Returns: (canonical_editorial_text, applied_rules_log)
+    Exact Literal Tail Editorial Rule: ONLY evaluates the VERY LAST non-empty line
+    against exact literal category strings for this target source.
     """
     lines = [line.strip() for line in raw_dom_text.splitlines() if line.strip()]
     if not lines:
@@ -115,13 +117,11 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
 
     applied_rules: list[dict] = []
 
-    # Single Strict Rule: ONLY evaluate the VERY LAST non-empty line!
+    # STRICTEST Single Rule: ONLY accept EXACT literal matches for this target source!
     last_line = lines[-1]
     is_tail_category = (
         last_line == "<子部,醫家類,鍼灸甲乙經>"
         or last_line == "&lt;子部,醫家類,鍼灸甲乙經&gt;"
-        or (last_line.startswith("<子部") and last_line.endswith(">"))
-        or (last_line.startswith("&lt;子部") and last_line.endswith("&gt;"))
     )
 
     raw_dom_nfc = unicodedata.normalize("NFC", raw_dom_text)
@@ -136,7 +136,7 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
 
         applied_rules.append({
             "rule_id": "rule-wikisource-tail-category-v1.0",
-            "description": "Strip untagged Wikisource category metadata strictly at the last non-empty line",
+            "description": "Strip untagged Wikisource category metadata strictly at the last non-empty line with exact literal matching",
             "raw_dom_start": start_span,
             "raw_dom_end": end_span,
             "stripped_text": last_line,
@@ -151,16 +151,27 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
 
 
 def run_counter_example_regression_tests() -> None:
-    """Regression test ensuring middle body text containing `<子部...>` is NEVER deleted."""
+    """Regression tests ensuring non-exact or non-tail text containing `<子部...>` is NEVER deleted."""
+    # Counter-example 1: Middle category text
     test_middle_category = "鍼灸甲乙經\n正文行 <子部,醫家類,鍼灸甲乙經> 乃正文書誌注\n針灸正文\n<子部,醫家類,鍼灸甲乙經>"
-    res_text, res_rules = apply_strict_tail_editorial_rules(test_middle_category)
+    res_text_mid, res_rules_mid = apply_exact_literal_tail_editorial_rules(test_middle_category)
 
-    if "正文行 <子部,醫家類,鍼灸甲乙經> 乃正文書誌注" not in res_text:
+    if "正文行 <子部,醫家類,鍼灸甲乙經> 乃正文書誌注" not in res_text_mid:
         raise ValueError("Regression test failed: Middle text containing `<子部...>` was incorrectly deleted!")
-    if res_text.endswith("<子部,醫家類,鍼灸甲乙經>"):
+    if res_text_mid.endswith("<子部,醫家類,鍼灸甲乙經>"):
         raise ValueError("Regression test failed: Last line category was not stripped!")
-    if len(res_rules) != 1:
-        raise ValueError(f"Regression test failed: Expected 1 rule, got {len(res_rules)}")
+
+    # Counter-example 2: Tail with different category
+    test_other_category = "鍼灸甲乙經\n正文行\n<子部,儒家類,四書>"
+    _, res_rules_other = apply_exact_literal_tail_editorial_rules(test_other_category)
+    if len(res_rules_other) != 0:
+        raise ValueError("Regression test failed: Tail `<子部,儒家類,四書>` was incorrectly stripped by fuzzy rule!")
+
+    # Counter-example 3: Tail with extra annotation
+    test_version_note = "鍼灸甲乙經\n正文行\n<子部,醫家類,鍼灸甲乙經 版本注>"
+    _, res_rules_note = apply_exact_literal_tail_editorial_rules(test_version_note)
+    if len(res_rules_note) != 0:
+        raise ValueError("Regression test failed: Tail `<子部...版本注>` was incorrectly stripped by fuzzy rule!")
 
 
 def clean_wikisource_editorial_pipeline(raw_html: str) -> dict:
@@ -174,7 +185,7 @@ def clean_wikisource_editorial_pipeline(raw_html: str) -> dict:
     raw_dom_nfc = unicodedata.normalize("NFC", raw_dom_text)
     raw_dom_sha256 = hashlib.sha256(raw_dom_nfc.encode("utf-8")).hexdigest()
 
-    canonical_editorial_nfc, applied_rules = apply_strict_tail_editorial_rules(raw_dom_nfc)
+    canonical_editorial_nfc, applied_rules = apply_exact_literal_tail_editorial_rules(raw_dom_nfc)
     editorial_sha256 = hashlib.sha256(canonical_editorial_nfc.encode("utf-8")).hexdigest()
 
     if not raw_dom_nfc.startswith("鍼灸甲乙經"):
@@ -206,7 +217,7 @@ def fetch_wikisource_revision(oldid: int = EXPECTED_OLDID) -> tuple[str, int]:
         ctx = ssl.create_default_context()
 
     req = urllib.request.Request(
-        url, headers={"User-Agent": "HFB-Research-Agent/10.0"}
+        url, headers={"User-Agent": "HFB-Research-Agent/11.0"}
     )
     with urllib.request.urlopen(req, context=ctx) as resp:
         data = json.loads(resp.read().decode("utf-8"))
@@ -223,7 +234,7 @@ def fetch_wikisource_revision(oldid: int = EXPECTED_OLDID) -> tuple[str, int]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Wikisource Single Strict Tail Editorial Pipeline & Full Field Replay Cleaner")
+    parser = argparse.ArgumentParser(description="Wikisource Exact Literal Tail Editorial Pipeline & Full Field Replay Cleaner")
     parser.add_argument(
         "--write",
         action="store_true",
@@ -256,7 +267,7 @@ def main() -> None:
         if computed_raw_sha256 != fixture_data.get("raw_html_sha256"):
             raise ValueError("Fixture raw_html_sha256 integrity check failed!")
 
-        # 3. Full Field Pipeline Replay Verification (Verifying exact text content, lengths, hashes, and rules)
+        # 3. Full Field Pipeline Replay Verification
         replayed = clean_wikisource_editorial_pipeline(raw_html)
 
         if fixture_data.get("raw_dom_text") != replayed["raw_dom_text"]:
@@ -310,7 +321,7 @@ def main() -> None:
             "title": "鍼灸甲乙經_(四庫全書本)/卷03",
             "revid": revid,
             "fetched_at": current_utc,
-            "parser_version": "hfb-single-tail-editorial-pipeline-v10.0",
+            "parser_version": "hfb-exact-literal-tail-editorial-pipeline-v11.0",
             "governance_mode": "editorial_mode",
             "unicode_normalization": "NFC",
             "raw_html_sha256": raw_html_hash,

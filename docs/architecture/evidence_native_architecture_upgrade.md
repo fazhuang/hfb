@@ -1,8 +1,8 @@
 # HFB 证据原生数字人文学术研究平台架构升级规划方案
 *(Evidence-Native Digital Humanities Research Platform Architecture Specification)*
 
-> **版本**：v7.2 (2026年8月第十七次架构审计后全字段逐字重放与单一末行规则终极规范)  
-> **状态**：全字段逐字物理重放比对通过 / 彻底剥离全局扫描只留单一末行规则 / 准备进入 Phase A0 后端编码  
+> **版本**：v7.3 (2026年8月第十八次架构审计后绝对精确字面匹配终极规范)  
+> **状态**：绝对精确字面匹配编校规则通过 / 3大反例回归测试通过 / 全字段逐字物理重放比对通过 / 准备进入 Phase A0 后端编码  
 > **核心定位**：将 HFB 从“功能型 AI 数字人文工具”全面升级为“可验证、可追溯、可扩展的数字人文学术研究基础设施”。
 
 ---
@@ -10,7 +10,7 @@
 ## 1. 战略愿景与主线铁律
 
 ### 1.1 转型背景与核心判断
-经过 2026 年 8 月对所有外部参考项目（Google LangExtract, PaperWeave, Vercel Guidelines, Graphify, Dokploy 等）的十七次深入复核与第一性原理工程总结，HFB 确定了关键的发展方向决策：
+经过 2026 年 8 月对所有外部参考项目（Google LangExtract, PaperWeave, Vercel Guidelines, Graphify, Dokploy 等）的十八次深入复核与第一性原理工程总结，HFB 确定了关键的发展方向决策：
 
 **HFB 不再盲目进行“看到优秀项目就集成”的横向扩展，而是围绕一条唯一主线进行深度的基础设施升级。**
 
@@ -22,10 +22,11 @@ $$\text{原始文献} \xrightarrow{\text{可靠解析}} \text{结构化抽取} \
 1. **AI 仅作为 Candidate 生成者**：任何大模型/抽取算法导出的实体、主张或关系，在未经专家/规则审核与服务端捕获双哈希逐字校验前，严禁直接写入正式学术知识图谱。
 2. **固定 Revision 与强 TLS 校验**：基线提取必须固定特定版本（`oldid=794138`），强制启用 CA 证书 TLS 校验（基于 `certifi` 包），绝不禁用 HTTPS 验证，防止中间人伪造风险。
 3. **单 Session 单事务无死锁漂移提交**：在 `async with db.begin()` 事务内修改状态为 `DRIFT_INVALID` 并写入审计，让上下文管理器**自动 Commit 漂移事务**，退出作用域后再抛出业务异常，彻底避免手动调用 `db.commit()` 破坏事务上下文或死锁。
-4. **全字段逐字重放与单一末行编校规则**：
-   - 彻底剥离一切全局遍历扫描规则，编校函数（`apply_strict_tail_editorial_rules`）**仅包含唯一一条规则（`rule-wikisource-tail-category-v1.0`）**，且只对全篇最后一个非空行（Last Non-Empty Line）精准匹配；
-   - 离线 `--offline` 校验升格为**全字段逐字/长度物理重放比对**（重放 Raw DOM 文本逐字相等、长度相等、Hash 相等；Canonical 文本逐字相等、长度相等、Hash 相等；`applied_editorial_rules` 逐项比对）；
-   - 彻底防止篡改正文内容但保留 Hash 绕过校验的可能，`python -O` 免疫。
+4. **绝对精确字面匹配 (Exact Literal Matching) 编校规则**：
+   - 彻底剥离任何 `startswith` 或前缀模糊匹配！编校函数（`apply_exact_literal_tail_editorial_rules`）**仅接受 100% 精确字面值匹配**：`last_line == "<子部,醫家類,鍼灸甲乙經>"` 或 `last_line == "&lt;子部,醫家類,鍼灸甲乙經&gt;"`；
+   - 任何其他末行文本（包含 `<子部,儒家類,四書>` 或 `<子部,醫家類,鍼灸甲乙經 版本注>`）**绝对拒绝盲目删除，完整保留正文并失败关闭**，交由人工编校；
+   - 附带 3 大反例回归测试；
+   - 离线 `--offline` 校验升格为**全字段逐字/长度物理重放比对**（重放 Raw DOM 文本逐字相等、长度相等、Hash 相等；Canonical 文本逐字相等、长度相等、Hash 相等；`applied_editorial_rules` 逐项比对），`python -O` 免疫。
 
 ---
 
@@ -319,14 +320,14 @@ def _mark_drift_in_tx(db: AsyncSession, candidate: CandidateExtraction, operator
 
 ## 5. 纯正文磁盘快照与 12 大单测门禁
 
-### 5.1 Editorial Mode 单一末行规则基线快照
-数据由 `scripts/clean_wikisource_body.py` (`hfb-single-tail-editorial-pipeline-v10.0`) 固定 `oldid=794138` 幂等生成并落盘于 `tests/fixtures/gold_benchmark_v03.json`：
+### 5.1 Editorial Mode 绝对精确字面匹配基线快照
+数据由 `scripts/clean_wikisource_body.py` (`hfb-exact-literal-tail-editorial-pipeline-v11.0`) 固定 `oldid=794138` 幂等生成并落盘于 `tests/fixtures/gold_benchmark_v03.json`：
 * **源出处 API**：Wikisource 卷 03 (revid: `794138`)
-* **解析清洗器**：`scripts/clean_wikisource_body.py` (`hfb-single-tail-editorial-pipeline-v10.0`)
+* **解析清洗器**：`scripts/clean_wikisource_body.py` (`hfb-exact-literal-tail-editorial-pipeline-v11.0`)
 * **数据治理模式**：`editorial_mode` (编校模式)
 * **Unicode 规范**：`NFC`
 * **Raw DOM 提取字符数**：`16,705` (含裸文本分类，真 SHA-256: `8b8c897996a1610fc35af2f438562f2206cd989783280a8e0e8507f347e39916`)
-* **Canonical Editorial 字符数**：`16,690` (经单一末行编校规则剥离，真 SHA-256: `f85f17381aefbfa9577a74fdde490eef8d3a523f748a1e4a210c789de86d6cbe`)
+* **Canonical Editorial 字符数**：`16,690` (经绝对精确字面匹配末行编校规则剥离，真 SHA-256: `f85f17381aefbfa9577a74fdde490eef8d3a523f748a1e4a210c789de86d6cbe`)
 * **规则审计 Log**：记有 `raw_dom_start`: `16691`、`raw_dom_end`: `16705`、`stripped_text`: `<子部,醫家類,鍼灸甲乙經>`、`input_sha256` 与 `output_sha256`
 * **全字段重放自校验**：离线物理重放逐字与逐长度比对全文本与 7 大物理审计字段。
 * **绑定真实 Seed 资源**：`Document` (`doc-jyaj-sikushu`), `Version` (`ver-jyaj-sikushu`), `Passage` (`pas-jyaj-v03-001`), `SourceRef` (`sr-jyaj-sikushushu-v03`)。
@@ -350,4 +351,4 @@ def _mark_drift_in_tx(db: AsyncSession, candidate: CandidateExtraction, operator
 
 ## 6. 总结
 
-v7.2 规范实现了全字段逐字/长度物理重放比对与零全局遍历扫描的单一末行规则，基线工具资产彻底达到最严苛的学术可审计标准。
+v7.3 规范收窄编校规则为绝对精确字面匹配，引入了 3 大反例回归测试，全字段逐字重放校验 100% 通过。
