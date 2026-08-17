@@ -484,8 +484,57 @@ class TestSQLiteTriggers:
             )
 
 
+class TestSQLiteRuntimeTriggers:
+    @pytest.mark.asyncio
+    async def test_init_database_installs_triggers_without_manual_setup(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """The SQLite startup path must install + verify the append-only triggers.
+
+        No manual trigger installation here — this exercises the same code path
+        as ``app.db.database.init_database()`` at runtime.
+        """
+        import app.db.database as db_mod
+
+        db_path = tmp_path / "runtime.db"
+        engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
+        monkeypatch.setattr(db_mod, "_db_url", f"sqlite+aiosqlite:///{db_path}")
+        monkeypatch.setattr(db_mod, "engine", engine)
+
+        try:
+            await db_mod.init_database()
+
+            async with engine.connect() as conn:
+                rows = (
+                    await conn.execute(
+                        text("SELECT name FROM sqlite_master WHERE type='trigger'")
+                    )
+                ).all()
+                names = {r[0] for r in rows}
+            assert "trg_audit_log_no_delete" in names
+            assert "trg_audit_log_no_update" in names
+
+            # Tamper is blocked without any test-level trigger installation.
+            async with engine.begin() as conn:
+                await conn.execute(
+                    text(
+                        "INSERT INTO candidate_audit_logs (id, action, operator_id) "
+                        "VALUES ('aud-runtime', 'approved', 'some-user')"
+                    )
+                )
+                with pytest.raises(IntegrityError, match="append-only"):
+                    await conn.execute(
+                        text(
+                            "UPDATE candidate_audit_logs SET action='tampered' "
+                            "WHERE id='aud-runtime'"
+                        )
+                    )
+        finally:
+            await engine.dispose()
+
+
 # ---------------------------------------------------------------------------
-# Gates 9–10: PostgreSQL (real)
+# Gate 9/10: PostgreSQL (real)
 # ---------------------------------------------------------------------------
 
 
@@ -548,6 +597,42 @@ class TestPostgresTriggers:
         async with factory() as s:
             count = (await s.execute(text("SELECT count(*) FROM evidences"))).scalar_one()
         assert count == 1
+
+    @pytest.mark.asyncio
+    async def test_postgresql_approval_locks_chunk_against_mutation(
+        self, pg_world
+    ) -> None:
+        """The approval's FOR UPDATE on the chunk blocks a concurrent mutation.
+
+        Reproduces the source-text race: between grounding validation and
+        Evidence commit, a concurrent UPDATE of the chunk must be serialized
+        behind the approval's row lock.
+        """
+        session = pg_world["session"]
+        factory = pg_world["factory"]
+        await build_world(session)
+        await make_candidate(session)
+        await session.commit()
+
+        # T1 holds the chunk lock exactly as approve_and_publish_candidate does.
+        async with factory() as t1:
+            async with t1.begin():
+                await t1.execute(
+                    select(DocumentChunk)
+                    .where(DocumentChunk.id == "chunk-a0")
+                    .with_for_update()
+                )
+
+                # T2's mutation must be blocked while T1 holds the lock.
+                async with factory() as t2:
+                    await t2.execute(text("SET LOCAL lock_timeout='200ms'"))
+                    with pytest.raises(DBAPIError):
+                        await t2.execute(
+                            text(
+                                "UPDATE document_chunks SET content='tampered' "
+                                "WHERE id='chunk-a0'"
+                            )
+                        )
 
 
 # ---------------------------------------------------------------------------

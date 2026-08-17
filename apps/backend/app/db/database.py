@@ -41,13 +41,40 @@ async_session_factory = async_sessionmaker(
 
 
 async def init_database() -> None:
-    """Verify database connectivity on startup. Creates tables for SQLite."""
+    """Verify database connectivity on startup. Creates tables for SQLite.
+
+    SQLite is created via ``Base.metadata.create_all`` (no Alembic), so the
+    Phase A0 append-only audit triggers must be installed here explicitly —
+    otherwise ``candidate_audit_logs`` would be silently mutable at runtime.
+    """
     if _db_url.startswith("sqlite"):
         async with engine.begin() as conn:
             from app.db.base import Base
 
             await conn.run_sync(Base.metadata.create_all)
-        logger.info("sqlite_tables_created")
+
+            from app.db import audit_triggers
+
+            await audit_triggers.install_audit_log_triggers(conn)
+
+            # Fail-closed verification: the append-only guarantee is only
+            # valid if both triggers are actually present.
+            result = await conn.execute(
+                text(
+                    "SELECT name FROM sqlite_master "
+                    "WHERE type='trigger' AND name IN "
+                    "('trg_audit_log_no_delete', 'trg_audit_log_no_update')"
+                )
+            )
+            installed = {row[0] for row in result}
+            expected = {"trg_audit_log_no_delete", "trg_audit_log_no_update"}
+            if not expected.issubset(installed):
+                missing = expected - installed
+                logger.error("audit_triggers_missing missing=%s", missing)
+                raise RuntimeError(
+                    f"CandidateAuditLog append-only triggers failed to install: {missing}"
+                )
+        logger.info("sqlite_tables_created_triggers_installed")
         return
 
     try:

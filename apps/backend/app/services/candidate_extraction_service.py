@@ -58,14 +58,17 @@ async def verify_full_ownership_chain(
     candidate: CandidateExtraction,
     session_id: str,
     reviewer_id: str,
-) -> bool:
-    """Verify the full resource-ownership chain before publishing.
+) -> DocumentChunk | None:
+    """Verify the full resource-ownership chain; return the locked chunk.
 
     Chain: ``Candidate → ResearchSession → reviewer`` AND
     ``Candidate → DocumentChunk → Document``.
 
-    Fail-closed: any mismatch returns False (mapped to HTTP 404 by the caller)
-    so a non-owner cannot distinguish "not found" from "forbidden".
+    Every mutable source is read with ``SELECT ... FOR UPDATE`` so a concurrent
+    transaction cannot alter ownership (session.user_id, document.session_id/
+    uploaded_by) or grounding (chunk content/hashes) between validation and
+    publish. Returns the locked ``DocumentChunk`` on success, or ``None`` when
+    the chain is broken (mapped to HTTP 404 by the caller).
 
     Private-document isolation: a ``Document`` bound to a specific session
     (``session_id`` set) must live in the candidate's session, and a document
@@ -73,23 +76,41 @@ async def verify_full_ownership_chain(
     own upload. Public documents (both NULL) impose no ownership restriction.
     """
     if candidate.session_id != session_id:
-        return False
-    session = await db.get(ResearchSession, session_id)
-    if session is None or session.user_id != reviewer_id:
-        return False
+        return None
 
-    chunk = await db.get(DocumentChunk, candidate.chunk_id)
+    session = (
+        await db.execute(
+            select(ResearchSession)
+            .where(ResearchSession.id == session_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if session is None or session.user_id != reviewer_id:
+        return None
+
+    chunk = (
+        await db.execute(
+            select(DocumentChunk)
+            .where(DocumentChunk.id == candidate.chunk_id)
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
     if chunk is None:
-        return False
-    doc = await db.get(Document, chunk.document_id)
+        return None
+
+    doc = (
+        await db.execute(
+            select(Document).where(Document.id == chunk.document_id).with_for_update()
+        )
+    ).scalar_one_or_none()
     if doc is None:
-        return False
+        return None
 
     if doc.session_id is not None and doc.session_id != session_id:
-        return False
+        return None
     if doc.uploaded_by is not None and doc.uploaded_by != reviewer_id:
-        return False
-    return True
+        return None
+    return chunk
 
 
 def _mark_drift_in_tx(
@@ -156,19 +177,26 @@ async def approve_and_publish_candidate(
                 status_code=404, detail="Candidate not found or not pending"
             )
 
-        # --- double check 2: session ownership (404) ---
-        if not await verify_full_ownership_chain(db, candidate, session_id, reviewer.id):
+        # --- double check 2: session ownership + full chain (404) ---
+        # Locks ResearchSession, DocumentChunk, and Document FOR UPDATE and
+        # returns the locked chunk so grounding is validated against a stable
+        # snapshot of the source text.
+        chunk = await verify_full_ownership_chain(db, candidate, session_id, reviewer.id)
+        if chunk is None:
             raise HTTPException(
                 status_code=404, detail="Candidate not found or access denied"
             )
 
-        chunk = await db.get(DocumentChunk, candidate.chunk_id)
-        if not chunk or not chunk.passage_id:
+        if not chunk.passage_id:
             _mark_drift_in_tx(db, candidate, reviewer.id, "Missing valid passage_id")
             pending_drift_exception = GroundingDriftException("Missing valid passage_id")
 
         if not pending_drift_exception:
-            passage = await db.get(Passage, chunk.passage_id)
+            passage = (
+                await db.execute(
+                    select(Passage).where(Passage.id == chunk.passage_id).with_for_update()
+                )
+            ).scalar_one_or_none()
             if not passage or passage.version_id != candidate.version_id:
                 _mark_drift_in_tx(db, candidate, reviewer.id, "Version mismatch with Passage")
                 pending_drift_exception = GroundingDriftException(

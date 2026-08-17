@@ -58,7 +58,7 @@ PG_DROP_FUNCTION_SQL = "DROP FUNCTION IF EXISTS block_audit_log_changes();"
 # ---------------------------------------------------------------------------
 
 SQLITE_NO_DELETE_SQL = """
-CREATE TRIGGER trg_audit_log_no_delete
+CREATE TRIGGER IF NOT EXISTS trg_audit_log_no_delete
 BEFORE DELETE ON candidate_audit_logs
 BEGIN
     SELECT RAISE(ABORT, 'CandidateAuditLog is append-only: DELETE forbidden');
@@ -66,7 +66,7 @@ END;
 """
 
 SQLITE_NO_UPDATE_SQL = """
-CREATE TRIGGER trg_audit_log_no_update
+CREATE TRIGGER IF NOT EXISTS trg_audit_log_no_update
 BEFORE UPDATE ON candidate_audit_logs
 WHEN NOT (
     OLD.candidate_id IS NOT NULL AND NEW.candidate_id IS NULL
