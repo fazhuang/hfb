@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Wikisource Strict Tail Editorial Mode Canonical Body Text Cleaner & Pipeline (v9.0)
+Wikisource Single Strict Tail Editorial Pipeline & Full-Field Replay Cleaner (v10.0)
 
-Implements the "Editorial Mode" (编校模式) Academic Evidence Pipeline with Strict Tail Rules:
-1. Extracts Raw DOM Text Snapshot (preserving un-tagged upstream HTML text: 16,705 chars, SHA-256: 8b8c8979...).
-2. Strict Tail Editorial Rule: ONLY evaluates the VERY LAST non-empty line. If middle text contains `<子部...>`, it is preserved 100%.
-3. Full Audit Log: Records `raw_dom_start`, `raw_dom_end`, `stripped_text`, `input_sha256`, and `output_sha256`.
-4. Full Field Offline Replay Verification: Re-runs DOM parsing and rule execution in offline mode, verifying all fields.
+Implements the "Editorial Mode" (编校模式) Academic Evidence Pipeline:
+1. Extracts Raw DOM Text Snapshot (16,705 chars, SHA-256: 8b8c8979...).
+2. Single Strict Tail Rule: ONLY evaluates the VERY LAST non-empty line (rule-wikisource-tail-category-v1.0). Zero global text line scanning.
+3. Complete Audit Trail: Records `raw_dom_start` (16691), `raw_dom_end` (16705), `stripped_text`, `input_sha256`, and `output_sha256`.
+4. Full Field Offline Replay Verification: Verifies raw_dom_text, canonical_body_text, lengths, SHA-256 hashes, and applied_editorial_rules byte-by-byte.
 5. Uses non-assert `if ...: raise ValueError()` checks ensuring `python -O` safety.
 """
 
@@ -106,7 +106,7 @@ class WikisourcePureStructuralDOMCleaner(HTMLParser):
 
 def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict]]:
     """
-    Strict Tail Editorial Rule: ONLY evaluates the VERY LAST non-empty line.
+    Single Strict Tail Editorial Rule: ONLY evaluates the VERY LAST non-empty line.
     Returns: (canonical_editorial_text, applied_rules_log)
     """
     lines = [line.strip() for line in raw_dom_text.splitlines() if line.strip()]
@@ -114,24 +114,9 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
         return raw_dom_text, []
 
     applied_rules: list[dict] = []
-    
-    # 1. Filter standalone navigation arrow lines
-    filtered_lines: list[str] = []
-    for line in lines:
-        if line in ("←", "→", "← 卷二", "卷四  →"):
-            applied_rules.append({
-                "rule_id": "rule-wikisource-standalone-nav-arrow-v1.0",
-                "description": "Strip standalone navigation arrow lines",
-                "stripped_text": line,
-            })
-            continue
-        filtered_lines.append(line)
 
-    if not filtered_lines:
-        return raw_dom_text, applied_rules
-
-    # 2. Strict Tail Category Rule: ONLY evaluate the VERY LAST non-empty line!
-    last_line = filtered_lines[-1]
+    # Single Strict Rule: ONLY evaluate the VERY LAST non-empty line!
+    last_line = lines[-1]
     is_tail_category = (
         last_line == "<子部,醫家類,鍼灸甲乙經>"
         or last_line == "&lt;子部,醫家類,鍼灸甲乙經&gt;"
@@ -142,7 +127,7 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
     raw_dom_nfc = unicodedata.normalize("NFC", raw_dom_text)
 
     if is_tail_category:
-        editorial_lines = filtered_lines[:-1]
+        editorial_lines = lines[:-1]
         canonical_text = "\n".join(editorial_lines)
         canonical_nfc = unicodedata.normalize("NFC", canonical_text)
 
@@ -160,7 +145,7 @@ def apply_strict_tail_editorial_rules(raw_dom_text: str) -> tuple[str, list[dict
         })
         return canonical_nfc, applied_rules
     else:
-        canonical_text = "\n".join(filtered_lines)
+        canonical_text = "\n".join(lines)
         canonical_nfc = unicodedata.normalize("NFC", canonical_text)
         return canonical_nfc, applied_rules
 
@@ -174,6 +159,8 @@ def run_counter_example_regression_tests() -> None:
         raise ValueError("Regression test failed: Middle text containing `<子部...>` was incorrectly deleted!")
     if res_text.endswith("<子部,醫家類,鍼灸甲乙經>"):
         raise ValueError("Regression test failed: Last line category was not stripped!")
+    if len(res_rules) != 1:
+        raise ValueError(f"Regression test failed: Expected 1 rule, got {len(res_rules)}")
 
 
 def clean_wikisource_editorial_pipeline(raw_html: str) -> dict:
@@ -219,7 +206,7 @@ def fetch_wikisource_revision(oldid: int = EXPECTED_OLDID) -> tuple[str, int]:
         ctx = ssl.create_default_context()
 
     req = urllib.request.Request(
-        url, headers={"User-Agent": "HFB-Research-Agent/9.0"}
+        url, headers={"User-Agent": "HFB-Research-Agent/10.0"}
     )
     with urllib.request.urlopen(req, context=ctx) as resp:
         data = json.loads(resp.read().decode("utf-8"))
@@ -236,7 +223,7 @@ def fetch_wikisource_revision(oldid: int = EXPECTED_OLDID) -> tuple[str, int]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Wikisource Strict Tail Editorial Pipeline & Triple Verifier")
+    parser = argparse.ArgumentParser(description="Wikisource Single Strict Tail Editorial Pipeline & Full Field Replay Cleaner")
     parser.add_argument(
         "--write",
         action="store_true",
@@ -259,26 +246,38 @@ def main() -> None:
         with open(FIXTURE_PATH, "r", encoding="utf-8") as f:
             fixture_data = json.load(f)
 
-        # Full Field Replay Verification (python -O immune)
+        # 1. Revision Integrity Check
         if fixture_data.get("revid") != EXPECTED_OLDID:
             raise ValueError(f"Fixture revid mismatch: expected {EXPECTED_OLDID}, got {fixture_data.get('revid')}")
             
+        # 2. Raw HTML Integrity Check
         raw_html = fixture_data["raw_html_payload"]
         computed_raw_sha256 = hashlib.sha256(raw_html.encode("utf-8")).hexdigest()
         if computed_raw_sha256 != fixture_data.get("raw_html_sha256"):
             raise ValueError("Fixture raw_html_sha256 integrity check failed!")
 
-        # Full Pipeline Replay Verification
+        # 3. Full Field Pipeline Replay Verification (Verifying exact text content, lengths, hashes, and rules)
         replayed = clean_wikisource_editorial_pipeline(raw_html)
-        if replayed["raw_dom_text_sha256"] != fixture_data.get("raw_dom_text_sha256"):
+
+        if fixture_data.get("raw_dom_text") != replayed["raw_dom_text"]:
+            raise ValueError("Fixture raw_dom_text exact text content replay mismatch!")
+        if fixture_data.get("raw_dom_text_length") != replayed["raw_dom_text_length"]:
+            raise ValueError("Fixture raw_dom_text_length replay mismatch!")
+        if fixture_data.get("raw_dom_text_sha256") != replayed["raw_dom_text_sha256"]:
             raise ValueError("Fixture raw_dom_text_sha256 replay mismatch!")
-        if replayed["canonical_editorial_text_sha256"] != fixture_data.get("canonical_body_text_sha256"):
+
+        if fixture_data.get("canonical_body_text") != replayed["canonical_editorial_text"]:
+            raise ValueError("Fixture canonical_body_text exact text content replay mismatch!")
+        if fixture_data.get("canonical_body_text_length") != replayed["canonical_editorial_text_length"]:
+            raise ValueError("Fixture canonical_body_text_length replay mismatch!")
+        if fixture_data.get("canonical_body_text_sha256") != replayed["canonical_editorial_text_sha256"]:
             raise ValueError("Fixture canonical_body_text_sha256 replay mismatch!")
-        if replayed["applied_editorial_rules"] != fixture_data.get("applied_editorial_rules"):
+
+        if fixture_data.get("applied_editorial_rules") != replayed["applied_editorial_rules"]:
             raise ValueError("Fixture applied_editorial_rules audit log replay mismatch!")
 
         revid = fixture_data["revid"]
-        print("SUCCESS: Offline Full Field Pipeline Replay Verification Passed!")
+        print("SUCCESS: Offline Full Field Byte-for-Byte Pipeline Replay Verification Passed!")
     else:
         print(f"Fetching fixed Wikisource revision oldid={EXPECTED_OLDID} over strict TLS...")
         raw_html, revid = fetch_wikisource_revision(EXPECTED_OLDID)
@@ -311,7 +310,7 @@ def main() -> None:
             "title": "鍼灸甲乙經_(四庫全書本)/卷03",
             "revid": revid,
             "fetched_at": current_utc,
-            "parser_version": "hfb-strict-tail-editorial-pipeline-v9.0",
+            "parser_version": "hfb-single-tail-editorial-pipeline-v10.0",
             "governance_mode": "editorial_mode",
             "unicode_normalization": "NFC",
             "raw_html_sha256": raw_html_hash,

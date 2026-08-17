@@ -1,8 +1,8 @@
 {
   "title": "鍼灸甲乙經_(四庫全書本)/卷03",
   "revid": 794138,
-  "fetched_at": "2026-08-17T15:08:15.733677+00:00",
-  "parser_version": "hfb-strict-tail-editorial-pipeline-v9.0",
+  "fetched_at": "2026-08-17T15:15:29.412895+00:00",
+  "parser_version": "hfb-single-tail-editorial-pipeline-v10.0",
   "governance_mode": "editorial_mode",
   "unicode_normalization": "NFC",
   "raw_html_sha256": "b31ce609158d5098e5fd7c78c58a76bd8dcff71f04b663f920357e911750bcd2",
