@@ -21,6 +21,7 @@ from app.models import (
     DocumentChunk,  # noqa: F401
     EntityRelation,  # noqa: F401
     Image,  # noqa: F401
+    Metadata,  # noqa: F401
     Paper,  # noqa: F401
     Passage,  # noqa: F401
     Permission,  # noqa: F401

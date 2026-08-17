@@ -436,7 +436,14 @@ class CitationPersistenceService:
                 .with_for_update()
             )
             v_row = v_result.fetchone()
-            if v_row and v_row[0] is not None:
+            # Fail-closed: a soft-deleted (or missing) version yields no row and
+            # must NOT be treated as "not withdrawn".
+            if v_row is None:
+                raise RuntimeError(
+                    f"Version {version_id} not found or soft-deleted. "
+                    f"Cannot publish."
+                )
+            if v_row[0] is not None:
                 raise RuntimeError(
                     f"Version {version_id} is withdrawn. Cannot publish on withdrawn content."
                 )

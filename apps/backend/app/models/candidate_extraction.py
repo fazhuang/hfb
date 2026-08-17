@@ -154,8 +154,9 @@ class CandidateExtraction(BaseModel):
     )
     metadata_id: Mapped[str | None] = mapped_column(
         String(36),
+        ForeignKey("metadata.id", ondelete="SET NULL"),
         nullable=True,
-        comment="关联元数据记录 ID (Metadata 表落地后建立 FK)",
+        comment="关联元数据记录 ID",
     )
 
     # Relationships
@@ -166,7 +167,7 @@ class CandidateExtraction(BaseModel):
     chunk: Mapped[DocumentChunk] = relationship(
         "DocumentChunk", lazy="selectin"
     )
-    version: Mapped[Version] = relationship("Version", lazy="selectin")
+    source_version: Mapped[Version] = relationship("Version", lazy="selectin")
     published_evidence: Mapped[Evidence | None] = relationship(
         "Evidence", lazy="selectin"
     )

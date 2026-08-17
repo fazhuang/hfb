@@ -648,6 +648,32 @@ class TestPostgresTriggers:
                             )
                         )
 
+    @pytest.mark.asyncio
+    async def test_postgresql_approval_fails_closed_on_soft_deleted_version(
+        self, pg_world
+    ) -> None:
+        """Calling the approval service on a soft-deleted version → no publish."""
+        session = pg_world["session"]
+        factory = pg_world["factory"]
+        world = await build_world(session)
+        world["version"].is_deleted = True
+        await session.flush()
+        candidate = await make_candidate(session)
+        await session.commit()
+
+        async with factory() as s:
+            reviewer = User(id=OWNER_ID)
+            with pytest.raises(RuntimeError, match="soft-deleted"):
+                await approve_and_publish_candidate(
+                    s, candidate.id, reviewer, "sess-a0"
+                )
+
+        async with factory() as s:
+            ev = (await s.execute(text("SELECT count(*) FROM evidences"))).scalar_one()
+            cit = (await s.execute(text("SELECT count(*) FROM citations"))).scalar_one()
+        assert ev == 0
+        assert cit == 0
+
 
 # ---------------------------------------------------------------------------
 # Gates 11–12: withdrawn version & missing SourceRef rollback
@@ -674,6 +700,32 @@ class TestRollbackGuards:
             await db_session.execute(text("SELECT count(*) FROM evidences"))
         ).scalar_one()
         assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_soft_deleted_version_blocks_publish(
+        self, db_session: AsyncSession
+    ) -> None:
+        """A soft-deleted Version must fail closed (no Evidence/Citation)."""
+        world = await build_world(db_session)
+        world["version"].is_deleted = True
+        await db_session.flush()
+        candidate = await make_candidate(db_session)
+        reviewer = await _reviewer(db_session)
+        await db_session.commit()
+
+        with pytest.raises(RuntimeError, match="soft-deleted"):
+            await approve_and_publish_candidate(
+                db_session, candidate.id, reviewer, "sess-a0"
+            )
+
+        ev_count = (
+            await db_session.execute(text("SELECT count(*) FROM evidences"))
+        ).scalar_one()
+        cit_count = (
+            await db_session.execute(text("SELECT count(*) FROM citations"))
+        ).scalar_one()
+        assert ev_count == 0
+        assert cit_count == 0
 
     @pytest.mark.asyncio
     async def test_missing_sourceref_rollback(self, db_session: AsyncSession) -> None:

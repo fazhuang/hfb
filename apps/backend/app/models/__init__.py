@@ -36,6 +36,7 @@ from app.models.fulltext_ingestion_audit import FulltextIngestionAudit
 from app.models.graph import EntityRelation
 from app.models.image import Image
 from app.models.institution import Institution
+from app.models.metadata import Metadata
 from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
@@ -77,6 +78,7 @@ __all__ = [
     "FulltextIngestionAudit",
     "Image",
     "Institution",
+    "Metadata",
     "Paper",
     "Passage",
     "Permission",
