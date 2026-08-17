@@ -66,6 +66,7 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
+        index=True,
     )
     chunk_id: Mapped[str] = mapped_column(
         String(36),
@@ -128,6 +129,7 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     reviewed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -137,6 +139,7 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("evidences.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
 
     # Common business-table fields (HFB-DEV-0505 §7): model revision + audit
@@ -152,14 +155,8 @@ class CandidateExtraction(BaseModel):
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
         comment="最后修改人 user ID",
-    )
-    metadata_id: Mapped[str | None] = mapped_column(
-        String(36),
-        ForeignKey("metadata.id", ondelete="SET NULL"),
-        nullable=True,
-        unique=True,
-        comment="关联元数据记录 ID",
     )
 
     # Relationships
