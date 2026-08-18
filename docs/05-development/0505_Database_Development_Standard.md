@@ -345,7 +345,10 @@ Audit：
 >    ——刻意不含 `updated_at`/`deleted_at`/`is_deleted` 等可变列，配合 DDL 触发器实现
 >    append-only 不可变语义（禁止 UPDATE/DELETE，仅允许 `candidate_id` 置 NULL 的解绑迁移）；
 > 2. 复数表名 `candidate_audit_logs` / `candidate_extractions`——与现有代码库实际约定一致
->    （persons/books/documents/evidences/citations 等均复数），并作为该管线的显式命名保留。
+>    （persons/books/documents/evidences/citations 等均复数），并作为该管线的显式命名保留；
+> 3. 单向 1:1 Metadata——`candidate_extractions` 不携带第七章的 `metadata_id` 公共字段，
+>    改由子表 `candidate_extraction_metadata.candidate_id`（真实 FK、UNIQUE、ON DELETE CASCADE）
+>    指向 Candidate，以数据库外键唯一约束直接证明 1:1 归属。
 >
 > 该例外不扩展至其他新增业务表；其余新增表仍须遵循第七章公共字段与第八章单数命名规范。
 
