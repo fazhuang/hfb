@@ -124,7 +124,7 @@
  */
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 import type { ResearchProjectSummary } from '@/types/research';
 
 import ResearchPageHeader from '@/components/layout/ResearchPageHeader.vue';
@@ -136,6 +136,13 @@ import ProjectListItem from '@/components/research/ProjectListItem.vue';
 import CreateProjectDialog from '@/components/research/CreateProjectDialog.vue';
 
 const { t } = useI18n();
+
+type CancelErrorLike = { code?: string; name?: string };
+
+function isCanceled(e: unknown): boolean {
+  const err = e as CancelErrorLike;
+  return err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError';
+}
 
 // ---- Single source of truth: all projects from API ----
 const allProjects = ref<ResearchProjectSummary[]>([]);
@@ -223,17 +230,13 @@ async function loadProjects() {
     allProjects.value = rawItems.map(toProjectSummary);
   } catch (e: unknown) {
     if (myReqId !== reqId) return;
-    if ((e as any)?.code === 'ERR_CANCELED' || (e as any)?.name === 'CanceledError') {
+    if (isCanceled(e)) {
       if (controller.signal.aborted) {
         error.value = '请求超时（10 秒），请重试。';
       }
       return;
     }
-    const msg =
-      (e as any)?.response?.data?.message ||
-      (e as any)?.message ||
-      '加载失败，请检查网络连接后重试。';
-    error.value = msg;
+    error.value = getErrorMessage(e, '加载失败，请检查网络连接后重试。');
   } finally {
     if (myReqId === reqId) {
       loading.value = false;

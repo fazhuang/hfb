@@ -7,7 +7,7 @@
  *   GET /api/v1/documents/{id}/stats     → citation/evidence/OCR stats
  */
 import { ref, type Ref } from 'vue';
-import api from '@/api/client';
+import api, { getErrorMessage } from '@/api/client';
 import type {
   LibraryDocument,
   LibraryDocumentDetail,
@@ -87,7 +87,7 @@ export function useLibraryList(filters: Ref<LibraryFilters>): UseLibraryList {
       totalPages.value = Math.max(1, Math.ceil(total.value / limit.value));
     } catch (e: unknown) {
       if (myReqId !== reqId) return;
-      error.value = (e as Error).message ?? 'Failed to fetch';
+      error.value = getErrorMessage(e);
     } finally {
       if (myReqId === reqId) {
         loading.value = false;
@@ -122,7 +122,7 @@ export function useLibraryDetail(id: Ref<string>): UseLibraryDetail {
       stats.value = (statsData.data ?? statsData) as LibraryDocumentStats;
     } catch (e: unknown) {
       if (myReqId !== reqId) return;
-      error.value = (e as Error).message ?? 'Failed to fetch';
+      error.value = getErrorMessage(e);
     } finally {
       if (myReqId === reqId) {
         loading.value = false;
@@ -152,7 +152,7 @@ export function useLibraryStats(id: Ref<string>): UseLibraryStats {
       stats.value = (data.data ?? data) as LibraryDocumentStats;
     } catch (e: unknown) {
       if (myReqId !== reqId) return;
-      error.value = (e as Error).message ?? 'Failed to fetch';
+      error.value = getErrorMessage(e);
     } finally {
       if (myReqId === reqId) loading.value = false;
     }

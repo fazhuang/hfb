@@ -8,8 +8,7 @@
     >
       <div class="ral-brand">
         <router-link to="/" class="ral-brand-link">
-          <span class="ral-brand-icon">📜</span>
-          <span v-if="!sidebarCollapsed" class="ral-brand-text">皇甫谧数字人文平台</span>
+          <BrandLogo :size="32" :collapsed="sidebarCollapsed" />
         </router-link>
       </div>
 
@@ -85,6 +84,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import ResearchPrimaryNav from '@/components/layout/ResearchPrimaryNav.vue';
+import BrandLogo from '@/components/layout/BrandLogo.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -186,19 +186,6 @@ const userName = auth.userName || '未登录';
   gap: var(--space-2);
   text-decoration: none;
   color: var(--color-text-primary);
-}
-
-.ral-brand-icon {
-  font-size: var(--text-2xl);
-  flex-shrink: 0;
-}
-
-.ral-brand-text {
-  font-size: var(--text-base);
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 /* ---- Sidebar footer ---- */

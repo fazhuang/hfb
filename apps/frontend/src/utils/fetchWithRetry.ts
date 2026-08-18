@@ -16,6 +16,28 @@ export interface RetryOptions {
   signal?: AbortSignal;
 }
 
+type ErrorLike = {
+  code?: string;
+  name?: string;
+  response?: { status?: number };
+};
+
+function errCode(e: unknown): string | undefined {
+  return (e as ErrorLike).code;
+}
+
+function errName(e: unknown): string | undefined {
+  return (e as ErrorLike).name;
+}
+
+function errStatus(e: unknown): number | undefined {
+  return (e as ErrorLike).response?.status;
+}
+
+function isAbort(e: unknown): boolean {
+  return errCode(e) === 'ERR_CANCELED' || errName(e) === 'AbortError';
+}
+
 export async function fetchWithRetry<T = unknown>(
   url: string,
   params?: Record<string, unknown>,
@@ -50,12 +72,12 @@ export async function fetchWithRetry<T = unknown>(
       lastError = e;
 
       // AbortError — stop immediately, do not retry
-      if ((e as any)?.code === 'ERR_CANCELED' || (e as any)?.name === 'AbortError') {
+      if (isAbort(e)) {
         throw e;
       }
 
       // 4xx — do not retry
-      const status = (e as any)?.response?.status;
+      const status = errStatus(e);
       if (status && status >= 400 && status < 500) {
         throw e;
       }
@@ -83,7 +105,7 @@ export async function fetchWithRetry<T = unknown>(
             }
           });
         } catch (waitErr: unknown) {
-          if ((waitErr as any)?.name === 'AbortError') {
+          if (errName(waitErr) === 'AbortError') {
             throw waitErr;
           }
           throw e;

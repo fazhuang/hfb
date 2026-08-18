@@ -4,9 +4,14 @@
       title="文献库"
       description="古籍文献检索、浏览与全文阅读"
       :breadcrumbs="[{ label: '文献库' }]"
-    />
+    >
+      <template #actions>
+        <button v-if="auth.isAuthenticated" class="lib-upload-btn" @click="showUpload = !showUpload">上传古籍资料</button>
+      </template>
+    </ResearchPageHeader>
 
     <div class="lib-body">
+      <ClassicalUploadForm v-if="showUpload" @submitted="onUploaded" @cancel="showUpload = false" />
       <!-- Search & Filter -->
       <LibrarySearchBar :filters="filters" @search="onSearch" />
 
@@ -121,10 +126,14 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import ErrorState from '@/components/common/ErrorState.vue';
 import LibrarySearchBar from '@/components/library/LibrarySearchBar.vue';
 import LibraryDocumentCard from '@/components/library/LibraryDocumentCard.vue';
+import ClassicalUploadForm from '@/components/library/ClassicalUploadForm.vue';
 import { useLibraryList } from '@/composables/useLibrary';
+import { useAuthStore } from '@/stores/auth';
 import type { LibraryFilters } from '@/types/library';
 
 const { t } = useI18n();
+const auth = useAuthStore();
+const showUpload = ref(false);
 
 const filters = ref<LibraryFilters>({
   query: '',
@@ -183,6 +192,11 @@ function clearAllFilters() {
   fetchPage(1);
 }
 
+function onUploaded(): void {
+  showUpload.value = false;
+  fetchPage(1);
+}
+
 onMounted(() => fetchPage(1));
 </script>
 
@@ -194,6 +208,8 @@ onMounted(() => fetchPage(1));
 .lib-body {
   padding: var(--space-6) var(--space-8);
 }
+
+.lib-upload-btn { padding: var(--btn-padding-md); border: 1px solid var(--color-accent); border-radius: var(--btn-radius); background: var(--color-accent); color: var(--color-on-accent); font-size: var(--text-sm); cursor: pointer; }
 
 /* ---- Skeleton ---- */
 .lib-skeleton-list {

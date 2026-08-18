@@ -793,11 +793,12 @@ watch(
 <style scoped>
 .reader-page {
   min-height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
 .reader-body {
   padding: var(--space-6) 32px;
-  max-width: 900px;
 }
 
 /* Meta row */
