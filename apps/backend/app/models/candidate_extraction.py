@@ -130,6 +130,8 @@ class CandidateExtraction(BaseModel):
     prompt_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
 
+    # HFB-DAT-0303 §8: review_status — the candidate lifecycle status IS the
+    # review status (pending/approved/rejected/drift_invalid); always required.
     status: Mapped[CandidateStatus] = mapped_column(
         Enum(
             CandidateStatus,
@@ -142,6 +144,8 @@ class CandidateExtraction(BaseModel):
         nullable=False,
         index=True,
     )
+    # HFB-DAT-0303 §8: reviewer — NULL until human review; the publish service
+    # always sets it before a candidate becomes APPROVED/Evidence.
     reviewed_by_user_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),

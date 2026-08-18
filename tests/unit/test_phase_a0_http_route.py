@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from app.db import audit_triggers
 from app.db.base import Base
 from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.user import Permission, Role
@@ -52,6 +53,7 @@ async def http_factory(tmp_path):
     engine = create_async_engine(f"sqlite+aiosqlite:///{db_path}")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await audit_triggers.install_audit_log_triggers(conn)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     yield factory
     await engine.dispose()

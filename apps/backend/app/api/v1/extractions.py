@@ -11,6 +11,7 @@ from app.middleware.auth import get_current_user, require_permission
 from app.services.candidate_extraction_service import (
     CandidateExtractionService,
     GroundingDriftException,
+    get_candidate_extraction_service,
 )
 from app.utils.response import api_response
 
@@ -30,6 +31,9 @@ async def approve_candidate(
     candidate_id: str,
     body: ApproveCandidateRequest,
     user_id: Annotated[str, Depends(get_current_user)],
+    service: Annotated[
+        CandidateExtractionService, Depends(get_candidate_extraction_service)
+    ],
 ) -> dict:
     """Approve a pending candidate and atomically publish it as Evidence + Citation.
 
@@ -38,9 +42,7 @@ async def approve_candidate(
     repository).
     """
     try:
-        evidence = await CandidateExtractionService().approve(
-            candidate_id, user_id, body.session_id
-        )
+        evidence = await service.approve(candidate_id, user_id, body.session_id)
     except GroundingDriftException as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

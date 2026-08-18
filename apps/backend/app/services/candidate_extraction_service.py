@@ -232,10 +232,13 @@ class CandidateExtractionService:
     ) -> Evidence:
         from app.db.database import async_session_factory
 
-        # Validate the reviewer exists (short-lived session), then publish on a
-        # fresh session so the single-transaction db.begin() contract holds.
+        from app.repositories.user import UserRepository
+
+        # Validate the reviewer exists (short-lived session) via the repository,
+        # then publish on a fresh session so the single-transaction db.begin()
+        # contract holds.
         async with async_session_factory() as review_session:
-            reviewer = await review_session.get(User, reviewer_id)
+            reviewer = await UserRepository(review_session).get_by_id(reviewer_id)
         if reviewer is None:
             raise HTTPException(
                 status_code=401, detail="User not found"
@@ -245,3 +248,8 @@ class CandidateExtractionService:
             return await approve_and_publish_candidate(
                 session, candidate_id, reviewer, session_id
             )
+
+
+def get_candidate_extraction_service() -> CandidateExtractionService:
+    """FastAPI dependency: provide the candidate extraction service."""
+    return CandidateExtractionService()

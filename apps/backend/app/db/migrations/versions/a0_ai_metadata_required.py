@@ -1,7 +1,9 @@
 """Phase A0 — make AI metadata fields required (NOT NULL, no placeholder).
 
-Backfills placeholder values, then enforces NOT NULL on ai_model/ai_version/
-prompt_version/processing_time and drops the 'unknown' server_default.
+Fails closed rather than fabricating source facts: if any row has a placeholder
+``ai_model`` or NULL ``ai_version``/``prompt_version``/``processing_time``, the
+migration raises and refuses to proceed. Only when all rows carry real values
+are the NOT NULL constraints enforced and the ``unknown`` server_default dropped.
 
 Revision ID: a0_ai_metadata_required
 Revises: a0_created_by_rename
@@ -21,21 +23,21 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute(
-        "UPDATE candidate_extractions SET ai_model='rule-based-extractor' "
-        "WHERE ai_model='unknown' OR ai_model IS NULL"
-    )
-    op.execute(
-        "UPDATE candidate_extractions SET ai_version='1.0.0' WHERE ai_version IS NULL"
-    )
-    op.execute(
-        "UPDATE candidate_extractions SET prompt_version='1.0.0' "
-        "WHERE prompt_version IS NULL"
-    )
-    op.execute(
-        "UPDATE candidate_extractions SET processing_time=0.0 "
-        "WHERE processing_time IS NULL"
-    )
+    bind = op.get_bind()
+    missing = bind.execute(
+        sa.text(
+            "SELECT count(*) FROM candidate_extractions "
+            "WHERE ai_model='unknown' OR ai_version IS NULL "
+            "OR prompt_version IS NULL OR processing_time IS NULL"
+        )
+    ).scalar()
+    if missing:
+        raise RuntimeError(
+            f"{missing} candidate_extraction row(s) lack real AI metadata "
+            f"(ai_model/ai_version/prompt_version/processing_time). "
+            f"Provide an auditable backfill source before migrating; "
+            f"refusing to fabricate source facts."
+        )
 
     with op.batch_alter_table("candidate_extractions") as batch_op:
         batch_op.alter_column(

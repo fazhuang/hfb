@@ -87,7 +87,20 @@ def test_sqlite_migration_preserves_metadata_data(tmp_path) -> None:
     conn.commit()
     conn.close()
 
-    # Upgrade to head (runs phase_a0_metadata_candidate).
+    # Upgrade through the AI-fields migration, backfill real AI metadata, then
+    # finish to head so a0_ai_metadata_required does not fail-closed.
+    r = _run_alembic(db_url, "upgrade", "a0_ai_metadata_fields")
+    assert r.returncode == 0, r.stderr
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE candidate_extractions SET ai_model='real-model', "
+        "ai_version='1.0.0', prompt_version='1.0.0', processing_time=0.5 "
+        "WHERE ai_model='unknown' OR ai_version IS NULL "
+        "OR prompt_version IS NULL OR processing_time IS NULL"
+    )
+    conn.commit()
+    conn.close()
+
     r = _run_alembic(db_url, "upgrade", "head")
     assert r.returncode == 0, r.stderr
 
@@ -137,7 +150,10 @@ def _pg_urls() -> tuple[str, str]:
     from app.core.config import settings
 
     db = os.environ.get("POSTGRES_TEST_DB", "hfb_test")
-    base = f"{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{db}"
+    base = (
+        f"{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
+        f"@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{db}"
+    )
     return f"postgresql://{base}", f"postgresql+asyncpg://{base}"
 
 
@@ -199,6 +215,20 @@ def test_postgresql_migration_preserves_metadata_data() -> None:
                 "'{\"note\": \"preserve-me\"}')"
             )
             cur.execute(_CANDIDATE_INSERT)
+        conn.commit()
+
+    # Upgrade through the AI-fields migration, backfill real AI metadata, then
+    # finish to head so a0_ai_metadata_required does not fail-closed.
+    r = _run_alembic(async_url, "upgrade", "a0_ai_metadata_fields")
+    assert r.returncode == 0, r.stderr
+    with psycopg2.connect(sync_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE candidate_extractions SET ai_model='real-model', "
+                "ai_version='1.0.0', prompt_version='1.0.0', processing_time=0.5 "
+                "WHERE ai_model='unknown' OR ai_version IS NULL "
+                "OR prompt_version IS NULL OR processing_time IS NULL"
+            )
         conn.commit()
 
     r = _run_alembic(async_url, "upgrade", "head")

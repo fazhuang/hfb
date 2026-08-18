@@ -58,16 +58,21 @@ async def init_database() -> None:
             await audit_triggers.install_audit_log_triggers(conn)
 
             # Fail-closed verification: the append-only guarantee is only
-            # valid if both triggers are actually present.
+            # valid if all three triggers are actually present.
             result = await conn.execute(
                 text(
                     "SELECT name FROM sqlite_master "
                     "WHERE type='trigger' AND name IN "
-                    "('trg_audit_log_no_delete', 'trg_audit_log_no_update')"
+                    "('trg_audit_log_no_delete', 'trg_audit_log_no_update', "
+                    "'trg_audit_log_no_orphan_insert')"
                 )
             )
             installed = {row[0] for row in result}
-            expected = {"trg_audit_log_no_delete", "trg_audit_log_no_update"}
+            expected = {
+                "trg_audit_log_no_delete",
+                "trg_audit_log_no_update",
+                "trg_audit_log_no_orphan_insert",
+            }
             if not expected.issubset(installed):
                 missing = expected - installed
                 logger.error("audit_triggers_missing missing=%s", missing)

@@ -15,7 +15,10 @@ by the Alembic migration and the unit tests, so the two can never drift apart.
 
 from __future__ import annotations
 
+from typing import Any
+
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 # ---------------------------------------------------------------------------
 # PostgreSQL (PL/pgSQL)
@@ -106,12 +109,12 @@ DROP TRIGGER IF EXISTS trg_audit_log_no_orphan_insert;
 """
 
 
-def dialect_name(bind) -> str:
+def dialect_name(bind: Any) -> str:
     """Return the backend dialect name from a connection or engine."""
     return bind.dialect.name if hasattr(bind, "dialect") else bind.engine.dialect.name
 
 
-async def install_audit_log_triggers(conn) -> None:
+async def install_audit_log_triggers(conn: AsyncConnection) -> None:
     """Install the audit-log triggers for the connection's dialect.
 
     ``conn`` is an async SQLAlchemy ``Connection``.
@@ -128,7 +131,7 @@ async def install_audit_log_triggers(conn) -> None:
         raise NotImplementedError(f"audit triggers unsupported for dialect {name!r}")
 
 
-async def drop_audit_log_triggers(conn) -> None:
+async def drop_audit_log_triggers(conn: AsyncConnection) -> None:
     """Drop the audit-log triggers for the connection's dialect (idempotent)."""
     name = dialect_name(conn)
     if name == "postgresql":
