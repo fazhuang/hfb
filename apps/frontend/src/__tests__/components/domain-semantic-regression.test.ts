@@ -36,6 +36,7 @@ const router = createRouter({
   routes: [
     { path: '/', component: { template: '<div />' } },
     { path: '/library/:id', component: { template: '<div />' } },
+    { path: '/reader/:id', component: { template: '<div />' } },
   ],
 });
 

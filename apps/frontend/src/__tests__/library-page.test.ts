@@ -36,6 +36,7 @@ function makeRouter() {
       { path: '/', component: { template: '<div/>' }, name: 'home' },
       { path: '/library', component: { template: '<div/>' }, name: 'library-search' },
       { path: '/library/:id', component: { template: '<div/>' }, name: 'library-detail' },
+      { path: '/reader/:id', component: { template: '<div/>' }, name: 'reader' },
       { path: '/literature/:id', component: { template: '<div/>' }, name: 'literature-detail' },
       { path: '/research', component: { template: '<div/>' }, name: 'research-project-list' },
       {
@@ -92,6 +93,7 @@ vi.mock('@/api/client', () => ({
     post: vi.fn(),
     delete: vi.fn(),
   },
+  getErrorMessage: (e: unknown) => (e as Error).message,
 }));
 
 import api from '@/api/client';

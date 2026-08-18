@@ -42,7 +42,9 @@ class TestPersonServiceSearch:
         svc.repo.search_query = AsyncMock(return_value=([], 0))
 
         result = await svc.search("皇甫谧", page=1, limit=10)
-        svc.repo.search_query.assert_awaited_once_with("皇甫谧", page=1, limit=10)
+        svc.repo.search_query.assert_awaited_once_with(
+            "皇甫谧", page=1, limit=10, include_pending=False
+        )
         assert result == ([], 0)
 
 
@@ -56,7 +58,9 @@ class TestPersonServiceGetByDynasty:
         svc.repo.get_by_dynasty = AsyncMock(return_value=([], 0))
 
         result = await svc.get_by_dynasty("晋", page=2, limit=15)
-        svc.repo.get_by_dynasty.assert_awaited_once_with("晋", page=2, limit=15)
+        svc.repo.get_by_dynasty.assert_awaited_once_with(
+            "晋", page=2, limit=15, include_pending=False
+        )
         assert result == ([], 0)
 
 

@@ -8,7 +8,7 @@
  *   - LoginView.vue
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, config } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createI18n } from 'vue-i18n';
 import LoginForm from '@/components/auth/LoginForm.vue';
@@ -63,6 +63,13 @@ vi.mock('vue-router', () => ({
     params: {},
   }),
 }));
+
+// Components under test render <router-link> in their templates; since
+// vue-router is mocked above, the global component is no longer registered,
+// so stub it to avoid "Failed to resolve component: router-link" warnings.
+config.global.stubs = {
+  RouterLink: { name: 'RouterLink', template: '<a><slot /></a>' },
+};
 
 describe('Phase 5 & 6 Components', () => {
   beforeEach(() => {

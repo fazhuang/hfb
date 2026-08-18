@@ -117,9 +117,9 @@ class TestPersonRepository:
     @pytest.mark.asyncio
     async def test_create_and_search(self, db_session: AsyncSession):
         repo = PersonRepository(db_session)
-        await repo.create(name="皇甫谧", dynasty="西晋", birth_year=215)
-        await repo.create(name="张仲景", dynasty="东汉", birth_year=150)
-        await repo.create(name="李时珍", dynasty="明", birth_year=1518)
+        await repo.create(name="皇甫谧", dynasty="西晋", birth_year=215, domain_status="verified")
+        await repo.create(name="张仲景", dynasty="东汉", birth_year=150, domain_status="verified")
+        await repo.create(name="李时珍", dynasty="明", birth_year=1518, domain_status="verified")
 
         items, total = await repo.search_query("皇甫")
         assert total == 1
@@ -128,10 +128,10 @@ class TestPersonRepository:
     @pytest.mark.asyncio
     async def test_get_by_dynasty(self, db_session: AsyncSession):
         repo = PersonRepository(db_session)
-        await repo.create(name="皇甫谧", dynasty="西晋", birth_year=215)
-        await repo.create(name="张仲景", dynasty="东汉", birth_year=150)
-        await repo.create(name="李时珍", dynasty="明", birth_year=1518)
-        await repo.create(name="扁鹊", dynasty="东汉", birth_year=None)
+        await repo.create(name="皇甫谧", dynasty="西晋", birth_year=215, domain_status="verified")
+        await repo.create(name="张仲景", dynasty="东汉", birth_year=150, domain_status="verified")
+        await repo.create(name="李时珍", dynasty="明", birth_year=1518, domain_status="verified")
+        await repo.create(name="扁鹊", dynasty="东汉", birth_year=None, domain_status="verified")
 
         _items, total = await repo.get_by_dynasty("东汉")
         assert total == 2

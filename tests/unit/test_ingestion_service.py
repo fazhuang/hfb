@@ -1050,7 +1050,7 @@ class TestIngestPdfWithPages:
             with pytest.raises(PDFExtractionError, match="encrypted"):
                 await svc.ingest_pdf_with_pages(
                     title="Encrypted",
-                    file=io.BytesIO(b"encrypted"),
+                    file=io.BytesIO(b"%PDF-1.4\nencrypted"),
                     metadata=_COMPLIANCE,
                 )
 
@@ -1070,7 +1070,7 @@ class TestIngestPdfWithPages:
 
             result = await svc.ingest_pdf_with_pages(
                 title="Decrypt OK",
-                file=io.BytesIO(b"encrypted pdf"),
+                file=io.BytesIO(b"%PDF-1.4\nencrypted pdf"),
                 metadata=_COMPLIANCE,
             )
             assert result.chunk_count > 0
@@ -1096,7 +1096,7 @@ class TestIngestPdfWithPages:
             ):
                 await svc.ingest_pdf_with_pages(
                     title="No Text",
-                    file=io.BytesIO(b"empty pdf"),
+                    file=io.BytesIO(b"%PDF-1.4\n"),
                     metadata=_COMPLIANCE,
                 )
 
@@ -1116,7 +1116,7 @@ class TestIngestPdfWithPages:
             with pytest.raises(FulltextRejectedError, match="rejected"):
                 await svc.ingest_pdf_with_pages(
                     title="Rejected PDF",
-                    file=io.BytesIO(b"pdf"),
+                    file=io.BytesIO(b"%PDF-1.4\n"),
                     metadata={"copyright_status": "unknown"},
                 )
 
@@ -1153,6 +1153,83 @@ class TestIngestPdfWithPages:
                 )
                 # Should have chunks with ocr_confidence set
                 assert result.chunk_count > 0
+
+    async def test_non_pdf_signature_raises(self, db_session) -> None:
+        """Defense-in-depth: bytes missing %PDF- signature → PDFExtractionError."""
+        svc = IngestionService(db_session)
+        with pytest.raises(PDFExtractionError, match="not a valid PDF"):
+            await svc.ingest_pdf_with_pages(
+                title="Not PDF",
+                file=io.BytesIO(b"definitely not a pdf"),
+                metadata=_COMPLIANCE,
+            )
+
+    async def test_malformed_pdf_reader_error_raises(self, db_session) -> None:
+        """PdfReader constructor raises → normalized to PDFExtractionError."""
+        svc = IngestionService(db_session)
+        with patch("app.services.ingestion.PdfReader") as mock_reader_cls:
+            mock_reader_cls.side_effect = PdfReadError("broken pdf")
+            with pytest.raises(PDFExtractionError, match="Cannot read PDF"):
+                await svc.ingest_pdf_with_pages(
+                    title="Malformed",
+                    file=io.BytesIO(b"%PDF-1.4\njunk"),
+                    metadata=_COMPLIANCE,
+                )
+
+    async def test_too_many_pages_raises(self, db_session) -> None:
+        """PDF exceeding the page ceiling → PDFExtractionError."""
+        svc = IngestionService(db_session)
+        with patch("app.services.ingestion.PdfReader") as mock_reader_cls:
+            mock_reader = MagicMock()
+            mock_reader.is_encrypted = False
+            mock_reader.pages = [MagicMock()] * 2001
+            mock_reader_cls.return_value = mock_reader
+
+            with pytest.raises(PDFExtractionError, match="page"):
+                await svc.ingest_pdf_with_pages(
+                    title="Too Many Pages",
+                    file=io.BytesIO(_simple_pdf_bytes()),
+                    metadata=_COMPLIANCE,
+                )
+
+    async def test_ocr_page_limit_raises(self, db_session) -> None:
+        """More pages requiring OCR than allowed → PDFExtractionError."""
+        svc = IngestionService(db_session)
+        empty_pages = [MagicMock() for _ in range(201)]
+        for p in empty_pages:
+            p.extract_text.return_value = ""
+        with patch("app.services.ingestion.PdfReader") as mock_reader_cls:
+            mock_reader = MagicMock()
+            mock_reader.is_encrypted = False
+            mock_reader.pages = empty_pages
+            mock_reader_cls.return_value = mock_reader
+
+            with patch.object(IngestionService, "_ocr_pdf_pages", return_value={}):
+                with pytest.raises(PDFExtractionError, match="OCR"):
+                    await svc.ingest_pdf_with_pages(
+                        title="OCR Overlimit",
+                        file=io.BytesIO(_simple_pdf_bytes()),
+                        metadata=_COMPLIANCE,
+                    )
+
+    async def test_oversized_page_text_fail_closed(self, db_session) -> None:
+        """A page over the char ceiling is rejected, not silently truncated."""
+        svc = IngestionService(db_session)
+        oversized = "x" * 100_001
+        with patch("app.services.ingestion.PdfReader") as mock_reader_cls:
+            mock_reader = MagicMock()
+            mock_reader.is_encrypted = False
+            page = MagicMock()
+            page.extract_text.return_value = oversized
+            mock_reader.pages = [page]
+            mock_reader_cls.return_value = mock_reader
+
+            with pytest.raises(PDFExtractionError, match="page limit"):
+                await svc.ingest_pdf_with_pages(
+                    title="Oversized Page",
+                    file=io.BytesIO(_simple_pdf_bytes()),
+                    metadata=_COMPLIANCE,
+                )
 
     async def test_rollback_on_chunk_storage_failure(self, db_session) -> None:
         """Lines 709-726: rollback on SQLAlchemyError during chunk storage."""

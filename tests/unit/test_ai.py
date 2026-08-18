@@ -7,6 +7,7 @@ Per HFB-PS-1705 AI Research Workspace Product Specification.
 from __future__ import annotations
 
 import json
+import time
 
 import httpx
 import pytest
@@ -152,7 +153,7 @@ class TestChatStreamGate:
         try:
             _rate_limiter._timestamps.clear()
             for _ in range(_rate_limiter._max):
-                _rate_limiter._timestamps.append(999999.0)
+                _rate_limiter._timestamps.append(time.monotonic())
             svc = AIService()
             chunks = [
                 c
@@ -507,7 +508,7 @@ class TestMockFallbacks:
         try:
             _rate_limiter._timestamps.clear()
             for _ in range(_rate_limiter._max):
-                _rate_limiter._timestamps.append(999999.0)
+                _rate_limiter._timestamps.append(time.monotonic())
             svc = AIService()
             result = await svc.summarize("test text", max_words=30)
             assert "请求过于频繁" in result
@@ -521,7 +522,7 @@ class TestMockFallbacks:
         try:
             _rate_limiter._timestamps.clear()
             for _ in range(_rate_limiter._max):
-                _rate_limiter._timestamps.append(999999.0)
+                _rate_limiter._timestamps.append(time.monotonic())
             svc = AIService()
             result = await svc.translate("test", target_lang="现代汉语")
             assert "请求过于频繁" in result
@@ -535,7 +536,7 @@ class TestMockFallbacks:
         try:
             _rate_limiter._timestamps.clear()
             for _ in range(_rate_limiter._max):
-                _rate_limiter._timestamps.append(999999.0)
+                _rate_limiter._timestamps.append(time.monotonic())
             svc = AIService()
             result = await svc.ai_compare("a", "b")
             assert "请求过于频繁" in result

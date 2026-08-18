@@ -27,5 +27,5 @@ class TestSeedData:
             assert "category" in d
 
     def test_seed_counts(self):
-        assert len(SEED_PERSONS) == 3
+        assert len(SEED_PERSONS) == 5
         assert len(SEED_DOCUMENTS) == 3

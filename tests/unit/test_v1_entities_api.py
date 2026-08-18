@@ -12,6 +12,7 @@ Covers:
 Uses FastAPI TestClient with dependency overrides for auth and DB session.
 """
 
+import hashlib
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -549,7 +550,7 @@ class TestPersonCRUD:
             death_year=219,
             created_at=None,
         )
-        with patch.object(PersonService, "list", new_callable=AsyncMock) as m:
+        with patch.object(PersonService, "list_persons", new_callable=AsyncMock) as m:
             m.return_value = ([person], 1)
             r = client.get("/api/v1/persons")
         assert r.status_code == 200
@@ -1533,6 +1534,165 @@ class TestDocumentCreateSessionOwned:
             )
         assert r.status_code == 201
         assert r.json()["data"]["session_id"] == sess_id
+
+
+class TestClassicalDocumentUpload:
+    def test_admission_frozen_rejects_valid_pdf_with_409(self, client):
+        """Gate closed → 409 before reading file, ingest never called."""
+        with patch(
+            "app.api.v1.entities.IngestionService.ingest_pdf_with_pages",
+            new_callable=AsyncMock,
+        ) as ingest:
+            response = client.post(
+                "/api/v1/documents/upload",
+                data={"title": "针灸甲乙经", "authorization_basis": "上传者确认已授权"},
+                files={"file": ("jiayi.pdf", b"%PDF-1.4\n", "application/pdf")},
+            )
+        assert response.status_code == 409
+        assert "SOURCE_ADMISSION_BLOCKED" in response.json()["message"]
+        ingest.assert_not_awaited()
+
+    def test_admission_frozen_rejects_before_mime_check(self, client):
+        """Gate runs before the suffix/MIME check — non-PDF also 409, not 422."""
+        response = client.post(
+            "/api/v1/documents/upload",
+            data={"title": "针灸甲乙经", "authorization_basis": "上传者确认已授权"},
+            files={"file": ("source.txt", b"not a pdf", "text/plain")},
+        )
+        assert response.status_code == 409
+        assert "SOURCE_ADMISSION_BLOCKED" in response.json()["message"]
+
+    def test_upload_requires_auth_401(self, _clear_overrides):
+        """Without auth, get_current_user raises 401 before the gate."""
+        mock_sess = AsyncMock()
+
+        async def _sess():
+            yield mock_sess
+
+        from app.db.database import get_session
+
+        app.dependency_overrides[get_session] = _sess
+        with TestClient(app) as c:
+            r = c.post(
+                "/api/v1/documents/upload",
+                data={"title": "x", "authorization_basis": "y"},
+                files={"file": ("jiayi.pdf", b"%PDF-1.4\n", "application/pdf")},
+            )
+        assert r.status_code == 401
+
+    def test_upload_requires_permission_403(self, _clear_overrides, mock_session):
+        """User authenticated but lacking document:create → 403."""
+        mock_auth = MagicMock()
+        mock_auth.has_permission = AsyncMock(return_value=False)
+
+        async def _user():
+            return TEST_USER_ID
+
+        async def _auth():
+            return mock_auth
+
+        from app.middleware.auth import get_auth_service, get_current_user
+
+        app.dependency_overrides[get_current_user] = _user
+        app.dependency_overrides[get_auth_service] = _auth
+        with TestClient(app) as c:
+            r = c.post(
+                "/api/v1/documents/upload",
+                data={"title": "x", "authorization_basis": "y"},
+                files={"file": ("jiayi.pdf", b"%PDF-1.4\n", "application/pdf")},
+            )
+        assert r.status_code == 403
+
+    def test_cross_session_upload_blocked(self, client, mock_session):
+        """Gate open + session owned by another user → 403 (ownership check)."""
+        sess_id = str(uuid4())
+        sess = _MockEntity(id=sess_id, user_id="other-user")
+        mock_session.get = AsyncMock(return_value=sess)
+        with patch("app.api.v1.entities.is_source_admission_open", return_value=True):
+            response = client.post(
+                "/api/v1/documents/upload",
+                data={
+                    "title": "针灸甲乙经",
+                    "authorization_basis": "上传者确认已授权",
+                    "session_id": sess_id,
+                },
+                files={"file": ("jiayi.pdf", b"%PDF-1.4\n", "application/pdf")},
+            )
+        assert response.status_code == 403
+
+    def test_admission_open_rejects_wrong_mime_422(self, client):
+        """Gate open + non-PDF content_type → 422 before read/ingest."""
+        with (
+            patch("app.api.v1.entities.is_source_admission_open", return_value=True),
+            patch(
+                "app.api.v1.entities.IngestionService.ingest_pdf_with_pages",
+                new_callable=AsyncMock,
+            ) as ingest,
+        ):
+            response = client.post(
+                "/api/v1/documents/upload",
+                data={"title": "针灸甲乙经", "authorization_basis": "上传者确认已授权"},
+                files={"file": ("jiayi.pdf", b"%PDF-1.4\n", "text/plain")},
+            )
+        assert response.status_code == 422
+        ingest.assert_not_awaited()
+
+    def test_admission_open_uploads_authorized_pdf_as_private_pending(self, client):
+        """Gate open → admitted path ingests and returns pending, rag disabled."""
+        document_id = uuid4()
+        document = _MockEntity(
+            id=document_id,
+            title="针灸甲乙经",
+            title_pinyin=None,
+            title_english=None,
+            author_id=None,
+            dynasty=None,
+            year=None,
+            category=None,
+            abstract=None,
+            content_text="原文",
+            source_url=None,
+            page_count=1,
+            language="zh",
+            session_id=None,
+            created_at=None,
+            updated_at=None,
+            copyright_status="user_uploaded_with_permission",
+            license_type=None,
+            authorization_basis="上传者确认已授权",
+            review_status="pending_review",
+            reviewed_by=None,
+            reviewed_at=None,
+            rag_enabled=False,
+            content_checksum="checksum",
+            source_name="user_upload",
+            uploaded_by=TEST_USER_ID,
+            withdrawn_at=None,
+            withdraw_reason=None,
+        )
+        result = _MockEntity(document_id=str(document_id), chunk_count=2)
+        raw_pdf = b"%PDF-1.4\n"
+        with (
+            patch("app.api.v1.entities.is_source_admission_open", return_value=True),
+            patch(
+                "app.api.v1.entities.IngestionService.ingest_pdf_with_pages",
+                new_callable=AsyncMock,
+                return_value=result,
+            ) as ingest,
+            patch.object(DocumentService, "get_by_id", new_callable=AsyncMock, return_value=document),
+        ):
+            response = client.post(
+                "/api/v1/documents/upload",
+                data={"title": "针灸甲乙经", "authorization_basis": "上传者确认已授权"},
+                files={"file": ("jiayi.pdf", raw_pdf, "application/pdf")},
+            )
+
+        assert response.status_code == 201
+        assert response.json()["data"]["rag_enabled"] is False
+        assert ingest.await_args.kwargs["metadata"]["uploaded_by"] == TEST_USER_ID
+        assert ingest.await_args.kwargs["metadata"]["copyright_status"] == "user_uploaded_with_permission"
+        assert ingest.await_args.kwargs["metadata"]["pdf_sha256"] is not None
+        assert ingest.await_args.kwargs["metadata"]["pdf_sha256"] == hashlib.sha256(raw_pdf).hexdigest()
 
 
 # ======================================================================
