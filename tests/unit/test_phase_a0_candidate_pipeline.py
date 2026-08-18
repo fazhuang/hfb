@@ -165,6 +165,7 @@ async def make_candidate(
     start_char: int = START_CHAR,
     end_char: int = END_CHAR,
     exact_text: str = EXACT,
+    ai_model: str = "hfb-test-model",
 ) -> CandidateExtraction:
     """Insert a pending candidate grounded on the gold baseline."""
     candidate = CandidateExtraction(
@@ -188,7 +189,7 @@ async def make_candidate(
         extraction_type="proposed_evidence",
         extracted_payload=DEFAULT_PAYLOAD,
         extractor_name="hfb-test-extractor",
-        ai_model="hfb-test-model",
+        ai_model=ai_model,
         ai_version="1.0.0",
         prompt_version="p1",
         processing_time=0.01,
@@ -784,3 +785,14 @@ class TestRollbackGuards:
             await db_session.execute(text("SELECT count(*) FROM evidences"))
         ).scalar_one()
         assert count == 0
+
+
+class TestAIMetadataChecks:
+    @pytest.mark.asyncio
+    async def test_ai_model_unknown_rejected_by_check(
+        self, db_session: AsyncSession
+    ) -> None:
+        """The DB CHECK must reject ai_model='unknown' after migration."""
+        await build_world(db_session)
+        with pytest.raises(IntegrityError):
+            await make_candidate(db_session, ai_model="unknown")

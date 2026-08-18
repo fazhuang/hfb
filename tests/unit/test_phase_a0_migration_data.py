@@ -249,3 +249,50 @@ def test_postgresql_migration_preserves_metadata_data() -> None:
                 "WHERE table_name='candidate_extractions' AND column_name='metadata_id'"
             )
             assert cur.fetchall() == [], "metadata_id column should be dropped"
+
+
+def test_postgresql_disabled_trigger_fails_startup(monkeypatch) -> None:
+    """A disabled audit trigger must fail-closed at PostgreSQL startup."""
+    import asyncio
+
+    import psycopg2
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    sync_url, async_url = _pg_urls()
+
+    try:
+        conn = psycopg2.connect(sync_url)
+    except psycopg2.OperationalError as exc:  # noqa: BLE001
+        pytest.skip(f"PostgreSQL unavailable: {exc}")
+
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DROP SCHEMA public CASCADE")
+        cur.execute("CREATE SCHEMA public")
+    conn.close()
+
+    r = _run_alembic(async_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr
+
+    with psycopg2.connect(sync_url) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "ALTER TABLE candidate_audit_logs "
+                "DISABLE TRIGGER trg_audit_log_immutable"
+            )
+        conn.commit()
+
+    import app.db.database as db_mod
+
+    engine = create_async_engine(async_url)
+    monkeypatch.setattr(db_mod, "_db_url", async_url)
+    monkeypatch.setattr(db_mod, "engine", engine)
+
+    async def _run_startup() -> None:
+        with pytest.raises(RuntimeError, match="append-only trigger"):
+            await db_mod.init_database()
+
+    try:
+        asyncio.run(_run_startup())
+    finally:
+        asyncio.run(engine.dispose())

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any, Callable
 from uuid import uuid4
 
 from sqlalchemy import text
@@ -48,7 +49,7 @@ class CitationPersistenceService:
     # ------------------------------------------------------------------
 
     async def persist_academic_rag_citations(
-        self, citations: list, *, query: str = ""
+        self, citations: list[Any], *, query: str = ""
     ) -> int:
         """Persist citations from AcademicRAGService (AcademicCitation objects).
 
@@ -67,7 +68,7 @@ class CitationPersistenceService:
         )
 
     async def persist_evidence_rag_citations(
-        self, citations: list, *, query: str = ""
+        self, citations: list[Any], *, query: str = ""
     ) -> int:
         """Persist citations from EvidenceRAGService (EvidenceCitation objects).
 
@@ -86,7 +87,7 @@ class CitationPersistenceService:
         )
 
     async def persist_academic_citations(
-        self, citations: list, *, query: str = ""
+        self, citations: list[Any], *, query: str = ""
     ) -> int:
         """Persist citations from AcademicService (CitationRef objects).
 
@@ -110,16 +111,16 @@ class CitationPersistenceService:
 
     async def _persist_generic(
         self,
-        citations: list,
+        citations: list[Any],
         *,
         query: str,
-        get_doc_id,
-        get_chunk_id,
-        get_quote,
-        get_version_id,
-        get_passage_id,
-        get_source_uri,
-        get_evidence_id,
+        get_doc_id: Callable[[Any], str],
+        get_chunk_id: Callable[[Any], str],
+        get_quote: Callable[[Any], str],
+        get_version_id: Callable[[Any], str],
+        get_passage_id: Callable[[Any], str],
+        get_source_uri: Callable[[Any], str],
+        get_evidence_id: Callable[[Any], str],
     ) -> int:
         """Generic citation persistence with deduplication.
 
@@ -137,7 +138,7 @@ class CitationPersistenceService:
 
         # Collect unique (doc_id, chunk_id) pairs to deduplicate
         seen: set[tuple[str, str]] = set()
-        unique_citations: list = []
+        unique_citations: list[Any] = []
         for c in citations:
             doc_id = get_doc_id(c)
             chunk_id = get_chunk_id(c)
@@ -286,9 +287,9 @@ class CitationPersistenceService:
 
     async def _find_existing(
         self,
-        citations: list,
-        get_doc_id,
-        get_chunk_id,
+        citations: list[Any],
+        get_doc_id: Callable[[Any], str],
+        get_chunk_id: Callable[[Any], str],
     ) -> set[tuple[str, str]]:
         """Find which (doc_id, chunk_id) pairs already have citation records.
 
@@ -354,7 +355,7 @@ class CitationPersistenceService:
             )
             row = result.fetchone()
             if row:
-                return row[0]
+                return str(row[0])
 
         # 2. Try by page_location (document:<doc_id>)
         if doc_id:
@@ -366,7 +367,7 @@ class CitationPersistenceService:
             )
             row = result.fetchone()
             if row:
-                return row[0]
+                return str(row[0])
 
         # 3. Not found — fail closed. Do NOT auto-create SourceRef.
         # The caller must seed SourceRefs ahead of time.

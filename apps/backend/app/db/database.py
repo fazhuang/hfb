@@ -102,6 +102,7 @@ async def init_database() -> None:
                         "WHERE t.tgname='trg_audit_log_immutable' "
                         "AND c.relname='candidate_audit_logs' "
                         "AND p.proname='block_audit_log_changes' "
+                        "AND t.tgenabled='O' "
                         "AND NOT t.tgisinternal"
                     )
                 )

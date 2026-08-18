@@ -58,7 +58,8 @@ class CandidateExtraction(BaseModel):
     __table_args__ = (
         CheckConstraint(
             "length(trim(ai_model)) > 0 AND length(trim(ai_version)) > 0 "
-            "AND length(trim(prompt_version)) > 0 AND processing_time >= 0",
+            "AND length(trim(prompt_version)) > 0 AND processing_time >= 0 "
+            "AND lower(trim(ai_model)) <> 'unknown'",
             name="ck_candidate_ai_metadata",
         ),
     )
