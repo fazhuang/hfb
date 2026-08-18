@@ -110,6 +110,23 @@ class CandidateExtraction(BaseModel):
     extracted_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
 
     extractor_name: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    # AI metadata (HFB-DAT-0303 §8) — required for AI/rule extraction provenance.
+    ai_model: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+        comment="AI 模型名称 (规则抽取则填 extractor 标识)",
+    )
+    ai_version: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="AI 模型版本"
+    )
+    prompt_version: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, comment="Prompt 版本"
+    )
+    processing_time: Mapped[float | None] = mapped_column(
+        Float, nullable=True, comment="处理耗时 (秒)"
+    )
+
     prompt_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
 

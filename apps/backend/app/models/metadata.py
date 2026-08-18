@@ -1,9 +1,10 @@
-"""CandidateExtractionMetadata — candidate-specific 1:1 metadata (HFB-DEV-0505 §7/§11).
+"""CandidateExtractionMetadata — candidate-specific optional (0..1) metadata.
 
 Phase A0 keeps metadata candidate-specific rather than a generic polymorphic
-table: the owning candidate is a real foreign key, so the 1:1 relationship is
-verifiable at the database level (no ``entity_type``/``entity_id`` string
-association).
+table: the owning candidate is a real foreign key, so the relationship is
+verifiable at the database level. ``candidate_id`` is UNIQUE, so each metadata
+record belongs to at most one candidate; the relationship is optional (a
+candidate may have zero metadata records until review populates one).
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ from app.db.base import BaseModel
 
 
 class CandidateExtractionMetadata(BaseModel):
-    """1:1 metadata record owned by exactly one candidate extraction."""
+    """Optional (0..1) metadata record owned by at most one candidate extraction."""
 
     __tablename__ = "candidate_extraction_metadata"
 
@@ -27,8 +28,8 @@ class CandidateExtractionMetadata(BaseModel):
         index=True,
         comment="所属候选 ID (1:1 真实 FK)",
     )
-    payload: Mapped[dict | None] = mapped_column(
-        JSON, nullable=True, comment="元数据 JSON 载荷"
+    payload: Mapped[dict] = mapped_column(
+        JSON, nullable=False, comment="元数据 JSON 载荷"
     )
 
     # Common business-table fields (HFB-DEV-0505 §7).

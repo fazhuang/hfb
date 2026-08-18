@@ -2,6 +2,7 @@
 
 Both dialects enforce the same invariant:
 
+* ``INSERT`` is allowed only with a non-NULL ``candidate_id`` (no orphan logs).
 * ``DELETE`` is always forbidden.
 * ``UPDATE`` is allowed **only** for the single sanctioned transition where
   ``candidate_id`` goes from non-NULL to NULL, and every other column remains
@@ -23,7 +24,12 @@ from sqlalchemy import text
 PG_FUNCTION_SQL = """
 CREATE OR REPLACE FUNCTION block_audit_log_changes() RETURNS TRIGGER AS $$
 BEGIN
-    IF TG_OP = 'DELETE' THEN
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.candidate_id IS NULL THEN
+            RAISE EXCEPTION 'CandidateAuditLog requires a candidate_id on INSERT';
+        END IF;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
         RAISE EXCEPTION 'CandidateAuditLog is append-only: DELETE forbidden';
     ELSIF TG_OP = 'UPDATE' THEN
         IF OLD.candidate_id IS NOT NULL AND NEW.candidate_id IS NULL
@@ -46,7 +52,7 @@ $$ LANGUAGE plpgsql;
 
 PG_TRIGGER_SQL = """
 CREATE TRIGGER trg_audit_log_immutable
-BEFORE UPDATE OR DELETE ON candidate_audit_logs
+BEFORE INSERT OR UPDATE OR DELETE ON candidate_audit_logs
 FOR EACH ROW EXECUTE FUNCTION block_audit_log_changes();
 """
 
@@ -62,6 +68,15 @@ CREATE TRIGGER IF NOT EXISTS trg_audit_log_no_delete
 BEFORE DELETE ON candidate_audit_logs
 BEGIN
     SELECT RAISE(ABORT, 'CandidateAuditLog is append-only: DELETE forbidden');
+END;
+"""
+
+SQLITE_NO_ORPHAN_INSERT_SQL = """
+CREATE TRIGGER IF NOT EXISTS trg_audit_log_no_orphan_insert
+BEFORE INSERT ON candidate_audit_logs
+WHEN NEW.candidate_id IS NULL
+BEGIN
+    SELECT RAISE(ABORT, 'CandidateAuditLog requires a candidate_id on INSERT');
 END;
 """
 
@@ -87,6 +102,7 @@ END;
 SQLITE_DROP_TRIGGERS_SQL = """
 DROP TRIGGER IF EXISTS trg_audit_log_no_delete;
 DROP TRIGGER IF EXISTS trg_audit_log_no_update;
+DROP TRIGGER IF EXISTS trg_audit_log_no_orphan_insert;
 """
 
 
@@ -107,6 +123,7 @@ async def install_audit_log_triggers(conn) -> None:
     elif name == "sqlite":
         await conn.execute(text(SQLITE_NO_DELETE_SQL))
         await conn.execute(text(SQLITE_NO_UPDATE_SQL))
+        await conn.execute(text(SQLITE_NO_ORPHAN_INSERT_SQL))
     else:
         raise NotImplementedError(f"audit triggers unsupported for dialect {name!r}")
 

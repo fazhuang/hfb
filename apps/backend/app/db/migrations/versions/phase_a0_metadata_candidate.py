@@ -92,7 +92,9 @@ def upgrade() -> None:
         )
     )
 
-    # 3. Integrity check: migrated count must equal the number of linked rows.
+    # 3. Integrity check: migrated count must equal the number of linked rows,
+    #    AND the old table must have no unlinked/orphan rows (fail-closed on
+    #    silent data loss).
     expected = bind.execute(
         sa.text(
             "SELECT count(*) FROM candidate_extractions WHERE metadata_id IS NOT NULL"
@@ -105,6 +107,14 @@ def upgrade() -> None:
         raise RuntimeError(
             f"metadata migration integrity check failed: "
             f"expected {expected} rows, migrated {actual}"
+        )
+
+    old_total = bind.execute(sa.text("SELECT count(*) FROM metadata")).scalar()
+    if old_total != actual:
+        raise RuntimeError(
+            f"metadata migration would silently drop {old_total - actual} "
+            f"unlinked metadata row(s); aborting (fail-closed). "
+            f"Provide an explicit migration target for non-candidate metadata."
         )
 
     # 4. Drop the redundant metadata_id column + old generic table.

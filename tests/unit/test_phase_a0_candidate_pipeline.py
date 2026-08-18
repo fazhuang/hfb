@@ -188,6 +188,10 @@ async def make_candidate(
         extraction_type="proposed_evidence",
         extracted_payload=DEFAULT_PAYLOAD,
         extractor_name="hfb-test-extractor",
+        ai_model="hfb-test-model",
+        ai_version="1.0.0",
+        prompt_version="p1",
+        processing_time=0.01,
         confidence=0.99,
     )
     session.add(candidate)
@@ -414,10 +418,11 @@ class TestSQLiteTriggers:
         self, db_session: AsyncSession
     ) -> None:
         await build_world(db_session)  # seed owner user for operator_id FK
+        candidate = await make_candidate(db_session)
         await _install_sqlite_triggers(db_session)
         db_session.add(
             CandidateAuditLog(
-                id="aud-1", candidate_id=None, action="approved", operator_id=OWNER_ID
+                id="aud-1", candidate_id=candidate.id, action="approved", operator_id=OWNER_ID
             )
         )
         await db_session.flush()
@@ -490,13 +495,15 @@ class TestSQLiteRuntimeTriggers:
                 names = {r[0] for r in rows}
             assert "trg_audit_log_no_delete" in names
             assert "trg_audit_log_no_update" in names
+            assert "trg_audit_log_no_orphan_insert" in names
 
             # Tamper is blocked without any test-level trigger installation.
             async with engine.begin() as conn:
                 await conn.execute(
                     text(
-                        "INSERT INTO candidate_audit_logs (id, action, operator_id) "
-                        "VALUES ('aud-runtime', 'approved', 'some-user')"
+                        "INSERT INTO candidate_audit_logs "
+                        "(id, candidate_id, action, operator_id) "
+                        "VALUES ('aud-runtime', 'some-candidate', 'approved', 'some-user')"
                     )
                 )
                 with pytest.raises(IntegrityError, match="append-only"):
@@ -504,6 +511,15 @@ class TestSQLiteRuntimeTriggers:
                         text(
                             "UPDATE candidate_audit_logs SET action='tampered' "
                             "WHERE id='aud-runtime'"
+                        )
+                    )
+                # Orphan inserts (candidate_id NULL) are also rejected.
+                with pytest.raises(IntegrityError, match="candidate_id"):
+                    await conn.execute(
+                        text(
+                            "INSERT INTO candidate_audit_logs "
+                            "(id, action, operator_id) "
+                            "VALUES ('aud-orphan', 'approved', 'some-user')"
                         )
                     )
         finally:
