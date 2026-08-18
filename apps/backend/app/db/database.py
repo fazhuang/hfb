@@ -85,6 +85,30 @@ async def init_database() -> None:
     try:
         async with engine.begin() as conn:
             await conn.execute(text("SELECT 1"))
+            # Fail-closed: once the Phase A0 migration has created
+            # candidate_audit_logs, the append-only trigger must exist; a
+            # dropped/replaced trigger silently breaks the guarantee.
+            table_exists = (
+                await conn.execute(
+                    text("SELECT to_regclass('public.candidate_audit_logs')")
+                )
+            ).scalar()
+            if table_exists:
+                result = await conn.execute(
+                    text(
+                        "SELECT tgname FROM pg_trigger "
+                        "WHERE tgname='trg_audit_log_immutable' "
+                        "AND NOT tgisinternal"
+                    )
+                )
+                installed = {row[0] for row in result}
+                if "trg_audit_log_immutable" not in installed:
+                    logger.error(
+                        "audit_trigger_missing trigger=trg_audit_log_immutable"
+                    )
+                    raise RuntimeError(
+                        "CandidateAuditLog append-only trigger is missing on PostgreSQL"
+                    )
         logger.info(
             "database_connected host=%s db=%s",
             settings.POSTGRES_HOST,

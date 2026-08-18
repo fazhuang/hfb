@@ -34,7 +34,7 @@ class SourceRefRepository(BaseRepository[SourceRef]):
                 )
             ).fetchone()
             if row:
-                return row[0]
+                return str(row[0])
 
         if doc_id:
             row = (
@@ -49,6 +49,6 @@ class SourceRefRepository(BaseRepository[SourceRef]):
                 )
             ).fetchone()
             if row:
-                return row[0]
+                return str(row[0])
 
         return None

@@ -43,8 +43,8 @@ from app.models.user import User
 from app.models.version import Version
 from app.models.workspace import ResearchSession
 from app.services.candidate_extraction_service import (
+    CandidatePublishUnitOfWork,
     GroundingDriftException,
-    approve_and_publish_candidate,
 )
 
 # Reuse the SQLite session fixture (conftest_db is not auto-discovered).
@@ -203,9 +203,23 @@ async def _reviewer(session: AsyncSession, user_id: str = OWNER_ID) -> User:
     return await session.get(User, user_id)
 
 
+def _make_uow(session: AsyncSession) -> CandidatePublishUnitOfWork:
+    factory = async_sessionmaker(
+        session.bind, class_=AsyncSession, expire_on_commit=False
+    )
+    return CandidatePublishUnitOfWork(factory)
+
+
+async def _publish(
+    session: AsyncSession, candidate_id: str, reviewer_id: str, session_id: str
+) -> Evidence:
+    return await _make_uow(session).publish(candidate_id, reviewer_id, session_id)
+
+
 async def _install_sqlite_triggers(session: AsyncSession) -> None:
     await session.execute(text(audit_triggers.SQLITE_NO_DELETE_SQL))
     await session.execute(text(audit_triggers.SQLITE_NO_UPDATE_SQL))
+    await session.execute(text(audit_triggers.SQLITE_NO_ORPHAN_INSERT_SQL))
 
 
 # ---------------------------------------------------------------------------
@@ -262,8 +276,8 @@ class TestIsolationAndAuthorization:
         await db_session.commit()
 
         with pytest.raises(HTTPException) as exc_info:
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "other-session"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "other-session"
             )
         assert exc_info.value.status_code == 404
 
@@ -280,8 +294,8 @@ class TestIsolationAndAuthorization:
         await db_session.commit()
 
         with pytest.raises(HTTPException) as exc_info:
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         assert exc_info.value.status_code == 404
 
@@ -309,8 +323,8 @@ class TestIsolationAndAuthorization:
         await db_session.commit()
 
         with pytest.raises(HTTPException) as exc_info:
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         assert exc_info.value.status_code == 404
 
@@ -334,8 +348,8 @@ class TestGroundingDrift:
         await db_session.commit()
 
         with pytest.raises(GroundingDriftException):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         await db_session.refresh(candidate)
         assert candidate.status == CandidateStatus.DRIFT_INVALID
@@ -352,8 +366,8 @@ class TestGroundingDrift:
         await db_session.commit()
 
         with pytest.raises(GroundingDriftException):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         await db_session.refresh(candidate)
         assert candidate.status == CandidateStatus.DRIFT_INVALID
@@ -371,8 +385,8 @@ class TestGroundingDrift:
         await db_session.commit()
 
         with pytest.raises(GroundingDriftException):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         await db_session.refresh(candidate)
         assert candidate.status == CandidateStatus.DRIFT_INVALID
@@ -388,8 +402,8 @@ class TestGroundingDrift:
         await db_session.commit()
 
         with pytest.raises(GroundingDriftException):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
 
         # Drift must be COMMITTED (visible), not rolled back.
@@ -585,14 +599,9 @@ class TestPostgresTriggers:
         await session.commit()
 
         async def approve() -> Evidence:
-            async with factory() as s:
-                # Detached stub: the service only reads ``reviewer.id`` (the
-                # user must exist in the DB, which it does after the commit
-                # above). Avoids autobegin before db.begin().
-                reviewer = User(id=OWNER_ID)
-                return await approve_and_publish_candidate(
-                    s, candidate.id, reviewer, "sess-a0"
-                )
+            return await CandidatePublishUnitOfWork(factory).publish(
+                candidate.id, OWNER_ID, "sess-a0"
+            )
 
         results = await asyncio.gather(approve(), approve(), return_exceptions=True)
 
@@ -693,12 +702,10 @@ class TestPostgresTriggers:
         candidate = await make_candidate(session)
         await session.commit()
 
-        async with factory() as s:
-            reviewer = User(id=OWNER_ID)
-            with pytest.raises(RuntimeError, match="soft-deleted"):
-                await approve_and_publish_candidate(
-                    s, candidate.id, reviewer, "sess-a0"
-                )
+        with pytest.raises(RuntimeError, match="soft-deleted"):
+            await CandidatePublishUnitOfWork(factory).publish(
+                candidate.id, OWNER_ID, "sess-a0"
+            )
 
         async with factory() as s:
             ev = (await s.execute(text("SELECT count(*) FROM evidences"))).scalar_one()
@@ -725,8 +732,8 @@ class TestRollbackGuards:
         await db_session.commit()
 
         with pytest.raises(RuntimeError, match="withdrawn"):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         count = (
             await db_session.execute(text("SELECT count(*) FROM evidences"))
@@ -746,8 +753,8 @@ class TestRollbackGuards:
         await db_session.commit()
 
         with pytest.raises(RuntimeError, match="soft-deleted"):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
 
         ev_count = (
@@ -767,8 +774,8 @@ class TestRollbackGuards:
         await db_session.commit()
 
         with pytest.raises(RuntimeError, match="SourceRef"):
-            await approve_and_publish_candidate(
-                db_session, candidate.id, reviewer, "sess-a0"
+            await _publish(
+                db_session, candidate.id, reviewer.id, "sess-a0"
             )
         await db_session.refresh(candidate)
         assert candidate.status == CandidateStatus.PENDING

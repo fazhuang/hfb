@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     CheckConstraint,
@@ -55,6 +55,13 @@ class CandidateExtraction(BaseModel):
     """
 
     __tablename__ = "candidate_extractions"
+    __table_args__ = (
+        CheckConstraint(
+            "length(trim(ai_model)) > 0 AND length(trim(ai_version)) > 0 "
+            "AND length(trim(prompt_version)) > 0 AND processing_time >= 0",
+            name="ck_candidate_ai_metadata",
+        ),
+    )
 
     session_id: Mapped[str] = mapped_column(
         String(36),
@@ -91,7 +98,7 @@ class CandidateExtraction(BaseModel):
     end_char: Mapped[int] = mapped_column(Integer, nullable=False)
     exact_text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    input_snapshot: Mapped[dict] = mapped_column(JSON, nullable=False)
+    input_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     page_image_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     page_image_hash_alg: Mapped[str] = mapped_column(
         String(20),
@@ -107,7 +114,7 @@ class CandidateExtraction(BaseModel):
     extraction_type: Mapped[str] = mapped_column(
         String(50), default="proposed_evidence", nullable=False
     )
-    extracted_payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    extracted_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
 
     extractor_name: Mapped[str] = mapped_column(String(100), nullable=False)
 

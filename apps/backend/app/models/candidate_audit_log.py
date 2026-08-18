@@ -8,6 +8,7 @@ single sanctioned ``candidate_id`` de-linking transition.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String, func
 from sqlalchemy.dialects.postgresql import JSONB
@@ -46,9 +47,9 @@ class CandidateAuditLog(Base):
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    input_snapshot: Mapped[dict | None] = mapped_column(_AUDIT_JSON, nullable=True)
-    pre_payload: Mapped[dict | None] = mapped_column(_AUDIT_JSON, nullable=True)
-    post_payload: Mapped[dict | None] = mapped_column(_AUDIT_JSON, nullable=True)
+    input_snapshot: Mapped[dict[str, Any] | None] = mapped_column(_AUDIT_JSON, nullable=True)
+    pre_payload: Mapped[dict[str, Any] | None] = mapped_column(_AUDIT_JSON, nullable=True)
+    post_payload: Mapped[dict[str, Any] | None] = mapped_column(_AUDIT_JSON, nullable=True)
     published_evidence_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("evidences.id", ondelete="SET NULL"),

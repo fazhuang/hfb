@@ -5,9 +5,16 @@ table: the owning candidate is a real foreign key, so the relationship is
 verifiable at the database level. ``candidate_id`` is UNIQUE, so each metadata
 record belongs to at most one candidate; the relationship is optional (a
 candidate may have zero metadata records until review populates one).
+
+HFB-DAT-0303 §8 AI metadata fields (ai_model/ai_version/prompt_version/
+processing_time/confidence/reviewer/review_status) live on
+``CandidateExtraction`` itself (NOT NULL), not in this generic payload — this
+0..1 table holds the additional rights/relationship metadata categories.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from sqlalchemy import JSON, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -28,7 +35,7 @@ class CandidateExtractionMetadata(BaseModel):
         index=True,
         comment="所属候选 ID (1:1 真实 FK)",
     )
-    payload: Mapped[dict] = mapped_column(
+    payload: Mapped[dict[str, Any]] = mapped_column(
         JSON, nullable=False, comment="元数据 JSON 载荷"
     )
 
