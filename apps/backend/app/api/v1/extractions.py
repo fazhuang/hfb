@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.core.exceptions import ValidationException
+from app.db.candidate_publish_uow import GroundingDriftException
 from app.middleware.auth import get_current_user, require_permission
 from app.services.candidate_extraction_service import (
     CandidateExtractionService,
-    GroundingDriftException,
     get_candidate_extraction_service,
 )
-from app.utils.response import api_response
 
 router = APIRouter(tags=["Candidate Extractions"])
 
@@ -23,9 +23,20 @@ class ApproveCandidateRequest(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=36)
 
 
+class ApprovalData(BaseModel):
+    evidence_id: str
+
+
+class ApprovalResponse(BaseModel):
+    success: bool
+    timestamp: str
+    data: ApprovalData
+    message: str
+
+
 @router.post(
     "/extractions/{candidate_id}/approval",
-    response_model=dict[str, Any],
+    response_model=ApprovalResponse,
     dependencies=[Depends(require_permission("extraction", "approve"))],
 )
 async def approve_candidate(
@@ -35,7 +46,7 @@ async def approve_candidate(
     service: Annotated[
         CandidateExtractionService, Depends(get_candidate_extraction_service)
     ],
-) -> dict[str, Any]:
+) -> ApprovalResponse:
     """Approve a pending candidate and atomically publish it as Evidence + Citation.
 
     RBAC runs via ``require_permission``; session/transaction management lives in
@@ -50,7 +61,9 @@ async def approve_candidate(
     except RuntimeError as exc:
         raise ValidationException(str(exc))
 
-    return api_response(
-        data={"evidence_id": evidence.id},
+    return ApprovalResponse(
+        success=True,
+        timestamp=datetime.now(UTC).isoformat(),
+        data=ApprovalData(evidence_id=evidence.id),
         message="Candidate approved and published",
     )

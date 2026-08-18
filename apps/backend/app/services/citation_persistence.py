@@ -375,7 +375,8 @@ class CitationPersistenceService:
 
     @staticmethod
     async def verify_and_resolve_source_ref(
-        db: AsyncSession,
+        source_ref_repo: SourceRefRepository,
+        version_repo: VersionRepository,
         *,
         doc_id: str,
         source_uri: str | None = None,
@@ -397,7 +398,7 @@ class CitationPersistenceService:
 
         Returns the resolved ``source_refs.id``.
         """
-        source_ref_id = await SourceRefRepository(db).resolve_id_for_update(
+        source_ref_id = await source_ref_repo.resolve_id_for_update(
             source_uri=source_uri, doc_id=doc_id
         )
         if source_ref_id is None:
@@ -408,7 +409,7 @@ class CitationPersistenceService:
             )
 
         if version_id:
-            v_row = await VersionRepository(db).get_withdrawn_at_for_update(version_id)
+            v_row = await version_repo.get_withdrawn_at_for_update(version_id)
             # Fail-closed: a soft-deleted (or missing) version yields no row and
             # must NOT be treated as "not withdrawn".
             if v_row is None:

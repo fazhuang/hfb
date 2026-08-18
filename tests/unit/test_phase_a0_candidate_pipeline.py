@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
-from fastapi import HTTPException
+from app.core.exceptions import NotFoundException
 from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import (
@@ -42,7 +42,7 @@ from app.models.passage import Passage
 from app.models.user import User
 from app.models.version import Version
 from app.models.workspace import ResearchSession
-from app.services.candidate_extraction_service import (
+from app.db.candidate_publish_uow import (
     CandidatePublishUnitOfWork,
     GroundingDriftException,
 )
@@ -243,9 +243,9 @@ async def pg_world() -> AsyncSession:
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-    except Exception as exc:  # noqa: BLE001 — skip when PG is unavailable
+    except Exception as exc:  # noqa: BLE001 — real PG is a hard gate, fail
         await engine.dispose()
-        pytest.skip(f"PostgreSQL unavailable: {exc}")
+        pytest.fail(f"PostgreSQL required for this test: {exc}")
 
     # Reset the whole schema each test. This also clears any migration-created
     # views/objects (e.g. academic_edges) that would otherwise break drop_all.
@@ -276,7 +276,7 @@ class TestIsolationAndAuthorization:
         reviewer = await _reviewer(db_session)
         await db_session.commit()
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundException) as exc_info:
             await _publish(
                 db_session, candidate.id, reviewer.id, "other-session"
             )
@@ -294,7 +294,7 @@ class TestIsolationAndAuthorization:
         reviewer = await _reviewer(db_session)
         await db_session.commit()
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundException) as exc_info:
             await _publish(
                 db_session, candidate.id, reviewer.id, "sess-a0"
             )
@@ -323,7 +323,7 @@ class TestIsolationAndAuthorization:
         reviewer = await _reviewer(db_session)
         await db_session.commit()
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NotFoundException) as exc_info:
             await _publish(
                 db_session, candidate.id, reviewer.id, "sess-a0"
             )
@@ -610,7 +610,7 @@ class TestPostgresTriggers:
         failures = [r for r in results if isinstance(r, Exception)]
         assert len(successes) == 1, f"expected exactly one publish, got {results!r}"
         assert len(failures) == 1
-        assert isinstance(failures[0], HTTPException)
+        assert isinstance(failures[0], NotFoundException)
         assert failures[0].status_code == 404
 
         async with factory() as s:

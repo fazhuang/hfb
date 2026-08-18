@@ -465,3 +465,30 @@ def test_sqlite_phase_a0_rollback_and_reupgrade(tmp_path) -> None:
 
     r = _run_alembic(db_url, "upgrade", "head")
     assert r.returncode == 0, r.stderr
+
+
+def test_postgresql_phase_a0_rollback_and_reupgrade() -> None:
+    """PostgreSQL migration rollback gate: upgrade → downgrade → re-upgrade."""
+    import psycopg2
+
+    sync_url, async_url = _pg_urls()
+
+    try:
+        conn = psycopg2.connect(sync_url)
+    except psycopg2.OperationalError as exc:
+        pytest.fail(f"PostgreSQL migration test requires a database: {exc}")
+
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DROP SCHEMA public CASCADE")
+        cur.execute("CREATE SCHEMA public")
+    conn.close()
+
+    r = _run_alembic(async_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr
+
+    r = _run_alembic(async_url, "downgrade", "f1a2b3c4d5e6")
+    assert r.returncode == 0, r.stderr
+
+    r = _run_alembic(async_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr

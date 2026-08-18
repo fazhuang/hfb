@@ -33,8 +33,23 @@ jobs:
       - name: Ruff format check
         run: ruff format --check .
 
-      - name: Mypy type check
-        run: mypy apps/ packages/ --config-file=pyproject.toml || true
+      - name: Mypy type check (Phase A0 publish path — strict, blocking)
+        run: |
+          mypy --strict \
+            apps/backend/app/api/v1/extractions.py \
+            apps/backend/app/services/candidate_extraction_service.py \
+            apps/backend/app/services/citation_persistence.py \
+            apps/backend/app/db/candidate_publish_uow.py \
+            apps/backend/app/db/database.py \
+            apps/backend/app/db/audit_triggers.py \
+            apps/backend/app/db/base.py \
+            apps/backend/app/models/candidate_extraction.py \
+            apps/backend/app/models/candidate_audit_log.py \
+            apps/backend/app/models/metadata.py \
+            apps/backend/app/repositories/candidate_extraction.py \
+            apps/backend/app/repositories/source_ref.py \
+            apps/backend/app/repositories/version.py \
+            apps/backend/app/repositories/user.py
 
   node-lint:
     name: Node (ESLint + Prettier)

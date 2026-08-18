@@ -100,6 +100,29 @@ class CandidateExtraction(BaseModel):
     end_char: Mapped[int] = mapped_column(Integer, nullable=False)
     exact_text: Mapped[str] = mapped_column(Text, nullable=False)
 
+    # HFB-DAT-0303 §3 Core Metadata (required for every resource).
+    resource_type: Mapped[str] = mapped_column(
+        String(50),
+        default="candidate_extraction",
+        server_default="candidate_extraction",
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(
+        String(500), default="", server_default="", nullable=False
+    )
+    language: Mapped[str] = mapped_column(
+        String(20), default="zh", server_default="zh", nullable=False
+    )
+    abstract: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
+    keywords: Mapped[str] = mapped_column(
+        String(500), default="", server_default="", nullable=False
+    )
+    description: Mapped[str] = mapped_column(
+        Text, default="", server_default="", nullable=False
+    )
+
     input_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     page_image_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     page_image_hash_alg: Mapped[str] = mapped_column(
