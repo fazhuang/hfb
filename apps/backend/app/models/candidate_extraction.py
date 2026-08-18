@@ -62,7 +62,7 @@ class CandidateExtraction(BaseModel):
         nullable=False,
         index=True,
     )
-    created_by_user_id: Mapped[str] = mapped_column(
+    created_by: Mapped[str] = mapped_column(
         String(36),
         ForeignKey("users.id", ondelete="RESTRICT"),
         nullable=False,
@@ -117,14 +117,14 @@ class CandidateExtraction(BaseModel):
         nullable=False,
         comment="AI 模型名称 (规则抽取则填 extractor 标识)",
     )
-    ai_version: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="AI 模型版本"
+    ai_version: Mapped[str] = mapped_column(
+        String(100), nullable=False, comment="AI 模型版本"
     )
-    prompt_version: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, comment="Prompt 版本"
+    prompt_version: Mapped[str] = mapped_column(
+        String(100), nullable=False, comment="Prompt 版本"
     )
-    processing_time: Mapped[float | None] = mapped_column(
-        Float, nullable=True, comment="处理耗时 (秒)"
+    processing_time: Mapped[float] = mapped_column(
+        Float, nullable=False, comment="处理耗时 (秒)"
     )
 
     prompt_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -178,8 +178,8 @@ class CandidateExtraction(BaseModel):
 
     # Relationships
     session: Mapped[ResearchSession] = relationship("ResearchSession", lazy="selectin")
-    created_by: Mapped[User] = relationship(
-        "User", foreign_keys=[created_by_user_id], lazy="selectin"
+    created_by_user: Mapped[User] = relationship(
+        "User", foreign_keys=[created_by], lazy="selectin"
     )
     chunk: Mapped[DocumentChunk] = relationship(
         "DocumentChunk", lazy="selectin"

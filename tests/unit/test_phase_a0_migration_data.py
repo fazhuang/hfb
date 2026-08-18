@@ -96,6 +96,37 @@ def test_sqlite_migration_preserves_metadata_data(tmp_path) -> None:
     conn.close()
 
 
+def test_sqlite_migration_fails_on_orphan_metadata(tmp_path) -> None:
+    """Unlinked/orphan old metadata must fail-closed and leave the table intact."""
+    import sqlite3
+
+    db_path = str(tmp_path / "orphan.db")
+    db_url = f"sqlite:///{db_path}"
+
+    r = _run_alembic(db_url, "upgrade", OLD_REVISION)
+    assert r.returncode == 0, r.stderr
+
+    conn = sqlite3.connect(db_path)
+    # An orphan metadata row not referenced by any candidate.
+    conn.execute(
+        "INSERT INTO metadata (id, entity_type, entity_id, payload) "
+        "VALUES ('orphan-meta', 'other_entity', 'other-1', '{}')"
+    )
+    conn.commit()
+    conn.close()
+
+    r = _run_alembic(db_url, "upgrade", "head")
+    assert r.returncode != 0, "upgrade must fail on orphan metadata"
+    combined = (r.stderr or "") + (r.stdout or "")
+    assert "unlinked" in combined, f"expected fail-closed message, got: {combined}"
+
+    # Old table unchanged: the orphan row is still present.
+    conn = sqlite3.connect(db_path)
+    rows = conn.execute("SELECT id FROM metadata").fetchall()
+    assert [r_[0] for r_ in rows] == ["orphan-meta"]
+    conn.close()
+
+
 # ---------------------------------------------------------------------------
 # PostgreSQL
 # ---------------------------------------------------------------------------

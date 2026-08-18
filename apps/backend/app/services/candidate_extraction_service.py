@@ -34,7 +34,6 @@ from app.models.user import User
 from app.repositories.candidate_extraction import CandidateExtractionRepository
 from app.services.citation_persistence import CitationPersistenceService
 
-
 class GroundingDriftException(Exception):
     """Raised when a candidate's grounding anchors no longer match the live chunk.
 
@@ -219,3 +218,30 @@ async def approve_and_publish_candidate(
         raise pending_drift_exception
 
     return evidence
+
+
+class CandidateExtractionService:
+    """Controller-facing service facade for candidate approval.
+
+    Owns the session and transaction boundaries so the controller never
+    touches a session or repository directly.
+    """
+
+    async def approve(
+        self, candidate_id: str, reviewer_id: str, session_id: str
+    ) -> Evidence:
+        from app.db.database import async_session_factory
+
+        # Validate the reviewer exists (short-lived session), then publish on a
+        # fresh session so the single-transaction db.begin() contract holds.
+        async with async_session_factory() as review_session:
+            reviewer = await review_session.get(User, reviewer_id)
+        if reviewer is None:
+            raise HTTPException(
+                status_code=401, detail="User not found"
+            )
+
+        async with async_session_factory() as session:
+            return await approve_and_publish_candidate(
+                session, candidate_id, reviewer, session_id
+            )

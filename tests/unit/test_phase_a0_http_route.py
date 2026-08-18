@@ -29,7 +29,7 @@ from app.services.auth_service import create_access_token
 
 from main import app as fastapi_app
 
-import app.api.v1.extractions as extractions_mod
+import app.db.database as db_mod
 from app.db.database import get_session
 
 # Reuse the builders from the pipeline test.
@@ -112,7 +112,7 @@ class TestHTTPApproveRoute:
             candidate = await make_candidate(session, creator_id=REVIEWER_ID)
             await session.commit()
 
-        monkeypatch.setattr(extractions_mod, "async_session_factory", http_factory)
+        monkeypatch.setattr(db_mod, "async_session_factory", http_factory)
         _setup_app_overrides(http_factory)
         token = create_access_token(REVIEWER_ID)
         try:
@@ -146,7 +146,7 @@ class TestHTTPApproveRoute:
             candidate = await make_candidate(session, creator_id=REVIEWER_ID)
             await session.commit()
 
-        monkeypatch.setattr(extractions_mod, "async_session_factory", http_factory)
+        monkeypatch.setattr(db_mod, "async_session_factory", http_factory)
         _setup_app_overrides(http_factory)
         token = create_access_token(REVIEWER_ID)
         try:
@@ -173,7 +173,7 @@ class TestHTTPApproveRoute:
             world["chunk"].content = CANON + "（篡改）"
             await session.commit()
 
-        monkeypatch.setattr(extractions_mod, "async_session_factory", http_factory)
+        monkeypatch.setattr(db_mod, "async_session_factory", http_factory)
         _setup_app_overrides(http_factory)
         token = create_access_token(REVIEWER_ID)
         try:

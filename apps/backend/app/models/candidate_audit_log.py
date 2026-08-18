@@ -8,13 +8,12 @@ single sanctioned ``candidate_id`` de-linking transition.
 from __future__ import annotations
 
 from datetime import datetime
-from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey, JSON, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.db.base import Base
+from app.db.base import Base, uuid7
 
 # Postgres ``json`` has no equality operator, but the append-only DDL trigger
 # compares these columns with ``IS NOT DISTINCT FROM``. Use jsonb on Postgres
@@ -33,7 +32,7 @@ class CandidateAuditLog(Base):
     __tablename__ = "candidate_audit_logs"
 
     id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid4())
+        String(36), primary_key=True, default=uuid7
     )
     candidate_id: Mapped[str | None] = mapped_column(
         String(36),

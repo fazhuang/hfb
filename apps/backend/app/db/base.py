@@ -6,11 +6,26 @@ Uses a portable UUID type that works with both PostgreSQL and SQLite.
 
 from __future__ import annotations
 
+import os
+import uuid as _uuid
 from datetime import UTC, datetime
-from uuid import uuid4
 
 from sqlalchemy import Boolean, DateTime, String, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+def uuid7() -> str:
+    """Return a time-ordered UUIDv7 (RFC 9562) as a 36-char string.
+
+    Layout: 48-bit unix-ms timestamp | 4-bit version (7) | 12-bit rand_a |
+    2-bit variant (2) | 62-bit rand_b.
+    """
+    ts_ms = int(datetime.now(UTC).timestamp() * 1000) & 0xFFFFFFFFFFFF  # 48 bits
+    rand = os.urandom(10)  # 80 random bits
+    rand_a = int.from_bytes(rand[:2], "big") & 0x0FFF  # 12 bits
+    rand_b = int.from_bytes(rand[2:], "big") & 0x3FFFFFFFFFFFFFFF  # 62 bits
+    value = (ts_ms << 80) | (0x7 << 76) | (rand_a << 64) | (0x2 << 62) | rand_b
+    return str(_uuid.UUID(int=value))
 
 
 class Base(DeclarativeBase):
@@ -65,5 +80,5 @@ class BaseModel(Base, TimestampMixin, SoftDeleteMixin):
     id: Mapped[str] = mapped_column(
         String(36),
         primary_key=True,
-        default=lambda: str(uuid4()),
+        default=uuid7,
     )

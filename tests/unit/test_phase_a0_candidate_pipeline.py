@@ -169,7 +169,7 @@ async def make_candidate(
     """Insert a pending candidate grounded on the gold baseline."""
     candidate = CandidateExtraction(
         session_id=session_id,
-        created_by_user_id=creator_id,
+        created_by=creator_id,
         chunk_id=chunk_id,
         version_id=version_id,
         expected_chunk_sha256=expected_sha,
@@ -555,6 +555,22 @@ class TestPostgresTriggers:
                     "SET candidate_id=NULL, pre_payload='{\"tampered\": true}' "
                     "WHERE id='aud-pg'"
                 )
+            )
+        await session.rollback()
+
+    @pytest.mark.asyncio
+    async def test_postgresql_orphan_insert_rejected(self, pg_world) -> None:
+        """An audit-log INSERT with candidate_id NULL must be rejected."""
+        session = pg_world["session"]
+        await build_world(session)
+
+        with pytest.raises(DBAPIError, match="candidate_id"):
+            await session.execute(
+                text(
+                    "INSERT INTO candidate_audit_logs (id, action, operator_id) "
+                    "VALUES ('aud-orphan-pg', 'approved', :op)"
+                ),
+                {"op": OWNER_ID},
             )
         await session.rollback()
 
