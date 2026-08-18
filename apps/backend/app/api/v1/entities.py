@@ -14,12 +14,23 @@ DELETE /api/v1/{resource}/{id}
 # turns ``body`` into an unresolved string and FastAPI treats it as a query
 # parameter instead of a JSON request body.
 
+import hashlib
 import logging
 import os
+from io import BytesIO
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import Response
 from pydantic import BaseModel as PydanticBaseModel
 from sqlalchemy import func
@@ -78,7 +89,13 @@ from app.services.entities import (
     PassageService,
     VersionService,
 )
+from app.services.ingestion import (
+    FulltextRejectedError,
+    IngestionService,
+    PDFExtractionError,
+)
 from app.services.person_service import PersonService
+from app.services.source_admission import is_source_admission_open
 from app.utils.response import api_response
 
 router = APIRouter(tags=["Domain Entities"])
@@ -415,6 +432,7 @@ document_guard_delete = require_permission("document", "delete")
 
 _document_list_deps: list = [Depends(document_guard_read)]
 _document_get_deps: list = [Depends(document_guard_read)]
+_MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 
 
 @router.get(
@@ -497,6 +515,83 @@ async def create_document(
     return api_response(
         data=DocumentResponse.model_validate(obj).model_dump(mode="json"),
         message="Created",
+    )
+
+
+@router.post(
+    "/documents/upload",
+    response_model=dict,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(document_guard_create)],
+)
+async def upload_classical_document(
+    file: Annotated[UploadFile, File()],
+    title: Annotated[str, Form(min_length=1, max_length=500)],
+    authorization_basis: Annotated[str, Form(min_length=1, max_length=200)],
+    session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
+    source_url: Annotated[str | None, Form(max_length=2000)] = None,
+    dynasty: Annotated[str | None, Form(max_length=100)] = None,
+    category: Annotated[str | None, Form(max_length=200)] = None,
+    session_id: Annotated[str | None, Form(max_length=36)] = None,
+) -> dict:
+    """Upload an authorized classical-text PDF into the page-level ingestion pipeline."""
+    # Fail-closed source-admission gate — enforced before the file is read,
+    # OCR'd, or persisted. Upload stays frozen until a Research Lead completes
+    # the manual source admission checklist and the deploy flips
+    # SOURCE_ADMISSION_OPEN. Client-supplied authorization_basis is NOT an
+    # unlock signal.
+    if not is_source_admission_open():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="SOURCE_ADMISSION_BLOCKED: 古籍全文上传暂未开放",
+        )
+    if not title.strip():
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Document title is required")
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Only PDF files are supported")
+    # MIME + suffix + magic-byte triple check. content_type is client-supplied
+    # and therefore advisory; the %PDF- magic check below is the authoritative
+    # gate. Still rejected here so a wrong declared type fails early.
+    if (file.content_type or "").lower() not in ("application/pdf", "application/x-pdf", "application/octet-stream"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="Uploaded file must be application/pdf",
+        )
+    raw_pdf = await file.read(_MAX_UPLOAD_BYTES + 1)
+    if len(raw_pdf) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="PDF exceeds the 20 MB limit")
+    if not raw_pdf.startswith(b"%PDF-"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Uploaded file is not a valid PDF")
+    if session_id:
+        owner_session = await session.get(ResearchSession, session_id)
+        if owner_session is None or owner_session.user_id != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot upload to another user's project")
+
+    metadata = {
+        "copyright_status": "user_uploaded_with_permission",
+        "authorization_basis": authorization_basis.strip(),
+        "source_name": "user_upload",
+        "source_url": source_url.strip() if source_url else None,
+        "dynasty": dynasty.strip() if dynasty else None,
+        "category": category.strip() if category else None,
+        "uploaded_by": user_id,
+        "session_id": session_id or None,
+        "pdf_sha256": hashlib.sha256(raw_pdf).hexdigest(),
+    }
+    try:
+        result = await IngestionService(session).ingest_pdf_with_pages(
+            title=title.strip(), file=BytesIO(raw_pdf), metadata=metadata
+        )
+    except (FulltextRejectedError, PDFExtractionError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc))
+
+    document = await DocumentService(session).get_by_id(result.document_id)
+    if document is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Document ingestion failed")
+    return api_response(
+        data=DocumentResponse.model_validate(document).model_dump(mode="json"),
+        message=f"Uploaded {result.chunk_count} page-level chunks; pending review",
     )
 
 
@@ -1037,7 +1132,7 @@ async def get_document_page_image(
         pdf.close()
     except HTTPException:
         raise
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Failed to render page: {e}",

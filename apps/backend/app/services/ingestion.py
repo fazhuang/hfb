@@ -7,6 +7,7 @@ deterministic paragraph-based chunking, full-text compliance gate (Context 21).
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 from datetime import UTC
@@ -59,6 +60,9 @@ _ALLOWED_METADATA_KEYS = frozenset(
         "license_type",
         "authorization_basis",
         "source_name",
+        "uploaded_by",
+        "session_id",
+        "pdf_sha256",
     }
 )
 
@@ -82,6 +86,13 @@ _FORBIDDEN_COPYRIGHT_STATUSES = frozenset(
         "pirated",
     }
 )
+
+# Defense-in-depth resource ceilings for PDF ingestion (enforced inside
+# ingest_pdf_with_pages, independent of the route-level admission gate).
+_MAX_PDF_PAGES = 2000
+_MAX_PDF_PAGE_TEXT_CHARS = 100_000
+_MAX_OCR_PAGE_COUNT = 200
+_MAX_OCR_SECONDS = 300
 
 
 class IngestionError(Exception):
@@ -563,8 +574,23 @@ class IngestionService:
         """
         raw_bytes = file.read()
 
+        # Defense-in-depth: verify the byte signature before pypdf parses it.
+        if not raw_bytes.startswith(b"%PDF-"):
+            raise PDFExtractionError("Uploaded file is not a valid PDF (missing %PDF- signature)")
+
         # First try pypdf for text extraction
-        reader = PdfReader(BytesIO(raw_bytes))
+        try:
+            reader = PdfReader(BytesIO(raw_bytes))
+        except PdfReadError as e:
+            raise PDFExtractionError(f"Cannot read PDF: {e}") from e
+        except Exception as e:
+            raise PDFExtractionError(f"Malformed PDF: {e}") from e
+
+        if len(reader.pages) > _MAX_PDF_PAGES:
+            raise PDFExtractionError(
+                f"PDF has {len(reader.pages)} pages, exceeding the {_MAX_PDF_PAGES}-page limit"
+            )
+
         if reader.is_encrypted:
             try:
                 reader.decrypt("")
@@ -581,16 +607,45 @@ class IngestionService:
                 t = page.extract_text()
             except PdfReadError:
                 t = None
+            except Exception:  # noqa: BLE001 — per-page parse failure → treat as unscannable
+                t = None
             if t and t.strip():
+                # fail-closed: a page whose text exceeds the ceiling is a
+                # malformed/oversized input, not something to silently truncate.
+                if len(t) > _MAX_PDF_PAGE_TEXT_CHARS:
+                    raise PDFExtractionError(
+                        f"Page {i} has {len(t)} chars, exceeding the "
+                        f"{_MAX_PDF_PAGE_TEXT_CHARS}-char page limit"
+                    )
                 page_data.append((i, t.strip()))
             else:
                 ocr_pages.append(i)
 
         # OCR fallback for pages without embedded text
         if ocr_pages:
-            ocr_texts = self._ocr_pdf_pages(
-                raw_bytes, ocr_pages, lang=ocr_lang, dpi=ocr_dpi
-            )
+            if len(ocr_pages) > _MAX_OCR_PAGE_COUNT:
+                raise PDFExtractionError(
+                    f"PDF requires OCR on {len(ocr_pages)} pages, exceeding the "
+                    f"{_MAX_OCR_PAGE_COUNT}-page OCR limit"
+                )
+            # OCR runs in the event-loop thread; asyncio.wait_for only cancels
+            # the await — the blocking work keeps running in the background and
+            # the request fails closed. It cannot kill the underlying thread.
+            try:
+                ocr_texts = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self._ocr_pdf_pages,
+                        raw_bytes,
+                        ocr_pages,
+                        lang=ocr_lang,
+                        dpi=ocr_dpi,
+                    ),
+                    timeout=_MAX_OCR_SECONDS,
+                )
+            except TimeoutError:
+                raise PDFExtractionError(
+                    f"OCR exceeded the {_MAX_OCR_SECONDS}-second time limit"
+                ) from None
             for pg_num, text in ocr_texts.items():
                 if text and text.strip():
                     page_data.append((pg_num, text.strip()))

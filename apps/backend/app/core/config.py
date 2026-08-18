@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     CONTACT_EMAIL: str = "dev@huangfumi.org"
     CORE_API_KEY: str = ""  # optional, for higher rate limits
 
+    # --- Source admission (classical full-text upload) ---
+    # Fail-closed: upload remains frozen until Research Lead completes the manual
+    # source admission checklist (docs/03-data/0306_...). Never opened by client
+    # input — this env flag is the only unlock switch.
+    SOURCE_ADMISSION_OPEN: bool = False
+
     # --- Database connection string ---
     @property
     def database_url(self) -> str:
