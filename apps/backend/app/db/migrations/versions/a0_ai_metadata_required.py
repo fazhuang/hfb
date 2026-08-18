@@ -37,7 +37,8 @@ def upgrade() -> None:
             "OR lower(trim(ai_model)) = 'unknown' "
             "OR ai_version IS NULL OR length(trim(ai_version)) = 0 "
             "OR prompt_version IS NULL OR length(trim(prompt_version)) = 0 "
-            "OR processing_time IS NULL"
+            "OR processing_time IS NULL "
+            "OR processing_time < 0 OR processing_time > 1e12"
         )
     ).scalar()
     if missing:
@@ -67,7 +68,8 @@ def upgrade() -> None:
         batch_op.create_check_constraint(
             "ck_candidate_ai_metadata",
             "length(trim(ai_model)) > 0 AND length(trim(ai_version)) > 0 "
-            "AND length(trim(prompt_version)) > 0 AND processing_time >= 0 "
+            "AND length(trim(prompt_version)) > 0 "
+            "AND processing_time >= 0 AND processing_time <= 1e12 "
             "AND lower(trim(ai_model)) <> 'unknown'",
         )
 

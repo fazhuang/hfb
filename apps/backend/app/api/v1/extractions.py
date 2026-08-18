@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
+from app.core.exceptions import ValidationException
 from app.middleware.auth import get_current_user, require_permission
 from app.services.candidate_extraction_service import (
     CandidateExtractionService,
@@ -23,7 +24,7 @@ class ApproveCandidateRequest(BaseModel):
 
 
 @router.post(
-    "/extractions/{candidate_id}/approve",
+    "/extractions/{candidate_id}/approval",
     response_model=dict[str, Any],
     dependencies=[Depends(require_permission("extraction", "approve"))],
 )
@@ -43,16 +44,11 @@ async def approve_candidate(
     """
     try:
         evidence = await service.approve(candidate_id, user_id, body.session_id)
-    except GroundingDriftException as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"GROUNDING_DRIFT: {exc}",
-        )
+    except GroundingDriftException:
+        # Domain exception (409 GROUNDING_DRIFT) → handled by the global handler.
+        raise
     except RuntimeError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
-        )
+        raise ValidationException(str(exc))
 
     return api_response(
         data={"evidence_id": evidence.id},

@@ -102,11 +102,11 @@ BEGIN
 END;
 """
 
-SQLITE_DROP_TRIGGERS_SQL = """
-DROP TRIGGER IF EXISTS trg_audit_log_no_delete;
-DROP TRIGGER IF EXISTS trg_audit_log_no_update;
-DROP TRIGGER IF EXISTS trg_audit_log_no_orphan_insert;
-"""
+SQLITE_DROP_TRIGGER_STATEMENTS = [
+    "DROP TRIGGER IF EXISTS trg_audit_log_no_delete",
+    "DROP TRIGGER IF EXISTS trg_audit_log_no_update",
+    "DROP TRIGGER IF EXISTS trg_audit_log_no_orphan_insert",
+]
 
 
 def dialect_name(bind: Any) -> str:
@@ -139,4 +139,5 @@ async def drop_audit_log_triggers(conn: AsyncConnection) -> None:
         await conn.execute(text(PG_DROP_TRIGGER_SQL))
         await conn.execute(text(PG_DROP_FUNCTION_SQL))
     elif name == "sqlite":
-        await conn.execute(text(SQLITE_DROP_TRIGGERS_SQL))
+        for stmt in SQLITE_DROP_TRIGGER_STATEMENTS:
+            await conn.execute(text(stmt))

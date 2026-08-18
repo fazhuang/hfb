@@ -182,9 +182,11 @@ def downgrade() -> None:
         op.execute(audit_triggers.PG_DROP_TRIGGER_SQL)
         op.execute(audit_triggers.PG_DROP_FUNCTION_SQL)
     elif bind.dialect.name == "sqlite":
-        op.execute(audit_triggers.SQLITE_DROP_TRIGGERS_SQL)
+        for stmt in audit_triggers.SQLITE_DROP_TRIGGER_STATEMENTS:
+            op.execute(stmt)
 
     with op.batch_alter_table("document_chunks") as batch_op:
+        batch_op.drop_constraint("ck_chunk_page_image_hash_alg", type_="check")
         batch_op.drop_column("page_image_hash_alg")
 
     op.drop_index("ix_candidate_audit_logs_candidate_id", table_name="candidate_audit_logs")

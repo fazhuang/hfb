@@ -29,6 +29,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.database import get_session_factory
+from app.core.exceptions import DomainException
 from app.models.academic_evidence import Evidence, EvidenceLevel
 from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.document_chunk import DocumentChunk
@@ -38,12 +39,17 @@ from app.repositories.user import UserRepository
 from app.services.citation_persistence import CitationPersistenceService
 
 
-class GroundingDriftException(Exception):
+class GroundingDriftException(DomainException):
     """Raised when a candidate's grounding anchors no longer match the live chunk.
 
     The drift itself is already committed inside the transaction as
     ``DRIFT_INVALID`` + audit record; this exception is the outward signal.
     """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            message=message, error_code="GROUNDING_DRIFT", status_code=409
+        )
 
 
 class ProposedEvidencePayload(BaseModel):

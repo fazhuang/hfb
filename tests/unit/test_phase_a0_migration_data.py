@@ -165,7 +165,7 @@ def test_postgresql_migration_preserves_metadata_data() -> None:
     try:
         conn = psycopg2.connect(sync_url)
     except psycopg2.OperationalError as exc:
-        pytest.skip(f"PostgreSQL unavailable: {exc}")
+        pytest.fail(f"PostgreSQL migration test requires a database: {exc}")
 
     # Reset the test schema to empty, then upgrade to the OLD schema.
     conn.autocommit = True
@@ -263,7 +263,7 @@ def test_postgresql_disabled_trigger_fails_startup(monkeypatch) -> None:
     try:
         conn = psycopg2.connect(sync_url)
     except psycopg2.OperationalError as exc:  # noqa: BLE001
-        pytest.skip(f"PostgreSQL unavailable: {exc}")
+        pytest.fail(f"PostgreSQL migration test requires a database: {exc}")
 
     conn.autocommit = True
     with conn.cursor() as cur:
@@ -335,7 +335,7 @@ def _illegal_candidate_insert(
     ai_model: str,
     ai_version: str,
     prompt_version: str,
-    processing_time: float,
+    processing_time_sql: str,
 ) -> str:
     sha = "a" * 64
     return (
@@ -347,14 +347,14 @@ def _illegal_candidate_insert(
         "confidence) VALUES "
         "('{cand_id}', 'mig-session', 'mig-user', 'mig-chunk', 'mig-version', "
         "'{sha}', '{sha}', 'NFC', 0, 5, 'hello', '{{}}', '{{}}', 'test', "
-        "'{ai_model}', '{ai_version}', '{prompt_version}', {processing_time}, 0.9)"
+        "'{ai_model}', '{ai_version}', '{prompt_version}', {processing_time_sql}, 0.9)"
     ).format(
         cand_id=cand_id,
         sha=sha,
         ai_model=ai_model,
         ai_version=ai_version,
         prompt_version=prompt_version,
-        processing_time=processing_time,
+        processing_time_sql=processing_time_sql,
     )
 
 
@@ -374,15 +374,43 @@ def test_sqlite_illegal_ai_metadata_rejected(tmp_path) -> None:
         conn.commit()
         cur = conn.cursor()
         cases = [
-            ("cand-unknown", "unknown", "1.0.0", "1.0.0", 0.5),
-            ("cand-blank", "   ", "1.0.0", "1.0.0", 0.5),
-            ("cand-neg", "real-model", "1.0.0", "1.0.0", -1.0),
+            ("cand-unknown", "unknown", "1.0.0", "1.0.0", "0.5"),
+            ("cand-blank", "   ", "1.0.0", "1.0.0", "0.5"),
+            ("cand-neg", "real-model", "1.0.0", "1.0.0", "-1.0"),
         ]
         for cand_id, model, ver, pver, pt in cases:
             with pytest.raises(sqlite3.IntegrityError):
                 cur.execute(_illegal_candidate_insert(cand_id, model, ver, pver, pt))
+
+        # NaN is stored as NULL by SQLite (NOT NULL violation); Infinity/-Infinity
+        # are stored as IEEE 754 and rejected by the finite-range CHECK.
+        for tag, val in [("nan", float("nan")), ("inf", float("inf")), ("-inf", float("-inf"))]:
+            with pytest.raises(sqlite3.IntegrityError):
+                cur.execute(
+                    _illegal_candidate_insert_bound(
+                        f"cand-{tag}", "real-model", "1.0.0", "1.0.0"
+                    ),
+                    (val,),
+                )
     finally:
         conn.close()
+
+
+def _illegal_candidate_insert_bound(
+    cand_id: str, ai_model: str, ai_version: str, prompt_version: str
+) -> str:
+    sha = "a" * 64
+    return (
+        "INSERT INTO candidate_extractions "
+        "(id, session_id, created_by, chunk_id, version_id, "
+        "expected_chunk_sha256, expected_nfc_sha256, unicode_normalization, "
+        "start_char, end_char, exact_text, input_snapshot, extracted_payload, "
+        "extractor_name, ai_model, ai_version, prompt_version, processing_time, "
+        "confidence) VALUES "
+        f"('{cand_id}', 'mig-session', 'mig-user', 'mig-chunk', 'mig-version', "
+        f"'{sha}', '{sha}', 'NFC', 0, 5, 'hello', '{{}}', '{{}}', 'test', "
+        f"'{ai_model}', '{ai_version}', '{prompt_version}', ?, 0.9)"
+    )
 
 
 def test_postgresql_illegal_ai_metadata_rejected() -> None:
@@ -394,7 +422,7 @@ def test_postgresql_illegal_ai_metadata_rejected() -> None:
     try:
         conn = psycopg2.connect(sync_url)
     except psycopg2.OperationalError as exc:
-        pytest.skip(f"PostgreSQL unavailable: {exc}")
+        pytest.fail(f"PostgreSQL migration test requires a database: {exc}")
 
     conn.autocommit = True
     with conn.cursor() as cur:
@@ -410,11 +438,30 @@ def test_postgresql_illegal_ai_metadata_rejected() -> None:
         conn.commit()
         cur = conn.cursor()
         cases = [
-            ("cand-unknown", "unknown", "1.0.0", "1.0.0", 0.5),
-            ("cand-blank", "   ", "1.0.0", "1.0.0", 0.5),
-            ("cand-neg", "real-model", "1.0.0", "1.0.0", -1.0),
+            ("cand-unknown", "unknown", "1.0.0", "1.0.0", "0.5"),
+            ("cand-blank", "   ", "1.0.0", "1.0.0", "0.5"),
+            ("cand-neg", "real-model", "1.0.0", "1.0.0", "-1.0"),
+            ("cand-nan", "real-model", "1.0.0", "1.0.0", "'NaN'::float8"),
+            ("cand-inf", "real-model", "1.0.0", "1.0.0", "'Infinity'::float8"),
+            ("cand--inf", "real-model", "1.0.0", "1.0.0", "'-Infinity'::float8"),
         ]
         for cand_id, model, ver, pver, pt in cases:
             with pytest.raises(psycopg2.errors.CheckViolation):
                 cur.execute(_illegal_candidate_insert(cand_id, model, ver, pver, pt))
             conn.rollback()  # reset the aborted transaction after each violation
+
+
+def test_sqlite_phase_a0_rollback_and_reupgrade(tmp_path) -> None:
+    """Migration rollback gate: upgrade → downgrade (all Phase A0) → re-upgrade."""
+    db_path = str(tmp_path / "rollback.db")
+    db_url = f"sqlite:///{db_path}"
+
+    r = _run_alembic(db_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr
+
+    # Roll back every Phase A0 migration (down to the pre-Phase-A0 head).
+    r = _run_alembic(db_url, "downgrade", "f1a2b3c4d5e6")
+    assert r.returncode == 0, r.stderr
+
+    r = _run_alembic(db_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr

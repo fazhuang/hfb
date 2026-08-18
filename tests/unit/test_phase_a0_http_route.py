@@ -121,7 +121,7 @@ class TestHTTPApproveRoute:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.post(
-                    f"/api/v1/extractions/{candidate.id}/approve",
+                    f"/api/v1/extractions/{candidate.id}/approval",
                     json={"session_id": "sess-a0"},
                     headers={"Authorization": f"Bearer {token}"},
                 )
@@ -155,7 +155,7 @@ class TestHTTPApproveRoute:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.post(
-                    f"/api/v1/extractions/{candidate.id}/approve",
+                    f"/api/v1/extractions/{candidate.id}/approval",
                     json={"session_id": "sess-a0"},
                     headers={"Authorization": f"Bearer {token}"},
                 )
@@ -182,12 +182,12 @@ class TestHTTPApproveRoute:
             transport = ASGITransport(app=fastapi_app)
             async with AsyncClient(transport=transport, base_url="http://test") as client:
                 resp = await client.post(
-                    f"/api/v1/extractions/{candidate.id}/approve",
+                    f"/api/v1/extractions/{candidate.id}/approval",
                     json={"session_id": "sess-a0"},
                     headers={"Authorization": f"Bearer {token}"},
                 )
             assert resp.status_code == 409, resp.text
-            assert "GROUNDING_DRIFT" in resp.json()["message"]
+            assert resp.json()["meta"]["error_code"] == "GROUNDING_DRIFT"
         finally:
             _cleanup_overrides()
             monkeypatch.undo()
