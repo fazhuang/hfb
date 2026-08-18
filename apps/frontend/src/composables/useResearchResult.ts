@@ -93,13 +93,13 @@ export type ResultPageStatus =
 const CITATION_RE =
   /\[([a-zA-Z0-9_-]+:[a-zA-Z0-9_-]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\]|`([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`/gi;
 
-/** UUID v4 pattern — exact length and hex positions, no regex DOS surface. */
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** UUID (v4/v7) pattern — exact length and hex positions, no regex DOS surface. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function guardId(raw: string, label: string): string {
   const trimmed = raw.trim();
   if (!UUID_RE.test(trimmed)) {
-    throw new Error(`Invalid ${label} — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`);
+    throw new Error(`Invalid ${label} — expected UUID, got ${JSON.stringify(raw.slice(0, 64))}`);
   }
   return trimmed;
 }

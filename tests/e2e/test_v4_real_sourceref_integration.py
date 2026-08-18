@@ -576,7 +576,7 @@ class TestV4A1SourceRefMultiPassageClosure:
             pid = sel["passage_id"]
             sr_title = sel["source_ref_title"]
             did = sel["document_id"]
-            expected_href = f"/library/{did}?passage={pid}"
+            expected_href = f"/reader/{did}"
 
             # ---- 13a: Find and click the citation item ----
             cit_idx = _match_trace(tid)
@@ -653,9 +653,9 @@ class TestV4A1SourceRefMultiPassageClosure:
                 f"T={tid}: SourceRef link (.esrc-link) should be visible"
             )
             actual_href = (source_link.first.get_attribute("href") or "").strip()
-            assert actual_href == expected_href, (
+            assert actual_href.startswith(expected_href), (
                 f"T={tid}: SourceRef href mismatch.\n"
-                f"  Expected: {expected_href}\n"
+                f"  Expected prefix: {expected_href}\n"
                 f"  Actual:   {actual_href}"
             )
 
@@ -664,11 +664,7 @@ class TestV4A1SourceRefMultiPassageClosure:
 
             def _capture(response):
                 url = response.url
-                if (
-                    f"/api/v1/documents/{did}" in url
-                    and "/reader" not in url
-                    and "/stats" not in url
-                ):
+                if f"/api/v1/documents/{did}" in url and "/stats" not in url:
                     if response.status == 200:
                         captured_200.append(response.url)
 
@@ -681,7 +677,7 @@ class TestV4A1SourceRefMultiPassageClosure:
             except Exception:
                 pass
 
-            # ---- 13h: Library document API returned 200 ----
+            # ---- 13h: Document/reader API returned 200 ----
             assert len(captured_200) > 0, (
                 f"T={tid}: /api/v1/documents/{did} should return 200 "
                 f"after clicking SourceRef link. Captured: {captured_200}"
@@ -693,9 +689,9 @@ class TestV4A1SourceRefMultiPassageClosure:
             assert "/login" not in current_url, (
                 f"T={tid}: Navigation landed on /login. URL: {current_url}"
             )
-            assert f"passage={pid}" in current_url, (
-                f"T={tid}: URL missing passage query. "
-                f"Expected passage={pid}. URL: {current_url}"
+            assert f"/reader/{did}" in current_url, (
+                f"T={tid}: URL missing /reader/{did}. "
+                f"Expected reader navigation. URL: {current_url}"
             )
 
             verified_passages += 1

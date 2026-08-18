@@ -86,13 +86,13 @@ export type VCStepState = 'search' | 'select' | 'compare' | 'verify';
 // Helpers
 // ============================================================================
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function guardId(raw: string): string {
   const trimmed = raw.trim();
   if (!UUID_RE.test(trimmed)) {
     throw new Error(
-      `Invalid session id — expected UUID v4, got ${JSON.stringify(raw.slice(0, 64))}`,
+      `Invalid session id — expected UUID, got ${JSON.stringify(raw.slice(0, 64))}`,
     );
   }
   return trimmed;

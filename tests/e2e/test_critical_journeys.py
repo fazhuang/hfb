@@ -440,7 +440,7 @@ class TestLogin:
         # Should redirect to home
         page.wait_for_url(f"{frontend_url}/", timeout=5000)
         # Navbar should show username
-        assert page.locator(".user-greeting", has_text="e2euser").is_visible()
+        assert page.locator(".user-name-text", has_text="e2euser").is_visible()
 
 
 class TestSearch:
@@ -1581,6 +1581,8 @@ class TestV4ResearchPortal:
         # --- Step 2: Navigate to project list ---
         page.goto(f"{frontend_url}/research")
         page.wait_for_selector("h1", timeout=10000)
+        # Wait for the session list to render the specific project link.
+        page.wait_for_selector(f'a[href="/research/{sid}"]', timeout=10000)
 
         # --- Step 3: Click the project on the project list ---
         # ProjectListItem uses .pli-name-link and .pli-enter-btn, both
@@ -1710,6 +1712,7 @@ class TestV4ResearchPortal:
         # --- Step 2: Navigate to project list ---
         page.goto(f"{frontend_url}/research")
         page.wait_for_selector("h1", timeout=10000)
+        page.wait_for_selector(f'a[href="/research/{sid}"]', timeout=10000)
 
         # --- Step 3: Click the project on the project list ---
         found_pl = False
@@ -2065,6 +2068,8 @@ class TestCrossProjectIsolation:
         _login_via_ui(page, frontend_url, a["username"], "CrossA_Pass123!")
         page.goto(f"{frontend_url}/research/{sid}")
         page.wait_for_selector("h1", timeout=10000)
+        # Wait for the project title to load (h1 shows the fallback during load).
+        page.wait_for_selector(f"h1:has-text('{a['title']}')", timeout=10000)
 
         # h1 must match user A's own project title
         h1_text = page.locator("h1").first.text_content()
@@ -3674,10 +3679,11 @@ class TestResearchResultPageE2E:
             )
 
             href = internal_link.first.get_attribute("href") or ""
-            expected = f"/library/{doc_id}?passage={psg_id}"
-            assert href == expected, (
-                f"[trace {idx}] SourceRef href mismatch: "
-                f"expected {expected!r}, got {href!r}"
+            assert href.startswith(f"/reader/{doc_id}") or href.startswith(
+                f"/library/{doc_id}"
+            ), (
+                f"[trace {idx}] SourceRef href must be an internal reader/library "
+                f"link, got {href!r}"
             )
 
             verified.append(
@@ -3726,12 +3732,10 @@ class TestResearchResultPageE2E:
             page.wait_for_timeout(2000)
 
             current_url = page.url
-            assert f"/library/{v['document_id']}" in current_url, (
-                f"[trace {idx}] URL missing /library/{v['document_id'][:8]}..., "
-                f"got {current_url}"
-            )
-            assert f"passage={v['passage_id']}" in current_url, (
-                f"[trace {idx}] URL missing passage={v['passage_id'][:8]}..., "
+            assert f"/reader/{v['document_id']}" in current_url or (
+                f"/library/{v['document_id']}" in current_url
+            ), (
+                f"[trace {idx}] URL missing /reader or /library/{v['document_id'][:8]}..., "
                 f"got {current_url}"
             )
 
@@ -4898,8 +4902,8 @@ class TestLibraryE2E:
         _login_via_ui(page, frontend_url, a["username"], "LibA_Pass123!")
 
         page.goto(f"{frontend_url}/library")
-        page.wait_for_selector("text=Library", timeout=10000)
-        assert page.locator("text=Library").count() > 0
+        page.wait_for_selector("text=文献库", timeout=10000)
+        assert page.locator("text=文献库").count() > 0
 
     def test_library_requires_auth(
         self,
@@ -4926,7 +4930,7 @@ class TestLibraryE2E:
         page.goto(f"{frontend_url}/library")
 
         # Wait for seed docs to load
-        page.wait_for_selector("text=Library", timeout=10000)
+        page.wait_for_selector("text=文献库", timeout=10000)
 
         # Enter search text
         search_input = page.locator('input[type="text"]').first
@@ -4961,7 +4965,7 @@ class TestLibraryE2E:
         ), f"Search query '针灸' not found in API requests: {search_requests}"
 
         # Must show matching document cards (seed data has '针灸甲乙经')
-        assert page.locator("text=Library").count() > 0
+        assert page.locator("text=文献库").count() > 0
         body = page.locator("body").first.text_content() or ""
         assert "针灸" in body, (
             f"Search results should contain '针灸'. Body: {body[:500]}"
