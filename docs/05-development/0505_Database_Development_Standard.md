@@ -349,7 +349,10 @@ Audit：
 > 3. 单向可选（0..1）Metadata——`candidate_extractions` 不携带第七章的 `metadata_id` 公共字段，
 >    改由子表 `candidate_extraction_metadata.candidate_id`（真实 FK、UNIQUE、ON DELETE CASCADE）
 >    指向 Candidate；唯一外键仅保证「每条元数据至多属于一个候选」（0..1，可选），候选可在审核
->    补录元数据前暂不持有元数据。
+>    补录元数据前暂不持有元数据；
+> 4. 主键列类型为 `String(36)` 而非第六章的原生 UUID 列——为跨 SQLite/PostgreSQL 可移植性
+>    沿用的代码库统一约定；`String(36)` 内存储的**值**均为 UUIDv7（由 `app.db.base.uuid7()` 生成，
+>    满足第六章「统一 UUID v7」的值语义）。原生 UUID 列的全库迁移列为独立治理项。
 >
 > 该例外不扩展至其他新增业务表；其余新增表仍须遵循第七章公共字段与第八章单数命名规范。
 

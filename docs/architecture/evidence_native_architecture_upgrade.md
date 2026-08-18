@@ -69,8 +69,8 @@ class CandidateExtraction(BaseModel):
     session_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("research_sessions.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    created_by_user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+    created_by: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )
     chunk_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("document_chunks.id", ondelete="RESTRICT"), nullable=False, index=True
