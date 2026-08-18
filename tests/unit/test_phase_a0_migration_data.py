@@ -296,3 +296,125 @@ def test_postgresql_disabled_trigger_fails_startup(monkeypatch) -> None:
         asyncio.run(_run_startup())
     finally:
         asyncio.run(engine.dispose())
+
+
+def _insert_fk_chain(cur) -> None:
+    """Insert the minimal FK chain required by candidate_extractions."""
+    cur.execute(
+        "INSERT INTO users (id, username, email, hashed_password) "
+        "VALUES ('mig-user', 'mig-user', 'mig@test.com', 'x')"
+    )
+    cur.execute("INSERT INTO books (id, title) VALUES ('mig-book', 't')")
+    cur.execute(
+        "INSERT INTO versions (id, book_id, version_name) "
+        "VALUES ('mig-version', 'mig-book', 'v1')"
+    )
+    cur.execute(
+        "INSERT INTO chapters (id, book_id, title, \"order\") "
+        "VALUES ('mig-chapter', 'mig-book', 'c1', 0)"
+    )
+    cur.execute(
+        "INSERT INTO passages (id, chapter_id, version_id, content_text, \"order\") "
+        "VALUES ('mig-passage', 'mig-chapter', 'mig-version', 't', 0)"
+    )
+    cur.execute(
+        "INSERT INTO documents (id, title, language) VALUES ('mig-doc', 't', 'zh')"
+    )
+    cur.execute(
+        "INSERT INTO document_chunks (id, document_id, passage_id, chunk_index, content) "
+        "VALUES ('mig-chunk', 'mig-doc', 'mig-passage', 0, 'hello')"
+    )
+    cur.execute(
+        "INSERT INTO research_sessions (id, user_id, title) "
+        "VALUES ('mig-session', 'mig-user', 't')"
+    )
+
+
+def _illegal_candidate_insert(
+    cand_id: str,
+    ai_model: str,
+    ai_version: str,
+    prompt_version: str,
+    processing_time: float,
+) -> str:
+    sha = "a" * 64
+    return (
+        "INSERT INTO candidate_extractions "
+        "(id, session_id, created_by, chunk_id, version_id, "
+        "expected_chunk_sha256, expected_nfc_sha256, unicode_normalization, "
+        "start_char, end_char, exact_text, input_snapshot, extracted_payload, "
+        "extractor_name, ai_model, ai_version, prompt_version, processing_time, "
+        "confidence) VALUES "
+        "('{cand_id}', 'mig-session', 'mig-user', 'mig-chunk', 'mig-version', "
+        "'{sha}', '{sha}', 'NFC', 0, 5, 'hello', '{{}}', '{{}}', 'test', "
+        "'{ai_model}', '{ai_version}', '{prompt_version}', {processing_time}, 0.9)"
+    ).format(
+        cand_id=cand_id,
+        sha=sha,
+        ai_model=ai_model,
+        ai_version=ai_version,
+        prompt_version=prompt_version,
+        processing_time=processing_time,
+    )
+
+
+def test_sqlite_illegal_ai_metadata_rejected(tmp_path) -> None:
+    """The migrated SQLite schema must reject unknown/blank/negative AI metadata."""
+    import sqlite3
+
+    db_path = str(tmp_path / "illegal.db")
+    db_url = f"sqlite:///{db_path}"
+
+    r = _run_alembic(db_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr
+
+    conn = sqlite3.connect(db_path)
+    try:
+        _insert_fk_chain(conn.cursor())
+        conn.commit()
+        cur = conn.cursor()
+        cases = [
+            ("cand-unknown", "unknown", "1.0.0", "1.0.0", 0.5),
+            ("cand-blank", "   ", "1.0.0", "1.0.0", 0.5),
+            ("cand-neg", "real-model", "1.0.0", "1.0.0", -1.0),
+        ]
+        for cand_id, model, ver, pver, pt in cases:
+            with pytest.raises(sqlite3.IntegrityError):
+                cur.execute(_illegal_candidate_insert(cand_id, model, ver, pver, pt))
+    finally:
+        conn.close()
+
+
+def test_postgresql_illegal_ai_metadata_rejected() -> None:
+    """The migrated PostgreSQL schema must reject unknown/blank/negative AI metadata."""
+    import psycopg2
+
+    sync_url, async_url = _pg_urls()
+
+    try:
+        conn = psycopg2.connect(sync_url)
+    except psycopg2.OperationalError as exc:
+        pytest.skip(f"PostgreSQL unavailable: {exc}")
+
+    conn.autocommit = True
+    with conn.cursor() as cur:
+        cur.execute("DROP SCHEMA public CASCADE")
+        cur.execute("CREATE SCHEMA public")
+    conn.close()
+
+    r = _run_alembic(async_url, "upgrade", "head")
+    assert r.returncode == 0, r.stderr
+
+    with psycopg2.connect(sync_url) as conn:
+        _insert_fk_chain(conn.cursor())
+        conn.commit()
+        cur = conn.cursor()
+        cases = [
+            ("cand-unknown", "unknown", "1.0.0", "1.0.0", 0.5),
+            ("cand-blank", "   ", "1.0.0", "1.0.0", 0.5),
+            ("cand-neg", "real-model", "1.0.0", "1.0.0", -1.0),
+        ]
+        for cand_id, model, ver, pver, pt in cases:
+            with pytest.raises(psycopg2.errors.CheckViolation):
+                cur.execute(_illegal_candidate_insert(cand_id, model, ver, pver, pt))
+            conn.rollback()  # reset the aborted transaction after each violation
