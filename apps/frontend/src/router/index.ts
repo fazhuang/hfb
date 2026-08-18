@@ -269,6 +269,16 @@ const router = createRouter({
           component: () => import('@/views/classical-versions/ClassicalVersionListView.vue'),
           meta: { requiresAuth: true },
         },
+        // Candidate extraction review queue (Phase A0) — session-owner self-review.
+        // RBAC is enforced server-side (extraction.read / extraction.approve);
+        // any authenticated user may reach the page, but only the session owner
+        // can approve/reject a given candidate.
+        {
+          path: 'candidate-review',
+          name: 'candidate-review',
+          component: () => import('@/views/admin/CandidateReviewQueue.vue'),
+          meta: { requiresAuth: true, title: '候选审核队列' },
+        },
         // Admin: literature review queue
         {
           path: 'admin/literature-review',
