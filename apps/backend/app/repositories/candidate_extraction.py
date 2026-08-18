@@ -6,7 +6,7 @@ layer stays free of direct ``db.execute`` / ``db.add`` / ``db.flush`` calls.
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, func, select
 
 from app.models.academic_evidence import Citation, Evidence
 from app.models.candidate_audit_log import CandidateAuditLog
@@ -80,6 +80,38 @@ class CandidateExtractionRepository(BaseRepository[CandidateExtraction]):
         audit = CandidateAuditLog(**kwargs)
         self.session.add(audit)
         return audit
+
+    async def list_candidates(
+        self,
+        page: int = 1,
+        limit: int = 20,
+        status: CandidateStatus | None = None,
+        session_id: str | None = None,
+    ) -> tuple[list[CandidateExtraction], int]:
+        """Paginated candidate list, optionally filtered by status / session."""
+        conditions: list[ColumnElement[bool]] = [
+            CandidateExtraction.is_deleted.is_(False)
+        ]
+        if status is not None:
+            conditions.append(CandidateExtraction.status == status)
+        if session_id is not None:
+            conditions.append(CandidateExtraction.session_id == session_id)
+
+        base_stmt = (
+            select(CandidateExtraction)
+            .where(*conditions)
+            .order_by(CandidateExtraction.created_at.desc())
+            .offset((page - 1) * limit)
+            .limit(limit)
+        )
+        count_stmt = (
+            select(func.count())
+            .select_from(CandidateExtraction)
+            .where(*conditions)
+        )
+        items = list((await self.session.execute(base_stmt)).scalars().all())
+        total = (await self.session.execute(count_stmt)).scalar_one()
+        return items, total
 
     async def mark_drift(
         self, candidate: CandidateExtraction, operator_id: str, reason: str

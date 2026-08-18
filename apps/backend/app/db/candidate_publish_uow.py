@@ -7,17 +7,12 @@ candidate approval flow. The service facade never touches ``AsyncSession`` or
 
 from __future__ import annotations
 
-import hashlib
-import unicodedata
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Callable
-
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-
-from pydantic import BaseModel
 
 from app.core.exceptions import DomainException, NotFoundException
-from app.models.academic_evidence import Evidence, EvidenceLevel
+from app.db.grounding import is_grounding_valid
+from app.models.academic_evidence import Evidence
 from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.document_chunk import DocumentChunk
 from app.models.user import User
@@ -25,7 +20,9 @@ from app.repositories.candidate_extraction import CandidateExtractionRepository
 from app.repositories.source_ref import SourceRefRepository
 from app.repositories.user import UserRepository
 from app.repositories.version import VersionRepository
+from app.schemas.candidate import ExtractedEvidencePayload
 from app.services.citation_persistence import CitationPersistenceService
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 class GroundingDriftException(DomainException):
@@ -39,15 +36,6 @@ class GroundingDriftException(DomainException):
         super().__init__(
             message=message, error_code="GROUNDING_DRIFT", status_code=409
         )
-
-
-class ProposedEvidencePayload(BaseModel):
-    """The extracted payload schema carried in ``CandidateExtraction.extracted_payload``."""
-
-    description: str
-    evidence_level: EvidenceLevel
-    quote_text: str | None = None
-    note: str | None = None
 
 
 async def _verify_ownership_chain(
@@ -123,34 +111,32 @@ async def _publish_in_transaction(
                 "Version mismatch between Candidate and Passage"
             )
 
-    if not pending_drift_exception and candidate.page_image_hash:
-        if (
+    if (
+        not pending_drift_exception
+        and candidate.page_image_hash
+        and (
             chunk.page_image_hash != candidate.page_image_hash
             or chunk.page_image_hash_alg != candidate.page_image_hash_alg
-        ):
-            await repo.mark_drift(
-                candidate, reviewer.id, "Page image hash/alg mismatch"
-            )
-            pending_drift_exception = GroundingDriftException(
-                "Page image hash/alg mismatch"
-            )
-
-    if not pending_drift_exception:
-        real_chunk_sha256 = hashlib.sha256(chunk.content.encode("utf-8")).hexdigest()
-        normalized_chunk = unicodedata.normalize("NFC", chunk.content)
-        normalized_exact = unicodedata.normalize("NFC", candidate.exact_text)
-        real_nfc_sha256 = hashlib.sha256(normalized_chunk.encode("utf-8")).hexdigest()
-
-        is_grounding_valid = (
-            real_chunk_sha256 == candidate.expected_chunk_sha256
-            and real_nfc_sha256 == candidate.expected_nfc_sha256
-            and 0 <= candidate.start_char < candidate.end_char <= len(normalized_chunk)
-            and (candidate.end_char - candidate.start_char) == len(normalized_exact)
-            and normalized_chunk[candidate.start_char : candidate.end_char]
-            == normalized_exact
+        )
+    ):
+        await repo.mark_drift(
+            candidate, reviewer.id, "Page image hash/alg mismatch"
+        )
+        pending_drift_exception = GroundingDriftException(
+            "Page image hash/alg mismatch"
         )
 
-        if not is_grounding_valid:
+    if not pending_drift_exception:
+        grounding_ok = is_grounding_valid(
+            chunk_content=chunk.content,
+            expected_chunk_sha256=candidate.expected_chunk_sha256,
+            expected_nfc_sha256=candidate.expected_nfc_sha256,
+            start_char=candidate.start_char,
+            end_char=candidate.end_char,
+            exact_text=candidate.exact_text,
+        )
+
+        if not grounding_ok:
             await repo.mark_drift(candidate, reviewer.id, "Text/Hash drift detected")
             pending_drift_exception = GroundingDriftException(
                 "Text/Hash drift detected"
@@ -167,7 +153,7 @@ async def _publish_in_transaction(
             version_id=candidate.version_id,
         )
 
-        payload = ProposedEvidencePayload(**candidate.extracted_payload)
+        payload = ExtractedEvidencePayload(**candidate.extracted_payload)
         evidence = await repo.create_evidence(
             description=payload.description,
             evidence_level=payload.evidence_level,
@@ -249,3 +235,40 @@ class CandidatePublishUnitOfWork:
             raise pending_drift
         assert evidence is not None
         return evidence
+
+    async def reject(
+        self, candidate_id: str, reviewer_id: str, session_id: str, reason: str
+    ) -> None:
+        """Reject a PENDING candidate (session-owner self-review only)."""
+        async with self._session_factory() as session:
+            if session.in_transaction():
+                raise RuntimeError(
+                    "Candidate reject requires a fresh session with no active "
+                    "transaction."
+                )
+            repo = CandidateExtractionRepository(session)
+
+            async with session.begin():
+                candidate = await repo.get_for_update(candidate_id)
+                if not candidate or candidate.status != CandidateStatus.PENDING:
+                    raise NotFoundException("CandidateExtraction", candidate_id)
+
+                chunk = await _verify_ownership_chain(
+                    repo, candidate, session_id, reviewer_id
+                )
+                if chunk is None:
+                    raise NotFoundException("CandidateExtraction", candidate_id)
+
+                candidate.status = CandidateStatus.REJECTED
+                candidate.reviewed_by_user_id = reviewer_id
+                candidate.reviewed_at = datetime.now(UTC)
+                candidate.rejection_reason = reason
+
+                await repo.create_audit_log(
+                    candidate_id=candidate.id,
+                    action="rejected",
+                    operator_id=reviewer_id,
+                    input_snapshot=candidate.input_snapshot,
+                    pre_payload=candidate.extracted_payload,
+                    post_payload={"reason": reason},
+                )

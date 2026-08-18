@@ -40,12 +40,15 @@ jobs:
             apps/backend/app/services/candidate_extraction_service.py \
             apps/backend/app/services/citation_persistence.py \
             apps/backend/app/db/candidate_publish_uow.py \
+            apps/backend/app/db/candidate_create_uow.py \
+            apps/backend/app/db/grounding.py \
             apps/backend/app/db/database.py \
             apps/backend/app/db/audit_triggers.py \
             apps/backend/app/db/base.py \
             apps/backend/app/models/candidate_extraction.py \
             apps/backend/app/models/candidate_audit_log.py \
             apps/backend/app/models/metadata.py \
+            apps/backend/app/schemas/candidate.py \
             apps/backend/app/repositories/candidate_extraction.py \
             apps/backend/app/repositories/source_ref.py \
             apps/backend/app/repositories/version.py \
