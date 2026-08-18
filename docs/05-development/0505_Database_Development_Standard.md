@@ -346,9 +346,10 @@ Audit：
 >    append-only 不可变语义（禁止 UPDATE/DELETE，仅允许 `candidate_id` 置 NULL 的解绑迁移）；
 > 2. 复数表名 `candidate_audit_logs` / `candidate_extractions`——与现有代码库实际约定一致
 >    （persons/books/documents/evidences/citations 等均复数），并作为该管线的显式命名保留；
-> 3. 单向 1:1 Metadata——`candidate_extractions` 不携带第七章的 `metadata_id` 公共字段，
+> 3. 单向可选（0..1）Metadata——`candidate_extractions` 不携带第七章的 `metadata_id` 公共字段，
 >    改由子表 `candidate_extraction_metadata.candidate_id`（真实 FK、UNIQUE、ON DELETE CASCADE）
->    指向 Candidate，以数据库外键唯一约束直接证明 1:1 归属。
+>    指向 Candidate；唯一外键仅保证「每条元数据至多属于一个候选」（0..1，可选），候选可在审核
+>    补录元数据前暂不持有元数据。
 >
 > 该例外不扩展至其他新增业务表；其余新增表仍须遵循第七章公共字段与第八章单数命名规范。
 
