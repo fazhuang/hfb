@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -24,7 +24,7 @@ class ApproveCandidateRequest(BaseModel):
 
 @router.post(
     "/extractions/{candidate_id}/approve",
-    response_model=dict,
+    response_model=dict[str, Any],
     dependencies=[Depends(require_permission("extraction", "approve"))],
 )
 async def approve_candidate(
@@ -34,7 +34,7 @@ async def approve_candidate(
     service: Annotated[
         CandidateExtractionService, Depends(get_candidate_extraction_service)
     ],
-) -> dict:
+) -> dict[str, Any]:
     """Approve a pending candidate and atomically publish it as Evidence + Citation.
 
     RBAC runs via ``require_permission``; session/transaction management lives in

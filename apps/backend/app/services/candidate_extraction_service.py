@@ -22,12 +22,13 @@ from __future__ import annotations
 import hashlib
 import unicodedata
 from datetime import UTC, datetime
-from typing import Callable
+from typing import Annotated, Callable
 
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.database import get_session_factory
 from app.models.academic_evidence import Evidence, EvidenceLevel
 from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.document_chunk import DocumentChunk
@@ -225,15 +226,12 @@ class CandidatePublishUnitOfWork:
     async def publish(
         self, candidate_id: str, reviewer_id: str, session_id: str
     ) -> Evidence:
-        # Validate the reviewer via a short-lived session (repository).
-        async with self._session_factory() as review_session:
-            reviewer = await UserRepository(review_session).get_by_id(reviewer_id)
-        if reviewer is None:
-            raise HTTPException(status_code=401, detail="User not found")
-
         pending_drift: GroundingDriftException | None = None
         evidence: Evidence | None = None
 
+        # Single session + single transaction: the reviewer existence check runs
+        # INSIDE the same transaction as the candidate lock + publish, so there
+        # is no TOCTOU between reviewer validation and the commit.
         async with self._session_factory() as session:
             if session.in_transaction():
                 raise RuntimeError(
@@ -242,6 +240,11 @@ class CandidatePublishUnitOfWork:
                 )
             repo = CandidateExtractionRepository(session)
             async with session.begin():
+                reviewer = await UserRepository(session).get_by_id(reviewer_id)
+                if reviewer is None:
+                    raise HTTPException(
+                        status_code=401, detail="User not found"
+                    )
                 evidence, pending_drift = await _publish_in_transaction(
                     repo, session, candidate_id, reviewer, session_id
                 )
@@ -264,8 +267,10 @@ class CandidateExtractionService:
         return await self._uow.publish(candidate_id, reviewer_id, session_id)
 
 
-def get_candidate_extraction_service() -> CandidateExtractionService:
+def get_candidate_extraction_service(
+    session_factory: Annotated[
+        async_sessionmaker[AsyncSession], Depends(get_session_factory)
+    ],
+) -> CandidateExtractionService:
     """FastAPI dependency: provide the candidate extraction service."""
-    from app.db.database import async_session_factory
-
-    return CandidateExtractionService(CandidatePublishUnitOfWork(async_session_factory))
+    return CandidateExtractionService(CandidatePublishUnitOfWork(session_factory))

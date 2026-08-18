@@ -34,7 +34,7 @@ def upgrade() -> None:
         sa.text(
             "SELECT count(*) FROM candidate_extractions "
             "WHERE ai_model IS NULL OR length(trim(ai_model)) = 0 "
-            "OR lower(ai_model) = 'unknown' "
+            "OR lower(trim(ai_model)) = 'unknown' "
             "OR ai_version IS NULL OR length(trim(ai_version)) = 0 "
             "OR prompt_version IS NULL OR length(trim(prompt_version)) = 0 "
             "OR processing_time IS NULL"

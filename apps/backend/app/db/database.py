@@ -96,9 +96,13 @@ async def init_database() -> None:
             if table_exists:
                 result = await conn.execute(
                     text(
-                        "SELECT tgname FROM pg_trigger "
-                        "WHERE tgname='trg_audit_log_immutable' "
-                        "AND NOT tgisinternal"
+                        "SELECT t.tgname FROM pg_trigger t "
+                        "JOIN pg_class c ON t.tgrelid = c.oid "
+                        "JOIN pg_proc p ON t.tgfoid = p.oid "
+                        "WHERE t.tgname='trg_audit_log_immutable' "
+                        "AND c.relname='candidate_audit_logs' "
+                        "AND p.proname='block_audit_log_changes' "
+                        "AND NOT t.tgisinternal"
                     )
                 )
                 installed = {row[0] for row in result}
@@ -134,6 +138,11 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
         except SQLAlchemyError:
             await session.rollback()
             raise
+
+
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    """Dependency: provide the session factory (for explicit DI)."""
+    return async_session_factory
 
 
 async def check_database_health() -> dict[str, Any]:
