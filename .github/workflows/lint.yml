@@ -38,6 +38,7 @@ jobs:
           mypy --strict \
             apps/backend/app/api/v1/extractions.py \
             apps/backend/app/services/candidate_extraction_service.py \
+            apps/backend/app/services/candidate_generation.py \
             apps/backend/app/services/citation_persistence.py \
             apps/backend/app/db/candidate_publish_uow.py \
             apps/backend/app/db/candidate_create_uow.py \

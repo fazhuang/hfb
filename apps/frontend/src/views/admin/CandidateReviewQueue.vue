@@ -15,6 +15,10 @@
         <option value="rejected">已驳回</option>
         <option value="drift_invalid">已失效(漂移)</option>
       </select>
+      <label class="crq-mine">
+        <input v-model="mineOnly" type="checkbox" @change="fetchPage(1)" />
+        只看我的候选
+      </label>
     </div>
 
     <!-- 加载态 -->
@@ -187,6 +191,7 @@ const error = ref<string | null>(null);
 const page = ref(1);
 const limit = ref(20);
 const statusFilter = ref('pending');
+const mineOnly = ref(false);
 const busyId = ref<string | null>(null);
 const rejectingId = ref<string | null>(null);
 const rejectReason = ref('');
@@ -220,7 +225,12 @@ async function fetchPage(p: number): Promise<void> {
   error.value = null;
   try {
     const { data } = await api.get('/api/v1/extractions', {
-      params: { page: p, limit: limit.value, status: statusFilter.value },
+      params: {
+        page: p,
+        limit: limit.value,
+        status: statusFilter.value,
+        mine: mineOnly.value || undefined,
+      },
     });
     const body = data ?? {};
     items.value = body.items ?? [];
@@ -315,6 +325,19 @@ onMounted(() => fetchPage(1));
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
+}
+
+.crq-mine {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.crq-mine input {
+  accent-color: var(--color-accent);
 }
 
 .crq-loading,

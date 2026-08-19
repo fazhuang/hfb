@@ -24,6 +24,10 @@ from app.services.candidate_extraction_service import (
     CandidateExtractionService,
     get_candidate_extraction_service,
 )
+from app.services.candidate_generation import (
+    CandidateGenerationService,
+    get_candidate_generation_service,
+)
 
 router = APIRouter(tags=["Candidate Extractions"])
 
@@ -52,6 +56,50 @@ class CreateCandidateResponse(BaseModel):
     timestamp: str
     data: CreateCandidateData
     message: str
+
+
+class GenerateCandidateRequest(BaseModel):
+    session_id: str = Field(..., min_length=1, max_length=36)
+    chunk_id: str = Field(..., min_length=1, max_length=36)
+    version_id: str = Field(..., min_length=1, max_length=36)
+
+
+@router.post(
+    "/extractions/generate",
+    response_model=CreateCandidateResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission("extraction", "create"))],
+)
+async def generate_candidate(
+    body: GenerateCandidateRequest,
+    user_id: Annotated[str, Depends(get_current_user)],
+    generation: Annotated[
+        CandidateGenerationService, Depends(get_candidate_generation_service)
+    ],
+) -> CreateCandidateResponse:
+    """Extract one evidence proposition from a chunk and buffer it as a candidate.
+
+    AI (or rule fallback) produces the payload; the service locates the exact
+    quote span and computes grounding anchors, then buffers through the create
+    UoW. This is the automated entry point feeding the review queue.
+    """
+    try:
+        candidate = await generation.generate(
+            body.session_id, body.chunk_id, body.version_id, user_id
+        )
+    except NotFoundException:
+        raise
+    except ValidationException:
+        raise
+    except RuntimeError as exc:
+        raise ValidationException(str(exc))
+
+    return CreateCandidateResponse(
+        success=True,
+        timestamp=datetime.now(UTC).isoformat(),
+        data=CreateCandidateData(candidate_id=candidate.id),
+        message="Candidate generated and buffered for review",
+    )
 
 
 @router.post(
@@ -96,15 +144,25 @@ async def create_candidate(
 )
 async def list_candidates(
     session: Annotated[AsyncSession, Depends(get_session)],
+    user_id: Annotated[str, Depends(get_current_user)],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     status: Annotated[CandidateStatus | None, Query()] = None,
     session_id: Annotated[str | None, Query(max_length=36)] = None,
+    mine: Annotated[bool, Query()] = False,
 ) -> CandidateListResponse:
-    """Paginated candidate list for the review queue."""
+    """Paginated candidate list for the review queue.
+
+    ``mine=true`` restricts to candidates whose research session is owned by
+    the caller (session-owner self-review view).
+    """
     repo = CandidateExtractionRepository(session)
     items, total = await repo.list_candidates(
-        page=page, limit=limit, status=status, session_id=session_id
+        page=page,
+        limit=limit,
+        status=status,
+        session_id=session_id,
+        owner_id=user_id if mine else None,
     )
     return CandidateListResponse(
         items=[CandidateResponse.model_validate(i) for i in items],

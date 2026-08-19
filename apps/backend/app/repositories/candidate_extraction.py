@@ -87,8 +87,9 @@ class CandidateExtractionRepository(BaseRepository[CandidateExtraction]):
         limit: int = 20,
         status: CandidateStatus | None = None,
         session_id: str | None = None,
+        owner_id: str | None = None,
     ) -> tuple[list[CandidateExtraction], int]:
-        """Paginated candidate list, optionally filtered by status / session."""
+        """Paginated candidate list, optionally filtered by status / session / owner."""
         conditions: list[ColumnElement[bool]] = [
             CandidateExtraction.is_deleted.is_(False)
         ]
@@ -96,6 +97,11 @@ class CandidateExtractionRepository(BaseRepository[CandidateExtraction]):
             conditions.append(CandidateExtraction.status == status)
         if session_id is not None:
             conditions.append(CandidateExtraction.session_id == session_id)
+        if owner_id is not None:
+            owned_sessions = select(ResearchSession.id).where(
+                ResearchSession.user_id == owner_id
+            )
+            conditions.append(CandidateExtraction.session_id.in_(owned_sessions))
 
         base_stmt = (
             select(CandidateExtraction)
