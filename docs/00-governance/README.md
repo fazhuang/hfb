@@ -35,6 +35,7 @@ related_documents:
 | 0003 | [Governance](0003-governance.md)                       | HFB-GOV-0003 | 二级     | 决策机制、角色权限、变更流程、MVP/上线控制            |
 | 0004 | [Documentation Rules](0004-documentation-rules.md)     | HFB-GOV-0004 | 三级     | 所有文档的格式、YAML、编号、引用强制规范              |
 | 0005 | [AI Execution Protocol](0005_AI_Execution_Protocol.md) | HFB-GOV-0005 | 二级     | 所有 AI 的最高执行规范 — 职责边界、启动流程、范围控制 |
+| 0006 | [Research Lead Appointment Resolution Template](0006_Research_Lead_Appointment_Resolution_Template.md) | HFB-GOV-0006 | 模板     | Research Lead 任命决议模板 — 解冻生产语料的组织依据 |
 
 ### 效力层级
 
