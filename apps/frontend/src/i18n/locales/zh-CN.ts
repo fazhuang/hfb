@@ -25,6 +25,7 @@ export default {
     adminIngestion: '采集任务',
     adminSourcePolicy: '来源白名单',
     candidateReview: '候选审核',
+    sourceAdmission: '来源准入',
   },
   common: {
     loading: '加载中...',

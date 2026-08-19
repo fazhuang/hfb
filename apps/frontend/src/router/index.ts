@@ -279,6 +279,13 @@ const router = createRouter({
           component: () => import('@/views/admin/CandidateReviewQueue.vue'),
           meta: { requiresAuth: true, title: '候选审核队列' },
         },
+        // Source admission checklist (HFB-DAT-0306) — Research Lead + Steering
+        {
+          path: 'source-admission',
+          name: 'source-admission',
+          component: () => import('@/views/admin/SourceAdmissionPage.vue'),
+          meta: { requiresAuth: true, title: '来源准入清单' },
+        },
         // Admin: literature review queue
         {
           path: 'admin/literature-review',

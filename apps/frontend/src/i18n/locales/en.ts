@@ -23,6 +23,7 @@ export default {
     adminIngestion: 'Ingestion',
     adminSourcePolicy: 'Source Policy',
     candidateReview: 'Candidate Review',
+    sourceAdmission: 'Source Admission',
     startResearch: 'Start Research',
     currentResearch: 'Current Research',
   },

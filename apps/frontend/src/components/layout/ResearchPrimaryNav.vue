@@ -116,6 +116,12 @@ const adminNavItems = computed<NavItem[]>(() => {
       label: t('nav.administration'),
       active: section.value === 'admin',
     });
+    items.push({
+      path: '/source-admission',
+      icon: 'scroll-text',
+      label: t('nav.sourceAdmission'),
+      active: route.path === '/source-admission',
+    });
   }
   return items;
 });
