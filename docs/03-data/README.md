@@ -31,6 +31,7 @@ related_documents:
 | 0304 | [Entity](0304_Entity_Specification.md)                                                           | HFB-DAT-0304 | Approved |
 | 0305 | [Relation](0305_Relation_Specification.md)                                                       | HFB-DAT-0305 | Approved |
 | 0306 | [Manual Research Source Admission Checklist](0306_Manual_Research_Source_Admission_Checklist.md) | HFB-DAT-0306 | Draft    |
+| 0307 | [Production Corpus Unblock Runbook](0307_Production_Corpus_Unblock_Runbook.md)                   | HFB-DAT-0307 | Draft    |
 
 ## 关联目录
 
