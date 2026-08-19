@@ -28,6 +28,7 @@ from app.models.candidate_extraction import CandidateExtraction, CandidateStatus
 from app.models.user import Permission, Role
 from app.models.user import role_permission as rp_table
 from app.models.user import user_role as ur_table
+from app.repositories.candidate_extraction import CandidateExtractionRepository
 from app.schemas.candidate import CreateCandidateRequest
 from app.services.auth_service import create_access_token
 
@@ -406,3 +407,26 @@ class TestCandidateReject:
             await CandidatePublishUnitOfWork(factory).reject(
                 candidate.id, OWNER_ID, "other-session", "nope"
             )
+
+
+class TestPassageFilter:
+    @pytest.mark.asyncio
+    async def test_list_filters_by_passage_id(self, db_session) -> None:
+        from tests.unit.test_phase_a0_candidate_pipeline import make_candidate
+
+        await build_world(db_session)
+        candidate = await make_candidate(db_session, creator_id=OWNER_ID)
+        await db_session.commit()
+
+        repo = CandidateExtractionRepository(db_session)
+        items, total = await repo.list_candidates(
+            page=1, limit=20, passage_id="pas-a0"
+        )
+        assert total == 1
+        assert items[0].id == candidate.id
+
+        # Wrong passage → empty.
+        _, total_other = await repo.list_candidates(
+            page=1, limit=20, passage_id="pas-other"
+        )
+        assert total_other == 0

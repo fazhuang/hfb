@@ -88,8 +88,9 @@ class CandidateExtractionRepository(BaseRepository[CandidateExtraction]):
         status: CandidateStatus | None = None,
         session_id: str | None = None,
         owner_id: str | None = None,
+        passage_id: str | None = None,
     ) -> tuple[list[CandidateExtraction], int]:
-        """Paginated candidate list, optionally filtered by status / session / owner."""
+        """Paginated candidate list, optionally filtered by status / session / owner / passage."""
         conditions: list[ColumnElement[bool]] = [
             CandidateExtraction.is_deleted.is_(False)
         ]
@@ -102,6 +103,11 @@ class CandidateExtractionRepository(BaseRepository[CandidateExtraction]):
                 ResearchSession.user_id == owner_id
             )
             conditions.append(CandidateExtraction.session_id.in_(owned_sessions))
+        if passage_id is not None:
+            chunks_in_passage = select(DocumentChunk.id).where(
+                DocumentChunk.passage_id == passage_id
+            )
+            conditions.append(CandidateExtraction.chunk_id.in_(chunks_in_passage))
 
         base_stmt = (
             select(CandidateExtraction)

@@ -149,12 +149,14 @@ async def list_candidates(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     status: Annotated[CandidateStatus | None, Query()] = None,
     session_id: Annotated[str | None, Query(max_length=36)] = None,
+    passage_id: Annotated[str | None, Query(max_length=36)] = None,
     mine: Annotated[bool, Query()] = False,
 ) -> CandidateListResponse:
     """Paginated candidate list for the review queue.
 
     ``mine=true`` restricts to candidates whose research session is owned by
-    the caller (session-owner self-review view).
+    the caller (session-owner self-review view). ``passage_id`` restricts to
+    candidates grounded on a specific passage (version-comparison view).
     """
     repo = CandidateExtractionRepository(session)
     items, total = await repo.list_candidates(
@@ -163,6 +165,7 @@ async def list_candidates(
         status=status,
         session_id=session_id,
         owner_id=user_id if mine else None,
+        passage_id=passage_id,
     )
     return CandidateListResponse(
         items=[CandidateResponse.model_validate(i) for i in items],
