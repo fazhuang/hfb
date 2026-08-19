@@ -303,6 +303,7 @@ const researchNavItems = computed<NavItem[]>(() => [
   { path: '/library', icon: 'book-open', labelKey: 'nav.library' },
   { path: '/knowledge', icon: 'network', labelKey: 'nav.knowledge' },
   { path: '/reports', icon: 'bar-chart-3', labelKey: 'nav.reports' },
+  { path: '/candidate-review', icon: 'check-check', labelKey: 'nav.candidateReview' },
 ]);
 
 /** Public Classical Catalogue Resources */

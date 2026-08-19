@@ -99,6 +99,12 @@ const researchNavItems = computed<NavItem[]>(() => [
     label: t('nav.reports'),
     active: section.value === 'reports',
   },
+  {
+    path: '/candidate-review',
+    icon: 'check-check',
+    label: t('nav.candidateReview'),
+    active: route.path === '/candidate-review',
+  },
 ]);
 
 const adminNavItems = computed<NavItem[]>(() => {

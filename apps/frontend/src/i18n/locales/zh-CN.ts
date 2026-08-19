@@ -24,6 +24,7 @@ export default {
     adminReview: '全文审核',
     adminIngestion: '采集任务',
     adminSourcePolicy: '来源白名单',
+    candidateReview: '候选审核',
   },
   common: {
     loading: '加载中...',

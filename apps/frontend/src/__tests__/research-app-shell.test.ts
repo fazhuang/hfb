@@ -148,8 +148,8 @@ describe('ResearchPrimaryNav', () => {
       props: { collapsed: true },
     });
 
-    expect(wrapper.findAll('.rpn-link-label').length).toBe(5);
-    expect(wrapper.findAll('.rpn-link-icon').length).toBe(5);
+    expect(wrapper.findAll('.rpn-link-label').length).toBe(6);
+    expect(wrapper.findAll('.rpn-link-icon').length).toBe(6);
   });
 });
 
