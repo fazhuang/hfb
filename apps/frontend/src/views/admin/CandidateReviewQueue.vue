@@ -19,6 +19,9 @@
         <input v-model="mineOnly" type="checkbox" @change="fetchPage(1)" />
         只看我的候选
       </label>
+      <span v-if="passageId" class="crq-passage-hint">
+        已按经文段落过滤
+      </span>
     </div>
 
     <!-- 加载态 -->
@@ -136,7 +139,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import api, { getErrorMessage } from '@/api/client';
 
 interface CandidatePayload {
@@ -192,6 +196,11 @@ const page = ref(1);
 const limit = ref(20);
 const statusFilter = ref('pending');
 const mineOnly = ref(false);
+const route = useRoute();
+const passageId = computed(() => {
+  const raw = route.query.passage_id;
+  return typeof raw === 'string' && raw ? raw : null;
+});
 const busyId = ref<string | null>(null);
 const rejectingId = ref<string | null>(null);
 const rejectReason = ref('');
@@ -230,6 +239,7 @@ async function fetchPage(p: number): Promise<void> {
         limit: limit.value,
         status: statusFilter.value,
         mine: mineOnly.value || undefined,
+        passage_id: passageId.value || undefined,
       },
     });
     const body = data ?? {};
@@ -284,6 +294,10 @@ async function reject(c: CandidateItem): Promise<void> {
 }
 
 onMounted(() => fetchPage(1));
+
+// When arriving from the version-comparison flow with a passage_id query,
+// re-fetch if the passage filter changes.
+watch(passageId, () => fetchPage(1));
 </script>
 
 <style scoped>
@@ -338,6 +352,14 @@ onMounted(() => fetchPage(1));
 
 .crq-mine input {
   accent-color: var(--color-accent);
+}
+
+.crq-passage-hint {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
 }
 
 .crq-loading,
