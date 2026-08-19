@@ -41,6 +41,10 @@ from app.models.paper import Paper
 from app.models.passage import Passage
 from app.models.person import Person
 from app.models.source_policy import SourcePolicy
+from app.models.source_admission import (
+    SourceAdmissionEntry,
+    SourceAdmissionStatus,
+)
 from app.models.tcm_entity import TCMEntity  # noqa: F401 — Phase 3 TCM ontology
 from app.models.tei import (  # noqa: F401 — Phase 4 TEI
     TextSentence,
@@ -91,6 +95,8 @@ __all__ = [
     "Sentence",
     "SourcePolicy",
     "SourceRef",
+    "SourceAdmissionEntry",
+    "SourceAdmissionStatus",
     "Token",
     "User",
     "Variant",

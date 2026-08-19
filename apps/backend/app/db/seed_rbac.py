@@ -42,6 +42,7 @@ _RESOURCES = [
     "search",
     "ai",
     "dashboard",
+    "source_admission",
 ]
 
 _ACTIONS = [
@@ -155,6 +156,8 @@ _RESEARCHER_PERMS = _STUDENT_PERMS + [
     "extraction.create",
     "extraction.review",
     "extraction.approve",
+    "source_admission.read",
+    "source_admission.create",
     "research.create",
     "research.read",
     "research.update",
@@ -180,6 +183,7 @@ _REVIEWER_PERMS = _RESEARCHER_PERMS + [
     "evidence.review",
     "citation.review",
     "research.review",
+    "source_admission.review",
     "person.approve",
     "book.approve",
     "version.approve",

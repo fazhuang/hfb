@@ -29,6 +29,7 @@ from app.api.v1.passages import router as passages_router
 from app.api.v1.relations import router as relations_router
 from app.api.v1.research import router as research_router
 from app.api.v1.search import router as search_router
+from app.api.v1.source_admissions import router as source_admissions_router
 from app.api.v1.users import router as users_router
 from app.api.v1.version_center import router as version_center_router
 
@@ -42,6 +43,7 @@ router.include_router(version_center_router)
 router.include_router(graph_router)
 router.include_router(research_router)
 router.include_router(search_router)
+router.include_router(source_admissions_router)
 router.include_router(academic_rag_router)
 router.include_router(classical_versions_router)
 router.include_router(admin_router)
