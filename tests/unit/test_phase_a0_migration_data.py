@@ -452,18 +452,23 @@ def test_postgresql_illegal_ai_metadata_rejected() -> None:
 
 
 def test_sqlite_phase_a0_rollback_and_reupgrade(tmp_path) -> None:
-    """Migration rollback gate: upgrade → downgrade (all Phase A0) → re-upgrade."""
+    """Migration rollback gate: upgrade → downgrade (all Phase A0) → re-upgrade.
+
+    Phase A0 rollback is exercised up to `source_admission_entries` — the
+    revision immediately before the irreversible security migration
+    `rbac_cleanup_student_user_read` (whose downgrade intentionally raises).
+    """
     db_path = str(tmp_path / "rollback.db")
     db_url = f"sqlite:///{db_path}"
 
-    r = _run_alembic(db_url, "upgrade", "head")
+    r = _run_alembic(db_url, "upgrade", "source_admission_entries")
     assert r.returncode == 0, r.stderr
 
     # Roll back every Phase A0 migration (down to the pre-Phase-A0 head).
     r = _run_alembic(db_url, "downgrade", "f1a2b3c4d5e6")
     assert r.returncode == 0, r.stderr
 
-    r = _run_alembic(db_url, "upgrade", "head")
+    r = _run_alembic(db_url, "upgrade", "source_admission_entries")
     assert r.returncode == 0, r.stderr
 
 
@@ -484,11 +489,11 @@ def test_postgresql_phase_a0_rollback_and_reupgrade() -> None:
         cur.execute("CREATE SCHEMA public")
     conn.close()
 
-    r = _run_alembic(async_url, "upgrade", "head")
+    r = _run_alembic(async_url, "upgrade", "source_admission_entries")
     assert r.returncode == 0, r.stderr
 
     r = _run_alembic(async_url, "downgrade", "f1a2b3c4d5e6")
     assert r.returncode == 0, r.stderr
 
-    r = _run_alembic(async_url, "upgrade", "head")
+    r = _run_alembic(async_url, "upgrade", "source_admission_entries")
     assert r.returncode == 0, r.stderr

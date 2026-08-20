@@ -74,7 +74,7 @@ def _make_auth_app(**svc_kwargs):
         else:
             svc.register = AsyncMock(return_value=res)
     if "refresh_result" in svc_kwargs:
-        svc.refresh_access_token = MagicMock(return_value=svc_kwargs["refresh_result"])
+        svc.refresh_access_token = AsyncMock(return_value=svc_kwargs["refresh_result"])
 
     async def _fake_get_auth_service():
         return svc
@@ -463,7 +463,7 @@ class TestRefresh:
 class TestMe:
     """Lines 144-160. Uncovered: 150-157 (me 404)."""
 
-    async def test_me_success(self):
+    async def test_me_success(self, monkeypatch):
         """Happy path: authenticated user found."""
         fake_user = _FakeUser(
             id=_UC,
@@ -480,7 +480,7 @@ class TestMe:
         user_repo_mock = MagicMock()
         user_repo_mock.get_by_id = AsyncMock(return_value=fake_user)
 
-        app = _make_me_only_app("current-user", user_repo_mock)
+        app = _make_me_only_app("current-user", user_repo_mock, monkeypatch)
 
         resp = await _get(app, "/auth/me")
 
@@ -489,12 +489,12 @@ class TestMe:
         assert data["success"] is True
         assert data["data"]["username"] == "current"
 
-    async def test_me_user_not_found(self):
+    async def test_me_user_not_found(self, monkeypatch):
         """Lines 150-157: user not found -> 404."""
         user_repo_mock = MagicMock()
         user_repo_mock.get_by_id = AsyncMock(return_value=None)
 
-        app = _make_me_only_app("ghost-user", user_repo_mock)
+        app = _make_me_only_app("ghost-user", user_repo_mock, monkeypatch)
 
         resp = await _get(app, "/auth/me")
 
@@ -515,7 +515,7 @@ class TestMe:
         assert resp.status_code == 401
 
 
-def _make_me_only_app(user_id: str, user_repo_mock: MagicMock):
+def _make_me_only_app(user_id: str, user_repo_mock: MagicMock, monkeypatch):
     """Build an app with auth router, overridden get_current_user + UserRepository."""
     from app.api.v1.auth import router as auth_router
     from app.db.database import get_session
@@ -536,6 +536,8 @@ def _make_me_only_app(user_id: str, user_repo_mock: MagicMock):
 
     import app.api.v1.auth as auth_module
 
-    auth_module.UserRepository = MagicMock(return_value=user_repo_mock)
+    monkeypatch.setattr(
+        auth_module, "UserRepository", MagicMock(return_value=user_repo_mock)
+    )
 
     return app

@@ -33,17 +33,19 @@ from app.utils.response import api_response
 router = APIRouter(prefix="/search", tags=["Search"])
 
 _append_passage_guard = require_permission("document", "update")
-
-# ponytail: auth deferred to post-Day-2 hardening.
-# Search/ingest use no required permission to allow integration
-# testing; user-level auth is applied through the frontend gateway
-# and will be wired via require_permission("search", "read") later.
+_search_read_guard = require_permission("search", "read")
+_ingest_create_guard = require_permission("document", "create")
 
 
-@router.post("", response_model=SearchResponse)
+@router.post(
+    "",
+    response_model=SearchResponse,
+    dependencies=[Depends(_search_read_guard)],
+)
 async def search(
     body: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[str, Depends(get_current_user)],
 ) -> SearchResponse:
     """Search document chunks by keyword.
 
@@ -64,6 +66,7 @@ async def search(
         document_id=body.document_id,
         year=body.year,
         author_id=body.author_id,
+        current_user=current_user,
     )
 
     return SearchResponse(
@@ -85,10 +88,15 @@ async def search(
     )
 
 
-@router.post("/chunks", response_model=dict)
+@router.post(
+    "/chunks",
+    response_model=dict,
+    dependencies=[Depends(_search_read_guard)],
+)
 async def search_chunks(
     body: SearchRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     """Search document chunks (compatibility alias for POST /api/v1/search/chunks)."""
     svc = RetrievalService(session)
@@ -98,6 +106,7 @@ async def search_chunks(
         document_id=body.document_id,
         year=body.year,
         author_id=body.author_id,
+        current_user=current_user,
     )
     return api_response(
         data={
@@ -121,19 +130,27 @@ async def search_chunks(
     )
 
 
-@router.post("/ingest", response_model=dict)
+@router.post(
+    "/ingest",
+    response_model=dict,
+    dependencies=[Depends(_ingest_create_guard)],
+)
 async def ingest_text(
     body: IngestTextRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user: Annotated[str, Depends(get_current_user)],
 ) -> dict:
     """Ingest a plain-text document, chunk it, and store it for retrieval.
 
     Context 21: copyright_status and authorization fields are passed to
     IngestionService.ingest_text() which enforces the compliance gate before
     any full-text is stored or chunked.
+
+    Server-side ownership binding: uploaded_by is forced to the authenticated
+    user — callers cannot spoof the owner via the request body.
     """
     try:
-        metadata: dict = {}
+        metadata: dict = {"uploaded_by": current_user}
         if body.dynasty:
             metadata["dynasty"] = body.dynasty
         if body.category:

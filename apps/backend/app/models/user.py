@@ -7,7 +7,7 @@ HFB-SEC-0702 Security Standard Chapter 4-5
 
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, ForeignKey, String, Table, Text
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, BaseModel
@@ -88,6 +88,13 @@ class User(BaseModel):
         server_default="false",
         nullable=False,
         comment="超级管理员",
+    )
+    token_version: Mapped[int] = mapped_column(
+        Integer,
+        default=1,
+        server_default="1",
+        nullable=False,
+        comment="令牌版本号",
     )
 
     # Relationships

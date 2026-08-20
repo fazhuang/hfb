@@ -65,9 +65,11 @@ def _jwt_expiry() -> int:
 
 
 def create_access_token(
-    user_id: str, extra_claims: dict[str, Any] | None = None
+    user_id: str,
+    extra_claims: dict[str, Any] | None = None,
+    token_version: int = 1,
 ) -> str:
-    """Create a signed JWT access token."""
+    """Create a signed JWT access token bound to a token_version."""
     import uuid as _uuid
 
     now = datetime.now(UTC)
@@ -77,14 +79,15 @@ def create_access_token(
         "exp": now + timedelta(minutes=_jwt_expiry()),
         "type": "access",
         "jti": str(_uuid.uuid4()),
+        "token_version": token_version,
     }
     if extra_claims:
         payload.update(extra_claims)
     return jwt.encode(payload, _jwt_secret(), algorithm=_jwt_algorithm())
 
 
-def create_refresh_token(user_id: str) -> str:
-    """Create a long-lived refresh token."""
+def create_refresh_token(user_id: str, token_version: int = 1) -> str:
+    """Create a long-lived refresh token bound to a token_version."""
     import uuid as _uuid
 
     now = datetime.now(UTC)
@@ -94,6 +97,7 @@ def create_refresh_token(user_id: str) -> str:
         "exp": now + timedelta(days=7),
         "type": "refresh",
         "jti": str(_uuid.uuid4()),
+        "token_version": token_version,
     }
     return jwt.encode(payload, _jwt_secret(), algorithm=_jwt_algorithm())
 
@@ -129,8 +133,9 @@ class AuthService:
         if not verify_password(password, user.hashed_password):
             return None, None, None
 
-        access = create_access_token(user.id)
-        refresh = create_refresh_token(user.id)
+        tv = user.token_version or 1
+        access = create_access_token(str(user.id), token_version=tv)
+        refresh = create_refresh_token(str(user.id), token_version=tv)
         return user, access, refresh
 
     async def register(
@@ -195,16 +200,57 @@ class AuthService:
         user_with_roles = result.scalar_one()
         return user_with_roles
 
-    def refresh_access_token(self, refresh_token: str) -> tuple[str, str] | None:
-        """Issue a new token pair from a valid refresh token. Returns (access, refresh) or None."""
+    async def verify_access_token(self, token: str) -> str | None:
+        """Validate an access token against the live user record.
+
+        Fail-closed on any mismatch: wrong token type, missing/deleted user,
+        deactivated user, or a stale token_version (password reset / account
+        disable). Returns the user_id on success.
+        """
         try:
-            payload = decode_token(refresh_token)
-            if payload.get("type") != "refresh":
-                return None
-            user_id = payload["sub"]
-            return create_access_token(user_id), create_refresh_token(user_id)
+            payload = decode_token(token)
         except jwt.PyJWTError:
             return None
+        if payload.get("type") != "access":
+            return None
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None or not user.is_active:
+            return None
+        if (user.token_version or 1) != payload.get("token_version"):
+            return None
+        return str(user_id)
+
+    async def refresh_access_token(
+        self, refresh_token: str
+    ) -> tuple[str, str] | None:
+        """Issue a new token pair from a valid refresh token.
+
+        Returns (access, refresh) or None. Validates token type, the live
+        user's is_active flag, and token_version — so a password reset or
+        account disable voids every in-flight refresh token immediately.
+        """
+        try:
+            payload = decode_token(refresh_token)
+        except jwt.PyJWTError:
+            return None
+        if payload.get("type") != "refresh":
+            return None
+        user_id = payload.get("sub")
+        if not user_id:
+            return None
+        user = await self.user_repo.get_by_id(user_id)
+        if user is None or not user.is_active:
+            return None
+        if (user.token_version or 1) != payload.get("token_version"):
+            return None
+        tv = user.token_version or 1
+        return (
+            create_access_token(str(user.id), token_version=tv),
+            create_refresh_token(str(user.id), token_version=tv),
+        )
 
     def get_current_user_id(self, token: str) -> str | None:
         """Extract the user ID from an access token. Returns None if invalid."""

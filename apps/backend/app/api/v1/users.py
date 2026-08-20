@@ -76,10 +76,28 @@ async def list_users(
 async def create_user(
     body: UserCreate,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user_id: Annotated[str, Depends(get_current_user)] = "",
 ) -> dict:
-    """Create a new user (admin)."""
+    """Create a new user (admin).
+
+    Privilege-escalation guard: only superusers may create a superuser
+    account or assign roles directly.
+    """
     repo = UserRepository(session)
     role_repo = RoleRepository(session)
+
+    caller = await repo.get_by_id(current_user_id)
+    caller_is_superuser = caller is not None and caller.is_superuser
+    if body.is_superuser and not caller_is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can create superuser accounts",
+        )
+    if body.role_ids and not caller_is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can assign roles",
+        )
 
     existing = await repo.get_by_username(body.username)
     if existing:
@@ -144,14 +162,48 @@ async def update_user(
     user_id: UUID,
     body: UserUpdate,
     session: Annotated[AsyncSession, Depends(get_session)],
+    current_user_id: Annotated[str, Depends(get_current_user)] = "",
 ) -> dict:
-    """Partially update a user."""
+    """Partially update a user.
+
+    Account-takeover guard: only superusers may modify is_superuser,
+    role_ids, is_active, or reset another user's password. A successful
+    password change or account disable increments token_version to void
+    every in-flight access and refresh token immediately.
+    """
     repo = UserRepository(session)
     user = await repo.get_by_id(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
+
+    caller = await repo.get_by_id(current_user_id)
+    caller_is_superuser = caller is not None and caller.is_superuser
+
+    if body.is_superuser is not None and not caller_is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can modify the is_superuser flag",
+        )
+    if body.role_ids is not None and not caller_is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can modify role assignments",
+        )
+    if body.is_active is not None and not caller_is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can modify account status",
+        )
+    if body.password and not caller_is_superuser and str(user_id) != current_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only superusers can reset other users' passwords",
+        )
+
+    password_changed = bool(body.password)
+    active_changed = body.is_active is not None
 
     updates = body.model_dump(exclude_unset=True, exclude={"role_ids", "password"})
     for key, value in updates.items():
@@ -166,6 +218,12 @@ async def update_user(
             role = await role_repo.get_by_id(rid)
             if role:
                 user.roles.append(role)  # type: ignore[attr-defined]
+
+    # Token lifecycle: password reset or account disable atomically voids
+    # all previously issued tokens by bumping token_version.
+    if password_changed or active_changed:
+        user.token_version = (user.token_version or 1) + 1
+
     await session.flush()
 
     return api_response(

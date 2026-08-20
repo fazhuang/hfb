@@ -53,7 +53,7 @@ async def get_current_user(
             detail="Authentication required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user_id = auth_svc.get_current_user_id(token)
+    user_id = await auth_svc.verify_access_token(token)
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

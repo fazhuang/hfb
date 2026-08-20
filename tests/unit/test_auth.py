@@ -128,7 +128,7 @@ class TestAuthService:
         _u, access, refresh = await svc.authenticate("rtest", "pass123")
         assert refresh is not None
 
-        tokens = svc.refresh_access_token(refresh)
+        tokens = await svc.refresh_access_token(refresh)
         assert tokens is not None
         new_access, _new_refresh = tokens
         assert new_access != access
@@ -142,7 +142,7 @@ class TestAuthService:
         _u, access, _refresh = await svc.authenticate("rtest2", "pass123")
 
         # Using access token as refresh -> should fail
-        result = svc.refresh_access_token(access)
+        result = await svc.refresh_access_token(access)
         assert result is None
 
     @pytest.mark.asyncio
@@ -277,7 +277,7 @@ class TestGetCurrentUser:
 
         async def _fake_svc():
             svc = MagicMock()
-            svc.get_current_user_id = MagicMock(return_value=None)
+            svc.verify_access_token = AsyncMock(return_value=None)
             return svc
 
         app.dependency_overrides[auth_svc_dep] = _fake_svc

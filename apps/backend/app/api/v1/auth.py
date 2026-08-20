@@ -123,7 +123,7 @@ async def refresh(
     auth_svc: Annotated[AuthService, Depends(get_auth_service)],
 ) -> dict:
     """Issue a new token pair using a valid refresh token."""
-    tokens = auth_svc.refresh_access_token(body.refresh_token)
+    tokens = await auth_svc.refresh_access_token(body.refresh_token)
     if tokens is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

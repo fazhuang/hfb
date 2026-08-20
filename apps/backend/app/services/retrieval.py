@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
+from app.models.workspace import ResearchSession
 
 logger = logging.getLogger(__name__)
 
@@ -196,6 +197,7 @@ class RetrievalService:
         year: int | None = None,
         author_id: str | None = None,
         strict_compliance: bool = False,
+        current_user: str | None = None,
     ) -> SearchResponse:
         """Search document chunks by keywords (ILIKE per tokenized keyword).
 
@@ -230,6 +232,36 @@ class RetrievalService:
                 Document.is_deleted.is_(False),
             )
         )
+        # Dual-dimension independent fail-closed isolation:
+        #   owner_ok  — document ownership (uploaded_by) gate
+        #   session_ok — research-session membership (session_id) gate
+        # Both predicates are AND-ed: a document must be BOTH ownership-
+        # visible AND session-visible to be returned. Mismatched
+        # (uploaded_by=A, session_id=B) rows fail closed.
+        if current_user:
+            session_owned_subq = (
+                select(1)
+                .select_from(ResearchSession)
+                .where(
+                    ResearchSession.id == Document.session_id,
+                    ResearchSession.user_id == current_user,
+                    ResearchSession.is_deleted.is_(False),
+                )
+                .exists()
+            )
+            owner_ok = or_(
+                Document.uploaded_by.is_(None),
+                Document.uploaded_by == current_user,
+            )
+            session_ok = or_(
+                Document.session_id.is_(None),
+                session_owned_subq,
+            )
+        else:
+            owner_ok = Document.uploaded_by.is_(None)
+            session_ok = Document.session_id.is_(None)
+
+        stmt = stmt.where(owner_ok, session_ok)
         if strict_compliance:
             stmt = stmt.where(
                 *_compliance_clauses(

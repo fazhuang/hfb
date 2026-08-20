@@ -90,6 +90,19 @@ async def _seed_data(session):
     await session.flush()
 
 
+async def _search_auth_headers(session) -> dict[str, str]:
+    """Create a Researcher (search.read) user and return Authorization headers."""
+    from app.services.auth_service import AuthService, create_access_token
+
+    auth_svc = AuthService(session)
+    user = await auth_svc.register(
+        "day3-search-user", "day3-search-user@test.com", "Test123456!", "Day3Search"
+    )
+    await session.flush()
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
 # ============================================================
 # API CONTRACT TESTS (5 tests)
 # ============================================================
@@ -136,6 +149,8 @@ class TestAPIContract:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -144,7 +159,7 @@ class TestAPIContract:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "针灸", "top_k": 3},
@@ -164,6 +179,8 @@ class TestAPIContract:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -172,7 +189,7 @@ class TestAPIContract:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "经络", "top_k": 10},
@@ -197,6 +214,8 @@ class TestAPIContract:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -205,7 +224,7 @@ class TestAPIContract:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "针灸 经络 医学", "top_k": 5},
@@ -234,6 +253,8 @@ class TestAPIContract:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -242,7 +263,7 @@ class TestAPIContract:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "医学", "top_k": 3},
@@ -267,6 +288,8 @@ class TestAPIContract:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -275,7 +298,7 @@ class TestAPIContract:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "", "top_k": 5},
@@ -298,6 +321,8 @@ class TestFilters:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         # Find the document_id for "针灸甲乙经"
         doc = (
             await app_db_session.execute(
@@ -314,7 +339,7 @@ class TestFilters:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={
@@ -331,7 +356,7 @@ class TestFilters:
                 assert result["document_id"] == target_doc_id
 
         # Verify unfiltered search returns results from both documents
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r2 = await c.post(
                 "/api/v1/search",
                 json={"query": "医学 影响", "top_k": 10},
@@ -346,6 +371,8 @@ class TestFilters:
         from app.db.database import get_session
 
         await _seed_data(app_db_session)
+
+        headers = await _search_auth_headers(app_db_session)
 
         # Manually set years on the seeded documents
         docs = (
@@ -366,7 +393,7 @@ class TestFilters:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             # Filter to year 265 only
             r = await c.post(
                 "/api/v1/search",
@@ -415,6 +442,8 @@ class TestFilters:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         doc = (
             await app_db_session.execute(
                 select(Document).where(Document.title == "针灸甲乙经")
@@ -432,7 +461,7 @@ class TestFilters:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             # Matching combination: correct doc + correct year
             r = await c.post(
                 "/api/v1/search",
@@ -476,6 +505,8 @@ class TestCitationValidation:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -484,7 +515,7 @@ class TestCitationValidation:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "针灸 医学", "top_k": 10},
@@ -518,6 +549,8 @@ class TestCitationValidation:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -526,7 +559,7 @@ class TestCitationValidation:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "中医 医学 经典", "top_k": 10},
@@ -566,6 +599,8 @@ class TestCitationValidation:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -574,7 +609,7 @@ class TestCitationValidation:
         app.dependency_overrides[get_session] = override_get_session
 
         transport = ASGITransport(app=app, raise_app_exceptions=False)
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "针灸 经络 医学", "top_k": 10},
@@ -615,6 +650,8 @@ class TestConcurrency:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -632,7 +669,7 @@ class TestConcurrency:
 
         async def _send(payload):
             transport = ASGITransport(app=app, raise_app_exceptions=False)
-            async with AsyncClient(transport=transport, base_url="http://test") as c:
+            async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
                 r = await c.post("/api/v1/search", json=payload)
                 return r.status_code, r.json()
 
@@ -654,6 +691,8 @@ class TestConcurrency:
 
         await _seed_data(app_db_session)
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -666,7 +705,7 @@ class TestConcurrency:
 
         responses = []
         response_bytes = []
-        async with AsyncClient(transport=transport, base_url="http://test") as c:
+        async with AsyncClient(transport=transport, base_url="http://test", headers=headers) as c:
             for _ in range(5):
                 r = await c.post("/api/v1/search", json=payload)
                 assert r.status_code == 200

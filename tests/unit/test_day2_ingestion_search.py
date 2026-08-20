@@ -578,6 +578,19 @@ def _make_test_app():
     return app
 
 
+async def _search_auth_headers(session) -> dict[str, str]:
+    """Create a Researcher (search.read) user and return Authorization headers."""
+    from app.services.auth_service import AuthService, create_access_token
+
+    auth_svc = AuthService(session)
+    user = await auth_svc.register(
+        "search-auth-user", "search-auth-user@test.com", "Test123456!", "SearchAuth"
+    )
+    await session.flush()
+    token = create_access_token(user.id)
+    return {"Authorization": f"Bearer {token}"}
+
+
 @pytest.fixture
 async def app_db_session():
     """In-memory SQLite session used by the test app (via get_session override)."""
@@ -610,6 +623,8 @@ class TestSearchAPI:
         )
         await app_db_session.flush()
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         # Override get_session to use our test session
@@ -623,6 +638,7 @@ class TestSearchAPI:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "皇甫谧 针灸 经络", "top_k": 5},
+                headers=headers,
             )
             assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
             body = r.json()
@@ -680,6 +696,7 @@ class TestSearchAPI:
             r2 = await c.post(
                 "/api/v1/search",
                 json={"query": "皇甫谧 针灸 经络", "top_k": 5},
+                headers=headers,
             )
             assert r2.status_code == 200
             assert json.dumps(body, sort_keys=True) == json.dumps(
@@ -694,6 +711,8 @@ class TestSearchAPI:
         await svc.ingest_text(title="test", text="some content", metadata=_COMPLIANCE)
         await app_db_session.flush()
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -706,6 +725,7 @@ class TestSearchAPI:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "nonexistent_keyword_xyz", "top_k": 5},
+                headers=headers,
             )
             assert r.status_code == 200
             body = r.json()
@@ -732,6 +752,8 @@ class TestSearchAPI:
         )
         await app_db_session.flush()
 
+        headers = await _search_auth_headers(app_db_session)
+
         app = _make_test_app()
 
         async def override_get_session():
@@ -744,6 +766,7 @@ class TestSearchAPI:
             r = await c.post(
                 "/api/v1/search",
                 json={"query": "皇甫谧 针灸 经络", "top_k": 5},
+                headers=headers,
             )
             assert r.status_code == 200
             body = r.json()

@@ -128,7 +128,6 @@ _VISITOR_READS = [
 _STUDENT_PERMS = _VISITOR_READS + [
     "workspace.read",
     "ai.read",
-    "user.read",
 ]
 
 _RESEARCHER_PERMS = _STUDENT_PERMS + [
@@ -184,6 +183,7 @@ _REVIEWER_PERMS = _RESEARCHER_PERMS + [
     "citation.review",
     "research.review",
     "source_admission.review",
+    "document.review",
     "person.approve",
     "book.approve",
     "version.approve",
@@ -210,6 +210,8 @@ _LEADER_PERMS = _REVIEWER_PERMS + [
     "workspace.delete",
     "project.delete",
     "project.publish",
+    "user.read",
+    "document.delete",
 ]
 
 _ACADEMIC_ADMIN_PERMS = _LEADER_PERMS + [
@@ -221,6 +223,7 @@ _ACADEMIC_ADMIN_PERMS = _LEADER_PERMS + [
     "book.review",
     "evidence.review",
     "citation.review",
+    "user.read",
 ]
 
 # Platform Admin gets ALL permissions (resolved dynamically after permission seed)

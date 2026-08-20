@@ -36,6 +36,8 @@ router = APIRouter(tags=["Admin"])
 
 document_review_guard = require_permission("document", "review")
 document_update_guard = require_permission("document", "update")
+document_delete_guard = require_permission("document", "delete")
+version_delete_guard = require_permission("version", "delete")
 source_policy_read_guard = require_permission("source_policy", "read")
 source_policy_create_guard = require_permission("source_policy", "create")
 source_policy_update_guard = require_permission("source_policy", "update")
@@ -119,7 +121,7 @@ async def review_document(
 @router.post(
     "/documents/{document_id}/withdraw",
     response_model=dict,
-    dependencies=[Depends(document_update_guard)],
+    dependencies=[Depends(document_delete_guard)],
 )
 async def withdraw_document(
     document_id: UUID,
@@ -325,7 +327,7 @@ class VersionWithdrawRequest(_PydanticBaseModel):
 @router.post(
     "/versions/{version_id}/withdraw",
     response_model=dict,
-    dependencies=[Depends(document_update_guard)],
+    dependencies=[Depends(version_delete_guard)],
 )
 async def withdraw_version(
     version_id: UUID,
@@ -377,7 +379,7 @@ async def withdraw_version(
 @router.post(
     "/versions/{version_id}/restore",
     response_model=dict,
-    dependencies=[Depends(document_update_guard)],
+    dependencies=[Depends(version_delete_guard)],
 )
 async def restore_version(
     version_id: UUID,

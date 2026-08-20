@@ -4,9 +4,10 @@ Document repository — data access for documents (文献).
 
 from __future__ import annotations
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, false as sql_false, func, or_, select
 
 from app.models.document import Document
+from app.models.workspace import ResearchSession
 from app.repositories.base import BaseRepository
 
 
@@ -43,20 +44,56 @@ class DocumentRepository(BaseRepository[Document]):
         """
         conditions = [self.model.is_deleted.is_(False)]
 
+        # Symmetric dual-dimension interception (ownership AND session).
+        # A session-scoped query without an owning user fails closed (false).
+        # A user-scoped query must satisfy BOTH the ownership gate and the
+        # session-membership gate, so mismatched rows (uploaded_by=A,
+        # session_id=B) are never leaked.
         if session_id is not None:
-            # Session scope: only docs belonging to the specified session
-            conditions.append(self.model.session_id == session_id)
+            if user_id is None:
+                conditions.append(sql_false())
+            else:
+                session_owned_subq = (
+                    select(1)
+                    .select_from(ResearchSession)
+                    .where(
+                        ResearchSession.id == session_id,
+                        ResearchSession.user_id == user_id,
+                        ResearchSession.is_deleted.is_(False),
+                    )
+                    .exists()
+                )
+                conditions.append(self.model.session_id == session_id)
+                conditions.append(session_owned_subq)
+                conditions.append(
+                    or_(
+                        self.model.uploaded_by.is_(None),
+                        self.model.uploaded_by == user_id,
+                    )
+                )
         elif user_id is not None:
-            # User scope: show user's own docs + public/system docs (NULL owner)
+            session_owned_subq = (
+                select(1)
+                .select_from(ResearchSession)
+                .where(
+                    ResearchSession.id == self.model.session_id,
+                    ResearchSession.user_id == user_id,
+                    ResearchSession.is_deleted.is_(False),
+                )
+                .exists()
+            )
             conditions.append(
                 or_(
-                    self.model.uploaded_by == user_id,
                     self.model.uploaded_by.is_(None),
+                    self.model.uploaded_by == user_id,
                 )
             )
+            conditions.append(
+                or_(self.model.session_id.is_(None), session_owned_subq)
+            )
         else:
-            # No user context (anonymous): only public/system docs
             conditions.append(self.model.uploaded_by.is_(None))
+            conditions.append(self.model.session_id.is_(None))
 
         if query.strip():
             search_fields = [
