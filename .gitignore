@@ -173,3 +173,7 @@ session-report-*.html
 .cache/
 backups/
 .eslintcache
+
+# --- Unrelated local artifacts (not part of the platform codebase) ---
+motionsites-prompts/
+hfm.jpeg
