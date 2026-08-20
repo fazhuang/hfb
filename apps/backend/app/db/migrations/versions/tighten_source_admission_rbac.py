@@ -63,11 +63,13 @@ def upgrade() -> None:
     )
 
     # Insert the Steering Committee role (governance review body).
+    # The id must be a valid UUID (roles.id is a String(36) UUID and the API
+    # schemas validate it as a UUID).
     conn.execute(
         sa.text(
             """
             INSERT INTO roles (id, name, description, is_system)
-            SELECT 'role-steering-committee', 'Steering Committee',
+            SELECT 'a96dd15c-124b-435b-9b1c-e5fc6b82709f', 'Steering Committee',
                    '指导委员会 — 审核来源准入与语料解冻治理决策', TRUE
             WHERE NOT EXISTS (
                 SELECT 1 FROM roles WHERE name = 'Steering Committee'

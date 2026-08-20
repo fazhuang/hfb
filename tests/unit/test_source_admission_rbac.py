@@ -14,6 +14,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+import uuid as _uuid_mod
 from pathlib import Path
 
 import pytest
@@ -155,6 +156,8 @@ class TestSourceAdmissionRbacMigration:
             ).fetchone()
             assert steering is not None, "Steering Committee role missing"
             steering_id = steering[0]
+            # Role id must be a valid UUID — the API schemas validate it as UUID.
+            _uuid_mod.UUID(steering_id)
             assert _grants(steering_id) == {"p-sa-read", "p-sa-review"}
 
             conn.close()
