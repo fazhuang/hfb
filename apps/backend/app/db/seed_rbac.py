@@ -81,6 +81,11 @@ SEED_ROLES = [
         "is_system": True,
     },
     {
+        "name": "Steering Committee",
+        "description": "指导委员会 — 审核来源准入与语料解冻治理决策",
+        "is_system": True,
+    },
+    {
         "name": "Research Leader",
         "description": "项目负责人 — 管理课题组与研究项目",
         "is_system": False,
@@ -156,7 +161,6 @@ _RESEARCHER_PERMS = _STUDENT_PERMS + [
     "extraction.review",
     "extraction.approve",
     "source_admission.read",
-    "source_admission.create",
     "research.create",
     "research.read",
     "research.update",
@@ -182,7 +186,6 @@ _REVIEWER_PERMS = _RESEARCHER_PERMS + [
     "evidence.review",
     "citation.review",
     "research.review",
-    "source_admission.review",
     "document.review",
     "person.approve",
     "book.approve",
@@ -210,6 +213,7 @@ _LEADER_PERMS = _REVIEWER_PERMS + [
     "workspace.delete",
     "project.delete",
     "project.publish",
+    "source_admission.create",
     "user.read",
     "document.delete",
 ]
@@ -226,6 +230,11 @@ _ACADEMIC_ADMIN_PERMS = _LEADER_PERMS + [
     "user.read",
 ]
 
+_STEERING_PERMS = _VISITOR_READS + [
+    "source_admission.read",
+    "source_admission.review",
+]
+
 # Platform Admin gets ALL permissions (resolved dynamically after permission seed)
 
 
@@ -238,6 +247,7 @@ def _resolve_role_permission_codes() -> dict[str, list[str]]:
         "Reviewer": _REVIEWER_PERMS,
         "Research Leader": _LEADER_PERMS,
         "Academic Administrator": _ACADEMIC_ADMIN_PERMS,
+        "Steering Committee": _STEERING_PERMS,
         # "Platform Administrator" resolved at seed time → all permissions
     }
 
