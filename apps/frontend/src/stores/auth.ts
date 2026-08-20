@@ -52,6 +52,15 @@ const ADMIN_ROLE_NAMES = new Set([
   'reviewer',
 ]);
 
+// Roles that may view (read) the source-admission checklist.
+const SOURCE_ADMISSION_READ_ROLES = new Set([
+  'researcher',
+  'reviewer',
+  'research leader',
+  'academic administrator',
+  'steering committee',
+]);
+
 // ------------------------------------------------------------------
 // Store
 // ------------------------------------------------------------------
@@ -92,6 +101,15 @@ export const useAuthStore = defineStore('auth', () => {
   /** Can review source-admission entries = Steering Committee or superuser. */
   const canReviewSourceAdmissions = computed(
     () => isSuperAdmin.value || isSteeringCommittee.value,
+  );
+
+  /** Can read source-admission entries = any read-granted role or superuser. */
+  const canReadSourceAdmissions = computed(
+    () =>
+      isSuperAdmin.value ||
+      (user.value?.roles ?? []).some((r) =>
+        SOURCE_ADMISSION_READ_ROLES.has(r.name.toLowerCase()),
+      ),
   );
 
   /** Can fill source-admission entries = Research Leader / Academic Admin or superuser. */
@@ -312,6 +330,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAdminRole,
     canReviewDocuments,
     canReviewSourceAdmissions,
+    canReadSourceAdmissions,
     canFillSourceAdmissions,
     isSteeringCommittee,
     canManageSourcePolicies,

@@ -323,8 +323,10 @@ const adminNavItems = computed<NavItem[]>(() => {
       { path: '/admin/literature-review', icon: 'check', labelKey: 'nav.adminReview' },
       { path: '/admin/ingestion-tasks', icon: 'clipboard-list', labelKey: 'nav.adminIngestion' },
       { path: '/admin/users', icon: 'users', labelKey: 'nav.adminUsers' },
-      { path: '/source-admission', icon: 'scroll-text', labelKey: 'nav.sourceAdmission' },
     );
+  }
+  if (auth.canReadSourceAdmissions) {
+    items.push({ path: '/source-admission', icon: 'scroll-text', labelKey: 'nav.sourceAdmission' });
   }
   if (auth.canManageSourcePolicies) {
     items.push({ path: '/admin/source-policy', icon: 'lock', labelKey: 'nav.adminSourcePolicy' });

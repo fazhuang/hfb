@@ -9,6 +9,7 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: vi.fn(() => ({
     isAuthenticated: true,
     canReviewDocuments: true,
+    canReadSourceAdmissions: true,
     canManageSourcePolicies: true,
     userName: 'TestUser',
   })),

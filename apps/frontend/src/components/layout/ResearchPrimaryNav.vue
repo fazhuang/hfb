@@ -116,6 +116,8 @@ const adminNavItems = computed<NavItem[]>(() => {
       label: t('nav.administration'),
       active: section.value === 'admin',
     });
+  }
+  if (auth.canReadSourceAdmissions) {
     items.push({
       path: '/source-admission',
       icon: 'scroll-text',
