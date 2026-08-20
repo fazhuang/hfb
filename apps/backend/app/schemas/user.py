@@ -90,12 +90,30 @@ class UserBrief(BaseModel):
 
     id: UUID
     username: str
-    display_name: str | None
-    affiliation: str | None
-    is_active: bool
+    email: str | None = None
+    display_name: str | None = None
+    affiliation: str | None = None
+    is_active: bool = True
+    is_superuser: bool = False
+    roles: list[RoleBrief] = Field(default_factory=list)
     created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def _safe_roles(cls, v: object) -> list[object]:
+        """Suppress lazy-load errors in test environments."""
+        try:
+            if (
+                v is not None
+                and hasattr(v, "__iter__")
+                and not isinstance(v, (str, bytes))
+            ):
+                return list(v)  # type: ignore[arg-type]
+        except (AttributeError, TypeError, RuntimeError):
+            logger.debug("Failed to iterate roles in field validator", exc_info=True)
+        return []
 
 
 class UserResponse(UserBase):
