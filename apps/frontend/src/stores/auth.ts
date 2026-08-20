@@ -82,6 +82,29 @@ export const useAuthStore = defineStore('auth', () => {
   /** Can review documents = admin or reviewer role. */
   const canReviewDocuments = computed(() => isAdminRole.value);
 
+  /** Steering Committee = dedicated governance review role for source admission. */
+  const isSteeringCommittee = computed(() =>
+    (user.value?.roles ?? []).some(
+      (r) => r.name.toLowerCase() === 'steering committee',
+    ),
+  );
+
+  /** Can review source-admission entries = Steering Committee or superuser. */
+  const canReviewSourceAdmissions = computed(
+    () => isSuperAdmin.value || isSteeringCommittee.value,
+  );
+
+  /** Can fill source-admission entries = Research Leader / Academic Admin or superuser. */
+  const canFillSourceAdmissions = computed(
+    () =>
+      isSuperAdmin.value ||
+      (user.value?.roles ?? []).some((r) =>
+        ['research leader', 'academic administrator'].includes(
+          r.name.toLowerCase(),
+        ),
+      ),
+  );
+
   /** Can manage source policies = super admin only. */
   const canManageSourcePolicies = computed(() => isSuperAdmin.value);
 
@@ -288,6 +311,9 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isAdminRole,
     canReviewDocuments,
+    canReviewSourceAdmissions,
+    canFillSourceAdmissions,
+    isSteeringCommittee,
     canManageSourcePolicies,
     userName,
     login,

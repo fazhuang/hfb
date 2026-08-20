@@ -52,7 +52,7 @@
         <footer class="sap-row__actions">
           <!-- 填写 / 重新填写（Research Lead） -->
           <button
-            v-if="row.status === 'empty' || row.status === 'rejected'"
+            v-if="canFill && (row.status === 'empty' || row.status === 'rejected')"
             type="button"
             class="sap-btn sap-btn--secondary"
             :disabled="busyKey === row.entry_key"
@@ -195,7 +195,8 @@ const editForm = ref({
   risk_note: '',
 });
 
-const canReview = computed(() => auth.canReviewDocuments);
+const canReview = computed(() => auth.canReviewSourceAdmissions);
+const canFill = computed(() => auth.canFillSourceAdmissions);
 
 const groups = GROUPS;
 
