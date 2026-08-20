@@ -260,6 +260,12 @@ Public Workspace
 
 支持多人协同。
 
+> **实施阶段标注（Implementation State Note）**
+>
+> - **目标架构 (Target State)**：本章描述的是平台目标形态 —— 完整的 Project Workspace 包含成员、数据、Version、Evidence、AI、Notes、Tasks、Timeline，并支持多人实时协同（第十三章 Collaboration）。
+> - **当前实现阶段 (Current Implementation State)**：当前代码库已落地的是研究工作区的基础会话模型（`ResearchSession`）与文献归属/会话隔离（`documents.uploaded_by` + `documents.session_id` 双维度 Fail-Closed 隔离），以及基于 RBAC 的权限校验。成员管理、Task、Timeline、多人实时协同等能力尚未实现，仍属目标架构范畴。
+> - 任何模块不得将目标架构视为已实现功能；落地进度以代码与测试为准。
+
 ---
 
 # 第九章 Academic Workspace
