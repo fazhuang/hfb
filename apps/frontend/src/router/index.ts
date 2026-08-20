@@ -307,6 +307,13 @@ const router = createRouter({
           component: () => import('@/views/admin/SourcePolicyView.vue'),
           meta: { requiresAuth: true, requiresSuperAdmin: true },
         },
+        // Admin: user & role management
+        {
+          path: 'admin/users',
+          name: 'admin-users',
+          component: () => import('@/views/admin/UserManagementView.vue'),
+          meta: { requiresAuth: true, requiresAdmin: true, title: '用户与权限管理' },
+        },
         // Admin: system health diagnostics
         {
           path: 'admin/system-health',

@@ -322,6 +322,7 @@ const adminNavItems = computed<NavItem[]>(() => {
     items.push(
       { path: '/admin/literature-review', icon: 'check', labelKey: 'nav.adminReview' },
       { path: '/admin/ingestion-tasks', icon: 'clipboard-list', labelKey: 'nav.adminIngestion' },
+      { path: '/admin/users', icon: 'users', labelKey: 'nav.adminUsers' },
       { path: '/source-admission', icon: 'scroll-text', labelKey: 'nav.sourceAdmission' },
     );
   }

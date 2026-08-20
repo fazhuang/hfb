@@ -9,9 +9,12 @@ import api from '@/api/client';
 export interface UserBrief {
   id: string;
   username: string;
+  email?: string | null;
   display_name: string | null;
   affiliation: string | null;
   is_active: boolean;
+  is_superuser?: boolean;
+  roles?: Array<RoleBrief>;
   created_at: string | null;
 }
 
@@ -92,15 +95,19 @@ export const useAuthStore = defineStore('auth', () => {
   function setTokens(access: string, refresh: string): void {
     accessToken.value = access;
     refreshToken.value = refresh;
-    localStorage.setItem('hfb-access-token', access);
-    localStorage.setItem('hfb-refresh-token', refresh);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('hfb-access-token', access);
+      localStorage.setItem('hfb-refresh-token', refresh);
+    }
   }
 
   function clearTokens(): void {
     accessToken.value = null;
     refreshToken.value = null;
-    localStorage.removeItem('hfb-access-token');
-    localStorage.removeItem('hfb-refresh-token');
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('hfb-access-token');
+      localStorage.removeItem('hfb-refresh-token');
+    }
   }
 
   // Extract user-readable error message from Axios error.
@@ -165,8 +172,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function loadTokens(): void {
-    accessToken.value = localStorage.getItem('hfb-access-token');
-    refreshToken.value = localStorage.getItem('hfb-refresh-token');
+    if (typeof localStorage !== 'undefined') {
+      accessToken.value = localStorage.getItem('hfb-access-token');
+      refreshToken.value = localStorage.getItem('hfb-refresh-token');
+    }
   }
 
   function setAuthHeader(token: string | null): void {

@@ -22,6 +22,7 @@ export default {
     adminReview: 'Lit Review',
     adminIngestion: 'Ingestion',
     adminSourcePolicy: 'Source Policy',
+    adminUsers: 'User Management',
     candidateReview: 'Candidate Review',
     sourceAdmission: 'Source Admission',
     startResearch: 'Start Research',
