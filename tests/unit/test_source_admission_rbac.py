@@ -160,3 +160,71 @@ class TestSourceAdmissionRbacMigration:
             conn.close()
         finally:
             os.unlink(db_path)
+
+    async def test_migration_idempotent_when_steering_preexists(self):
+        """A pre-existing Steering role (with read/review links) must not break
+        the migration with a primary-key violation."""
+        db_fd, db_path = tempfile.mkstemp(suffix=".db")
+        os.close(db_fd)
+        try:
+            _run_alembic(f"sqlite:///{db_path}", "rbac_cleanup_student_user_read")
+
+            conn = sqlite3.connect(db_path)
+            conn.execute(
+                "INSERT INTO permissions (id, resource, action, description, is_deleted) VALUES "
+                "('p-sa-read', 'source_admission', 'read', 'read', 0),"
+                "('p-sa-create', 'source_admission', 'create', 'create', 0),"
+                "('p-sa-review', 'source_admission', 'review', 'review', 0)"
+            )
+            roles = {
+                "Researcher": "role-researcher",
+                "Reviewer": "role-reviewer",
+                "Research Leader": "role-leader",
+                "Academic Administrator": "role-academic",
+                "Steering Committee": "role-steering-pre",  # pre-existing, custom id
+            }
+            for name, rid in roles.items():
+                conn.execute(
+                    "INSERT INTO roles (id, name, description, is_system, is_deleted) "
+                    "VALUES (?, ?, ?, 0, 0)",
+                    (rid, name, name),
+                )
+            conn.execute(
+                "INSERT INTO role_permission (role_id, permission_id) VALUES "
+                "('role-researcher','p-sa-read'),('role-researcher','p-sa-create'),"
+                "('role-reviewer','p-sa-read'),('role-reviewer','p-sa-create'),('role-reviewer','p-sa-review'),"
+                "('role-leader','p-sa-read'),('role-leader','p-sa-create'),('role-leader','p-sa-review'),"
+                "('role-academic','p-sa-read'),('role-academic','p-sa-create'),('role-academic','p-sa-review'),"
+                "('role-steering-pre','p-sa-read'),('role-steering-pre','p-sa-review')"
+            )
+            conn.commit()
+            conn.close()
+
+            # Must NOT raise a primary-key violation.
+            _run_alembic(f"sqlite:///{db_path}", "tighten_source_admission_rbac")
+
+            conn = sqlite3.connect(db_path)
+
+            def _grants(rid: str) -> set[str]:
+                return {
+                    r[0]
+                    for r in conn.execute(
+                        "SELECT permission_id FROM role_permission WHERE role_id = ?",
+                        (rid,),
+                    ).fetchall()
+                }
+
+            assert _grants("role-researcher") == {"p-sa-read"}
+            assert _grants("role-reviewer") == {"p-sa-read"}
+            assert _grants("role-leader") == {"p-sa-read", "p-sa-create"}
+            assert _grants("role-academic") == {"p-sa-read", "p-sa-create"}
+            # Pre-existing Steering keeps its grants; no duplicate rows.
+            assert _grants("role-steering-pre") == {"p-sa-read", "p-sa-review"}
+
+            count = conn.execute(
+                "SELECT COUNT(*) FROM roles WHERE name = 'Steering Committee'"
+            ).fetchone()[0]
+            assert count == 1, "A second Steering Committee role must not be created"
+            conn.close()
+        finally:
+            os.unlink(db_path)

@@ -1,7 +1,7 @@
 """
 Seed data for RBAC — default roles, permissions, and admin user.
 
-Per 1704 Ch.3 — seven platform roles.
+Per 1704 Ch.3 — eight platform roles.
 Per 1704 Ch.5 — resource × action permissions.
 """
 

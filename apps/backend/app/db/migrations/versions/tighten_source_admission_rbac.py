@@ -77,6 +77,8 @@ def upgrade() -> None:
     )
 
     # Grant the Steering Committee read + review on source_admission.
+    # Idempotent: skip links that already exist (e.g. a Steering role that was
+    # manually created and pre-linked before this migration ran).
     conn.execute(
         sa.text(
             """
@@ -86,6 +88,10 @@ def upgrade() -> None:
             WHERE r.name = 'Steering Committee'
               AND p.resource = 'source_admission'
               AND p.action IN ('read', 'review')
+              AND NOT EXISTS (
+                  SELECT 1 FROM role_permission rp
+                  WHERE rp.role_id = r.id AND rp.permission_id = p.id
+              )
             """
         )
     )
