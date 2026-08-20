@@ -81,6 +81,13 @@ export const useAuthStore = defineStore('auth', () => {
   /** Super admin = is_superuser flag from backend (full bypass). */
   const isSuperAdmin = computed(() => user.value?.is_superuser ?? false);
 
+  /** Platform Administrator = role granted ALL permissions by seed (full bypass). */
+  const isPlatformAdministrator = computed(() =>
+    (user.value?.roles ?? []).some(
+      (r) => r.name.toLowerCase() === 'platform administrator',
+    ),
+  );
+
   /** Admin role = has a recognized admin role name OR is superuser. */
   const isAdminRole = computed(() => {
     if (isSuperAdmin.value) return true;
@@ -98,24 +105,29 @@ export const useAuthStore = defineStore('auth', () => {
     ),
   );
 
-  /** Can review source-admission entries = Steering Committee or superuser. */
+  /** Can review source-admission entries = Steering Committee, Platform Administrator or superuser. */
   const canReviewSourceAdmissions = computed(
-    () => isSuperAdmin.value || isSteeringCommittee.value,
+    () =>
+      isSuperAdmin.value ||
+      isPlatformAdministrator.value ||
+      isSteeringCommittee.value,
   );
 
-  /** Can read source-admission entries = any read-granted role or superuser. */
+  /** Can read source-admission entries = any read-granted role, Platform Administrator or superuser. */
   const canReadSourceAdmissions = computed(
     () =>
       isSuperAdmin.value ||
+      isPlatformAdministrator.value ||
       (user.value?.roles ?? []).some((r) =>
         SOURCE_ADMISSION_READ_ROLES.has(r.name.toLowerCase()),
       ),
   );
 
-  /** Can fill source-admission entries = Research Leader / Academic Admin or superuser. */
+  /** Can fill source-admission entries = Research Leader / Academic Admin, Platform Administrator or superuser. */
   const canFillSourceAdmissions = computed(
     () =>
       isSuperAdmin.value ||
+      isPlatformAdministrator.value ||
       (user.value?.roles ?? []).some((r) =>
         ['research leader', 'academic administrator'].includes(
           r.name.toLowerCase(),
@@ -327,6 +339,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isSuperAdmin,
+    isPlatformAdministrator,
     isAdminRole,
     canReviewDocuments,
     canReviewSourceAdmissions,
